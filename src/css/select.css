@@ -1,0 +1,74 @@
+.dropdown {
+  height: calc(3.5rem + calc(var(--bs-border-width) * 2));
+  min-height: calc(3.5rem + calc(var(--bs-border-width) * 2));
+}
+
+.dropdown-toggle-select {
+  height: inherit;
+  width: inherit;
+  box-sizing: border-box;
+  border: solid 1px rgb(222, 226, 230);
+  border-radius: 6px;
+  background: transparent;
+  position: relative;
+}
+
+.select-container {
+  height: inherit;
+  width: inherit;
+  padding: 16px 12px;
+}
+
+.select-container.has-value-select {
+  padding: 26px 36px 10px 12px;
+}
+
+.select-caret {
+  position: absolute;
+  right: 4px;
+  transition: transform 0.1s ease-in-out;
+}
+
+.select-caret.menu-open-select {
+  transform: rotate(180deg);
+}
+
+.select-div {
+  position: absolute;
+  width: calc(100% - (8px * 4));
+  height: calc(50% + 3px);
+  overflow-x: hidden;
+  text-align: left;
+}
+
+.select-option {
+  white-space: nowrap;
+  position: relative;
+}
+
+.select-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  height: 100%;
+  padding: 1rem 0.75rem;
+  overflow: hidden;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  transform-origin: 0 0;
+  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.select-label.filled {
+  position: absolute;
+  opacity: 0.65;
+  transform: translate(0.15rem, -0.5rem) scale(0.85);
+}
+
+.select-menu {
+  max-height: 300px;
+  overflow-y: auto;
+}

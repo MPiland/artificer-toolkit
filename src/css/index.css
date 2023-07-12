@@ -1,0 +1,96 @@
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+#root {
+  position: relative;
+  min-height: 100vh;
+  padding-bottom: 3rem;
+}
+
+button.bi {
+  border: none;
+  background: none;
+}
+
+.main-container {
+  position: relative;
+  max-width: 65vw;
+  margin: 0 auto;
+}
+
+.main-footer {
+  text-align: center;
+  height: 3rem;
+  width: 100%;
+  background-color: white;
+  line-height: 3rem;
+}
+
+/* Accordion */
+
+.accordion-button {
+  height: 2.5rem;
+  padding: 4px 1rem;
+}
+
+.accordion-button.details-section {
+  height: 3rem;
+  padding: 4px 1rem;
+}
+
+.accordion-button > h5, h6 {
+  margin: 0;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #eaeaea;
+}
+
+.accordion-button.form-details {
+  background-color: transparent;
+  flex: 1;
+  border-color: rgba(0, 0, 0, 0.125);
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Effect Sections */
+
+.effect-text {
+  text-align: left;
+  border-bottom: 1px solid #000;
+  line-height: 0.1em;
+  margin: 10px 0 20px;
+}
+
+.effect-text span {
+  background: white;
+  padding: 0 10px;
+}
+
+.collapse-button {
+  background: transparent;
+  border: none;
+  width: 100%;
+}
+
+@media only screen and (max-width: 768px) {
+  .main-container {
+    position: relative;
+    max-width: 100vw;
+    margin: 0 auto;
+    justify-content: center;
+  }
+}
+
+@media only screen and (max-width: 992px) {
+  .main-container {
+    position: relative;
+    max-width: 85vw;
+    margin: 0 auto;
+  }
+}
