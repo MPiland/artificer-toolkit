@@ -133,7 +133,7 @@ const Register = () => {
         <span
           className='input-group-text bi bi-eye>'
           id='eye-addon'
-          onClick={setState({
+          onClick={() => setState({
             payload: {
               target: { name: 'showPassword', value: !state.showPassword },
             },
@@ -149,7 +149,7 @@ const Register = () => {
           type='checkbox'
           className='form-check-input'
           id='persist'
-          onChange={setPersist((prev) => !prev)}
+          onChange={() => setPersist((prev) => !prev)}
           checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
