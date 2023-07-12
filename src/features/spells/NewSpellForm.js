@@ -5,6 +5,7 @@ import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
+import Input from '../../components/Input'
 
 const NUM_REGEX = /^[0-9\b]+$/
 
@@ -70,14 +71,14 @@ const NewSpellForm = ({ id }) => {
               aria-expanded='true'
             >
               <div className='col-4'>
-                <input
-                  className='form-control border-0'
+                <Input
+                  className='border-0'
                   type='text'
                   name={`effect.${effectIndex}.value`}
                   autoComplete='off'
                   placeholder='Effect Name'
-                  required
-                  onChange={(e) => setState({ payload: e })}
+                  required={true}
+                  onChange={setState}
                 />
               </div>
             </button>
@@ -112,8 +113,8 @@ const NewSpellForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              <div className='row g-2 pb-2'>
-                <div className='col'>
+              <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
+                <div className='col-sm'>
                   <Select
                     multiple={true}
                     name={`effect.${effectIndex}.attribute`}
@@ -125,7 +126,7 @@ const NewSpellForm = ({ id }) => {
                 {effect?.attribute?.some(
                   (attributeItem) => attributeItem.name === 'requireSave'
                 ) && (
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       name={`effect.${effectIndex}.saveAbility`}
                       placeholder='DC Ability'
@@ -150,7 +151,7 @@ const NewSpellForm = ({ id }) => {
                   })
                 ) : (
                   <div className='row gx-2 align-items-end pb-2'>
-                    <div className='col'>
+                    <div className='col-sm'>
                       <Select
                         multiple={true}
                         name={`effect.${effectIndex}.damage.damageAttribute`}
@@ -159,7 +160,7 @@ const NewSpellForm = ({ id }) => {
                         onChange={setState}
                       />
                     </div>
-                    <div className='col'>
+                    <div className='col-sm'>
                       <Select
                         name={`effect.${effectIndex}.damage`}
                         placeholder='Damage Type'
@@ -214,42 +215,37 @@ const NewSpellForm = ({ id }) => {
           </button>
           <div className='accordion-collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start'>
-              <div className='col'>
-                <div className='form-floating'>
-                  <input
-                    type='text'
-                    className='form-control'
-                    name='value'
-                    id='name'
-                    placeholder='Spell Name'
-                    autoComplete='off'
-                    required
-                    onChange={(e) => setState({ payload: e })}
-                  />
-                  <label htmlFor='name'>Spell Name</label>
+              <div className='col-sm'>
+                <Input
+                  type='text'
+                  name='value'
+                  id='name'
+                  label={true}
+                  placeholder='Spell Name'
+                  autoComplete='off'
+                  required={true}
+                  onChange={setState}
+                />
+              </div>
+              <div className='position-relative col-sm'>
+                <Input
+                  className={`${
+                    state?.level &&
+                    (NUM_REGEX.test(state.level) ? 'is-valid' : 'is-invalid')
+                  }`}
+                  type='text'
+                  name='level'
+                  id='level'
+                  label={true}
+                  placeholder='Spell Level'
+                  required={true}
+                  onChange={setState}
+                />
+                <div id='levelTooltip' className='invalid-tooltip'>
+                  Must contain only numbers
                 </div>
               </div>
-              <div className='position-relative col'>
-                <div className='form-floating'>
-                  <input
-                    className={`form-control ${
-                      state?.level &&
-                      (NUM_REGEX.test(state.level) ? 'is-valid' : 'is-invalid')
-                    }`}
-                    type='text'
-                    name='level'
-                    id='level'
-                    placeholder='Spell Level'
-                    required
-                    onChange={(e) => setState({ payload: e })}
-                  />
-                  <label htmlFor='level'>Spell Level</label>
-                  <div id='levelTooltip' className='invalid-tooltip'>
-                    Must contain only numbers
-                  </div>
-                </div>
-              </div>
-              <div className='col pb-2'>
+              <div className='col-sm pb-2'>
                 <Select
                   name='school'
                   id='school'
@@ -258,7 +254,7 @@ const NewSpellForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              <div className='col pb-2'>
+              <div className='col-sm pb-2'>
                 <Select
                   name='requirement'
                   multiple={true}
@@ -296,8 +292,8 @@ const NewSpellForm = ({ id }) => {
             <hr className='flex-grow-1 me-3' />
           </button>
           <div className='accordion-collapse show' id='attributes'>
-            <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-center pb-2'>
-              <div className='col'>
+            <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
+              <div className='col-sm'>
                 <Select
                   name='action'
                   placeholder='Casting Time'
@@ -306,32 +302,28 @@ const NewSpellForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              <div className='col position-relative'>
-                <div className='form-floating'>
-                  <input
-                    className={`form-control ${
-                      state?.casting?.value &&
-                      (NUM_REGEX.test(state.casting.value)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
-                    type='text'
-                    name='casting.num'
-                    id='casting.num'
-                    placeholder='Casting Increment'
-                    required
-                    value={state?.casting?.value ?? ''}
-                    onChange={(e) => setState({ payload: e })}
-                  />
-                  <label htmlFor='casting.num' className='form-label'>
-                    Casting Increment
-                  </label>
-                </div>
-                <div id='casting.valueTooltip' className='invalid-tooltip'>
+              <div className='col-sm position-relative'>
+                <Input
+                  className={`${
+                    state?.action?.num &&
+                    (NUM_REGEX.test(state.action?.num)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  type='text'
+                  name='action.num'
+                  id='action.num'
+                  label={true}
+                  placeholder='Casting Increment'
+                  required={true}
+                  disabled={!!state.action?.value ? false : true}
+                  onChange={setState}
+                />
+                <div id='action.numTooltip' className='invalid-tooltip'>
                   Must contain only numbers
                 </div>
               </div>
-              <div className='col'>
+              <div className='col-sm'>
                 <Select
                   name='duration'
                   id='duration'
@@ -340,32 +332,29 @@ const NewSpellForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              <div className='col position-relative'>
-                <div className='form-floating'>
-                  <input
-                    className={`form-control ${
-                      state?.duration?.value &&
-                      (NUM_REGEX.test(state.duration.value)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
-                    type='text'
-                    name='duration.num'
-                    id='duration.num'
-                    placeholder='Duration Increment'
-                    required
-                    value={state?.duration?.value ?? ''}
-                    onChange={(e) => setState({ payload: e })}
-                  />
-                  <label htmlFor='duration.num' className='form-label'>
-                    Duration Increment
-                  </label>
-                </div>
-                <div id='duration.valueTooltip' className='invalid-tooltip'>
+              <div className='col-sm position-relative'>
+                <Input
+                  className={`${
+                    state?.duration?.num &&
+                    (NUM_REGEX.test(state.duration.num)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  type='text'
+                  name='duration.num'
+                  id='duration.num'
+                  label={true}
+                  placeholder='Duration Increment'
+                  autoComplete='off'
+                  disabled={!!state.duration?.value ? false : true}
+                  required={true}
+                  onChange={setState}
+                />
+                <div id='duration.numTooltip' className='invalid-tooltip'>
                   Must contain only numbers
                 </div>
               </div>
-              <div className='col'>
+              <div className='col-sm'>
                 <Select
                   name='origin'
                   id='origin'
@@ -374,30 +363,27 @@ const NewSpellForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              {state?.origin && state.origin?.name !== 'Touch' && (
+              {state?.origin && state.origin?.value !== 'Touch' && (
                 <>
-                  {state.origin.name === 'Distance' && (
-                    <div className='col position-relative'>
-                      <div className='form-floating'>
-                        <input
-                          className={`form-control ${
-                            state.origin.distance &&
-                            (NUM_REGEX.test(state.origin.distance)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
-                          type='text'
-                          name='origin.distance'
-                          id='origin.distance'
-                          placeholder='Distance'
-                          autoComplete='off'
-                          value={state?.origin?.distance ?? ''}
-                          onChange={(e) => setState({ payload: e })}
-                        />
-                        <label htmlFor='origin.distance' className='form-label'>
-                          Distance
-                        </label>
-                      </div>
+                  {state.origin.value === 'Distance' && (
+                    <div className='col-sm position-relative'>
+                      <Input
+                        className={`${
+                          state.origin.distance &&
+                          (NUM_REGEX.test(state.origin.distance)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
+                        type='text'
+                        name='origin.distance'
+                        id='origin.distance'
+                        label={true}
+                        placeholder='Distance'
+                        autoComplete='off'
+                        disabled={!!state.origin?.value ? false : true}
+                        required={true}
+                        onChange={setState}
+                      />
                       <div
                         id='origin.distanceTooltip'
                         className='invalid-tooltip'
@@ -406,40 +392,37 @@ const NewSpellForm = ({ id }) => {
                       </div>
                     </div>
                   )}
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       name='area'
                       placeholder='Shape'
                       id='area'
                       options={builders.spell.area.filter((area) =>
-                        state?.origin && state.origin.name === 'Distance'
-                          ? area.name !== 'Cone'
+                        state?.origin && state.origin.value === 'Distance'
+                          ? area.value !== 'Cone'
                           : area
                       )}
                       onChange={setState}
                     />
                   </div>
-                  <div className='col position-relative'>
-                    <div className='form-floating'>
-                      <input
-                        className={`form-control ${
-                          state?.area?.size &&
-                          (NUM_REGEX.test(state.area.size)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        type='text'
-                        name='area.size'
-                        id='area.size'
-                        placeholder='Shape Size'
-                        autoComplete='off'
-                        value={state?.area?.size ?? ''}
-                        onChange={(e) => setState({ payload: e })}
-                      />
-                      <label htmlFor='area.size' className='form-label'>
-                        Shape Size
-                      </label>
-                    </div>
+                  <div className='col-sm position-relative'>
+                    <Input
+                      className={`form-control ${
+                        state?.area?.size &&
+                        (NUM_REGEX.test(state.area.size)
+                          ? 'is-valid'
+                          : 'is-invalid')
+                      }`}
+                      type='text'
+                      name='area.size'
+                      id='area.size'
+                      label={true}
+                      placeholder='Shape Size'
+                      autoComplete='off'
+                      disabled={!!state.area?.value ? false : true}
+                      required={true}
+                      onChange={setState}
+                    />
                     <div id='area.sizeTooltip' className='invalid-tooltip'>
                       Must contain only numbers
                     </div>

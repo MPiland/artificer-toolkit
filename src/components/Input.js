@@ -1,0 +1,46 @@
+import React, { useRef } from 'react';
+
+const Input = ({
+  label,
+  type,
+  name,
+  placeholder,
+  autoComplete,
+  required,
+  className,
+  disabled,
+  onChange,
+}) => {
+  const inputRef = useRef(null);
+
+  const handlePointerDown = () => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  return (
+    <div className={`${!!label ? 'form-floating' : ''}`}>
+      <input
+        ref={inputRef}
+        className={`form-control ${className ?? ''}`}
+        type={type}
+        name={name}
+        id={name}
+        placeholder={placeholder}
+        required={required}
+        autoComplete={autoComplete}
+        disabled={disabled}
+        onChange={(e) => onChange({ payload: e })}
+        onTouchStart={handlePointerDown}
+        onMouseDown={handlePointerDown}
+      />
+      {!!label && <label htmlFor={name}>{placeholder}</label>}
+      <div id='levelTooltip' className='invalid-tooltip'>
+        Must contain only numbers
+      </div>
+    </div>
+  );
+};
+
+export default Input;

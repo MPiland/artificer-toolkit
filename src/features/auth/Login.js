@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useReducer } from 'react'
 import { useLoginMutation, useGoogleLoginMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
 import { useNavigate } from 'react-router-dom'
-import { Tooltip } from 'react-tooltip'
 import { useGoogleLogin } from '@react-oauth/google'
+import formReducer from '../../hooks/useReducer'
+import Input from '../../components/Input'
 
 const PWD_REGEX =
   /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,15}$/
@@ -16,34 +17,41 @@ const Login = () => {
 
   const navigate = useNavigate()
 
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [validUsername, setValidUsername] = useState(null)
-  const [validPassword, setValidPassword] = useState(null)
-  const [validPwdClass, setValidPwdClass] = useState('')
-  const [validUserClass, setValidUserClass] = useState('')
-  const [submittingState, setSubmittingState] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  const [state, setState] = useReducer(formReducer, {})
   const [persist, setPersist] = usePersist()
   const [errMsg, setErrMsg] = useState('')
 
   useEffect(() => {
-    setValidUsername(USER_REGEX.test(username))
-  }, [username, validUsername])
+    setState({
+      payload: {
+        target: {
+          name: 'validUsername',
+          value: USER_REGEX.test(state.username),
+        },
+      },
+    })
+  }, [state.username])
 
   useEffect(() => {
-    setValidPassword(PWD_REGEX.test(password))
-  }, [password, validPassword])
+    setState({
+      payload: {
+        target: {
+          name: 'validPassword',
+          value: PWD_REGEX.test(state.password),
+        },
+      },
+    })
+  }, [state.password])
 
   // Login function
-  const onLoginClicked = async (e) => {
-    if (validUsername && validPassword) {
-      e.preventDefault()
+  const onLoginClicked = async () => {
+    if (!state.validUsername) {
+      setState({ payload: { target: { name: 'validUClass', value: false } } })
+    } else if (!state.validPassword) {
+      setState({ payload: { target: { name: 'validPClass', value: false } } })
+    } else {
       try {
-        await login({ username, password })
-        setUsername('')
-        setPassword('')
-        setSubmittingState(false)
+        await login({ username: state.username, password: state.password })
         navigate('/')
       } catch (err) {
         if (!err.status) {
@@ -51,17 +59,6 @@ const Login = () => {
         } else {
           setErrMsg(err.message)
         }
-      }
-    } else {
-      if (!validPassword) {
-        setValidPwdClass('is-invalid')
-      } else {
-        setValidPwdClass('is-valid')
-      }
-      if (!validUsername) {
-        setValidUserClass('is-invalid')
-      } else {
-        setValidUserClass('is-valid')
       }
     }
   }
@@ -78,47 +75,37 @@ const Login = () => {
     flow: 'auth-code',
   })
 
-  const onUsernameChange = (e) => setUsername(e.target.value)
-  const onPasswordChange = (e) => setPassword(e.target.value)
-  const onShowPassword = () => setShowPassword(!showPassword)
-  const handleToggle = () => setPersist((prev) => !prev)
-
   const content = (
     <form>
-      <div className='form-floating mb-3'>
-        <input
+      <div className='position-relative mb-3'>
+        <Input
           type='email'
-          className={`form-control rounded-3 ${validUserClass}`}
-          id='email'
-          placeholder='name@example.com'
-          onChange={onUsernameChange}
-          value={username}
+          className={`${
+            state.validUClass && state.validUClass === false ? 'is-invalid' : ''
+          }`}
+          name='username'
+          label={true}
+          placeholder='Email Address'
           autoComplete='username'
+          onChange={setState}
         />
-        <label htmlFor='email'>Email address</label>
-        <div id='emailFeedback' className='invalid-feedback'>
+        <div id='usernameFeedback' className='invalid-feedback'>
           Username must be a valid email address.
         </div>
       </div>
-
       <div className='input-group mb-3 has-validation'>
-        <div className='form-floating'>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            className={`form-control ${validPwdClass}`}
-            id='password'
-            placeholder='Password'
-            autoComplete='password'
-            onChange={onPasswordChange}
-            value={password}
-            aria-describedby='eye-addon'
-            data-tooltip-id='passwordTooltip'
-            data-tooltip-place='top'
-            data-tooltip-html='<p>Password must contain 1 uppercase,<br />lowercase, numeric, and special character</p>'
-          />
-          <Tooltip id='passwordTooltip' />
-          <label htmlFor='password'>Password</label>
-        </div>
+        <Input
+          type={state.showPassword ? 'text' : 'password'}
+          className={`${
+            state.validPClass && state.validPClass === false ? 'is-invalid' : ''
+          }`}
+          name='password'
+          placeholder='Password'
+          label={true}
+          autoComplete='password'
+          onChange={setState}
+          aria-describedby='eye-addon'
+        />
         <div id='passwordFeedback' className='invalid-feedback'>
           Password must contain 1 uppercase, lowercase, numeric, and special
           character
@@ -126,9 +113,17 @@ const Login = () => {
         <span
           className='input-group-text bi bi-eye>'
           id='eye-addon'
-          onClick={onShowPassword}
+          onClick={() =>
+            setState({
+              payload: {
+                target: { name: 'showPassword', value: !state.showPassword },
+              },
+            })
+          }
         >
-          <i className={showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}></i>
+          <i
+            className={state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}
+          ></i>
         </span>
       </div>
       <div className='pb-2'>
@@ -136,21 +131,23 @@ const Login = () => {
           type='checkbox'
           className='form-check-input'
           id='persist'
-          onChange={handleToggle}
+          onChange={() => setPersist((prev) => !prev)}
           checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
         </label>
       </div>
-
       <button
         className='w-100 mb-2 btn btn-lg rounded-3 btn-primary'
         type='submit'
-        disabled={submittingState}
-        onClick={onLoginClicked}
+        disabled={state?.submitting}
+        onClick={(e) => {
+          e.preventDefault()
+          onLoginClicked()
+        }}
       >
-        {(!isLoading || !isGoogleLoading) && !submittingState
+        {(!isLoading || !isGoogleLoading) && !state.submitting
           ? 'Submit'
           : 'Submitting'}
       </button>
@@ -163,23 +160,20 @@ const Login = () => {
       <h2 className='fs-5 fw-bold mb-3 text-center'>Or use a third-party</h2>
       <button
         className='w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
-        type='submit'
-        onClick={(e) => {
-          e.preventDefault()
-          onGoogleLoginClicked()
-        }}
+        type='button'
+        onClick={onGoogleLoginClicked}
       >
         <i className='bi bi-google'></i> Login with Google
       </button>
       <button
         className='w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
-        type='submit'
+        type='button'
       >
         <i className='bi bi-facebook'></i> Login with Facebook
       </button>
       <button
         className='w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
-        type='submit'
+        type='button'
       >
         <i className='bi bi-twitch'></i> Login with Twitch
       </button>

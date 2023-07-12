@@ -7,6 +7,7 @@ import formReducer from '../../hooks/useReducer'
 import { startCase } from 'lodash'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
+import Input from '../../components/Input'
 
 const NUM_REGEX = /^[0-9\b]+$/
 
@@ -85,7 +86,7 @@ const NewItemForm = ({ id }) => {
                 </button>
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col'>
+                <div className='col-sm'>
                   <Select
                     name={`effect.${effectIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
@@ -94,7 +95,7 @@ const NewItemForm = ({ id }) => {
                   />
                 </div>
                 {item?.area?.name === 'skill' && (
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       name={`effect.${effectIndex}.${this.name}.${index}.area.skill`}
                       placeholder='Skill'
@@ -104,7 +105,7 @@ const NewItemForm = ({ id }) => {
                   </div>
                 )}
                 {item?.area?.name === 'saveAbility' && (
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       name={`effect.${effectIndex}.${this.name}.${index}.area.saveAbility`}
                       placeholder='Save Ability'
@@ -114,7 +115,7 @@ const NewItemForm = ({ id }) => {
                   </div>
                 )}
                 {item?.area?.name === 'tool' && (
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       name={`effect.${effectIndex}.${this.name}.${index}.area.tool`}
                       placeholder='Tool'
@@ -124,7 +125,7 @@ const NewItemForm = ({ id }) => {
                   </div>
                 )}
                 {item?.area?.name === 'language' && (
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       name={`effect.${effectIndex}.${this.name}.${index}.area.language`}
                       placeholder='Language'
@@ -133,7 +134,7 @@ const NewItemForm = ({ id }) => {
                     />
                   </div>
                 )}
-                <div className='col'>
+                <div className='col-sm'>
                   <Select
                     name={`effect.${effectIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
@@ -162,7 +163,7 @@ const NewItemForm = ({ id }) => {
                 </button>
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col'>
+                <div className='col-sm'>
                   <Select
                     multiple='true'
                     name={`effect.${effectIndex}.${this.name}.${index}.attribute`}
@@ -171,7 +172,7 @@ const NewItemForm = ({ id }) => {
                     onChange={setState}
                   />
                 </div>
-                <div className='col'>
+                <div className='col-sm'>
                   <Select
                     name={`effect.${effectIndex}.${this.name}.${index}`}
                     placeholder='Spell'
@@ -199,8 +200,8 @@ const NewItemForm = ({ id }) => {
                   {`Remove ${startCase(this.name)}`}
                 </button>
               </div>
-              <div className='row g-2 pb-2'>
-                <div className='col-lg-3 col-md-6 col-sm-12'>
+              <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
+                <div className='col-sm'>
                   <Select
                     name={`effect.${effectIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
@@ -209,7 +210,7 @@ const NewItemForm = ({ id }) => {
                   />
                 </div>
                 {!!item.modType?.name && (
-                  <div className='col-lg-3 col-md-6 col-sm-12'>
+                  <div className='col-sm'>
                     <Select
                       name={`effect.${effectIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
@@ -231,7 +232,7 @@ const NewItemForm = ({ id }) => {
                   <>
                     {item.module?.name === 'ability' ||
                     item.module?.name === 'saveAbility' ? (
-                      <div className='col-lg-3 col-md-6 col-sm-12'>
+                      <div className='col-sm'>
                         <Select
                           name={`effect.${effectIndex}.${this.name}.${index}.ability`}
                           placeholder='Ability'
@@ -241,7 +242,7 @@ const NewItemForm = ({ id }) => {
                       </div>
                     ) : (
                       item.module?.name === 'skill' && (
-                        <div className='col-lg-3 col-md-6 col-sm-12'>
+                        <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.${this.name}.${index}.skill`}
                             placeholder='Skill'
@@ -253,7 +254,7 @@ const NewItemForm = ({ id }) => {
                     )}
                     {!!item.module?.name &&
                       item.modType?.name !== 'setValue' && (
-                        <div className='col-lg-3 col-md-6 col-sm-12'>
+                        <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.${this.name}.${index}.method`}
                             placeholder='Method'
@@ -269,7 +270,7 @@ const NewItemForm = ({ id }) => {
                         </div>
                       )}
                     {item.module?.name === 'condition' ? (
-                      <div className='col-lg-3 col-md-6 col-sm-12'>
+                      <div className='col-sm'>
                         <Select
                           name={`effect.${effectIndex}.${this.name}.${index}.condition`}
                           placeholder='Condition Type'
@@ -278,7 +279,7 @@ const NewItemForm = ({ id }) => {
                         />
                       </div>
                     ) : item.module?.name === 'speed' ? (
-                      <div className='col-lg-3 col-md-6 col-sm-12'>
+                      <div className='col-sm'>
                         <Select
                           name={`effect.${effectIndex}.${this.name}.${index}.speed`}
                           placeholder='Speed Type'
@@ -287,7 +288,7 @@ const NewItemForm = ({ id }) => {
                         />
                       </div>
                     ) : item.module?.name === 'passive' ? (
-                      <div className='col-lg-3 col-md-6 col-sm-12'>
+                      <div className='col-sm'>
                         <Select
                           name={`effect.${effectIndex}.${this.name}.${index}.speed`}
                           placeholder='Passive Type'
@@ -297,7 +298,7 @@ const NewItemForm = ({ id }) => {
                       </div>
                     ) : (
                       item.module?.name === 'damage' && (
-                        <div className='col-lg-3 col-md-6 col-sm-12'>
+                        <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.${this.name}.${index}.damage`}
                             placeholder='Damage Type'
@@ -310,36 +311,29 @@ const NewItemForm = ({ id }) => {
                     {item.method?.name === 'setValue' ||
                     item.modType?.name === 'setValue' ? (
                       <>
-                        <div className='position-relative col-lg-3 col-md-6 col-sm-12'>
-                          <div className='form-floating'>
-                            <input
-                              className={`form-control ${
-                                item.method?.setValue &&
-                                (NUM_REGEX.test(item.method.setValue)
-                                  ? 'is-valid'
-                                  : 'is-invalid')
-                              }`}
-                              type='text'
-                              name={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
-                              id={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
-                              placeholder='Set Value'
-                              autoComplete='off'
-                              onChange={(e) => setState({ payload: e })}
-                            />
-                            <label
-                              htmlFor={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
-                            >
-                              Set Value
-                            </label>
-                            <div
-                              id={`effect.${effectIndex}.${this.name}.${index}.method.setValueTooltip`}
-                              className='invalid-tooltip'
-                            >
-                              Must contain only numbers
-                            </div>
+                        <div className='position-relative col-sm'>
+                          <Input
+                            className={`form-control ${
+                              item.method?.setValue &&
+                              (NUM_REGEX.test(item.method.setValue)
+                                ? 'is-valid'
+                                : 'is-invalid')
+                            }`}
+                            type='text'
+                            name={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
+                            label={true}
+                            placeholder='Set Value'
+                            autoComplete='off'
+                            onChange={setState}
+                          />
+                          <div
+                            id={`effect.${effectIndex}.${this.name}.${index}.method.setValueTooltip`}
+                            className='invalid-tooltip'
+                          >
+                            Must contain only numbers
                           </div>
                         </div>
-                        <div className='col-lg-3 col-md-6 col-sm-12'>
+                        <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.${this.name}.${index}.multiplier`}
                             placeholder='Multiplier'
@@ -349,7 +343,7 @@ const NewItemForm = ({ id }) => {
                         </div>
                       </>
                     ) : item.method?.name === 'ability' ? (
-                      <div className='col-lg-3 col-md-6 col-sm-12'>
+                      <div className='col-sm'>
                         <Select
                           name={`effect.${effectIndex}.${this.name}.${index}.method.ability`}
                           placeholder='Method Ability'
@@ -359,7 +353,7 @@ const NewItemForm = ({ id }) => {
                       </div>
                     ) : (
                       item.method?.name === 'skill' && (
-                        <div className='col-lg-3 col-md-6 col-sm-12'>
+                        <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.${this.name}.${index}.method.skill`}
                             placeholder='Method Skill'
@@ -392,7 +386,7 @@ const NewItemForm = ({ id }) => {
                 </button>
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col'>
+                <div className='col-sm'>
                   <Select
                     name={`effect.${effectIndex}.${this.name}.${index}.sense`}
                     multiple={item?.sectionAttribute?.name === 'hasOptions'}
@@ -422,15 +416,16 @@ const NewItemForm = ({ id }) => {
                 aria-expanded='true'
                 aria-controls={`effect${effectIndex}AccordionBody`}
               >
-                <div className='col-4'>
-                  <input
-                    className='form-control border-0'
+                <div className='col-sm-4'>
+                  <Input
+                    className='border-0'
                     type='text'
                     name={`effect.${effectIndex}.value`}
                     autoComplete='off'
+                    label={true}
                     placeholder='Effect Name'
-                    required
-                    onChange={(e) => setState({ payload: e })}
+                    required={true}
+                    onChange={setState}
                   />
                 </div>
               </button>
@@ -473,7 +468,7 @@ const NewItemForm = ({ id }) => {
                   onChange={setState}
                 />
                 <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       multiple={true}
                       name={`effect.${effectIndex}.attribute`}
@@ -485,7 +480,7 @@ const NewItemForm = ({ id }) => {
                   {effect?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'isAction'
                   ) && (
-                    <div className='col'>
+                    <div className='col-sm'>
                       <Select
                         name={'action.num'}
                         placeholder='Action Type'
@@ -498,7 +493,7 @@ const NewItemForm = ({ id }) => {
                     (attributeItem) => attributeItem.name === 'limitUses'
                   ) && (
                     <>
-                      <div className='col'>
+                      <div className='col-sm'>
                         <Select
                           name={`effect.${effectIndex}.limitBy`}
                           placeholder='Limit By Option'
@@ -507,7 +502,7 @@ const NewItemForm = ({ id }) => {
                         />
                       </div>
                       {effect?.limitBy?.name === 'ability' ? (
-                        <div className='col'>
+                        <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.limitBy.ability`}
                             placeholder='Ability'
@@ -516,7 +511,7 @@ const NewItemForm = ({ id }) => {
                           />
                         </div>
                       ) : effect?.limitBy?.name === 'skill' ? (
-                        <div className='col'>
+                        <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.limitBy.skill`}
                             placeholder='Skill'
@@ -526,34 +521,28 @@ const NewItemForm = ({ id }) => {
                         </div>
                       ) : (
                         effect?.limitBy?.name === 'setNumber' && (
-                          <div className='col'>
-                            <div className='form-floating'>
-                              <input
-                                className={`form-control ${
-                                  effect?.limitBy?.setAmount &&
-                                  (NUM_REGEX.test(effect?.limitBy.setAmount)
-                                    ? 'is-valid'
-                                    : 'is-invalid')
-                                }`}
-                                type='text'
-                                name={`effect.${effectIndex}.limitBy.setAmount`}
-                                id={`effect.${effectIndex}.limitBy.setAmount`}
-                                placeholder='Use Amount'
-                                required
-                                onChange={(e) => setState({ payload: e })}
-                              />
-                              <label htmlFor='level'>Use Amount</label>
-                              <div
-                                id='levelTooltip'
-                                className='invalid-tooltip'
-                              >
-                                Must contain only numbers
-                              </div>
+                          <div className='col-sm position-relative'>
+                            <Input
+                              className={`${
+                                effect?.limitBy?.setAmount &&
+                                (NUM_REGEX.test(effect?.limitBy.setAmount)
+                                  ? 'is-valid'
+                                  : 'is-invalid')
+                              }`}
+                              type='text'
+                              name={`effect.${effectIndex}.limitBy.setAmount`}
+                              label={true}
+                              placeholder='Use Amount'
+                              required={true}
+                              onChange={setState}
+                            />
+                            <div id='levelTooltip' className='invalid-tooltip'>
+                              Must contain only numbers
                             </div>
                           </div>
                         )
                       )}
-                      <div className='col'>
+                      <div className='col-sm'>
                         <Select
                           name={`effect.${effectIndex}.resetsOn`}
                           placeholder='Reset Option'
@@ -567,40 +556,35 @@ const NewItemForm = ({ id }) => {
                     (attributeItem) => attributeItem.name === 'hasRange'
                   ) && (
                     <>
-                      <div className='col'>
-                        <div className='form-floating'>
-                          <input
-                            className='form-control'
-                            type='text'
-                            name={`effect.${effectIndex}.inRange`}
-                            autoComplete='off'
-                            placeholder='Min Range'
-                            required
-                            onChange={(e) => setState({ payload: e })}
-                          />
-                          <label htmlFor='name'>Min Range</label>
-                        </div>
+                      <div className='col-sm'>
+                        <Input
+                          type='text'
+                          name={`effect.${effectIndex}.inRange`}
+                          autoComplete='off'
+                          label={true}
+                          placeholder='Min Range'
+                          required={true}
+                          onChange={setState}
+                        />
                       </div>
-                      <div className='col'>
-                        <div className='form-floating'>
-                          <input
-                            className='form-control'
-                            type='text'
-                            name={`effect.${effectIndex}.maxRange`}
-                            autoComplete='off'
-                            placeholder='Max Range'
-                            required
-                            onChange={(e) => setState({ payload: e })}
-                          />
-                          <label htmlFor='name'>Max Range</label>
-                        </div>
+                      <div className='col-sm'>
+                        <Input
+                          className='form-control'
+                          type='text'
+                          name={`effect.${effectIndex}.maxRange`}
+                          label={true}
+                          autoComplete='off'
+                          placeholder='Max Range'
+                          required={true}
+                          onChange={setState}
+                        />
                       </div>
                     </>
                   )}
                   {effect?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'requireSave'
                   ) && (
-                    <div className='col'>
+                    <div className='col-sm'>
                       <Select
                         name={`effect.${effectIndex}.saveAbility`}
                         placeholder='DC Ability'
@@ -647,7 +631,7 @@ const NewItemForm = ({ id }) => {
                     })
                   ) : (
                     <div className='row g-2 align-items-end pb-2'>
-                      <div className='col'>
+                      <div className='col-sm'>
                         <Select
                           multiple={true}
                           name={`effect.${effectIndex}.damage.damageAttribute`}
@@ -656,7 +640,7 @@ const NewItemForm = ({ id }) => {
                           onChange={setState}
                         />
                       </div>
-                      <div className='col'>
+                      <div className='col-sm'>
                         <Select
                           className='pb-1'
                           name={`effect.${effectIndex}.damage`}
@@ -747,21 +731,18 @@ const NewItemForm = ({ id }) => {
           </button>
           <div className='accordion-collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-              <div className='col'>
-                <div className='form-floating'>
-                  <input
-                    className='form-control'
-                    type='text'
-                    name='value'
-                    autoComplete='off'
-                    placeholder='Item Name'
-                    required
-                    onChange={(e) => setState({ payload: e })}
-                  />
-                  <label htmlFor='name'>Item Name</label>
-                </div>
+              <div className='col-sm'>
+                <Input
+                  type='text'
+                  name='value'
+                  autoComplete='off'
+                  label={true}
+                  placeholder='Item Name'
+                  required={true}
+                  onChange={setState}
+                />
               </div>
-              <div className='col'>
+              <div className='col-sm'>
                 <Select
                   name='itemCategory'
                   placeholder='Item category'
@@ -769,7 +750,7 @@ const NewItemForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              <div className='col'>
+              <div className='col-sm'>
                 <Select
                   name='itemType'
                   placeholder='Item type'
@@ -782,7 +763,7 @@ const NewItemForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              <div className='col'>
+              <div className='col-sm'>
                 <Select
                   name='itemProperty'
                   multiple={true}
@@ -796,7 +777,7 @@ const NewItemForm = ({ id }) => {
                   onChange={setState}
                 />
               </div>
-              <div className='col'>
+              <div className='col-sm'>
                 <Select
                   name='rarity'
                   placeholder='Rarity'
@@ -805,26 +786,23 @@ const NewItemForm = ({ id }) => {
                 />
               </div>
               {state?.itemCategory && state?.itemCategory?.name !== 'Item' && (
-                <div className='position-relative col'>
-                  <div className='form-floating'>
-                    <input
-                      className={`form-control ${
-                        state?.itemRank &&
-                        (NUM_REGEX.test(state?.itemRank)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name='itemRank'
-                      id='itemRank'
-                      placeholder='Item Rank'
-                      autoComplete='off'
-                      onChange={(e) => setState({ payload: e })}
-                    />
-                    <label htmlFor='itemRank'>Item Rank</label>
-                    <div id='itemRankTooltip' className='invalid-tooltip'>
-                      Must contain only numbers
-                    </div>
+                <div className='position-relative col-sm'>
+                  <Input
+                    className={`${
+                      state?.itemRank &&
+                      (NUM_REGEX.test(state?.itemRank)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name='itemRank'
+                    label={true}
+                    placeholder='Item Rank'
+                    autoComplete='off'
+                    onChange={setState}
+                  />
+                  <div id='itemRankTooltip' className='invalid-tooltip'>
+                    Must contain only numbers
                   </div>
                 </div>
               )}
@@ -861,7 +839,7 @@ const NewItemForm = ({ id }) => {
           </button>
           <div className='accordion-collapse show pb-2' id='attribute'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-              <div className='col'>
+              <div className='col-sm'>
                 <Select
                   name='attribute'
                   multiple={true}
@@ -873,182 +851,170 @@ const NewItemForm = ({ id }) => {
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'weight'
               ) && (
-                <div className='position-relative col'>
-                  <div className='form-floating'>
-                    <input
-                      className={`form-control ${
+                <div className='position-relative col-sm'>
+                  <Input
+                    className={`${
+                      state?.attribute[
+                        state?.attribute?.findIndex(
+                          (attributeItem) => attributeItem.name === 'weight'
+                        )
+                      ].maxValue &&
+                      (NUM_REGEX.test(
                         state?.attribute[
                           state?.attribute?.findIndex(
                             (attributeItem) => attributeItem.name === 'weight'
                           )
-                        ].maxValue &&
-                        (NUM_REGEX.test(
-                          state?.attribute[
-                            state?.attribute?.findIndex(
-                              (attributeItem) => attributeItem.name === 'weight'
-                            )
-                          ].maxValue
-                        )
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name={`attribute.${state?.attribute?.findIndex(
-                        (attributeItem) => attributeItem.name === 'weight'
-                      )}.maxValue`}
-                      id='maxValue'
-                      placeholder='Item Weight'
-                      autoComplete='off'
-                      onChange={(e) => setState({ payload: e })}
-                    />
-                    <label htmlFor='maxValue'>Item Weight</label>
-                    <div id='maxValueTooltip' className='invalid-tooltip'>
-                      Must contain only numbers
-                    </div>
+                        ].maxValue
+                      )
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name={`attribute.${state?.attribute?.findIndex(
+                      (attributeItem) => attributeItem.name === 'weight'
+                    )}.maxValue`}
+                    label={true}
+                    placeholder='Item Weight'
+                    autoComplete='off'
+                    onChange={setState}
+                  />
+                  <div
+                    id={`attribute.${state?.attribute?.findIndex(
+                      (attributeItem) => attributeItem.name === 'weight'
+                    )}.maxValueTooltip`}
+                    className='invalid-tooltip'
+                  >
+                    Must contain only numbers
                   </div>
                 </div>
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'container'
               ) && (
-                <div className='position-relative col'>
-                  <div className='form-floating'>
-                    <input
-                      className={`form-control ${
+                <div className='position-relative col-sm'>
+                  <Input
+                    className={`${
+                      state?.attribute[
+                        state?.attribute?.findIndex(
+                          (attributeItem) => attributeItem.name === 'container'
+                        )
+                      ].maxValue &&
+                      (NUM_REGEX.test(
                         state?.attribute[
                           state?.attribute?.findIndex(
                             (attributeItem) =>
                               attributeItem.name === 'container'
                           )
-                        ].maxValue &&
-                        (NUM_REGEX.test(
-                          state?.attribute[
-                            state?.attribute?.findIndex(
-                              (attributeItem) =>
-                                attributeItem.name === 'container'
-                            )
-                          ].maxValue
-                        )
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name={`attribute.${state?.attribute?.findIndex(
-                        (attributeItem) => attributeItem.name === 'container'
-                      )}.maxValue`}
-                      id='maxValue'
-                      placeholder='Capacity Weight'
-                      autoComplete='off'
-                      onChange={(e) => setState({ payload: e })}
-                    />
-                    <label htmlFor='maxValue'>Capacity Weight</label>
-                    <div id='maxValueTooltip' className='invalid-tooltip'>
-                      Must contain only numbers
-                    </div>
+                        ].maxValue
+                      )
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name={`attribute.${state?.attribute?.findIndex(
+                      (attributeItem) => attributeItem.name === 'container'
+                    )}.maxValue`}
+                    label={true}
+                    placeholder='Capacity Weight'
+                    autoComplete='off'
+                    onChange={setState}
+                  />
+                  <div
+                    id={`attribute.${state?.attribute?.findIndex(
+                      (attributeItem) => attributeItem.name === 'container'
+                    )}.maxValueTooltip`}
+                    className='invalid-tooltip'
+                  >
+                    Must contain only numbers
                   </div>
                 </div>
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'stackable'
               ) && (
-                <div className='position-relative col'>
-                  <div className='form-floating'>
-                    <input
-                      className={`form-control ${
+                <div className='position-relative col-sm'>
+                  <Input
+                    className={`${
+                      state?.attribute[
+                        state?.attribute?.findIndex(
+                          (attributeItem) => attributeItem.name === 'stackable'
+                        )
+                      ].maxValue &&
+                      (NUM_REGEX.test(
                         state?.attribute[
                           state?.attribute?.findIndex(
                             (attributeItem) =>
                               attributeItem.name === 'stackable'
                           )
-                        ].maxValue &&
-                        (NUM_REGEX.test(
-                          state?.attribute[
-                            state?.attribute?.findIndex(
-                              (attributeItem) =>
-                                attributeItem.name === 'stackable'
-                            )
-                          ].maxValue
-                        )
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name={`attribute.${state?.attribute?.findIndex(
-                        (attributeItem) => attributeItem.name === 'stackable'
-                      )}.maxValue`}
-                      id='maxValue'
-                      placeholder='Max Stack Size'
-                      autoComplete='off'
-                      onChange={(e) => setState({ payload: e })}
-                    />
-                    <label htmlFor='maxValue'>Max Stack Size</label>
-                    <div id='maxValueTooltip' className='invalid-tooltip'>
-                      Must contain only numbers
-                    </div>
+                        ].maxValue
+                      )
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name={`attribute.${state?.attribute?.findIndex(
+                      (attributeItem) => attributeItem.name === 'stackable'
+                    )}.maxValue`}
+                    label={true}
+                    placeholder='Max Stack Size'
+                    autoComplete='off'
+                    onChange={setState}
+                  />
+                  <div
+                    id={`attribute.${state?.attribute?.findIndex(
+                      (attributeItem) => attributeItem.name === 'stackable'
+                    )}.maxValueTooltip`}
+                    className='invalid-tooltip'
+                  >
+                    Must contain only numbers
                   </div>
                 </div>
               )}
               {state?.itemCategory?.name === 'Weapon' && (
                 <>
-                  <div className='col'>
-                    <div className='position-relative'>
-                      <div className='form-floating'>
-                        <input
-                          className={`form-control ${
-                            state.weaponDamage?.diceCount &&
-                            (NUM_REGEX.test(state.weaponDamage?.diceCount)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
-                          type='text'
-                          name='weaponDamage.diceCount'
-                          id='weaponDamage.diceCount'
-                          placeholder='Damage Dice Count'
-                          value={state.weaponDamage?.diceCount ?? ''}
-                          onChange={(e) => setState({ payload: e })}
-                        />
-                        <label htmlFor='weaponDamage.diceCount'>
-                          Damage Dice Count
-                        </label>
-                        <div
-                          id='weaponDamage.diceCountTooltip'
-                          className='invalid-tooltip'
-                        >
-                          Must contain only numbers
-                        </div>
-                      </div>
+                  <div className='col-sm position-relative'>
+                    <Input
+                      className={`${
+                        state.weaponDamage?.diceCount &&
+                        (NUM_REGEX.test(state.weaponDamage?.diceCount)
+                          ? 'is-valid'
+                          : 'is-invalid')
+                      }`}
+                      type='text'
+                      name='weaponDamage.diceCount'
+                      label={true}
+                      placeholder='Damage Dice Count'
+                      onChange={setState}
+                    />
+                    <div
+                      id='weaponDamage.diceCountTooltip'
+                      className='invalid-tooltip'
+                    >
+                      Must contain only numbers
                     </div>
                   </div>
-                  <div className='col'>
-                    <div className='position-relative'>
-                      <div className='form-floating'>
-                        <input
-                          className={`form-control ${
-                            state.weaponDamage?.diceValue &&
-                            (NUM_REGEX.test(state.weaponDamage?.diceValue)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
-                          type='text'
-                          name='weaponDamage.diceValue'
-                          id='weaponDamage.diceValue'
-                          placeholder='Damage Dice Value'
-                          onChange={(e) => setState({ payload: e })}
-                          value={state.weaponDamage?.diceValue ?? ''}
-                        />
-                        <label htmlFor='weaponDamage.diceValue'>
-                          Damage Dice Value
-                        </label>
-                        <div
-                          id='weaponDamage.diceValueTooltip'
-                          className='invalid-tooltip'
-                        >
-                          Must contain only numbers
-                        </div>
-                      </div>
+                  <div className='col-sm position-relative'>
+                    <Input
+                      className={`${
+                        state.weaponDamage?.diceValue &&
+                        (NUM_REGEX.test(state.weaponDamage?.diceValue)
+                          ? 'is-valid'
+                          : 'is-invalid')
+                      }`}
+                      type='text'
+                      name='weaponDamage.diceValue'
+                      label={true}
+                      placeholder='Damage Dice Value'
+                      onChange={setState}
+                    />
+                    <div
+                      id='weaponDamage.diceValueTooltip'
+                      className='invalid-tooltip'
+                    >
+                      Must contain only numbers
                     </div>
                   </div>
-                  <div className='col'>
+                  <div className='col-sm'>
                     <Select
                       name={'primaryAbility'}
                       placeholder='Primary Ability'
@@ -1059,7 +1025,7 @@ const NewItemForm = ({ id }) => {
                   {state?.itemProperty?.find((property) => {
                     return property.name === 'Versatile'
                   }) && (
-                    <div className='col'>
+                    <div className='col-sm'>
                       <Select
                         name={'secondaryAbility'}
                         placeholder='Secondary Ability'
@@ -1074,26 +1040,22 @@ const NewItemForm = ({ id }) => {
                 </>
               )}
               {state?.itemCategory?.name === 'armor' && (
-                <div className='position-relative col'>
-                  <div className='form-floating'>
-                    <input
-                      className={`form-control ${
-                        state.armorValue &&
-                        (NUM_REGEX.test(state.armorValue)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name='armorValue'
-                      id='armorValue'
-                      placeholder='Armor Value'
-                      onChange={(e) => setState({ payload: e })}
-                      value={state.armorValue ?? ''}
-                    />
-                    <label htmlFor='armorValue'>Armor Value</label>
-                    <div id='armorValueTooltip' className='invalid-tooltip'>
-                      Must contain only numbers
-                    </div>
+                <div className='position-relative col-sm'>
+                  <Input
+                    className={`form-control ${
+                      state.armorValue &&
+                      (NUM_REGEX.test(state.armorValue)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name='armorValue'
+                    label={true}
+                    placeholder='Armor Value'
+                    onChange={setState}
+                  />
+                  <div id='armorValueTooltip' className='invalid-tooltip'>
+                    Must contain only numbers
                   </div>
                 </div>
               )}
@@ -1102,55 +1064,46 @@ const NewItemForm = ({ id }) => {
                   property.name === 'Thrown' || property.name === 'Ranged'
               ) && (
                 <>
-                  <div className='position-relative col'>
-                    <div className='form-floating'>
-                      <input
-                        className={`form-control ${
-                          state.thrown?.minRange &&
-                          (NUM_REGEX.test(state.thrown?.minRange)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        type='text'
-                        name='thrown.minRange'
-                        id='thrown.minRange'
-                        placeholder='Thrown Min Range'
-                        onChange={(e) => setState({ payload: e })}
-                        value={state.thrown?.minRange ?? ''}
-                      />
-                      <label htmlFor='thrown.minRange'>Thrown Min Range</label>
-                      <div
-                        id='thrown.minRangeTooltip'
-                        className='invalid-tooltip'
-                      >
-                        Must contain only numbers
-                      </div>
+                  <div className='position-relative col-sm'>
+                    <Input
+                      className={`${
+                        state.thrown?.minRange &&
+                        (NUM_REGEX.test(state.thrown?.minRange)
+                          ? 'is-valid'
+                          : 'is-invalid')
+                      }`}
+                      type='text'
+                      name='thrown.minRange'
+                      label={true}
+                      placeholder='Thrown Min Range'
+                      onChange={setState}
+                    />
+                    <div
+                      id='thrown.minRangeTooltip'
+                      className='invalid-tooltip'
+                    >
+                      Must contain only numbers
                     </div>
                   </div>
-                  <div className='position-relative col'>
-                    <div className='form-floating'>
-                      <input
-                        className={`form-control ${
-                          state.thrown?.maxRange &&
-                          (NUM_REGEX.test(state.thrown?.maxRange)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        type='text'
-                        name='thrown.maxRange'
-                        id='thrown.maxRange'
-                        label='thrown'
-                        placeholder='Max Range'
-                        onChange={(e) => setState({ payload: e })}
-                        value={state.thrown?.maxRange ?? ''}
-                      />
-                      <label htmlFor='thrown.maxRange'>Thrown Max Range</label>
-                      <div
-                        id='thrown.maxRangeTooltip'
-                        className='invalid-tooltip'
-                      >
-                        Must contain only numbers
-                      </div>
+                  <div className='position-relative col-sm'>
+                    <Input
+                      className={`${
+                        state.thrown?.maxRange &&
+                        (NUM_REGEX.test(state.thrown?.maxRange)
+                          ? 'is-valid'
+                          : 'is-invalid')
+                      }`}
+                      type='text'
+                      name='thrown.maxRange'
+                      label={true}
+                      placeholder='Max Range'
+                      onChange={setState}
+                    />
+                    <div
+                      id='thrown.maxRangeTooltip'
+                      className='invalid-tooltip'
+                    >
+                      Must contain only numbers
                     </div>
                   </div>
                 </>
