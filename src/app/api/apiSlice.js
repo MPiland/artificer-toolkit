@@ -1,7 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: 'http://localhost:3500/',
+  baseUrl:
+    process.env.NODE_ENV === 'production'
+      ? 'https://at-beta.onrender.com'
+      : 'http://localhost:3500/',
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token
