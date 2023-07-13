@@ -37,8 +37,6 @@ const PersistLogin = () => {
 
   let content
 
-  alert(persist)
-
   if (!persist) {
     // persist: no
     content = <Outlet />
