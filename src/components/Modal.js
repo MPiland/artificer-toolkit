@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 
-const Modal = ({ context }) => {
+const Modal = () => {
   const location = useLocation()
 
   const navigate = useNavigate()
