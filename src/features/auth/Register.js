@@ -97,6 +97,7 @@ const Register = () => {
 
   const content = (
     <form>
+      {isError && <p>{errMsg}</p>}
       <div className='position-relative mb-3'>
         <Input
           type='email'
@@ -133,11 +134,13 @@ const Register = () => {
         <span
           className='input-group-text bi bi-eye>'
           id='eye-addon'
-          onClick={() => setState({
-            payload: {
-              target: { name: 'showPassword', value: !state.showPassword },
-            },
-          })}
+          onClick={() =>
+            setState({
+              payload: {
+                target: { name: 'showPassword', value: !state.showPassword },
+              },
+            })
+          }
         >
           <i
             className={state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}
@@ -158,7 +161,7 @@ const Register = () => {
       </div>
       <button
         className='w-100 mb-2 btn btn-lg rounded-3 btn-primary'
-        type='button'
+        type='submit'
         disabled={state.submitting}
         onClick={onRegisterUserClicked}
       >

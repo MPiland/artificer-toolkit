@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef } from 'react'
 
 const Input = ({
   label,
@@ -11,13 +11,13 @@ const Input = ({
   disabled,
   onChange,
 }) => {
-  const inputRef = useRef(null);
+  const inputRef = useRef(null)
 
-  const handlePointerDown = () => {
+  const handleFocus = () => {
     if (inputRef.current) {
-      inputRef.current.focus();
+      inputRef.current.focus()
     }
-  };
+  }
 
   return (
     <div className={`${!!label ? 'form-floating' : ''}`}>
@@ -32,15 +32,14 @@ const Input = ({
         autoComplete={autoComplete}
         disabled={disabled}
         onChange={(e) => onChange({ payload: e })}
-        onTouchStart={handlePointerDown}
-        onMouseDown={handlePointerDown}
+        onFocus={handleFocus}
       />
       {!!label && <label htmlFor={name}>{placeholder}</label>}
       <div id='levelTooltip' className='invalid-tooltip'>
         Must contain only numbers
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Input;
+export default Input
