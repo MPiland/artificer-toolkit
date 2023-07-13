@@ -18,15 +18,18 @@ import NewItemForm from './features/items/NewItemForm'
 import FeatureList from './features/features/FeatureList'
 import NewFeatureForm from './features/features/NewFeatureForm'
 import usePersist from './hooks/usePersist'
+import { useEffect } from 'react'
 
 const App = () => {
   const { id } = useAuth()
-  const [persist] = usePersist()
+  const { persist } = usePersist()
   console.log(id)
   const location = useLocation()
   const background = location.state?.backgrounds
 
-  alert(`persist ${persist}`)
+  useEffect(() => {
+    alert(`persist ${persist}`)
+  })
 
   const content = (
     <>
