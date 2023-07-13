@@ -163,7 +163,11 @@ const Register = () => {
         className='w-100 mb-2 btn btn-lg rounded-3 btn-primary'
         type='submit'
         disabled={state.submitting}
-        onClick={onRegisterUserClicked}
+        onClick={(e) => {
+          e.preventDefault()
+          setState({ payload: { target: { name: 'submitting', value: true } } })
+          onRegisterUserClicked()
+        }}
       >
         {(!isLoading || !isGoogleLoading) && !state.submitting
           ? 'Submit'

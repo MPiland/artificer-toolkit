@@ -144,6 +144,7 @@ const Login = () => {
         disabled={state?.submitting}
         onClick={(e) => {
           e.preventDefault()
+          setState({ payload: { target: { name: 'submitting', value: true } } })
           onLoginClicked()
         }}
       >
