@@ -5,7 +5,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: { token: null },
   reducers: {
-    setCredentials: (state, {payload}) => {
+    setCredentials: (state, { payload }) => {
       state.token = payload.accessToken
     },
   },
@@ -19,12 +19,6 @@ const authSlice = createSlice({
       )
       .addMatcher(
         authApiSlice.endpoints.googleLogin.matchFulfilled,
-        (state, { payload }) => {
-          state.token = payload.accessToken
-        }
-      )
-      .addMatcher(
-        authApiSlice.endpoints.refresh.matchFulfilled,
         (state, { payload }) => {
           state.token = payload.accessToken
         }
