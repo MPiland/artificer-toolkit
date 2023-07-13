@@ -32,10 +32,7 @@ const Input = ({
         autoComplete={autoComplete}
         disabled={disabled}
         onChange={(e) => onChange({ payload: e })}
-        onClick={(e) => {
-          e.stopPropagation()
-          handleFocus()
-        }}
+        onClick={handleFocus}
       />
       {!!label && <label htmlFor={name}>{placeholder}</label>}
     </div>
