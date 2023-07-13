@@ -32,12 +32,9 @@ const Input = ({
         autoComplete={autoComplete}
         disabled={disabled}
         onChange={(e) => onChange({ payload: e })}
-        onFocus={handleFocus}
+        onClick={handleFocus}
       />
       {!!label && <label htmlFor={name}>{placeholder}</label>}
-      <div id='levelTooltip' className='invalid-tooltip'>
-        Must contain only numbers
-      </div>
     </div>
   )
 }
