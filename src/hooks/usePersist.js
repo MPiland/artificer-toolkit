@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 
 const usePersist = () => {
   const [persist, setPersist] = useState(
-    JSON.parse(localStorage.getItem('persist')) || false
+    JSON.parse(localStorage.getItem('persist'))
   )
 
   useEffect(() => {
-    localStorage.setItem('persist', JSON.stringify(persist))
+   localStorage.setItem('persist', JSON.stringify(persist))
   }, [persist])
 
   return [persist, setPersist]

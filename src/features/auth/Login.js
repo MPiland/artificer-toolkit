@@ -21,6 +21,8 @@ const Login = () => {
   const [persist, setPersist] = usePersist()
   const [errMsg, setErrMsg] = useState('')
 
+  console.log(persist)
+
   useEffect(() => {
     setState({
       payload: {
@@ -132,7 +134,6 @@ const Login = () => {
           className='form-check-input'
           id='persist'
           onChange={() => setPersist((prev) => !prev)}
-          checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
