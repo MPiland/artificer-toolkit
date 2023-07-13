@@ -38,14 +38,17 @@ const PersistLogin = () => {
   let content
   if (!persist) {
     // persist: no
+    alert('no persist')
     content = <Outlet />
   } else if (isLoading) {
     //persist: yes, token: no
     console.log('no token')
+    alert('yes persist')
     content = <p>Is Loading..</p>
   } else if (isError) {
     //persist: yes, token: no
     console.log('no token')
+    alert('yes persist')
     setPersist(false)
     content = (
       <p className='errmsg'>
@@ -55,9 +58,11 @@ const PersistLogin = () => {
     )
   } else if (isSuccess && trueSuccess) {
     //persist: yes, token: yes
+    alert('yes persist')
     content = <Outlet />
   } else if (token && isUninitialized) {
     //persist: yes, token: yes
+    alert('yes persist')
     content = <Outlet />
   }
 
