@@ -22,14 +22,8 @@ import { useEffect } from 'react'
 
 const App = () => {
   const { id } = useAuth()
-  const { persist } = usePersist()
-  console.log(id)
   const location = useLocation()
   const background = location.state?.backgrounds
-
-  useEffect(() => {
-    alert(`persist ${persist}`)
-  })
 
   const content = (
     <>
