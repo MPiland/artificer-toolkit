@@ -4,7 +4,11 @@ import { authApiSlice } from './authApiSlice'
 const authSlice = createSlice({
   name: 'auth',
   initialState: { token: null },
-  reducers: {},
+  reducers: {
+    setCredentials: (state, {payload}) => {
+      state.token = payload.accessToken
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addMatcher(
