@@ -8,7 +8,6 @@ import Register from './features/auth/Register'
 import Login from './features/auth/Login'
 import Member from './components/Member'
 import useAuth from './hooks/useAuth'
-import usePersist from './hooks/usePersist'
 import CharacterList from './features/characters/CharacterList'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
@@ -21,7 +20,6 @@ import NewFeatureForm from './features/features/NewFeatureForm'
 
 const App = () => {
   const { id } = useAuth()
-  const [persist] = usePersist()
   const location = useLocation()
   const background = location.state?.backgrounds
 

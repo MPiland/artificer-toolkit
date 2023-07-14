@@ -38,26 +38,24 @@ const PersistLogin = () => {
   let content
 
   if (!persist) {
+    console.log('no persist')
     // persist: no
     content = <Outlet />
   } else if (isLoading) {
     //persist: yes, token: no
-    console.log('no token')
+    console.log('persist loading')
     content = <p>Persist Is Loading..</p>
   } else if (isError) {
     //persist: yes, token: no
-    console.log('no token')
+    console.log('persist yes, no token')
     setPersist(false)
-    content = (
-      <p className='errmsg'>
-        {`${error?.data?.message} - `}
-        <Link to='/'>Please login again</Link>.
-      </p>
-    )
+    content = <Outlet />
   } else if (isSuccess && trueSuccess) {
+    console.log('persist yes, token exists')
     //persist: yes, token: yes
     content = <Outlet />
   } else if (token && isUninitialized) {
+    console.log('persist yes, token exists')
     //persist: yes, token: yes
     content = <Outlet />
   }
