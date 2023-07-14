@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react'
 
-const usePersist = async () => {
+const usePersist = () => {
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persisted().then(async (persistent) => {
+      if (persistent) {
+        console.log(
+          'Storage will not be cleared except by explicit user action'
+        )
+      } else {
+        const isPersisted = await navigator.storage.persist()
+        console.log(`Persisted storage granted: ${isPersisted}`)
+      }
+    })
+  }
+
   const [persist, setPersist] = useState(
     JSON.parse(localStorage.getItem('persist'))
   )
-
-  if (navigator.storage && navigator.storage.persist) {
-    const isPersisted = await navigator.storage.persist()
-    console.log(`Persisted storage granted: ${isPersisted}`)
-  }
 
   useEffect(() => {
     localStorage.setItem('persist', JSON.stringify(persist))
