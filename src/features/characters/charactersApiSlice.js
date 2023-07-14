@@ -4,7 +4,7 @@ export const charactersApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getCharacter: builder.query({
       query: (id) => ({
-        url: `character/${id}`,
+        url: `/character/${id}`,
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },

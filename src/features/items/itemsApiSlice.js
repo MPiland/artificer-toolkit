@@ -4,7 +4,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getItem: builder.query({
       query: (id) => ({
-        url: `item/${id}`,
+        url: `/item/${id}`,
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
@@ -13,7 +13,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
     }),
     addNewItem: builder.mutation({
       query: (initialNoteData) => ({
-        url: 'item/new',
+        url: '/item/new',
         method: 'POST',
         body: { ...initialNoteData },
       }),

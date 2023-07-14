@@ -4,7 +4,7 @@ export const featuresApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getFeature: builder.query({
       query: (id) => ({
-        url: `feature/${id}`,
+        url: `/feature/${id}`,
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
@@ -13,7 +13,7 @@ export const featuresApiSlice = apiSlice.injectEndpoints({
     }),
     addNewFeature: builder.mutation({
       query: (initialNoteData) => ({
-        url: 'feature/new',
+        url: '/feature/new',
         method: 'POST',
         body: { ...initialNoteData },
       }),

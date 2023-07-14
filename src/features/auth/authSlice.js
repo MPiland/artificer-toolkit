@@ -4,11 +4,7 @@ import { authApiSlice } from './authApiSlice'
 const authSlice = createSlice({
   name: 'auth',
   initialState: { token: null },
-  reducers: {
-    setCredentials: (state, { payload }) => {
-      state.token = payload.accessToken
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       .addMatcher(
@@ -25,6 +21,12 @@ const authSlice = createSlice({
       )
       .addMatcher(
         authApiSlice.endpoints.register.matchFulfilled,
+        (state, { payload }) => {
+          state.token = payload.accessToken
+        }
+      )
+      .addMatcher(
+        authApiSlice.endpoints.refresh.matchFulfilled,
         (state, { payload }) => {
           state.token = payload.accessToken
         }

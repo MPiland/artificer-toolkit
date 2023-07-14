@@ -4,7 +4,7 @@ export const racesApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getRace: builder.query({
       query: (id) => ({
-        url: `race/${id}`,
+        url: `/race/${id}`,
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
@@ -13,7 +13,7 @@ export const racesApiSlice = apiSlice.injectEndpoints({
     }),
     addNewRace: builder.mutation({
       query: (initialNoteData) => ({
-        url: 'race/new',
+        url: '/race/new',
         method: 'POST',
         body: { ...initialNoteData },
       }),

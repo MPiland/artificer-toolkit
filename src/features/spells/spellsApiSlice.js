@@ -4,7 +4,7 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getSpell: builder.query({
       query: (id) => ({
-        url: `spell/${id}`,
+        url: `/spell/${id}`,
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
@@ -13,7 +13,7 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
     }),
     addNewSpell: builder.mutation({
       query: (initialNoteData) => ({
-        url: 'spell/new',
+        url: '/spell/new',
         method: 'POST',
         body: { ...initialNoteData },
       }),
