@@ -13,7 +13,7 @@ const SpellList = ({ id }) => {
 
   let content
 
-  if (isLoading) content = <p>Loading...</p>
+  if (isLoading) content = <p>Loading spells...</p>
 
   if (isError) {
     content = <p className='errmsg'>{error?.data?.message}</p>
