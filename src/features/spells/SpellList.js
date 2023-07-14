@@ -31,10 +31,7 @@ const SpellList = ({ id }) => {
             <h1>Spells</h1>
           </div>
           <div className='d-inline col-auto ms-auto'>
-            <Link
-              to={{ pathname: '/spells/new' }}
-              className='btn btn-outline-secondary'
-            >
+            <Link to='/spells/new' className='btn btn-outline-secondary'>
               Add a spell
             </Link>
           </div>

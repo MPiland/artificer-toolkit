@@ -24,10 +24,7 @@ const FeatureList = ({ id }) => {
         <h1>Features</h1>
       </div>
       <div className='d-inline col-auto ms-auto'>
-        <Link
-          to={{ pathname: '/features/new' }}
-          className='btn btn-outline-secondary'
-        >
+        <Link to='/features/new' className='btn btn-outline-secondary'>
           Add Feature
         </Link>
       </div>

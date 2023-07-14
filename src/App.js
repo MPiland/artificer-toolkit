@@ -40,7 +40,7 @@ const App = () => {
                 <Route index element={<CharacterList id={id} />} />
               </Route>
               <Route path='races'>
-                <Route index element={<RaceList />} />
+                <Route index element={<RaceList  id={id}/>} />
                 <Route path='new' element={<NewRaceForm id={id} />} />
               </Route>
               <Route path='spells'>
@@ -48,11 +48,11 @@ const App = () => {
                 <Route path='new' element={<NewSpellForm id={id} />} />
               </Route>
               <Route path='items'>
-                <Route index element={<ItemList />} />
+                <Route index element={<ItemList id={id}/>} />
                 <Route path='new' element={<NewItemForm id={id} />} />
               </Route>
               <Route path='features'>
-                <Route index element={<FeatureList />} />
+                <Route index element={<FeatureList  id={id}/>} />
                 <Route path='new' element={<NewFeatureForm id={id} />} />
               </Route>
             </Route>

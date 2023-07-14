@@ -24,10 +24,7 @@ const ItemList = ({ id }) => {
         <h1>Items</h1>
       </div>
       <div className='d-inline col-auto ms-auto'>
-        <Link
-          to={{ pathname: '/items/new' }}
-          className='btn btn-outline-secondary'
-        >
+        <Link to='/items/new' className='btn btn-outline-secondary'>
           Add item
         </Link>
       </div>

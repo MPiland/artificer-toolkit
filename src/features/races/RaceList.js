@@ -24,10 +24,7 @@ const RaceList = ({ id }) => {
         <h1>Races</h1>
       </div>
       <div className='d-inline col-auto ms-auto'>
-        <Link
-          to={{ pathname: '/races/new' }}
-          className='btn btn-outline-secondary'
-        >
+        <Link to='/races/new' className='btn btn-outline-secondary'>
           Add Race
         </Link>
       </div>
