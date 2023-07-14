@@ -43,7 +43,7 @@ const PersistLogin = () => {
   } else if (isLoading) {
     //persist: yes, token: no
     console.log('no token')
-    content = <p>Is Loading..</p>
+    content = <p>Persist Is Loading..</p>
   } else if (isError) {
     //persist: yes, token: no
     console.log('no token')

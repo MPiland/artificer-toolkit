@@ -21,8 +21,6 @@ const Login = () => {
   const [persist, setPersist] = usePersist()
   const [errMsg, setErrMsg] = useState('')
 
-  console.log(persist)
-
   useEffect(() => {
     setState({
       payload: {
