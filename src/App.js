@@ -8,6 +8,7 @@ import Register from './features/auth/Register'
 import Login from './features/auth/Login'
 import Member from './components/Member'
 import useAuth from './hooks/useAuth'
+import usePersist from './hooks/usePersist'
 import CharacterList from './features/characters/CharacterList'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
@@ -20,6 +21,7 @@ import NewFeatureForm from './features/features/NewFeatureForm'
 
 const App = () => {
   const { id } = useAuth()
+  const [persist] = usePersist()
   const location = useLocation()
   const background = location.state?.backgrounds
 
@@ -40,7 +42,7 @@ const App = () => {
                 <Route index element={<CharacterList id={id} />} />
               </Route>
               <Route path='races'>
-                <Route index element={<RaceList  id={id}/>} />
+                <Route index element={<RaceList id={id} />} />
                 <Route path='new' element={<NewRaceForm id={id} />} />
               </Route>
               <Route path='spells'>
@@ -48,11 +50,11 @@ const App = () => {
                 <Route path='new' element={<NewSpellForm id={id} />} />
               </Route>
               <Route path='items'>
-                <Route index element={<ItemList id={id}/>} />
+                <Route index element={<ItemList id={id} />} />
                 <Route path='new' element={<NewItemForm id={id} />} />
               </Route>
               <Route path='features'>
-                <Route index element={<FeatureList  id={id}/>} />
+                <Route index element={<FeatureList id={id} />} />
                 <Route path='new' element={<NewFeatureForm id={id} />} />
               </Route>
             </Route>
