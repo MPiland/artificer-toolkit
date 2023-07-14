@@ -13,7 +13,7 @@ export const featuresApiSlice = apiSlice.injectEndpoints({
     }),
     addNewFeature: builder.mutation({
       query: (initialNoteData) => ({
-        url: '/feature/new',
+        url: '/feature',
         method: 'POST',
         body: { ...initialNoteData },
       }),

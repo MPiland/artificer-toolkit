@@ -13,7 +13,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
     }),
     addNewItem: builder.mutation({
       query: (initialNoteData) => ({
-        url: '/item/new',
+        url: '/item',
         method: 'POST',
         body: { ...initialNoteData },
       }),

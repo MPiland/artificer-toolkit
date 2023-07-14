@@ -13,7 +13,7 @@ export const racesApiSlice = apiSlice.injectEndpoints({
     }),
     addNewRace: builder.mutation({
       query: (initialNoteData) => ({
-        url: '/race/new',
+        url: '/race',
         method: 'POST',
         body: { ...initialNoteData },
       }),

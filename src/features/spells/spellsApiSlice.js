@@ -13,7 +13,7 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
     }),
     addNewSpell: builder.mutation({
       query: (initialNoteData) => ({
-        url: '/spell/new',
+        url: '/spell',
         method: 'POST',
         body: { ...initialNoteData },
       }),
