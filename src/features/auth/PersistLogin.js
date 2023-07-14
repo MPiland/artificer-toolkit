@@ -1,4 +1,4 @@
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet} from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useRefreshMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
@@ -12,7 +12,7 @@ const PersistLogin = () => {
 
   const [trueSuccess, setTrueSuccess] = useState(false)
 
-  const [refresh, { isUninitialized, isLoading, isSuccess, isError, error }] =
+  const [refresh, { isUninitialized, isLoading, isSuccess, isError}] =
     useRefreshMutation()
 
   useEffect(() => {

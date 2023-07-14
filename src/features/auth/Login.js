@@ -18,7 +18,7 @@ const Login = () => {
   const navigate = useNavigate()
 
   const [state, setState] = useReducer(formReducer, {})
-  const [setPersist] = usePersist()
+  const [persist, setPersist] = usePersist()
   const [errMsg, setErrMsg] = useState('')
 
   useEffect(() => {
