@@ -47,7 +47,7 @@ const PersistLogin = () => {
     content = <p>Persist Is Loading..</p>
   } else if (isError) {
     //persist: yes, token: no
-    console.log('error')
+    console.log(`Error - ${error?.data?.message}`)
     setPersist(false)
     content = (
       <p>
