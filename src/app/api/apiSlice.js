@@ -9,7 +9,8 @@ const baseQuery = fetchBaseQuery({
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token
     if (token) {
-      console.log(token)
+      console.log('token exists, sending with header')
+      console.log(JSON.parse(headers))
       headers.set('authorization', `Bearer ${token}`)
     }
     return headers
@@ -17,9 +18,9 @@ const baseQuery = fetchBaseQuery({
 })
 
 const baseQueryWithReauth = async (args, api, extraOptions) => {
-  // console.log(args) // request url, method, body
-  // console.log(api) // signal, dispatch, getState()
-  // console.log(extraOptions) // custom like {shout: true}
+  console.log('base query args', args) // request url, method, body
+  console.log('base query api', api) // signal, dispatch, getState()
+  console.log('base query extraOptions', extraOptions) // custom like {shout: true}
 
   let result = await baseQuery(args, api, extraOptions)
 
