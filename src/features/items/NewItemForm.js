@@ -8,10 +8,13 @@ import { startCase } from 'lodash'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
+import useAuth from '../../hooks/useAuth'
 
 const NUM_REGEX = /^[0-9\b]+$/
 
-const NewItemForm = ({ id }) => {
+const NewItemForm = () => {
+  const { id } = useAuth()
+
   const {
     data: builders,
     isSuccess: builderSuccess,

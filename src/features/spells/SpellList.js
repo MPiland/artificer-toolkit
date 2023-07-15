@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useGetSpellQuery } from './spellsApiSlice'
 import Spell from './Spell'
+import useAuth from '../../hooks/useAuth'
 
-const SpellList = ({ id }) => {
+const SpellList = () => {
+  const { id } = useAuth()
+  
   const {
     data: spells,
     isLoading,

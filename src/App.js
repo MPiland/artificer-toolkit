@@ -2,12 +2,10 @@ import 'react-tooltip/dist/react-tooltip.css'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import RequireAuth from './features/auth/RequireAuth'
 import PersistLogin from './features/auth/PersistLogin'
-import Public from './components/Public'
+import Layout from './components/Layout'
 import Modal from './components/Modal'
 import Register from './features/auth/Register'
 import Login from './features/auth/Login'
-import Member from './components/Member'
-import useAuth from './hooks/useAuth'
 import CharacterList from './features/characters/CharacterList'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
@@ -19,7 +17,6 @@ import FeatureList from './features/features/FeatureList'
 import NewFeatureForm from './features/features/NewFeatureForm'
 
 const App = () => {
-  const { id } = useAuth()
   const location = useLocation()
   const background = location.state?.backgrounds
 
@@ -27,33 +24,34 @@ const App = () => {
     <>
       <Routes location={background || location}>
         <Route element={<PersistLogin />}>
-          <Route path='/' element={id ? <Member id={id} /> : <Public />}>
+          <Route path='/' element={<Layout />}>
             <Route element={<Modal />}>
               <Route path='register' element={<Register />} />
               <Route path='login' element={<Login />} />
             </Route>
             <Route path='media' />
             <Route path='about' />
+
             {/*Logged in*/}
             <Route element={<RequireAuth />}>
               <Route path='characters'>
-                <Route index element={<CharacterList id={id} />} />
+                <Route index element={<CharacterList />} />
               </Route>
               <Route path='races'>
-                <Route index element={<RaceList id={id} />} />
-                <Route path='new' element={<NewRaceForm id={id} />} />
+                <Route index element={<RaceList />} />
+                <Route path='new' element={<NewRaceForm  />} />
               </Route>
               <Route path='spells'>
-                <Route index element={<SpellList id={id} />} />
-                <Route path='new' element={<NewSpellForm id={id} />} />
+                <Route index element={<SpellList />} />
+                <Route path='new' element={<NewSpellForm />} />
               </Route>
               <Route path='items'>
-                <Route index element={<ItemList id={id} />} />
-                <Route path='new' element={<NewItemForm id={id} />} />
+                <Route index element={<ItemList />} />
+                <Route path='new' element={<NewItemForm  />} />
               </Route>
               <Route path='features'>
-                <Route index element={<FeatureList id={id} />} />
-                <Route path='new' element={<NewFeatureForm id={id} />} />
+                <Route index element={<FeatureList />} />
+                <Route path='new' element={<NewFeatureForm />} />
               </Route>
             </Route>
           </Route>

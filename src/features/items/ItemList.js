@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useGetItemQuery } from './itemsApiSlice'
+import useAuth from '../../hooks/useAuth'
 
-const ItemList = ({ id }) => {
+const ItemList = () => {
+  const { id } = useAuth()
+
   const {
     data: items,
     isLoading,

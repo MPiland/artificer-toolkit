@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useGetFeatureQuery } from './featuresApiSlice'
+import useAuth from '../../hooks/useAuth'
 
-const FeatureList = ({ id }) => {
+const FeatureList = () => {
+  const { id } = useAuth()
+
   const {
     data: races,
     isLoading,

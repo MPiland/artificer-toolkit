@@ -4,13 +4,13 @@ import TextEditor from '../../components/TextEditor'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import formReducer from '../../hooks/useReducer'
-import { startCase } from 'lodash'
-import Table from '../../components/Table'
-import Select from '../../components/Select'
+import useAuth from '../../hooks/useAuth'
 
 const NUM_REGEX = /^[0-9\b]+$/
 
-const NewRaceForm = ({ id }) => {
+const NewRaceForm = () => {
+  const { id } = useAuth()
+
   const {
     data: builders,
     isSuccess: builderSuccess,

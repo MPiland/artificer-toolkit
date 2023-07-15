@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useGetRaceQuery } from './racesApiSlice'
+import useAuth from '../../hooks/useAuth'
 
-const RaceList = ({ id }) => {
+const RaceList = () => {
+  const { id } = useAuth()
+
   const {
     data: races,
     isLoading,
