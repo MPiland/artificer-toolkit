@@ -11,6 +11,7 @@ import useAuth from '../../hooks/useAuth'
 const NUM_REGEX = /^[0-9\b]+$/
 
 const NewSpellForm = () => {
+  console.log('localstorage', JSON.parse(localStorage.getItem('persist')))
   const { id } = useAuth()
 
   const { data: builders, isSuccess, isLoading } = useGetBuilderQuery(id)
@@ -49,12 +50,6 @@ const NewSpellForm = () => {
   if (isLoading) content = <p>Loading...</p>
 
   if (isSuccess) {
-    console.log(state)
-    // const categoryOptions = builders.spell.category.map((category) => ({
-    //   label: category.name,
-    //   value: { name: category.name, id: category._id },
-    // }))
-
     // Submit to databases
     const onSubmit = async () => {
       await addNewSpell(state)
