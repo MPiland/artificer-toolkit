@@ -11,7 +11,6 @@ import useAuth from '../../hooks/useAuth'
 const NUM_REGEX = /^[0-9\b]+$/
 
 const NewSpellForm = () => {
-  console.log('localstorage', JSON.parse(localStorage.getItem('persist')))
   const { id } = useAuth()
 
   const { data: builders, isSuccess, isLoading } = useGetBuilderQuery(id)

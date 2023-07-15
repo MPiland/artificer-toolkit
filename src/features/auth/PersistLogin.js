@@ -1,4 +1,4 @@
-import { Outlet} from 'react-router-dom'
+import { Outlet, Link } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useRefreshMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
@@ -12,7 +12,7 @@ const PersistLogin = () => {
 
   const [trueSuccess, setTrueSuccess] = useState(false)
 
-  const [refresh, { isUninitialized, isLoading, isSuccess, isError}] =
+  const [refresh, { isUninitialized, isLoading, isSuccess, isError, error }] =
     useRefreshMutation()
 
   useEffect(() => {
@@ -38,25 +38,30 @@ const PersistLogin = () => {
   let content
 
   if (!persist) {
-    console.log('no persist')
     // persist: no
+    console.log('no persist')
     content = <Outlet />
   } else if (isLoading) {
     //persist: yes, token: no
-    console.log('persist loading')
+    console.log('loading')
     content = <p>Persist Is Loading..</p>
   } else if (isError) {
     //persist: yes, token: no
-    console.log('persist yes, no token')
+    console.log('error')
     setPersist(false)
-    content = <Outlet />
+    content = (
+      <p>
+        {`${error?.data?.message} - `}
+        <Link to='/'>Please login again</Link>.
+      </p>
+    )
   } else if (isSuccess && trueSuccess) {
-    console.log('persist yes, token exists')
     //persist: yes, token: yes
+    console.log('success')
     content = <Outlet />
   } else if (token && isUninitialized) {
-    console.log('persist yes, token exists')
     //persist: yes, token: yes
+    console.log('token and uninit')
     content = <Outlet />
   }
 
