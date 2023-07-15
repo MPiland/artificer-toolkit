@@ -64,7 +64,6 @@ const NewFeatureForm = () => {
   }
 
   if (builderSuccess && spellSuccess && featureSuccess) {
-    console.log(state)
 
     // Submit to databases
     const onSubmit = async () => {

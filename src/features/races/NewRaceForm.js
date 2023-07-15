@@ -63,7 +63,6 @@ const NewRaceForm = () => {
   }
 
   if (builderSuccess || spellSuccess) {
-    console.log(state)
 
     // Submit to databases
     const onSubmit = async () => {
