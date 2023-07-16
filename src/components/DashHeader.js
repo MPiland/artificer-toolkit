@@ -1,17 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useSendLogoutMutation } from '../features/auth/authApiSlice'
-import usePersist from '../hooks/usePersist'
 
 const DashHeader = () => {
   const navigate = useNavigate()
 
   const [sendLogout] = useSendLogoutMutation()
-  const [persist, setPersist] = usePersist()
 
   const onLogoutClick = async () => {
-    setPersist(false)
+    await sendLogout()
     navigate('/')
-    sendLogout()
   }
 
   const content = (
@@ -76,7 +73,9 @@ const DashHeader = () => {
                 <NavLink className='nav-link'>Backgrounds</NavLink>
               </li>
               <li data-bs-dismiss='offcanvas'>
-                <NavLink className='nav-link' to='features'>Features</NavLink>
+                <NavLink className='nav-link' to='features'>
+                  Features
+                </NavLink>
               </li>
               <li data-bs-dismiss='offcanvas'>
                 <NavLink className='nav-link'>Monsters</NavLink>

@@ -27,7 +27,9 @@ const PersistLogin = () => {
         setTrueSuccess(true)
       }
 
-      if (!token && persist) verifyRefreshToken()
+      if (!token && persist) {
+        verifyRefreshToken()
+      }
     }
 
     return () => (effectRan.current = true)
