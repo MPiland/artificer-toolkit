@@ -8,7 +8,7 @@ import { selectCurrentToken } from './authSlice'
 const PersistLogin = () => {
   const [persist, setPersist] = usePersist()
   const token = useSelector(selectCurrentToken)
-  console.log('token', token)
+  console.log('persist token', JSON.stringify(token))
   console.log('persist', persist)
   const effectRan = useRef(false)
 
