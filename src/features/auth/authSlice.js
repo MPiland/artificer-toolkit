@@ -5,31 +5,32 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: { token: null },
   reducers: {
-    setCredentials: ({ payload }) => {
-      localStorage.setItem('auth', JSON.stringify(payload.accessToken))
+    setCredentials: (state, { payload }) => {
+      state.token = payload.accessToken
     },
   },
   extraReducers: (builder) => {
     builder
       .addMatcher(
         authApiSlice.endpoints.login.matchFulfilled,
-        ({ payload }) => {
-          localStorage.setItem('auth', JSON.stringify(payload.accessToken))
+        (state, { payload }) => {
+          state.token = payload.accessToken
         }
       )
       .addMatcher(
         authApiSlice.endpoints.googleLogin.matchFulfilled,
-        ({ payload }) => {
-          localStorage.setItem('auth', JSON.stringify(payload.accessToken))
+        (state, { payload }) => {
+          state.token = payload.accessToken
         }
       )
       .addMatcher(
         authApiSlice.endpoints.register.matchFulfilled,
-        ({ payload }) => {
-          localStorage.setItem('auth', JSON.stringify(payload.accessToken))
+        (state, { payload }) => {
+          state.token = payload.accessToken
         }
       )
-      .addMatcher(authApiSlice.endpoints.sendLogout.matchFulfilled, () => {
+      .addMatcher(authApiSlice.endpoints.sendLogout.matchFulfilled, (state) => {
+        state.token = null
         localStorage.clear()
       })
   },

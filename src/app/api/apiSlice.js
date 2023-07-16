@@ -7,7 +7,7 @@ const baseQuery = fetchBaseQuery({
       : 'http://localhost:3500',
   credentials: 'include',
   prepareHeaders: async (headers, { getState }) => {
-    const token = localStorage.getItem('auth')
+    const token = await getState().auth.token
     if (!!token) {
       console.log('token exists')
       headers.set('authorization', `Bearer ${token}`)
