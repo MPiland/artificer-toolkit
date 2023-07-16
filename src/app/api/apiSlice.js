@@ -8,10 +8,10 @@ const baseQuery = fetchBaseQuery({
   credentials: 'include',
   prepareHeaders: async (headers, { getState }) => {
     const token = await getState().auth.token
-    if (token) {
+    if (!!token) {
+      console.log('token exists')
       headers.set('authorization', `Bearer ${token}`)
     }
-    console.log(JSON.parse(headers))
     return headers
   },
 })
