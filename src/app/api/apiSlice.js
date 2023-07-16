@@ -3,16 +3,15 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 const baseQuery = fetchBaseQuery({
   baseUrl:
     process.env.NODE_ENV === 'production'
-      ? 'https://at-beta-api.onrender.com'
+      ? process.env.BASE_URI
       : 'http://localhost:3500',
   credentials: 'include',
   prepareHeaders: async (headers, { getState }) => {
     const token = await getState().auth.token
     if (token) {
-      console.log('header token set')
       headers.set('authorization', `Bearer ${token}`)
     }
-    console.log('headers', JSON.stringify(headers))
+    console.log(JSON.parse(headers))
     return headers
   },
 })
