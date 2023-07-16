@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 const baseQuery = fetchBaseQuery({
   baseUrl:
     process.env.NODE_ENV === 'production'
-      ? `${process.env.BASE_URI}`
+      ? 'https://at-beta-api.onrender.com'
       : 'http://localhost:3500',
   credentials: 'include',
   prepareHeaders: async (headers, { getState }) => {
