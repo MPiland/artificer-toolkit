@@ -5,8 +5,8 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: { token: null },
   reducers: {
-    setCredentials: (state, { payload }) => {
-      state.token = payload.accessToken
+    setCredentials: ({ payload }) => {
+      localStorage.setItem('auth', JSON.stringify(payload.accessToken))
     },
   },
   extraReducers: (builder) => {

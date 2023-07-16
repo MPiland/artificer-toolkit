@@ -2,14 +2,10 @@ import { Outlet, Link } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useRefreshMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
-import { useSelector } from 'react-redux'
-import { selectCurrentToken } from './authSlice'
 
 const PersistLogin = () => {
   const [persist, setPersist] = usePersist()
-  const token = useSelector(selectCurrentToken)
-  console.log('persist token', JSON.stringify(token))
-  console.log('persist', persist)
+  const token = localStorage.getItem('auth')
   const effectRan = useRef(false)
 
   const [trueSuccess, setTrueSuccess] = useState(false)
