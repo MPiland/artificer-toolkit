@@ -13,24 +13,23 @@ const authSlice = createSlice({
     builder
       .addMatcher(
         authApiSlice.endpoints.login.matchFulfilled,
-        (state, { payload }) => {
-          state.token = payload.accessToken
+        ({ payload }) => {
+          localStorage.setItem('auth', JSON.stringify(payload.accessToken))
         }
       )
       .addMatcher(
         authApiSlice.endpoints.googleLogin.matchFulfilled,
-        (state, { payload }) => {
-          state.token = payload.accessToken
+        ({ payload }) => {
+          localStorage.setItem('auth', JSON.stringify(payload.accessToken))
         }
       )
       .addMatcher(
         authApiSlice.endpoints.register.matchFulfilled,
-        (state, { payload }) => {
-          state.token = payload.accessToken
+        ({ payload }) => {
+          localStorage.setItem('auth', JSON.stringify(payload.accessToken))
         }
       )
-      .addMatcher(authApiSlice.endpoints.sendLogout.matchFulfilled, (state) => {
-        state.token = null
+      .addMatcher(authApiSlice.endpoints.sendLogout.matchFulfilled, () => {
         localStorage.clear()
       })
   },
