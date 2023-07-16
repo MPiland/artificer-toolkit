@@ -31,7 +31,7 @@ const authSlice = createSlice({
       )
       .addMatcher(authApiSlice.endpoints.sendLogout.matchFulfilled, (state) => {
         state.token = null
-        localStorage.clear()
+        localStorage.removeItem('persist')
       })
   },
 })
