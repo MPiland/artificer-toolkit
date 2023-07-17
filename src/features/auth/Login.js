@@ -12,8 +12,11 @@ const USER_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const Login = () => {
   // Login hook
-  const [login, { isLoading }] = useLoginMutation()
-  const [googleLogin, { isLoading: isGoogleLoading }] = useGoogleLoginMutation()
+  const [login, { isLoading, isError, error }] = useLoginMutation()
+  const [
+    googleLogin,
+    { isLoading: isGoogleLoading, isError: isGoogleError, error: googleError },
+  ] = useGoogleLoginMutation()
 
   const navigate = useNavigate()
 
@@ -92,6 +95,7 @@ const Login = () => {
 
   const content = (
     <form className='needs-validation' noValidate>
+      {isError && <p>{errMsg}</p>}
       <Input
         type='email'
         className={`${state?.validUClass} mb-3`}
@@ -137,6 +141,7 @@ const Login = () => {
           className='form-check-input'
           id='persist'
           onChange={() => setPersist((prev) => !prev)}
+          checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
@@ -155,8 +160,10 @@ const Login = () => {
           ? 'Submit'
           : 'Submitting'}
       </button>
-      {errMsg && <div className='register-error'>{errMsg}</div>}
-
+      {isError && <div className='register-error'>{error?.data?.message}</div>}
+      {isGoogleError && (
+        <div className='register-error'>{googleError?.data?.message}</div>
+      )}
       <div className='text-body-secondary text-center'>
         By clicking Submit, you agree to the terms of use.
       </div>

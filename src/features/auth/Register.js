@@ -69,6 +69,8 @@ const Register = () => {
       } catch (err) {
         if (!err.status) {
           setErrMsg('No Server Response')
+        } else if (err.status === 401) {
+          setErrMsg('Unauthorized')
         } else {
           setErrMsg(err.message)
         }

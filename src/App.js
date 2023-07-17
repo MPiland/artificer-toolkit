@@ -22,7 +22,7 @@ import { selectCurrentToken } from './features/auth/authSlice'
 
 const App = () => {
   const token = useSelector(selectCurrentToken)
-  console.log(token)
+  console.log('token', token)
   const location = useLocation()
   const background = location.state?.backgrounds
 
@@ -30,16 +30,16 @@ const App = () => {
     <>
       <Routes location={background || location}>
         <Route element={<Layout />}>
-          <Route path='/' element={token ? <Member /> : <Public />}>
-            <Route element={<Modal />}>
-              <Route path='register' element={<Register />} />
-              <Route path='login' element={<Login />} />
-            </Route>
-            <Route path='media' />
-            <Route path='about' />
+          <Route element={<PersistLogin />}>
+            <Route path='/' element={token ? <Member /> : <Public />}>
+              <Route element={<Modal />}>
+                <Route path='register' element={<Register />} />
+                <Route path='login' element={<Login />} />
+              </Route>
+              <Route path='media' />
+              <Route path='about' />
 
-            {/*Logged in*/}
-            <Route element={<PersistLogin />}>
+              {/*Logged in*/}
               <Route element={<RequireAuth />}>
                 <Route path='characters'>
                   <Route index element={<CharacterList />} />
