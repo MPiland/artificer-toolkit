@@ -22,6 +22,7 @@ import { selectCurrentToken } from './features/auth/authSlice'
 
 const App = () => {
   const token = useSelector(selectCurrentToken)
+  console.log(token)
   const location = useLocation()
   const background = location.state?.backgrounds
 
