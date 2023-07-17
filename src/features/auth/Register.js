@@ -72,9 +72,6 @@ const Register = () => {
           username: state.username,
           password: state.password,
         })
-        if (state.persist === true) {
-          setPersist(state.persist)
-        }
         navigate('/')
       } catch (err) {
         if (!err.status) {
@@ -90,9 +87,6 @@ const Register = () => {
     onSuccess: async ({ code }) => {
       try {
         await googleLogin({ code })
-        if (state.persist === true) {
-          setPersist(state.persist)
-        }
         navigate('/')
       } catch (err) {
         console.log(err.message)
@@ -158,11 +152,8 @@ const Register = () => {
           type='checkbox'
           className='form-check-input'
           id='persist'
-          onChange={(e) =>
-            setState({
-              payload: { target: { name: 'persist', value: e.target.checked } },
-            })
-          }
+          onChange={() => setPersist((prev) => !prev)}
+          checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device

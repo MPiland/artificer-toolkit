@@ -1,14 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
 const baseQuery = fetchBaseQuery({
-  baseUrl:
-    process.env.NODE_ENV === 'production'
-      ? 'https://api.artificertoolkit.app'
-      : 'http://localhost:3500',
+  baseUrl: 'http://localhost:3500',
   credentials: 'include',
   prepareHeaders: async (headers, { getState }) => {
     const token = await getState().auth.token
-    if (!!token) {
+    if (token) {
       console.log('token exists')
       headers.set('authorization', `Bearer ${token}`)
     }
