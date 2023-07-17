@@ -16,10 +16,7 @@ const PersistLogin = () => {
     useRefreshMutation()
 
   useEffect(() => {
-    if (
-      effectRan.current === true ||
-      (process.env.NODE_ENV !== 'development' && persist !== false)
-    ) {
+    if (effectRan.current === true || process.env.NODE_ENV !== 'development') {
       // React 18 Strict Mode
 
       const verifyRefreshToken = async () => {
@@ -32,7 +29,7 @@ const PersistLogin = () => {
         setTrueSuccess(true)
       }
 
-      if (!token) {
+      if (!token && persist === true) {
         verifyRefreshToken()
       }
     }
