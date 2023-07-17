@@ -52,6 +52,9 @@ const Login = () => {
     } else {
       try {
         await login({ username: state.username, password: state.password })
+        if (state.persist === true) {
+          setPersist(state.persist)
+        }
         navigate('/')
       } catch (err) {
         if (!err.status) {
@@ -67,6 +70,9 @@ const Login = () => {
     onSuccess: async ({ code }) => {
       try {
         await googleLogin({ code })
+        if (state.persist === true) {
+          setPersist(state.persist)
+        }
         navigate('/')
       } catch (err) {
         console.log(err.message)
@@ -130,8 +136,11 @@ const Login = () => {
         <input
           type='checkbox'
           className='form-check-input'
+          name='persist'
           id='persist'
-          onChange={() => setPersist((prev) => !prev)}
+          onChange={setState({
+            payload: { target: { name: 'persist', value: !state.persist } },
+          })}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
