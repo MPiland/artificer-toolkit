@@ -158,10 +158,11 @@ const Register = () => {
           type='checkbox'
           className='form-check-input'
           id='persist'
-          onChange={setState({
-            payload: { target: { name: 'persist', value: !state.persist } },
-          })}
-          checked={persist}
+          onChange={(e) =>
+            setState({
+              payload: { target: { name: 'persist', value: e.target.checked } },
+            })
+          }
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device

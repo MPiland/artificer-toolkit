@@ -138,9 +138,11 @@ const Login = () => {
           className='form-check-input'
           name='persist'
           id='persist'
-          onChange={setState({
-            payload: { target: { name: 'persist', value: !state.persist } },
-          })}
+          onChange={(e) =>
+            setState({
+              payload: { target: { name: 'persist', value: e.target.checked } },
+            })
+          }
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
