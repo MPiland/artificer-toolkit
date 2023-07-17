@@ -10,6 +10,7 @@ const Input = ({
   className,
   disabled,
   onChange,
+  invalidText,
 }) => {
   const inputRef = useRef(null)
 
@@ -20,7 +21,7 @@ const Input = ({
   }
 
   return (
-    <div className={`${!!label ? 'form-floating' : ''}`}>
+    <div className={`position-relative ${!!label ? 'form-floating' : ''}`}>
       <input
         ref={inputRef}
         className={`form-control ${className ?? ''}`}
@@ -35,6 +36,9 @@ const Input = ({
         onClick={handleFocus}
       />
       {!!label && <label htmlFor={name}>{placeholder}</label>}
+      <div id={`${name}Tooltip`} className='invalid-tooltip'>
+        {invalidText}
+      </div>
     </div>
   )
 }

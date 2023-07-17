@@ -45,11 +45,7 @@ const Login = () => {
 
   // Login function
   const onLoginClicked = async () => {
-    if (!state.validUsername) {
-      setState({ payload: { target: { name: 'validUClass', value: false } } })
-    } else if (!state.validPassword) {
-      setState({ payload: { target: { name: 'validPClass', value: false } } })
-    } else {
+    if (state.validUsername && state.validPassword) {
       try {
         await login({ username: state.username, password: state.password })
         navigate('/')
@@ -59,6 +55,25 @@ const Login = () => {
         } else {
           setErrMsg(err.message)
         }
+      }
+    } else {
+      if (!state.validUsername) {
+        setState({
+          payload: { target: { name: 'validUClass', value: 'is-invalid' } },
+        })
+      } else {
+        setState({
+          payload: { target: { name: 'validUClass', value: 'is-valid' } },
+        })
+      }
+      if (!state.validPassword) {
+        setState({
+          payload: { target: { name: 'validPClass', value: 'is-invalid' } },
+        })
+      } else {
+        setState({
+          payload: { target: { name: 'validPClass', value: 'is-valid' } },
+        })
       }
     }
   }
@@ -76,40 +91,30 @@ const Login = () => {
   })
 
   const content = (
-    <form>
-      <div className='position-relative mb-3'>
-        <Input
-          type='email'
-          className={`${
-            state.validUClass && state.validUClass === false ? 'is-invalid' : ''
-          }`}
-          name='username'
-          label={true}
-          placeholder='Email Address'
-          autoComplete='username'
-          onChange={setState}
-        />
-        <div id='usernameFeedback' className='invalid-feedback'>
-          Username must be a valid email address.
-        </div>
-      </div>
-      <div className='input-group mb-3 has-validation'>
+    <form className='needs-validation' noValidate>
+      <Input
+        type='email'
+        className={`${state?.validUClass} mb-3`}
+        name='username'
+        label={true}
+        placeholder='Email Address'
+        autoComplete='username'
+        onChange={setState}
+        invalidText='Username must be a valid email address.'
+      />
+      <div className='input-group mb-3'>
         <Input
           type={state.showPassword ? 'text' : 'password'}
-          className={`${
-            state.validPClass && state.validPClass === false ? 'is-invalid' : ''
-          }`}
+          className={`${state?.validPClass}`}
           name='password'
           placeholder='Password'
           label={true}
           autoComplete='password'
           onChange={setState}
           aria-describedby='eye-addon'
+          invalidText='Password must contain 1 uppercase, lowercase, numeric, and special
+          character'
         />
-        <div id='passwordFeedback' className='invalid-feedback'>
-          Password must contain 1 uppercase, lowercase, numeric, and special
-          character
-        </div>
         <span
           className='input-group-text bi bi-eye>'
           id='eye-addon'
@@ -139,10 +144,9 @@ const Login = () => {
       </div>
       <button
         className='w-100 mb-2 btn btn-lg rounded-3 btn-primary'
-        type='submit'
+        type='button'
         disabled={state?.submitting}
-        onClick={(e) => {
-          e.preventDefault()
+        onClick={() => {
           setState({ payload: { target: { name: 'submitting', value: true } } })
           onLoginClicked()
         }}

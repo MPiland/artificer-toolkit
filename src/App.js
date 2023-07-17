@@ -28,17 +28,17 @@ const App = () => {
   const content = (
     <>
       <Routes location={background || location}>
-        <Route element={<PersistLogin />}>
-          <Route element={<Layout />}>
-            <Route path='/' element={token ? <Member /> : <Public />}>
-              <Route element={<Modal />}>
-                <Route path='register' element={<Register />} />
-                <Route path='login' element={<Login />} />
-              </Route>
-              <Route path='media' />
-              <Route path='about' />
+        <Route element={<Layout />}>
+          <Route path='/' element={token ? <Member /> : <Public />}>
+            <Route element={<Modal />}>
+              <Route path='register' element={<Register />} />
+              <Route path='login' element={<Login />} />
+            </Route>
+            <Route path='media' />
+            <Route path='about' />
 
-              {/*Logged in*/}
+            {/*Logged in*/}
+            <Route element={<PersistLogin />}>
               <Route element={<RequireAuth />}>
                 <Route path='characters'>
                   <Route index element={<CharacterList />} />
