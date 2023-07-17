@@ -48,7 +48,7 @@ const Login = () => {
 
   // Login function
   const onLoginClicked = async () => {
-    if (state.validUsername && state.validPassword) {
+    if (state.validUsername === true && state.validPassword === true) {
       try {
         await login({ username: state.username, password: state.password })
         navigate('/')

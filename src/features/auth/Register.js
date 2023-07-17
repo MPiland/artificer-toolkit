@@ -59,7 +59,7 @@ const Register = () => {
   }, [isError, isGoogleError])
 
   const onRegisterClicked = async () => {
-    if (state.validUsername && state.validPassword) {
+    if (state.validUsername === true && state.validPassword === true) {
       try {
         await register({
           username: state.username,
