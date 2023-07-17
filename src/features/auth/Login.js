@@ -7,7 +7,7 @@ import formReducer from '../../hooks/useReducer'
 import Input from '../../components/Input'
 
 const PWD_REGEX =
-  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,15}$/
+  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
 const USER_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const Login = () => {
@@ -116,8 +116,7 @@ const Login = () => {
           autoComplete='password'
           onChange={setState}
           aria-describedby='eye-addon'
-          invalidText='Password must contain 1 uppercase, lowercase, numeric, and special
-          character'
+          invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
         />
         <span
           className='input-group-text bi bi-eye>'
