@@ -64,7 +64,6 @@ const NewFeatureForm = () => {
   }
 
   if (builderSuccess && spellSuccess && featureSuccess) {
-
     // Submit to databases
     const onSubmit = async () => {
       await addNewFeature(state)
@@ -501,17 +500,15 @@ const NewFeatureForm = () => {
                 aria-expanded='true'
                 aria-controls={`effect${effectIndex}AccordionBody`}
               >
-                <div className='col-4'>
-                  <Input
-                    className='form-control border-0'
-                    type='text'
-                    name={`effect.${effectIndex}.value`}
-                    autoComplete='off'
-                    placeholder='Effect Name'
-                    required={true}
-                    onChange={setState}
-                  />
-                </div>
+                <Input
+                  className='col-4 border-0'
+                  type='text'
+                  name={`effect.${effectIndex}.value`}
+                  autoComplete='off'
+                  placeholder='Effect Name'
+                  required={true}
+                  onChange={setState}
+                />
               </button>
             </div>
             <div
@@ -576,17 +573,16 @@ const NewFeatureForm = () => {
                   {effect?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'providesOptions'
                   ) && (
-                    <div className='col-sm'>
-                      <Input
-                        type='text'
-                        name={`effect.${effectIndex}.maxDupValue`}
-                        label={true}
-                        autoComplete='off'
-                        placeholder='Max Dup. Selections'
-                        require={true}
-                        onChange={setState}
-                      />
-                    </div>
+                    <Input
+                      type='text'
+                      className='col-sm'
+                      name={`effect.${effectIndex}.maxDupValue`}
+                      label={true}
+                      autoComplete='off'
+                      placeholder='Max Dup. Selections'
+                      require={true}
+                      onChange={setState}
+                    />
                   )}
                   {effect?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'conditionLimits'
@@ -632,28 +628,21 @@ const NewFeatureForm = () => {
                         </div>
                       ) : (
                         effect?.limitBy?.name === 'setNumber' && (
-                          <div className='col-sm position-relative'>
-                            <Input
-                              className={`${
-                                effect?.limitBy?.setAmount &&
-                                (NUM_REGEX.test(effect?.limitBy.setAmount)
-                                  ? 'is-valid'
-                                  : 'is-invalid')
-                              }`}
-                              type='text'
-                              name={`effect.${effectIndex}.limitBy.setAmount`}
-                              label={true}
-                              placeholder='Use Amount'
-                              required={true}
-                              onChange={setState}
-                            />
-                            <div
-                              id={`effect.${effectIndex}.limitBy.setAmountTooltip`}
-                              className='invalid-tooltip'
-                            >
-                              Must contain only numbers
-                            </div>
-                          </div>
+                          <Input
+                            className={`col-sm ${
+                              effect?.limitBy?.setAmount &&
+                              (NUM_REGEX.test(effect?.limitBy.setAmount)
+                                ? 'is-valid'
+                                : 'is-invalid')
+                            }`}
+                            type='text'
+                            name={`effect.${effectIndex}.limitBy.setAmount`}
+                            label={true}
+                            invalidText='Must contain only numbers'
+                            placeholder='Use Amount'
+                            required={true}
+                            onChange={setState}
+                          />
                         )
                       )}
                       <div className='col-sm'>
@@ -670,28 +659,26 @@ const NewFeatureForm = () => {
                     (attributeItem) => attributeItem.name === 'hasRange'
                   ) && (
                     <>
-                      <div className='col-sm'>
-                        <Input
-                          type='text'
-                          name={`effect.${effectIndex}.inRange`}
-                          label={true}
-                          autoComplete='off'
-                          placeholder='Min Range'
-                          require={true}
-                          onChange={setState}
-                        />
-                      </div>
-                      <div className='col-sm'>
-                        <Input
-                          type='text'
-                          name={`effect.${effectIndex}.maxRange`}
-                          label={true}
-                          autoComplete='off'
-                          placeholder='Max Range'
-                          required={true}
-                          onChange={setState}
-                        />
-                      </div>
+                      <Input
+                        type='text'
+                        className='col-sm'
+                        name={`effect.${effectIndex}.inRange`}
+                        label={true}
+                        autoComplete='off'
+                        placeholder='Min Range'
+                        require={true}
+                        onChange={setState}
+                      />
+                      <Input
+                        type='text'
+                        className='col-sm'
+                        name={`effect.${effectIndex}.maxRange`}
+                        label={true}
+                        autoComplete='off'
+                        placeholder='Max Range'
+                        required={true}
+                        onChange={setState}
+                      />
                     </>
                   )}
                   {effect?.attribute?.some(
@@ -832,17 +819,16 @@ const NewFeatureForm = () => {
           noValidate
         >
           <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-            <div className='col-sm'>
-              <Input
-                type='text'
-                name='value'
-                autoComplete='off'
-                placeholder='Feature Name'
-                label={true}
-                required={true}
-                onChange={setState}
-              />
-            </div>
+            <Input
+              type='text'
+              className='col-sm'
+              name='value'
+              autoComplete='off'
+              placeholder='Feature Name'
+              label={true}
+              required={true}
+              onChange={setState}
+            />
             <div className='col-sm'>
               <Select
                 multiple='true'

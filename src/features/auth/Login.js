@@ -140,7 +140,6 @@ const Login = () => {
           className='form-check-input'
           id='persist'
           onChange={() => setPersist((prev) => !prev)}
-          checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
@@ -150,7 +149,8 @@ const Login = () => {
         className='w-100 mb-2 btn btn-lg rounded-3 btn-primary'
         type='button'
         disabled={state?.submitting}
-        onClick={() => {
+        onClick={(e) => {
+          e.preventDefault()
           setState({ payload: { target: { name: 'submitting', value: true } } })
           onLoginClicked()
         }}
@@ -176,13 +176,13 @@ const Login = () => {
         <i className='bi bi-google'></i> Login with Google
       </button>
       <button
-        className='w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
         type='button'
       >
         <i className='bi bi-facebook'></i> Login with Facebook
       </button>
       <button
-        className='w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
         type='button'
       >
         <i className='bi bi-twitch'></i> Login with Twitch

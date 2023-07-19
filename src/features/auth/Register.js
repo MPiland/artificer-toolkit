@@ -158,7 +158,6 @@ const Register = () => {
           className='form-check-input'
           id='persist'
           onChange={() => setPersist((prev) => !prev)}
-          checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
@@ -168,7 +167,8 @@ const Register = () => {
         className='w-100 mb-2 btn btn-lg rounded-3 btn-primary'
         type='button'
         disabled={state?.submitting}
-        onClick={() => {
+        onClick={(e) => {
+          e.preventDefault()
           setState({ payload: { target: { name: 'submitting', value: true } } })
           onRegisterClicked()
         }}

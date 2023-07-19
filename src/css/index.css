@@ -10,6 +10,16 @@
   padding-bottom: 3rem;
 }
 
+#installInstructions {
+  display: none;
+}
+
+@media (display-mode: browser) {
+  #installInstructions {
+    display: block;
+  }
+}
+
 button.bi {
   border: none;
   background: none;
@@ -41,7 +51,8 @@ button.bi {
   padding: 4px 1rem;
 }
 
-.accordion-button > h5, h6 {
+.accordion-button > h5,
+h6 {
   margin: 0;
 }
 

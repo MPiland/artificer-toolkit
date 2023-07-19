@@ -5,6 +5,7 @@ import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import formReducer from '../../hooks/useReducer'
 import useAuth from '../../hooks/useAuth'
+import Input from '../../components/Input'
 
 const NUM_REGEX = /^[0-9\b]+$/
 
@@ -63,7 +64,6 @@ const NewRaceForm = () => {
   }
 
   if (builderSuccess || spellSuccess) {
-
     // Submit to databases
     const onSubmit = async () => {
       await addNewRace(state)
@@ -85,20 +85,16 @@ const NewRaceForm = () => {
           noValidate
         >
           <div className='row g-2 pb-2'>
-            <div className='col-lg-4 col-md-6 col-sm-12'>
-              <div className='form-floating'>
-                <input
-                  className='form-control'
-                  type='text'
-                  name='name'
-                  autoComplete='off'
-                  placeholder='Race Name'
-                  required
-                  onChange={(e) => setState({ payload: e })}
-                />
-                <label htmlFor='name'>Race Name</label>
-              </div>
-            </div>
+            <Input
+              type='text'
+              className='col-lg-4 col-md-6 col-sm-12'
+              name='name'
+              label={true}
+              autoComplete='off'
+              placeholder='Race Name'
+              required
+              onChange={(e) => setState({ payload: e })}
+            />
           </div>
           <button
             className='accordion accordion-button form-details justify-content-between align-items-center'
@@ -142,17 +138,15 @@ const NewRaceForm = () => {
                         aria-expanded='false'
                         aria-controls={`details.section.${index}AccordionBody`}
                       >
-                        <div className='col-4'>
-                          <input
-                            className='form-control border-0'
-                            type='text'
-                            name={`details.section.${index}.title`}
-                            autoComplete='off'
-                            placeholder='Section Title'
-                            required
-                            onChange={(e) => setState({ payload: e })}
-                          />
-                        </div>
+                        <Input
+                          className='col-4 border-0'
+                          type='text'
+                          name={`details.section.${index}.title`}
+                          autoComplete='off'
+                          placeholder='Section Title'
+                          required
+                          onChange={(e) => setState({ payload: e })}
+                        />
                       </button>
                     </div>
                     <div

@@ -224,24 +224,20 @@ const NewSpellForm = () => {
                   onChange={setState}
                 />
               </div>
-              <div className='position-relative col-sm'>
-                <Input
-                  className={`${
-                    state?.level &&
-                    (NUM_REGEX.test(state.level) ? 'is-valid' : 'is-invalid')
-                  }`}
-                  type='text'
-                  name='level'
-                  id='level'
-                  label={true}
-                  placeholder='Spell Level'
-                  required={true}
-                  onChange={setState}
-                />
-                <div id='levelTooltip' className='invalid-tooltip'>
-                  Must contain only numbers
-                </div>
-              </div>
+              <Input
+                className={`col-sm ${
+                  state?.level &&
+                  (NUM_REGEX.test(state.level) ? 'is-valid' : 'is-invalid')
+                }`}
+                type='text'
+                name='level'
+                id='level'
+                label={true}
+                invalidText='Must contain only numbers'
+                placeholder='Spell Level'
+                required={true}
+                onChange={setState}
+              />
               <div className='col-sm pb-2'>
                 <Select
                   name='school'
@@ -299,27 +295,22 @@ const NewSpellForm = () => {
                   onChange={setState}
                 />
               </div>
-              <div className='col-sm position-relative'>
-                <Input
-                  className={`${
-                    state?.action?.num &&
-                    (NUM_REGEX.test(state.action?.num)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
-                  type='text'
-                  name='action.num'
-                  id='action.num'
-                  label={true}
-                  placeholder='Casting Increment'
-                  required={true}
-                  disabled={!!state.action?.value ? false : true}
-                  onChange={setState}
-                />
-                <div id='action.numTooltip' className='invalid-tooltip'>
-                  Must contain only numbers
-                </div>
-              </div>
+              <Input
+                className={`col-sm ${
+                  state?.action?.num &&
+                  (NUM_REGEX.test(state.action?.num)
+                    ? 'is-valid'
+                    : 'is-invalid')
+                }`}
+                type='text'
+                name='action.num'
+                id='action.num'
+                label={true}
+                placeholder='Casting Increment'
+                required={true}
+                disabled={!!state.action?.value ? false : true}
+                onChange={setState}
+              />
               <div className='col-sm'>
                 <Select
                   name='duration'
@@ -329,28 +320,24 @@ const NewSpellForm = () => {
                   onChange={setState}
                 />
               </div>
-              <div className='col-sm position-relative'>
-                <Input
-                  className={`${
-                    state?.duration?.num &&
-                    (NUM_REGEX.test(state.duration.num)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
-                  type='text'
-                  name='duration.num'
-                  id='duration.num'
-                  label={true}
-                  placeholder='Duration Increment'
-                  autoComplete='off'
-                  disabled={!!state.duration?.value ? false : true}
-                  required={true}
-                  onChange={setState}
-                />
-                <div id='duration.numTooltip' className='invalid-tooltip'>
-                  Must contain only numbers
-                </div>
-              </div>
+              <Input
+                className={`col-sm ${
+                  state?.duration?.num &&
+                  (NUM_REGEX.test(state.duration.num)
+                    ? 'is-valid'
+                    : 'is-invalid')
+                }`}
+                type='text'
+                name='duration.num'
+                id='duration.num'
+                label={true}
+                invalidText='Must contain only numbers'
+                placeholder='Duration Increment'
+                autoComplete='off'
+                disabled={!!state.duration?.value ? false : true}
+                required={true}
+                onChange={setState}
+              />
               <div className='col-sm'>
                 <Select
                   name='origin'
@@ -363,31 +350,24 @@ const NewSpellForm = () => {
               {state?.origin && state.origin?.value !== 'Touch' && (
                 <>
                   {state.origin.value === 'Distance' && (
-                    <div className='col-sm position-relative'>
-                      <Input
-                        className={`${
-                          state.origin.distance &&
-                          (NUM_REGEX.test(state.origin.distance)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        type='text'
-                        name='origin.distance'
-                        id='origin.distance'
-                        label={true}
-                        placeholder='Distance'
-                        autoComplete='off'
-                        disabled={!!state.origin?.value ? false : true}
-                        required={true}
-                        onChange={setState}
-                      />
-                      <div
-                        id='origin.distanceTooltip'
-                        className='invalid-tooltip'
-                      >
-                        Must contain only numbers
-                      </div>
-                    </div>
+                    <Input
+                      className={`col-sm ${
+                        state.origin.distance &&
+                        (NUM_REGEX.test(state.origin.distance)
+                          ? 'is-valid'
+                          : 'is-invalid')
+                      }`}
+                      type='text'
+                      name='origin.distance'
+                      id='origin.distance'
+                      label={true}
+                      invalidText='Must contain only numbers'
+                      placeholder='Distance'
+                      autoComplete='off'
+                      disabled={!!state.origin?.value ? false : true}
+                      required={true}
+                      onChange={setState}
+                    />
                   )}
                   <div className='col-sm'>
                     <Select
@@ -402,28 +382,24 @@ const NewSpellForm = () => {
                       onChange={setState}
                     />
                   </div>
-                  <div className='col-sm position-relative'>
-                    <Input
-                      className={`form-control ${
-                        state?.area?.size &&
-                        (NUM_REGEX.test(state.area.size)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name='area.size'
-                      id='area.size'
-                      label={true}
-                      placeholder='Shape Size'
-                      autoComplete='off'
-                      disabled={!!state.area?.value ? false : true}
-                      required={true}
-                      onChange={setState}
-                    />
-                    <div id='area.sizeTooltip' className='invalid-tooltip'>
-                      Must contain only numbers
-                    </div>
-                  </div>
+                  <Input
+                    className={`col-sm ${
+                      state?.area?.size &&
+                      (NUM_REGEX.test(state.area.size)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name='area.size'
+                    id='area.size'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Shape Size'
+                    autoComplete='off'
+                    disabled={!!state.area?.value ? false : true}
+                    required={true}
+                    onChange={setState}
+                  />
                 </>
               )}
             </div>

@@ -314,28 +314,21 @@ const NewItemForm = () => {
                     {item.method?.name === 'setValue' ||
                     item.modType?.name === 'setValue' ? (
                       <>
-                        <div className='position-relative col-sm'>
-                          <Input
-                            className={`form-control ${
-                              item.method?.setValue &&
-                              (NUM_REGEX.test(item.method.setValue)
-                                ? 'is-valid'
-                                : 'is-invalid')
-                            }`}
-                            type='text'
-                            name={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
-                            label={true}
-                            placeholder='Set Value'
-                            autoComplete='off'
-                            onChange={setState}
-                          />
-                          <div
-                            id={`effect.${effectIndex}.${this.name}.${index}.method.setValueTooltip`}
-                            className='invalid-tooltip'
-                          >
-                            Must contain only numbers
-                          </div>
-                        </div>
+                        <Input
+                          className={`col-sm form-control ${
+                            item.method?.setValue &&
+                            (NUM_REGEX.test(item.method.setValue)
+                              ? 'is-valid'
+                              : 'is-invalid')
+                          }`}
+                          type='text'
+                          name={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
+                          label={true}
+                          invalidText='Must contain only numbers'
+                          placeholder='Set Value'
+                          autoComplete='off'
+                          onChange={setState}
+                        />
                         <div className='col-sm'>
                           <Select
                             name={`effect.${effectIndex}.${this.name}.${index}.multiplier`}
@@ -419,18 +412,16 @@ const NewItemForm = () => {
                 aria-expanded='true'
                 aria-controls={`effect${effectIndex}AccordionBody`}
               >
-                <div className='col-sm-4'>
-                  <Input
-                    className='border-0'
-                    type='text'
-                    name={`effect.${effectIndex}.value`}
-                    autoComplete='off'
-                    label={true}
-                    placeholder='Effect Name'
-                    required={true}
-                    onChange={setState}
-                  />
-                </div>
+                <Input
+                  className='col-sm-4 border-0'
+                  type='text'
+                  name={`effect.${effectIndex}.value`}
+                  autoComplete='off'
+                  label={true}
+                  placeholder='Effect Name'
+                  required={true}
+                  onChange={setState}
+                />
               </button>
             </div>
             <div
@@ -524,25 +515,21 @@ const NewItemForm = () => {
                         </div>
                       ) : (
                         effect?.limitBy?.name === 'setNumber' && (
-                          <div className='col-sm position-relative'>
-                            <Input
-                              className={`${
-                                effect?.limitBy?.setAmount &&
-                                (NUM_REGEX.test(effect?.limitBy.setAmount)
-                                  ? 'is-valid'
-                                  : 'is-invalid')
-                              }`}
-                              type='text'
-                              name={`effect.${effectIndex}.limitBy.setAmount`}
-                              label={true}
-                              placeholder='Use Amount'
-                              required={true}
-                              onChange={setState}
-                            />
-                            <div id='levelTooltip' className='invalid-tooltip'>
-                              Must contain only numbers
-                            </div>
-                          </div>
+                          <Input
+                            className={`col-sm ${
+                              effect?.limitBy?.setAmount &&
+                              (NUM_REGEX.test(effect?.limitBy.setAmount)
+                                ? 'is-valid'
+                                : 'is-invalid')
+                            }`}
+                            type='text'
+                            name={`effect.${effectIndex}.limitBy.setAmount`}
+                            label={true}
+                            invalidText='Must contain only numbers'
+                            placeholder='Use Amount'
+                            required={true}
+                            onChange={setState}
+                          />
                         )
                       )}
                       <div className='col-sm'>
@@ -559,29 +546,26 @@ const NewItemForm = () => {
                     (attributeItem) => attributeItem.name === 'hasRange'
                   ) && (
                     <>
-                      <div className='col-sm'>
-                        <Input
-                          type='text'
-                          name={`effect.${effectIndex}.inRange`}
-                          autoComplete='off'
-                          label={true}
-                          placeholder='Min Range'
-                          required={true}
-                          onChange={setState}
-                        />
-                      </div>
-                      <div className='col-sm'>
-                        <Input
-                          className='form-control'
-                          type='text'
-                          name={`effect.${effectIndex}.maxRange`}
-                          label={true}
-                          autoComplete='off'
-                          placeholder='Max Range'
-                          required={true}
-                          onChange={setState}
-                        />
-                      </div>
+                      <Input
+                        type='text'
+                        className='col-sm'
+                        name={`effect.${effectIndex}.inRange`}
+                        autoComplete='off'
+                        label={true}
+                        placeholder='Min Range'
+                        required={true}
+                        onChange={setState}
+                      />
+                      <Input
+                        className='col-sm'
+                        type='text'
+                        name={`effect.${effectIndex}.maxRange`}
+                        label={true}
+                        autoComplete='off'
+                        placeholder='Max Range'
+                        required={true}
+                        onChange={setState}
+                      />
                     </>
                   )}
                   {effect?.attribute?.some(
@@ -734,17 +718,16 @@ const NewItemForm = () => {
           </button>
           <div className='accordion-collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-              <div className='col-sm'>
-                <Input
-                  type='text'
-                  name='value'
-                  autoComplete='off'
-                  label={true}
-                  placeholder='Item Name'
-                  required={true}
-                  onChange={setState}
-                />
-              </div>
+              <Input
+                type='text'
+                className='col-sm'
+                name='value'
+                autoComplete='off'
+                label={true}
+                placeholder='Item Name'
+                required={true}
+                onChange={setState}
+              />
               <div className='col-sm'>
                 <Select
                   name='itemCategory'
@@ -789,25 +772,21 @@ const NewItemForm = () => {
                 />
               </div>
               {state?.itemCategory && state?.itemCategory?.name !== 'Item' && (
-                <div className='position-relative col-sm'>
-                  <Input
-                    className={`${
-                      state?.itemRank &&
-                      (NUM_REGEX.test(state?.itemRank)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
-                    type='text'
-                    name='itemRank'
-                    label={true}
-                    placeholder='Item Rank'
-                    autoComplete='off'
-                    onChange={setState}
-                  />
-                  <div id='itemRankTooltip' className='invalid-tooltip'>
-                    Must contain only numbers
-                  </div>
-                </div>
+                <Input
+                  className={`col-sm ${
+                    state?.itemRank &&
+                    (NUM_REGEX.test(state?.itemRank)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  type='text'
+                  name='itemRank'
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Item Rank'
+                  autoComplete='off'
+                  onChange={setState}
+                />
               )}
             </div>
           </div>
@@ -854,169 +833,126 @@ const NewItemForm = () => {
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'weight'
               ) && (
-                <div className='position-relative col-sm'>
-                  <Input
-                    className={`${
+                <Input
+                  className={`col-sm ${
+                    state?.attribute[
+                      state?.attribute?.findIndex(
+                        (attributeItem) => attributeItem.name === 'weight'
+                      )
+                    ].maxValue &&
+                    (NUM_REGEX.test(
                       state?.attribute[
                         state?.attribute?.findIndex(
                           (attributeItem) => attributeItem.name === 'weight'
                         )
-                      ].maxValue &&
-                      (NUM_REGEX.test(
-                        state?.attribute[
-                          state?.attribute?.findIndex(
-                            (attributeItem) => attributeItem.name === 'weight'
-                          )
-                        ].maxValue
-                      )
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
-                    type='text'
-                    name={`attribute.${state?.attribute?.findIndex(
-                      (attributeItem) => attributeItem.name === 'weight'
-                    )}.maxValue`}
-                    label={true}
-                    placeholder='Item Weight'
-                    autoComplete='off'
-                    onChange={setState}
-                  />
-                  <div
-                    id={`attribute.${state?.attribute?.findIndex(
-                      (attributeItem) => attributeItem.name === 'weight'
-                    )}.maxValueTooltip`}
-                    className='invalid-tooltip'
-                  >
-                    Must contain only numbers
-                  </div>
-                </div>
+                      ].maxValue
+                    )
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  type='text'
+                  name={`attribute.${state?.attribute?.findIndex(
+                    (attributeItem) => attributeItem.name === 'weight'
+                  )}.maxValue`}
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Item Weight'
+                  autoComplete='off'
+                  onChange={setState}
+                />
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'container'
               ) && (
-                <div className='position-relative col-sm'>
-                  <Input
-                    className={`${
+                <Input
+                  className={`col-sm ${
+                    state?.attribute[
+                      state?.attribute?.findIndex(
+                        (attributeItem) => attributeItem.name === 'container'
+                      )
+                    ].maxValue &&
+                    (NUM_REGEX.test(
                       state?.attribute[
                         state?.attribute?.findIndex(
                           (attributeItem) => attributeItem.name === 'container'
                         )
-                      ].maxValue &&
-                      (NUM_REGEX.test(
-                        state?.attribute[
-                          state?.attribute?.findIndex(
-                            (attributeItem) =>
-                              attributeItem.name === 'container'
-                          )
-                        ].maxValue
-                      )
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
-                    type='text'
-                    name={`attribute.${state?.attribute?.findIndex(
-                      (attributeItem) => attributeItem.name === 'container'
-                    )}.maxValue`}
-                    label={true}
-                    placeholder='Capacity Weight'
-                    autoComplete='off'
-                    onChange={setState}
-                  />
-                  <div
-                    id={`attribute.${state?.attribute?.findIndex(
-                      (attributeItem) => attributeItem.name === 'container'
-                    )}.maxValueTooltip`}
-                    className='invalid-tooltip'
-                  >
-                    Must contain only numbers
-                  </div>
-                </div>
+                      ].maxValue
+                    )
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  type='text'
+                  name={`attribute.${state?.attribute?.findIndex(
+                    (attributeItem) => attributeItem.name === 'container'
+                  )}.maxValue`}
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Capacity Weight'
+                  autoComplete='off'
+                  onChange={setState}
+                />
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'stackable'
               ) && (
-                <div className='position-relative col-sm'>
-                  <Input
-                    className={`${
+                <Input
+                  className={`col-sm ${
+                    state?.attribute[
+                      state?.attribute?.findIndex(
+                        (attributeItem) => attributeItem.name === 'stackable'
+                      )
+                    ].maxValue &&
+                    (NUM_REGEX.test(
                       state?.attribute[
                         state?.attribute?.findIndex(
                           (attributeItem) => attributeItem.name === 'stackable'
                         )
-                      ].maxValue &&
-                      (NUM_REGEX.test(
-                        state?.attribute[
-                          state?.attribute?.findIndex(
-                            (attributeItem) =>
-                              attributeItem.name === 'stackable'
-                          )
-                        ].maxValue
-                      )
+                      ].maxValue
+                    )
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  type='text'
+                  name={`attribute.${state?.attribute?.findIndex(
+                    (attributeItem) => attributeItem.name === 'stackable'
+                  )}.maxValue`}
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Max Stack Size'
+                  autoComplete='off'
+                  onChange={setState}
+                />
+              )}
+              {state?.itemCategory?.name === 'Weapon' && (
+                <>
+                  <Input
+                    className={`col-sm ${
+                      state.weaponDamage?.diceCount &&
+                      (NUM_REGEX.test(state.weaponDamage?.diceCount)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
                     type='text'
-                    name={`attribute.${state?.attribute?.findIndex(
-                      (attributeItem) => attributeItem.name === 'stackable'
-                    )}.maxValue`}
+                    name='weaponDamage.diceCount'
                     label={true}
-                    placeholder='Max Stack Size'
-                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    placeholder='Damage Dice Count'
                     onChange={setState}
                   />
-                  <div
-                    id={`attribute.${state?.attribute?.findIndex(
-                      (attributeItem) => attributeItem.name === 'stackable'
-                    )}.maxValueTooltip`}
-                    className='invalid-tooltip'
-                  >
-                    Must contain only numbers
-                  </div>
-                </div>
-              )}
-              {state?.itemCategory?.name === 'Weapon' && (
-                <>
-                  <div className='col-sm position-relative'>
-                    <Input
-                      className={`${
-                        state.weaponDamage?.diceCount &&
-                        (NUM_REGEX.test(state.weaponDamage?.diceCount)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name='weaponDamage.diceCount'
-                      label={true}
-                      placeholder='Damage Dice Count'
-                      onChange={setState}
-                    />
-                    <div
-                      id='weaponDamage.diceCountTooltip'
-                      className='invalid-tooltip'
-                    >
-                      Must contain only numbers
-                    </div>
-                  </div>
-                  <div className='col-sm position-relative'>
-                    <Input
-                      className={`${
-                        state.weaponDamage?.diceValue &&
-                        (NUM_REGEX.test(state.weaponDamage?.diceValue)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name='weaponDamage.diceValue'
-                      label={true}
-                      placeholder='Damage Dice Value'
-                      onChange={setState}
-                    />
-                    <div
-                      id='weaponDamage.diceValueTooltip'
-                      className='invalid-tooltip'
-                    >
-                      Must contain only numbers
-                    </div>
-                  </div>
+                  <Input
+                    className={`col-sm ${
+                      state.weaponDamage?.diceValue &&
+                      (NUM_REGEX.test(state.weaponDamage?.diceValue)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name='weaponDamage.diceValue'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Damage Dice Value'
+                    onChange={setState}
+                  />
                   <div className='col-sm'>
                     <Select
                       name={'primaryAbility'}
@@ -1043,72 +979,54 @@ const NewItemForm = () => {
                 </>
               )}
               {state?.itemCategory?.name === 'armor' && (
-                <div className='position-relative col-sm'>
-                  <Input
-                    className={`form-control ${
-                      state.armorValue &&
-                      (NUM_REGEX.test(state.armorValue)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
-                    type='text'
-                    name='armorValue'
-                    label={true}
-                    placeholder='Armor Value'
-                    onChange={setState}
-                  />
-                  <div id='armorValueTooltip' className='invalid-tooltip'>
-                    Must contain only numbers
-                  </div>
-                </div>
+                <Input
+                  className={`col-sm form-control ${
+                    state.armorValue &&
+                    (NUM_REGEX.test(state.armorValue)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  type='text'
+                  name='armorValue'
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Armor Value'
+                  onChange={setState}
+                />
               )}
               {state?.itemProperty?.find(
                 (property) =>
                   property.name === 'Thrown' || property.name === 'Ranged'
               ) && (
                 <>
-                  <div className='position-relative col-sm'>
-                    <Input
-                      className={`${
-                        state.thrown?.minRange &&
-                        (NUM_REGEX.test(state.thrown?.minRange)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name='thrown.minRange'
-                      label={true}
-                      placeholder='Thrown Min Range'
-                      onChange={setState}
-                    />
-                    <div
-                      id='thrown.minRangeTooltip'
-                      className='invalid-tooltip'
-                    >
-                      Must contain only numbers
-                    </div>
-                  </div>
-                  <div className='position-relative col-sm'>
-                    <Input
-                      className={`${
-                        state.thrown?.maxRange &&
-                        (NUM_REGEX.test(state.thrown?.maxRange)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      type='text'
-                      name='thrown.maxRange'
-                      label={true}
-                      placeholder='Max Range'
-                      onChange={setState}
-                    />
-                    <div
-                      id='thrown.maxRangeTooltip'
-                      className='invalid-tooltip'
-                    >
-                      Must contain only numbers
-                    </div>
-                  </div>
+                  <Input
+                    className={`col-sm ${
+                      state.thrown?.minRange &&
+                      (NUM_REGEX.test(state.thrown?.minRange)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name='thrown.minRange'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Thrown Min Range'
+                    onChange={setState}
+                  />
+                  <Input
+                    className={`col-sm ${
+                      state.thrown?.maxRange &&
+                      (NUM_REGEX.test(state.thrown?.maxRange)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    type='text'
+                    name='thrown.maxRange'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Max Range'
+                    onChange={setState}
+                  />
                 </>
               )}
             </div>

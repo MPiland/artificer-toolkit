@@ -14,9 +14,9 @@ const DashHeader = () => {
   const content = (
     <nav className='navbar navbar-expand-lg bg-body-tertiary sticky-top'>
       <div className='container-fluid'>
-        <NavLink className='navbar-brand' to='/characters'>
-          Artificer's Toolkit
-        </NavLink>
+          <NavLink className='navbar-brand' to='/characters'>
+            Artificer Toolkit
+          </NavLink>
         <button
           className='navbar-toggler'
           type='button'

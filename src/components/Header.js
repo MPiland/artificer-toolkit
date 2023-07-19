@@ -6,9 +6,9 @@ const Header = () => {
   const content = (
     <nav className='navbar navbar-expand-md bg-body-tertiary sticky-top'>
       <div className='container-fluid'>
-        <NavLink className='navbar-brand' to='/'>
-          Artificer's Toolkit
-        </NavLink>
+          <NavLink className='navbar-brand' to='/'>
+            Artificer Toolkit
+          </NavLink>
         <button
           className='navbar-toggler'
           type='button'
