@@ -17,6 +17,7 @@ const NewSpellForm = () => {
   const { data: builders, isSuccess, isLoading } = useGetBuilderQuery(id)
 
   const [addNewSpell, { isSuccess: addIsSuccess }] = useAddNewSpellMutation()
+
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
 
@@ -260,7 +261,10 @@ const NewSpellForm = () => {
             <span className='me-3'>Description</span>
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
-          <div className='accordion-collapse collapse show pb-3' id='description'>
+          <div
+            className='accordion-collapse collapse show pb-3'
+            id='description'
+          >
             <TextEditor id='desc' name={'desc'} onChange={setState} />
           </div>
           <AccordionButton

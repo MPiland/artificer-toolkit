@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { useAddNewFeatureMutation } from './featuresApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
@@ -37,9 +37,11 @@ const NewFeatureForm = () => {
 
   console.log(builders)
 
-  const [addNewFeature, { isSuccess: addSuccess }] = useAddNewFeatureMutation()
+  const [addNewFeature, { isSuccess: addIsSuccess }] =
+    useAddNewFeatureMutation()
 
   const [state, setState] = useReducer(formReducer, { userId: id })
+  const [successMessage, setSuccessMessage] = useState()
 
   useEffect(() => {
     const forms = document.querySelectorAll('.needs-validation')
@@ -57,6 +59,12 @@ const NewFeatureForm = () => {
       )
     })
   })
+
+  useEffect(() => {
+    if (addIsSuccess) {
+      setSuccessMessage('Spell added successfully!')
+    }
+  }, [addIsSuccess, id, setState])
 
   function validateForm() {}
 
@@ -808,6 +816,9 @@ const NewFeatureForm = () => {
 
     content = (
       <div className='builder-form'>
+        {successMessage && (
+          <h3 className='add-success-message'>{successMessage}</h3>
+        )}
         <h1>Create a Feature</h1>
         <form
           className='needs-validation'
