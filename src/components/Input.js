@@ -11,6 +11,8 @@ const Input = ({
   disabled,
   onChange,
   invalidText,
+  position,
+  onClick,
 }) => {
   const inputRef = useRef(null)
 
@@ -21,7 +23,11 @@ const Input = ({
   }
 
   return (
-    <div className={`position-relative ${!!label ? 'form-floating' : ''}`}>
+    <div
+      className={`position-${position ?? 'relative'} ${
+        !!label ? 'form-floating' : ''
+      }`}
+    >
       <input
         ref={inputRef}
         className={`form-control ${className ?? ''}`}
@@ -33,12 +39,17 @@ const Input = ({
         autoComplete={autoComplete}
         disabled={disabled}
         onChange={(e) => onChange({ payload: e })}
-        onClick={handleFocus}
+        onClick={(e) => {
+          onClick && onClick(e)
+          handleFocus()
+        }}
       />
       {!!label && <label htmlFor={name}>{placeholder}</label>}
-      <div id={`${name}Tooltip`} className='invalid-tooltip'>
-        {invalidText}
-      </div>
+      {invalidText && (
+        <div id={`${name}Tooltip`} className='invalid-tooltip'>
+          {invalidText}
+        </div>
+      )}
     </div>
   )
 }

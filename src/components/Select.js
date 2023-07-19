@@ -176,7 +176,7 @@ const Select = ({ name, multiple, placeholder, options, action, onChange }) => {
         className='dropdown-menu select-menu position-absolute'
         ref={dropdownRef}
       >
-        {newOptions?.map((option) => (
+        {newOptions.map((option) => (
           <li className='mb-2 mx-1' key={option.value}>
             {multiple ? (
               selectedOptions?.length > 0 ? (

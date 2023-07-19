@@ -1,10 +1,11 @@
 import { useState, useEffect, useReducer } from 'react'
 import { useAddNewItemMutation } from './itemsApiSlice'
-import TextEditor from '../../components/TextEditor'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
-import formReducer from '../../hooks/useReducer'
 import { startCase } from 'lodash'
+import AccordionButton from '../../components/AccordionButton'
+import formReducer from '../../hooks/useReducer'
+import TextEditor from '../../components/TextEditor'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
@@ -404,25 +405,21 @@ const NewItemForm = () => {
         <div key={effectIndex} className='accordion' id={`effectAccordion`}>
           <div className='accordion-item'>
             <div className='accordion-header'>
-              <button
-                className='accordion-button details-section'
-                type='button'
-                data-bs-toggle='collapse'
-                data-bs-target={`#effect${effectIndex}AccordionBody`}
-                aria-expanded='true'
-                aria-controls={`effect${effectIndex}AccordionBody`}
+              <AccordionButton
+                id={`effect${effectIndex}AccordionButton`}
+                target={`effect${effectIndex}AccordionBody`}
               >
                 <Input
                   className='col-sm-4 border-0'
                   type='text'
                   name={`effect.${effectIndex}.value`}
                   autoComplete='off'
-                  label={true}
                   placeholder='Effect Name'
                   required={true}
                   onChange={setState}
+                  onClick={(e) => e.stopPropagation()}
                 />
-              </button>
+              </AccordionButton>
             </div>
             <div
               className='accordion-collapse collapse show'
@@ -705,18 +702,15 @@ const NewItemForm = () => {
           }}
           noValidate
         >
-          <button
-            className='accordion accordion-button form-details justify-content-between align-items-center'
-            type='button'
-            data-bs-toggle='collapse'
-            data-bs-target='#details'
-            aria-expanded='false'
-            aria-controls='details'
+          <AccordionButton
+            className='accordion form-details justify-content-between align-items-center'
+            id='detailsButton'
+            target='details'
           >
             <span className='me-3'>Details</span>
             <hr className='flex-grow-1 me-3' />
-          </button>
-          <div className='accordion-collapse show' id='details'>
+          </AccordionButton>
+          <div className='accordion-collapse collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               <Input
                 type='text'
@@ -790,36 +784,30 @@ const NewItemForm = () => {
               )}
             </div>
           </div>
-          <button
-            className='accordion accordion-button form-details justify-content-between align-items-center'
-            type='button'
-            data-bs-toggle='collapse'
-            data-bs-target='#description'
-            aria-expanded='false'
-            aria-controls='description'
+          <AccordionButton
+            className='accordion form-details justify-content-between align-items-center'
+            id='descriptionButton'
+            target='description'
           >
             <span className='me-3'>Description</span>
             <hr className='flex-grow-1 me-3' />
-          </button>
-          <div className='accordion-collapse show pb-2' id='description'>
+          </AccordionButton>
+          <div className='accordion-collapse collapse show pb-2' id='description'>
             <TextEditor
               onChange={setState}
               placeholder={'Item description'}
               name={'desc'}
             />
           </div>
-          <button
-            className='accordion accordion-button form-details justify-content-between align-items-center'
-            type='button'
-            data-bs-toggle='collapse'
-            data-bs-target='#attribute'
-            aria-expanded='false'
-            aria-controls='attribute'
+          <AccordionButton
+            className='accordion form-details justify-content-between align-items-center'
+            id='attributeButton'
+            target='attribute'
           >
             <span className='me-3'>Attributes</span>
             <hr className='flex-grow-1 me-3' />
-          </button>
-          <div className='accordion-collapse show pb-2' id='attribute'>
+          </AccordionButton>
+          <div className='accordion-collapse collapse show pb-2' id='attribute'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               <div className='col-sm'>
                 <Select

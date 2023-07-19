@@ -1,7 +1,11 @@
 import { Outlet } from 'react-router-dom'
 
 const Layout = () => {
-  const content = <Outlet />
+  const content = (
+    <div className='totalView'>
+      <Outlet />
+    </div>
+  )
 
   return content
 }

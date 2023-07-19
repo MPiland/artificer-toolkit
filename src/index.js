@@ -11,7 +11,6 @@ import { store } from './app/store'
 import { Provider } from 'react-redux'
 import { disableReactDevTools } from '@fvilers/disable-react-devtools'
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 if (process.env.NODE_ENV === 'production') disableReactDevTools()
 
@@ -29,5 +28,3 @@ root.render(
     </GoogleOAuthProvider>
   </React.StrictMode>
 )
-
-serviceWorkerRegistration.register()

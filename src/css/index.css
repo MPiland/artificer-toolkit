@@ -10,16 +10,6 @@
   padding-bottom: 3rem;
 }
 
-#installInstructions {
-  display: none;
-}
-
-@media (display-mode: browser) {
-  #installInstructions {
-    display: block;
-  }
-}
-
 button.bi {
   border: none;
   background: none;
@@ -43,11 +33,6 @@ button.bi {
 
 .accordion-button {
   height: 2.5rem;
-  padding: 4px 1rem;
-}
-
-.accordion-button.details-section {
-  height: 3rem;
   padding: 4px 1rem;
 }
 
