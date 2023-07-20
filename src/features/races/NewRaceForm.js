@@ -893,7 +893,7 @@ const NewRaceForm = () => {
               </div>
             </div>
             <div className='row g-2 pb-2'>
-              <div className='col-3'>
+              <div className='col-lg-3 col-md-2 col-sm-12'>
                 <Select
                   name='size'
                   placeholder='Size'
@@ -914,7 +914,7 @@ const NewRaceForm = () => {
             <div className='row g-2 pb-2'>
               <Input
                 type='text'
-                className='col-3'
+                className='col-lg-3 col-md-2 col-sm-12'
                 name='speed.value'
                 placeholder='Speed Value'
                 label={true}
