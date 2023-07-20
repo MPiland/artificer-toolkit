@@ -63,7 +63,7 @@ const NewFeatForm = () => {
 
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Spell added successfully!')
+      setSuccessMessage('Feat added successfully!')
     }
   }, [addIsSuccess, id, setState])
 

@@ -59,10 +59,7 @@ const NewRaceForm = () => {
 
   useEffect(() => {
     if (addSuccess) {
-      setState({
-        userId: id,
-      })
-      setSuccessMessage('Item added successfully!')
+      setSuccessMessage('Race added successfully!')
     }
   }, [addSuccess, id])
 
