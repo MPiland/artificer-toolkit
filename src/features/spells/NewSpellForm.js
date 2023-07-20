@@ -64,6 +64,7 @@ const NewSpellForm = () => {
             <AccordionButton
               id={`feature${featureIndex}AccordionButton`}
               target={`feature${featureIndex}AccordionBody`}
+              onClick={(e) => e.stopPropagation()}
             >
               <Input
                 className='col-4 border-0'
