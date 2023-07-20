@@ -5,7 +5,7 @@ import useAuth from '../../hooks/useAuth'
 
 const SpellList = () => {
   const { id } = useAuth()
-  
+
   const {
     data: spells,
     isLoading,
@@ -23,9 +23,9 @@ const SpellList = () => {
   }
 
   if (isSuccess) {
-    const tableContent =
-      spells?.length &&
-      spells.map((spell) => <Spell spell={spell} key={spell._id} />)
+    const tableContent = spells?.length
+      ? spells.map((spell) => <Spell spell={spell} key={spell._id} />)
+      : null
 
     content = (
       <>

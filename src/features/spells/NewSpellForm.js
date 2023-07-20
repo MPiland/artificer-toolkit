@@ -56,133 +56,6 @@ const NewSpellForm = () => {
       await addNewSpell(state)
     }
 
-    const feature =
-      state?.feature &&
-      state.feature.map((feature, featureIndex) => (
-        <div className='accordion-item' key={featureIndex}>
-          <div className='accordion-header'>
-            <AccordionButton
-              id={`feature${featureIndex}AccordionButton`}
-              target={`feature${featureIndex}AccordionBody`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Input
-                className='col-4 border-0'
-                type='text'
-                name={`feature.${featureIndex}.value`}
-                autoComplete='off'
-                placeholder='Feature Name'
-                required={true}
-                onChange={setState}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </AccordionButton>
-          </div>
-          <div
-            className='accordion-collapse collapse show'
-            id={`feature${featureIndex}AccordionBody`}
-            data-bs-parent='#featureAccordion'
-          >
-            <div className='accordion-body'>
-              <div className='pb-2'>
-                <button
-                  className='btn btn-outline-primary'
-                  type='button'
-                  name={`feature.${featureIndex}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  Remove feature
-                </button>
-              </div>
-              <div className='pb-2'>
-                <label
-                  htmlFor={`feature.${featureIndex}.desc`}
-                  className='form-label'
-                >
-                  Feature Description
-                </label>
-                <TextEditor
-                  placeholder='Feature description'
-                  id={`feature.${featureIndex}.desc`}
-                  name={`feature.${featureIndex}.desc`}
-                  onChange={setState}
-                />
-              </div>
-              <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    multiple={true}
-                    name={`feature.${featureIndex}.attribute`}
-                    placeholder='Feature Attribute'
-                    options={builders.spell.attribute}
-                    onChange={setState}
-                  />
-                </div>
-                {feature?.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'requireSave'
-                ) && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.saveAbility`}
-                      placeholder='DC Ability'
-                      options={builders.ability}
-                      onChange={setState}
-                    />
-                  </div>
-                )}
-              </div>
-              {feature?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'doesDamage'
-              ) &&
-                (!feature?.damage?.damageByLevel ? (
-                  setState({
-                    type: 'added',
-                    payload: {
-                      target: {
-                        name: `feature.${featureIndex}.damage.damageByLevel`,
-                        value: { level: state?.level },
-                      },
-                    },
-                  })
-                ) : (
-                  <div className='row gx-2 align-items-end pb-2'>
-                    <div className='col-sm'>
-                      <Select
-                        multiple={true}
-                        name={`feature.${featureIndex}.damage.damageAttribute`}
-                        placeholder='Damage Attribute'
-                        options={builders.spell.damageAttribute}
-                        onChange={setState}
-                      />
-                    </div>
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.damage`}
-                        placeholder='Damage Type'
-                        options={builders.damage}
-                        onChange={setState}
-                      />
-                    </div>
-                    <div className='col-lg-6'>
-                      <Table
-                        className='table-sm table-responsive'
-                        headers={[
-                          { name: 'Level' },
-                          { name: 'Dice Count' },
-                          { name: 'Dice Value' },
-                        ]}
-                        name={`feature.${featureIndex}.damage.damageByLevel`}
-                        state={feature.damage.damageByLevel}
-                        onChange={setState}
-                      />
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </div>
-      ))
-
     content = (
       <div className='builder-form'>
         <h1>Create a Spell</h1>
@@ -394,23 +267,82 @@ const NewSpellForm = () => {
                   />
                 </>
               )}
+              <div className='col-sm'>
+                <Select
+                  multiple={true}
+                  name='attribute'
+                  placeholder='Spell Attributes'
+                  options={builders.spell.attribute}
+                  onChange={setState}
+                />
+              </div>
             </div>
+            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
+              {state?.attribute?.some(
+                (attributeItem) => attributeItem.name === 'requireSave'
+              ) && (
+                <div className='col-sm'>
+                  <Select
+                    name='saveAbility'
+                    placeholder='DC Ability'
+                    options={builders.ability}
+                    onChange={setState}
+                  />
+                </div>
+              )}
+            </div>
+            {state?.attribute?.some(
+              (attributeItem) => attributeItem.name === 'doesDamage'
+            ) &&
+              (!state?.damage?.damageByLevel ? (
+                setState({
+                  type: 'added',
+                  payload: {
+                    target: {
+                      name: 'damage.damageByLevel',
+                      value: { level: state?.level },
+                    },
+                  },
+                })
+              ) : (
+                <div className='row gx-2 align-items-end pb-2'>
+                  <div className='col-sm'>
+                    <Select
+                      multiple={true}
+                      name='damage.damageAttribute'
+                      placeholder='Damage Attribute'
+                      options={builders.spell.damageAttribute}
+                      onChange={setState}
+                    />
+                  </div>
+                  <div className='col-sm'>
+                    <Select
+                      name='damage'
+                      placeholder='Damage Type'
+                      options={builders.damage}
+                      onChange={setState}
+                    />
+                  </div>
+                  <div className='col-lg-6'>
+                    <Table
+                      className='table-sm table-responsive'
+                      headers={[
+                        { name: 'Level' },
+                        { name: 'Dice Count' },
+                        { name: 'Dice Value' },
+                      ]}
+                      name='damage.damageByLevel'
+                      state={state.damage.damageByLevel}
+                      onChange={setState}
+                    />
+                  </div>
+                </div>
+              ))}
           </div>
           <div className='pb-2'>
-            <button
-              className='btn btn-secondary me-2'
-              type='button'
-              name='feature'
-              onClick={(e) => setState({ type: 'added', payload: e })}
-            >
-              Add Feature
-            </button>
             <button className='btn btn-primary' type='submit'>
               Add Spell
             </button>
-          </div>
-          <div className='accordion pb-3' id='featureAccordion'>
-            {feature}
           </div>
         </form>
       </div>

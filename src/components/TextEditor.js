@@ -31,87 +31,35 @@ const MenuBar = ({ editor, noMenuBar }) => {
     return null
   }
 
+  const selectHandler = (e) => {
+    if (Number(e.target.value) === 0) {
+      editor.chain().focus().toggleHeading(editor.getAttributes('heading')).run()
+    } else {
+      editor
+        .chain()
+        .focus()
+        .toggleHeading({ level: Number(e.target.value) })
+        .run()
+    }
+  }
+
   return (
     <div className='menuBar'>
       <div className='row g-0'>
         <div className='col-auto p-0'>
-          <span
-            className='btn dropdown-toggle'
-            data-bs-toggle='dropdown'
-            aria-expanded='false'
+          <select className='btn border-0'
+            onChange={(e) => selectHandler(e)}
           >
-            Heading
-          </span>
-          <ul className='dropdown-menu'>
-            <li>
-              <button
-                onClick={() =>
-                  editor.chain().focus().toggleHeading({ level: 1 }).run()
-                }
-                className={
-                  editor.isActive('heading', { level: 1 }) ? 'is_active' : ''
-                }
-                type='button'
-              >
-                <h1>Header 1</h1>
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() =>
-                  editor.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-                className={
-                  editor.isActive('heading', { level: 2 }) ? 'is_active' : ''
-                }
-                type='button'
-              >
-                <h2>Header 2</h2>
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() =>
-                  editor.chain().focus().toggleHeading({ level: 3 }).run()
-                }
-                className={
-                  editor.isActive('heading', { level: 3 }) ? 'is_active' : ''
-                }
-                type='button'
-              >
-                <h3>Header 3</h3>
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() =>
-                  editor.chain().focus().toggleHeading({ level: 4 }).run()
-                }
-                className={
-                  editor.isActive('heading', { level: 4 }) ? 'is_active' : ''
-                }
-                type='button'
-              >
-                <h4>Header 4</h4>
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() =>
-                  editor.chain().focus().toggleHeading({ level: 5 }).run()
-                }
-                className={
-                  editor.isActive('heading', { level: 5 }) ? 'is_active' : ''
-                }
-                type='button'
-              >
-                <h5>Header 5</h5>
-              </button>
-            </li>
-          </ul>
+            <option value='0'>No Heading</option>
+            <option value='1'>Header 1</option>
+            <option value='2'>Header 2</option>
+            <option value='3'>Header 3</option>
+            <option value='4'>Header 4</option>
+            <option value='5'>Header 5</option>
+          </select>
           <span
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={`{editor.isActive('bold') ? 'is_active' : ''} btn`}
+            className={`${editor.isActive('bold') ? 'is_active' : ''} btn`}
             type='button'
             title='Bold'
           >
@@ -119,7 +67,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={`{editor.isActive('italic') ? 'is_active' : ''} btn`}
+            className={`${editor.isActive('italic') ? 'is_active' : ''} btn`}
             type='button'
             title='Italics'
           >
@@ -127,7 +75,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().toggleUnderline().run()}
-            className={`{editor.isActive('underline') ? 'is_active' : ''} btn`}
+            className={`${editor.isActive('underline') ? 'is_active' : ''} btn`}
             type='button'
             title='Underline'
           >
@@ -135,7 +83,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().toggleStrike().run()}
-            className={`{editor.isActive('strike') ? 'is_active' : ''} btn`}
+            className={`${editor.isActive('strike') ? 'is_active' : ''} btn`}
             type='button'
             title='Strikethrough'
           >
@@ -143,7 +91,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={`{editor.isActive('bulletList') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('bulletList') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Bulleted List'
           >
@@ -151,7 +101,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={`{editor.isActive('orderedList') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('orderedList') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Numbered List'
           >
@@ -161,7 +113,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
         <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            className={`{editor.isActive('blockquote') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('blockquote') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Quote'
           >
@@ -175,7 +129,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
                 .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
                 .run()
             }
-            className={`{editor.isActive('table') ? 'is_active' : ''} btn`}
+            className={`${editor.isActive('table') ? 'is_active' : ''} btn`}
             type='button'
             title='Add Table'
           >
@@ -183,7 +137,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().deleteColumn().run()}
-            className={`{editor.isActive('deleteColumn') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('deleteColumn') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Delete Column'
           >
@@ -191,7 +147,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().addColumnBefore().run()}
-            className={`{editor.isActive('insertColumnBefore') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('insertColumnBefore') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Insert Column Before'
           >
@@ -199,7 +157,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().addColumnAfter().run()}
-            className={`{editor.isActive('insertColumnAfter') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('insertColumnAfter') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Insert Column After'
           >
@@ -207,7 +167,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().deleteRow().run()}
-            className={`{editor.isActive('deleteRow') ? 'is_active' : ''} btn`}
+            className={`${editor.isActive('deleteRow') ? 'is_active' : ''} btn`}
             type='button'
             title='Delete Row'
           >
@@ -215,7 +175,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().addRowBefore().run()}
-            className={`{editor.isActive('insertRowBefore') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('insertRowBefore') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Insert Row Above'
           >
@@ -223,7 +185,9 @@ const MenuBar = ({ editor, noMenuBar }) => {
           </span>
           <span
             onClick={() => editor.chain().focus().addRowAfter().run()}
-            className={`{editor.isActive('insertRowAfter') ? 'is_active' : ''} btn`}
+            className={`${
+              editor.isActive('insertRowAfter') ? 'is_active' : ''
+            } btn`}
             type='button'
             title='Insert Row Below'
           >

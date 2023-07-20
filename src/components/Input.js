@@ -13,6 +13,7 @@ const Input = ({
   invalidText,
   position,
   onClick,
+  border,
 }) => {
   const inputRef = useRef(null)
 
@@ -26,11 +27,11 @@ const Input = ({
     <div
       className={`position-${position ?? 'relative'} ${
         !!label ? 'form-floating' : ''
-      }`}
+      } ${className}`}
     >
       <input
         ref={inputRef}
-        className={`form-control ${className ?? ''}`}
+        className={`form-control ${border === false ? 'border-0' : ''}`}
         type={type}
         name={name}
         id={name}

@@ -3,8 +3,8 @@ import { useAddNewItemMutation } from './itemsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import { startCase } from 'lodash'
-import AccordionButton from '../../components/AccordionButton'
 import formReducer from '../../hooks/useReducer'
+import AccordionButton from '../../components/AccordionButton'
 import TextEditor from '../../components/TextEditor'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
@@ -330,44 +330,6 @@ const NewItemForm = () => {
         },
       },
       {
-        name: 'spell',
-        content(featureIndex, item, index) {
-          return (
-            <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
-              </div>
-              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    multiple='true'
-                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                    options={builders.feature.spell.attribute}
-                    placeholder='Feature Attributes'
-                    onChange={setState}
-                  />
-                </div>
-                <div className='col-sm'>
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}`}
-                    placeholder='Spell'
-                    options={spells}
-                    onChange={setState}
-                  />
-                </div>
-              </div>
-            </>
-          )
-        },
-      },
-      {
         name: 'sense',
         content(featureIndex, item, index) {
           return (
@@ -397,12 +359,50 @@ const NewItemForm = () => {
           )
         },
       },
+      {
+        name: 'spell',
+        content(featureIndex, item, index) {
+          return (
+            <>
+              <div className='pb-3'>
+                <button
+                  className='btn btn-outline-primary col-auto'
+                  type='button'
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
+                  onClick={(e) => setState({ type: 'removed', payload: e })}
+                >
+                  {`Remove ${startCase(this.name)}`}
+                </button>
+              </div>
+              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
+                <div className='col-sm'>
+                  <Select
+                    multiple='true'
+                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                    options={builders.item.feature.spell.attribute}
+                    placeholder='Feature Attributes'
+                    onChange={setState}
+                  />
+                </div>
+                <div className='col-sm'>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    placeholder='Spell'
+                    options={spells}
+                    onChange={setState}
+                  />
+                </div>
+              </div>
+            </>
+          )
+        },
+      },
     ]
 
     const featureContent =
       state?.feature?.length !== 0 &&
       state?.feature?.map((feature, featureIndex) => (
-        <div key={featureIndex} className='accordion' id={`featureAccordion`}>
+        <div key={featureIndex} className='accordion' id='featureAccordion'>
           <div className='accordion-item'>
             <div className='accordion-header'>
               <AccordionButton
@@ -413,6 +413,7 @@ const NewItemForm = () => {
                   className='col-sm-4 border-0'
                   type='text'
                   name={`feature.${featureIndex}.value`}
+                  border={false}
                   autoComplete='off'
                   placeholder='Feature Name'
                   required={true}
@@ -424,7 +425,7 @@ const NewItemForm = () => {
             <div
               className='accordion-collapse collapse show'
               id={`feature${featureIndex}AccordionBody`}
-              data-bs-parent={`#featureAccordion`}
+              data-bs-parent='#featureAccordion'
             >
               <div className='accordion-body'>
                 <div className='row row-cols-lg-auto row-cols-md-3 row-cols-sm-1 justify-content-start g-2 pb-3'>
@@ -452,18 +453,19 @@ const NewItemForm = () => {
                     </div>
                   ))}
                 </div>
-                <TextEditor
-                  className='mb-3'
-                  placeholder='Feature description'
-                  name={`feature.${featureIndex}.desc`}
-                  onChange={setState}
-                />
+                <div className='pb-3'>
+                  <TextEditor
+                    placeholder='Feature description'
+                    name={`feature.${featureIndex}.desc`}
+                    onChange={setState}
+                  />
+                </div>
                 <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                   <div className='col-sm'>
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.feature.attribute}
+                      options={builders.item.feature.attribute}
                       placeholder='Feature Attributes'
                       onChange={setState}
                     />
@@ -475,7 +477,7 @@ const NewItemForm = () => {
                       <Select
                         name={'action.num'}
                         placeholder='Action Type'
-                        options={builders.feature.action}
+                        options={builders.item.feature.action}
                         onChange={setState}
                       />
                     </div>
@@ -488,7 +490,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitBy`}
                           placeholder='Limit By Option'
-                          options={builders.feature.chargeLimit}
+                          options={builders.item.feature.chargeLimit}
                           onChange={setState}
                         />
                       </div>
@@ -533,7 +535,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.resetsOn`}
                           placeholder='Reset Option'
-                          options={builders.feature.chargeReset}
+                          options={builders.item.feature.chargeReset}
                           onChange={setState}
                         />
                       </div>
@@ -620,7 +622,7 @@ const NewItemForm = () => {
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
-                          options={builders.feature.damageAttribute}
+                          options={builders.item.feature.damageAttribute}
                           onChange={setState}
                         />
                       </div>
@@ -653,20 +655,16 @@ const NewItemForm = () => {
                     (section, sectionIndex) =>
                       !!feature[section.name] &&
                       feature[section.name].map((item, itemIndex) => (
-                        <div key={sectionIndex} className='accordion-item'>
+                        <div key={itemIndex} className='accordion-item'>
                           <div className='accordion-header'>
-                            <button
-                              className='accordion-button'
-                              type='button'
-                              data-bs-toggle='collapse'
-                              data-bs-target={`#${section.name}${itemIndex}AccordionBody`}
-                              aria-expanded='true'
-                              aria-controls={`${section.name}${itemIndex}AccordionBody`}
+                            <AccordionButton
+                              id={`${section.name}${itemIndex}AccordionButton`}
+                              target={`${section.name}${itemIndex}AccordionBody`}
                             >
                               <h6>{`${startCase(section.name)} ${
                                 itemIndex + 1
                               }`}</h6>
-                            </button>
+                            </AccordionButton>
                           </div>
                           <div
                             className='accordion-collapse collapse show'

@@ -23,6 +23,7 @@ const AccordionButton = ({ children, className, id, target }) => {
       aria-expanded='true'
       aria-controls={target}
       onClick={() => accordionToggle(target, id)}
+      key={id}
     >
       {children}
     </button>

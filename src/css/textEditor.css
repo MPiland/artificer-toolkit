@@ -111,20 +111,27 @@
   background: transparent;
   border-radius: 5px;
   min-height: 40px;
-  margin-bottom: 1rem;
 }
 
 .text-editor-content {
-  height: 100px;
+  height: 80px;
   padding: 10px;
+  margin-bottom: 0 !important;
+  resize: vertical;
+  overflow: auto;
+}
+
+.text-editor-content > p {
+  margin-bottom: 0 !important;
 }
 
 .text-editor-content.shortDesc {
-  height: 58px;
+  height: 56px;
+  resize: none;
+  overflow: auto;
 }
 
 .menuBar {
-  padding-bottom: 5px;
   border-bottom: 1px grey solid;
   display: flex;
   align-items: center;
@@ -133,28 +140,26 @@
   margin-right: 0px;
 }
 
-.menuBar button {
-  font-size: 18px;
-  margin: 7px;
-  margin-right: 15px;
+.menuBar > span {
+  height: 100%;
+  margin: 0;
   outline: none;
   border: none;
   background: none;
-  color: rgb(70, 70, 70);
   cursor: pointer;
 }
 
-.menuBar button:last-child {
-  margin-right: 7px;
+.menuBar select {
+  width: 9rem;
+  margin: 0;
 }
 
 .heading3 {
   font-size: 15px;
 }
 
-button.is_active {
+span.is_active {
   background: rgb(197, 197, 197);
-  padding: 2px 3px;
   border-radius: 2px;
 }
 
@@ -164,5 +169,4 @@ button.is_active {
   float: left;
   color: #adb5bd;
   pointer-events: none;
-  height: 0;
 }
