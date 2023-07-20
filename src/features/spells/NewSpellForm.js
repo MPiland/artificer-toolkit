@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useFeature, useReducer } from 'react'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useAddNewSpellMutation } from './spellsApiSlice'
 import TextEditor from '../../components/TextEditor'
@@ -21,7 +21,7 @@ const NewSpellForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
 
-  useEffect(() => {
+  useFeature(() => {
     const forms = document.querySelectorAll('.needs-validation')
     Array.from(forms).forEach(function (form) {
       form.addEventListener(
@@ -38,7 +38,7 @@ const NewSpellForm = () => {
     })
   })
 
-  useEffect(() => {
+  useFeature(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
     }
@@ -56,21 +56,21 @@ const NewSpellForm = () => {
       await addNewSpell(state)
     }
 
-    const effect =
-      state?.effect &&
-      state.effect.map((effect, effectIndex) => (
-        <div className='accordion-item' key={effectIndex}>
+    const feature =
+      state?.feature &&
+      state.feature.map((feature, featureIndex) => (
+        <div className='accordion-item' key={featureIndex}>
           <div className='accordion-header'>
             <AccordionButton
-              id={`effect${effectIndex}AccordionButton`}
-              target={`effect${effectIndex}AccordionBody`}
+              id={`feature${featureIndex}AccordionButton`}
+              target={`feature${featureIndex}AccordionBody`}
             >
               <Input
                 className='col-4 border-0'
                 type='text'
-                name={`effect.${effectIndex}.value`}
+                name={`feature.${featureIndex}.value`}
                 autoComplete='off'
-                placeholder='Effect Name'
+                placeholder='Feature Name'
                 required={true}
                 onChange={setState}
                 onClick={(e) => e.stopPropagation()}
@@ -79,31 +79,31 @@ const NewSpellForm = () => {
           </div>
           <div
             className='accordion-collapse collapse show'
-            id={`effect${effectIndex}AccordionBody`}
-            data-bs-parent='#effectAccordion'
+            id={`feature${featureIndex}AccordionBody`}
+            data-bs-parent='#featureAccordion'
           >
             <div className='accordion-body'>
               <div className='pb-2'>
                 <button
                   className='btn btn-outline-primary'
                   type='button'
-                  name={`effect.${effectIndex}`}
+                  name={`feature.${featureIndex}`}
                   onClick={(e) => setState({ type: 'removed', payload: e })}
                 >
-                  Remove effect
+                  Remove feature
                 </button>
               </div>
               <div className='pb-2'>
                 <label
-                  htmlFor={`effect.${effectIndex}.desc`}
+                  htmlFor={`feature.${featureIndex}.desc`}
                   className='form-label'
                 >
-                  Effect Description
+                  Feature Description
                 </label>
                 <TextEditor
-                  placeholder='Effect description'
-                  id={`effect.${effectIndex}.desc`}
-                  name={`effect.${effectIndex}.desc`}
+                  placeholder='Feature description'
+                  id={`feature.${featureIndex}.desc`}
+                  name={`feature.${featureIndex}.desc`}
                   onChange={setState}
                 />
               </div>
@@ -111,18 +111,18 @@ const NewSpellForm = () => {
                 <div className='col-sm'>
                   <Select
                     multiple={true}
-                    name={`effect.${effectIndex}.attribute`}
-                    placeholder='Effect Attribute'
+                    name={`feature.${featureIndex}.attribute`}
+                    placeholder='Feature Attribute'
                     options={builders.spell.attribute}
                     onChange={setState}
                   />
                 </div>
-                {effect?.attribute?.some(
+                {feature?.attribute?.some(
                   (attributeItem) => attributeItem.name === 'requireSave'
                 ) && (
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.saveAbility`}
+                      name={`feature.${featureIndex}.saveAbility`}
                       placeholder='DC Ability'
                       options={builders.ability}
                       onChange={setState}
@@ -130,15 +130,15 @@ const NewSpellForm = () => {
                   </div>
                 )}
               </div>
-              {effect?.attribute?.some(
+              {feature?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'doesDamage'
               ) &&
-                (!effect?.damage?.damageByLevel ? (
+                (!feature?.damage?.damageByLevel ? (
                   setState({
                     type: 'added',
                     payload: {
                       target: {
-                        name: `effect.${effectIndex}.damage.damageByLevel`,
+                        name: `feature.${featureIndex}.damage.damageByLevel`,
                         value: { level: state?.level },
                       },
                     },
@@ -148,7 +148,7 @@ const NewSpellForm = () => {
                     <div className='col-sm'>
                       <Select
                         multiple={true}
-                        name={`effect.${effectIndex}.damage.damageAttribute`}
+                        name={`feature.${featureIndex}.damage.damageAttribute`}
                         placeholder='Damage Attribute'
                         options={builders.spell.damageAttribute}
                         onChange={setState}
@@ -156,7 +156,7 @@ const NewSpellForm = () => {
                     </div>
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.damage`}
+                        name={`feature.${featureIndex}.damage`}
                         placeholder='Damage Type'
                         options={builders.damage}
                         onChange={setState}
@@ -170,8 +170,8 @@ const NewSpellForm = () => {
                           { name: 'Dice Count' },
                           { name: 'Dice Value' },
                         ]}
-                        name={`effect.${effectIndex}.damage.damageByLevel`}
-                        state={effect.damage.damageByLevel}
+                        name={`feature.${featureIndex}.damage.damageByLevel`}
+                        state={feature.damage.damageByLevel}
                         onChange={setState}
                       />
                     </div>
@@ -399,17 +399,17 @@ const NewSpellForm = () => {
             <button
               className='btn btn-secondary me-2'
               type='button'
-              name='effect'
+              name='feature'
               onClick={(e) => setState({ type: 'added', payload: e })}
             >
-              Add Effect
+              Add Feature
             </button>
             <button className='btn btn-primary' type='submit'>
               Add Spell
             </button>
           </div>
-          <div className='accordion pb-3' id='effectAccordion'>
-            {effect}
+          <div className='accordion pb-3' id='featureAccordion'>
+            {feature}
           </div>
         </form>
       </div>

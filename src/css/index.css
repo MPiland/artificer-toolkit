@@ -74,6 +74,11 @@ h6 {
   width: 100%;
 }
 
+/* Standard fields */
+.form-control {
+  border-color: grey;
+}
+
 @media only screen and (max-width: 768px) {
   .main-container {
     position: relative;

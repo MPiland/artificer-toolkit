@@ -1,4 +1,4 @@
-import '../scss/style.scss'
+import '../css/textEditor.css'
 import { useEditor, EditorContent } from '@tiptap/react'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
@@ -26,14 +26,14 @@ import {
   RiInsertRowTop,
 } from 'react-icons/ri'
 
-const MenuBar = ({ editor }) => {
-  if (!editor) {
+const MenuBar = ({ editor, noMenuBar }) => {
+  if (!editor || noMenuBar) {
     return null
   }
 
   return (
-    <div className='container menuBar'>
-      <div className='row'>
+    <div className='menuBar'>
+      <div className='row g-0'>
         <div className='col-auto p-0'>
           <span
             className='btn dropdown-toggle'
@@ -125,8 +125,6 @@ const MenuBar = ({ editor }) => {
           >
             <FaItalic />
           </span>
-        </div>
-        <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             className={`{editor.isActive('underline') ? 'is_active' : ''} btn`}
@@ -159,6 +157,8 @@ const MenuBar = ({ editor }) => {
           >
             <FaListOl />
           </span>
+        </div>
+        <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={`{editor.isActive('blockquote') ? 'is_active' : ''} btn`}
@@ -235,7 +235,7 @@ const MenuBar = ({ editor }) => {
   )
 }
 
-const TextEditor = ({ onChange, placeholder, name, className }) => {
+const TextEditor = ({ onChange, placeholder, name, className, noMenuBar }) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -252,6 +252,11 @@ const TextEditor = ({ onChange, placeholder, name, className }) => {
       TableRow,
       TableHeader,
     ],
+    editorProps: {
+      attributes: {
+        class: `text-editor-content ${className ?? ''}`,
+      },
+    },
     content: '',
 
     onUpdate: ({ editor }) => {
@@ -261,8 +266,8 @@ const TextEditor = ({ onChange, placeholder, name, className }) => {
   })
 
   return (
-    <div className={`textEditor ${className}`}>
-      <MenuBar editor={editor} />
+    <div className={`textEditor`}>
+      <MenuBar editor={editor} noMenuBar={noMenuBar} />
       <EditorContent editor={editor} />
     </div>
   )

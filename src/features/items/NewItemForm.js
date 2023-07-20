@@ -75,130 +75,15 @@ const NewItemForm = () => {
 
     const sections = [
       {
-        name: 'proficiency',
-        content(effectIndex, item, index) {
-          return (
-            <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
-              </div>
-              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.area`}
-                    placeholder='Proficiency Area'
-                    options={builders.proficiency.area}
-                    onChange={setState}
-                  />
-                </div>
-                {item?.area?.name === 'skill' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.skill`}
-                      placeholder='Skill'
-                      options={builders.skill}
-                      onChange={setState}
-                    />
-                  </div>
-                )}
-                {item?.area?.name === 'saveAbility' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.saveAbility`}
-                      placeholder='Save Ability'
-                      options={builders.ability}
-                      onChange={setState}
-                    />
-                  </div>
-                )}
-                {item?.area?.name === 'tool' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.tool`}
-                      placeholder='Tool'
-                      options={builders.tool}
-                      onChange={setState}
-                    />
-                  </div>
-                )}
-                {item?.area?.name === 'language' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.language`}
-                      placeholder='Language'
-                      options={builders.language}
-                      onChange={setState}
-                    />
-                  </div>
-                )}
-                <div className='col-sm'>
-                  <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.level`}
-                    placeholder='Proficiency Level'
-                    options={builders.proficiency.level}
-                    onChange={setState}
-                  />
-                </div>
-              </div>
-            </>
-          )
-        },
-      },
-      {
-        name: 'spell',
-        content(effectIndex, item, index) {
-          return (
-            <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
-              </div>
-              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    multiple='true'
-                    name={`effect.${effectIndex}.${this.name}.${index}.attribute`}
-                    options={builders.effect.spell.attribute}
-                    placeholder='Effect Attributes'
-                    onChange={setState}
-                  />
-                </div>
-                <div className='col-sm'>
-                  <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}`}
-                    placeholder='Spell'
-                    options={spells}
-                    onChange={setState}
-                  />
-                </div>
-              </div>
-            </>
-          )
-        },
-      },
-      {
         name: 'modifier',
-        content(effectIndex, item, index) {
+        content(featureIndex, item, index) {
           return (
             <>
               <div className='pb-3'>
                 <button
                   className='btn btn-outline-primary col-auto'
                   type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
                   onClick={(e) => setState({ type: 'removed', payload: e })}
                 >
                   {`Remove ${startCase(this.name)}`}
@@ -207,7 +92,7 @@ const NewItemForm = () => {
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.modType`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
                     options={builders.modifier.modType}
                     onChange={setState}
@@ -216,7 +101,7 @@ const NewItemForm = () => {
                 {!!item.modType?.name && (
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.module`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
                       options={builders.modifier.module?.filter((moduleItem) =>
                         builders.modifier.modType
@@ -238,7 +123,7 @@ const NewItemForm = () => {
                     item.module?.name === 'saveAbility' ? (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.ability`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                           placeholder='Ability'
                           options={builders.ability}
                           onChange={setState}
@@ -248,7 +133,7 @@ const NewItemForm = () => {
                       item.module?.name === 'skill' && (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.${this.name}.${index}.skill`}
+                            name={`feature.${featureIndex}.${this.name}.${index}.skill`}
                             placeholder='Skill'
                             options={builders.skill}
                             onChange={setState}
@@ -260,7 +145,7 @@ const NewItemForm = () => {
                       item.modType?.name !== 'setValue' && (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.${this.name}.${index}.method`}
+                            name={`feature.${featureIndex}.${this.name}.${index}.method`}
                             placeholder='Method'
                             options={builders.modifier.method.filter(
                               (methodItem) =>
@@ -276,7 +161,7 @@ const NewItemForm = () => {
                     {item.module?.name === 'condition' ? (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.condition`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.condition`}
                           placeholder='Condition Type'
                           options={builders.condition}
                           onChange={setState}
@@ -285,7 +170,7 @@ const NewItemForm = () => {
                     ) : item.module?.name === 'speed' ? (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.speed`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.speed`}
                           placeholder='Speed Type'
                           options={builders.speed}
                           onChange={setState}
@@ -294,7 +179,7 @@ const NewItemForm = () => {
                     ) : item.module?.name === 'passive' ? (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.speed`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.speed`}
                           placeholder='Passive Type'
                           options={builders.passive}
                           onChange={setState}
@@ -304,7 +189,7 @@ const NewItemForm = () => {
                       item.module?.name === 'damage' && (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.${this.name}.${index}.damage`}
+                            name={`feature.${featureIndex}.${this.name}.${index}.damage`}
                             placeholder='Damage Type'
                             options={builders.damage}
                             onChange={setState}
@@ -323,7 +208,7 @@ const NewItemForm = () => {
                               : 'is-invalid')
                           }`}
                           type='text'
-                          name={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                           label={true}
                           invalidText='Must contain only numbers'
                           placeholder='Set Value'
@@ -332,7 +217,7 @@ const NewItemForm = () => {
                         />
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.${this.name}.${index}.multiplier`}
+                            name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                             placeholder='Multiplier'
                             options={builders.modifier.multiplier}
                             onChange={setState}
@@ -342,7 +227,7 @@ const NewItemForm = () => {
                     ) : item.method?.name === 'ability' ? (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.method.ability`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                           placeholder='Method Ability'
                           options={builders.ability}
                           onChange={setState}
@@ -352,7 +237,7 @@ const NewItemForm = () => {
                       item.method?.name === 'skill' && (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.${this.name}.${index}.method.skill`}
+                            name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                             placeholder='Method Skill'
                             options={builders.skill}
                             onChange={setState}
@@ -368,15 +253,15 @@ const NewItemForm = () => {
         },
       },
       {
-        name: 'sense',
-        content(effectIndex, item, index) {
+        name: 'proficiency',
+        content(featureIndex, item, index) {
           return (
             <>
               <div className='pb-3'>
                 <button
                   className='btn btn-outline-primary col-auto'
                   type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
                   onClick={(e) => setState({ type: 'removed', payload: e })}
                 >
                   {`Remove ${startCase(this.name)}`}
@@ -385,7 +270,122 @@ const NewItemForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.sense`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.area`}
+                    placeholder='Proficiency Area'
+                    options={builders.proficiency.area}
+                    onChange={setState}
+                  />
+                </div>
+                {item?.area?.name === 'skill' && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.skill`}
+                      placeholder='Skill'
+                      options={builders.skill}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+                {item?.area?.name === 'saveAbility' && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.saveAbility`}
+                      placeholder='Save Ability'
+                      options={builders.ability}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+                {item?.area?.name === 'tool' && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.tool`}
+                      placeholder='Tool'
+                      options={builders.tool}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+                {item?.area?.name === 'language' && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.language`}
+                      placeholder='Language'
+                      options={builders.language}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+                <div className='col-sm'>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.level`}
+                    placeholder='Proficiency Level'
+                    options={builders.proficiency.level}
+                    onChange={setState}
+                  />
+                </div>
+              </div>
+            </>
+          )
+        },
+      },
+      {
+        name: 'spell',
+        content(featureIndex, item, index) {
+          return (
+            <>
+              <div className='pb-3'>
+                <button
+                  className='btn btn-outline-primary col-auto'
+                  type='button'
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
+                  onClick={(e) => setState({ type: 'removed', payload: e })}
+                >
+                  {`Remove ${startCase(this.name)}`}
+                </button>
+              </div>
+              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
+                <div className='col-sm'>
+                  <Select
+                    multiple='true'
+                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                    options={builders.feature.spell.attribute}
+                    placeholder='Feature Attributes'
+                    onChange={setState}
+                  />
+                </div>
+                <div className='col-sm'>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    placeholder='Spell'
+                    options={spells}
+                    onChange={setState}
+                  />
+                </div>
+              </div>
+            </>
+          )
+        },
+      },
+      {
+        name: 'sense',
+        content(featureIndex, item, index) {
+          return (
+            <>
+              <div className='pb-3'>
+                <button
+                  className='btn btn-outline-primary col-auto'
+                  type='button'
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
+                  onClick={(e) => setState({ type: 'removed', payload: e })}
+                >
+                  {`Remove ${startCase(this.name)}`}
+                </button>
+              </div>
+              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
+                <div className='col-sm'>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
                     multiple={item?.sectionAttribute?.name === 'hasOptions'}
                     placeholder='Sense'
                     options={builders.sense}
@@ -399,22 +399,22 @@ const NewItemForm = () => {
       },
     ]
 
-    const effectContent =
-      state?.effect?.length !== 0 &&
-      state?.effect?.map((effect, effectIndex) => (
-        <div key={effectIndex} className='accordion' id={`effectAccordion`}>
+    const featureContent =
+      state?.feature?.length !== 0 &&
+      state?.feature?.map((feature, featureIndex) => (
+        <div key={featureIndex} className='accordion' id={`featureAccordion`}>
           <div className='accordion-item'>
             <div className='accordion-header'>
               <AccordionButton
-                id={`effect${effectIndex}AccordionButton`}
-                target={`effect${effectIndex}AccordionBody`}
+                id={`feature${featureIndex}AccordionButton`}
+                target={`feature${featureIndex}AccordionBody`}
               >
                 <Input
                   className='col-sm-4 border-0'
                   type='text'
-                  name={`effect.${effectIndex}.value`}
+                  name={`feature.${featureIndex}.value`}
                   autoComplete='off'
-                  placeholder='Effect Name'
+                  placeholder='Feature Name'
                   required={true}
                   onChange={setState}
                   onClick={(e) => e.stopPropagation()}
@@ -423,8 +423,8 @@ const NewItemForm = () => {
             </div>
             <div
               className='accordion-collapse collapse show'
-              id={`effect${effectIndex}AccordionBody`}
-              data-bs-parent={`#effectAccordion`}
+              id={`feature${featureIndex}AccordionBody`}
+              data-bs-parent={`#featureAccordion`}
             >
               <div className='accordion-body'>
                 <div className='row row-cols-lg-auto row-cols-md-3 row-cols-sm-1 justify-content-start g-2 pb-3'>
@@ -432,10 +432,10 @@ const NewItemForm = () => {
                     <button
                       className='btn btn-outline-primary overflow-hidden text-nowrap'
                       type='button'
-                      name={`effect.${effectIndex}`}
+                      name={`feature.${featureIndex}`}
                       onClick={(e) => setState({ type: 'removed', payload: e })}
                     >
-                      Remove Effect
+                      Remove Feature
                     </button>
                   </div>
                   {sections.map((section, sectionIndex) => (
@@ -444,7 +444,7 @@ const NewItemForm = () => {
                         key={sectionIndex}
                         className='btn btn-secondary'
                         type='button'
-                        name={`effect.${effectIndex}.${section.name}`}
+                        name={`feature.${featureIndex}.${section.name}`}
                         onClick={(e) => setState({ type: 'added', payload: e })}
                       >
                         {`Add ${startCase(section.name)}`}
@@ -454,73 +454,73 @@ const NewItemForm = () => {
                 </div>
                 <TextEditor
                   className='mb-3'
-                  placeholder='Effect description'
-                  name={`effect.${effectIndex}.desc`}
+                  placeholder='Feature description'
+                  name={`feature.${featureIndex}.desc`}
                   onChange={setState}
                 />
                 <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                   <div className='col-sm'>
                     <Select
                       multiple={true}
-                      name={`effect.${effectIndex}.attribute`}
-                      options={builders.effect.attribute}
-                      placeholder='Effect Attributes'
+                      name={`feature.${featureIndex}.attribute`}
+                      options={builders.feature.attribute}
+                      placeholder='Feature Attributes'
                       onChange={setState}
                     />
                   </div>
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'isAction'
                   ) && (
                     <div className='col-sm'>
                       <Select
                         name={'action.num'}
                         placeholder='Action Type'
-                        options={builders.effect.action}
+                        options={builders.feature.action}
                         onChange={setState}
                       />
                     </div>
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'limitUses'
                   ) && (
                     <>
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.limitBy`}
+                          name={`feature.${featureIndex}.limitBy`}
                           placeholder='Limit By Option'
-                          options={builders.effect.chargeLimit}
+                          options={builders.feature.chargeLimit}
                           onChange={setState}
                         />
                       </div>
-                      {effect?.limitBy?.name === 'ability' ? (
+                      {feature?.limitBy?.name === 'ability' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.limitBy.ability`}
+                            name={`feature.${featureIndex}.limitBy.ability`}
                             placeholder='Ability'
                             options={builders.ability}
                             onChange={setState}
                           />
                         </div>
-                      ) : effect?.limitBy?.name === 'skill' ? (
+                      ) : feature?.limitBy?.name === 'skill' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.limitBy.skill`}
+                            name={`feature.${featureIndex}.limitBy.skill`}
                             placeholder='Skill'
                             options={builders.skill}
                             onChange={setState}
                           />
                         </div>
                       ) : (
-                        effect?.limitBy?.name === 'setNumber' && (
+                        feature?.limitBy?.name === 'setNumber' && (
                           <Input
                             className={`col-sm ${
-                              effect?.limitBy?.setAmount &&
-                              (NUM_REGEX.test(effect?.limitBy.setAmount)
+                              feature?.limitBy?.setAmount &&
+                              (NUM_REGEX.test(feature?.limitBy.setAmount)
                                 ? 'is-valid'
                                 : 'is-invalid')
                             }`}
                             type='text'
-                            name={`effect.${effectIndex}.limitBy.setAmount`}
+                            name={`feature.${featureIndex}.limitBy.setAmount`}
                             label={true}
                             invalidText='Must contain only numbers'
                             placeholder='Use Amount'
@@ -531,22 +531,22 @@ const NewItemForm = () => {
                       )}
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.resetsOn`}
+                          name={`feature.${featureIndex}.resetsOn`}
                           placeholder='Reset Option'
-                          options={builders.effect.chargeReset}
+                          options={builders.feature.chargeReset}
                           onChange={setState}
                         />
                       </div>
                     </>
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'hasRange'
                   ) && (
                     <>
                       <Input
                         type='text'
                         className='col-sm'
-                        name={`effect.${effectIndex}.inRange`}
+                        name={`feature.${featureIndex}.inRange`}
                         autoComplete='off'
                         label={true}
                         placeholder='Min Range'
@@ -556,7 +556,7 @@ const NewItemForm = () => {
                       <Input
                         className='col-sm'
                         type='text'
-                        name={`effect.${effectIndex}.maxRange`}
+                        name={`feature.${featureIndex}.maxRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Max Range'
@@ -565,12 +565,12 @@ const NewItemForm = () => {
                       />
                     </>
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'requireSave'
                   ) && (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.saveAbility`}
+                        name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
                         options={builders.ability}
                         onChange={setState}
@@ -578,16 +578,16 @@ const NewItemForm = () => {
                     </div>
                   )}
                 </div>
-                {effect?.limitBy?.name === 'level' &&
-                  effect?.attribute?.some(
+                {feature?.limitBy?.name === 'level' &&
+                  feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'limitUses'
                   ) &&
-                  (effect.limitBy.level ??
+                  (feature.limitBy.level ??
                     setState({
                       type: 'added',
                       payload: {
                         target: {
-                          name: `effect.${effectIndex}.limitBy.level`,
+                          name: `feature.${featureIndex}.limitBy.level`,
                         },
                       },
                     })) && (
@@ -595,21 +595,21 @@ const NewItemForm = () => {
                       <Table
                         className='table-sm table-responsive'
                         headers={[{ name: 'Level' }, { name: 'Uses' }]}
-                        name={`effect.${effectIndex}.limitBy.level`}
-                        state={effect?.limitBy?.level}
+                        name={`feature.${featureIndex}.limitBy.level`}
+                        state={feature?.limitBy?.level}
                         onChange={setState}
                       />
                     </div>
                   )}
-                {effect?.attribute?.some(
+                {feature?.attribute?.some(
                   (attributeItem) => attributeItem.name === 'doesDamage'
                 ) &&
-                  (!effect?.damage?.damageByLevel ? (
+                  (!feature?.damage?.damageByLevel ? (
                     setState({
                       type: 'added',
                       payload: {
                         target: {
-                          name: `effect.${effectIndex}.damage.damageByLevel`,
+                          name: `feature.${featureIndex}.damage.damageByLevel`,
                         },
                       },
                     })
@@ -618,16 +618,16 @@ const NewItemForm = () => {
                       <div className='col-sm'>
                         <Select
                           multiple={true}
-                          name={`effect.${effectIndex}.damage.damageAttribute`}
+                          name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
-                          options={builders.effect.damageAttribute}
+                          options={builders.feature.damageAttribute}
                           onChange={setState}
                         />
                       </div>
                       <div className='col-sm'>
                         <Select
                           className='pb-1'
-                          name={`effect.${effectIndex}.damage`}
+                          name={`feature.${featureIndex}.damage`}
                           placeholder='Damage Type'
                           options={builders.damage}
                           onChange={setState}
@@ -641,8 +641,8 @@ const NewItemForm = () => {
                             { name: 'Dice Count' },
                             { name: 'Dice Value' },
                           ]}
-                          name={`effect.${effectIndex}.damage.damageByLevel`}
-                          state={effect?.damage.damageByLevel}
+                          name={`feature.${featureIndex}.damage.damageByLevel`}
+                          state={feature?.damage.damageByLevel}
                           onChange={setState}
                         />
                       </div>
@@ -651,8 +651,8 @@ const NewItemForm = () => {
                 <div className='accordion' id='sectionAccordion'>
                   {sections.map(
                     (section, sectionIndex) =>
-                      !!effect[section.name] &&
-                      effect[section.name].map((item, itemIndex) => (
+                      !!feature[section.name] &&
+                      feature[section.name].map((item, itemIndex) => (
                         <div key={sectionIndex} className='accordion-item'>
                           <div className='accordion-header'>
                             <button
@@ -674,7 +674,7 @@ const NewItemForm = () => {
                             data-bs-parent='#sectionAccordion'
                           >
                             <div className='accordion-body'>
-                              {section.content(effectIndex, item, itemIndex)}
+                              {section.content(featureIndex, item, itemIndex)}
                             </div>
                           </div>
                         </div>
@@ -792,7 +792,10 @@ const NewItemForm = () => {
             <span className='me-3'>Description</span>
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
-          <div className='accordion-collapse collapse show pb-2' id='description'>
+          <div
+            className='accordion-collapse collapse show pb-2'
+            id='description'
+          >
             <TextEditor
               onChange={setState}
               placeholder={'Item description'}
@@ -1022,17 +1025,17 @@ const NewItemForm = () => {
           <div className='pb-3'>
             <button
               className='btn btn-secondary me-2'
-              name='effect'
+              name='feature'
               type='button'
               onClick={(e) => setState({ type: 'added', payload: e })}
             >
-              Add Effect
+              Add Feature
             </button>
             <button className='btn btn-primary' type='submit'>
               Add Item
             </button>
           </div>
-          {effectContent}
+          {featureContent}
         </form>
       </div>
     )

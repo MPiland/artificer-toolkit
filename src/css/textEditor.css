@@ -1,23 +1,4 @@
 /* Basic editor styles */
-.text-editor-container {
-  border: 1px grey solid;
-}
-
-.text-editor-menu {
-  border-bottom: 1px grey solid;
-}
-
-.text-editor-content {
-  height: 150px;
-}
-
-.ProseMirror {
-  padding: 10px;
-  border-top: 1px solid grey;
-  background: white;
-  border-radius: 0 0 5px 5px;
-  min-height: 100px;
-}
 
 .ProseMirror {
   > * + * {
@@ -126,15 +107,32 @@
 
 /* ............................ */
 .textEditor {
-  border-radius: 5px;
   border: 1px solid grey;
+  background: transparent;
+  border-radius: 5px;
+  min-height: 40px;
+  margin-bottom: 1rem;
 }
+
+.text-editor-content {
+  height: 100px;
+  padding: 10px;
+}
+
+.text-editor-content.shortDesc {
+  height: 58px;
+}
+
 .menuBar {
   padding-bottom: 5px;
+  border-bottom: 1px grey solid;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-left: 0px;
+  margin-right: 0px;
 }
+
 .menuBar button {
   font-size: 18px;
   margin: 7px;
@@ -145,6 +143,7 @@
   color: rgb(70, 70, 70);
   cursor: pointer;
 }
+
 .menuBar button:last-child {
   margin-right: 7px;
 }

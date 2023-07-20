@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useState } from 'react'
-import { useAddNewFeatureMutation } from './featuresApiSlice'
+import { useAddNewFeatMutation } from './featsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
-import { useGetFeatureQuery } from './featuresApiSlice'
+import { useGetFeatQuery } from './featsApiSlice'
 import { startCase } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import TextEditor from '../../components/TextEditor'
@@ -14,7 +14,7 @@ import AccordionButton from '../../components/AccordionButton'
 
 const NUM_REGEX = /^[0-9\b]+$/
 
-const NewFeatureForm = () => {
+const NewFeatForm = () => {
   const { id } = useAuth()
 
   const {
@@ -30,18 +30,17 @@ const NewFeatureForm = () => {
   } = useGetSpellQuery(id)
 
   const {
-    data: feature,
-    isSuccess: featureSuccess,
-    isLoading: featureLoading,
-  } = useGetFeatureQuery(id)
+    data: feats,
+    isSuccess: featSuccess,
+    isLoading: featLoading,
+  } = useGetFeatQuery(id)
 
-  console.log(builders)
-
-  const [addNewFeature, { isSuccess: addIsSuccess }] =
-    useAddNewFeatureMutation()
+  const [addNewFeat, { isSuccess: addIsSuccess }] = useAddNewFeatMutation()
 
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
+
+  console.log(builders)
 
   useEffect(() => {
     const forms = document.querySelectorAll('.needs-validation')
@@ -60,73 +59,37 @@ const NewFeatureForm = () => {
     })
   })
 
+  function validateForm() {}
+
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
     }
   }, [addIsSuccess, id, setState])
 
-  function validateForm() {}
-
   let content
 
-  if (builderLoading || spellLoading || featureLoading) {
+  if (builderLoading || spellLoading || featLoading) {
     content = <p>Loading...</p>
   }
 
-  if (builderSuccess && spellSuccess && featureSuccess) {
+  if (builderSuccess && spellSuccess && featSuccess) {
     // Submit to databases
     const onSubmit = async () => {
-      await addNewFeature(state)
+      await addNewFeat(state)
     }
 
     const sections = [
       {
-        name: 'feat',
-        content(effect, effectIndex, item, index) {
-          return (
-            <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
-              </div>
-              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    name={`effect.${effectIndex}.${this.name}`}
-                    multiple={effect?.attribute?.some(
-                      (attribute) => attribute.name === 'providesOptions'
-                    )}
-                    placeholder='Feat'
-                    options={feature?.filter((featureItem) =>
-                      featureItem?.featureType?.some(
-                        (typeItem) => typeItem.name === 'feat'
-                      )
-                    )}
-                    onChange={setState}
-                  />
-                </div>
-              </div>
-            </>
-          )
-        },
-      },
-      {
         name: 'modifier',
-        content(effect, effectIndex, item, index) {
+        content(feature, featureIndex, item, index) {
           return (
             <>
               <div className='pb-3'>
                 <button
                   className='btn btn-outline-primary col-auto'
                   type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
                   onClick={(e) => setState({ type: 'removed', payload: e })}
                 >
                   {`Remove ${startCase(this.name)}`}
@@ -135,7 +98,7 @@ const NewFeatureForm = () => {
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.modType`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
                     options={builders.modifier.modType}
                     onChange={setState}
@@ -144,7 +107,7 @@ const NewFeatureForm = () => {
                 {item.modType?.name && (
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.module`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
                       options={builders.modifier.module?.filter((moduleItem) =>
                         builders.modifier.modType
@@ -168,8 +131,8 @@ const NewFeatureForm = () => {
                     item.module?.name === 'saveAbility' ? (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.ability`}
-                          multiple={effect?.attribute?.some(
+                          name={`feature.${featureIndex}.${this.name}.${index}.ability`}
+                          multiple={feature?.attribute?.some(
                             (attribute) => attribute.name === 'providesOptions'
                           )}
                           placeholder='Ability'
@@ -181,8 +144,8 @@ const NewFeatureForm = () => {
                       item.module?.name === 'skill' && (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.${this.name}.${index}.skill`}
-                            multiple={effect?.attribute?.some(
+                            name={`feature.${featureIndex}.${this.name}.${index}.skill`}
+                            multiple={feature?.attribute?.some(
                               (attribute) =>
                                 attribute.name === 'providesOptions'
                             )}
@@ -198,7 +161,7 @@ const NewFeatureForm = () => {
                       item.modType?.name !== 'setValue' && (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.${this.name}.${index}.method`}
+                            name={`feature.${featureIndex}.${this.name}.${index}.method`}
                             placeholder='Method'
                             options={builders.modifier.method.filter(
                               (methodItem) =>
@@ -217,8 +180,8 @@ const NewFeatureForm = () => {
                   {item.module?.name === 'condition' ? (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.${this.name}.${index}.condition`}
-                        multiple={effect?.attribute?.some(
+                        name={`feature.${featureIndex}.${this.name}.${index}.condition`}
+                        multiple={feature?.attribute?.some(
                           (attribute) => attribute.name === 'providesOptions'
                         )}
                         placeholder='Condition Type'
@@ -229,8 +192,8 @@ const NewFeatureForm = () => {
                   ) : item.module?.name === 'speed' ? (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.${this.name}.${index}.speed`}
-                        multiple={effect?.attribute?.some(
+                        name={`feature.${featureIndex}.${this.name}.${index}.speed`}
+                        multiple={feature?.attribute?.some(
                           (attribute) => attribute.name === 'providesOptions'
                         )}
                         placeholder='Speed Type'
@@ -241,8 +204,8 @@ const NewFeatureForm = () => {
                   ) : item.module?.name === 'passive' ? (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.${this.name}.${index}.speed`}
-                        multiple={effect?.attribute?.some(
+                        name={`feature.${featureIndex}.${this.name}.${index}.speed`}
+                        multiple={feature?.attribute?.some(
                           (attribute) => attribute.name === 'providesOptions'
                         )}
                         placeholder='Passive Type'
@@ -254,8 +217,8 @@ const NewFeatureForm = () => {
                     item.module?.name === 'damage' && (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.damage`}
-                          multiple={effect?.attribute?.some(
+                          name={`feature.${featureIndex}.${this.name}.${index}.damage`}
+                          multiple={feature?.attribute?.some(
                             (attribute) => attribute.name === 'providesOptions'
                           )}
                           placeholder='Damage Type'
@@ -278,19 +241,19 @@ const NewFeatureForm = () => {
                                 : 'is-invalid')
                             }`}
                             type='text'
-                            name={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
-                            id={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
+                            name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
+                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                             placeholder='Set Value'
                             autoComplete='off'
                             onChange={(e) => setState({ payload: e })}
                           />
                           <label
-                            htmlFor={`effect.${effectIndex}.${this.name}.${index}.method.setValue`}
+                            htmlFor={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                           >
                             Set Value
                           </label>
                           <div
-                            id={`effect.${effectIndex}.${this.name}.${index}.method.setValueTooltip`}
+                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValueTooltip`}
                             className='invalid-tooltip'
                           >
                             Must contain only numbers
@@ -299,7 +262,7 @@ const NewFeatureForm = () => {
                       </div>
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.multiplier`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                           placeholder='Multiplier'
                           options={builders.modifier.multiplier}
                           onChange={setState}
@@ -309,7 +272,7 @@ const NewFeatureForm = () => {
                   ) : item.method?.name === 'ability' ? (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.${this.name}.${index}.method.ability`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                         placeholder='Method Ability'
                         options={builders.ability}
                         onChange={setState}
@@ -319,7 +282,7 @@ const NewFeatureForm = () => {
                     item.method?.name === 'skill' && (
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.${this.name}.${index}.method.skill`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                           placeholder='Method Skill'
                           options={builders.skill}
                           onChange={setState}
@@ -335,14 +298,14 @@ const NewFeatureForm = () => {
       },
       {
         name: 'proficiency',
-        content(effect, effectIndex, item, index) {
+        content(feature, featureIndex, item, index) {
           return (
             <>
               <div className='pb-3'>
                 <button
                   className='btn btn-outline-primary col-auto'
                   type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
                   onClick={(e) => setState({ type: 'removed', payload: e })}
                 >
                   {`Remove ${startCase(this.name)}`}
@@ -351,7 +314,7 @@ const NewFeatureForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.area`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
                     options={builders.proficiency.area}
                     onChange={setState}
@@ -360,8 +323,8 @@ const NewFeatureForm = () => {
                 {item?.area?.name === 'skill' && (
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.skill`}
-                      multiple={effect?.attribute?.some(
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.skill`}
+                      multiple={feature?.attribute?.some(
                         (attribute) => attribute.name === 'providesOptions'
                       )}
                       placeholder='Skill'
@@ -373,8 +336,8 @@ const NewFeatureForm = () => {
                 {item?.area?.name === 'saveAbility' && (
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.saveAbility`}
-                      multiple={effect?.attribute?.some(
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.saveAbility`}
+                      multiple={feature?.attribute?.some(
                         (attribute) => attribute.name === 'providesOptions'
                       )}
                       placeholder='Save Ability'
@@ -386,8 +349,8 @@ const NewFeatureForm = () => {
                 {item?.area?.name === 'tool' && (
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.tool`}
-                      multiple={effect?.attribute?.some(
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.tool`}
+                      multiple={feature?.attribute?.some(
                         (attribute) => attribute.name === 'providesOptions'
                       )}
                       placeholder='Tool'
@@ -399,8 +362,8 @@ const NewFeatureForm = () => {
                 {item?.area?.name === 'language' && (
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.${this.name}.${index}.area.language`}
-                      multiple={effect?.attribute?.some(
+                      name={`feature.${featureIndex}.${this.name}.${index}.area.language`}
+                      multiple={feature?.attribute?.some(
                         (attribute) => attribute.name === 'providesOptions'
                       )}
                       placeholder='Language'
@@ -411,7 +374,7 @@ const NewFeatureForm = () => {
                 )}
                 <div className='col-sm'>
                   <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.level`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
                     options={builders.proficiency.level}
                     onChange={setState}
@@ -424,14 +387,14 @@ const NewFeatureForm = () => {
       },
       {
         name: 'spell',
-        content(effect, effectIndex, item, index) {
+        content(feature, featureIndex, item, index) {
           return (
             <>
               <div className='pb-3'>
                 <button
                   className='btn btn-outline-primary col-auto'
                   type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
                   onClick={(e) => setState({ type: 'removed', payload: e })}
                 >
                   {`Remove ${startCase(this.name)}`}
@@ -441,16 +404,16 @@ const NewFeatureForm = () => {
                 <div className='col-sm'>
                   <Select
                     multiple='true'
-                    name={`effect.${effectIndex}.${this.name}.${index}.attribute`}
-                    options={builders.effect.spell.attribute}
-                    placeholder='Effect Attributes'
+                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                    options={builders.feature.spell.attribute}
+                    placeholder='Feature Attributes'
                     onChange={setState}
                   />
                 </div>
                 <div className='col-sm'>
                   <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}`}
-                    multiple={effect?.attribute?.some(
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    multiple={feature?.attribute?.some(
                       (attribute) => attribute.name === 'providesOptions'
                     )}
                     placeholder='Spell'
@@ -465,14 +428,14 @@ const NewFeatureForm = () => {
       },
       {
         name: 'sense',
-        content(effect, effectIndex, item, index) {
+        content(feature, featureIndex, item, index) {
           return (
             <>
               <div className='pb-3'>
                 <button
                   className='btn btn-outline-primary col-auto'
                   type='button'
-                  name={`effect.${effectIndex}.${this.name}.${index}`}
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
                   onClick={(e) => setState({ type: 'removed', payload: e })}
                 >
                   {`Remove ${startCase(this.name)}`}
@@ -481,8 +444,8 @@ const NewFeatureForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    name={`effect.${effectIndex}.${this.name}.${index}.sense`}
-                    multiple={effect?.attribute?.some(
+                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
+                    multiple={feature?.attribute?.some(
                       (attribute) => attribute.name === 'providesOptions'
                     )}
                     placeholder='Sense'
@@ -497,22 +460,22 @@ const NewFeatureForm = () => {
       },
     ]
 
-    const effectContent =
-      state?.effect?.length !== 0 &&
-      state?.effect?.map((effect, effectIndex) => (
-        <div key={effectIndex} className='accordion' id={`effectAccordion`}>
+    const featureContent =
+      state?.feature?.length !== 0 &&
+      state?.feature?.map((feature, featureIndex) => (
+        <div key={featureIndex} className='accordion' id={`featureAccordion`}>
           <div className='accordion-item'>
             <div className='accordion-header'>
               <AccordionButton
-                id={`effect${effectIndex}AccordionButton`}
-                target={`effect${effectIndex}AccordionBody`}
+                id={`feature${featureIndex}AccordionButton`}
+                target={`feature${featureIndex}AccordionBody`}
               >
                 <Input
                   className='col-4 border-0'
                   type='text'
-                  name={`effect.${effectIndex}.value`}
+                  name={`feature.${featureIndex}.value`}
                   autoComplete='off'
-                  placeholder='Effect Name'
+                  placeholder='Feature Name'
                   required={true}
                   onChange={setState}
                   onClick={(e) => e.stopPropagation()}
@@ -521,8 +484,8 @@ const NewFeatureForm = () => {
             </div>
             <div
               className='accordion-collapse collapse show'
-              id={`effect${effectIndex}AccordionBody`}
-              data-bs-parent={`#effectAccordion`}
+              id={`feature${featureIndex}AccordionBody`}
+              data-bs-parent={`#featureAccordion`}
             >
               <div className='accordion-body'>
                 <div className='row rows-col-lg rows-col-md-3 rows-col-sm-1 justify-content-start g-2 pb-3'>
@@ -530,10 +493,10 @@ const NewFeatureForm = () => {
                     <button
                       className='btn btn-outline-primary overflow-hidden text-nowrap'
                       type='button'
-                      name={`effect.${effectIndex}`}
+                      name={`feature.${featureIndex}`}
                       onClick={(e) => setState({ type: 'removed', payload: e })}
                     >
-                      Remove Effect
+                      Remove Feature
                     </button>
                   </div>
                   {sections.map((section, sectionIndex) => (
@@ -542,7 +505,7 @@ const NewFeatureForm = () => {
                         key={sectionIndex}
                         className='btn btn-secondary'
                         type='button'
-                        name={`effect.${effectIndex}.${section.name}`}
+                        name={`feature.${featureIndex}.${section.name}`}
                         onClick={(e) => setState({ type: 'added', payload: e })}
                       >
                         {`Add ${startCase(section.name)}`}
@@ -552,39 +515,39 @@ const NewFeatureForm = () => {
                 </div>
                 <TextEditor
                   className='mb-3'
-                  placeholder='Effect description'
-                  name={`effect.${effectIndex}.desc`}
+                  placeholder='Feature description'
+                  name={`feature.${featureIndex}.desc`}
                   onChange={setState}
                 />
                 <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                   <div className='col-sm'>
                     <Select
-                      name={`effect.${effectIndex}.attribute`}
+                      name={`feature.${featureIndex}.attribute`}
                       multiple='true'
-                      options={builders.effect.attribute}
-                      placeholder='Effect Attributes'
+                      options={builders.feature.attribute}
+                      placeholder='Feature Attributes'
                       onChange={setState}
                     />
                   </div>
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'isAction'
                   ) && (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.action`}
-                        options={builders.effect.action}
+                        name={`feature.${featureIndex}.action`}
+                        options={builders.feature.action}
                         placeholder='Action Type'
                         onChange={setState}
                       />
                     </div>
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'providesOptions'
                   ) && (
                     <Input
                       type='text'
                       className='col-sm'
-                      name={`effect.${effectIndex}.maxDupValue`}
+                      name={`feature.${featureIndex}.maxDupValue`}
                       label={true}
                       autoComplete='off'
                       placeholder='Max Dup. Selections'
@@ -592,59 +555,59 @@ const NewFeatureForm = () => {
                       onChange={setState}
                     />
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'conditionLimits'
                   ) && (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.limitCondition`}
-                        options={builders.effect.limitOption}
+                        name={`feature.${featureIndex}.limitCondition`}
+                        options={builders.feature.limitOption}
                         placeholder='Limiting Attributes'
                         onChange={setState}
                       />
                     </div>
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'limitUses'
                   ) && (
                     <>
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.limitBy`}
+                          name={`feature.${featureIndex}.limitBy`}
                           placeholder='Limit By Option'
-                          options={builders.effect.chargeLimit}
+                          options={builders.feature.chargeLimit}
                           onChange={setState}
                         />
                       </div>
-                      {effect?.limitBy?.name === 'ability' ? (
+                      {feature?.limitBy?.name === 'ability' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.limitBy.ability`}
+                            name={`feature.${featureIndex}.limitBy.ability`}
                             placeholder='Ability'
                             options={builders.ability}
                             onChange={setState}
                           />
                         </div>
-                      ) : effect?.limitBy?.name === 'skill' ? (
+                      ) : feature?.limitBy?.name === 'skill' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`effect.${effectIndex}.limitBy.skill`}
+                            name={`feature.${featureIndex}.limitBy.skill`}
                             placeholder='Skill'
                             options={builders.skill}
                             onChange={setState}
                           />
                         </div>
                       ) : (
-                        effect?.limitBy?.name === 'setNumber' && (
+                        feature?.limitBy?.name === 'setNumber' && (
                           <Input
                             className={`col-sm ${
-                              effect?.limitBy?.setAmount &&
-                              (NUM_REGEX.test(effect?.limitBy.setAmount)
+                              feature?.limitBy?.setAmount &&
+                              (NUM_REGEX.test(feature?.limitBy.setAmount)
                                 ? 'is-valid'
                                 : 'is-invalid')
                             }`}
                             type='text'
-                            name={`effect.${effectIndex}.limitBy.setAmount`}
+                            name={`feature.${featureIndex}.limitBy.setAmount`}
                             invalidText='Must contain only numbers'
                             placeholder='Use Amount'
                             required={true}
@@ -654,22 +617,22 @@ const NewFeatureForm = () => {
                       )}
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.resetsOn`}
+                          name={`feature.${featureIndex}.resetsOn`}
                           placeholder='Reset Option'
-                          options={builders.effect.chargeReset}
+                          options={builders.feature.chargeReset}
                           onChange={setState}
                         />
                       </div>
                     </>
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'hasRange'
                   ) && (
                     <>
                       <Input
                         type='text'
                         className='col-sm'
-                        name={`effect.${effectIndex}.inRange`}
+                        name={`feature.${featureIndex}.inRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Min Range'
@@ -679,7 +642,7 @@ const NewFeatureForm = () => {
                       <Input
                         type='text'
                         className='col-sm'
-                        name={`effect.${effectIndex}.maxRange`}
+                        name={`feature.${featureIndex}.maxRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Max Range'
@@ -688,12 +651,12 @@ const NewFeatureForm = () => {
                       />
                     </>
                   )}
-                  {effect?.attribute?.some(
+                  {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'requireSave'
                   ) && (
                     <div className='col-sm'>
                       <Select
-                        name={`effect.${effectIndex}.saveAbility`}
+                        name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
                         options={builders.ability}
                         onChange={setState}
@@ -701,16 +664,16 @@ const NewFeatureForm = () => {
                     </div>
                   )}
                 </div>
-                {effect?.limitBy?.name === 'level' &&
-                  effect?.attribute?.some(
+                {feature?.limitBy?.name === 'level' &&
+                  feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'limitUses'
                   ) &&
-                  (effect.limitBy.level ??
+                  (feature.limitBy.level ??
                     setState({
                       type: 'added',
                       payload: {
                         target: {
-                          name: `effect.${effectIndex}.limitBy.level`,
+                          name: `feature.${featureIndex}.limitBy.level`,
                         },
                       },
                     })) && (
@@ -718,21 +681,21 @@ const NewFeatureForm = () => {
                       <Table
                         className='table-sm table-responsive'
                         headers={[{ name: 'Level' }, { name: 'Uses' }]}
-                        name={`effect.${effectIndex}.limitBy.level`}
-                        state={effect?.limitBy?.level}
+                        name={`feature.${featureIndex}.limitBy.level`}
+                        state={feature?.limitBy?.level}
                         onChange={setState}
                       />
                     </div>
                   )}
-                {effect?.attribute?.some(
+                {feature?.attribute?.some(
                   (attributeItem) => attributeItem.name === 'doesDamage'
                 ) &&
-                  (!effect?.damage?.damageByLevel ? (
+                  (!feature?.damage?.damageByLevel ? (
                     setState({
                       type: 'added',
                       payload: {
                         target: {
-                          name: `effect.${effectIndex}.damage.damageByLevel`,
+                          name: `feature.${featureIndex}.damage.damageByLevel`,
                         },
                       },
                     })
@@ -741,15 +704,15 @@ const NewFeatureForm = () => {
                       <div className='col-sm'>
                         <Select
                           multiple='true'
-                          name={`effect.${effectIndex}.damage.damageAttribute`}
+                          name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
-                          options={builders.effect.damageAttribute}
+                          options={builders.feature.damageAttribute}
                           onChange={setState}
                         />
                       </div>
                       <div className='col-sm'>
                         <Select
-                          name={`effect.${effectIndex}.damage`}
+                          name={`feature.${featureIndex}.damage`}
                           placeholder='Damage Type'
                           options={builders.damage}
                           onChange={setState}
@@ -763,8 +726,8 @@ const NewFeatureForm = () => {
                             { name: 'Dice Count' },
                             { name: 'Dice Value' },
                           ]}
-                          name={`effect.${effectIndex}.damage.damageByLevel`}
-                          state={effect?.damage.damageByLevel}
+                          name={`feature.${featureIndex}.damage.damageByLevel`}
+                          state={feature?.damage.damageByLevel}
                           onChange={setState}
                         />
                       </div>
@@ -773,8 +736,8 @@ const NewFeatureForm = () => {
                 <div className='accordion' id='sectionAccordion'>
                   {sections.map(
                     (section, sectionIndex) =>
-                      !!effect[section.name] &&
-                      effect[section.name].map((item, itemIndex) => (
+                      !!feature[section.name] &&
+                      feature[section.name].map((item, itemIndex) => (
                         <div key={sectionIndex} className='accordion-item'>
                           <div className='accordion-header'>
                             <button
@@ -797,8 +760,8 @@ const NewFeatureForm = () => {
                           >
                             <div className='accordion-body'>
                               {section.content(
-                                effect,
-                                effectIndex,
+                                feature,
+                                featureIndex,
                                 item,
                                 itemIndex
                               )}
@@ -819,7 +782,7 @@ const NewFeatureForm = () => {
         {successMessage && (
           <h3 className='add-success-message'>{successMessage}</h3>
         )}
-        <h1>Create a Feature</h1>
+        <h1>Create a Feat</h1>
         <form
           className='needs-validation'
           onSubmit={() => {
@@ -832,22 +795,13 @@ const NewFeatureForm = () => {
             <Input
               type='text'
               className='col-sm'
-              name='value'
+              name='name'
               autoComplete='off'
-              placeholder='Feature Name'
+              placeholder='Feat Name'
               label={true}
               required={true}
               onChange={setState}
             />
-            <div className='col-sm'>
-              <Select
-                multiple='true'
-                name='featureType'
-                placeholder='Feature Type'
-                options={builders.feature.featureType}
-                onChange={setState}
-              />
-            </div>
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
@@ -861,7 +815,7 @@ const NewFeatureForm = () => {
             <div className='pb-2'>
               <TextEditor
                 onChange={setState}
-                placeholder={'Feature Description'}
+                placeholder={'feat Description'}
                 name={'desc'}
               />
             </div>
@@ -881,7 +835,7 @@ const NewFeatureForm = () => {
                   name='attribute'
                   multiple={true}
                   placeholder='Attribute'
-                  options={builders.feature.attribute}
+                  options={builders.feat.attribute}
                   onChange={setState}
                 />
               </div>
@@ -890,21 +844,21 @@ const NewFeatureForm = () => {
           <div className='pb-3'>
             <button
               className='btn btn-secondary me-2'
-              name='effect'
+              name='feature'
               type='button'
               onClick={(e) => setState({ type: 'added', payload: e })}
             >
-              Add Effect
+              Add Feature
             </button>
             <button className='btn btn-primary' type='submit'>
               Add Item
             </button>
           </div>
-          {effectContent}
+          {featureContent}
         </form>
       </div>
     )
     return content
   }
 }
-export default NewFeatureForm
+export default NewFeatForm

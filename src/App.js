@@ -15,8 +15,8 @@ import SpellList from './features/spells/SpellList'
 import NewSpellForm from './features/spells/NewSpellForm'
 import ItemList from './features/items/ItemList'
 import NewItemForm from './features/items/NewItemForm'
-import FeatureList from './features/features/FeatureList'
-import NewFeatureForm from './features/features/NewFeatureForm'
+import FeatList from './features/feats/FeatList'
+import NewfeatForm from './features/feats/NewFeatForm'
 import { useSelector } from 'react-redux'
 import { selectCurrentToken } from './features/auth/authSlice'
 
@@ -55,9 +55,9 @@ const App = () => {
                   <Route index element={<ItemList />} />
                   <Route path='new' element={<NewItemForm />} />
                 </Route>
-                <Route path='features'>
-                  <Route index element={<FeatureList />} />
-                  <Route path='new' element={<NewFeatureForm />} />
+                <Route path='feats'>
+                  <Route index element={<FeatList />} />
+                  <Route path='new' element={<NewfeatForm />} />
                 </Route>
               </Route>
             </Route>

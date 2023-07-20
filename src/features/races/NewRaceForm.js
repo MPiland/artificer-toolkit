@@ -1,11 +1,14 @@
 import { useState, useEffect, useReducer } from 'react'
 import { useAddNewRaceMutation } from './racesApiSlice'
-import TextEditor from '../../components/TextEditor'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
+import { useGetFeatQuery } from '../feats/featsApiSlice'
 import formReducer from '../../hooks/useReducer'
 import useAuth from '../../hooks/useAuth'
+import TextEditor from '../../components/TextEditor'
 import Input from '../../components/Input'
+import AccordionButton from '../../components/AccordionButton'
+import Select from '../../components/Select'
 
 const NUM_REGEX = /^[0-9\b]+$/
 
@@ -23,6 +26,12 @@ const NewRaceForm = () => {
     isSuccess: spellSuccess,
     isLoading: spellLoading,
   } = useGetSpellQuery(id)
+
+  const {
+    data: feat,
+    isSuccess: featSuccess,
+    isLoading: featLoading,
+  } = useGetFeatQuery(id)
 
   const [addNewRace, { isSuccess: addSuccess }] = useAddNewRaceMutation()
 
@@ -59,11 +68,11 @@ const NewRaceForm = () => {
 
   let content
 
-  if (builderLoading || spellLoading) {
+  if (builderLoading || spellLoading || featLoading) {
     content = <p>Loading...</p>
   }
 
-  if (builderSuccess || spellSuccess) {
+  if (builderSuccess && spellSuccess && featSuccess) {
     // Submit to databases
     const onSubmit = async () => {
       await addNewRace(state)
@@ -84,10 +93,10 @@ const NewRaceForm = () => {
           }}
           noValidate
         >
-          <div className='row g-2 pb-2'>
+          <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
             <Input
               type='text'
-              className='col-lg-4 col-md-6 col-sm-12'
+              className='col'
               name='name'
               label={true}
               autoComplete='off'
@@ -96,18 +105,15 @@ const NewRaceForm = () => {
               onChange={(e) => setState({ payload: e })}
             />
           </div>
-          <button
-            className='accordion accordion-button form-details justify-content-between align-items-center'
-            type='button'
-            data-bs-toggle='collapse'
-            data-bs-target='#details'
-            aria-expanded='false'
-            aria-controls='details'
+          <AccordionButton
+            className='accordion form-details justify-content-between align-items-center'
+            id='detailsButton'
+            target='details'
           >
             <span className='me-3'>Details</span>
             <hr className='flex-grow-1 me-3' />
-          </button>
-          <div className='accordion-collapse show' id='details'>
+          </AccordionButton>
+          <div className='accordion-collapse collapse show' id='details'>
             <div className='pb-2'>
               <TextEditor
                 onChange={setState}
@@ -130,13 +136,10 @@ const NewRaceForm = () => {
                 <div key={index}>
                   <div className='accordion-item'>
                     <div className='accordion-header'>
-                      <button
-                        className='accordion-button details-section'
-                        type='button'
-                        data-bs-toggle='collapse'
-                        data-bs-target={`#details.section.${index}AccordionBody`}
-                        aria-expanded='false'
-                        aria-controls={`details.section.${index}AccordionBody`}
+                      <AccordionButton
+                        className='details-section'
+                        id={`details.section.${index}AccordionButton`}
+                        target={`details.section.${index}AccordionBody`}
                       >
                         <Input
                           className='col-4 border-0'
@@ -146,11 +149,12 @@ const NewRaceForm = () => {
                           placeholder='Section Title'
                           required
                           onChange={(e) => setState({ payload: e })}
+                          onClick={(e) => e.stopPropagation()}
                         />
-                      </button>
+                      </AccordionButton>
                     </div>
                     <div
-                      className='accordion-collapse show'
+                      className='accordion-collapse collapse show'
                       id={`details.section.${index}AccordionBody`}
                       data-bs-parent='#detailsSectionAccordion'
                     >
@@ -181,20 +185,44 @@ const NewRaceForm = () => {
               ))}
             </div>
           </div>
-          <button
-            className='accordion accordion-button form-details justify-content-between align-items-center'
-            type='button'
-            data-bs-toggle='collapse'
-            data-bs-target='#trait'
-            aria-expanded='true'
-            aria-controls='trait'
+          <AccordionButton
+            className='accordion form-details justify-content-between align-items-center'
+            id='traitButton'
+            target='trait'
           >
             <span className='me-3'>Traits</span>
             <hr className='flex-grow-1 me-3' />
-          </button>
+          </AccordionButton>
           <div className='accordion-collapse show pb-2' id='trait'>
-            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-              <div className='col'></div>
+            <div className='row pb-2'>
+              <div className='col'>
+                <TextEditor
+                  className='shortDesc'
+                  noMenuBar={true}
+                  onChange={setState}
+                  placeholder='Age Description'
+                  name='age'
+                />
+              </div>
+            </div>
+            <div className='row g-2 pb-2'>
+              <div className='col-3'>
+                <Select
+                  name='size'
+                  placeholder='Size'
+                  options={builders.race.size}
+                  onChange={setState}
+                />
+              </div>
+              <div className='col'>
+                <TextEditor
+                  className='shortDesc'
+                  noMenuBar={true}
+                  onChange={setState}
+                  placeholder='Size Description'
+                  name='size.desc'
+                />
+              </div>
             </div>
           </div>
           <div className='pb-3'>
