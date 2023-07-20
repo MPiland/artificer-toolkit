@@ -1,4 +1,4 @@
-import { useState, useFeature, useReducer } from 'react'
+import { useState, useEffect, useReducer } from 'react'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useAddNewSpellMutation } from './spellsApiSlice'
 import TextEditor from '../../components/TextEditor'
@@ -21,7 +21,7 @@ const NewSpellForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
 
-  useFeature(() => {
+  useEffect(() => {
     const forms = document.querySelectorAll('.needs-validation')
     Array.from(forms).forEach(function (form) {
       form.addEventListener(
@@ -38,7 +38,7 @@ const NewSpellForm = () => {
     })
   })
 
-  useFeature(() => {
+  useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
     }
