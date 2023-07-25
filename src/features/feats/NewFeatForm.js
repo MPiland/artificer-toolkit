@@ -40,8 +40,6 @@ const NewFeatForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
 
-  console.log(builders)
-
   useEffect(() => {
     const forms = document.querySelectorAll('.needs-validation')
     Array.from(forms).forEach(function (form) {
@@ -81,19 +79,81 @@ const NewFeatForm = () => {
 
     const sections = [
       {
+        name: 'feat',
+        content(feature, featureIndex, item, index) {
+          return (
+            <>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
+                <div className='col-sm'>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
+                    multiple={feature?.attribute?.some(
+                      (attribute) => attribute.name === 'providesOptions'
+                    )}
+                    placeholder='Feat'
+                    options={feats}
+                    onChange={setState}
+                  />
+                </div>
+              </div>
+            </>
+          )
+        },
+      },
+      {
         name: 'modifier',
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
                 <div className='col-sm'>
@@ -156,8 +216,8 @@ const NewFeatForm = () => {
                         </div>
                       )
                     )}
-                    {item.modType?.name === 'bonus' &&
-                      item.modType?.name === 'penalty' &&
+                    {(item.modType?.name === 'bonus' ||
+                      item.modType?.name === 'penalty') &&
                       item.modType?.name !== 'setValue' && (
                         <div className='col-sm'>
                           <Select
@@ -290,6 +350,20 @@ const NewFeatForm = () => {
                       </div>
                     )
                   )}
+                  {(item.modType?.name === 'bonus' ||
+                    item.modType?.name === 'setValue') && (
+                    <div className='col-sm'>
+                      <Select
+                        name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                        placeholder='Exceeds Max'
+                        options={[
+                          { name: true, value: 'Yes' },
+                          { name: false, value: 'No' },
+                        ]}
+                        onChange={setState}
+                      />
+                    </div>
+                  )}
                 </>
               </div>
             </>
@@ -301,15 +375,30 @@ const NewFeatForm = () => {
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
@@ -390,15 +479,30 @@ const NewFeatForm = () => {
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
@@ -422,15 +526,30 @@ const NewFeatForm = () => {
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
@@ -460,8 +579,6 @@ const NewFeatForm = () => {
       },
     ]
 
-    console.log(state)
-
     const featureContent =
       state?.feature?.length !== 0 &&
       state?.feature?.map((feature, featureIndex) => (
@@ -473,10 +590,10 @@ const NewFeatForm = () => {
                 target={`feature${featureIndex}AccordionBody`}
               >
                 <Input
-                  className='col-4 border-0'
+                  className='col-sm-4 border-0'
                   type='text'
-                  border={false}
                   name={`feature.${featureIndex}.value`}
+                  border={false}
                   autoComplete='off'
                   placeholder='Feature Name'
                   required={true}
@@ -491,7 +608,7 @@ const NewFeatForm = () => {
               data-bs-parent='#featureAccordion'
             >
               <div className='accordion-body'>
-                <div className='row rows-col-lg rows-col-md-3 rows-col-sm-1 justify-content-start g-2 pb-3'>
+                <div className='row justify-content-start g-2 pb-3'>
                   <div className='col-auto'>
                     <button
                       className='btn btn-outline-primary overflow-hidden text-nowrap'
@@ -516,83 +633,173 @@ const NewFeatForm = () => {
                     </div>
                   ))}
                 </div>
+                <div className='pb-3'>
+                  <TextEditor
+                    placeholder='Feature description'
+                    name={`feature.${featureIndex}.desc`}
+                    onChange={setState}
+                  />
+                </div>
                 <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                   <div className='col-sm'>
                     <Select
+                      multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      multiple='true'
                       options={builders.feat.feature.attribute}
                       placeholder='Feature Attributes'
                       onChange={setState}
                     />
                   </div>
-                  {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'isAction'
-                  ) && (
+                  {feature.attribute?.some(
+                    (requirementItem) =>
+                      requirementItem.name === 'hasRequirements'
+                  ) ? (
                     <div className='col-sm'>
                       <Select
-                        name={`feature.${featureIndex}.action`}
-                        options={builders.feat.feature.action}
-                        placeholder='Action Type'
+                        multiple={true}
+                        name={`feature.${featureIndex}.requirement.option`}
+                        placeholder='Requirement'
+                        options={builders.feat.feature.requirements}
                         onChange={setState}
                       />
                     </div>
+                  ) : (
+                    !!feature.requirement &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement`,
+                        },
+                      },
+                    })
                   )}
-                  {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'providesOptions'
-                  ) && (
-                    <Input
-                      type='text'
-                      className='col-sm'
-                      name={`feature.${featureIndex}.maxDupValue`}
-                      label={true}
-                      autoComplete='off'
-                      placeholder='Max Dup. Selections'
-                      require={true}
-                      onChange={setState}
-                    />
+                  {feature.requirement?.option.some(
+                    (item) =>
+                    item.name === 'skillProficiency'
+                  ) ? (
+                    <div className='col-sm'>
+                      <Select
+                        multiple={true}
+                        name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
+                        placeholder='Skill Proficiency'
+                        options={builders.skill}
+                        onChange={setState}
+                      />
+                    </div>
+                  ) : (
+                    !!feature.requirement?.skillProficiency &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement.skillProficiency`,
+                        },
+                      },
+                    })
                   )}
-                  {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'limitUses'
-                  ) && (
+                  {feature.requirement?.option.some(
+                    (item) =>
+                    item.name === 'itemProficiency'
+                  ) ? (
                     <>
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.limitBy`}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
+                          placeholder='Item Category'
+                          options={builders.item.itemCategory}
+                          onChange={setState}
+                        />
+                      </div>
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
+                          placeholder='Item type'
+                          options={[].concat(
+                            ...builders?.item.itemCategory
+                              .filter((itemCategory) =>
+                                feature?.requirement?.itemCategory?.some(
+                                  (category) =>
+                                    itemCategory._id.includes(category.id)
+                                )
+                              )
+                              .map((filteredItem) => filteredItem.itemType)
+                          )}
+                          onChange={setState}
+                        />
+                      </div>
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
+                          placeholder='Item Property'
+                          options={[].concat(
+                            ...builders?.item.itemCategory
+                              .filter((itemCategory) =>
+                                feature?.requirement?.itemCategory?.some(
+                                  (category) =>
+                                    itemCategory._id.includes(category.id)
+                                )
+                              )
+                              .map((filteredItem) => filteredItem.itemProperty)
+                          )}
+                          onChange={setState}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    !!feature.requirement?.itemProficiency &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement.itemProficiency`,
+                        },
+                      },
+                    })
+                  )}
+                  {feature?.attribute?.some(
+                    (item) => item.name === 'limitUse'
+                  ) ? (
+                    <>
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           options={builders.feat.feature.chargeLimit}
                           onChange={setState}
                         />
                       </div>
-                      {feature?.limitBy?.name === 'ability' ? (
+                      {feature.limitUse?.limitBy?.name === 'ability' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`feature.${featureIndex}.limitBy.ability`}
+                            name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
                             options={builders.ability}
                             onChange={setState}
                           />
                         </div>
-                      ) : feature?.limitBy?.name === 'skill' ? (
+                      ) : feature.limitUse?.limitBy?.name === 'skill' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`feature.${featureIndex}.limitBy.skill`}
+                            name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
                             options={builders.skill}
                             onChange={setState}
                           />
                         </div>
                       ) : (
-                        feature?.limitBy?.name === 'setNumber' && (
+                        feature.limitUse?.limitBy?.name === 'setNumber' && (
                           <Input
                             className={`col-sm ${
-                              feature?.limitBy?.setAmount &&
-                              (NUM_REGEX.test(feature?.limitBy.setAmount)
+                              feature.limitUse?.setAmount &&
+                              (NUM_REGEX.test(feature.limitUse?.setAmount)
                                 ? 'is-valid'
                                 : 'is-invalid')
                             }`}
                             type='text'
-                            name={`feature.${featureIndex}.limitBy.setAmount`}
+                            name={`feature.${featureIndex}.limitUse.setAmount`}
+                            label={true}
                             invalidText='Must contain only numbers'
                             placeholder='Use Amount'
                             required={true}
@@ -602,32 +809,66 @@ const NewFeatForm = () => {
                       )}
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.resetsOn`}
+                          name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           options={builders.feat.feature.chargeReset}
                           onChange={setState}
                         />
                       </div>
                     </>
+                  ) : (
+                    !!feature.limitUse &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.limitUse`,
+                        },
+                      },
+                    })
                   )}
                   {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'hasRange'
-                  ) && (
+                    (item) => item.name === 'isAction'
+                  ) ? (
+                    <>
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.action`}
+                          placeholder='Action Type'
+                          options={builders.feat.feature.action}
+                          onChange={setState}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    !!feature.action &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.action`,
+                        },
+                      },
+                    })
+                  )}
+                  {feature?.attribute?.some(
+                    (item) => item.name === 'hasRange'
+                  ) ? (
                     <>
                       <Input
                         type='text'
                         className='col-sm'
-                        name={`feature.${featureIndex}.inRange`}
-                        label={true}
+                        name={`feature.${featureIndex}.range.minRange`}
                         autoComplete='off'
+                        label={true}
                         placeholder='Min Range'
-                        require={true}
+                        required={true}
                         onChange={setState}
                       />
                       <Input
-                        type='text'
                         className='col-sm'
-                        name={`feature.${featureIndex}.maxRange`}
+                        type='text'
+                        name={`feature.${featureIndex}.range.maxRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Max Range'
@@ -635,10 +876,20 @@ const NewFeatForm = () => {
                         onChange={setState}
                       />
                     </>
+                  ) : (
+                    !!feature.saveAbility &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.range`,
+                        },
+                      },
+                    })
                   )}
                   {feature?.attribute?.some(
                     (attributeItem) => attributeItem.name === 'requireSave'
-                  ) && (
+                  ) ? (
                     <div className='col-sm'>
                       <Select
                         name={`feature.${featureIndex}.saveAbility`}
@@ -647,35 +898,203 @@ const NewFeatForm = () => {
                         onChange={setState}
                       />
                     </div>
+                  ) : (
+                    !!feature.saveAbility &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.saveAbility`,
+                        },
+                      },
+                    })
                   )}
                 </div>
-                {feature?.limitBy?.name === 'level' &&
-                  feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'limitUses'
+                {feature.requirement?.option.some(
+                  (item) => item.name === 'equipped'
+                ) ? (
+                  <>
+                    <AccordionButton
+                      className='accordion feature-attribute-divider justify-content-between align-items-center'
+                      id='featureEquippedButton'
+                      target='featureEquipped'
+                    >
+                      <span className='me-3'>Equipped</span>
+                      <hr className='flex-grow-1 me-3' />
+                    </AccordionButton>
+                    <div
+                      className='accordion-collapse collapse show'
+                      id='featureEquipped'
+                    >
+                      <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
+                            placeholder='Item Category'
+                            options={builders.item.itemCategory}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.equipped.itemType`}
+                            placeholder='Item type'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.equipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map((filteredItem) => filteredItem.itemType)
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
+                            placeholder='Item Property'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.equipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map(
+                                  (filteredItem) => filteredItem.itemProperty
+                                )
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  !!feature.requirement?.equipped &&
+                  setState({
+                    action: 'removed',
+                    payload: {
+                      target: {
+                        name: `feature.${featureIndex}.requirement.equipped`,
+                      },
+                    },
+                  })
+                )}
+                {feature?.requirement?.option.some(
+                  (item) => item.name === 'notEquipped'
+                ) ? (
+                  <>
+                    <AccordionButton
+                      className='accordion feature-attribute-divider justify-content-between align-items-center'
+                      id='featureNotEquippedButton'
+                      target='featureNotEquipped'
+                    >
+                      <span className='me-3'>Not Equipped</span>
+                      <hr className='flex-grow-1 me-3' />
+                    </AccordionButton>
+                    <div
+                      className='accordion-collapse collapse show'
+                      id='featureNotEquipped'
+                    >
+                      <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
+                            placeholder='Item Category'
+                            options={builders.item.itemCategory}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
+                            placeholder='Item type'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map((filteredItem) => filteredItem.itemType)
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
+                            placeholder='Item Property'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map(
+                                  (filteredItem) => filteredItem.itemProperty
+                                )
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  !!feature.requirement?.notEquipped &&
+                  setState({
+                    action: 'removed',
+                    payload: {
+                      target: {
+                        name: `feature.${featureIndex}.requirement.notEquipped`,
+                      },
+                    },
+                  })
+                )}
+                {feature.limitUse?.limitBy?.name === 'level' &&
+                  feature.attribute?.some(
+                    (item) => item.name === 'limitUse'
                   ) &&
-                  (feature.limitBy.level ??
+                  (feature.limitUse.level ??
                     setState({
                       type: 'added',
                       payload: {
                         target: {
-                          name: `feature.${featureIndex}.limitBy.level`,
+                          name: `feature.${featureIndex}.limitUse.level`,
                         },
                       },
                     })) && (
                     <div>
                       <Table
-                        className='table-sm table-responsive'
-                        headers={[{ name: 'Level' }, { name: 'Uses' }]}
-                        name={`feature.${featureIndex}.limitBy.level`}
-                        state={feature?.limitBy?.level}
+                        headers={[
+                          { name: 'Level', size: '5' },
+                          { name: 'Uses' },
+                        ]}
+                        name={`feature.${featureIndex}.limitUse.level`}
+                        state={feature?.limitUse?.level}
                         onChange={setState}
                       />
                     </div>
                   )}
                 {feature?.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'doesDamage'
-                ) &&
-                  (!feature?.damage?.damageByLevel ? (
+                  (item) => item.name === 'doesDamage'
+                ) ? (
+                  !feature?.damage?.damageByLevel ? (
                     setState({
                       type: 'added',
                       payload: {
@@ -685,10 +1104,10 @@ const NewFeatForm = () => {
                       },
                     })
                   ) : (
-                    <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-end pb-2'>
+                    <div className='row g-2 align-items-end pb-2'>
                       <div className='col-sm'>
                         <Select
-                          multiple='true'
+                          multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
                           options={builders.feat.feature.damageAttribute}
@@ -697,6 +1116,7 @@ const NewFeatForm = () => {
                       </div>
                       <div className='col-sm'>
                         <Select
+                          className='pb-1'
                           name={`feature.${featureIndex}.damage`}
                           placeholder='Damage Type'
                           options={builders.damage}
@@ -705,11 +1125,10 @@ const NewFeatForm = () => {
                       </div>
                       <div className='col-lg-6 col-md-12'>
                         <Table
-                          className='table-sm table-responsive'
                           headers={[
                             { name: 'Level' },
-                            { name: 'Dice Count' },
-                            { name: 'Dice Value' },
+                            { name: 'Dice Count', size: 3 },
+                            { name: 'Dice Value', size: 3 },
                           ]}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           state={feature?.damage.damageByLevel}
@@ -717,7 +1136,18 @@ const NewFeatForm = () => {
                         />
                       </div>
                     </div>
-                  ))}
+                  )
+                ) : (
+                  !!feature.damage &&
+                  setState({
+                    action: 'removed',
+                    payload: {
+                      target: {
+                        name: `feature.${featureIndex}.damage`,
+                      },
+                    },
+                  })
+                )}
                 <div className='accordion' id='sectionAccordion'>
                   {sections.map(
                     (section, sectionIndex) =>
@@ -726,7 +1156,7 @@ const NewFeatForm = () => {
                         <div key={itemIndex} className='accordion-item'>
                           <div className='accordion-header'>
                             <AccordionButton
-                              id={`${section.name}${itemIndex}AccordionBody`}
+                              id={`${section.name}${itemIndex}AccordionButton`}
                               target={`${section.name}${itemIndex}AccordionBody`}
                             >
                               <h6>{`${startCase(section.name)} ${
@@ -801,27 +1231,6 @@ const NewFeatForm = () => {
               />
             </div>
           </div>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='attributeButton'
-            target='attribute'
-          >
-            <span className='me-3'>Attributes</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div className='accordion-collapse show pb-2' id='attribute'>
-            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-              <div className='col-sm'>
-                <Select
-                  name='attribute'
-                  multiple={true}
-                  placeholder='Attributes'
-                  options={builders.feat.attribute}
-                  onChange={setState}
-                />
-              </div>
-            </div>
-          </div>
           <div className='pb-3'>
             <button
               className='btn btn-secondary me-2'
@@ -832,7 +1241,7 @@ const NewFeatForm = () => {
               Add Feature
             </button>
             <button className='btn btn-primary' type='submit'>
-              Add Item
+              Add Feat
             </button>
           </div>
           {featureContent}

@@ -6,7 +6,7 @@ const Public = () => {
   const content = (
     <>
       <Header />
-      <div className='main-container container-fluid'>
+      <div className='main-container flex-grow-1' id='main-container'>
         <Outlet />
       </div>
       <Footer />

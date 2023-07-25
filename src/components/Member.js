@@ -6,7 +6,7 @@ const Member = () => {
   const content = (
     <>
       <DashHeader />
-      <div className='main-container container-fluid' id='main-container'>
+      <div className='main-container flex-grow-1' id='main-container'>
         <Outlet />
       </div>
       <Footer />

@@ -10,7 +10,7 @@ const Select = ({ name, multiple, placeholder, options, action, onChange }) => {
   let newOptions
 
   if (options?.length) {
-    newOptions = options?.map((item) => ({ ...item }))
+    newOptions = options?.map(({ name, value, _id }) => ({ name, value, _id }))
   } else {
     newOptions = []
   }

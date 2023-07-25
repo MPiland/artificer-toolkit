@@ -3,6 +3,7 @@ import { useAddNewRaceMutation } from './racesApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import { useGetFeatQuery } from '../feats/featsApiSlice'
+import { useGetRaceQuery } from './racesApiSlice'
 import { startCase } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import AccordionButton from '../../components/AccordionButton'
@@ -30,10 +31,16 @@ const NewRaceForm = () => {
   } = useGetSpellQuery(id)
 
   const {
-    data: feat,
+    data: feats,
     isSuccess: featSuccess,
     isLoading: featLoading,
   } = useGetFeatQuery(id)
+
+  const {
+    data: races,
+    isSuccess: raceSuccess,
+    isLoading: raceLoading,
+  } = useGetRaceQuery(id)
 
   const [addNewRace, { isSuccess: addSuccess }] = useAddNewRaceMutation()
 
@@ -67,31 +74,95 @@ const NewRaceForm = () => {
 
   let content
 
-  if (builderLoading || spellLoading || featLoading) {
+  if (builderLoading || spellLoading || featLoading || raceLoading) {
     content = <p>Loading...</p>
   }
 
-  if (builderSuccess && spellSuccess && featSuccess) {
+  if (builderSuccess && spellSuccess && featSuccess && raceSuccess) {
     // Submit to databases
     const onSubmit = async () => {
       await addNewRace(state)
     }
 
+    console.log(state)
+
     const sections = [
+      {
+        name: 'feat',
+        content(feature, featureIndex, item, index) {
+          return (
+            <>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
+                <div className='col-sm'>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
+                    multiple={feature?.attribute?.some(
+                      (attribute) => attribute.name === 'providesOptions'
+                    )}
+                    placeholder='Feat'
+                    options={feats}
+                    onChange={setState}
+                  />
+                </div>
+              </div>
+            </>
+          )
+        },
+      },
       {
         name: 'modifier',
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
                 <div className='col-sm'>
@@ -154,8 +225,8 @@ const NewRaceForm = () => {
                         </div>
                       )
                     )}
-                    {item.modType?.name === 'bonus' &&
-                      item.modType?.name === 'penalty' &&
+                    {(item.modType?.name === 'bonus' ||
+                      item.modType?.name === 'penalty') &&
                       item.modType?.name !== 'setValue' && (
                         <div className='col-sm'>
                           <Select
@@ -229,40 +300,19 @@ const NewRaceForm = () => {
                   {item.method?.name === 'setValue' ||
                   item.modType?.name === 'setValue' ? (
                     <>
-                      <div className='position-relative col-sm'>
-                        <div className='form-floating'>
-                          <input
-                            className={`form-control ${
-                              item.method?.setValue &&
-                              (NUM_REGEX.test(item.method.setValue)
-                                ? 'is-valid'
-                                : 'is-invalid')
-                            }`}
-                            type='text'
-                            name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                            placeholder='Set Value'
-                            autoComplete='off'
-                            onChange={(e) => setState({ payload: e })}
-                          />
-                          <label
-                            htmlFor={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                          >
-                            Set Value
-                          </label>
-                          <div
-                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValueTooltip`}
-                            className='invalid-tooltip'
-                          >
-                            Must contain only numbers
-                          </div>
-                        </div>
-                      </div>
                       <div className='col-sm'>
-                        <Select
-                          name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
-                          placeholder='Multiplier'
-                          options={builders.modifier.multiplier}
+                        <Input
+                          className={`${
+                            item.method?.setValue &&
+                            (NUM_REGEX.test(item.method.setValue)
+                              ? 'is-valid'
+                              : 'is-invalid')
+                          }`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
+                          label={true}
+                          placeholder='Set Value'
+                          autoComplete='off'
+                          invalidText='Must contain only numbers'
                           onChange={setState}
                         />
                       </div>
@@ -288,6 +338,32 @@ const NewRaceForm = () => {
                       </div>
                     )
                   )}
+                  {(item.method?.name === 'setValue' ||
+                    item.modType?.name !== 'setValue') && (
+                    <div className='col-sm'>
+                      <Select
+                        name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
+                        placeholder='Multiplier'
+                        options={builders.modifier.multiplier}
+                        onChange={setState}
+                      />
+                    </div>
+                  )}
+                  {(item.modType?.name === 'bonus' ||
+                    item.modType?.name === 'setValue') &&
+                    item.module?.name === 'ability' && (
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                          placeholder='Exceeds Max'
+                          options={[
+                            { name: true, value: 'Yes' },
+                            { name: false, value: 'No' },
+                          ]}
+                          onChange={setState}
+                        />
+                      </div>
+                    )}
                 </>
               </div>
             </>
@@ -299,15 +375,30 @@ const NewRaceForm = () => {
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
@@ -388,15 +479,30 @@ const NewRaceForm = () => {
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
@@ -420,15 +526,30 @@ const NewRaceForm = () => {
         content(feature, featureIndex, item, index) {
           return (
             <>
-              <div className='pb-3'>
-                <button
-                  className='btn btn-outline-primary col-auto'
-                  type='button'
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
-                  onClick={(e) => setState({ type: 'removed', payload: e })}
-                >
-                  {`Remove ${startCase(this.name)}`}
-                </button>
+              <div className='pb-3 row justify-content-between'>
+                <div className='col-3'>
+                  <button
+                    className='btn btn-outline-primary col-auto'
+                    type='button'
+                    name={`feature.${featureIndex}.${this.name}.${index}`}
+                    onClick={(e) => setState({ type: 'removed', payload: e })}
+                  >
+                    {`Remove ${startCase(this.name)}`}
+                  </button>
+                </div>
+                {feature.attribute?.some(
+                  (item) => item.name === 'optionGroups'
+                ) && (
+                  <div className='col-2'>
+                    <Input
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder={'Opt. Grp. #'}
+                      autoComplete='off'
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
@@ -469,10 +590,10 @@ const NewRaceForm = () => {
                 target={`feature${featureIndex}AccordionBody`}
               >
                 <Input
-                  className='col-4 border-0'
+                  className='col-sm-4 border-0'
                   type='text'
-                  border={false}
                   name={`feature.${featureIndex}.value`}
+                  border={false}
                   autoComplete='off'
                   placeholder='Feature Name'
                   required={true}
@@ -487,7 +608,7 @@ const NewRaceForm = () => {
               data-bs-parent='#featureAccordion'
             >
               <div className='accordion-body'>
-                <div className='row rows-col-lg rows-col-md-3 rows-col-sm-1 justify-content-start g-2 pb-3'>
+                <div className='row justify-content-start g-2 pb-3'>
                   <div className='col-auto'>
                     <button
                       className='btn btn-outline-primary overflow-hidden text-nowrap'
@@ -514,7 +635,6 @@ const NewRaceForm = () => {
                 </div>
                 <div className='pb-3'>
                   <TextEditor
-                    className='mb-3'
                     placeholder='Feature description'
                     name={`feature.${featureIndex}.desc`}
                     onChange={setState}
@@ -523,80 +643,173 @@ const NewRaceForm = () => {
                 <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                   <div className='col-sm'>
                     <Select
+                      multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      multiple='true'
-                      options={builders.feat.feature.attribute}
+                      options={builders.race.feature.attribute}
                       placeholder='Feature Attributes'
                       onChange={setState}
                     />
                   </div>
-                  {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'isAction'
+                  {feature.attribute?.some(
+                    (item) => item.name === 'ancestrySpecific'
                   ) && (
                     <div className='col-sm'>
                       <Select
-                        name={`feature.${featureIndex}.action`}
-                        options={builders.feat.feature.action}
-                        placeholder='Action Type'
+                        multiple={true}
+                        name={`feature.${featureIndex}.ancestry`}
+                        options={state.ancestry}
+                        placeholder='Ancestry'
                         onChange={setState}
                       />
                     </div>
                   )}
-                  {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'providesOptions'
-                  ) && (
-                    <Input
-                      type='text'
-                      className='col-sm'
-                      name={`feature.${featureIndex}.maxDupValue`}
-                      label={true}
-                      autoComplete='off'
-                      placeholder='Max Dup. Selections'
-                      require={true}
-                      onChange={setState}
-                    />
+                  {feature.attribute?.some(
+                    (item) => item.name === 'hasRequirements'
+                  ) ? (
+                    <div className='col-sm'>
+                      <Select
+                        multiple={true}
+                        name={`feature.${featureIndex}.requirement.option`}
+                        placeholder='Requirement'
+                        options={builders.race.feature.requirements}
+                        onChange={setState}
+                      />
+                    </div>
+                  ) : (
+                    !!feature.requirement &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement`,
+                        },
+                      },
+                    })
                   )}
-                  {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'limitUses'
-                  ) && (
+                  {feature.requirement?.option.some(
+                    (item) => item.name === 'skillProficiency'
+                  ) ? (
+                    <div className='col-sm'>
+                      <Select
+                        multiple={true}
+                        name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
+                        placeholder='Skill Proficiency'
+                        options={builders.skill}
+                        onChange={setState}
+                      />
+                    </div>
+                  ) : (
+                    !!feature.requirement?.skillProficiency &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement.skillProficiency`,
+                        },
+                      },
+                    })
+                  )}
+                  {feature.requirement?.option.some(
+                    (item) => item.name === 'itemProficiency'
+                  ) ? (
                     <>
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.limitBy`}
-                          placeholder='Limit By Option'
-                          options={builders.feat.feature.chargeLimit}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
+                          placeholder='Item Category'
+                          options={builders.item.itemCategory}
                           onChange={setState}
                         />
                       </div>
-                      {feature?.limitBy?.name === 'ability' ? (
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
+                          placeholder='Item type'
+                          options={[].concat(
+                            ...builders?.item.itemCategory
+                              .filter((itemCategory) =>
+                                feature?.requirement?.itemCategory?.some(
+                                  (category) =>
+                                    itemCategory._id.includes(category.id)
+                                )
+                              )
+                              .map((filteredItem) => filteredItem.itemType)
+                          )}
+                          onChange={setState}
+                        />
+                      </div>
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
+                          placeholder='Item Property'
+                          options={[].concat(
+                            ...builders?.item.itemCategory
+                              .filter((itemCategory) =>
+                                feature?.requirement?.itemCategory?.some(
+                                  (category) =>
+                                    itemCategory._id.includes(category.id)
+                                )
+                              )
+                              .map((filteredItem) => filteredItem.itemProperty)
+                          )}
+                          onChange={setState}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    !!feature.requirement?.itemProficiency &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement.itemProficiency`,
+                        },
+                      },
+                    })
+                  )}
+                  {feature?.attribute?.some(
+                    (item) => item.name === 'limitUse'
+                  ) ? (
+                    <>
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.limitUse.limitBy`}
+                          placeholder='Limit By Option'
+                          options={builders.race.feature.chargeLimit}
+                          onChange={setState}
+                        />
+                      </div>
+                      {feature.limitUse?.limitBy?.name === 'ability' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`feature.${featureIndex}.limitBy.ability`}
+                            name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
                             options={builders.ability}
                             onChange={setState}
                           />
                         </div>
-                      ) : feature?.limitBy?.name === 'skill' ? (
+                      ) : feature.limitUse?.limitBy?.name === 'skill' ? (
                         <div className='col-sm'>
                           <Select
-                            name={`feature.${featureIndex}.limitBy.skill`}
+                            name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
                             options={builders.skill}
                             onChange={setState}
                           />
                         </div>
                       ) : (
-                        feature?.limitBy?.name === 'setNumber' && (
+                        feature.limitUse?.limitBy?.name === 'setNumber' && (
                           <Input
                             className={`col-sm ${
-                              feature?.limitBy?.setAmount &&
-                              (NUM_REGEX.test(feature?.limitBy.setAmount)
+                              feature.limitUse?.setAmount &&
+                              (NUM_REGEX.test(feature.limitUse?.setAmount)
                                 ? 'is-valid'
                                 : 'is-invalid')
                             }`}
                             type='text'
-                            name={`feature.${featureIndex}.limitBy.setAmount`}
+                            name={`feature.${featureIndex}.limitUse.setAmount`}
+                            label={true}
                             invalidText='Must contain only numbers'
                             placeholder='Use Amount'
                             required={true}
@@ -606,32 +819,66 @@ const NewRaceForm = () => {
                       )}
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.resetsOn`}
+                          name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
-                          options={builders.feat.feature.chargeReset}
+                          options={builders.race.feature.chargeReset}
                           onChange={setState}
                         />
                       </div>
                     </>
+                  ) : (
+                    !!feature.limitUse &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.limitUse`,
+                        },
+                      },
+                    })
                   )}
                   {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'hasRange'
-                  ) && (
+                    (item) => item.name === 'isAction'
+                  ) ? (
+                    <>
+                      <div className='col-sm'>
+                        <Select
+                          name={`feature.${featureIndex}.action`}
+                          placeholder='Action Type'
+                          options={builders.race.feature.action}
+                          onChange={setState}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    !!feature.action &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.action`,
+                        },
+                      },
+                    })
+                  )}
+                  {feature?.attribute?.some(
+                    (item) => item.name === 'hasRange'
+                  ) ? (
                     <>
                       <Input
                         type='text'
                         className='col-sm'
-                        name={`feature.${featureIndex}.inRange`}
-                        label={true}
+                        name={`feature.${featureIndex}.range.minRange`}
                         autoComplete='off'
+                        label={true}
                         placeholder='Min Range'
-                        require={true}
+                        required={true}
                         onChange={setState}
                       />
                       <Input
-                        type='text'
                         className='col-sm'
-                        name={`feature.${featureIndex}.maxRange`}
+                        type='text'
+                        name={`feature.${featureIndex}.range.maxRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Max Range'
@@ -639,10 +886,20 @@ const NewRaceForm = () => {
                         onChange={setState}
                       />
                     </>
+                  ) : (
+                    !!feature.saveAbility &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.range`,
+                        },
+                      },
+                    })
                   )}
                   {feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'requireSave'
-                  ) && (
+                    (item) => item.name === 'requireSave'
+                  ) ? (
                     <div className='col-sm'>
                       <Select
                         name={`feature.${featureIndex}.saveAbility`}
@@ -651,35 +908,203 @@ const NewRaceForm = () => {
                         onChange={setState}
                       />
                     </div>
+                  ) : (
+                    !!feature.saveAbility &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.saveAbility`,
+                        },
+                      },
+                    })
                   )}
                 </div>
-                {feature?.limitBy?.name === 'level' &&
+                {feature.requirement?.option.some(
+                  (item) => item.name === 'equipped'
+                ) ? (
+                  <>
+                    <AccordionButton
+                      className='accordion feature-attribute-divider justify-content-between align-items-center'
+                      id='featureEquippedButton'
+                      target='featureEquipped'
+                    >
+                      <span className='me-3'>Equipped</span>
+                      <hr className='flex-grow-1 me-3' />
+                    </AccordionButton>
+                    <div
+                      className='accordion-collapse collapse show'
+                      id='featureEquipped'
+                    >
+                      <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
+                            placeholder='Item Category'
+                            options={builders.item.itemCategory}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.equipped.itemType`}
+                            placeholder='Item type'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.equipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map((filteredItem) => filteredItem.itemType)
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
+                            placeholder='Item Property'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.equipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map(
+                                  (filteredItem) => filteredItem.itemProperty
+                                )
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  !!feature.requirement?.equipped &&
+                  setState({
+                    action: 'removed',
+                    payload: {
+                      target: {
+                        name: `feature.${featureIndex}.requirement.equipped`,
+                      },
+                    },
+                  })
+                )}
+                {feature?.requirement?.option.some(
+                  (item) => item.name === 'notEquipped'
+                ) ? (
+                  <>
+                    <AccordionButton
+                      className='accordion feature-attribute-divider justify-content-between align-items-center'
+                      id='featureNotEquippedButton'
+                      target='featureNotEquipped'
+                    >
+                      <span className='me-3'>Not Equipped</span>
+                      <hr className='flex-grow-1 me-3' />
+                    </AccordionButton>
+                    <div
+                      className='accordion-collapse collapse show'
+                      id='featureNotEquipped'
+                    >
+                      <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
+                            placeholder='Item Category'
+                            options={builders.item.itemCategory}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
+                            placeholder='Item type'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map((filteredItem) => filteredItem.itemType)
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                        <div className='col-sm'>
+                          <Select
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
+                            placeholder='Item Property'
+                            options={[].concat(
+                              ...builders?.item.itemCategory
+                                .filter((itemCategory) =>
+                                  feature?.requirement?.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      itemCategory._id.includes(category.id)
+                                  )
+                                )
+                                .map(
+                                  (filteredItem) => filteredItem.itemProperty
+                                )
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  !!feature.requirement?.notEquipped &&
+                  setState({
+                    action: 'removed',
+                    payload: {
+                      target: {
+                        name: `feature.${featureIndex}.requirement.notEquipped`,
+                      },
+                    },
+                  })
+                )}
+                {feature.limitUse?.limitBy?.name === 'level' &&
                   feature?.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'limitUses'
+                    (item) => item.name === 'limitUse'
                   ) &&
-                  (feature.limitBy.level ??
+                  (feature.limitUse.level ??
                     setState({
                       type: 'added',
                       payload: {
                         target: {
-                          name: `feature.${featureIndex}.limitBy.level`,
+                          name: `feature.${featureIndex}.limitUse.level`,
                         },
                       },
                     })) && (
                     <div>
                       <Table
-                        className='table-sm table-responsive'
-                        headers={[{ name: 'Level' }, { name: 'Uses' }]}
-                        name={`feature.${featureIndex}.limitBy.level`}
-                        state={feature?.limitBy?.level}
+                        headers={[
+                          { name: 'Level', size: '5' },
+                          { name: 'Uses' },
+                        ]}
+                        name={`feature.${featureIndex}.limitUse.level`}
+                        state={feature?.limitUse?.level}
                         onChange={setState}
                       />
                     </div>
                   )}
                 {feature?.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'doesDamage'
-                ) &&
-                  (!feature?.damage?.damageByLevel ? (
+                  (item) => item.name === 'doesDamage'
+                ) ? (
+                  !feature?.damage?.damageByLevel ? (
                     setState({
                       type: 'added',
                       payload: {
@@ -689,18 +1114,19 @@ const NewRaceForm = () => {
                       },
                     })
                   ) : (
-                    <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-end pb-2'>
+                    <div className='row g-2 align-items-end pb-2'>
                       <div className='col-sm'>
                         <Select
-                          multiple='true'
+                          multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
-                          options={builders.feat.feature.damageAttribute}
+                          options={builders.race.feature.damageAttribute}
                           onChange={setState}
                         />
                       </div>
                       <div className='col-sm'>
                         <Select
+                          className='pb-1'
                           name={`feature.${featureIndex}.damage`}
                           placeholder='Damage Type'
                           options={builders.damage}
@@ -709,11 +1135,10 @@ const NewRaceForm = () => {
                       </div>
                       <div className='col-lg-6 col-md-12'>
                         <Table
-                          className='table-sm table-responsive'
                           headers={[
                             { name: 'Level' },
-                            { name: 'Dice Count' },
-                            { name: 'Dice Value' },
+                            { name: 'Dice Count', size: 3 },
+                            { name: 'Dice Value', size: 3 },
                           ]}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           state={feature?.damage.damageByLevel}
@@ -721,7 +1146,18 @@ const NewRaceForm = () => {
                         />
                       </div>
                     </div>
-                  ))}
+                  )
+                ) : (
+                  !!feature.damage &&
+                  setState({
+                    action: 'removed',
+                    payload: {
+                      target: {
+                        name: `feature.${featureIndex}.damage`,
+                      },
+                    },
+                  })
+                )}
                 <div className='accordion' id='sectionAccordion'>
                   {sections.map(
                     (section, sectionIndex) =>
@@ -730,7 +1166,7 @@ const NewRaceForm = () => {
                         <div key={itemIndex} className='accordion-item'>
                           <div className='accordion-header'>
                             <AccordionButton
-                              id={`${section.name}${itemIndex}AccordionBody`}
+                              id={`${section.name}${itemIndex}AccordionButton`}
                               target={`${section.name}${itemIndex}AccordionBody`}
                             >
                               <h6>{`${startCase(section.name)} ${
@@ -776,17 +1212,36 @@ const NewRaceForm = () => {
           }}
           noValidate
         >
-          <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
+          <div className='row row-cols-lg row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
             <Input
               type='text'
-              className='col-sm'
+              className='col-lg-4 col-sm'
               name='name'
               label={true}
               autoComplete='off'
               placeholder='Race Name'
               required
-              onChange={(e) => setState({ payload: e })}
+              onChange={setState}
             />
+            <div className='col-lg-4 col-sm'>
+              <Select
+                name='category'
+                placeholder='Race Category'
+                options={builders.race.category}
+                onChange={setState}
+              />
+            </div>
+            {state.category?.name === 'variant' && (
+              <div className='col-lg-4 col-sm'>
+                <Select
+                  multiple={true}
+                  name='lineage'
+                  placeholder='Race Lineage'
+                  options={races}
+                  onChange={setState}
+                />
+              </div>
+            )}
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
@@ -878,7 +1333,16 @@ const NewRaceForm = () => {
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
           <div className='accordion-collapse collapse show pb-2' id='trait'>
-            <div className='row pb-2'>
+            <div className='row g-2 pb-2'>
+              <div className='col-lg-3 col-md-4 col-sm-12'>
+                <Select
+                  multiple={true}
+                  name='attribute'
+                  placeholder='Attributes'
+                  options={builders.race.attribute}
+                  onChange={setState}
+                />
+              </div>
               <div className='col-sm'>
                 <TextEditor
                   className='shortDesc'
@@ -890,7 +1354,7 @@ const NewRaceForm = () => {
               </div>
             </div>
             <div className='row g-2 pb-2'>
-              <div className='col-lg-3 col-md-2 col-sm-12'>
+              <div className='col-lg-3 col-md-4 col-sm-12'>
                 <Select
                   name='size'
                   placeholder='Size'
@@ -908,26 +1372,138 @@ const NewRaceForm = () => {
                 />
               </div>
             </div>
-            <div className='row g-2 pb-2'>
-              <Input
-                type='text'
-                className='col-lg-3 col-md-2 col-sm-12'
-                name='speed.value'
-                placeholder='Speed Value'
-                label={true}
-                onChange={setState}
-              />
-              <div className='col-sm'>
-                <TextEditor
-                  className='shortDesc'
-                  noMenuBar={true}
+            {state.attribute?.some((item) => item.name === 'walking') && (
+              <div className='row g-2 pb-2'>
+                <Input
+                  type='text'
+                  className='col-lg-3 col-md-4 col-sm-12'
+                  name='speed.walking.value'
+                  placeholder='Walking Speed'
+                  label={true}
                   onChange={setState}
-                  placeholder='Speed Description'
-                  name='speed.desc'
                 />
+                <div className='col-sm'>
+                  <TextEditor
+                    className='shortDesc'
+                    noMenuBar={true}
+                    onChange={setState}
+                    placeholder='Speed Description'
+                    name='speed.walking.desc'
+                  />
+                </div>
               </div>
-            </div>
+            )}
+            {state.attribute?.some((item) => item.name === 'climbing') && (
+              <div className='row g-2 pb-2'>
+                <Input
+                  type='text'
+                  className='col-lg-3 col-md-4 col-sm-12'
+                  name='speed.climbing.value'
+                  placeholder='Climbing Speed'
+                  label={true}
+                  onChange={setState}
+                />
+                <div className='col-sm'>
+                  <TextEditor
+                    className='shortDesc'
+                    noMenuBar={true}
+                    onChange={setState}
+                    placeholder='Speed Description'
+                    name='speed.climbing.desc'
+                  />
+                </div>
+              </div>
+            )}
+            {state.attribute?.some((item) => item.name === 'swimming') && (
+              <div className='row g-2 pb-2'>
+                <Input
+                  type='text'
+                  className='col-lg-3 col-md-4 col-sm-12'
+                  name='speed.swimming.value'
+                  placeholder='Swimming Speed'
+                  label={true}
+                  onChange={setState}
+                />
+                <div className='col-sm'>
+                  <TextEditor
+                    className='shortDesc'
+                    noMenuBar={true}
+                    onChange={setState}
+                    placeholder='Speed Description'
+                    name='speed.swimming.desc'
+                  />
+                </div>
+              </div>
+            )}
+            {state.attribute?.some((item) => item.name === 'flying') && (
+              <div className='row g-2 pb-2'>
+                <Input
+                  type='text'
+                  className='col-lg-3 col-md-4 col-sm-12'
+                  name='speed.flying.value'
+                  placeholder='Flying Speed'
+                  label={true}
+                  onChange={setState}
+                />
+                <div className='col-sm'>
+                  <TextEditor
+                    className='shortDesc'
+                    noMenuBar={true}
+                    onChange={setState}
+                    placeholder='Speed Description'
+                    name='speed.flying.desc'
+                  />
+                </div>
+              </div>
+            )}
           </div>
+          {state.attribute?.some((item) => item.name === 'ancestryOptions') ? (
+            !state.ancestry ? (
+              setState({
+                type: 'added',
+                payload: {
+                  target: {
+                    name: 'ancestry',
+                  },
+                },
+              })
+            ) : (
+              <>
+                <AccordionButton
+                  className='accordion form-details justify-content-between align-items-center'
+                  id='ancestryButton'
+                  target='ancestry'
+                >
+                  <span className='me-3'>Ancestry</span>
+                  <hr className='flex-grow-1 me-3' />
+                </AccordionButton>
+                <div
+                  className='accordion-collapse collapse show pb-2'
+                  id='ancestry'
+                >
+                  <Table
+                    headers={[
+                      { name: 'Value', size: 3 },
+                      { name: 'Description', type: 'text' },
+                    ]}
+                    name='ancestry'
+                    state={state.ancestry}
+                    onChange={setState}
+                  />
+                </div>
+              </>
+            )
+          ) : (
+            !!state.ancestry &&
+            setState({
+              action: 'removed',
+              payload: {
+                target: {
+                  name: `ancestry`,
+                },
+              },
+            })
+          )}
           <div className='pb-3'>
             <button
               className='btn btn-secondary me-2'

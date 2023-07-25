@@ -325,7 +325,6 @@ const NewSpellForm = () => {
                   </div>
                   <div className='col-lg-6'>
                     <Table
-                      className='table-sm table-responsive'
                       headers={[
                         { name: 'Level' },
                         { name: 'Dice Count' },

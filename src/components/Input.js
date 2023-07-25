@@ -27,7 +27,7 @@ const Input = ({
     <div
       className={`position-${position ?? 'relative'} ${
         !!label ? 'form-floating' : ''
-      } ${className}`}
+      } ${className ?? ''}`}
     >
       <input
         ref={inputRef}

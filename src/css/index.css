@@ -5,20 +5,19 @@
 }
 
 #root {
-  position: relative;
+  overflow: hidden;
+}
+
+#layout-container {
+  min-width: 100vw;
   min-height: 100vh;
-  padding-bottom: 3rem;
+  overflow: hidden;
 }
 
-button.bi {
-  border: none;
-  background: none;
-}
-
-.main-container {
-  position: relative;
-  max-width: 65vw;
-  margin: 0 auto;
+#main-container {
+  padding: 1rem calc(((100vw - 70vw) / 2) + 3rem) 0;
+  overflow-y: auto;
+  width: 100%;
 }
 
 .main-footer {
@@ -27,6 +26,22 @@ button.bi {
   width: 100%;
   background-color: white;
   line-height: 3rem;
+}
+
+a.btn {
+  align-items: center;
+  display: flex;
+}
+
+.btn {
+  height: 58px;
+}
+
+button.bi {
+  border: none;
+  background: none;
+  height: 100%;
+  width: 100%;
 }
 
 /* Accordion */
@@ -45,7 +60,8 @@ h6 {
   background-color: #eaeaea;
 }
 
-.accordion-button.form-details {
+.accordion-button.form-details,
+.accordion-button.feature-attribute-divider {
   background-color: transparent;
   flex: 1;
   border-color: rgba(0, 0, 0, 0.125);
@@ -80,18 +96,18 @@ h6 {
 }
 
 @media only screen and (max-width: 768px) {
-  .main-container {
+  #main-container {
     position: relative;
-    max-width: 100vw;
+    padding: 1rem 3rem 0;
     margin: 0 auto;
     justify-content: center;
   }
 }
 
-@media only screen and (max-width: 992px) {
-  .main-container {
+@media only screen and (min-width: 769px) and (max-width: 1200px) {
+  #main-container {
     position: relative;
-    max-width: 85vw;
+    padding: 1rem calc(((100vw - 85vw) / 2) + 3rem) 0;
     margin: 0 auto;
   }
 }

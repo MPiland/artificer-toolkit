@@ -1,6 +1,10 @@
 const Footer = () => {
   const date = new Date().getFullYear()
 
-  return <footer className="main-footer fixed-bottom">Copyright © {date}</footer>
+  return (
+    <footer className='main-footer container-fluid flex-grow-0'>
+      Copyright © {date}
+    </footer>
+  )
 }
 export default Footer

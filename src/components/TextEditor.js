@@ -33,7 +33,11 @@ const MenuBar = ({ editor, noMenuBar }) => {
 
   const selectHandler = (e) => {
     if (Number(e.target.value) === 0) {
-      editor.chain().focus().toggleHeading(editor.getAttributes('heading')).run()
+      editor
+        .chain()
+        .focus()
+        .toggleHeading(editor.getAttributes('heading'))
+        .run()
     } else {
       editor
         .chain()
@@ -47,9 +51,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
     <div className='menuBar'>
       <div className='row g-0'>
         <div className='col-auto p-0'>
-          <select className='btn border-0'
-            onChange={(e) => selectHandler(e)}
-          >
+          <select className='btn border-0' onChange={(e) => selectHandler(e)}>
             <option value='0'>No Heading</option>
             <option value='1'>Header 1</option>
             <option value='2'>Header 2</option>
@@ -65,6 +67,8 @@ const MenuBar = ({ editor, noMenuBar }) => {
           >
             <FaBold />
           </span>
+        </div>
+        <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`${editor.isActive('italic') ? 'is_active' : ''} btn`}
@@ -81,6 +85,8 @@ const MenuBar = ({ editor, noMenuBar }) => {
           >
             <FaUnderline />
           </span>
+        </div>
+        <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().toggleStrike().run()}
             className={`${editor.isActive('strike') ? 'is_active' : ''} btn`}
@@ -135,6 +141,8 @@ const MenuBar = ({ editor, noMenuBar }) => {
           >
             <FaTable />
           </span>
+        </div>
+        <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().deleteColumn().run()}
             className={`${
@@ -155,6 +163,8 @@ const MenuBar = ({ editor, noMenuBar }) => {
           >
             <RiInsertColumnLeft />
           </span>
+        </div>
+        <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().addColumnAfter().run()}
             className={`${
@@ -173,6 +183,8 @@ const MenuBar = ({ editor, noMenuBar }) => {
           >
             <RiDeleteRow />
           </span>
+        </div>
+        <div className='col-auto p-0'>
           <span
             onClick={() => editor.chain().focus().addRowBefore().run()}
             className={`${
