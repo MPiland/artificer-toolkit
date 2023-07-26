@@ -25,8 +25,6 @@ const formReducer = produce((draft, action) => {
       )
     )
   } else {
-    console.log('path', path)
-    console.log('value', target.value)
     set(draft, path, target.value)
     if (path[path.length - 1] === 'value') {
       if (path.length === 1) {

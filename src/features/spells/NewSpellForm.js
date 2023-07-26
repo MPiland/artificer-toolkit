@@ -56,6 +56,8 @@ const NewSpellForm = () => {
       await addNewSpell(state)
     }
 
+    console.log(state)
+
     content = (
       <div className='builder-form'>
         <h1>Create a Spell</h1>
@@ -80,26 +82,20 @@ const NewSpellForm = () => {
           </AccordionButton>
           <div className='accordion-collapse collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start'>
-              <div className='col-sm'>
-                <Input
-                  type='text'
-                  name='value'
-                  id='name'
-                  label={true}
-                  placeholder='Spell Name'
-                  autoComplete='off'
-                  required={true}
-                  onChange={setState}
-                />
-              </div>
               <Input
-                className={`col-sm ${
-                  state?.level &&
+                name='value'
+                label={true}
+                placeholder='Spell Name'
+                autoComplete='off'
+                required={true}
+                onChange={setState}
+              />
+              <Input
+                className={`${
+                  state.level &&
                   (NUM_REGEX.test(state.level) ? 'is-valid' : 'is-invalid')
                 }`}
-                type='text'
                 name='level'
-                id='level'
                 label={true}
                 invalidText='Must contain only numbers'
                 placeholder='Spell Level'
@@ -153,6 +149,15 @@ const NewSpellForm = () => {
             <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
               <div className='col-sm'>
                 <Select
+                  multiple={true}
+                  name='attribute'
+                  placeholder='Spell Attributes'
+                  options={builders.spell.attribute}
+                  onChange={setState}
+                />
+              </div>
+              <div className='col-sm'>
+                <Select
                   name='action'
                   placeholder='Casting Time'
                   id='action'
@@ -161,19 +166,16 @@ const NewSpellForm = () => {
                 />
               </div>
               <Input
-                className={`col-sm ${
+                className={`${
                   state?.action?.num &&
                   (NUM_REGEX.test(state.action?.num)
                     ? 'is-valid'
                     : 'is-invalid')
                 }`}
-                type='text'
                 name='action.num'
-                id='action.num'
                 label={true}
                 placeholder='Casting Increment'
                 required={true}
-                disabled={!!state.action?.value ? false : true}
                 onChange={setState}
               />
               <div className='col-sm'>
@@ -199,7 +201,6 @@ const NewSpellForm = () => {
                 invalidText='Must contain only numbers'
                 placeholder='Duration Increment'
                 autoComplete='off'
-                disabled={!!state.duration?.value ? false : true}
                 required={true}
                 onChange={setState}
               />
@@ -216,66 +217,70 @@ const NewSpellForm = () => {
                 <>
                   {state.origin.value === 'Distance' && (
                     <Input
-                      className={`col-sm ${
-                        state.origin.distance &&
-                        (NUM_REGEX.test(state.origin.distance)
+                      className={`${
+                        state.origin?.distance &&
+                        (NUM_REGEX.test(state.origin?.distance)
                           ? 'is-valid'
                           : 'is-invalid')
                       }`}
-                      type='text'
                       name='origin.distance'
-                      id='origin.distance'
                       label={true}
                       invalidText='Must contain only numbers'
                       placeholder='Distance'
                       autoComplete='off'
-                      disabled={!!state.origin?.value ? false : true}
                       required={true}
                       onChange={setState}
                     />
                   )}
+
                   <div className='col-sm'>
                     <Select
-                      name='area'
+                      name='shape'
                       placeholder='Shape'
-                      id='area'
-                      options={builders.spell.area.filter((area) =>
+                      id='shape'
+                      options={builders.spell.shape.filter((shape) =>
                         state?.origin && state.origin.value === 'Distance'
-                          ? area.value !== 'Cone'
-                          : area
+                          ? shape.value !== 'Cone' &&
+                            shape.value !== 'Weapon' &&
+                            shape.value !== 'Beam'
+                          : shape
                       )}
                       onChange={setState}
                     />
                   </div>
                   <Input
-                    className={`col-sm ${
-                      state?.area?.size &&
-                      (NUM_REGEX.test(state.area.size)
+                    className={`${
+                      state?.shape?.size &&
+                      (NUM_REGEX.test(state.shape.size)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
-                    type='text'
-                    name='area.size'
-                    id='area.size'
+                    name='shape.size'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Shape Size'
                     autoComplete='off'
-                    disabled={!!state.area?.value ? false : true}
                     required={true}
                     onChange={setState}
                   />
                 </>
               )}
-              <div className='col-sm'>
-                <Select
-                  multiple={true}
-                  name='attribute'
-                  placeholder='Spell Attributes'
-                  options={builders.spell.attribute}
-                  onChange={setState}
-                />
-              </div>
+              {state.origin?.value === 'Self' &&
+                state.shape?.value !== 'Weapon' &&
+                (state.shape?.value === 'Beam' ||
+                  state.shape?.value === 'Cube' ||
+                  state.shape?.value === 'Sphere') && (
+                  <Input
+                    className={`${
+                      state?.range &&
+                      (NUM_REGEX.test(state.range) ? 'is-valid' : 'is-invalid')
+                    }`}
+                    name='range'
+                    placeholder='Range'
+                    invalidText='Must contain only numbers'
+                    label={true}
+                  />
+                )}
             </div>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               {state?.attribute?.some(
@@ -317,18 +322,36 @@ const NewSpellForm = () => {
                   </div>
                   <div className='col-sm'>
                     <Select
-                      name='damage'
+                      name='damage.damageType'
+                      multiple={true}
                       placeholder='Damage Type'
                       options={builders.damage}
                       onChange={setState}
                     />
                   </div>
-                  <div className='col-lg-6'>
+                  <div className='col-lg-6  col-md-12'>
                     <Table
                       headers={[
-                        { name: 'Level' },
-                        { name: 'Dice Count' },
-                        { name: 'Dice Value' },
+                        {
+                          name: 'level',
+                          value: 'Level',
+                          invalid: 'Must contain only numbers',
+                          label: true,
+                        },
+                        {
+                          name: 'diceCount',
+                          value: 'Dice Count',
+                          size: 3,
+                          invalid: 'Must contain only numbers',
+                          label: true,
+                        },
+                        {
+                          name: 'diceValue',
+                          value: 'Dice Value',
+                          size: 3,
+                          invalid: 'Must contain only numbers',
+                          label: true,
+                        },
                       ]}
                       name='damage.damageByLevel'
                       state={state.damage.damageByLevel}

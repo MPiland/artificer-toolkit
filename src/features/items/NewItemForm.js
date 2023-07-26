@@ -77,6 +77,8 @@ const NewItemForm = () => {
       await addNewItem(state)
     }
 
+    console.log(state)
+
     const sections = [
       {
         name: 'feat',
@@ -265,35 +267,20 @@ const NewItemForm = () => {
                   {item.method?.name === 'setValue' ||
                   item.modType?.name === 'setValue' ? (
                     <>
-                      <div className='position-relative col-sm'>
-                        <div className='form-floating'>
-                          <input
-                            className={`form-control ${
-                              item.method?.setValue &&
-                              (NUM_REGEX.test(item.method.setValue)
-                                ? 'is-valid'
-                                : 'is-invalid')
-                            }`}
-                            type='text'
-                            name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                            placeholder='Set Value'
-                            autoComplete='off'
-                            onChange={(e) => setState({ payload: e })}
-                          />
-                          <label
-                            htmlFor={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                          >
-                            Set Value
-                          </label>
-                          <div
-                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValueTooltip`}
-                            className='invalid-tooltip'
-                          >
-                            Must contain only numbers
-                          </div>
-                        </div>
-                      </div>
+                      <Input
+                        className={`${
+                          item.method?.setValue &&
+                          (NUM_REGEX.test(item.method.setValue)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
+                        label={true}
+                        placeholder='Set Value'
+                        autoComplete='off'
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
                       <div className='col-sm'>
                         <Select
                           name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
@@ -525,8 +512,7 @@ const NewItemForm = () => {
                 target={`feature${featureIndex}AccordionBody`}
               >
                 <Input
-                  className='col-sm-4 border-0'
-                  type='text'
+                  size='col-sm-4'
                   name={`feature.${featureIndex}.value`}
                   border={false}
                   autoComplete='off'
@@ -723,13 +709,12 @@ const NewItemForm = () => {
                       ) : (
                         feature.limitUse?.limitBy?.name === 'setNumber' && (
                           <Input
-                            className={`col-sm ${
+                            className={`${
                               feature?.limitUse?.setAmount &&
                               (NUM_REGEX.test(feature?.limitUse.setAmount)
                                 ? 'is-valid'
                                 : 'is-invalid')
                             }`}
-                            type='text'
                             name={`feature.${featureIndex}.limitUse.setAmount`}
                             label={true}
                             invalidText='Must contain only numbers'
@@ -788,23 +773,33 @@ const NewItemForm = () => {
                   ) ? (
                     <>
                       <Input
-                        type='text'
-                        className='col-sm'
+                        className={`${
+                          feature.range?.minRange &&
+                          (NUM_REGEX.test(feature.range?.minRange)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
                         name={`feature.${featureIndex}.range.minRange`}
                         autoComplete='off'
                         label={true}
                         placeholder='Min Range'
                         required={true}
+                        invalidText='Must contain only numbers'
                         onChange={setState}
                       />
                       <Input
-                        className='col-sm'
-                        type='text'
+                        className={`${
+                          feature.range?.maxRange &&
+                          (NUM_REGEX.test(feature.range?.maxRange)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
                         name={`feature.${featureIndex}.range.maxRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Max Range'
                         required={true}
+                        invalidText='Must contain only numbers'
                         onChange={setState}
                       />
                     </>
@@ -1014,7 +1009,20 @@ const NewItemForm = () => {
                     <div>
                       <Table
                         className='pb-2'
-                        headers={[{ name: 'Level' }, { name: 'Uses' }]}
+                        headers={[
+                          {
+                            name: 'level',
+                            value: 'Level',
+                            invalid: 'Must contain only numbers',
+                            label: true,
+                          },
+                          {
+                            name: 'uses',
+                            value: 'Uses',
+                            invalid: 'Must contain only numbers',
+                            label: true,
+                          },
+                        ]}
                         name={`feature.${featureIndex}.limitUse.level`}
                         state={feature?.limitUse?.level}
                         onChange={setState}
@@ -1056,9 +1064,24 @@ const NewItemForm = () => {
                       <div className='col-lg-6 col-md-12'>
                         <Table
                           headers={[
-                            { name: 'Level' },
-                            { name: 'Dice Count' },
-                            { name: 'Dice Value' },
+                            {
+                              name: 'level',
+                              value: 'Level',
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
+                            {
+                              name: 'diceCount',
+                              value: 'Dice Count',
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
+                            {
+                              name: 'diceValue',
+                              value: 'Dice Value',
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
                           ]}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           state={feature?.damage.damageByLevel}
@@ -1144,8 +1167,6 @@ const NewItemForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               <Input
-                type='text'
-                className='col-sm'
                 name='value'
                 autoComplete='off'
                 label={true}
@@ -1196,15 +1217,14 @@ const NewItemForm = () => {
                   onChange={setState}
                 />
               </div>
-              {state?.itemCategory && state?.itemCategory?.name !== 'Item' && (
+              {state?.itemCategory && state?.itemCategory?.name !== 'item' && (
                 <Input
-                  className={`col-sm ${
+                  className={`${
                     state?.itemRank &&
                     (NUM_REGEX.test(state?.itemRank)
                       ? 'is-valid'
                       : 'is-invalid')
                   }`}
-                  type='text'
                   name='itemRank'
                   label={true}
                   invalidText='Must contain only numbers'
@@ -1252,29 +1272,26 @@ const NewItemForm = () => {
                   onChange={setState}
                 />
               </div>
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'weight'
-              ) && (
+              {state?.attribute?.some((item) => item.name === 'weight') && (
                 <Input
-                  className={`col-sm ${
+                  className={`${
                     state?.attribute[
                       state?.attribute?.findIndex(
-                        (attributeItem) => attributeItem.name === 'weight'
+                        (item) => item.name === 'weight'
                       )
                     ].maxValue &&
                     (NUM_REGEX.test(
                       state?.attribute[
                         state?.attribute?.findIndex(
-                          (attributeItem) => attributeItem.name === 'weight'
+                          (item) => item.name === 'weight'
                         )
                       ].maxValue
                     )
                       ? 'is-valid'
                       : 'is-invalid')
                   }`}
-                  type='text'
                   name={`attribute.${state?.attribute?.findIndex(
-                    (attributeItem) => attributeItem.name === 'weight'
+                    (item) => item.name === 'weight'
                   )}.maxValue`}
                   label={true}
                   invalidText='Must contain only numbers'
@@ -1283,29 +1300,26 @@ const NewItemForm = () => {
                   onChange={setState}
                 />
               )}
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'container'
-              ) && (
+              {state?.attribute?.some((item) => item.name === 'container') && (
                 <Input
-                  className={`col-sm ${
+                  className={`${
                     state?.attribute[
                       state?.attribute?.findIndex(
-                        (attributeItem) => attributeItem.name === 'container'
+                        (item) => item.name === 'container'
                       )
                     ].maxValue &&
                     (NUM_REGEX.test(
                       state?.attribute[
                         state?.attribute?.findIndex(
-                          (attributeItem) => attributeItem.name === 'container'
+                          (item) => item.name === 'container'
                         )
                       ].maxValue
                     )
                       ? 'is-valid'
                       : 'is-invalid')
                   }`}
-                  type='text'
                   name={`attribute.${state?.attribute?.findIndex(
-                    (attributeItem) => attributeItem.name === 'container'
+                    (item) => item.name === 'container'
                   )}.maxValue`}
                   label={true}
                   invalidText='Must contain only numbers'
@@ -1314,20 +1328,18 @@ const NewItemForm = () => {
                   onChange={setState}
                 />
               )}
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'stackable'
-              ) && (
+              {state?.attribute?.some((item) => item.name === 'stackable') && (
                 <Input
-                  className={`col-sm ${
+                  className={`${
                     state?.attribute[
                       state?.attribute?.findIndex(
-                        (attributeItem) => attributeItem.name === 'stackable'
+                        (item) => item.name === 'stackable'
                       )
                     ].maxValue &&
                     (NUM_REGEX.test(
                       state?.attribute[
                         state?.attribute?.findIndex(
-                          (attributeItem) => attributeItem.name === 'stackable'
+                          (item) => item.name === 'stackable'
                         )
                       ].maxValue
                     )
@@ -1336,7 +1348,7 @@ const NewItemForm = () => {
                   }`}
                   type='text'
                   name={`attribute.${state?.attribute?.findIndex(
-                    (attributeItem) => attributeItem.name === 'stackable'
+                    (item) => item.name === 'stackable'
                   )}.maxValue`}
                   label={true}
                   invalidText='Must contain only numbers'
@@ -1345,31 +1357,29 @@ const NewItemForm = () => {
                   onChange={setState}
                 />
               )}
-              {state?.itemCategory?.name === 'Weapon' && (
+              {state.itemCategory?.name === 'weapon' && (
                 <>
                   <Input
-                    className={`col-sm ${
-                      state.weaponDamage?.diceCount &&
-                      (NUM_REGEX.test(state.weaponDamage?.diceCount)
+                    className={`${
+                      state.damage?.diceCount &&
+                      (NUM_REGEX.test(state.damage?.diceCount)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
-                    type='text'
-                    name='weaponDamage.diceCount'
+                    name='damage.diceCount'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Count'
                     onChange={setState}
                   />
                   <Input
-                    className={`col-sm ${
-                      state.weaponDamage?.diceValue &&
-                      (NUM_REGEX.test(state.weaponDamage?.diceValue)
+                    className={`${
+                      state.damage?.diceValue &&
+                      (NUM_REGEX.test(state.damage?.diceValue)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
-                    type='text'
-                    name='weaponDamage.diceValue'
+                    name='damage.diceValue'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Value'
@@ -1377,14 +1387,23 @@ const NewItemForm = () => {
                   />
                   <div className='col-sm'>
                     <Select
-                      name={'primaryAbility'}
+                      name='damage.damageType'
+                      multiple={true}
+                      placeholder='Damage Type'
+                      options={builders.damage}
+                      onChange={setState}
+                    />
+                  </div>
+                  <div className='col-sm'>
+                    <Select
+                      name='primaryAbility'
                       placeholder='Primary Ability'
                       options={builders.ability}
                       onChange={setState}
                     />
                   </div>
                   {state?.itemProperty?.find((property) => {
-                    return property.name === 'Versatile'
+                    return property.name === 'versatile'
                   }) && (
                     <div className='col-sm'>
                       <Select
@@ -1402,13 +1421,12 @@ const NewItemForm = () => {
               )}
               {state?.itemCategory?.name === 'armor' && (
                 <Input
-                  className={`col-sm form-control ${
+                  className={`${
                     state.armorValue &&
                     (NUM_REGEX.test(state.armorValue)
                       ? 'is-valid'
                       : 'is-invalid')
                   }`}
-                  type='text'
                   name='armorValue'
                   label={true}
                   invalidText='Must contain only numbers'
@@ -1416,19 +1434,18 @@ const NewItemForm = () => {
                   onChange={setState}
                 />
               )}
-              {state?.itemProperty?.find(
+              {state.itemProperty?.find(
                 (property) =>
-                  property.name === 'Thrown' || property.name === 'Ranged'
+                  property.name === 'thrown' || property.name === 'ranged'
               ) && (
                 <>
                   <Input
-                    className={`col-sm ${
+                    className={`${
                       state.thrown?.minRange &&
                       (NUM_REGEX.test(state.thrown?.minRange)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
-                    type='text'
                     name='thrown.minRange'
                     label={true}
                     invalidText='Must contain only numbers'
@@ -1436,13 +1453,12 @@ const NewItemForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    className={`col-sm ${
+                    className={`${
                       state.thrown?.maxRange &&
                       (NUM_REGEX.test(state.thrown?.maxRange)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
-                    type='text'
                     name='thrown.maxRange'
                     label={true}
                     invalidText='Must contain only numbers'

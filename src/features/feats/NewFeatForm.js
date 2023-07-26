@@ -97,15 +97,21 @@ const NewFeatForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      feature.item?.optionGroup &&
+                      (NUM_REGEX.test(feature.item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -144,15 +150,21 @@ const NewFeatForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      feature.item?.optionGroup &&
+                      (NUM_REGEX.test(feature.item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
@@ -277,7 +289,7 @@ const NewFeatForm = () => {
                     item.module?.name === 'damage' && (
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.${this.name}.${index}.damage`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.damage.damageType`}
                           multiple={feature?.attribute?.some(
                             (attribute) => attribute.name === 'providesOptions'
                           )}
@@ -291,35 +303,20 @@ const NewFeatForm = () => {
                   {item.method?.name === 'setValue' ||
                   item.modType?.name === 'setValue' ? (
                     <>
-                      <div className='position-relative col-sm'>
-                        <div className='form-floating'>
-                          <input
-                            className={`form-control ${
-                              item.method?.setValue &&
-                              (NUM_REGEX.test(item.method.setValue)
-                                ? 'is-valid'
-                                : 'is-invalid')
-                            }`}
-                            type='text'
-                            name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                            placeholder='Set Value'
-                            autoComplete='off'
-                            onChange={(e) => setState({ payload: e })}
-                          />
-                          <label
-                            htmlFor={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                          >
-                            Set Value
-                          </label>
-                          <div
-                            id={`feature.${featureIndex}.${this.name}.${index}.method.setValueTooltip`}
-                            className='invalid-tooltip'
-                          >
-                            Must contain only numbers
-                          </div>
-                        </div>
-                      </div>
+                      <Input
+                        className={`${
+                          item.method?.setValue &&
+                          (NUM_REGEX.test(item.method.setValue)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
+                        placeholder='Set Value'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        autoComplete='off'
+                        onChange={setState}
+                      />
                       <div className='col-sm'>
                         <Select
                           name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
@@ -389,15 +386,21 @@ const NewFeatForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -493,15 +496,21 @@ const NewFeatForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -540,15 +549,21 @@ const NewFeatForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -590,8 +605,7 @@ const NewFeatForm = () => {
                 target={`feature${featureIndex}AccordionBody`}
               >
                 <Input
-                  className='col-sm-4 border-0'
-                  type='text'
+                  size='col-sm-4'
                   name={`feature.${featureIndex}.value`}
                   border={false}
                   autoComplete='off'
@@ -675,8 +689,7 @@ const NewFeatForm = () => {
                     })
                   )}
                   {feature.requirement?.option.some(
-                    (item) =>
-                    item.name === 'skillProficiency'
+                    (item) => item.name === 'skillProficiency'
                   ) ? (
                     <div className='col-sm'>
                       <Select
@@ -699,8 +712,7 @@ const NewFeatForm = () => {
                     })
                   )}
                   {feature.requirement?.option.some(
-                    (item) =>
-                    item.name === 'itemProficiency'
+                    (item) => item.name === 'itemProficiency'
                   ) ? (
                     <>
                       <div className='col-sm'>
@@ -791,13 +803,12 @@ const NewFeatForm = () => {
                       ) : (
                         feature.limitUse?.limitBy?.name === 'setNumber' && (
                           <Input
-                            className={`col-sm ${
+                            className={`${
                               feature.limitUse?.setAmount &&
                               (NUM_REGEX.test(feature.limitUse?.setAmount)
                                 ? 'is-valid'
                                 : 'is-invalid')
                             }`}
-                            type='text'
                             name={`feature.${featureIndex}.limitUse.setAmount`}
                             label={true}
                             invalidText='Must contain only numbers'
@@ -856,24 +867,34 @@ const NewFeatForm = () => {
                   ) ? (
                     <>
                       <Input
-                        type='text'
-                        className='col-sm'
+                        className={`${
+                          feature.range?.minRange &&
+                          (NUM_REGEX.test(feature.range?.minRange)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
                         name={`feature.${featureIndex}.range.minRange`}
                         autoComplete='off'
                         label={true}
                         placeholder='Min Range'
                         required={true}
                         onChange={setState}
+                        invalidText='Must contain only numbers'
                       />
                       <Input
-                        className='col-sm'
-                        type='text'
+                        className={`${
+                          feature.range?.maxRange &&
+                          (NUM_REGEX.test(feature.range?.maxRange)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
                         name={`feature.${featureIndex}.range.maxRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Max Range'
                         required={true}
                         onChange={setState}
+                        invalidText='Must contain only numbers'
                       />
                     </>
                   ) : (
@@ -1067,9 +1088,7 @@ const NewFeatForm = () => {
                   })
                 )}
                 {feature.limitUse?.limitBy?.name === 'level' &&
-                  feature.attribute?.some(
-                    (item) => item.name === 'limitUse'
-                  ) &&
+                  feature.attribute?.some((item) => item.name === 'limitUse') &&
                   (feature.limitUse.level ??
                     setState({
                       type: 'added',
@@ -1082,8 +1101,19 @@ const NewFeatForm = () => {
                     <div>
                       <Table
                         headers={[
-                          { name: 'Level', size: '5' },
-                          { name: 'Uses' },
+                          {
+                            name: 'level',
+                            value: 'Level',
+                            size: 5,
+                            invalid: 'Must contain only numbers',
+                            label: true,
+                          },
+                          {
+                            name: 'uses',
+                            value: 'Uses',
+                            invalid: 'Must contain only numbers',
+                            label: true,
+                          },
                         ]}
                         name={`feature.${featureIndex}.limitUse.level`}
                         state={feature?.limitUse?.level}
@@ -1117,7 +1147,8 @@ const NewFeatForm = () => {
                       <div className='col-sm'>
                         <Select
                           className='pb-1'
-                          name={`feature.${featureIndex}.damage`}
+                          name={`feature.${featureIndex}.damage.damageType`}
+                          multiple={true}
                           placeholder='Damage Type'
                           options={builders.damage}
                           onChange={setState}
@@ -1126,9 +1157,26 @@ const NewFeatForm = () => {
                       <div className='col-lg-6 col-md-12'>
                         <Table
                           headers={[
-                            { name: 'Level' },
-                            { name: 'Dice Count', size: 3 },
-                            { name: 'Dice Value', size: 3 },
+                            {
+                              name: 'level',
+                              value: 'Level',
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
+                            {
+                              name: 'diceCount',
+                              value: 'Dice Count',
+                              size: 3,
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
+                            {
+                              name: 'diceValue',
+                              value: 'Dice Value',
+                              size: 3,
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
                           ]}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           state={feature?.damage.damageByLevel}
@@ -1204,8 +1252,6 @@ const NewFeatForm = () => {
         >
           <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
             <Input
-              type='text'
-              className='col-sm'
               name='name'
               autoComplete='off'
               placeholder='Feat Name'

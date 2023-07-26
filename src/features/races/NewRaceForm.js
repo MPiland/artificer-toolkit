@@ -106,15 +106,21 @@ const NewRaceForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -153,15 +159,21 @@ const NewRaceForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
@@ -286,7 +298,7 @@ const NewRaceForm = () => {
                     item.module?.name === 'damage' && (
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.${this.name}.${index}.damage`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.damage.damageType`}
                           multiple={feature?.attribute?.some(
                             (attribute) => attribute.name === 'providesOptions'
                           )}
@@ -300,22 +312,20 @@ const NewRaceForm = () => {
                   {item.method?.name === 'setValue' ||
                   item.modType?.name === 'setValue' ? (
                     <>
-                      <div className='col-sm'>
-                        <Input
-                          className={`${
-                            item.method?.setValue &&
-                            (NUM_REGEX.test(item.method.setValue)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
-                          name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                          label={true}
-                          placeholder='Set Value'
-                          autoComplete='off'
-                          invalidText='Must contain only numbers'
-                          onChange={setState}
-                        />
-                      </div>
+                      <Input
+                        className={`${
+                          item.method?.setValue &&
+                          (NUM_REGEX.test(item.method.setValue)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
+                        label={true}
+                        placeholder='Set Value'
+                        autoComplete='off'
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
                     </>
                   ) : item.method?.name === 'ability' ? (
                     <div className='col-sm'>
@@ -389,15 +399,21 @@ const NewRaceForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -493,15 +509,21 @@ const NewRaceForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -540,15 +562,21 @@ const NewRaceForm = () => {
                 {feature.attribute?.some(
                   (item) => item.name === 'optionGroups'
                 ) && (
-                  <div className='col-2'>
-                    <Input
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder={'Opt. Grp. #'}
-                      autoComplete='off'
-                      onChange={setState}
-                    />
-                  </div>
+                  <Input
+                    size='col-sm-2'
+                    className={`${
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
+                        ? 'is-valid'
+                        : 'is-invalid')
+                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                    label={true}
+                    placeholder='Opt. Grp. #'
+                    autoComplete='off'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
@@ -590,8 +618,7 @@ const NewRaceForm = () => {
                 target={`feature${featureIndex}AccordionBody`}
               >
                 <Input
-                  className='col-sm-4 border-0'
-                  type='text'
+                  size='col-sm-4'
                   name={`feature.${featureIndex}.value`}
                   border={false}
                   autoComplete='off'
@@ -801,7 +828,7 @@ const NewRaceForm = () => {
                       ) : (
                         feature.limitUse?.limitBy?.name === 'setNumber' && (
                           <Input
-                            className={`col-sm ${
+                            className={`${
                               feature.limitUse?.setAmount &&
                               (NUM_REGEX.test(feature.limitUse?.setAmount)
                                 ? 'is-valid'
@@ -866,23 +893,33 @@ const NewRaceForm = () => {
                   ) ? (
                     <>
                       <Input
-                        type='text'
-                        className='col-sm'
+                        className={`${
+                          feature.range?.minRange &&
+                          (NUM_REGEX.test(feature.range?.minRange)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
                         name={`feature.${featureIndex}.range.minRange`}
                         autoComplete='off'
                         label={true}
                         placeholder='Min Range'
                         required={true}
+                        invalidText='Must contain only numbers'
                         onChange={setState}
                       />
                       <Input
-                        className='col-sm'
-                        type='text'
+                        className={`${
+                          feature.range?.maxRange &&
+                          (NUM_REGEX.test(feature.range?.maxRange)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
                         name={`feature.${featureIndex}.range.maxRange`}
                         label={true}
                         autoComplete='off'
                         placeholder='Max Range'
                         required={true}
+                        invalidText='Must contain only numbers'
                         onChange={setState}
                       />
                     </>
@@ -1092,8 +1129,19 @@ const NewRaceForm = () => {
                     <div>
                       <Table
                         headers={[
-                          { name: 'Level', size: '5' },
-                          { name: 'Uses' },
+                          {
+                            name: 'level',
+                            value: 'Level',
+                            size: 5,
+                            invalid: 'Must contain only numbers',
+                            label: true,
+                          },
+                          {
+                            name: 'uses',
+                            value: 'Uses',
+                            invalid: 'Must contain only numbers',
+                            label: true,
+                          },
                         ]}
                         name={`feature.${featureIndex}.limitUse.level`}
                         state={feature?.limitUse?.level}
@@ -1127,7 +1175,8 @@ const NewRaceForm = () => {
                       <div className='col-sm'>
                         <Select
                           className='pb-1'
-                          name={`feature.${featureIndex}.damage`}
+                          name={`feature.${featureIndex}.damage.damageType`}
+                          multiple={true}
                           placeholder='Damage Type'
                           options={builders.damage}
                           onChange={setState}
@@ -1136,9 +1185,26 @@ const NewRaceForm = () => {
                       <div className='col-lg-6 col-md-12'>
                         <Table
                           headers={[
-                            { name: 'Level' },
-                            { name: 'Dice Count', size: 3 },
-                            { name: 'Dice Value', size: 3 },
+                            {
+                              name: 'level',
+                              value: 'Level',
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
+                            {
+                              name: 'diceCount',
+                              value: 'Dice Count',
+                              size: 3,
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
+                            {
+                              name: 'diceValue',
+                              value: 'Dice Value',
+                              size: 3,
+                              invalid: 'Must contain only numbers',
+                              label: true,
+                            },
                           ]}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           state={feature?.damage.damageByLevel}
@@ -1214,8 +1280,7 @@ const NewRaceForm = () => {
         >
           <div className='row row-cols-lg row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
             <Input
-              type='text'
-              className='col-lg-4 col-sm'
+              size='col-lg-4'
               name='name'
               label={true}
               autoComplete='off'
@@ -1280,8 +1345,7 @@ const NewRaceForm = () => {
                         key={index}
                       >
                         <Input
-                          className='border-0'
-                          type='text'
+                          size='col-sm-4'
                           name={`details.${index}.title`}
                           border={false}
                           autoComplete='off'
@@ -1375,11 +1439,17 @@ const NewRaceForm = () => {
             {state.attribute?.some((item) => item.name === 'walking') && (
               <div className='row g-2 pb-2'>
                 <Input
-                  type='text'
-                  className='col-lg-3 col-md-4 col-sm-12'
+                  size='col-lg-3 col-md-4 col-sm-12'
+                  className={`${
+                    state.speed?.walking?.value &&
+                    (NUM_REGEX.test(state.speed?.walking?.value)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
                   name='speed.walking.value'
                   placeholder='Walking Speed'
                   label={true}
+                  invalidText='Must contain only numbers'
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1396,11 +1466,17 @@ const NewRaceForm = () => {
             {state.attribute?.some((item) => item.name === 'climbing') && (
               <div className='row g-2 pb-2'>
                 <Input
-                  type='text'
-                  className='col-lg-3 col-md-4 col-sm-12'
+                  size='col-lg-3 col-md-4 col-sm-12'
+                  className={`${
+                    state.speed?.climbing?.value &&
+                    (NUM_REGEX.test(state.climbing?.value)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
                   name='speed.climbing.value'
                   placeholder='Climbing Speed'
                   label={true}
+                  invalidText='Must contain only numbers'
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1417,11 +1493,17 @@ const NewRaceForm = () => {
             {state.attribute?.some((item) => item.name === 'swimming') && (
               <div className='row g-2 pb-2'>
                 <Input
-                  type='text'
-                  className='col-lg-3 col-md-4 col-sm-12'
+                  size='col-lg-3 col-md-4 col-sm-12'
+                  className={`${
+                    state.speed?.swimming?.value &&
+                    (NUM_REGEX.test(state.swimming?.value)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
                   name='speed.swimming.value'
                   placeholder='Swimming Speed'
                   label={true}
+                  invalidText='Must contain only numbers'
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1438,11 +1520,17 @@ const NewRaceForm = () => {
             {state.attribute?.some((item) => item.name === 'flying') && (
               <div className='row g-2 pb-2'>
                 <Input
-                  type='text'
-                  className='col-lg-3 col-md-4 col-sm-12'
+                  size='col-lg-3 col-md-4 col-sm-12'
+                  className={`${
+                    state.speed?.flying?.value &&
+                    (NUM_REGEX.test(state.flying?.value)
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
                   name='speed.flying.value'
                   placeholder='Flying Speed'
                   label={true}
+                  invalidText='Must contain only numbers'
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1483,8 +1571,18 @@ const NewRaceForm = () => {
                 >
                   <Table
                     headers={[
-                      { name: 'Value', size: 3 },
-                      { name: 'Description', type: 'text' },
+                      {
+                        name: 'value',
+                        value: 'Value',
+                        size: 3,
+                        invalid: 'Must contain only numbers',
+                        label: true,
+                      },
+                      {
+                        name: 'description',
+                        value: 'Description',
+                        type: 'text',
+                      },
                     ]}
                     name='ancestry'
                     state={state.ancestry}

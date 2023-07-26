@@ -1,4 +1,3 @@
-import { camelCase } from 'lodash'
 import Input from './Input'
 import TextEditor from './TextEditor'
 
@@ -17,21 +16,22 @@ const Table = ({ headers, name, state, onChange, className }) => {
               <TextEditor
                 className='shortDesc'
                 noMenuBar={true}
-                placeholder={`${header.name}`}
-                name={`${name}.${itemIndex}.${camelCase(header.name)}`}
+                placeholder={`${header.value}`}
+                name={`${name}.${itemIndex}.${header.name}`}
                 onChange={onChange}
               />
             ) : (
               <Input
                 className={`${
-                  item[camelCase(header.name)] &&
-                  (NUM_REGEX.test(item[camelCase(header.name)])
+                  header.validation === true &&
+                  (NUM_REGEX.test(item[header.name])
                     ? 'is-valid'
                     : 'is-invalid')
                 }`}
-                name={`${name}.${itemIndex}.${camelCase(header.name)}`}
-                label={true}
+                name={`${name}.${itemIndex}.${header.name}`}
+                label={headers.label}
                 placeholder={`${header.name}`}
+                invalidText={`${header.invalid}`}
                 onChange={onChange}
               />
             )}
