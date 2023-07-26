@@ -24,6 +24,8 @@ const formReducer = produce((draft, action) => {
         (_, index) => index !== Number(path[path.length - 1])
       )
     )
+  } else if (type === 'reset') {
+    return target
   } else {
     set(draft, path, target.value)
     if (path[path.length - 1] === 'value') {

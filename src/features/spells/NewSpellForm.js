@@ -41,10 +41,18 @@ const NewSpellForm = () => {
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
+      setState({
+        type: 'reset',
+        payload: { target: { name: 'userId', value: id } },
+      })
     }
   }, [addIsSuccess, id, setState])
 
   function validateForm() {}
+
+  const onSubmit = async () => {
+    await addNewSpell(state)
+  }
 
   let content
 
@@ -52,11 +60,6 @@ const NewSpellForm = () => {
 
   if (isSuccess) {
     // Submit to databases
-    const onSubmit = async () => {
-      await addNewSpell(state)
-    }
-
-    console.log(state)
 
     content = (
       <div className='builder-form'>
@@ -64,14 +67,7 @@ const NewSpellForm = () => {
         {successMessage && (
           <h3 className='add-success-message'>{successMessage}</h3>
         )}
-        <form
-          className='needs-validation'
-          onSubmit={() => {
-            validateForm()
-            onSubmit()
-          }}
-          noValidate
-        >
+        <form className='needs-validation' noValidate>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
             id='detailsButton'
@@ -87,6 +83,7 @@ const NewSpellForm = () => {
                 label={true}
                 placeholder='Spell Name'
                 autoComplete='off'
+                value={state.value ?? ''}
                 required={true}
                 onChange={setState}
               />
@@ -100,6 +97,7 @@ const NewSpellForm = () => {
                 invalidText='Must contain only numbers'
                 placeholder='Spell Level'
                 required={true}
+                value={state.level ?? ''}
                 onChange={setState}
               />
               <div className='col-sm pb-2'>
@@ -158,9 +156,8 @@ const NewSpellForm = () => {
               </div>
               <div className='col-sm'>
                 <Select
-                  name='action'
+                  name='action.actionType'
                   placeholder='Casting Time'
-                  id='action'
                   options={builders.spell.action}
                   onChange={setState}
                 />
@@ -175,39 +172,37 @@ const NewSpellForm = () => {
                 name='action.num'
                 label={true}
                 placeholder='Casting Increment'
+                value={state.action?.num ?? ''}
                 required={true}
                 onChange={setState}
               />
               <div className='col-sm'>
                 <Select
-                  name='duration'
-                  id='duration'
+                  name='duration.durationType'
                   placeholder='Duration'
                   options={builders.spell.duration}
                   onChange={setState}
                 />
               </div>
               <Input
-                className={`col-sm ${
+                className={`${
                   state?.duration?.num &&
                   (NUM_REGEX.test(state.duration.num)
                     ? 'is-valid'
                     : 'is-invalid')
                 }`}
-                type='text'
                 name='duration.num'
-                id='duration.num'
                 label={true}
                 invalidText='Must contain only numbers'
                 placeholder='Duration Increment'
                 autoComplete='off'
                 required={true}
+                value={state.duration?.num ?? ''}
                 onChange={setState}
               />
               <div className='col-sm'>
                 <Select
-                  name='origin'
-                  id='origin'
+                  name='origin.originType'
                   placeholder='Origin Point'
                   options={builders.spell.origin}
                   onChange={setState}
@@ -229,15 +224,15 @@ const NewSpellForm = () => {
                       placeholder='Distance'
                       autoComplete='off'
                       required={true}
+                      value={state.origin?.distance ?? ''}
                       onChange={setState}
                     />
                   )}
 
                   <div className='col-sm'>
                     <Select
-                      name='shape'
+                      name='shape.shapeType'
                       placeholder='Shape'
-                      id='shape'
                       options={builders.spell.shape.filter((shape) =>
                         state?.origin && state.origin.value === 'Distance'
                           ? shape.value !== 'Cone' &&
@@ -261,6 +256,7 @@ const NewSpellForm = () => {
                     placeholder='Shape Size'
                     autoComplete='off'
                     required={true}
+                    value={state.shape?.size ?? ''}
                     onChange={setState}
                   />
                 </>
@@ -279,6 +275,8 @@ const NewSpellForm = () => {
                     placeholder='Range'
                     invalidText='Must contain only numbers'
                     label={true}
+                    value={state.range ?? ''}
+                    onChange={setState}
                   />
                 )}
             </div>
@@ -362,7 +360,14 @@ const NewSpellForm = () => {
               ))}
           </div>
           <div className='pb-2'>
-            <button className='btn btn-primary' type='submit'>
+            <button
+              className='btn btn-primary'
+              type='button'
+              onClick={() => {
+                validateForm()
+                onSubmit()
+              }}
+            >
               Add Spell
             </button>
           </div>

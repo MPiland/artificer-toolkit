@@ -5,6 +5,7 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
     getSpell: builder.query({
       query: (id) => ({
         url: `/spell/${id}`,
+        method: 'GET',
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
@@ -12,10 +13,10 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
       providesTags: (result, error, id) => [{ type: 'Spell', id: 'LIST' }],
     }),
     addNewSpell: builder.mutation({
-      query: (initialNoteData) => ({
+      query: (initialSpellData) => ({
         url: '/spell',
         method: 'POST',
-        body: { ...initialNoteData },
+        body: { ...initialSpellData },
       }),
       invalidatesTags: [{ type: 'Spell', id: 'LIST' }],
     }),

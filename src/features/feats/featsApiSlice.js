@@ -5,6 +5,7 @@ export const featsApiSlice = apiSlice.injectEndpoints({
     getFeat: builder.query({
       query: (id) => ({
         url: `/feat/${id}`,
+        method: 'GET',
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
@@ -12,10 +13,10 @@ export const featsApiSlice = apiSlice.injectEndpoints({
       providesTags: (result, error, id) => [{ type: 'Feat', id: 'LIST' }],
     }),
     addNewFeat: builder.mutation({
-      query: (initialNoteData) => ({
+      query: (initialFeatData) => ({
         url: '/feat',
         method: 'POST',
-        body: { ...initialNoteData },
+        body: { ...initialFeatData },
       }),
       invalidatesTags: [{ type: 'Feat', id: 'LIST' }],
     }),

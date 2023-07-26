@@ -15,6 +15,7 @@ const Input = ({
   onClick,
   border,
   size,
+  value,
 }) => {
   const inputRef = useRef(null)
 
@@ -42,6 +43,7 @@ const Input = ({
         required={required}
         autoComplete={autoComplete}
         disabled={disabled}
+        value={value}
         onChange={(e) => onChange({ payload: e })}
         onClick={(e) => {
           onClick && onClick(e)

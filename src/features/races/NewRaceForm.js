@@ -67,10 +67,20 @@ const NewRaceForm = () => {
   useEffect(() => {
     if (addSuccess) {
       setSuccessMessage('Race added successfully!')
+      setState({
+        type: 'reset',
+        payload: { target: { name: 'userId', value: id } },
+      })
     }
   }, [addSuccess, id])
 
   function validateForm() {}
+
+  console.log(state)
+
+  const onSubmit = async () => {
+    await addNewRace(state)
+  }
 
   let content
 
@@ -80,20 +90,18 @@ const NewRaceForm = () => {
 
   if (builderSuccess && spellSuccess && featSuccess && raceSuccess) {
     // Submit to databases
-    const onSubmit = async () => {
-      await addNewRace(state)
-    }
-
-    console.log(state)
 
     const sections = [
       {
         name: 'feat',
         content(feature, featureIndex, item, index) {
+          const multipleOptions = feature.attribute?.some(
+            (attributeItem) => attributeItem.name === 'providesOptions'
+          )
           return (
             <>
               <div className='pb-3 row justify-content-between'>
-                <div className='col-3'>
+                <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
                     type='button'
@@ -118,6 +126,7 @@ const NewRaceForm = () => {
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
+                    value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -126,10 +135,10 @@ const NewRaceForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
-                    multiple={feature?.attribute?.some(
-                      (attribute) => attribute.name === 'providesOptions'
-                    )}
+                    name={`feature.${featureIndex}.${this.name}.${index}.feat${
+                      multipleOptions && '.options'
+                    }`}
+                    multiple={multipleOptions}
                     placeholder='Feat'
                     options={feats}
                     onChange={setState}
@@ -143,10 +152,13 @@ const NewRaceForm = () => {
       {
         name: 'modifier',
         content(feature, featureIndex, item, index) {
+          const multipleOptions = feature.attribute?.some(
+            (attributeItem) => attributeItem.name === 'providesOptions'
+          )
           return (
             <>
               <div className='pb-3 row justify-content-between'>
-                <div className='col-3'>
+                <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
                     type='button'
@@ -171,6 +183,7 @@ const NewRaceForm = () => {
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
+                    value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -208,148 +221,134 @@ const NewRaceForm = () => {
                   item.modType?.name === 'disadvantage' ||
                   item.modType?.name === 'setValue') && (
                   <>
-                    {item.module?.name === 'ability' ||
-                    item.module?.name === 'saveAbility' ? (
+                    {item.module?.name === 'ability' && (
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.${this.name}.${index}.ability`}
-                          multiple={feature?.attribute?.some(
-                            (attribute) => attribute.name === 'providesOptions'
-                          )}
+                          name={`feature.${featureIndex}.${
+                            this.name
+                          }.${index}.ability${multipleOptions && '.options'}`}
+                          multiple={multipleOptions}
                           placeholder='Ability'
                           options={builders.ability}
                           onChange={setState}
                         />
                       </div>
-                    ) : (
-                      item.module?.name === 'skill' && (
-                        <div className='col-sm'>
-                          <Select
-                            name={`feature.${featureIndex}.${this.name}.${index}.skill`}
-                            multiple={feature?.attribute?.some(
-                              (attribute) =>
-                                attribute.name === 'providesOptions'
-                            )}
-                            placeholder='Skill'
-                            options={builders.skill}
-                            onChange={setState}
-                          />
-                        </div>
-                      )
                     )}
-                    {(item.modType?.name === 'bonus' ||
-                      item.modType?.name === 'penalty') &&
-                      item.modType?.name !== 'setValue' && (
-                        <div className='col-sm'>
-                          <Select
-                            name={`feature.${featureIndex}.${this.name}.${index}.method`}
-                            placeholder='Method'
-                            options={builders.modifier.method.filter(
-                              (methodItem) =>
-                                methodItem.module.some(
-                                  (moduleItem) =>
-                                    moduleItem.id === item.module?.id
-                                )
-                            )}
-                            onChange={setState}
-                          />
-                        </div>
-                      )}
-                  </>
-                )}
-                <>
-                  {item.module?.name === 'condition' ? (
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.condition`}
-                        multiple={feature?.attribute?.some(
-                          (attribute) => attribute.name === 'providesOptions'
-                        )}
-                        placeholder='Condition Type'
-                        options={builders.condition}
-                        onChange={setState}
-                      />
-                    </div>
-                  ) : item.module?.name === 'speed' ? (
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.speed`}
-                        multiple={feature?.attribute?.some(
-                          (attribute) => attribute.name === 'providesOptions'
-                        )}
-                        placeholder='Speed Type'
-                        options={builders.speed}
-                        onChange={setState}
-                      />
-                    </div>
-                  ) : item.module?.name === 'passive' ? (
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.speed`}
-                        multiple={feature?.attribute?.some(
-                          (attribute) => attribute.name === 'providesOptions'
-                        )}
-                        placeholder='Passive Type'
-                        options={builders.passive}
-                        onChange={setState}
-                      />
-                    </div>
-                  ) : (
-                    item.module?.name === 'damage' && (
+                    {item.module?.name === 'saveAbility' && (
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.${this.name}.${index}.damage.damageType`}
-                          multiple={feature?.attribute?.some(
-                            (attribute) => attribute.name === 'providesOptions'
-                          )}
-                          placeholder='Damage Type'
-                          options={builders.damage}
+                          name={`feature.${featureIndex}.${
+                            this.name
+                          }.${index}.saveAbility${
+                            multipleOptions && '.options'
+                          }`}
+                          multiple={multipleOptions}
+                          placeholder='Ability'
+                          options={builders.ability}
                           onChange={setState}
                         />
                       </div>
-                    )
-                  )}
-                  {item.method?.name === 'setValue' ||
-                  item.modType?.name === 'setValue' ? (
-                    <>
-                      <Input
-                        className={`${
-                          item.method?.setValue &&
-                          (NUM_REGEX.test(item.method.setValue)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                        label={true}
-                        placeholder='Set Value'
-                        autoComplete='off'
-                        invalidText='Must contain only numbers'
-                        onChange={setState}
-                      />
-                    </>
-                  ) : item.method?.name === 'ability' ? (
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
-                        placeholder='Method Ability'
-                        options={builders.ability}
-                        onChange={setState}
-                      />
-                    </div>
-                  ) : (
-                    item.method?.name === 'skill' && (
+                    )}
+                    {item.module?.name === 'skill' && (
                       <div className='col-sm'>
                         <Select
-                          name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
-                          placeholder='Method Skill'
+                          name={`feature.${featureIndex}.${
+                            this.name
+                          }.${index}.skill${multipleOptions && '.options'}`}
+                          multiple={multipleOptions}
+                          placeholder='Skill'
                           options={builders.skill}
                           onChange={setState}
                         />
                       </div>
-                    )
+                    )}
+                  </>
+                )}
+                {(item.modType?.name === 'bonus' ||
+                  item.modType?.name === 'penalty') &&
+                  item.modType?.name !== 'setValue' && (
+                    <div className='col-sm'>
+                      <Select
+                        name={`feature.${featureIndex}.${this.name}.${index}.method`}
+                        placeholder='Method'
+                        options={builders.modifier.method.filter((methodItem) =>
+                          methodItem.module.some(
+                            (moduleItem) => moduleItem.id === item.module?.id
+                          )
+                        )}
+                        onChange={setState}
+                      />
+                    </div>
                   )}
-                  {(item.method?.name === 'setValue' ||
-                    item.modType?.name !== 'setValue') && (
+                {item.module?.name === 'condition' ? (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.condition${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
+                      placeholder='Condition Type'
+                      options={builders.condition}
+                      onChange={setState}
+                    />
+                  </div>
+                ) : item.module?.name === 'speed' ? (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.speed${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
+                      placeholder='Speed Type'
+                      options={builders.speed}
+                      onChange={setState}
+                    />
+                  </div>
+                ) : item.module?.name === 'passive' ? (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.speed${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
+                      placeholder='Passive Type'
+                      options={builders.passive}
+                      onChange={setState}
+                    />
+                  </div>
+                ) : (
+                  item.module?.name === 'damage' && (
+                    <div className='col-sm'>
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.damage${multipleOptions && '.options'}`}
+                        multiple={multipleOptions}
+                        placeholder='Damage Type'
+                        options={builders.damage}
+                        onChange={setState}
+                      />
+                    </div>
+                  )
+                )}
+                {item.method?.name === 'setValue' ||
+                item.modType?.name === 'setValue' ? (
+                  <>
+                    <Input
+                      className={`${
+                        item.method?.setValue &&
+                        (NUM_REGEX.test(item.method.setValue)
+                          ? 'is-valid'
+                          : 'is-invalid')
+                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
+                      placeholder='Set Value'
+                      label={true}
+                      invalidText='Must contain only numbers'
+                      autoComplete='off'
+                      value={item.method?.setValue ?? ''}
+                      onChange={setState}
+                    />
                     <div className='col-sm'>
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
@@ -358,23 +357,42 @@ const NewRaceForm = () => {
                         onChange={setState}
                       />
                     </div>
-                  )}
-                  {(item.modType?.name === 'bonus' ||
-                    item.modType?.name === 'setValue') &&
-                    item.module?.name === 'ability' && (
-                      <div className='col-sm'>
-                        <Select
-                          name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                          placeholder='Exceeds Max'
-                          options={[
-                            { name: true, value: 'Yes' },
-                            { name: false, value: 'No' },
-                          ]}
-                          onChange={setState}
-                        />
-                      </div>
-                    )}
-                </>
+                  </>
+                ) : item.method?.name === 'ability' ? (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
+                      placeholder='Method Ability'
+                      options={builders.ability}
+                      onChange={setState}
+                    />
+                  </div>
+                ) : (
+                  item.method?.name === 'skill' && (
+                    <div className='col-sm'>
+                      <Select
+                        name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
+                        placeholder='Method Skill'
+                        options={builders.skill}
+                        onChange={setState}
+                      />
+                    </div>
+                  )
+                )}
+                {(item.modType?.name === 'bonus' ||
+                  item.modType?.name === 'setValue') && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                      placeholder='Exceeds Max'
+                      options={[
+                        { name: true, value: 'Yes' },
+                        { name: false, value: 'No' },
+                      ]}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )
@@ -383,10 +401,13 @@ const NewRaceForm = () => {
       {
         name: 'proficiency',
         content(feature, featureIndex, item, index) {
+          const multipleOptions = feature.attribute?.some(
+            (attributeItem) => attributeItem.name === 'providesOptions'
+          )
           return (
             <>
               <div className='pb-3 row justify-content-between'>
-                <div className='col-3'>
+                <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
                     type='button'
@@ -402,7 +423,7 @@ const NewRaceForm = () => {
                   <Input
                     size='col-sm-2'
                     className={`${
-                      item?.optionGroup &&
+                      item.optionGroup &&
                       (NUM_REGEX.test(item?.optionGroup)
                         ? 'is-valid'
                         : 'is-invalid')
@@ -411,6 +432,7 @@ const NewRaceForm = () => {
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
+                    value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -428,10 +450,10 @@ const NewRaceForm = () => {
                 {item?.area?.name === 'skill' && (
                   <div className='col-sm'>
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.area.skill`}
-                      multiple={feature?.attribute?.some(
-                        (attribute) => attribute.name === 'providesOptions'
-                      )}
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.area.skill${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
                       placeholder='Skill'
                       options={builders.skill}
                       onChange={setState}
@@ -441,10 +463,12 @@ const NewRaceForm = () => {
                 {item?.area?.name === 'saveAbility' && (
                   <div className='col-sm'>
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.area.saveAbility`}
-                      multiple={feature?.attribute?.some(
-                        (attribute) => attribute.name === 'providesOptions'
-                      )}
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.area.saveAbility${
+                        multipleOptions && '.options'
+                      }`}
+                      multiple={multipleOptions}
                       placeholder='Save Ability'
                       options={builders.ability}
                       onChange={setState}
@@ -454,10 +478,10 @@ const NewRaceForm = () => {
                 {item?.area?.name === 'tool' && (
                   <div className='col-sm'>
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.area.tool`}
-                      multiple={feature?.attribute?.some(
-                        (attribute) => attribute.name === 'providesOptions'
-                      )}
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.area.tool${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
                       placeholder='Tool'
                       options={builders.tool}
                       onChange={setState}
@@ -467,12 +491,46 @@ const NewRaceForm = () => {
                 {item?.area?.name === 'language' && (
                   <div className='col-sm'>
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.area.language`}
-                      multiple={feature?.attribute?.some(
-                        (attribute) => attribute.name === 'providesOptions'
-                      )}
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.area.language${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
                       placeholder='Language'
                       options={builders.language}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+                {item.area?.name === 'itemType' && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemType${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
+                      placeholder='Item Type'
+                      options={[].concat(
+                        ...builders.item.itemCategory.map(
+                          (categoryItem) => categoryItem.itemType
+                        )
+                      )}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
+                {item.area?.name === 'itemProperty' && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemProperty${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
+                      placeholder='Item Property'
+                      options={[].concat(
+                        ...builders.item.itemCategory.map(
+                          (categoryItem) => categoryItem.itemProperty
+                        )
+                      )}
                       onChange={setState}
                     />
                   </div>
@@ -493,10 +551,13 @@ const NewRaceForm = () => {
       {
         name: 'sense',
         content(feature, featureIndex, item, index) {
+          const multipleOptions = feature.attribute?.some(
+            (attributeItem) => attributeItem.name === 'providesOptions'
+          )
           return (
             <>
               <div className='pb-3 row justify-content-between'>
-                <div className='col-3'>
+                <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
                     type='button'
@@ -507,7 +568,7 @@ const NewRaceForm = () => {
                   </button>
                 </div>
                 {feature.attribute?.some(
-                  (item) => item.name === 'optionGroups'
+                  (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
                     size='col-sm-2'
@@ -521,6 +582,7 @@ const NewRaceForm = () => {
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
+                    value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -529,10 +591,10 @@ const NewRaceForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
-                    multiple={feature?.attribute?.some(
-                      (attribute) => attribute.name === 'providesOptions'
-                    )}
+                    name={`feature.${featureIndex}.${this.name}.${index}.sense${
+                      multipleOptions && '.options'
+                    }`}
+                    multiple={multipleOptions}
                     placeholder='Sense'
                     options={builders.sense}
                     onChange={setState}
@@ -546,10 +608,13 @@ const NewRaceForm = () => {
       {
         name: 'spell',
         content(feature, featureIndex, item, index) {
+          const multipleOptions = feature.attribute?.some(
+            (attributeItem) => attributeItem.name === 'providesOptions'
+          )
           return (
             <>
               <div className='pb-3 row justify-content-between'>
-                <div className='col-3'>
+                <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
                     type='button'
@@ -560,7 +625,7 @@ const NewRaceForm = () => {
                   </button>
                 </div>
                 {feature.attribute?.some(
-                  (item) => item.name === 'optionGroups'
+                  (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
                     size='col-sm-2'
@@ -574,6 +639,7 @@ const NewRaceForm = () => {
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
+                    value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -585,21 +651,36 @@ const NewRaceForm = () => {
                     multiple='true'
                     name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                     options={builders.feat.feature.spell.attribute}
-                    placeholder='Feature Attributes'
+                    placeholder='Spell Attributes'
                     onChange={setState}
                   />
                 </div>
                 <div className='col-sm'>
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}`}
-                    multiple={feature?.attribute?.some(
-                      (attribute) => attribute.name === 'providesOptions'
-                    )}
+                    name={`feature.${featureIndex}.${this.name}.${index}${
+                      multipleOptions && '.options'
+                    }`}
+                    multiple={multipleOptions}
                     placeholder='Spell'
                     options={spells}
                     onChange={setState}
                   />
                 </div>
+                {item.attribute?.some(
+                  (attributeItem) => attributeItem.name === 'optionalAbility'
+                ) && (
+                  <div className='col-sm'>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.ability${multipleOptions && 'options'}`}
+                      multiple={multipleOptions}
+                      placeholder='Ability'
+                      options={builders.ability}
+                      onChange={setState}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )
@@ -608,8 +689,8 @@ const NewRaceForm = () => {
     ]
 
     const featureContent =
-      state?.feature?.length !== 0 &&
-      state?.feature?.map((feature, featureIndex) => (
+      state.feature?.length !== 0 &&
+      state.feature?.map((featureItem, featureIndex) => (
         <div key={featureIndex} className='accordion' id='featureAccordion'>
           <div className='accordion-item'>
             <div className='accordion-header'>
@@ -624,6 +705,7 @@ const NewRaceForm = () => {
                   autoComplete='off'
                   placeholder='Feature Name'
                   required={true}
+                  value={featureItem.value ?? ''}
                   onChange={setState}
                   onClick={(e) => e.stopPropagation()}
                 />
@@ -646,16 +728,16 @@ const NewRaceForm = () => {
                       Remove Feature
                     </button>
                   </div>
-                  {sections.map((section, sectionIndex) => (
+                  {sections.map((sectionItem, sectionIndex) => (
                     <div key={sectionIndex} className='col-auto'>
                       <button
                         key={sectionIndex}
                         className='btn btn-secondary'
                         type='button'
-                        name={`feature.${featureIndex}.${section.name}`}
+                        name={`feature.${featureIndex}.${sectionItem.name}`}
                         onClick={(e) => setState({ type: 'added', payload: e })}
                       >
-                        {`Add ${startCase(section.name)}`}
+                        {`Add ${startCase(sectionItem.name)}`}
                       </button>
                     </div>
                   ))}
@@ -677,8 +759,8 @@ const NewRaceForm = () => {
                       onChange={setState}
                     />
                   </div>
-                  {feature.attribute?.some(
-                    (item) => item.name === 'ancestrySpecific'
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'ancestrySpecific'
                   ) && (
                     <div className='col-sm'>
                       <Select
@@ -690,8 +772,8 @@ const NewRaceForm = () => {
                       />
                     </div>
                   )}
-                  {feature.attribute?.some(
-                    (item) => item.name === 'hasRequirements'
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'hasRequirements'
                   ) ? (
                     <div className='col-sm'>
                       <Select
@@ -703,7 +785,7 @@ const NewRaceForm = () => {
                       />
                     </div>
                   ) : (
-                    !!feature.requirement &&
+                    !!featureItem.requirement &&
                     setState({
                       action: 'removed',
                       payload: {
@@ -713,8 +795,8 @@ const NewRaceForm = () => {
                       },
                     })
                   )}
-                  {feature.requirement?.option.some(
-                    (item) => item.name === 'skillProficiency'
+                  {featureItem.requirement?.option.some(
+                    (optionItem) => optionItem.name === 'skillProficiency'
                   ) ? (
                     <div className='col-sm'>
                       <Select
@@ -726,7 +808,7 @@ const NewRaceForm = () => {
                       />
                     </div>
                   ) : (
-                    !!feature.requirement?.skillProficiency &&
+                    !!featureItem.requirement?.skillProficiency &&
                     setState({
                       action: 'removed',
                       payload: {
@@ -736,8 +818,8 @@ const NewRaceForm = () => {
                       },
                     })
                   )}
-                  {feature.requirement?.option.some(
-                    (item) => item.name === 'itemProficiency'
+                  {featureItem.requirement?.option.some(
+                    (optionItem) => optionItem.name === 'itemProficiency'
                   ) ? (
                     <>
                       <div className='col-sm'>
@@ -754,11 +836,11 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
                           options={[].concat(
-                            ...builders?.item.itemCategory
+                            ...builders.item.itemCategory
                               .filter((itemCategory) =>
-                                feature?.requirement?.itemCategory?.some(
-                                  (category) =>
-                                    itemCategory._id.includes(category.id)
+                                featureItem.requirement?.itemCategory?.some(
+                                  (categoryItem) =>
+                                    itemCategory._id.includes(categoryItem.id)
                                 )
                               )
                               .map((filteredItem) => filteredItem.itemType)
@@ -771,11 +853,11 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
                           options={[].concat(
-                            ...builders?.item.itemCategory
+                            ...builders.item.itemCategory
                               .filter((itemCategory) =>
-                                feature?.requirement?.itemCategory?.some(
-                                  (category) =>
-                                    itemCategory._id.includes(category.id)
+                                featureItem.requirement?.itemCategory?.some(
+                                  (categoryItem) =>
+                                    itemCategory._id.includes(categoryItem.id)
                                 )
                               )
                               .map((filteredItem) => filteredItem.itemProperty)
@@ -785,7 +867,7 @@ const NewRaceForm = () => {
                       </div>
                     </>
                   ) : (
-                    !!feature.requirement?.itemProficiency &&
+                    !!featureItem.requirement?.itemProficiency &&
                     setState({
                       action: 'removed',
                       payload: {
@@ -795,8 +877,8 @@ const NewRaceForm = () => {
                       },
                     })
                   )}
-                  {feature?.attribute?.some(
-                    (item) => item.name === 'limitUse'
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'limitUse'
                   ) ? (
                     <>
                       <div className='col-sm'>
@@ -807,7 +889,7 @@ const NewRaceForm = () => {
                           onChange={setState}
                         />
                       </div>
-                      {feature.limitUse?.limitBy?.name === 'ability' ? (
+                      {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                         <div className='col-sm'>
                           <Select
                             name={`feature.${featureIndex}.limitUse.ability`}
@@ -816,7 +898,7 @@ const NewRaceForm = () => {
                             onChange={setState}
                           />
                         </div>
-                      ) : feature.limitUse?.limitBy?.name === 'skill' ? (
+                      ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                         <div className='col-sm'>
                           <Select
                             name={`feature.${featureIndex}.limitUse.skill`}
@@ -826,11 +908,11 @@ const NewRaceForm = () => {
                           />
                         </div>
                       ) : (
-                        feature.limitUse?.limitBy?.name === 'setNumber' && (
+                        featureItem.limitUse?.limitBy?.name === 'setNumber' && (
                           <Input
                             className={`${
-                              feature.limitUse?.setAmount &&
-                              (NUM_REGEX.test(feature.limitUse?.setAmount)
+                              featureItem.limitUse?.setAmount &&
+                              (NUM_REGEX.test(featureItem.limitUse?.setAmount)
                                 ? 'is-valid'
                                 : 'is-invalid')
                             }`}
@@ -839,6 +921,7 @@ const NewRaceForm = () => {
                             label={true}
                             invalidText='Must contain only numbers'
                             placeholder='Use Amount'
+                            value={featureItem.limitUse.setAmount ?? ''}
                             required={true}
                             onChange={setState}
                           />
@@ -854,7 +937,7 @@ const NewRaceForm = () => {
                       </div>
                     </>
                   ) : (
-                    !!feature.limitUse &&
+                    !!featureItem.limitUse &&
                     setState({
                       action: 'removed',
                       payload: {
@@ -864,8 +947,8 @@ const NewRaceForm = () => {
                       },
                     })
                   )}
-                  {feature?.attribute?.some(
-                    (item) => item.name === 'isAction'
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'isAction'
                   ) ? (
                     <>
                       <div className='col-sm'>
@@ -878,7 +961,7 @@ const NewRaceForm = () => {
                       </div>
                     </>
                   ) : (
-                    !!feature.action &&
+                    !!featureItem.action &&
                     setState({
                       action: 'removed',
                       payload: {
@@ -888,14 +971,14 @@ const NewRaceForm = () => {
                       },
                     })
                   )}
-                  {feature?.attribute?.some(
-                    (item) => item.name === 'hasRange'
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'hasRange'
                   ) ? (
                     <>
                       <Input
                         className={`${
-                          feature.range?.minRange &&
-                          (NUM_REGEX.test(feature.range?.minRange)
+                          featureItem.range?.minRange &&
+                          (NUM_REGEX.test(featureItem.range?.minRange)
                             ? 'is-valid'
                             : 'is-invalid')
                         }`}
@@ -904,13 +987,14 @@ const NewRaceForm = () => {
                         label={true}
                         placeholder='Min Range'
                         required={true}
+                        value={featureItem.range.minRange ?? ''}
                         invalidText='Must contain only numbers'
                         onChange={setState}
                       />
                       <Input
                         className={`${
-                          feature.range?.maxRange &&
-                          (NUM_REGEX.test(feature.range?.maxRange)
+                          featureItem.range?.maxRange &&
+                          (NUM_REGEX.test(featureItem.range?.maxRange)
                             ? 'is-valid'
                             : 'is-invalid')
                         }`}
@@ -920,11 +1004,12 @@ const NewRaceForm = () => {
                         placeholder='Max Range'
                         required={true}
                         invalidText='Must contain only numbers'
+                        value={featureItem.range.maxRange ?? ''}
                         onChange={setState}
                       />
                     </>
                   ) : (
-                    !!feature.saveAbility &&
+                    !!featureItem.saveAbility &&
                     setState({
                       action: 'removed',
                       payload: {
@@ -934,8 +1019,8 @@ const NewRaceForm = () => {
                       },
                     })
                   )}
-                  {feature?.attribute?.some(
-                    (item) => item.name === 'requireSave'
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'requireSave'
                   ) ? (
                     <div className='col-sm'>
                       <Select
@@ -946,7 +1031,7 @@ const NewRaceForm = () => {
                       />
                     </div>
                   ) : (
-                    !!feature.saveAbility &&
+                    !!featureItem.saveAbility &&
                     setState({
                       action: 'removed',
                       payload: {
@@ -957,8 +1042,8 @@ const NewRaceForm = () => {
                     })
                   )}
                 </div>
-                {feature.requirement?.option.some(
-                  (item) => item.name === 'equipped'
+                {featureItem.requirement?.option.some(
+                  (optionItem) => optionItem.name === 'equipped'
                 ) ? (
                   <>
                     <AccordionButton
@@ -989,11 +1074,11 @@ const NewRaceForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
                             options={[].concat(
-                              ...builders?.item.itemCategory
+                              ...builders.item.itemCategory
                                 .filter((itemCategory) =>
-                                  feature?.requirement?.equipped?.itemCategory?.some(
-                                    (category) =>
-                                      itemCategory._id.includes(category.id)
+                                  featureItem.requirement?.equipped?.itemCategory?.some(
+                                    (categoryItem) =>
+                                      itemCategory._id.includes(categoryItem.id)
                                   )
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
@@ -1007,11 +1092,11 @@ const NewRaceForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
                             options={[].concat(
-                              ...builders?.item.itemCategory
+                              ...builders.item.itemCategory
                                 .filter((itemCategory) =>
-                                  feature?.requirement?.equipped?.itemCategory?.some(
-                                    (category) =>
-                                      itemCategory._id.includes(category.id)
+                                  featureItem.requirement?.equipped?.itemCategory?.some(
+                                    (categoryItem) =>
+                                      itemCategory._id.includes(categoryItem.id)
                                   )
                                 )
                                 .map(
@@ -1025,7 +1110,7 @@ const NewRaceForm = () => {
                     </div>
                   </>
                 ) : (
-                  !!feature.requirement?.equipped &&
+                  !!featureItem.requirement?.equipped &&
                   setState({
                     action: 'removed',
                     payload: {
@@ -1035,8 +1120,8 @@ const NewRaceForm = () => {
                     },
                   })
                 )}
-                {feature?.requirement?.option.some(
-                  (item) => item.name === 'notEquipped'
+                {featureItem.requirement?.option.some(
+                  (optionItem) => optionItem.name === 'notEquipped'
                 ) ? (
                   <>
                     <AccordionButton
@@ -1067,11 +1152,11 @@ const NewRaceForm = () => {
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
                             options={[].concat(
-                              ...builders?.item.itemCategory
+                              ...builders.item.itemCategory
                                 .filter((itemCategory) =>
-                                  feature?.requirement?.notEquipped?.itemCategory?.some(
-                                    (category) =>
-                                      itemCategory._id.includes(category.id)
+                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
+                                    (categoryItem) =>
+                                      itemCategory._id.includes(categoryItem.id)
                                   )
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
@@ -1085,11 +1170,11 @@ const NewRaceForm = () => {
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             placeholder='Item Property'
                             options={[].concat(
-                              ...builders?.item.itemCategory
+                              ...builders.item.itemCategory
                                 .filter((itemCategory) =>
-                                  feature?.requirement?.notEquipped?.itemCategory?.some(
-                                    (category) =>
-                                      itemCategory._id.includes(category.id)
+                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
+                                    (categoryItem) =>
+                                      itemCategory._id.includes(categoryItem.id)
                                   )
                                 )
                                 .map(
@@ -1103,7 +1188,7 @@ const NewRaceForm = () => {
                     </div>
                   </>
                 ) : (
-                  !!feature.requirement?.notEquipped &&
+                  !!featureItem.requirement?.notEquipped &&
                   setState({
                     action: 'removed',
                     payload: {
@@ -1113,11 +1198,11 @@ const NewRaceForm = () => {
                     },
                   })
                 )}
-                {feature.limitUse?.limitBy?.name === 'level' &&
-                  feature?.attribute?.some(
-                    (item) => item.name === 'limitUse'
+                {featureItem.limitUse?.limitBy?.name === 'level' &&
+                  featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'limitUse'
                   ) &&
-                  (feature.limitUse.level ??
+                  (featureItem.limitUse.level ??
                     setState({
                       type: 'added',
                       payload: {
@@ -1144,15 +1229,15 @@ const NewRaceForm = () => {
                           },
                         ]}
                         name={`feature.${featureIndex}.limitUse.level`}
-                        state={feature?.limitUse?.level}
+                        state={featureItem.limitUse?.level}
                         onChange={setState}
                       />
                     </div>
                   )}
-                {feature?.attribute?.some(
-                  (item) => item.name === 'doesDamage'
+                {featureItem.attribute?.some(
+                  (attributeItem) => attributeItem.name === 'doesDamage'
                 ) ? (
-                  !feature?.damage?.damageByLevel ? (
+                  !featureItem.damage?.damageByLevel ? (
                     setState({
                       type: 'added',
                       payload: {
@@ -1207,14 +1292,14 @@ const NewRaceForm = () => {
                             },
                           ]}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
-                          state={feature?.damage.damageByLevel}
+                          state={featureItem.damage.damageByLevel}
                           onChange={setState}
                         />
                       </div>
                     </div>
                   )
                 ) : (
-                  !!feature.damage &&
+                  !!featureItem.damage &&
                   setState({
                     action: 'removed',
                     payload: {
@@ -1226,28 +1311,28 @@ const NewRaceForm = () => {
                 )}
                 <div className='accordion' id='sectionAccordion'>
                   {sections.map(
-                    (section, sectionIndex) =>
-                      !!feature[section.name] &&
-                      feature[section.name].map((item, itemIndex) => (
+                    (sectionItem, sectionIndex) =>
+                      !!featureItem[sectionItem.name] &&
+                      featureItem[sectionItem.name].map((item, itemIndex) => (
                         <div key={itemIndex} className='accordion-item'>
                           <div className='accordion-header'>
                             <AccordionButton
-                              id={`${section.name}${itemIndex}AccordionButton`}
-                              target={`${section.name}${itemIndex}AccordionBody`}
+                              id={`${sectionItem.name}${itemIndex}AccordionButton`}
+                              target={`${sectionItem.name}${itemIndex}AccordionBody`}
                             >
-                              <h6>{`${startCase(section.name)} ${
+                              <h6>{`${startCase(sectionItem.name)} ${
                                 itemIndex + 1
                               }`}</h6>
                             </AccordionButton>
                           </div>
                           <div
                             className='accordion-collapse collapse show'
-                            id={`${section.name}${itemIndex}AccordionBody`}
+                            id={`${sectionItem.name}${itemIndex}AccordionBody`}
                             data-bs-parent='#sectionAccordion'
                           >
                             <div className='accordion-body'>
-                              {section.content(
-                                feature,
+                              {sectionItem.content(
+                                featureItem,
                                 featureIndex,
                                 item,
                                 itemIndex
@@ -1270,22 +1355,16 @@ const NewRaceForm = () => {
         {successMessage && (
           <h3 className='add-success-message'>{successMessage}</h3>
         )}
-        <form
-          className='needs-validation'
-          onSubmit={() => {
-            validateForm()
-            onSubmit()
-          }}
-          noValidate
-        >
+        <form className='needs-validation' noValidate>
           <div className='row row-cols-lg row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
             <Input
               size='col-lg-4'
-              name='name'
+              name='value'
               label={true}
               autoComplete='off'
               placeholder='Race Name'
-              required
+              required={true}
+              value={state.value ?? ''}
               onChange={setState}
             />
             <div className='col-lg-4 col-sm'>
@@ -1335,22 +1414,23 @@ const NewRaceForm = () => {
               </button>
             </div>
             <div className='accordion' id='detailsSectionAccordion'>
-              {state?.details?.map((_, index) => (
-                <div key={index}>
+              {state.details?.map((detailItem, detailIndex) => (
+                <div key={detailIndex}>
                   <div className='accordion-item'>
                     <div className='accordion-header'>
                       <AccordionButton
-                        id={`details.${index}AccordionButton`}
-                        target={`details.${index}AccordionBody`}
-                        key={index}
+                        id={`details.${detailIndex}AccordionButton`}
+                        target={`details.${detailIndex}AccordionBody`}
+                        key={detailIndex}
                       >
                         <Input
                           size='col-sm-4'
-                          name={`details.${index}.title`}
+                          name={`details.${detailIndex}.title`}
                           border={false}
                           autoComplete='off'
                           placeholder='Section Title'
-                          required
+                          label={true}
+                          value={detailItem.title ?? ''}
                           onChange={setState}
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -1358,7 +1438,7 @@ const NewRaceForm = () => {
                     </div>
                     <div
                       className='accordion-collapse collapse show'
-                      id={`details.${index}AccordionBody`}
+                      id={`details.${detailIndex}AccordionBody`}
                       data-bs-parent='#detailsSectionAccordion'
                     >
                       <div className='accordion-body'>
@@ -1366,7 +1446,7 @@ const NewRaceForm = () => {
                           <button
                             className='btn btn-outline-primary overflow-hidden text-nowrap'
                             type='button'
-                            name={`details.${index}`}
+                            name={`details.${detailIndex}`}
                             onClick={(e) =>
                               setState({ type: 'removed', payload: e })
                             }
@@ -1378,7 +1458,7 @@ const NewRaceForm = () => {
                           <TextEditor
                             onChange={setState}
                             placeholder={'Section Text'}
-                            name={`details.${index}.text`}
+                            name={`details.${detailIndex}.text`}
                           />
                         </div>
                       </div>
@@ -1436,7 +1516,9 @@ const NewRaceForm = () => {
                 />
               </div>
             </div>
-            {state.attribute?.some((item) => item.name === 'walking') && (
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'walking'
+            ) && (
               <div className='row g-2 pb-2'>
                 <Input
                   size='col-lg-3 col-md-4 col-sm-12'
@@ -1450,6 +1532,7 @@ const NewRaceForm = () => {
                   placeholder='Walking Speed'
                   label={true}
                   invalidText='Must contain only numbers'
+                  value={state.speed.climbing.value ?? ''}
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1463,7 +1546,9 @@ const NewRaceForm = () => {
                 </div>
               </div>
             )}
-            {state.attribute?.some((item) => item.name === 'climbing') && (
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'climbing'
+            ) && (
               <div className='row g-2 pb-2'>
                 <Input
                   size='col-lg-3 col-md-4 col-sm-12'
@@ -1477,6 +1562,7 @@ const NewRaceForm = () => {
                   placeholder='Climbing Speed'
                   label={true}
                   invalidText='Must contain only numbers'
+                  value={state.speed.climbing.value ?? ''}
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1490,7 +1576,9 @@ const NewRaceForm = () => {
                 </div>
               </div>
             )}
-            {state.attribute?.some((item) => item.name === 'swimming') && (
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'swimming'
+            ) && (
               <div className='row g-2 pb-2'>
                 <Input
                   size='col-lg-3 col-md-4 col-sm-12'
@@ -1504,6 +1592,7 @@ const NewRaceForm = () => {
                   placeholder='Swimming Speed'
                   label={true}
                   invalidText='Must contain only numbers'
+                  value={state.speed.swimming.value ?? ''}
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1517,7 +1606,9 @@ const NewRaceForm = () => {
                 </div>
               </div>
             )}
-            {state.attribute?.some((item) => item.name === 'flying') && (
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'flying'
+            ) && (
               <div className='row g-2 pb-2'>
                 <Input
                   size='col-lg-3 col-md-4 col-sm-12'
@@ -1531,6 +1622,7 @@ const NewRaceForm = () => {
                   placeholder='Flying Speed'
                   label={true}
                   invalidText='Must contain only numbers'
+                  value={state.speed.flying.value ?? ''}
                   onChange={setState}
                 />
                 <div className='col-sm'>
@@ -1545,7 +1637,9 @@ const NewRaceForm = () => {
               </div>
             )}
           </div>
-          {state.attribute?.some((item) => item.name === 'ancestryOptions') ? (
+          {state.attribute?.some(
+            (attributeItem) => attributeItem.name === 'ancestryOptions'
+          ) ? (
             !state.ancestry ? (
               setState({
                 type: 'added',
@@ -1611,7 +1705,14 @@ const NewRaceForm = () => {
             >
               Add Feature
             </button>
-            <button className='btn btn-primary' type='submit'>
+            <button
+              className='btn btn-primary'
+              type='button'
+              onClick={() => {
+                validateForm()
+                onSubmit()
+              }}
+            >
               Add Item
             </button>
           </div>
