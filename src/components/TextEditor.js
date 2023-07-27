@@ -211,7 +211,14 @@ const MenuBar = ({ editor, noMenuBar }) => {
   )
 }
 
-const TextEditor = ({ onChange, placeholder, name, className, noMenuBar }) => {
+const TextEditor = ({
+  onChange,
+  placeholder,
+  name,
+  className,
+  noMenuBar,
+  state,
+}) => {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -233,7 +240,7 @@ const TextEditor = ({ onChange, placeholder, name, className, noMenuBar }) => {
         class: `text-editor-content ${className ?? ''}`,
       },
     },
-    content: '',
+    content: state ?? '',
 
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()

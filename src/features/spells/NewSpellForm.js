@@ -136,7 +136,12 @@ const NewSpellForm = () => {
             className='accordion-collapse collapse show pb-3'
             id='description'
           >
-            <TextEditor id='desc' name={'desc'} onChange={setState} />
+            <TextEditor
+              name='desc'
+              state={state.desc}
+              placeholder='Spell Description'
+              onChange={setState}
+            />
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'

@@ -62,10 +62,23 @@ const NewItemForm = () => {
       setSuccessMessage('Item added successfully!')
       setState({
         type: 'reset',
-        payload: { target: { name: 'userId', value: id } },
+        payload: { target: { userId: id } },
       })
     }
   }, [addSuccess, id])
+
+  useEffect(() => {
+    document.addEventListener('keypress', () => {
+      if (!!successMessage) {
+        setSuccessMessage()
+      }
+    })
+    return document.removeEventListener('keypress', () => {
+      if (!!successMessage) {
+        setSuccessMessage()
+      }
+    })
+  })
 
   function validateForm() {}
 
@@ -312,20 +325,21 @@ const NewItemForm = () => {
                   )
                 )}
                 {(item.modType?.name === 'bonus' ||
-                  item.modType?.name === 'setValue') && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                      placeholder='Exceeds Max'
-                      state={item.exceedMax}
-                      options={[
-                        { name: true, value: 'Yes' },
-                        { name: false, value: 'No' },
-                      ]}
-                      onChange={setState}
-                    />
-                  </div>
-                )}
+                  item.modType?.name === 'setValue') &&
+                  item.module?.name === 'ability' && (
+                    <div className='col-sm'>
+                      <Select
+                        name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                        placeholder='Exceeds Max'
+                        state={item.exceedMax}
+                        options={[
+                          { name: true, value: 'Yes' },
+                          { name: false, value: 'No' },
+                        ]}
+                        onChange={setState}
+                      />
+                    </div>
+                  )}
               </div>
             </>
           )
@@ -590,6 +604,7 @@ const NewItemForm = () => {
                 <div className='pb-3'>
                   <TextEditor
                     placeholder='Feature description'
+                    state={featureItem.desc}
                     name={`feature.${featureIndex}.desc`}
                     onChange={setState}
                   />
@@ -729,7 +744,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
-                          state={featureItem.limitUse.limitBy}
+                          state={featureItem.limitUse?.limitBy}
                           options={builders.item.feature.chargeLimit}
                           onChange={setState}
                         />
@@ -739,7 +754,7 @@ const NewItemForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
-                            state={featureItem.limitUse.ability}
+                            state={featureItem.limitUse?.ability}
                             options={builders.ability}
                             onChange={setState}
                           />
@@ -749,7 +764,7 @@ const NewItemForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
-                            state={featureItem.limitUse.skill}
+                            state={featureItem.limitUse?.skill}
                             options={builders.skill}
                             onChange={setState}
                           />
@@ -768,7 +783,7 @@ const NewItemForm = () => {
                             invalidText='Must contain only numbers'
                             placeholder='Use Amount'
                             required={true}
-                            value={featureItem.limitUse.setAmount ?? ''}
+                            value={featureItem.limitUse?.setAmount ?? ''}
                             onChange={setState}
                           />
                         )
@@ -777,7 +792,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
-                          state={featureItem.limitUse.resetsOn}
+                          state={featureItem.limitUse?.resetsOn}
                           options={builders.item.feature.chargeReset}
                           onChange={setState}
                         />
@@ -1211,6 +1226,8 @@ const NewItemForm = () => {
         </div>
       ))
 
+    console.log(state)
+
     content = (
       <div className='builder-form'>
         <h1>Create an Item</h1>
@@ -1312,15 +1329,23 @@ const NewItemForm = () => {
             <span className='me-3'>Description</span>
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
-          <div
-            className='accordion-collapse collapse show pb-2'
-            id='description'
-          >
-            <TextEditor
-              onChange={setState}
-              placeholder={'Item description'}
-              name={'desc'}
-            />
+          <div className='accordion-collapse collapse show' id='description'>
+            <div className='pb-2'>
+              <TextEditor
+                onChange={setState}
+                state={state.desc}
+                placeholder={'Item description'}
+                name={'desc'}
+              />
+            </div>
+            <div className='pb-2'>
+              <TextEditor
+                onChange={setState}
+                state={state.quote}
+                placeholder={'Item quote'}
+                name={'quote'}
+              />
+            </div>
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'

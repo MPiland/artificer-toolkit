@@ -64,7 +64,7 @@ const NewFeatForm = () => {
       setSuccessMessage('Feat added successfully!')
       setState({
         type: 'reset',
-        payload: { target: { name: 'userId', value: id } },
+        payload: { target: { userId: id } },
       })
     }
   }, [addIsSuccess, id, setState])
@@ -760,6 +760,7 @@ const NewFeatForm = () => {
                 <div className='pb-3'>
                   <TextEditor
                     placeholder='Feature description'
+                    state={featureItem.desc}
                     name={`feature.${featureIndex}.desc`}
                     onChange={setState}
                   />
@@ -1413,9 +1414,10 @@ const NewFeatForm = () => {
           <div className='accordion-collapse collapse show' id='description'>
             <div className='pb-2'>
               <TextEditor
-                onChange={setState}
-                placeholder={'feat Description'}
                 name={'desc'}
+                state={state.desc}
+                placeholder={'feat Description'}
+                onChange={setState}
               />
             </div>
           </div>

@@ -69,7 +69,7 @@ const NewRaceForm = () => {
       setSuccessMessage('Race added successfully!')
       setState({
         type: 'reset',
-        payload: { target: { name: 'userId', value: id } },
+        payload: { target: { userId: id } },
       })
     }
   }, [addSuccess, id])
@@ -770,6 +770,7 @@ const NewRaceForm = () => {
                 <div className='pb-3'>
                   <TextEditor
                     placeholder='Feature description'
+                    state={featureItem.desc}
                     name={`feature.${featureIndex}.desc`}
                     onChange={setState}
                   />
@@ -1458,9 +1459,10 @@ const NewRaceForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <div className='pb-3'>
               <TextEditor
-                onChange={setState}
-                placeholder={'Opening Quote'}
                 name={'quote'}
+                state={state.quote}
+                placeholder={'Opening Quote'}
+                onChange={setState}
               />
             </div>
             <div className='pb-2'>
@@ -1516,9 +1518,10 @@ const NewRaceForm = () => {
                         </div>
                         <div className='pb-2'>
                           <TextEditor
-                            onChange={setState}
-                            placeholder={'Section Text'}
                             name={`details.${detailIndex}.text`}
+                            state={detailItem.text}
+                            placeholder={'Section Text'}
+                            onChange={setState}
                           />
                         </div>
                       </div>
@@ -1551,10 +1554,11 @@ const NewRaceForm = () => {
               <div className='col-sm'>
                 <TextEditor
                   className='shortDesc'
-                  noMenuBar={true}
-                  onChange={setState}
-                  placeholder='Age Description'
                   name='age'
+                  state={state.age}
+                  noMenuBar={true}
+                  placeholder='Age Description'
+                  onChange={setState}
                 />
               </div>
             </div>
@@ -1571,10 +1575,11 @@ const NewRaceForm = () => {
               <div className='col-sm'>
                 <TextEditor
                   className='shortDesc'
-                  noMenuBar={true}
-                  onChange={setState}
-                  placeholder='Size Description'
                   name='size.desc'
+                  state={state.size?.desc}
+                  noMenuBar={true}
+                  placeholder='Size Description'
+                  onChange={setState}
                 />
               </div>
             </div>
@@ -1600,10 +1605,11 @@ const NewRaceForm = () => {
                 <div className='col-sm'>
                   <TextEditor
                     className='shortDesc'
-                    noMenuBar={true}
-                    onChange={setState}
-                    placeholder='Speed Description'
                     name='speed.walking.desc'
+                    state={state.speed?.walking?.desc}
+                    noMenuBar={true}
+                    placeholder='Speed Description'
+                    onChange={setState}
                   />
                 </div>
               </div>
@@ -1628,12 +1634,13 @@ const NewRaceForm = () => {
                   onChange={setState}
                 />
                 <div className='col-sm'>
-                  <TextEditor
+                <TextEditor
                     className='shortDesc'
-                    noMenuBar={true}
-                    onChange={setState}
-                    placeholder='Speed Description'
                     name='speed.climbing.desc'
+                    state={state.speed?.climbing?.desc}
+                    noMenuBar={true}
+                    placeholder='Speed Description'
+                    onChange={setState}
                   />
                 </div>
               </div>
@@ -1658,12 +1665,13 @@ const NewRaceForm = () => {
                   onChange={setState}
                 />
                 <div className='col-sm'>
-                  <TextEditor
+                <TextEditor
                     className='shortDesc'
-                    noMenuBar={true}
-                    onChange={setState}
-                    placeholder='Speed Description'
                     name='speed.swimming.desc'
+                    state={state.speed?.swimming?.desc}
+                    noMenuBar={true}
+                    placeholder='Speed Description'
+                    onChange={setState}
                   />
                 </div>
               </div>
@@ -1688,12 +1696,13 @@ const NewRaceForm = () => {
                   onChange={setState}
                 />
                 <div className='col-sm'>
-                  <TextEditor
+                <TextEditor
                     className='shortDesc'
-                    noMenuBar={true}
-                    onChange={setState}
-                    placeholder='Speed Description'
                     name='speed.flying.desc'
+                    state={state.speed?.flying?.desc}
+                    noMenuBar={true}
+                    placeholder='Speed Description'
+                    onChange={setState}
                   />
                 </div>
               </div>
