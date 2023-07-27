@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import { useRef } from 'react'
 
 const Input = ({
   label,
@@ -12,7 +12,6 @@ const Input = ({
   onChange,
   invalidText,
   position,
-  onClick,
   border,
   size,
   value,
@@ -25,7 +24,7 @@ const Input = ({
     }
   }
 
-  return (
+  const content = (
     <div
       className={`position-${position ?? 'relative'} col-sm ${size ?? ''} ${
         !!label ? 'form-floating' : ''
@@ -45,8 +44,9 @@ const Input = ({
         disabled={disabled}
         value={value}
         onChange={(e) => onChange({ payload: e })}
+        onKeyUp={(e) => e.preventDefault()}
         onClick={(e) => {
-          onClick && onClick(e)
+          e.stopPropagation()
           handleFocus()
         }}
       />
@@ -58,6 +58,8 @@ const Input = ({
       )}
     </div>
   )
+
+  return content
 }
 
 export default Input

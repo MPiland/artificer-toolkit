@@ -1,7 +1,7 @@
 const AccordionButton = ({ children, className, id, target }) => {
-  function accordionToggle(elementID, buttonId) {
-    const accordion = document.getElementById(elementID)
-    const accordionButton = document.getElementById(buttonId)
+  function accordionToggle() {
+    const accordion = document.getElementById(target)
+    const accordionButton = document.getElementById(id)
     if (accordionButton.getAttribute('aria-expanded') === 'true') {
       accordionButton.setAttribute('aria-expanded', 'false')
     } else {
@@ -22,7 +22,7 @@ const AccordionButton = ({ children, className, id, target }) => {
       id={id}
       aria-expanded='true'
       aria-controls={target}
-      onClick={() => accordionToggle(target, id)}
+      onClick={accordionToggle}
       key={id}
     >
       {children}

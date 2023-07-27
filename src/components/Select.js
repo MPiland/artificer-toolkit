@@ -30,26 +30,48 @@ const Select = ({
     )
   }
 
+  useEffect(() => {
+    // Set the initial selectedOptions based on the state prop
+    if (state && Array.isArray(state)) {
+      if (state.some((item) => item.name === 'all')) {
+        setSelectedOptions(
+          options?.map(({ name, value, _id }) => ({ name, value, _id }))
+        )
+      } else {
+        setSelectedOptions(state)
+      }
+    } else if (state && !Array.isArray(state)) {
+      setSelectedOptions(state)
+    } else {
+      setSelectedOptions(multiple ? [] : null)
+    }
+  }, [state, multiple, options])
+
   const handleOptionClick = (option) => {
     handleToggleClick()
     let updatedOptions
     if (multiple) {
+      // Clear all options
       if (option.name === 'clear') {
         updatedOptions = []
+        // Add all options
       } else if (option.name === 'all') {
         updatedOptions = [
           { name: option.name, id: option._id, value: option.value },
         ]
+        // If shown options are an array and all valid
       } else if (
         Array.isArray(selectedOptions) &&
         selectedOptions.every((option) =>
           newOptions.some((item) => item.value === option.value)
         )
       ) {
+        // Remove the option selected if it's part of the selected options
         if (selectedOptions.some((item) => item.value === option.value)) {
           updatedOptions = selectedOptions.filter(
             (item) => item.value !== option.value
           )
+          // Add the option if it's not
         } else {
           updatedOptions = [
             ...selectedOptions,
@@ -69,6 +91,7 @@ const Select = ({
       }
       setMenuOpen(false)
     }
+
     if (option.value !== 'All') {
       setSelectedOptions(updatedOptions)
     } else {
@@ -145,31 +168,28 @@ const Select = ({
             />
           </div>
           <div className='select-div'>
-            {!!state &&
-              (multiple
-                ? selectedOptions?.length > 0
-                  ? selectedOptions
-                      .filter((option) =>
-                        newOptions.some((item) => item.value === option.value)
-                      )
-                      .map((option) => (
-                        <span
-                          key={option.name}
-                          className='border border-primary rounded-3 me-1 px-1 select-option'
-                        >
-                          {option.value}
-                        </span>
-                      ))
-                  : !!selectedOptions?.value && (
-                      <span className='border border-primary rounded-3 me-1 px-1 select-option'>
-                        {selectedOptions.value}
-                      </span>
+            {multiple
+              ? selectedOptions?.length > 0
+                ? selectedOptions
+                    .filter((option) =>
+                      newOptions.some((item) => item.value === option.value)
                     )
-                : selectedOptions && (
-                    <span className='select-option'>
+                    .map((option) => (
+                      <span
+                        key={option.name}
+                        className='border border-primary rounded-3 me-1 px-1 select-option'
+                      >
+                        {option.value}
+                      </span>
+                    ))
+                : !!selectedOptions?.value && (
+                    <span className='border border-primary rounded-3 me-1 px-1 select-option'>
                       {selectedOptions.value}
                     </span>
-                  ))}
+                  )
+              : selectedOptions && (
+                  <span className='select-option'>{selectedOptions.value}</span>
+                )}
           </div>
           <label
             className={`select-label ${

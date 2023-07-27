@@ -73,8 +73,6 @@ const NewItemForm = () => {
     await addNewItem(state)
   }
 
-  console.log(state)
-
   let content
 
   if (builderLoading || spellLoading || featLoading) {
@@ -555,7 +553,6 @@ const NewItemForm = () => {
                   placeholder='Feature Name'
                   value={featureItem.value ?? ''}
                   onChange={setState}
-                  onClick={(e) => e.stopPropagation()}
                 />
               </AccordionButton>
             </div>
@@ -1436,7 +1433,7 @@ const NewItemForm = () => {
                       name='damage.damageType'
                       multiple={true}
                       placeholder='Damage Type'
-                      state={state.damage.damageType}
+                      state={state.damage?.damageType}
                       options={builders.damage}
                       onChange={setState}
                     />
@@ -1468,7 +1465,7 @@ const NewItemForm = () => {
                   )}
                 </>
               )}
-              {state?.itemCategory?.name === 'armor' && (
+              {state.itemCategory?.name === 'armor' && (
                 <Input
                   className={`${
                     state.armorValue &&
