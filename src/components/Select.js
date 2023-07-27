@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import '../css/select.css'
 
 const Select = ({
@@ -29,7 +29,7 @@ const Select = ({
       { name: 'clear', value: 'Clear' }
     )
   }
-
+  
   useEffect(() => {
     // Set the initial selectedOptions based on the state prop
     if (state && Array.isArray(state)) {
@@ -48,7 +48,6 @@ const Select = ({
   }, [state, multiple, options])
 
   const handleOptionClick = (option) => {
-    handleToggleClick()
     let updatedOptions
     if (multiple) {
       // Clear all options
@@ -89,7 +88,7 @@ const Select = ({
         id: option._id,
         value: option.value,
       }
-      setMenuOpen(false)
+      handleToggleClick()
     }
 
     if (option.value !== 'All') {
@@ -113,24 +112,93 @@ const Select = ({
     }
   }
 
-  const handleClickOutside = (event) => {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target) &&
-      !buttonRef.current &&
-      event.target.id !== 'selectDropdownButton'
-    ) {
-      setMenuOpen(false)
+  const selectClass = (option) => {
+    if (multiple) {
+      if (selectedOptions?.length > 0) {
+        if (selectedOptions?.some((item) => item.value === option.value)) {
+          return 'rounded-pill border border-primary'
+        } else {
+          return 'rounded-pill border border-secondary-subtle'
+        }
+      } else {
+        if (selectedOptions?.value === option.value) {
+          return 'rounded-pill border border-primary'
+        } else {
+          return 'rounded-pill border border-secondary-subtle'
+        }
+      }
+    } else if (selectedOptions?.value === option.value) {
+      return 'rounded-pill border border-primary'
+    } else {
+      return ''
     }
   }
 
-  useEffect(() => {
-    document.addEventListener('click', handleClickOutside)
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside)
+  const containerClass = () => {
+    if (
+      (multiple &&
+        selectedOptions?.length > 0 &&
+        selectedOptions.every((option) =>
+          newOptions.some((item) => item.value === option.value)
+        )) ||
+      (selectedOptions &&
+        newOptions.some((option) => option.value === selectedOptions.value))
+    ) {
+      return 'has-value-select'
+    } else {
+      return ''
     }
-  }, [])
+  }
+
+  const displayOption = () => {
+    if (multiple && selectedOptions?.length > 0) {
+      return selectedOptions
+        .filter((option) =>
+          newOptions.some((item) => item.value === option.value)
+        )
+        .map((option) => (
+          <span key={option.name} className={`select-option ${displayClass()}`}>
+            {option.value}
+          </span>
+        ))
+    } else if (
+      selectedOptions &&
+      newOptions.some((option) => option.value === selectedOptions.value)
+    ) {
+      return (
+        <span className={`select-option ${displayClass()}`}>
+          {selectedOptions.value}
+        </span>
+      )
+    }
+  }
+
+  const displayClass = () => {
+    if (multiple && selectedOptions?.length > 0) {
+      return 'border border-primary rounded-3 me-1 px-1'
+    } else if (!!selectedOptions.value) {
+      return ''
+    }
+  }
+
+  const labelClass = () => {
+    if (multiple && selectedOptions?.length > 0) {
+      if (
+        selectedOptions.every((option) =>
+          newOptions.some((item) => item.value === option.value)
+        )
+      ) {
+        return 'filled'
+      }
+    } else if (
+      selectedOptions &&
+      newOptions.some((option) => option.value === selectedOptions.value)
+    ) {
+      return 'filled'
+    } else {
+      return ''
+    }
+  }
 
   return (
     <div className='dropdown'>
@@ -139,27 +207,13 @@ const Select = ({
         type='button'
         id='selectDropdownButton'
         data-bs-toggle='dropdown'
+        data-bs-target='#selectDropdown'
         data-bs-boundary='#main-container'
         aria-expanded='false'
-        onClick={handleToggleClick}
         ref={buttonRef}
         disabled={!!options ? false : true}
       >
-        <div
-          className={`select-container ${
-            (multiple &&
-              selectedOptions?.length > 0 &&
-              selectedOptions.every((option) =>
-                newOptions.some((item) => item.value === option.value)
-              )) ||
-            (selectedOptions &&
-              newOptions.some(
-                (option) => option.value === selectedOptions.value
-              ))
-              ? 'has-value-select'
-              : ''
-          }`}
-        >
+        <div className={`select-container ${containerClass()}`}>
           <div>
             <i
               className={`bi bi-caret-down-fill select-caret ${
@@ -167,91 +221,27 @@ const Select = ({
               }`}
             />
           </div>
-          <div className='select-div'>
-            {multiple
-              ? selectedOptions?.length > 0
-                ? selectedOptions
-                    .filter((option) =>
-                      newOptions.some((item) => item.value === option.value)
-                    )
-                    .map((option) => (
-                      <span
-                        key={option.name}
-                        className='border border-primary rounded-3 me-1 px-1 select-option'
-                      >
-                        {option.value}
-                      </span>
-                    ))
-                : !!selectedOptions?.value && (
-                    <span className='border border-primary rounded-3 me-1 px-1 select-option'>
-                      {selectedOptions.value}
-                    </span>
-                  )
-              : selectedOptions && (
-                  <span className='select-option'>{selectedOptions.value}</span>
-                )}
-          </div>
-          <label
-            className={`select-label ${
-              (!!state &&
-                selectedOptions?.length > 0 &&
-                selectedOptions.every((option) =>
-                  newOptions.some((item) => item.value === option.value)
-                )) ||
-              (!!state && !!selectedOptions?.value)
-                ? 'filled'
-                : ''
-            }`}
-          >
+          <div className='select-div'>{displayOption()}</div>
+          <label className={`select-label ${labelClass()}`}>
             {placeholder || 'Select an option'}
           </label>
         </div>
       </button>
       <ul
-        className='dropdown-menu select-menu position-absolute'
+        className='dropdown-menu select-menu position-absolute px-2'
+        id='selectDropdown'
         ref={dropdownRef}
       >
         {newOptions.map((option) => (
-          <li className='mb-2 mx-1' key={option.value}>
-            {multiple ? (
-              selectedOptions?.length > 0 ? (
-                <button
-                  type='button'
-                  className={`dropdown-item py-0 ${
-                    selectedOptions?.some((item) => item.value === option.value)
-                      ? 'rounded-pill border border-primary'
-                      : 'rounded-pill border border-secondary-subtle'
-                  }`}
-                  onClick={() => handleOptionClick(option)}
-                >
-                  {option.value}
-                </button>
-              ) : (
-                <button
-                  type='button'
-                  className={`dropdown-item py-0 ${
-                    selectedOptions?.value === option.value
-                      ? 'rounded-pill border border-primary'
-                      : 'rounded-pill border border-secondary-subtle'
-                  }`}
-                  onClick={() => handleOptionClick(option)}
-                >
-                  {option.value}
-                </button>
-              )
-            ) : (
-              <button
-                type='button'
-                className={`dropdown-item py-0 ${
-                  selectedOptions?.value === option.value
-                    ? 'rounded-pill border border-primary'
-                    : ''
-                }`}
-                onClick={() => handleOptionClick(option)}
-              >
-                {option.value}
-              </button>
-            )}
+          <li
+            className={`mb-2 dropdown-item py-0 px-2 ${selectClass(option)}`}
+            key={option.value}
+            onClick={(e) => {
+              multiple && e.stopPropagation()
+              handleOptionClick(option)
+            }}
+          >
+            {option.value}
           </li>
         ))}
       </ul>

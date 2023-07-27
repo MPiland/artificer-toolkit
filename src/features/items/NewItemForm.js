@@ -1253,7 +1253,7 @@ const NewItemForm = () => {
                   placeholder='Item type'
                   state={state.itemType}
                   options={
-                    builders?.item.itemCategory.find(
+                    builders.item.itemCategory.find(
                       (itemCategory) =>
                         itemCategory._id === state?.itemCategory?.id
                     )?.itemType
@@ -1268,7 +1268,7 @@ const NewItemForm = () => {
                   placeholder='Properties'
                   state={state.itemProperty}
                   options={
-                    builders?.item.itemCategory.find(
+                    builders.item.itemCategory.find(
                       (itemCategory) =>
                         itemCategory._id === state?.itemCategory?.id
                     )?.itemProperty
