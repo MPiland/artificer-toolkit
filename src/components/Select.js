@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'
 import '../css/select.css'
 
-const Select = ({ name, multiple, placeholder, options, action, onChange }) => {
+const Select = ({
+  name,
+  multiple,
+  placeholder,
+  options,
+  action,
+  state,
+  onChange,
+}) => {
   const [selectedOptions, setSelectedOptions] = useState(multiple ? [] : null)
   const [menuOpen, setMenuOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -26,8 +34,12 @@ const Select = ({ name, multiple, placeholder, options, action, onChange }) => {
     handleToggleClick()
     let updatedOptions
     if (multiple) {
-      if (option.value === 'Clear') {
+      if (option.name === 'clear') {
         updatedOptions = []
+      } else if (option.name === 'all') {
+        updatedOptions = [
+          { name: option.name, id: option._id, value: option.value },
+        ]
       } else if (
         Array.isArray(selectedOptions) &&
         selectedOptions.every((option) =>
@@ -55,7 +67,6 @@ const Select = ({ name, multiple, placeholder, options, action, onChange }) => {
         id: option._id,
         value: option.value,
       }
-
       setMenuOpen(false)
     }
     if (option.value !== 'All') {
@@ -134,36 +145,40 @@ const Select = ({ name, multiple, placeholder, options, action, onChange }) => {
             />
           </div>
           <div className='select-div'>
-            {multiple
-              ? selectedOptions?.length > 0
-                ? selectedOptions
-                    .filter((option) =>
-                      newOptions.some((item) => item.value === option.value)
-                    )
-                    .map((option) => (
-                      <span
-                        key={option.name}
-                        className='border border-primary rounded-3 me-1 px-1 select-option'
-                      >
-                        {option.value}
+            {!!state &&
+              (multiple
+                ? selectedOptions?.length > 0
+                  ? selectedOptions
+                      .filter((option) =>
+                        newOptions.some((item) => item.value === option.value)
+                      )
+                      .map((option) => (
+                        <span
+                          key={option.name}
+                          className='border border-primary rounded-3 me-1 px-1 select-option'
+                        >
+                          {option.value}
+                        </span>
+                      ))
+                  : !!selectedOptions?.value && (
+                      <span className='border border-primary rounded-3 me-1 px-1 select-option'>
+                        {selectedOptions.value}
                       </span>
-                    ))
-                : !!selectedOptions?.value && (
-                    <span className='border border-primary rounded-3 me-1 px-1 select-option'>
+                    )
+                : selectedOptions && (
+                    <span className='select-option'>
                       {selectedOptions.value}
                     </span>
-                  )
-              : selectedOptions && (
-                  <span className='select-option'>{selectedOptions.value}</span>
-                )}
+                  ))}
           </div>
           <label
             className={`select-label ${
-              (selectedOptions?.length > 0 &&
+              (!!state &&
+                selectedOptions?.length > 0 &&
                 selectedOptions.every((option) =>
                   newOptions.some((item) => item.value === option.value)
                 )) ||
-              !!selectedOptions?.value
+              (!!state && !!selectedOptions?.value)
                 ? 'filled'
                 : ''
             }`}

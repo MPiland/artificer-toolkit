@@ -94,7 +94,7 @@ const NewFeatForm = () => {
               <div className='pb-3 row justify-content-between'>
                 <div className='col'>
                   <button
-                    className='btn btn-outline-primary'
+                    className='btn btn-outline-primary col-auto'
                     type='button'
                     name={`feature.${featureIndex}.${this.name}.${index}`}
                     onClick={(e) => setState({ type: 'removed', payload: e })}
@@ -103,13 +103,13 @@ const NewFeatForm = () => {
                   </button>
                 </div>
                 {feature.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'optionGroups'
+                  (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
                     size='col-sm-2'
                     className={`${
-                      feature.item?.optionGroup &&
-                      (NUM_REGEX.test(feature.item?.optionGroup)
+                      item?.optionGroup &&
+                      (NUM_REGEX.test(item?.optionGroup)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
@@ -117,8 +117,8 @@ const NewFeatForm = () => {
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    invalidText='Must contain only numbers'
                     value={item.optionGroup ?? ''}
+                    invalidText='Must contain only numbers'
                     onChange={setState}
                   />
                 )}
@@ -131,6 +131,7 @@ const NewFeatForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Feat'
+                    state={item.feat}
                     options={feats}
                     onChange={setState}
                   />
@@ -160,7 +161,7 @@ const NewFeatForm = () => {
                   </button>
                 </div>
                 {feature.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'optionGroups'
+                  (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
                     size='col-sm-2'
@@ -185,6 +186,7 @@ const NewFeatForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
+                    state={item.modType}
                     options={builders.modifier.modType}
                     onChange={setState}
                   />
@@ -194,6 +196,7 @@ const NewFeatForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
+                      state={item.module}
                       options={builders.modifier.module?.filter((moduleItem) =>
                         builders.modifier.modType
                           .find(
@@ -220,6 +223,7 @@ const NewFeatForm = () => {
                           }.${index}.ability${multipleOptions && '.options'}`}
                           multiple={multipleOptions}
                           placeholder='Ability'
+                          state={item.ability}
                           options={builders.ability}
                           onChange={setState}
                         />
@@ -234,7 +238,8 @@ const NewFeatForm = () => {
                             multipleOptions && '.options'
                           }`}
                           multiple={multipleOptions}
-                          placeholder='Ability'
+                          placeholder='Save Ability'
+                          state={item.saveAbility}
                           options={builders.ability}
                           onChange={setState}
                         />
@@ -248,6 +253,7 @@ const NewFeatForm = () => {
                           }.${index}.skill${multipleOptions && '.options'}`}
                           multiple={multipleOptions}
                           placeholder='Skill'
+                          state={item.skill}
                           options={builders.skill}
                           onChange={setState}
                         />
@@ -262,6 +268,7 @@ const NewFeatForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.method`}
                         placeholder='Method'
+                        state={item.method}
                         options={builders.modifier.method.filter((methodItem) =>
                           methodItem.module.some(
                             (moduleItem) => moduleItem.id === item.module?.id
@@ -279,6 +286,7 @@ const NewFeatForm = () => {
                       }.${index}.condition${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Condition Type'
+                      state={item.condition}
                       options={builders.condition}
                       onChange={setState}
                     />
@@ -290,6 +298,7 @@ const NewFeatForm = () => {
                         this.name
                       }.${index}.speed${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
+                      state={item.speed}
                       placeholder='Speed Type'
                       options={builders.speed}
                       onChange={setState}
@@ -300,9 +309,10 @@ const NewFeatForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.speed${multipleOptions && '.options'}`}
+                      }.${index}.passive${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Passive Type'
+                      state={item.passive}
                       options={builders.passive}
                       onChange={setState}
                     />
@@ -316,6 +326,7 @@ const NewFeatForm = () => {
                         }.${index}.damage${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Damage Type'
+                        state={item.damage.damageType}
                         options={builders.damage}
                         onChange={setState}
                       />
@@ -344,6 +355,7 @@ const NewFeatForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                         placeholder='Multiplier'
+                        state={item.multiplier}
                         options={builders.modifier.multiplier}
                         onChange={setState}
                       />
@@ -354,6 +366,7 @@ const NewFeatForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                       placeholder='Method Ability'
+                      state={item.method.ability}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -364,6 +377,7 @@ const NewFeatForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                         placeholder='Method Skill'
+                        state={item.method.skill}
                         options={builders.skill}
                         onChange={setState}
                       />
@@ -376,6 +390,7 @@ const NewFeatForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
                       placeholder='Exceeds Max'
+                      state={item.exceedMax}
                       options={[
                         { name: true, value: 'Yes' },
                         { name: false, value: 'No' },
@@ -409,12 +424,12 @@ const NewFeatForm = () => {
                   </button>
                 </div>
                 {feature.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'optionGroups'
+                  (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
                     size='col-sm-2'
                     className={`${
-                      item?.optionGroup &&
+                      item.optionGroup &&
                       (NUM_REGEX.test(item?.optionGroup)
                         ? 'is-valid'
                         : 'is-invalid')
@@ -434,11 +449,12 @@ const NewFeatForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
+                    state={item.area}
                     options={builders.proficiency.area}
                     onChange={setState}
                   />
                 </div>
-                {item.area?.name === 'skill' && (
+                {item?.area?.name === 'skill' && (
                   <div className='col-sm'>
                     <Select
                       name={`feature.${featureIndex}.${
@@ -446,6 +462,7 @@ const NewFeatForm = () => {
                       }.${index}.skill${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Skill'
+                      state={item.skill}
                       options={builders.skill}
                       onChange={setState}
                     />
@@ -459,12 +476,13 @@ const NewFeatForm = () => {
                       }.${index}.saveAbility${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Save Ability'
+                      state={item.saveAbility}
                       options={builders.ability}
                       onChange={setState}
                     />
                   </div>
                 )}
-                {item.area?.name === 'tool' && (
+                {item?.area?.name === 'tool' && (
                   <div className='col-sm'>
                     <Select
                       name={`feature.${featureIndex}.${
@@ -472,12 +490,13 @@ const NewFeatForm = () => {
                       }.${index}.tool${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Tool'
+                      state={item.tool}
                       options={builders.tool}
                       onChange={setState}
                     />
                   </div>
                 )}
-                {item.area?.name === 'language' && (
+                {item?.area?.name === 'language' && (
                   <div className='col-sm'>
                     <Select
                       name={`feature.${featureIndex}.${
@@ -485,6 +504,7 @@ const NewFeatForm = () => {
                       }.${index}.language${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Language'
+                      state={item.language}
                       options={builders.language}
                       onChange={setState}
                     />
@@ -498,6 +518,7 @@ const NewFeatForm = () => {
                       }.${index}.itemType${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Item Type'
+                      state={item.itemType}
                       options={[].concat(
                         ...builders.item.itemCategory.map(
                           (categoryItem) => categoryItem.itemType
@@ -515,6 +536,7 @@ const NewFeatForm = () => {
                       }.${index}.itemProperty${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Item Property'
+                      state={item.itemProperty}
                       options={[].concat(
                         ...builders.item.itemCategory.map(
                           (categoryItem) => categoryItem.itemProperty
@@ -528,6 +550,7 @@ const NewFeatForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
+                    state={item.level}
                     options={builders.proficiency.level}
                     onChange={setState}
                   />
@@ -585,6 +608,7 @@ const NewFeatForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Sense'
+                    state={item.sense}
                     options={builders.sense}
                     onChange={setState}
                   />
@@ -641,16 +665,18 @@ const NewFeatForm = () => {
                     name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                     options={builders.feat.feature.spell.attribute}
                     placeholder='Spell Attributes'
+                    state={item.attribute}
                     onChange={setState}
                   />
                 </div>
                 <div className='col-sm'>
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}${
-                      multipleOptions && 'options'
+                      multipleOptions && '.options'
                     }`}
                     multiple={multipleOptions}
                     placeholder='Spell'
+                    state={item}
                     options={spells}
                     onChange={setState}
                   />
@@ -665,6 +691,7 @@ const NewFeatForm = () => {
                       }.${index}.ability${multipleOptions && 'options'}`}
                       multiple={multipleOptions}
                       placeholder='Ability'
+                      state={item.ability}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -742,6 +769,7 @@ const NewFeatForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
+                      state={featureItem.attribute}
                       options={builders.feat.feature.attribute}
                       placeholder='Feature Attributes'
                       onChange={setState}
@@ -754,6 +782,7 @@ const NewFeatForm = () => {
                       <Select
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
+                        state={featureItem.requirement.option}
                         placeholder='Requirement'
                         options={builders.feat.feature.requirements}
                         onChange={setState}
@@ -777,6 +806,7 @@ const NewFeatForm = () => {
                       <Select
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
+                        state={featureItem.requirement.skillProficiency.skill}
                         placeholder='Skill Proficiency'
                         options={builders.skill}
                         onChange={setState}
@@ -801,6 +831,9 @@ const NewFeatForm = () => {
                         <Select
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
+                          state={
+                            featureItem.requirement.itemProficiency.itemCategory
+                          }
                           placeholder='Item Category'
                           options={builders.item.itemCategory}
                           onChange={setState}
@@ -810,6 +843,9 @@ const NewFeatForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
+                          state={
+                            featureItem.requirement.itemProficiency.itemType
+                          }
                           options={[].concat(
                             ...builders.item.itemCategory
                               .filter((itemCategory) =>
@@ -827,6 +863,9 @@ const NewFeatForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
+                          state={
+                            featureItem.requirement.itemProficiency.itemProperty
+                          }
                           options={[].concat(
                             ...builders.item.itemCategory
                               .filter((itemCategory) =>
@@ -860,6 +899,7 @@ const NewFeatForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
+                          state={featureItem.limitUse.limitBy}
                           options={builders.feat.feature.chargeLimit}
                           onChange={setState}
                         />
@@ -869,6 +909,7 @@ const NewFeatForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
+                            state={featureItem.limitUse.ability}
                             options={builders.ability}
                             onChange={setState}
                           />
@@ -878,6 +919,7 @@ const NewFeatForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
+                            state={featureItem.limitUse.skill}
                             options={builders.skill}
                             onChange={setState}
                           />
@@ -905,6 +947,7 @@ const NewFeatForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
+                          state={featureItem.limitUse.resetsOn}
                           options={builders.feat.feature.chargeReset}
                           onChange={setState}
                         />
@@ -929,6 +972,7 @@ const NewFeatForm = () => {
                         <Select
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
+                          state={featureItem.action}
                           options={builders.feat.feature.action}
                           onChange={setState}
                         />
@@ -1000,6 +1044,7 @@ const NewFeatForm = () => {
                       <Select
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
+                        state={featureItem.saveAbility}
                         options={builders.ability}
                         onChange={setState}
                       />
@@ -1037,6 +1082,9 @@ const NewFeatForm = () => {
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
+                            state={
+                              featureItem.requirement.equipped.itemCategory
+                            }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
                             onChange={setState}
@@ -1047,6 +1095,7 @@ const NewFeatForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
+                            state={featureItem.requirement.equipped.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1065,6 +1114,9 @@ const NewFeatForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
+                            state={
+                              featureItem.requirement.equipped.itemProperty
+                            }
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1115,6 +1167,9 @@ const NewFeatForm = () => {
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
+                            state={
+                              featureItem.requirement.notEquipped.itemCategory
+                            }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
                             onChange={setState}
@@ -1125,6 +1180,7 @@ const NewFeatForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
+                            state={featureItem.requirement.notEquipped.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1142,6 +1198,9 @@ const NewFeatForm = () => {
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
+                            state={
+                              featureItem.requirement.notEquipped.itemProperty
+                            }
                             placeholder='Item Property'
                             options={[].concat(
                               ...builders.item.itemCategory
@@ -1226,6 +1285,7 @@ const NewFeatForm = () => {
                         <Select
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
+                          state={featureItem.damage.damageAttribute}
                           placeholder='Damage Attribute'
                           options={builders.feat.feature.damageAttribute}
                           onChange={setState}
@@ -1237,6 +1297,7 @@ const NewFeatForm = () => {
                           name={`feature.${featureIndex}.damage.damageType`}
                           multiple={true}
                           placeholder='Damage Type'
+                          state={featureItem.damage.damageType}
                           options={builders.damage}
                           onChange={setState}
                         />

@@ -43,7 +43,7 @@ const NewSpellForm = () => {
       setSuccessMessage('Spell added successfully!')
       setState({
         type: 'reset',
-        payload: { target: { name: 'userId', value: id } },
+        payload: { target: { userId: id } },
       })
     }
   }, [addIsSuccess, id, setState])
@@ -53,6 +53,8 @@ const NewSpellForm = () => {
   const onSubmit = async () => {
     await addNewSpell(state)
   }
+
+  console.log(state)
 
   let content
 
@@ -105,6 +107,7 @@ const NewSpellForm = () => {
                   name='school'
                   id='school'
                   placeholder={'Spell School'}
+                  state={state.school}
                   options={builders.spell.school}
                   onChange={setState}
                 />
@@ -114,7 +117,7 @@ const NewSpellForm = () => {
                   name='requirement'
                   multiple={true}
                   placeholder={'Requirements'}
-                  id='requirement'
+                  state={state.requirement}
                   options={builders.spell.requirement}
                   onChange={setState}
                 />
@@ -150,6 +153,7 @@ const NewSpellForm = () => {
                   multiple={true}
                   name='attribute'
                   placeholder='Spell Attributes'
+                  state={state.attribute}
                   options={builders.spell.attribute}
                   onChange={setState}
                 />
@@ -158,6 +162,7 @@ const NewSpellForm = () => {
                 <Select
                   name='action.actionType'
                   placeholder='Casting Time'
+                  state={state.action?.actionType}
                   options={builders.spell.action}
                   onChange={setState}
                 />
@@ -180,6 +185,7 @@ const NewSpellForm = () => {
                 <Select
                   name='duration.durationType'
                   placeholder='Duration'
+                  state={state.duration?.durationType}
                   options={builders.spell.duration}
                   onChange={setState}
                 />
@@ -204,6 +210,7 @@ const NewSpellForm = () => {
                 <Select
                   name='origin.originType'
                   placeholder='Origin Point'
+                  state={state.origin?.originType}
                   options={builders.spell.origin}
                   onChange={setState}
                 />
@@ -240,6 +247,7 @@ const NewSpellForm = () => {
                             shape.value !== 'Beam'
                           : shape
                       )}
+                      state={state.shape?.shapeType}
                       onChange={setState}
                     />
                   </div>
@@ -288,6 +296,7 @@ const NewSpellForm = () => {
                   <Select
                     name='saveAbility'
                     placeholder='DC Ability'
+                    state={state.saveAbility}
                     options={builders.ability}
                     onChange={setState}
                   />
@@ -314,6 +323,7 @@ const NewSpellForm = () => {
                       multiple={true}
                       name='damage.damageAttribute'
                       placeholder='Damage Attribute'
+                      state={state.damage?.damageAttribute}
                       options={builders.spell.damageAttribute}
                       onChange={setState}
                     />
@@ -323,6 +333,7 @@ const NewSpellForm = () => {
                       name='damage.damageType'
                       multiple={true}
                       placeholder='Damage Type'
+                      state={state.damage?.damageType}
                       options={builders.damage}
                       onChange={setState}
                     />

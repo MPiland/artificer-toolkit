@@ -7,7 +7,13 @@ const formReducer = produce((draft, action) => {
     payload: { target },
   } = action
 
-  const path = target.name.split('.')
+  let path
+
+  if (!!target.name) {
+    path = target.name.split('.')
+  } else {
+    path = null
+  }
 
   if (type === 'added') {
     if (!!get(draft, path)) {

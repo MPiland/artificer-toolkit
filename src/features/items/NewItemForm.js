@@ -107,6 +107,7 @@ const NewItemForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.sense`}
                     placeholder='Feat'
+                    state={item.sense}
                     options={feats}
                     onChange={setState}
                   />
@@ -138,6 +139,7 @@ const NewItemForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
+                    state={item.modType}
                     options={builders.modifier.modType}
                     onChange={setState}
                   />
@@ -147,6 +149,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
+                      state={item.module}
                       options={builders.modifier.module?.filter((moduleItem) =>
                         builders.modifier.modType
                           .find(
@@ -170,6 +173,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                           placeholder='Ability'
+                          state={item.ability}
                           options={builders.ability}
                           onChange={setState}
                         />
@@ -180,6 +184,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
                           placeholder='Save Ability'
+                          state={item.saveAbility}
                           options={builders.ability}
                           onChange={setState}
                         />
@@ -190,6 +195,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.${this.name}.${index}.skill`}
                           placeholder='Skill'
+                          state={item.skill}
                           options={builders.skill}
                           onChange={setState}
                         />
@@ -204,6 +210,7 @@ const NewItemForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.method`}
                         placeholder='Method'
+                        state={item.method}
                         options={builders.modifier.method.filter((methodItem) =>
                           methodItem.module.some(
                             (moduleItem) => moduleItem.id === item.module?.id
@@ -218,6 +225,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.condition`}
                       placeholder='Condition Type'
+                      state={item.condition}
                       options={builders.condition}
                       onChange={setState}
                     />
@@ -227,6 +235,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.speed`}
                       placeholder='Speed Type'
+                      state={item.speed}
                       options={builders.speed}
                       onChange={setState}
                     />
@@ -235,6 +244,7 @@ const NewItemForm = () => {
                   <div className='col-sm'>
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.speed`}
+                      state={item.passive}
                       placeholder='Passive Type'
                       options={builders.passive}
                       onChange={setState}
@@ -274,6 +284,7 @@ const NewItemForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                         placeholder='Multiplier'
+                        state={item.multiplier}
                         options={builders.modifier.multiplier}
                         onChange={setState}
                       />
@@ -284,6 +295,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                       placeholder='Method Ability'
+                      state={item.method.ability}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -294,6 +306,7 @@ const NewItemForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                         placeholder='Method Skill'
+                        state={item.method.skill}
                         options={builders.skill}
                         onChange={setState}
                       />
@@ -306,6 +319,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
                       placeholder='Exceeds Max'
+                      state={item.exceedMax}
                       options={[
                         { name: true, value: 'Yes' },
                         { name: false, value: 'No' },
@@ -341,6 +355,7 @@ const NewItemForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
+                    state={item.area}
                     options={builders.proficiency.area}
                     onChange={setState}
                   />
@@ -349,6 +364,7 @@ const NewItemForm = () => {
                   <div className='col-sm'>
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.skill`}
+                      state={item.skill}
                       placeholder='Skill'
                       options={builders.skill}
                       onChange={setState}
@@ -359,6 +375,7 @@ const NewItemForm = () => {
                   <div className='col-sm'>
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
+                      state={item.saveAbility}
                       placeholder='Save Ability'
                       options={builders.ability}
                       onChange={setState}
@@ -370,6 +387,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.tool`}
                       placeholder='Tool'
+                      state={item.tool}
                       options={builders.tool}
                       onChange={setState}
                     />
@@ -380,6 +398,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.language`}
                       placeholder='Language'
+                      state={item.language}
                       options={builders.language}
                       onChange={setState}
                     />
@@ -390,6 +409,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.itemType`}
                       placeholder='Item Type'
+                      state={item.itemType}
                       options={[].concat(
                         ...builders.item.itemCategory.map(
                           (categoryItem) => categoryItem.itemType
@@ -404,6 +424,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.itemProperty`}
                       placeholder='Item Property'
+                      state={item.itemProperty}
                       options={[].concat(
                         ...builders.item.itemCategory.map(
                           (categoryItem) => categoryItem.itemProperty
@@ -417,6 +438,7 @@ const NewItemForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
+                    state={item.level}
                     options={builders.proficiency.level}
                     onChange={setState}
                   />
@@ -448,6 +470,7 @@ const NewItemForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.sense`}
                     placeholder='Sense'
+                    state={item.sense}
                     options={builders.sense}
                     onChange={setState}
                   />
@@ -477,8 +500,9 @@ const NewItemForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <div className='col-sm'>
                   <Select
-                    multiple='true'
+                    multiple={true}
                     name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                    state={item.attribute}
                     options={builders.feat.feature.spell.attribute}
                     placeholder='Spell Attributes'
                     onChange={setState}
@@ -488,6 +512,7 @@ const NewItemForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}`}
                     placeholder='Spell'
+                    state={item}
                     options={spells}
                     onChange={setState}
                   />
@@ -499,6 +524,7 @@ const NewItemForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                       placeholder='Ability'
+                      state={item.ability}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -578,6 +604,7 @@ const NewItemForm = () => {
                       name={`feature.${featureIndex}.attribute`}
                       options={builders.item.feature.attribute}
                       placeholder='Feature Attributes'
+                      state={featureItem.attribute}
                       onChange={setState}
                     />
                   </div>
@@ -589,6 +616,7 @@ const NewItemForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
+                        state={featureItem.requirement.option}
                         options={builders.item.feature.requirements}
                         onChange={setState}
                       />
@@ -611,6 +639,7 @@ const NewItemForm = () => {
                       <Select
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
+                        state={featureItem.requirement.skillProficiency.skill}
                         placeholder='Skill Proficiency'
                         options={builders.skill}
                         onChange={setState}
@@ -636,6 +665,9 @@ const NewItemForm = () => {
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           placeholder='Item Category'
+                          state={
+                            featureItem.requirement.itemProficiency.itemCategory
+                          }
                           options={builders.item.itemCategory}
                           onChange={setState}
                         />
@@ -644,6 +676,9 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
+                          state={
+                            featureItem.requirement.itemProficiency.itemType
+                          }
                           options={[].concat(
                             ...builders.item.itemCategory
                               .filter((itemCategory) =>
@@ -661,6 +696,9 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
+                          state={
+                            featureItem.requirement.itemProficiency.itemProperty
+                          }
                           options={[].concat(
                             ...builders.item.itemCategory
                               .filter((itemCategory) =>
@@ -694,6 +732,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
+                          state={featureItem.limitUse.limitBy}
                           options={builders.item.feature.chargeLimit}
                           onChange={setState}
                         />
@@ -703,6 +742,7 @@ const NewItemForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
+                            state={featureItem.limitUse.ability}
                             options={builders.ability}
                             onChange={setState}
                           />
@@ -712,6 +752,7 @@ const NewItemForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
+                            state={featureItem.limitUse.skill}
                             options={builders.skill}
                             onChange={setState}
                           />
@@ -739,6 +780,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
+                          state={featureItem.limitUse.resetsOn}
                           options={builders.item.feature.chargeReset}
                           onChange={setState}
                         />
@@ -763,6 +805,7 @@ const NewItemForm = () => {
                         <Select
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
+                          state={featureItem.action}
                           options={builders.item.feature.action}
                           onChange={setState}
                         />
@@ -834,6 +877,7 @@ const NewItemForm = () => {
                       <Select
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
+                        state={featureItem.saveAbility}
                         options={builders.ability}
                         onChange={setState}
                       />
@@ -872,6 +916,9 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             placeholder='Item Category'
+                            state={
+                              featureItem.requirement.equipped.itemCategory
+                            }
                             options={builders.item.itemCategory}
                             onChange={setState}
                           />
@@ -881,6 +928,7 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
+                            state={featureItem.requirement.equipped.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -899,6 +947,9 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
+                            state={
+                              featureItem.requirement.equipped.itemProperty
+                            }
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -949,6 +1000,9 @@ const NewItemForm = () => {
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
+                            state={
+                              featureItem.requirement.notEquipped.itemCategory
+                            }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
                             onChange={setState}
@@ -959,6 +1013,7 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
+                            state={featureItem.requirement.notEquipped.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -977,6 +1032,9 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             placeholder='Item Property'
+                            state={
+                              featureItem.requirement.notEquipped.itemProperty
+                            }
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1060,6 +1118,7 @@ const NewItemForm = () => {
                         <Select
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
+                          state={featureItem.damage.damageAttribute}
                           placeholder='Damage Attribute'
                           options={builders.item.feature.damageAttribute}
                           onChange={setState}
@@ -1070,6 +1129,7 @@ const NewItemForm = () => {
                           className='pb-1'
                           name={`feature.${featureIndex}.damage`}
                           placeholder='Damage Type'
+                          state={featureItem.damage.damageType}
                           options={builders.damage}
                           onChange={setState}
                         />
@@ -1185,6 +1245,7 @@ const NewItemForm = () => {
                 <Select
                   name='itemCategory'
                   placeholder='Item category'
+                  state={state.itemCategory}
                   options={builders?.item.itemCategory}
                   onChange={setState}
                 />
@@ -1193,6 +1254,7 @@ const NewItemForm = () => {
                 <Select
                   name='itemType'
                   placeholder='Item type'
+                  state={state.itemType}
                   options={
                     builders?.item.itemCategory.find(
                       (itemCategory) =>
@@ -1207,6 +1269,7 @@ const NewItemForm = () => {
                   name='itemProperty'
                   multiple={true}
                   placeholder='Properties'
+                  state={state.itemProperty}
                   options={
                     builders?.item.itemCategory.find(
                       (itemCategory) =>
@@ -1220,6 +1283,7 @@ const NewItemForm = () => {
                 <Select
                   name='rarity'
                   placeholder='Rarity'
+                  state={state.rarity}
                   options={builders?.item.rarity}
                   onChange={setState}
                 />
@@ -1276,6 +1340,7 @@ const NewItemForm = () => {
                   name='attribute'
                   multiple={true}
                   placeholder='Attributes'
+                  state={state.attribute}
                   options={builders?.item.attribute}
                   onChange={setState}
                 />
@@ -1371,6 +1436,7 @@ const NewItemForm = () => {
                       name='damage.damageType'
                       multiple={true}
                       placeholder='Damage Type'
+                      state={state.damage.damageType}
                       options={builders.damage}
                       onChange={setState}
                     />
@@ -1379,6 +1445,7 @@ const NewItemForm = () => {
                     <Select
                       name='primaryAbility'
                       placeholder='Primary Ability'
+                      state={state.primaryAbility}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -1390,6 +1457,7 @@ const NewItemForm = () => {
                       <Select
                         name={'secondaryAbility'}
                         placeholder='Secondary Ability'
+                        state={state.secondaryAbility}
                         options={builders.ability?.filter(
                           (abilityItem) =>
                             abilityItem?._id !== state?.primaryAbility?.id

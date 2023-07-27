@@ -6,23 +6,24 @@ const Spell = ({ spell }) => {
       <td className='col-auto'>{spell.level}</td>
       <td className='col-auto'>{spell.name}</td>
       <td className='col-auto'>
-        {spell.casting.value} {spell.casting.name}
+        {spell.action.value} {spell.action.name}
       </td>
       <td className='col-auto'>
         {spell.duration.value} {spell.duration.name}
       </td>
       <td className='d-none d-lg-table-cell col-auto'>
-        {spell.origin.name} {spell.origin.distance} {spell.area && '/'}{' '}
-        {spell.area && spell.area.name} {spell.area && spell.area.size + 'ft'}
+        {spell.origin.name} {spell.origin.distance} {spell.shape && '/'}{' '}
+        {spell.shape && spell.shape.name}{' '}
+        {spell.shape && spell.shape.size + 'ft'}
       </td>
       <td className='d-none d-lg-table-cell col-auto'>
-        {spell.effect.map((effect, i) => {
-          if (effect.damage) {
-            if (i !== spell.effect.length - 1) {
-              return `${effect.damage.name} / `
-            } else return effect.damage.name
-          } else return ''
-        })}
+        {!!spell.damage.damageType
+          ? spell.damage.damageType.map((typeItem, typeIndex) => {
+              if (typeIndex !== spell.damage.damageType.length - 1) {
+                return `${typeItem.name} / `
+              } else return typeItem.name
+            })
+          : ''}
       </td>
     </tr>
   )

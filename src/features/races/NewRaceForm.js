@@ -140,6 +140,7 @@ const NewRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Feat'
+                    state={item.feat}
                     options={feats}
                     onChange={setState}
                   />
@@ -194,6 +195,7 @@ const NewRaceForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
+                    state={item.modType}
                     options={builders.modifier.modType}
                     onChange={setState}
                   />
@@ -203,6 +205,7 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
+                      state={item.module}
                       options={builders.modifier.module?.filter((moduleItem) =>
                         builders.modifier.modType
                           .find(
@@ -229,6 +232,7 @@ const NewRaceForm = () => {
                           }.${index}.ability${multipleOptions && '.options'}`}
                           multiple={multipleOptions}
                           placeholder='Ability'
+                          state={item.ability}
                           options={builders.ability}
                           onChange={setState}
                         />
@@ -243,7 +247,8 @@ const NewRaceForm = () => {
                             multipleOptions && '.options'
                           }`}
                           multiple={multipleOptions}
-                          placeholder='Ability'
+                          placeholder='Save Ability'
+                          state={item.saveAbility}
                           options={builders.ability}
                           onChange={setState}
                         />
@@ -257,6 +262,7 @@ const NewRaceForm = () => {
                           }.${index}.skill${multipleOptions && '.options'}`}
                           multiple={multipleOptions}
                           placeholder='Skill'
+                          state={item.skill}
                           options={builders.skill}
                           onChange={setState}
                         />
@@ -271,6 +277,7 @@ const NewRaceForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.method`}
                         placeholder='Method'
+                        state={item.method}
                         options={builders.modifier.method.filter((methodItem) =>
                           methodItem.module.some(
                             (moduleItem) => moduleItem.id === item.module?.id
@@ -288,6 +295,7 @@ const NewRaceForm = () => {
                       }.${index}.condition${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Condition Type'
+                      state={item.condition}
                       options={builders.condition}
                       onChange={setState}
                     />
@@ -299,6 +307,7 @@ const NewRaceForm = () => {
                         this.name
                       }.${index}.speed${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
+                      state={item.speed}
                       placeholder='Speed Type'
                       options={builders.speed}
                       onChange={setState}
@@ -309,9 +318,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.speed${multipleOptions && '.options'}`}
+                      }.${index}.passive${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Passive Type'
+                      state={item.passive}
                       options={builders.passive}
                       onChange={setState}
                     />
@@ -325,6 +335,7 @@ const NewRaceForm = () => {
                         }.${index}.damage${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Damage Type'
+                        state={item.damage.damageType}
                         options={builders.damage}
                         onChange={setState}
                       />
@@ -353,6 +364,7 @@ const NewRaceForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                         placeholder='Multiplier'
+                        state={item.multiplier}
                         options={builders.modifier.multiplier}
                         onChange={setState}
                       />
@@ -363,6 +375,7 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                       placeholder='Method Ability'
+                      state={item.method.ability}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -373,6 +386,7 @@ const NewRaceForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                         placeholder='Method Skill'
+                        state={item.method.skill}
                         options={builders.skill}
                         onChange={setState}
                       />
@@ -385,6 +399,7 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
                       placeholder='Exceeds Max'
+                      state={item.exceedMax}
                       options={[
                         { name: true, value: 'Yes' },
                         { name: false, value: 'No' },
@@ -443,6 +458,7 @@ const NewRaceForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
+                    state={item.area}
                     options={builders.proficiency.area}
                     onChange={setState}
                   />
@@ -452,9 +468,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.area.skill${multipleOptions && '.options'}`}
+                      }.${index}.skill${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Skill'
+                      state={item.skill}
                       options={builders.skill}
                       onChange={setState}
                     />
@@ -465,11 +482,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.area.saveAbility${
-                        multipleOptions && '.options'
-                      }`}
+                      }.${index}.saveAbility${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Save Ability'
+                      state={item.saveAbility}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -480,9 +496,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.area.tool${multipleOptions && '.options'}`}
+                      }.${index}.tool${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Tool'
+                      state={item.tool}
                       options={builders.tool}
                       onChange={setState}
                     />
@@ -493,9 +510,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.area.language${multipleOptions && '.options'}`}
+                      }.${index}.language${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Language'
+                      state={item.language}
                       options={builders.language}
                       onChange={setState}
                     />
@@ -509,6 +527,7 @@ const NewRaceForm = () => {
                       }.${index}.itemType${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Item Type'
+                      state={item.itemType}
                       options={[].concat(
                         ...builders.item.itemCategory.map(
                           (categoryItem) => categoryItem.itemType
@@ -526,6 +545,7 @@ const NewRaceForm = () => {
                       }.${index}.itemProperty${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Item Property'
+                      state={item.itemProperty}
                       options={[].concat(
                         ...builders.item.itemCategory.map(
                           (categoryItem) => categoryItem.itemProperty
@@ -539,6 +559,7 @@ const NewRaceForm = () => {
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
+                    state={item.level}
                     options={builders.proficiency.level}
                     onChange={setState}
                   />
@@ -596,6 +617,7 @@ const NewRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Sense'
+                    state={item.sense}
                     options={builders.sense}
                     onChange={setState}
                   />
@@ -652,6 +674,7 @@ const NewRaceForm = () => {
                     name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                     options={builders.feat.feature.spell.attribute}
                     placeholder='Spell Attributes'
+                    state={item.attribute}
                     onChange={setState}
                   />
                 </div>
@@ -662,6 +685,7 @@ const NewRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Spell'
+                    state={item}
                     options={spells}
                     onChange={setState}
                   />
@@ -676,6 +700,7 @@ const NewRaceForm = () => {
                       }.${index}.ability${multipleOptions && 'options'}`}
                       multiple={multipleOptions}
                       placeholder='Ability'
+                      state={item.ability}
                       options={builders.ability}
                       onChange={setState}
                     />
@@ -756,6 +781,7 @@ const NewRaceForm = () => {
                       name={`feature.${featureIndex}.attribute`}
                       options={builders.race.feature.attribute}
                       placeholder='Feature Attributes'
+                      state={featureItem.attribute}
                       onChange={setState}
                     />
                   </div>
@@ -768,6 +794,7 @@ const NewRaceForm = () => {
                         name={`feature.${featureIndex}.ancestry`}
                         options={state.ancestry}
                         placeholder='Ancestry'
+                        state={featureItem.ancestry}
                         onChange={setState}
                       />
                     </div>
@@ -781,6 +808,7 @@ const NewRaceForm = () => {
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
                         options={builders.race.feature.requirements}
+                        state={featureItem.requirement.option}
                         onChange={setState}
                       />
                     </div>
@@ -803,6 +831,7 @@ const NewRaceForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                         placeholder='Skill Proficiency'
+                        state={featureItem.requirement.skillProficiency}
                         options={builders.skill}
                         onChange={setState}
                       />
@@ -827,6 +856,9 @@ const NewRaceForm = () => {
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           placeholder='Item Category'
+                          state={
+                            featureItem.requirement.itemProficiency.itemCategory
+                          }
                           options={builders.item.itemCategory}
                           onChange={setState}
                         />
@@ -835,6 +867,9 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
+                          state={
+                            featureItem.requirement.itemProficiency.itemType
+                          }
                           options={[].concat(
                             ...builders.item.itemCategory
                               .filter((itemCategory) =>
@@ -852,6 +887,9 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
+                          state={
+                            featureItem.requirement.itemProficiency.itemProperty
+                          }
                           options={[].concat(
                             ...builders.item.itemCategory
                               .filter((itemCategory) =>
@@ -885,6 +923,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
+                          state={featureItem.limitUse.limitBy}
                           options={builders.race.feature.chargeLimit}
                           onChange={setState}
                         />
@@ -894,6 +933,7 @@ const NewRaceForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
+                            state={featureItem.limitUse.ability}
                             options={builders.ability}
                             onChange={setState}
                           />
@@ -903,6 +943,7 @@ const NewRaceForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
+                            state={featureItem.limitUse.skill}
                             options={builders.skill}
                             onChange={setState}
                           />
@@ -931,6 +972,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
+                          state={featureItem.limitUse.resetsOn}
                           options={builders.race.feature.chargeReset}
                           onChange={setState}
                         />
@@ -955,6 +997,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
+                          state={featureItem.action}
                           options={builders.race.feature.action}
                           onChange={setState}
                         />
@@ -1026,6 +1069,7 @@ const NewRaceForm = () => {
                       <Select
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
+                        state={featureItem.saveAbility}
                         options={builders.ability}
                         onChange={setState}
                       />
@@ -1064,6 +1108,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             placeholder='Item Category'
+                            state={featureItem.requirement.equipped}
                             options={builders.item.itemCategory}
                             onChange={setState}
                           />
@@ -1073,6 +1118,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
+                            state={featureItem.requirement.equipped.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1091,6 +1137,9 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
+                            state={
+                              featureItem.requirement.equipped.itemProperty
+                            }
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1142,6 +1191,9 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                             placeholder='Item Category'
+                            state={
+                              featureItem.requirement.notEquipped.itemCategory
+                            }
                             options={builders.item.itemCategory}
                             onChange={setState}
                           />
@@ -1151,6 +1203,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
+                            state={featureItem.requirement.notEquipped.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1169,6 +1222,9 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             placeholder='Item Property'
+                            state={
+                              featureItem.requirement.notEquipped.itemProperty
+                            }
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1253,6 +1309,7 @@ const NewRaceForm = () => {
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
+                          state={featureItem.damage.damageAttribute}
                           options={builders.race.feature.damageAttribute}
                           onChange={setState}
                         />
@@ -1263,6 +1320,7 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.damage.damageType`}
                           multiple={true}
                           placeholder='Damage Type'
+                          state={featureItem.damage.damageType}
                           options={builders.damage}
                           onChange={setState}
                         />
@@ -1371,6 +1429,7 @@ const NewRaceForm = () => {
               <Select
                 name='category'
                 placeholder='Race Category'
+                state={state.category}
                 options={builders.race.category}
                 onChange={setState}
               />
@@ -1381,6 +1440,7 @@ const NewRaceForm = () => {
                   multiple={true}
                   name='lineage'
                   placeholder='Race Lineage'
+                  state={state.lineage}
                   options={races}
                   onChange={setState}
                 />
@@ -1483,6 +1543,7 @@ const NewRaceForm = () => {
                   multiple={true}
                   name='attribute'
                   placeholder='Attributes'
+                  state={state.attribute}
                   options={builders.race.attribute}
                   onChange={setState}
                 />
@@ -1502,6 +1563,7 @@ const NewRaceForm = () => {
                 <Select
                   name='size'
                   placeholder='Size'
+                  state={state.size}
                   options={builders.race.size}
                   onChange={setState}
                 />
