@@ -5,8 +5,6 @@ const usePersist = () => {
     JSON.parse(localStorage.getItem('persist')) || false
   )
 
-  console.log('hook', persist)
-
   useEffect(() => {
     localStorage.setItem('persist', JSON.stringify(persist))
   }, [persist])

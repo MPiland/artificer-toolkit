@@ -274,8 +274,9 @@ const SpellList = () => {
   }
 
   if (spellSuccess) {
+    console.log(spells)
+    
     const showCard = (spell) => {
-      console.log('spell list', location)
       navigate(`${spell.name}`, {
         state: {
           background: location,

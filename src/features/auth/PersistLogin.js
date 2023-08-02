@@ -10,8 +10,6 @@ const PersistLogin = () => {
   const token = useSelector(selectCurrentToken)
   const effectRan = useRef(false)
 
-  console.log('doesPersist?', persist)
-
   const [trueSuccess, setTrueSuccess] = useState(false)
 
   const [refresh, { isUninitialized, isLoading, isSuccess, isError, error }] =
