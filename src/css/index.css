@@ -37,6 +37,10 @@ a.btn {
   height: 58px;
 }
 
+.btn-small {
+  height: 38px;
+}
+
 button.bi {
   border: none;
   background: none;
@@ -95,6 +99,19 @@ h6 {
   border-color: grey;
 }
 
+.success-message {
+  color: green;
+}
+
+.error-message {
+  color: red;
+}
+
+/* Modal */
+.modal-xl {
+  min-width: calc(100vw - (2.75rem * 2));
+}
+
 @media only screen and (max-width: 768px) {
   #main-container {
     position: relative;
@@ -104,7 +121,7 @@ h6 {
   }
 }
 
-@media only screen and (min-width: 769px) and (max-width: 1200px) {
+@media only screen and (min-width: 768px) and (max-width: 1200px) {
   #main-container {
     position: relative;
     padding: 1rem calc(((100vw - 85vw) / 2) + 3rem) 0;

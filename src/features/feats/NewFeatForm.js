@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAddNewFeatMutation } from './featsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
@@ -16,6 +17,7 @@ const NUM_REGEX = /^[0-9\b]+$/
 
 const NewFeatForm = () => {
   const { id } = useAuth()
+  const navigate = useNavigate()
 
   const {
     data: builders,
@@ -35,10 +37,14 @@ const NewFeatForm = () => {
     isLoading: featLoading,
   } = useGetFeatQuery(id)
 
-  const [addNewFeat, { isSuccess: addIsSuccess }] = useAddNewFeatMutation()
+  const [
+    addNewFeat,
+    { isSuccess: addIsSuccess, isError: addIsError, error: addError },
+  ] = useAddNewFeatMutation()
 
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
+  const [errorMessage, setErrorMessage] = useState()
 
   useEffect(() => {
     const forms = document.querySelectorAll('.needs-validation')
@@ -57,17 +63,36 @@ const NewFeatForm = () => {
     })
   })
 
-  function validateForm() {}
-
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Feat added successfully!')
+      setSuccessMessage('Spell added successfully!')
       setState({
         type: 'reset',
         payload: { target: { userId: id } },
       })
     }
   }, [addIsSuccess, id, setState])
+
+  useEffect(() => {
+    if (addIsError) {
+      setErrorMessage(addError.message)
+    }
+  }, [addIsError, addError])
+
+  useEffect(() => {
+    document.addEventListener('keypress', () => {
+      if (!!successMessage) {
+        setSuccessMessage()
+      }
+    })
+    return document.removeEventListener('keypress', () => {
+      if (!!successMessage) {
+        setSuccessMessage()
+      }
+    })
+  })
+
+  function validateForm() {}
 
   const onSubmit = async () => {
     await addNewFeat(state)
@@ -80,8 +105,6 @@ const NewFeatForm = () => {
   }
 
   if (builderSuccess && spellSuccess && featSuccess) {
-    // Submit to databases
-
     const sections = [
       {
         name: 'feat',
@@ -119,23 +142,25 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={setState}
+                    onChange={(input) =>
+                      setState({ payload: { target: input } })
+                    }
                   />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.feat${
-                      multipleOptions && '.options'
-                    }`}
-                    multiple={multipleOptions}
-                    placeholder='Feat'
-                    state={item.feat}
-                    options={feats}
-                    onChange={setState}
-                  />
-                </div>
+                <Select
+                  name={`feature.${featureIndex}.${this.name}.${index}.feat${
+                    multipleOptions && '.options'
+                  }`}
+                  multiple={multipleOptions}
+                  placeholder='Feat'
+                  state={item.feat}
+                  options={feats}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
               </div>
             </>
           )
@@ -177,37 +202,39 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={setState}
+                    onChange={(input) =>
+                      setState({ payload: { target: input } })
+                    }
                   />
                 )}
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.modType`}
-                    placeholder='Modifier Type'
-                    state={item.modType}
-                    options={builders.modifier.modType}
-                    onChange={setState}
-                  />
-                </div>
+                <Select
+                  name={`feature.${featureIndex}.${this.name}.${index}.modType`}
+                  placeholder='Modifier Type'
+                  state={item.modType}
+                  options={builders.modifier.modType}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
                 {item.modType?.name && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.module`}
-                      placeholder='Modifier Category'
-                      state={item.module}
-                      options={builders.modifier.module?.filter((moduleItem) =>
-                        builders.modifier.modType
-                          .find(
-                            (typeItem) => typeItem.name === item.modType?.name
-                          )
-                          ?.module.map((m) => m.id)
-                          .some((moduleID) => moduleID === moduleItem._id)
-                      )}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.module`}
+                    placeholder='Modifier Category'
+                    state={item.module}
+                    options={builders.modifier.module?.filter((moduleItem) =>
+                      builders.modifier.modType
+                        .find(
+                          (typeItem) => typeItem.name === item.modType?.name
+                        )
+                        ?.module.map((m) => m.id)
+                        .some((moduleID) => moduleID === moduleItem._id)
+                    )}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
                 {(item.modType?.name === 'bonus' ||
                   item.modType?.name === 'penalty' ||
@@ -216,121 +243,117 @@ const NewFeatForm = () => {
                   item.modType?.name === 'setValue') && (
                   <>
                     {item.module?.name === 'ability' && (
-                      <div className='col-sm'>
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.ability${multipleOptions && '.options'}`}
-                          multiple={multipleOptions}
-                          placeholder='Ability'
-                          state={item.ability}
-                          options={builders.ability}
-                          onChange={setState}
-                        />
-                      </div>
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.ability${multipleOptions && '.options'}`}
+                        multiple={multipleOptions}
+                        placeholder='Ability'
+                        state={item.ability}
+                        options={builders.ability}
+                        onChange={setState}
+                      />
                     )}
                     {item.module?.name === 'saveAbility' && (
-                      <div className='col-sm'>
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.saveAbility${
-                            multipleOptions && '.options'
-                          }`}
-                          multiple={multipleOptions}
-                          placeholder='Save Ability'
-                          state={item.saveAbility}
-                          options={builders.ability}
-                          onChange={setState}
-                        />
-                      </div>
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.saveAbility${multipleOptions && '.options'}`}
+                        multiple={multipleOptions}
+                        placeholder='Save Ability'
+                        state={item.saveAbility}
+                        options={builders.ability}
+                        onChange={(option) =>
+                          setState({ payload: { target: option } })
+                        }
+                      />
                     )}
                     {item.module?.name === 'skill' && (
-                      <div className='col-sm'>
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.skill${multipleOptions && '.options'}`}
-                          multiple={multipleOptions}
-                          placeholder='Skill'
-                          state={item.skill}
-                          options={builders.skill}
-                          onChange={setState}
-                        />
-                      </div>
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.skill${multipleOptions && '.options'}`}
+                        multiple={multipleOptions}
+                        placeholder='Skill'
+                        state={item.skill}
+                        options={builders.skill}
+                        onChange={(option) =>
+                          setState({ payload: { target: option } })
+                        }
+                      />
                     )}
                   </>
                 )}
                 {(item.modType?.name === 'bonus' ||
                   item.modType?.name === 'penalty') &&
                   item.modType?.name !== 'setValue' && (
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.method`}
-                        placeholder='Method'
-                        state={item.method}
-                        options={builders.modifier.method.filter((methodItem) =>
-                          methodItem.module.some(
-                            (moduleItem) => moduleItem.id === item.module?.id
-                          )
-                        )}
-                        onChange={setState}
-                      />
-                    </div>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.method`}
+                      placeholder='Method'
+                      state={item.method}
+                      options={builders.modifier.method.filter((methodItem) =>
+                        methodItem.module.some(
+                          (moduleItem) => moduleItem.id === item.module?.id
+                        )
+                      )}
+                      onChange={(option) =>
+                        setState({ payload: { target: option } })
+                      }
+                    />
                   )}
                 {item.module?.name === 'condition' ? (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.condition${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Condition Type'
-                      state={item.condition}
-                      options={builders.condition}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.condition${multipleOptions && '.options'}`}
+                    multiple={multipleOptions}
+                    placeholder='Condition Type'
+                    state={item.condition}
+                    options={builders.condition}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 ) : item.module?.name === 'speed' ? (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.speed${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      state={item.speed}
-                      placeholder='Speed Type'
-                      options={builders.speed}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.speed${
+                      multipleOptions && '.options'
+                    }`}
+                    multiple={multipleOptions}
+                    state={item.speed}
+                    placeholder='Speed Type'
+                    options={builders.speed}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 ) : item.module?.name === 'passive' ? (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.passive${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Passive Type'
-                      state={item.passive}
-                      options={builders.passive}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.passive${multipleOptions && '.options'}`}
+                    multiple={multipleOptions}
+                    placeholder='Passive Type'
+                    state={item.passive}
+                    options={builders.passive}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 ) : (
                   item.module?.name === 'damage' && (
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${
-                          this.name
-                        }.${index}.damage${multipleOptions && '.options'}`}
-                        multiple={multipleOptions}
-                        placeholder='Damage Type'
-                        state={item.damage.damageType}
-                        options={builders.damage}
-                        onChange={setState}
-                      />
-                    </div>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.damage${multipleOptions && '.options'}`}
+                      multiple={multipleOptions}
+                      placeholder='Damage Type'
+                      state={item.damage.damageType}
+                      options={builders.damage}
+                      onChange={(option) =>
+                        setState({ payload: { target: option } })
+                      }
+                    />
                   )
                 )}
                 {item.method?.name === 'setValue' ||
@@ -349,55 +372,57 @@ const NewFeatForm = () => {
                       invalidText='Must contain only numbers'
                       autoComplete='off'
                       value={item.method?.setValue ?? ''}
-                      onChange={setState}
+                      onChange={(input) =>
+                        setState({ payload: { target: input } })
+                      }
                     />
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
-                        placeholder='Multiplier'
-                        state={item.multiplier}
-                        options={builders.modifier.multiplier}
-                        onChange={setState}
-                      />
-                    </div>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
+                      placeholder='Multiplier'
+                      state={item.multiplier}
+                      options={builders.modifier.multiplier}
+                      onChange={(option) =>
+                        setState({ payload: { target: option } })
+                      }
+                    />
                   </>
                 ) : item.method?.name === 'ability' ? (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
-                      placeholder='Method Ability'
-                      state={item.method.ability}
-                      options={builders.ability}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
+                    placeholder='Method Ability'
+                    state={item.method.ability}
+                    options={builders.ability}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 ) : (
                   item.method?.name === 'skill' && (
-                    <div className='col-sm'>
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
-                        placeholder='Method Skill'
-                        state={item.method.skill}
-                        options={builders.skill}
-                        onChange={setState}
-                      />
-                    </div>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
+                      placeholder='Method Skill'
+                      state={item.method.skill}
+                      options={builders.skill}
+                      onChange={(option) =>
+                        setState({ payload: { target: option } })
+                      }
+                    />
                   )
                 )}
                 {(item.modType?.name === 'bonus' ||
                   item.modType?.name === 'setValue') && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                      placeholder='Exceeds Max'
-                      state={item.exceedMax}
-                      options={[
-                        { name: true, value: 'Yes' },
-                        { name: false, value: 'No' },
-                      ]}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                    placeholder='Exceeds Max'
+                    state={item.exceedMax}
+                    options={[
+                      { name: true, value: 'Yes' },
+                      { name: false, value: 'No' },
+                    ]}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
               </div>
             </>
@@ -440,121 +465,123 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={setState}
+                    onChange={(input) =>
+                      setState({ payload: { target: input } })
+                    }
                   />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.area`}
-                    placeholder='Proficiency Area'
-                    state={item.area}
-                    options={builders.proficiency.area}
-                    onChange={setState}
-                  />
-                </div>
+                <Select
+                  name={`feature.${featureIndex}.${this.name}.${index}.area`}
+                  placeholder='Proficiency Area'
+                  state={item.area}
+                  options={builders.proficiency.area}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
                 {item?.area?.name === 'skill' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.skill${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Skill'
-                      state={item.skill}
-                      options={builders.skill}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.skill${
+                      multipleOptions && '.options'
+                    }`}
+                    multiple={multipleOptions}
+                    placeholder='Skill'
+                    state={item.skill}
+                    options={builders.skill}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
                 {item?.area?.name === 'saveAbility' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.saveAbility${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Save Ability'
-                      state={item.saveAbility}
-                      options={builders.ability}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.saveAbility${multipleOptions && '.options'}`}
+                    multiple={multipleOptions}
+                    placeholder='Save Ability'
+                    state={item.saveAbility}
+                    options={builders.ability}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
                 {item?.area?.name === 'tool' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.tool${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Tool'
-                      state={item.tool}
-                      options={builders.tool}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${this.name}.${index}.tool${
+                      multipleOptions && '.options'
+                    }`}
+                    multiple={multipleOptions}
+                    placeholder='Tool'
+                    state={item.tool}
+                    options={builders.tool}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
                 {item?.area?.name === 'language' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.language${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Language'
-                      state={item.language}
-                      options={builders.language}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.language${multipleOptions && '.options'}`}
+                    multiple={multipleOptions}
+                    placeholder='Language'
+                    state={item.language}
+                    options={builders.language}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
                 {item.area?.name === 'itemType' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.itemType${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Item Type'
-                      state={item.itemType}
-                      options={[].concat(
-                        ...builders.item.itemCategory.map(
-                          (categoryItem) => categoryItem.itemType
-                        )
-                      )}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.itemType${multipleOptions && '.options'}`}
+                    multiple={multipleOptions}
+                    placeholder='Item Type'
+                    state={item.itemType}
+                    options={[].concat(
+                      ...builders.item.itemCategory.map(
+                        (categoryItem) => categoryItem.itemType
+                      )
+                    )}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
                 {item.area?.name === 'itemProperty' && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.itemProperty${multipleOptions && '.options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Item Property'
-                      state={item.itemProperty}
-                      options={[].concat(
-                        ...builders.item.itemCategory.map(
-                          (categoryItem) => categoryItem.itemProperty
-                        )
-                      )}
-                      onChange={setState}
-                    />
-                  </div>
-                )}
-                <div className='col-sm'>
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.level`}
-                    placeholder='Proficiency Level'
-                    state={item.level}
-                    options={builders.proficiency.level}
-                    onChange={setState}
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.itemProperty${multipleOptions && '.options'}`}
+                    multiple={multipleOptions}
+                    placeholder='Item Property'
+                    state={item.itemProperty}
+                    options={[].concat(
+                      ...builders.item.itemCategory.map(
+                        (categoryItem) => categoryItem.itemProperty
+                      )
+                    )}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
                   />
-                </div>
+                )}
+                <Select
+                  name={`feature.${featureIndex}.${this.name}.${index}.level`}
+                  placeholder='Proficiency Level'
+                  state={item.level}
+                  options={builders.proficiency.level}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
               </div>
             </>
           )
@@ -596,23 +623,25 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={setState}
+                    onChange={(input) =>
+                      setState({ payload: { target: input } })
+                    }
                   />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.sense${
-                      multipleOptions && '.options'
-                    }`}
-                    multiple={multipleOptions}
-                    placeholder='Sense'
-                    state={item.sense}
-                    options={builders.sense}
-                    onChange={setState}
-                  />
-                </div>
+                <Select
+                  name={`feature.${featureIndex}.${this.name}.${index}.sense${
+                    multipleOptions && '.options'
+                  }`}
+                  multiple={multipleOptions}
+                  placeholder='Sense'
+                  state={item.sense}
+                  options={builders.sense}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
               </div>
             </>
           )
@@ -654,48 +683,50 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={setState}
+                    onChange={(input) =>
+                      setState({ payload: { target: input } })
+                    }
                   />
                 )}
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
-                <div className='col-sm'>
-                  <Select
-                    multiple='true'
-                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                    options={builders.feat.feature.spell.attribute}
-                    placeholder='Spell Attributes'
-                    state={item.attribute}
-                    onChange={setState}
-                  />
-                </div>
-                <div className='col-sm'>
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}${
-                      multipleOptions && '.options'
-                    }`}
-                    multiple={multipleOptions}
-                    placeholder='Spell'
-                    state={item}
-                    options={spells}
-                    onChange={setState}
-                  />
-                </div>
+                <Select
+                  multiple='true'
+                  name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                  options={builders.feat.feature.spell.attribute}
+                  placeholder='Spell Attributes'
+                  state={item.attribute}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
+                <Select
+                  name={`feature.${featureIndex}.${this.name}.${index}${
+                    multipleOptions && '.options'
+                  }`}
+                  multiple={multipleOptions}
+                  placeholder='Spell'
+                  state={item}
+                  options={spells}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
                 {item.attribute?.some(
                   (attributeItem) => attributeItem.name === 'optionalAbility'
                 ) && (
-                  <div className='col-sm'>
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.ability${multipleOptions && 'options'}`}
-                      multiple={multipleOptions}
-                      placeholder='Ability'
-                      state={item.ability}
-                      options={builders.ability}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.ability${multipleOptions && 'options'}`}
+                    multiple={multipleOptions}
+                    placeholder='Ability'
+                    state={item.ability}
+                    options={builders.ability}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
                 )}
               </div>
             </>
@@ -706,146 +737,204 @@ const NewFeatForm = () => {
 
     const featureContent =
       state.feature?.length !== 0 &&
-      state.feature?.map((featureItem, featureIndex) => (
-        <div key={featureIndex} className='accordion' id='featureAccordion'>
-          <div className='accordion-item'>
-            <div className='accordion-header'>
-              <AccordionButton
-                id={`feature${featureIndex}AccordionButton`}
-                target={`feature${featureIndex}AccordionBody`}
+      state.feature?.map((featureItem, featureIndex) => {
+        const damageTableInputs = () => {
+          const inputArray = [
+            {
+              name: 'level',
+              value: 'Level',
+              invalid: 'Must contain only numbers',
+              validation: true,
+              label: true,
+            },
+            {
+              name: 'diceCount',
+              value: 'Dice Count',
+              invalid: 'Must contain only numbers',
+              validation: true,
+              label: true,
+            },
+            {
+              name: 'diceValue',
+              value: 'Dice Value',
+              invalid: 'Must contain only numbers',
+              validation: true,
+              label: true,
+            },
+          ]
+          if (
+            featureItem.attribute?.some(
+              (attributeItem) => attributeItem.name === 'secondaryDamage'
+            )
+          ) {
+            inputArray.push(
+              {
+                name: 'secDiceCount',
+                value: 'Sec. Dice Count',
+                invalid: 'Must contain only numbers',
+                validation: true,
+                label: true,
+              },
+              {
+                name: 'secDiceValue',
+                value: 'Sec. Dice Value',
+                invalid: 'Must contain only numbers',
+                validation: true,
+                label: true,
+              }
+            )
+          }
+
+          return inputArray
+        }
+        return (
+          <div key={featureIndex} className='accordion' id='featureAccordion'>
+            <div className='accordion-item'>
+              <div className='accordion-header'>
+                <AccordionButton
+                  id={`feature${featureIndex}AccordionButton`}
+                  target={`feature${featureIndex}AccordionBody`}
+                >
+                  <Input
+                    size='col-sm-4'
+                    name={`feature.${featureIndex}.value`}
+                    border={false}
+                    autoComplete='off'
+                    placeholder='Feature Name'
+                    value={featureItem.value ?? ''}
+                    clickable={false}
+                    onChange={(input) =>
+                      setState({ payload: { target: input } })
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </AccordionButton>
+              </div>
+              <div
+                className='accordion-collapse collapse show'
+                id={`feature${featureIndex}AccordionBody`}
+                data-bs-parent='#featureAccordion'
               >
-                <Input
-                  size='col-sm-4'
-                  name={`feature.${featureIndex}.value`}
-                  border={false}
-                  autoComplete='off'
-                  placeholder='Feature Name'
-                  value={featureItem.value ?? ''}
-                  onChange={setState}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </AccordionButton>
-            </div>
-            <div
-              className='accordion-collapse collapse show'
-              id={`feature${featureIndex}AccordionBody`}
-              data-bs-parent='#featureAccordion'
-            >
-              <div className='accordion-body'>
-                <div className='row justify-content-start g-2 pb-3'>
-                  <div className='col-auto'>
-                    <button
-                      className='btn btn-outline-primary overflow-hidden text-nowrap'
-                      type='button'
-                      name={`feature.${featureIndex}`}
-                      onClick={(e) => setState({ type: 'removed', payload: e })}
-                    >
-                      Remove Feature
-                    </button>
-                  </div>
-                  {sections.map((sectionItem, sectionIndex) => (
-                    <div key={sectionIndex} className='col-auto'>
+                <div className='accordion-body'>
+                  <div className='row justify-content-start g-2 pb-3'>
+                    <div className='col-auto'>
                       <button
-                        key={sectionIndex}
-                        className='btn btn-secondary'
+                        className='btn btn-outline-primary overflow-hidden text-nowrap'
                         type='button'
-                        name={`feature.${featureIndex}.${sectionItem.name}`}
-                        onClick={(e) => setState({ type: 'added', payload: e })}
+                        name={`feature.${featureIndex}`}
+                        onClick={(e) =>
+                          setState({ type: 'removed', payload: e })
+                        }
                       >
-                        {`Add ${startCase(sectionItem.name)}`}
+                        Remove Feature
                       </button>
                     </div>
-                  ))}
-                </div>
-                <div className='pb-3'>
-                  <TextEditor
-                    placeholder='Feature description'
-                    state={featureItem.desc}
-                    name={`feature.${featureIndex}.desc`}
-                    onChange={setState}
-                  />
-                </div>
-                <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
-                  <div className='col-sm'>
+                    {sections.map((sectionItem, sectionIndex) => (
+                      <div key={sectionIndex} className='col-auto'>
+                        <button
+                          key={sectionIndex}
+                          className='btn btn-secondary'
+                          type='button'
+                          name={`feature.${featureIndex}.${sectionItem.name}`}
+                          onClick={(e) =>
+                            setState({ type: 'added', payload: e })
+                          }
+                        >
+                          {`Add ${startCase(sectionItem.name)}`}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className='pb-3'>
+                    <TextEditor
+                      placeholder='Feature description'
+                      state={featureItem.desc}
+                      name={`feature.${featureIndex}.desc`}
+                      onChange={setState}
+                    />
+                  </div>
+                  <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
                       state={featureItem.attribute}
                       options={builders.feat.feature.attribute}
                       placeholder='Feature Attributes'
-                      onChange={setState}
+                      onChange={(option) =>
+                        setState({ payload: { target: option } })
+                      }
                     />
-                  </div>
-                  {featureItem.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'hasRequirements'
-                  ) ? (
-                    <div className='col-sm'>
+                    {featureItem.attribute?.some(
+                      (attributeItem) =>
+                        attributeItem.name === 'hasRequirements'
+                    ) ? (
                       <Select
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
-                        state={featureItem.requirement.option}
+                        state={featureItem.requirement?.option}
                         placeholder='Requirement'
                         options={builders.feat.feature.requirements}
-                        onChange={setState}
+                        onChange={(option) =>
+                          setState({ payload: { target: option } })
+                        }
                       />
-                    </div>
-                  ) : (
-                    !!featureItem.requirement &&
-                    setState({
-                      action: 'removed',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.requirement`,
+                    ) : (
+                      !!featureItem.requirement &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement`,
+                          },
                         },
-                      },
-                    })
-                  )}
-                  {featureItem.requirement?.option.some(
-                    (optionItem) => optionItem.name === 'skillProficiency'
-                  ) ? (
-                    <div className='col-sm'>
+                      })
+                    )}
+                    {featureItem.requirement?.option.some(
+                      (optionItem) => optionItem.name === 'skillProficiency'
+                    ) ? (
                       <Select
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
-                        state={featureItem.requirement.skillProficiency.skill}
+                        state={featureItem.requirement?.skillProficiency?.skill}
                         placeholder='Skill Proficiency'
                         options={builders.skill}
-                        onChange={setState}
+                        onChange={(option) =>
+                          setState({ payload: { target: option } })
+                        }
                       />
-                    </div>
-                  ) : (
-                    !!featureItem.requirement?.skillProficiency &&
-                    setState({
-                      action: 'removed',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.requirement.skillProficiency`,
+                    ) : (
+                      !!featureItem.requirement?.skillProficiency &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.skillProficiency`,
+                          },
                         },
-                      },
-                    })
-                  )}
-                  {featureItem.requirement?.option.some(
-                    (optionItem) => optionItem.name === 'itemProficiency'
-                  ) ? (
-                    <>
-                      <div className='col-sm'>
+                      })
+                    )}
+                    {featureItem.requirement?.option.some(
+                      (optionItem) => optionItem.name === 'itemProficiency'
+                    ) ? (
+                      <>
                         <Select
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           state={
-                            featureItem.requirement.itemProficiency.itemCategory
+                            featureItem.requirement?.itemProficiency
+                              ?.itemCategory
                           }
                           placeholder='Item Category'
                           options={builders.item.itemCategory}
-                          onChange={setState}
+                          onChange={(option) =>
+                            setState({ payload: { target: option } })
+                          }
                         />
-                      </div>
-                      <div className='col-sm'>
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
                           state={
-                            featureItem.requirement.itemProficiency.itemType
+                            featureItem.requirement?.itemProficiency?.itemType
                           }
                           options={[].concat(
                             ...builders.item.itemCategory
@@ -859,13 +948,12 @@ const NewFeatForm = () => {
                           )}
                           onChange={setState}
                         />
-                      </div>
-                      <div className='col-sm'>
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
                           state={
-                            featureItem.requirement.itemProficiency.itemProperty
+                            featureItem.requirement?.itemProficiency
+                              ?.itemProperty
                           }
                           options={[].concat(
                             ...builders.item.itemCategory
@@ -877,209 +965,216 @@ const NewFeatForm = () => {
                               )
                               .map((filteredItem) => filteredItem.itemProperty)
                           )}
-                          onChange={setState}
+                          onChange={(option) =>
+                            setState({ payload: { target: option } })
+                          }
                         />
-                      </div>
-                    </>
-                  ) : (
-                    !!featureItem.requirement?.itemProficiency &&
-                    setState({
-                      action: 'removed',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.requirement.itemProficiency`,
+                      </>
+                    ) : (
+                      !!featureItem.requirement?.itemProficiency &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.itemProficiency`,
+                          },
                         },
-                      },
-                    })
-                  )}
-                  {featureItem.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'limitUse'
-                  ) ? (
-                    <>
-                      <div className='col-sm'>
+                      })
+                    )}
+                    {featureItem.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'limitUse'
+                    ) ? (
+                      <>
                         <Select
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
-                          state={featureItem.limitUse.limitBy}
+                          state={featureItem.limitUse?.limitBy}
                           options={builders.feat.feature.chargeLimit}
-                          onChange={setState}
+                          onChange={(option) =>
+                            setState({ payload: { target: option } })
+                          }
                         />
-                      </div>
-                      {featureItem.limitUse?.limitBy?.name === 'ability' ? (
-                        <div className='col-sm'>
+                        {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
-                            state={featureItem.limitUse.ability}
+                            state={featureItem.limitUse?.ability}
                             options={builders.ability}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
-                        </div>
-                      ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
-                        <div className='col-sm'>
+                        ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
-                            state={featureItem.limitUse.skill}
+                            state={featureItem.limitUse?.skill}
                             options={builders.skill}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
-                        </div>
-                      ) : (
-                        featureItem.limitUse?.limitBy?.name === 'setNumber' && (
-                          <Input
-                            className={`${
-                              featureItem.limitUse?.setAmount &&
-                              (NUM_REGEX.test(featureItem.limitUse?.setAmount)
-                                ? 'is-valid'
-                                : 'is-invalid')
-                            }`}
-                            name={`feature.${featureIndex}.limitUse.setAmount`}
-                            label={true}
-                            invalidText='Must contain only numbers'
-                            placeholder='Use Amount'
-                            required={true}
-                            value={featureItem.limitUse.setAmount ?? ''}
-                            onChange={setState}
-                          />
-                        )
-                      )}
-                      <div className='col-sm'>
+                        ) : (
+                          featureItem.limitUse?.limitBy?.name ===
+                            'setNumber' && (
+                            <Input
+                              className={`${
+                                featureItem.limitUse?.setAmount &&
+                                (NUM_REGEX.test(featureItem.limitUse?.setAmount)
+                                  ? 'is-valid'
+                                  : 'is-invalid')
+                              }`}
+                              name={`feature.${featureIndex}.limitUse.setAmount`}
+                              label={true}
+                              invalidText='Must contain only numbers'
+                              placeholder='Use Amount'
+                              required={true}
+                              value={featureItem.limitUse.setAmount ?? ''}
+                              onChange={(input) =>
+                                setState({ payload: { target: input } })
+                              }
+                            />
+                          )
+                        )}
                         <Select
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
-                          state={featureItem.limitUse.resetsOn}
+                          state={featureItem.limitUse?.resetsOn}
                           options={builders.feat.feature.chargeReset}
-                          onChange={setState}
+                          onChange={(option) =>
+                            setState({ payload: { target: option } })
+                          }
                         />
-                      </div>
-                    </>
-                  ) : (
-                    !!featureItem.limitUse &&
-                    setState({
-                      action: 'removed',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.limitUse`,
+                      </>
+                    ) : (
+                      !!featureItem.limitUse &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.limitUse`,
+                          },
                         },
-                      },
-                    })
-                  )}
-                  {featureItem.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'isAction'
-                  ) ? (
-                    <>
-                      <div className='col-sm'>
+                      })
+                    )}
+                    {featureItem.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'isAction'
+                    ) ? (
+                      <>
                         <Select
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
                           state={featureItem.action}
                           options={builders.feat.feature.action}
-                          onChange={setState}
+                          onChange={(option) =>
+                            setState({ payload: { target: option } })
+                          }
                         />
-                      </div>
-                    </>
-                  ) : (
-                    !!featureItem.action &&
-                    setState({
-                      action: 'removed',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.action`,
+                      </>
+                    ) : (
+                      !!featureItem.action &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.action`,
+                          },
                         },
-                      },
-                    })
-                  )}
-                  {featureItem.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'hasRange'
-                  ) ? (
-                    <>
-                      <Input
-                        className={`${
-                          featureItem.range?.minRange &&
-                          (NUM_REGEX.test(featureItem.range?.minRange)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        name={`feature.${featureIndex}.range.minRange`}
-                        autoComplete='off'
-                        label={true}
-                        placeholder='Min Range'
-                        required={true}
-                        onChange={setState}
-                        value={featureItem.range.minRange ?? ''}
-                        invalidText='Must contain only numbers'
-                      />
-                      <Input
-                        className={`${
-                          featureItem.range?.maxRange &&
-                          (NUM_REGEX.test(featureItem.range?.maxRange)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        name={`feature.${featureIndex}.range.maxRange`}
-                        label={true}
-                        autoComplete='off'
-                        placeholder='Max Range'
-                        invalidText='Must contain only numbers'
-                        required={true}
-                        value={featureItem.range.maxRange ?? ''}
-                        onChange={setState}
-                      />
-                    </>
-                  ) : (
-                    !!featureItem.saveAbility &&
-                    setState({
-                      action: 'removed',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.range`,
+                      })
+                    )}
+                    {featureItem.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'hasRange'
+                    ) ? (
+                      <>
+                        <Input
+                          className={`${
+                            featureItem.range?.minRange &&
+                            (NUM_REGEX.test(featureItem.range?.minRange)
+                              ? 'is-valid'
+                              : 'is-invalid')
+                          }`}
+                          name={`feature.${featureIndex}.range.minRange`}
+                          autoComplete='off'
+                          label={true}
+                          placeholder='Min Range'
+                          required={true}
+                          value={featureItem.range.minRange ?? ''}
+                          invalidText='Must contain only numbers'
+                          onChange={(input) =>
+                            setState({ payload: { target: input } })
+                          }
+                        />
+                        <Input
+                          className={`${
+                            featureItem.range?.maxRange &&
+                            (NUM_REGEX.test(featureItem.range?.maxRange)
+                              ? 'is-valid'
+                              : 'is-invalid')
+                          }`}
+                          name={`feature.${featureIndex}.range.maxRange`}
+                          label={true}
+                          autoComplete='off'
+                          placeholder='Max Range'
+                          invalidText='Must contain only numbers'
+                          required={true}
+                          value={featureItem.range.maxRange ?? ''}
+                          onChange={(input) =>
+                            setState({ payload: { target: input } })
+                          }
+                        />
+                      </>
+                    ) : (
+                      !!featureItem.saveAbility &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.range`,
+                          },
                         },
-                      },
-                    })
-                  )}
-                  {featureItem.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'requireSave'
-                  ) ? (
-                    <div className='col-sm'>
+                      })
+                    )}
+                    {featureItem.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'requireSave'
+                    ) ? (
                       <Select
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
                         state={featureItem.saveAbility}
                         options={builders.ability}
-                        onChange={setState}
+                        onChange={(option) =>
+                          setState({ payload: { target: option } })
+                        }
                       />
-                    </div>
-                  ) : (
-                    !!featureItem.saveAbility &&
-                    setState({
-                      action: 'removed',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.saveAbility`,
+                    ) : (
+                      !!featureItem.saveAbility &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.saveAbility`,
+                          },
                         },
-                      },
-                    })
-                  )}
-                </div>
-                {featureItem.requirement?.option.some(
-                  (optionItem) => optionItem.name === 'equipped'
-                ) ? (
-                  <>
-                    <AccordionButton
-                      className='accordion feature-attribute-divider justify-content-between align-items-center'
-                      id='featureEquippedButton'
-                      target='featureEquipped'
-                    >
-                      <span className='me-3'>Equipped</span>
-                      <hr className='flex-grow-1 me-3' />
-                    </AccordionButton>
-                    <div
-                      className='accordion-collapse collapse show'
-                      id='featureEquipped'
-                    >
-                      <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
-                        <div className='col-sm'>
+                      })
+                    )}
+                  </div>
+                  {featureItem.requirement?.option.some(
+                    (optionItem) => optionItem.name === 'equipped'
+                  ) ? (
+                    <>
+                      <AccordionButton
+                        className='accordion feature-attribute-divider justify-content-between align-items-center'
+                        id='featureEquippedButton'
+                        target='featureEquipped'
+                      >
+                        <span className='me-3'>Equipped</span>
+                        <hr className='flex-grow-1 me-3' />
+                      </AccordionButton>
+                      <div
+                        className='accordion-collapse collapse show'
+                        id='featureEquipped'
+                      >
+                        <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
@@ -1088,10 +1183,10 @@ const NewFeatForm = () => {
                             }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
-                        </div>
-                        <div className='col-sm'>
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
@@ -1107,10 +1202,10 @@ const NewFeatForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
-                        </div>
-                        <div className='col-sm'>
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
@@ -1130,41 +1225,41 @@ const NewFeatForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
                         </div>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  !!featureItem.requirement?.equipped &&
-                  setState({
-                    action: 'removed',
-                    payload: {
-                      target: {
-                        name: `feature.${featureIndex}.requirement.equipped`,
+                    </>
+                  ) : (
+                    !!featureItem.requirement?.equipped &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement.equipped`,
+                        },
                       },
-                    },
-                  })
-                )}
-                {featureItem.requirement?.option.some(
-                  (optionItem) => optionItem.name === 'notEquipped'
-                ) ? (
-                  <>
-                    <AccordionButton
-                      className='accordion feature-attribute-divider justify-content-between align-items-center'
-                      id='featureNotEquippedButton'
-                      target='featureNotEquipped'
-                    >
-                      <span className='me-3'>Not Equipped</span>
-                      <hr className='flex-grow-1 me-3' />
-                    </AccordionButton>
-                    <div
-                      className='accordion-collapse collapse show'
-                      id='featureNotEquipped'
-                    >
-                      <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
-                        <div className='col-sm'>
+                    })
+                  )}
+                  {featureItem.requirement?.option.some(
+                    (optionItem) => optionItem.name === 'notEquipped'
+                  ) ? (
+                    <>
+                      <AccordionButton
+                        className='accordion feature-attribute-divider justify-content-between align-items-center'
+                        id='featureNotEquippedButton'
+                        target='featureNotEquipped'
+                      >
+                        <span className='me-3'>Not Equipped</span>
+                        <hr className='flex-grow-1 me-3' />
+                      </AccordionButton>
+                      <div
+                        className='accordion-collapse collapse show'
+                        id='featureNotEquipped'
+                      >
+                        <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
@@ -1173,10 +1268,10 @@ const NewFeatForm = () => {
                             }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
-                        </div>
-                        <div className='col-sm'>
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
@@ -1192,10 +1287,10 @@ const NewFeatForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
-                        </div>
-                        <div className='col-sm'>
                           <Select
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
@@ -1215,97 +1310,40 @@ const NewFeatForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
-                            onChange={setState}
+                            onChange={(option) =>
+                              setState({ payload: { target: option } })
+                            }
                           />
                         </div>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  !!featureItem.requirement?.notEquipped &&
-                  setState({
-                    action: 'removed',
-                    payload: {
-                      target: {
-                        name: `feature.${featureIndex}.requirement.notEquipped`,
-                      },
-                    },
-                  })
-                )}
-                {featureItem.limitUse?.limitBy?.name === 'level' &&
-                  featureItem.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'limitUse'
-                  ) &&
-                  (featureItem.limitUse.level ??
+                    </>
+                  ) : (
+                    !!featureItem.requirement?.notEquipped &&
                     setState({
-                      type: 'added',
+                      action: 'removed',
                       payload: {
                         target: {
-                          name: `feature.${featureIndex}.limitUse.level`,
-                        },
-                      },
-                    })) && (
-                    <div>
-                      <Table
-                        headers={[
-                          {
-                            name: 'level',
-                            value: 'Level',
-                            size: 5,
-                            invalid: 'Must contain only numbers',
-                            label: true,
-                          },
-                          {
-                            name: 'uses',
-                            value: 'Uses',
-                            invalid: 'Must contain only numbers',
-                            label: true,
-                          },
-                        ]}
-                        name={`feature.${featureIndex}.limitUse.level`}
-                        state={featureItem.limitUse?.level}
-                        onChange={setState}
-                      />
-                    </div>
-                  )}
-                {featureItem.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'doesDamage'
-                ) ? (
-                  !featureItem.damage?.damageByLevel ? (
-                    setState({
-                      type: 'added',
-                      payload: {
-                        target: {
-                          name: `feature.${featureIndex}.damage.damageByLevel`,
+                          name: `feature.${featureIndex}.requirement.notEquipped`,
                         },
                       },
                     })
-                  ) : (
-                    <div className='row g-2 align-items-end pb-2'>
-                      <div className='col-sm'>
-                        <Select
-                          multiple={true}
-                          name={`feature.${featureIndex}.damage.damageAttribute`}
-                          state={featureItem.damage.damageAttribute}
-                          placeholder='Damage Attribute'
-                          options={builders.feat.feature.damageAttribute}
-                          onChange={setState}
-                        />
-                      </div>
-                      <div className='col-sm'>
-                        <Select
-                          className='pb-1'
-                          name={`feature.${featureIndex}.damage.damageType`}
-                          multiple={true}
-                          placeholder='Damage Type'
-                          state={featureItem.damage.damageType}
-                          options={builders.damage}
-                          onChange={setState}
-                        />
-                      </div>
-                      <div className='col-lg-6 col-md-12'>
+                  )}
+                  {featureItem.limitUse?.limitBy?.name === 'level' &&
+                    featureItem.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'limitUse'
+                    ) &&
+                    (featureItem.limitUse.level ??
+                      setState({
+                        type: 'added',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.limitUse.level`,
+                          },
+                        },
+                      })) && (
+                      <div>
                         <Table
-                          headers={[
+                          inputs={[
                             {
                               name: 'level',
                               value: 'Level',
@@ -1313,84 +1351,148 @@ const NewFeatForm = () => {
                               label: true,
                             },
                             {
-                              name: 'diceCount',
-                              value: 'Dice Count',
-                              size: 3,
-                              invalid: 'Must contain only numbers',
-                              label: true,
-                            },
-                            {
-                              name: 'diceValue',
-                              value: 'Dice Value',
-                              size: 3,
+                              name: 'uses',
+                              value: 'Uses',
                               invalid: 'Must contain only numbers',
                               label: true,
                             },
                           ]}
+                          name={`feature.${featureIndex}.limitUse.level`}
+                          state={featureItem.limitUse?.level}
+                          onChange={setState}
+                          dynamic={true}
+                        />
+                      </div>
+                    )}
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'doesDamage'
+                  ) ? (
+                    !featureItem.damage?.damageByLevel ? (
+                      setState({
+                        type: 'added',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.damage.damageByLevel`,
+                          },
+                        },
+                      })
+                    ) : (
+                      <div className='row g-2 align-items-end pb-2'>
+                        <Select
+                          multiple={true}
+                          name={`feature.${featureIndex}.damage.damageAttribute`}
+                          state={featureItem.damage?.damageAttribute}
+                          placeholder='Damage Attribute'
+                          options={builders.feat.feature.damageAttribute}
+                          onChange={(option) =>
+                            setState({ payload: { target: option } })
+                          }
+                        />
+                        <Select
+                          name={`feature.${featureIndex}.damage.damageType`}
+                          multiple={true}
+                          placeholder='Damage Type'
+                          state={featureItem.damage?.damageType}
+                          options={builders.damage}
+                          onChange={(option) =>
+                            setState({ payload: { target: option } })
+                          }
+                        />
+                      </div>
+                    )
+                  ) : (
+                    !!featureItem.damage &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.damage`,
+                        },
+                      },
+                    })
+                  )}
+                  {featureItem.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'doesDamage'
+                  ) && (
+                    <>
+                      <AccordionButton
+                        className='accordion form-details justify-content-between align-items-center'
+                        id='damageTableButton'
+                        target='damageTable'
+                      >
+                        <span className='me-3'>Damage Table</span>
+                        <hr className='flex-grow-1 me-3' />
+                      </AccordionButton>
+                      <div
+                        className='accordion-collapse collapse show pb-2'
+                        id='damageTable'
+                      >
+                        <Table
+                          inputs={damageTableInputs()}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           state={featureItem.damage?.damageByLevel}
                           onChange={setState}
+                          dynamic={true}
                         />
                       </div>
-                    </div>
-                  )
-                ) : (
-                  !!featureItem.damage &&
-                  setState({
-                    action: 'removed',
-                    payload: {
-                      target: {
-                        name: `feature.${featureIndex}.damage`,
-                      },
-                    },
-                  })
-                )}
-                <div className='accordion' id='sectionAccordion'>
-                  {sections.map(
-                    (sectionItem, sectionIndex) =>
-                      !!featureItem[sectionItem.name] &&
-                      featureItem[sectionItem.name].map((item, itemIndex) => (
-                        <div key={itemIndex} className='accordion-item'>
-                          <div className='accordion-header'>
-                            <AccordionButton
-                              id={`${sectionItem.name}${itemIndex}AccordionButton`}
-                              target={`${sectionItem.name}${itemIndex}AccordionBody`}
+                    </>
+                  )}
+                  <div className='accordion' id='sectionAccordion'>
+                    {sections.map(
+                      (sectionItem, sectionIndex) =>
+                        !!featureItem[sectionItem.name] &&
+                        featureItem[sectionItem.name].map((item, itemIndex) => (
+                          <div key={itemIndex} className='accordion-item'>
+                            <div className='accordion-header'>
+                              <AccordionButton
+                                id={`${sectionItem.name}${itemIndex}AccordionButton`}
+                                target={`${sectionItem.name}${itemIndex}AccordionBody`}
+                              >
+                                <h6>{`${startCase(sectionItem.name)} ${
+                                  itemIndex + 1
+                                }`}</h6>
+                              </AccordionButton>
+                            </div>
+                            <div
+                              className='accordion-collapse collapse show'
+                              id={`${sectionItem.name}${itemIndex}AccordionBody`}
+                              data-bs-parent='#sectionAccordion'
                             >
-                              <h6>{`${startCase(sectionItem.name)} ${
-                                itemIndex + 1
-                              }`}</h6>
-                            </AccordionButton>
-                          </div>
-                          <div
-                            className='accordion-collapse collapse show'
-                            id={`${sectionItem.name}${itemIndex}AccordionBody`}
-                            data-bs-parent='#sectionAccordion'
-                          >
-                            <div className='accordion-body'>
-                              {sectionItem.content(
-                                featureItem,
-                                featureIndex,
-                                item,
-                                itemIndex
-                              )}
+                              <div className='accordion-body'>
+                                {sectionItem.content(
+                                  featureItem,
+                                  featureIndex,
+                                  item,
+                                  itemIndex
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
-                  )}
+                        ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      ))
+        )
+      })
 
     content = (
       <div className='builder-form'>
+        <div className='d-flex justify-content-between pb-2'>
+          <h3>Create a Feat</h3>
+          <button
+            className='btn btn-secondary btn-small'
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </button>
+        </div>
         {successMessage && (
           <h3 className='add-success-message'>{successMessage}</h3>
         )}
-        <h1>Create a Feat</h1>
+        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         <form className='needs-validation' noValidate>
           <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
             <Input
@@ -1400,7 +1502,7 @@ const NewFeatForm = () => {
               label={true}
               value={state.value ?? ''}
               required={true}
-              onChange={setState}
+              onChange={(input) => setState({ payload: { target: input } })}
             />
           </div>
           <AccordionButton

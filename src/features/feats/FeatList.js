@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useGetFeatQuery } from './featsApiSlice'
 import useAuth from '../../hooks/useAuth'
 
 const FeatList = () => {
   const { id } = useAuth()
+  const navigate = useNavigate()
 
   const {
     data: feats,
@@ -23,15 +24,14 @@ const FeatList = () => {
 
   if (isSuccess) {
     content = (
-      <div className='row align-items-center'>
-        <div className='d-inline col-auto me-auto'>
-          <h1>Feats</h1>
-        </div>
-        <div className='d-inline col-auto ms-auto'>
-          <Link to='/feats/new' className='btn btn-outline-secondary'>
-            Add Feat
-          </Link>
-        </div>
+      <div className='d-flex justify-content-between pb-2'>
+        <h3>Feats</h3>
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={() => navigate('/feats/new')}
+        >
+          Create a Feat
+        </button>
       </div>
     )
 

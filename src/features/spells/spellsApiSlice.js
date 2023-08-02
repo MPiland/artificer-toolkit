@@ -10,7 +10,14 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
-      providesTags: (result, error, id) => [{ type: 'Spell', id: 'LIST' }],
+      providesTags: (result, error, id) => {
+        if (result?._ids) {
+          return [
+            { type: 'Spell', id: 'LIST' },
+            ...result._ids.map((id) => ({ type: 'Note', id })),
+          ]
+        } else return [{ type: 'Note', id: 'LIST' }]
+      },
     }),
     addNewSpell: builder.mutation({
       query: (initialSpellData) => ({
@@ -20,7 +27,19 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Spell', id: 'LIST' }],
     }),
+    updateSpell: builder.mutation({
+      query: (id, initialSpellData) => ({
+        url: `/spell/${id}`,
+        method: 'PATCH',
+        body: { ...initialSpellData },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: arg._id }],
+    }),
   }),
 })
 
-export const { useGetSpellQuery, useAddNewSpellMutation } = spellsApiSlice
+export const {
+  useGetSpellQuery,
+  useAddNewSpellMutation,
+  useUpdateSpellMutation,
+} = spellsApiSlice

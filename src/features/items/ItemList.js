@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useGetItemQuery } from './itemsApiSlice'
 import useAuth from '../../hooks/useAuth'
 
 const ItemList = () => {
   const { id } = useAuth()
+  const navigate = useNavigate()
 
   const {
     data: items,
@@ -22,15 +23,14 @@ const ItemList = () => {
   }
 
   content = (
-    <div className='row align-items-center'>
-      <div className='d-inline col-auto me-auto'>
-        <h1>Items</h1>
-      </div>
-      <div className='d-inline col-auto ms-auto'>
-        <Link to='/items/new' className='btn btn-outline-secondary'>
-          Add item
-        </Link>
-      </div>
+    <div className='d-flex justify-content-between pb-2'>
+      <h3>Items</h3>
+      <button
+        className='btn btn-outline-secondary btn-small'
+        onClick={() => navigate('/items/new')}
+      >
+        Create an Item
+      </button>
     </div>
   )
 

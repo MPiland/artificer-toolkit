@@ -1,4 +1,5 @@
 import '../css/textEditor.css'
+import { useState } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
@@ -218,7 +219,9 @@ const TextEditor = ({
   className,
   noMenuBar,
   state,
+  size,
 }) => {
+  const [content, setContent] = useState(state)
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -240,16 +243,15 @@ const TextEditor = ({
         class: `text-editor-content ${className ?? ''}`,
       },
     },
-    content: state ?? '',
-
+    content: content,
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML()
-      onChange({ payload: { target: { name: name, value: html } } })
+      const value = editor.getHTML()
+      onChange({ payload: { target: { name: name, value: value } } })
     },
   })
 
   return (
-    <div className={`textEditor`}>
+    <div className={`textEditor${size ? ` ${size} mx-1` : ' mb-2'}`}>
       <MenuBar editor={editor} noMenuBar={noMenuBar} />
       <EditorContent editor={editor} />
     </div>

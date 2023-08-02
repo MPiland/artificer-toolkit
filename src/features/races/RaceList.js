@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useGetRaceQuery } from './racesApiSlice'
 import useAuth from '../../hooks/useAuth'
 
 const RaceList = () => {
   const { id } = useAuth()
+  const navigate = useNavigate()
 
   const {
     data: races,
@@ -22,15 +23,14 @@ const RaceList = () => {
   }
 
   content = (
-    <div className='row align-items-center'>
-      <div className='d-inline col-auto me-auto'>
-        <h1>Races</h1>
-      </div>
-      <div className='d-inline col-auto ms-auto'>
-        <Link to='/races/new' className='btn btn-outline-secondary'>
-          Add Race
-        </Link>
-      </div>
+    <div className='d-flex justify-content-between pb-2'>
+      <h3>Races</h3>
+      <button
+        className='btn btn-outline-secondary btn-small'
+        onClick={() => navigate('/races/new')}
+      >
+        Create a Race
+      </button>
     </div>
   )
 

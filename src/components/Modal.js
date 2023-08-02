@@ -1,10 +1,11 @@
-import { useEffect, useCallback } from 'react'
-import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useCallback, cloneElement } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 
-const Modal = () => {
+const Modal = ({ child }) => {
   const location = useLocation()
-
+  
   const navigate = useNavigate()
+
   // Closes modal when Escape is pressed
   const handleEscKey = useCallback(
     (event) => {
@@ -34,12 +35,14 @@ const Modal = () => {
       onClick={() => navigate(-1)}
     >
       <div // Modal body
-        className='modal-dialog modal-fullscreen-sm-down modal-dialog-centered'
+        className={`modal-dialog ${
+          location.state.size && `modal-${location.state.size}`
+        } modal-fullscreen-sm-down modal-dialog-centered`}
         role='document'
         onClick={(e) => e.stopPropagation()}
       >
         <div className='modal-content rounded-4 shadow'>
-          <div className='modal-header p-5 pb-4 border-bottom-0'>
+          <div className='modal-header p-3 pb-2 border-bottom-0'>
             <h1 className='fw-bold mb-0 fs-2 ms-auto'>
               {location.state.context}
             </h1>
@@ -51,7 +54,7 @@ const Modal = () => {
             ></button>
           </div>
           <div className='modal-body p-5 pt-0'>
-            <Outlet />
+            {cloneElement(child, { state: location.state.data })}
           </div>
         </div>
       </div>

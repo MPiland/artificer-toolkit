@@ -12,7 +12,9 @@ import CharacterList from './features/characters/CharacterList'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
 import SpellList from './features/spells/SpellList'
+import Spell from './features/spells/Spell'
 import NewSpellForm from './features/spells/NewSpellForm'
+import EditSpellForm from './features/spells/EditSpellForm'
 import ItemList from './features/items/ItemList'
 import NewItemForm from './features/items/NewItemForm'
 import FeatList from './features/feats/FeatList'
@@ -23,7 +25,7 @@ import { selectCurrentToken } from './features/auth/authSlice'
 const App = () => {
   const token = useSelector(selectCurrentToken)
   const location = useLocation()
-  const background = location.state?.backgrounds
+  const background = location.state?.background
 
   const content = (
     <>
@@ -31,10 +33,8 @@ const App = () => {
         <Route element={<Layout />}>
           <Route element={<PersistLogin />}>
             <Route path='/' element={token ? <Member /> : <Public />}>
-              <Route element={<Modal />}>
-                <Route path='register' element={<Register />} />
-                <Route path='login' element={<Login />} />
-              </Route>
+              <Route path='register' element={<Modal child={<Register />} />} />
+              <Route path='login' element={<Modal child={<Login />} />} />
               <Route path='media' />
               <Route path='about' />
 
@@ -50,6 +50,8 @@ const App = () => {
                 <Route path='spells'>
                   <Route index element={<SpellList />} />
                   <Route path='new' element={<NewSpellForm />} />
+                  <Route path=':id' element={<Modal child={<Spell />} />} />
+                  <Route path='edit/:id' element={<EditSpellForm />} />
                 </Route>
                 <Route path='items'>
                   <Route index element={<ItemList />} />
@@ -66,10 +68,9 @@ const App = () => {
       </Routes>
       {background && (
         <Routes>
-          <Route element={<Modal />}>
-            <Route path='register' element={<Register />} />
-            <Route path='login' element={<Login />} />
-          </Route>
+          <Route path='/register' element={<Modal child={<Register />} />} />
+          <Route path='/login' element={<Modal child={<Login />} />} />
+          <Route path='spells/:id' element={<Modal child={<Spell />} />} />
         </Routes>
       )}
     </>

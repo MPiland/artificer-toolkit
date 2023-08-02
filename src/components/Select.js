@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { uniqBy } from 'lodash'
 import '../css/select.css'
 
 const Select = ({
@@ -6,9 +7,10 @@ const Select = ({
   multiple,
   placeholder,
   options,
-  action,
   state,
   onChange,
+  size,
+  className,
 }) => {
   const [selectedOptions, setSelectedOptions] = useState(multiple ? [] : null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -19,9 +21,12 @@ const Select = ({
 
   if (options?.length) {
     newOptions = options?.map(({ name, value, _id }) => ({ name, value, _id }))
+    newOptions.sort((a, b) => (a.value > b.value ? 1 : -1))
   } else {
     newOptions = []
   }
+
+  newOptions = uniqBy(newOptions, (obj) => obj.value)
 
   if (multiple) {
     newOptions.unshift(
@@ -29,13 +34,16 @@ const Select = ({
       { name: 'clear', value: 'Clear' }
     )
   }
-  
+
   useEffect(() => {
     // Set the initial selectedOptions based on the state prop
     if (state && Array.isArray(state)) {
       if (state.some((item) => item.name === 'all')) {
         setSelectedOptions(
-          options?.map(({ name, value, _id }) => ({ name, value, _id }))
+          uniqBy(
+            options?.map(({ name, value, _id }) => ({ name, value, _id })),
+            (obj) => obj.value
+          )
         )
       } else {
         setSelectedOptions(state)
@@ -56,7 +64,11 @@ const Select = ({
         // Add all options
       } else if (option.name === 'all') {
         updatedOptions = [
-          { name: option.name, id: option._id, value: option.value },
+          {
+            name: option.name ?? null,
+            id: option._id ?? null,
+            value: option.value,
+          },
         ]
         // If shown options are an array and all valid
       } else if (
@@ -74,12 +86,20 @@ const Select = ({
         } else {
           updatedOptions = [
             ...selectedOptions,
-            { name: option.name, id: option._id, value: option.value },
+            {
+              name: option.name ?? null,
+              id: option._id ?? null,
+              value: option.value,
+            },
           ]
         }
       } else {
         updatedOptions = [
-          { name: option.name, id: option._id, value: option.value },
+          {
+            name: option.name ?? null,
+            id: option._id ?? null,
+            value: option.value,
+          },
         ]
       }
     } else {
@@ -94,22 +114,14 @@ const Select = ({
     if (option.value !== 'All') {
       setSelectedOptions(updatedOptions)
     } else {
-      const fullOptions = options.map((item) => ({ ...item }))
+      var fullOptions = options.map((item) => ({ ...item }))
       setSelectedOptions(fullOptions)
     }
-
-    onChange({
-      type: !!action ? action : null,
-      payload: { target: { name: name, value: updatedOptions } },
-    })
+    onChange({ name: name, value: updatedOptions })
   }
 
   const handleToggleClick = () => {
-    if (menuOpen) {
-      setMenuOpen(false)
-    } else {
-      setMenuOpen(true)
-    }
+    setMenuOpen((prevMenuOpen) => !prevMenuOpen)
   }
 
   const selectClass = (option) => {
@@ -156,8 +168,8 @@ const Select = ({
         .filter((option) =>
           newOptions.some((item) => item.value === option.value)
         )
-        .map((option) => (
-          <span key={option.name} className={`select-option ${displayClass()}`}>
+        .map((option, optionIndex) => (
+          <span key={optionIndex} className={`select-option ${displayClass()}`}>
             {option.value}
           </span>
         ))
@@ -199,9 +211,14 @@ const Select = ({
       return ''
     }
   }
+  
 
-  return (
-    <div className='dropdown'>
+  const content = (
+    <div
+      className={`dropdown ${size ?? 'col-sm'}${
+        className ? `${className}` : ''
+      }`}
+    >
       <button
         className={`dropdown-toggle-select w-100`}
         type='button'
@@ -212,6 +229,7 @@ const Select = ({
         aria-expanded='false'
         ref={buttonRef}
         disabled={!!options ? false : true}
+        onClick={handleToggleClick}
       >
         <div className={`select-container ${containerClass()}`}>
           <div>
@@ -232,10 +250,10 @@ const Select = ({
         id='selectDropdown'
         ref={dropdownRef}
       >
-        {newOptions.map((option) => (
+        {newOptions.map((option, optionIndex) => (
           <li
             className={`mb-2 dropdown-item py-0 px-2 ${selectClass(option)}`}
-            key={option.value}
+            key={optionIndex}
             onClick={(e) => {
               multiple && e.stopPropagation()
               handleOptionClick(option)
@@ -247,6 +265,8 @@ const Select = ({
       </ul>
     </div>
   )
+
+  return content
 }
 
 export default Select

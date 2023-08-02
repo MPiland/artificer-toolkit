@@ -8,13 +8,13 @@ const Input = ({
   autoComplete,
   required,
   className,
-  disabled,
   onChange,
   invalidText,
-  position,
   border,
   size,
   value,
+  readOnly,
+  onClick,
 }) => {
   const inputRef = useRef(null)
 
@@ -26,27 +26,27 @@ const Input = ({
 
   const content = (
     <div
-      className={`position-${position ?? 'relative'} col-sm ${size ?? ''} ${
+      className={`position-relative ${size ? `${size}` : 'col-sm'} ${
         !!label ? 'form-floating' : ''
       }`}
     >
       <input
         ref={inputRef}
-        className={`form-control ${border === false ? 'border-0' : ''} ${
-          className ?? ''
-        }`}
+        className={`form-control${readOnly ? '-plaintext' : ''} ${
+          border === false ? 'border-0' : ''
+        } ${className ?? ''}`}
         type={type ?? 'text'}
         name={name}
         id={name}
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
-        disabled={disabled}
+        readOnly={readOnly}
         value={value}
-        onChange={(e) => onChange({ payload: e })}
+        onChange={(e) => onChange(e.target)}
         onKeyUp={(e) => e.preventDefault()}
         onClick={(e) => {
-          e.stopPropagation()
+          onClick && onClick(e)
           handleFocus()
         }}
       />

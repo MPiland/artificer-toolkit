@@ -1,4 +1,5 @@
 import { useState, useEffect, useReducer } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useAddNewSpellMutation } from './spellsApiSlice'
 import TextEditor from '../../components/TextEditor'
@@ -13,13 +14,18 @@ const NUM_REGEX = /^[0-9\b]+$/
 
 const NewSpellForm = () => {
   const { id } = useAuth()
+  const navigate = useNavigate()
 
   const { data: builders, isSuccess, isLoading } = useGetBuilderQuery(id)
 
-  const [addNewSpell, { isSuccess: addIsSuccess }] = useAddNewSpellMutation()
+  const [
+    addNewSpell,
+    { isSuccess: addIsSuccess, isError: addIsError, error: addError },
+  ] = useAddNewSpellMutation()
 
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
+  const [errorMessage, setErrorMessage] = useState()
 
   useEffect(() => {
     const forms = document.querySelectorAll('.needs-validation')
@@ -48,27 +54,103 @@ const NewSpellForm = () => {
     }
   }, [addIsSuccess, id, setState])
 
+  useEffect(() => {
+    if (addIsError) {
+      setErrorMessage(addError.message)
+    }
+  }, [addIsError, addError])
+
+  useEffect(() => {
+    document.addEventListener('keypress', () => {
+      if (!!successMessage) {
+        setSuccessMessage()
+      }
+    })
+    return document.removeEventListener('keypress', () => {
+      if (!!successMessage) {
+        setSuccessMessage()
+      }
+    })
+  })
+
   function validateForm() {}
 
   const onSubmit = async () => {
     await addNewSpell(state)
   }
 
-  console.log(state)
-
   let content
 
   if (isLoading) content = <p>Loading...</p>
 
   if (isSuccess) {
-    // Submit to databases
+    console.log(state)
+
+    const damageTableInputs = () => {
+      const inputArray = [
+        {
+          name: 'level',
+          value: 'Level',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+        },
+        {
+          name: 'diceCount',
+          value: 'Dice Count',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+        },
+        {
+          name: 'diceValue',
+          value: 'Dice Value',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+        },
+      ]
+      if (
+        state.attribute?.some(
+          (attributeItem) => attributeItem.name === 'secondaryDamage'
+        )
+      ) {
+        inputArray.push(
+          {
+            name: 'secDiceCount',
+            value: 'Sec. Dice Count',
+            invalid: 'Must contain only numbers',
+            validation: true,
+            label: true,
+          },
+          {
+            name: 'secDiceValue',
+            value: 'Sec. Dice Value',
+            invalid: 'Must contain only numbers',
+            validation: true,
+            label: true,
+          }
+        )
+      }
+
+      return inputArray
+    }
 
     content = (
       <div className='builder-form'>
-        <h1>Create a Spell</h1>
+        <div className='d-flex justify-content-between pb-2'>
+          <h3>Create a Spell</h3>
+          <button
+            className='btn btn-secondary btn-small'
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </button>
+        </div>
         {successMessage && (
-          <h3 className='add-success-message'>{successMessage}</h3>
+          <h3 className='success-message'>{successMessage}</h3>
         )}
+        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         <form className='needs-validation' noValidate>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
@@ -79,7 +161,7 @@ const NewSpellForm = () => {
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
           <div className='accordion-collapse collapse show' id='details'>
-            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start'>
+            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start pb-2'>
               <Input
                 name='value'
                 label={true}
@@ -87,7 +169,9 @@ const NewSpellForm = () => {
                 autoComplete='off'
                 value={state.value ?? ''}
                 required={true}
-                onChange={setState}
+                clickable={false}
+                onChange={(input) => setState({ payload: { target: input } })}
+                onClick={(e) => e.stopPropagation()}
               />
               <Input
                 className={`${
@@ -100,28 +184,24 @@ const NewSpellForm = () => {
                 placeholder='Spell Level'
                 required={true}
                 value={state.level ?? ''}
-                onChange={setState}
+                onChange={(input) => setState({ payload: { target: input } })}
               />
-              <div className='col-sm pb-2'>
-                <Select
-                  name='school'
-                  id='school'
-                  placeholder={'Spell School'}
-                  state={state.school}
-                  options={builders.spell.school}
-                  onChange={setState}
-                />
-              </div>
-              <div className='col-sm pb-2'>
-                <Select
-                  name='requirement'
-                  multiple={true}
-                  placeholder={'Requirements'}
-                  state={state.requirement}
-                  options={builders.spell.requirement}
-                  onChange={setState}
-                />
-              </div>
+              <Select
+                name='school'
+                id='school'
+                placeholder={'Spell School'}
+                state={state.school}
+                options={builders.spell.school}
+                onChange={(option) => setState({ payload: { target: option } })}
+              />
+              <Select
+                name='requirement'
+                multiple={true}
+                placeholder={'Requirements'}
+                state={state.requirement}
+                options={builders.spell.requirement}
+                onChange={(option) => setState({ payload: { target: option } })}
+              />
             </div>
           </div>
           <AccordionButton
@@ -153,162 +233,147 @@ const NewSpellForm = () => {
           </AccordionButton>
           <div className='accordion-collapse collapse show' id='attributes'>
             <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
-              <div className='col-sm'>
-                <Select
-                  multiple={true}
-                  name='attribute'
-                  placeholder='Spell Attributes'
-                  state={state.attribute}
-                  options={builders.spell.attribute}
-                  onChange={setState}
-                />
-              </div>
-              <div className='col-sm'>
-                <Select
-                  name='action.actionType'
-                  placeholder='Casting Time'
-                  state={state.action?.actionType}
-                  options={builders.spell.action}
-                  onChange={setState}
-                />
-              </div>
+              <Select
+                multiple={true}
+                name='attribute'
+                placeholder='Spell Attributes'
+                state={state.attribute}
+                options={builders.spell.attribute.filter((attributeItem) =>
+                  !!state.attribute?.some(
+                    (stateItem) => stateItem.name === 'doesDamage'
+                  )
+                    ? attributeItem
+                    : attributeItem.name !== 'secondaryDamage'
+                )}
+                onChange={(option) => setState({ payload: { target: option } })}
+              />
+              <Select
+                name='action.actionType'
+                placeholder='Casting Time'
+                state={state.action?.actionType}
+                options={builders.spell.action}
+                onChange={(option) => setState({ payload: { target: option } })}
+              />
               <Input
                 className={`${
-                  state?.action?.num &&
-                  (NUM_REGEX.test(state.action?.num)
+                  state?.action?.value &&
+                  (NUM_REGEX.test(state.action?.value)
                     ? 'is-valid'
                     : 'is-invalid')
                 }`}
-                name='action.num'
+                name='action.value'
                 label={true}
                 placeholder='Casting Increment'
-                value={state.action?.num ?? ''}
+                value={state.action?.value ?? ''}
                 required={true}
-                onChange={setState}
+                onChange={(input) => setState({ payload: { target: input } })}
               />
-              <div className='col-sm'>
-                <Select
-                  name='duration.durationType'
-                  placeholder='Duration'
-                  state={state.duration?.durationType}
-                  options={builders.spell.duration}
-                  onChange={setState}
-                />
-              </div>
-              <Input
-                className={`${
-                  state?.duration?.num &&
-                  (NUM_REGEX.test(state.duration.num)
-                    ? 'is-valid'
-                    : 'is-invalid')
-                }`}
-                name='duration.num'
-                label={true}
-                invalidText='Must contain only numbers'
-                placeholder='Duration Increment'
-                autoComplete='off'
-                required={true}
-                value={state.duration?.num ?? ''}
-                onChange={setState}
+              <Select
+                name='duration.durationType'
+                placeholder='Duration'
+                state={state.duration?.durationType}
+                options={builders.spell.duration}
+                onChange={(option) => setState({ payload: { target: option } })}
               />
-              <div className='col-sm'>
-                <Select
-                  name='origin.originType'
-                  placeholder='Origin Point'
-                  state={state.origin?.originType}
-                  options={builders.spell.origin}
-                  onChange={setState}
-                />
-              </div>
-              {state?.origin && state.origin?.value !== 'Touch' && (
-                <>
-                  {state.origin.value === 'Distance' && (
-                    <Input
-                      className={`${
-                        state.origin?.distance &&
-                        (NUM_REGEX.test(state.origin?.distance)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
-                      name='origin.distance'
-                      label={true}
-                      invalidText='Must contain only numbers'
-                      placeholder='Distance'
-                      autoComplete='off'
-                      required={true}
-                      value={state.origin?.distance ?? ''}
-                      onChange={setState}
-                    />
-                  )}
-
-                  <div className='col-sm'>
-                    <Select
-                      name='shape.shapeType'
-                      placeholder='Shape'
-                      options={builders.spell.shape.filter((shape) =>
-                        state?.origin && state.origin.value === 'Distance'
-                          ? shape.value !== 'Cone' &&
-                            shape.value !== 'Weapon' &&
-                            shape.value !== 'Beam'
-                          : shape
-                      )}
-                      state={state.shape?.shapeType}
-                      onChange={setState}
-                    />
-                  </div>
+              {state.duration &&
+                state.duration?.durationType.name !== 'instantaneous' && (
                   <Input
                     className={`${
-                      state?.shape?.size &&
-                      (NUM_REGEX.test(state.shape.size)
+                      state?.duration?.value &&
+                      (NUM_REGEX.test(state.duration.value)
                         ? 'is-valid'
                         : 'is-invalid')
                     }`}
-                    name='shape.size'
+                    name='duration.value'
                     label={true}
                     invalidText='Must contain only numbers'
-                    placeholder='Shape Size'
+                    placeholder='Duration Increment'
                     autoComplete='off'
                     required={true}
-                    value={state.shape?.size ?? ''}
-                    onChange={setState}
+                    value={state.duration?.value ?? ''}
+                    onChange={(input) =>
+                      setState({ payload: { target: input } })
+                    }
                   />
-                </>
-              )}
-              {state.origin?.value === 'Self' &&
-                state.shape?.value !== 'Weapon' &&
-                (state.shape?.value === 'Beam' ||
-                  state.shape?.value === 'Cube' ||
-                  state.shape?.value === 'Sphere') && (
-                  <Input
-                    className={`${
-                      state?.range &&
-                      (NUM_REGEX.test(state.range) ? 'is-valid' : 'is-invalid')
-                    }`}
-                    name='range'
-                    placeholder='Range'
-                    invalidText='Must contain only numbers'
-                    label={true}
-                    value={state.range ?? ''}
-                    onChange={setState}
-                  />
+                )}
+              <Select
+                name='range.rangeType'
+                placeholder='Range'
+                state={state.range?.rangeType}
+                options={builders.spell.range}
+                onChange={(option) => setState({ payload: { target: option } })}
+              />
+              {state.range?.rangeType &&
+                state.range?.rangeType?.name !== 'touch' && (
+                  <>
+                    {state.range.rangeType.name === 'distance' && (
+                      <Input
+                        className={`${
+                          state.range?.distance &&
+                          (NUM_REGEX.test(state.range?.distance)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
+                        name='range.distance'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        placeholder='Distance (ft)'
+                        autoComplete='off'
+                        required={true}
+                        value={state.range?.distance ?? ''}
+                        onChange={(input) =>
+                          setState({ payload: { target: input } })
+                        }
+                      />
+                    )}
+                    <Select
+                      name='shape.shapeType'
+                      placeholder='Shape'
+                      options={builders.spell.shape}
+                      state={state.shape?.shapeType}
+                      onChange={(option) =>
+                        setState({ payload: { target: option } })
+                      }
+                    />
+                    {state.shape.shapeType.name !== 'none' && (
+                      <Input
+                        className={`${
+                          state?.shape?.size &&
+                          (NUM_REGEX.test(state.shape.size)
+                            ? 'is-valid'
+                            : 'is-invalid')
+                        }`}
+                        name='shape.size'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        placeholder='Shape Size (ft)'
+                        autoComplete='off'
+                        required={true}
+                        value={state.shape?.size ?? ''}
+                        onChange={(input) =>
+                          setState({ payload: { target: input } })
+                        }
+                      />
+                    )}
+                  </>
                 )}
             </div>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
-              {state?.attribute?.some(
+              {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'requireSave'
               ) && (
-                <div className='col-sm'>
-                  <Select
-                    name='saveAbility'
-                    placeholder='DC Ability'
-                    state={state.saveAbility}
-                    options={builders.ability}
-                    onChange={setState}
-                  />
-                </div>
+                <Select
+                  name='saveAbility'
+                  placeholder='DC Ability'
+                  state={state.saveAbility}
+                  options={builders.ability}
+                  onChange={(option) =>
+                    setState({ payload: { target: option } })
+                  }
+                />
               )}
             </div>
-            {state?.attribute?.some(
+            {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'doesDamage'
             ) &&
               (!state?.damage?.damageByLevel ? (
@@ -323,58 +388,56 @@ const NewSpellForm = () => {
                 })
               ) : (
                 <div className='row gx-2 align-items-end pb-2'>
-                  <div className='col-sm'>
-                    <Select
-                      multiple={true}
-                      name='damage.damageAttribute'
-                      placeholder='Damage Attribute'
-                      state={state.damage?.damageAttribute}
-                      options={builders.spell.damageAttribute}
-                      onChange={setState}
-                    />
-                  </div>
-                  <div className='col-sm'>
-                    <Select
-                      name='damage.damageType'
-                      multiple={true}
-                      placeholder='Damage Type'
-                      state={state.damage?.damageType}
-                      options={builders.damage}
-                      onChange={setState}
-                    />
-                  </div>
-                  <div className='col-lg-6  col-md-12'>
-                    <Table
-                      headers={[
-                        {
-                          name: 'level',
-                          value: 'Level',
-                          invalid: 'Must contain only numbers',
-                          label: true,
-                        },
-                        {
-                          name: 'diceCount',
-                          value: 'Dice Count',
-                          size: 3,
-                          invalid: 'Must contain only numbers',
-                          label: true,
-                        },
-                        {
-                          name: 'diceValue',
-                          value: 'Dice Value',
-                          size: 3,
-                          invalid: 'Must contain only numbers',
-                          label: true,
-                        },
-                      ]}
-                      name='damage.damageByLevel'
-                      state={state.damage.damageByLevel}
-                      onChange={setState}
-                    />
-                  </div>
+                  <Select
+                    multiple={true}
+                    name='damage.damageAttribute'
+                    placeholder='Damage Attribute'
+                    state={state.damage?.damageAttribute}
+                    options={builders.spell.damageAttribute}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
+                  <Select
+                    name='damage.damageType'
+                    multiple={true}
+                    placeholder='Damage Type'
+                    state={state.damage?.damageType}
+                    options={builders.damage}
+                    onChange={(option) =>
+                      setState({ payload: { target: option } })
+                    }
+                  />
+                  <div className='col-lg-6 col-md-12'></div>
                 </div>
               ))}
           </div>
+          {state.attribute?.some(
+            (attributeItem) => attributeItem.name === 'doesDamage'
+          ) && (
+            <>
+              <AccordionButton
+                className='accordion form-details justify-content-between align-items-center'
+                id='damageTableButton'
+                target='damageTable'
+              >
+                <span className='me-3'>Damage Table</span>
+                <hr className='flex-grow-1 me-3' />
+              </AccordionButton>
+              <div
+                className='accordion-collapse collapse show pb-2'
+                id='damageTable'
+              >
+                <Table
+                  inputs={damageTableInputs()}
+                  name='damage.damageByLevel'
+                  state={state.damage?.damageByLevel}
+                  onChange={setState}
+                  dynamic={true}
+                />
+              </div>
+            </>
+          )}
           <div className='pb-2'>
             <button
               className='btn btn-primary'
