@@ -16,6 +16,7 @@ const SpellList = () => {
 
   const [listFilter, setListFilter] = useReducer(formReducer, {})
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
+  const [errorMessage, setErrorMessage] = useState()
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -30,6 +31,12 @@ const SpellList = () => {
   } = useGetSpellQuery(id, {
     refetchOnMountOrArgChange: true,
   })
+
+  useEffect(() => {
+    if (spellError) {
+      setErrorMessage(spellErrorMsg.data.message)
+    }
+  }, [spellError, spellErrorMsg])
 
   useEffect(() => {
     if (is1200) {
@@ -269,13 +276,9 @@ const SpellList = () => {
 
   if (spellLoading) content = <p>Loading spells...</p>
 
-  if (spellError) {
-    content = <p className='errmsg'>{spellErrorMsg?.data?.message}</p>
-  }
-
   if (spellSuccess) {
     console.log(spells)
-    
+
     const showCard = (spell) => {
       navigate(`${spell.name}`, {
         state: {
@@ -422,6 +425,7 @@ const SpellList = () => {
             Create a Spell
           </button>
         </div>
+        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         {filter}
         <Table
           name='spellList.table'

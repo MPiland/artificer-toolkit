@@ -56,7 +56,7 @@ const NewSpellForm = () => {
 
   useEffect(() => {
     if (addIsError) {
-      setErrorMessage(addError.message)
+      setErrorMessage(addError.data.message)
     }
   }, [addIsError, addError])
 
@@ -65,10 +65,16 @@ const NewSpellForm = () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage) {
         setSuccessMessage()
+      }
+      if (!!errorMessage) {
+        setErrorMessage()
       }
     })
   })
@@ -84,8 +90,6 @@ const NewSpellForm = () => {
   if (isLoading) content = <p>Loading...</p>
 
   if (isSuccess) {
-    console.log(state)
-
     const damageTableInputs = () => {
       const inputArray = [
         {
