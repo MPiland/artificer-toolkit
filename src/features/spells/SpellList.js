@@ -305,7 +305,7 @@ const SpellList = () => {
           <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
             <Select
               multiple={true}
-              name={'level'}
+              name='level'
               placeholder='Level'
               options={spells.map((spellItem) => ({ value: spellItem.level }))}
               state={listFilter.level}
@@ -330,7 +330,7 @@ const SpellList = () => {
             />
             <Select
               multiple={true}
-              name={'action.actionType'}
+              name='action.actionType'
               placeholder='Casting Time'
               options={spells.map((spellItem) => spellItem.action.actionType)}
               state={listFilter.action?.actionType}
@@ -344,7 +344,7 @@ const SpellList = () => {
             />
             <Select
               multiple={true}
-              name={'duration.durationType'}
+              name='duration.durationType'
               placeholder='Duration'
               options={spells.map(
                 (spellItem) => spellItem.duration.durationType
@@ -360,7 +360,7 @@ const SpellList = () => {
             />
             <Select
               multiple={true}
-              name={'range.rangeType'}
+              name='range.rangeType'
               placeholder='Range'
               options={spells.map((spellItem) => spellItem.range.rangeType)}
               state={listFilter.range?.rangeType}
@@ -374,7 +374,7 @@ const SpellList = () => {
             />
             <Select
               multiple={true}
-              name={'damage.damageType'}
+              name='damage.damageType'
               placeholder='Damage Type'
               options={spells.flatMap((spellItem) => {
                 if (
@@ -397,7 +397,7 @@ const SpellList = () => {
             />
             <Select
               multiple={true}
-              name={'school'}
+              name='school'
               placeholder='Spell School'
               options={spells.map((spellItem) => spellItem.school)}
               state={listFilter.school}
