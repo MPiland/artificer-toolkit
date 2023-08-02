@@ -3,17 +3,16 @@ import { useNavigate, useLocation } from 'react-router-dom'
 
 const Modal = ({ child }) => {
   const location = useLocation()
-  
   const navigate = useNavigate()
 
   // Closes modal when Escape is pressed
   const handleEscKey = useCallback(
     (event) => {
       if (event.key === 'Escape') {
-        navigate(-1)
+        navigate(`${location.state.background.pathname}`)
       }
     },
-    [navigate]
+    [navigate, location]
   )
 
   // Listens for Key to close modal
@@ -32,7 +31,7 @@ const Modal = ({ child }) => {
       tabIndex='-1'
       role='dialog'
       id='modal'
-      onClick={() => navigate(-1)}
+      onClick={() => navigate(`${location.state.background.pathname}`)}
     >
       <div // Modal body
         className={`modal-dialog ${
@@ -42,7 +41,7 @@ const Modal = ({ child }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className='modal-content rounded-4 shadow'>
-          <div className='modal-header p-3 pb-2 border-bottom-0'>
+          <div className='modal-header p-4 border-bottom-0'>
             <h1 className='fw-bold mb-0 fs-2 ms-auto'>
               {location.state.context}
             </h1>
@@ -50,7 +49,7 @@ const Modal = ({ child }) => {
               type='button'
               className='btn-close'
               aria-label='Close'
-              onClick={() => navigate(-1)}
+              onClick={() => navigate(`${location.state.background.pathname}`)}
             ></button>
           </div>
           <div className='modal-body p-5 pt-0'>

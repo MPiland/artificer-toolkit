@@ -6,6 +6,7 @@ import {
   useUpdateSpellMutation,
 } from './spellsApiSlice'
 import { useLocation } from 'react-router-dom'
+import { isEqual } from 'lodash'
 import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
 import Table from '../../components/Table'
@@ -21,22 +22,23 @@ const EditSpellForm = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  console.log(location)
-
   const { data: builders, isSuccess, isLoading } = useGetBuilderQuery(id)
 
   const [
     addNewSpell,
     { isSuccess: addIsSuccess, isError: addIsError, error: addError },
   ] = useAddNewSpellMutation()
+
   const [
     updateSpell,
     { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
   ] = useUpdateSpellMutation()
 
+  const [oldState, setOldState] = useState(location.state.data)
   const [state, setState] = useReducer(formReducer, location.state.data)
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
+  const [match, setMatch] = useState()
 
   useEffect(() => {
     const forms = document.querySelectorAll('.needs-validation')
@@ -67,10 +69,10 @@ const EditSpellForm = () => {
 
   useEffect(() => {
     if (addIsError) {
-      setErrorMessage(addError.message)
+      setErrorMessage(addError.data.message)
     }
     if (updateIsError) {
-      setSuccessMessage(updateError.message)
+      setErrorMessage(updateError.data.message)
     }
   }, [addIsError, id, updateIsError, addError, updateError])
 
@@ -79,13 +81,29 @@ const EditSpellForm = () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
     })
   })
+
+  useEffect(() => {
+    if (isEqual(oldState, state)) {
+      console.log('match')
+      setMatch(true)
+    } else {
+      console.log('no match')
+      setMatch(false)
+    }
+  }, [state, oldState])
 
   function validateForm() {}
 
@@ -94,7 +112,28 @@ const EditSpellForm = () => {
   }
 
   const onUpdate = async () => {
-    await updateSpell(state)
+    if (match) {
+      setErrorMessage('No changes made')
+    } else {
+      await updateSpell(state)
+      setOldState(state)
+    }
+  }
+
+  const onBackClick = () => {
+    if (location.state.previous.state.background.pathname === '/spells') {
+      console.log('button clicked', match)
+      navigate(`/spells/${state.name}`, {
+        state: {
+          data: match ? state : oldState,
+          background: location.state.previous.state.background,
+          context: match ? state.value : oldState.value,
+          size: 'xl',
+        },
+      })
+    } else {
+      navigate(-1)
+    }
   }
 
   let content
@@ -102,8 +141,6 @@ const EditSpellForm = () => {
   if (isLoading) content = <p>Loading...</p>
 
   if (isSuccess) {
-    console.log(state)
-
     const damageTableInputs = () => {
       const inputArray = [
         {
@@ -160,7 +197,7 @@ const EditSpellForm = () => {
           <h1>Edit Spell</h1>
           <button
             className='btn btn-secondary btn-small'
-            onClick={() => navigate(-1)}
+            onClick={() => onBackClick()}
           >
             Back
           </button>

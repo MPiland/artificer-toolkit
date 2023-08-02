@@ -10,10 +10,10 @@ import Input from '../../components/Input'
 import AccordionButton from '../../components/AccordionButton'
 
 const SpellList = () => {
+  const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
 
-  const { id } = useAuth()
   const [listFilter, setListFilter] = useReducer(formReducer, {})
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
 
@@ -275,6 +275,7 @@ const SpellList = () => {
 
   if (spellSuccess) {
     const showCard = (spell) => {
+      console.log('spell list', location)
       navigate(`${spell.name}`, {
         state: {
           background: location,

@@ -6,9 +6,11 @@ import { useSelector } from 'react-redux'
 import { selectCurrentToken } from './authSlice'
 
 const PersistLogin = () => {
-  const [persist, setPersist] = usePersist()
+  const [persist] = usePersist()
   const token = useSelector(selectCurrentToken)
   const effectRan = useRef(false)
+
+  console.log('doesPersist?', persist)
 
   const [trueSuccess, setTrueSuccess] = useState(false)
 
@@ -44,7 +46,6 @@ const PersistLogin = () => {
 
   if (!persist) {
     // persist: no
-    console.log('no persist')
     content = <Outlet />
   } else if (isLoading) {
     //persist: yes, token: no
@@ -53,7 +54,6 @@ const PersistLogin = () => {
   } else if (isError) {
     //persist: yes, token: no
     console.log(`Error - ${error?.data?.message}`)
-    setPersist(false)
     content = (
       <p>
         {`${error?.data?.message} - `}

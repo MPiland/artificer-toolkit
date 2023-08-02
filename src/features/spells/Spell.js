@@ -1,13 +1,16 @@
 import parse from 'html-react-parser'
 import { get, truncate } from 'lodash'
 import { memo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const Spell = ({ state: spell }) => {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const editSpell = () => {
-    navigate(`/spells/edit/${spell.name}`, { state: { data: spell } })
+    navigate(`/spells/edit/${spell.name}`, {
+      state: { data: spell, previous: location },
+    })
   }
 
   const getValueFromState = (inputItem, stateItem, truncateNum) => {

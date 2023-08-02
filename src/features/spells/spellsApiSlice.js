@@ -28,8 +28,8 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: 'Spell', id: 'LIST' }],
     }),
     updateSpell: builder.mutation({
-      query: (id, initialSpellData) => ({
-        url: `/spell/${id}`,
+      query: (initialSpellData) => ({
+        url: `/spell/`,
         method: 'PATCH',
         body: { ...initialSpellData },
       }),
