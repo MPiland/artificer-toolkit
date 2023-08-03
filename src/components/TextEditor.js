@@ -218,10 +218,10 @@ const TextEditor = ({
   name,
   className,
   noMenuBar,
-  state,
+  value,
   size,
 }) => {
-  const [content] = useState(state)
+  const [content] = useState(value)
   const editor = useEditor({
     extensions: [
       StarterKit.configure({

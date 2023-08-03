@@ -1,28 +1,22 @@
 const AccordionButton = ({ children, className, id, target }) => {
-  function accordionToggle() {
-    const accordion = document.getElementById(target)
-    const accordionButton = document.getElementById(id)
-    if (accordionButton.getAttribute('aria-expanded') === 'true') {
-      accordionButton.setAttribute('aria-expanded', 'false')
-    } else {
-      accordionButton.setAttribute('aria-expanded', 'true')
-    }
-    if (accordionButton.classList.contains('collapsed')) {
-      accordionButton.classList.remove('collapsed')
-    } else {
-      accordionButton.classList.add('collapsed')
-    }
-    accordion.classList.toggle('show')
-  }
+  // const accordionToggle = () => {
+  //   const accordion = document.getElementById(target)
+  //   const accordionButton = document.getElementById(id)
+  //   accordionButton.toggleAttribute('aria-expanded')
+  //   accordionButton.classList.toggle('collapsed')
+  //   accordion.classList.toggle('show')
+  // }
 
   const content = (
     <button
       className={`accordion-button ${className ?? ''}`}
       type='button'
       id={id}
+      data-bs-toggle='collapse'
+      data-bs-target={`#${target}`}
       aria-expanded='true'
       aria-controls={target}
-      onClick={accordionToggle}
+      // onClick={accordionToggle}
       key={id}
     >
       {children}

@@ -8,7 +8,7 @@ const NUM_REGEX = /^[0-9\b]+$/
 const Table = ({
   inputs,
   name,
-  state,
+  value,
   onChange,
   className,
   dynamic,
@@ -18,7 +18,7 @@ const Table = ({
   onClick,
   rowSize,
 }) => {
-  const getValueFromState = (inputItem, stateItem) => {
+  const getValueFromState = (inputItem, valueItem) => {
     const processItem = (item, state) => {
       if (Array.isArray(item)) {
         return item
@@ -38,7 +38,7 @@ const Table = ({
         : [inputItem.name]
       return nameItems
         .map((nameItem) => {
-          const value = processItem(nameItem, stateItem)
+          const value = processItem(nameItem, valueItem)
           return value !== undefined ? value : null
         })
         .join(' / ')
@@ -75,19 +75,21 @@ const Table = ({
           })}
         </div>
       )}
-      {state?.map((stateItem, itemIndex) => (
+      {value?.map((valueItem, itemIndex) => (
         <div
           key={itemIndex}
           className={`row align-items-center g-2 pb-2 ${className ?? ''} ${
             clickable ? 'row-clickable' : ''
           } ${rowSize ?? ''}`}
-          onClick={() => onClick(stateItem)}
+          onClick={() => {
+            onClick && onClick(valueItem)
+          }}
         >
           {inputs.map((inputItem, inputIndex) => {
             return readOnly ? (
               <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
-                {getValueFromState(inputItem, stateItem) !== null
-                  ? getValueFromState(inputItem, stateItem)
+                {getValueFromState(inputItem, valueItem) !== null
+                  ? getValueFromState(inputItem, valueItem)
                   : ''}
               </div>
             ) : !!inputItem.type && inputItem.type === 'text' ? (
@@ -96,15 +98,15 @@ const Table = ({
                 noMenuBar={true}
                 placeholder={`${inputItem.value}`}
                 name={`${name}.${itemIndex}.${inputItem.name}`}
-                value={getValueFromState(inputItem, stateItem)}
+                value={getValueFromState(inputItem, valueItem)}
                 onChange={onChange}
               />
             ) : (
               <Input
                 className={`${
                   inputItem.validation === true &&
-                  stateItem[inputItem.name] &&
-                  (NUM_REGEX.test(stateItem[inputItem.name])
+                  valueItem[inputItem.name] &&
+                  (NUM_REGEX.test(valueItem[inputItem.name])
                     ? 'is-valid'
                     : 'is-invalid')
                 }`}
@@ -116,8 +118,8 @@ const Table = ({
                 placeholder={inputItem.value}
                 invalidText={inputItem.invalid}
                 value={
-                  getValueFromState(inputItem, stateItem) !== null
-                    ? getValueFromState(inputItem, stateItem)
+                  getValueFromState(inputItem, valueItem) !== null
+                    ? getValueFromState(inputItem, valueItem)
                     : ''
                 }
                 onChange={onChange}

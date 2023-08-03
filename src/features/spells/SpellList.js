@@ -431,7 +431,7 @@ const SpellList = () => {
           name='spellList.table'
           dynamic={false}
           readOnly={true}
-          state={spellListFiltered()}
+          value={spellListFiltered()}
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}
           clickable={true}

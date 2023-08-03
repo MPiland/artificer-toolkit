@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAddNewRaceMutation } from './racesApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
@@ -52,23 +52,8 @@ const NewRaceForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-
-  useEffect(() => {
-    const forms = document.querySelectorAll('.needs-validation')
-    Array.from(forms).forEach(function (form) {
-      form.addEventListener(
-        'submit',
-        function (event) {
-          if (!form.checkValidity()) {
-            event.preventDefault()
-            event.stopPropagation()
-          }
-          form.classList.add('was-validated')
-        },
-        false
-      )
-    })
-  })
+  const [isValid, setIsValid] = useState()
+  const selectRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -91,18 +76,81 @@ const NewRaceForm = () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
   })
 
-  function validateForm() {}
+  const addToSelectRefs = (ref) => {
+    if (ref && !selectRefs.current.includes(ref)) {
+      selectRefs.current.push(ref)
+    }
+  }
+
+  const handleValidation = (resetValidation) => {
+    selectRefs.current.forEach((selectRef) => {
+      if (selectRef) {
+        const selectValue = selectRef.getValue()
+        const isEmpty =
+          selectValue === null ||
+          (Array.isArray(selectValue) && selectValue.length === 0)
+
+        if (isEmpty) {
+          selectRef.setClass('is-invalid')
+          setIsValid(false)
+        } else {
+          selectRef.setClass('is-valid')
+        }
+      }
+      if (resetValidation === true) {
+        selectRef.setClass('')
+      }
+    })
+
+    // Validate other elements with the required attribute
+    const requiredElements = document.querySelectorAll('[required]')
+    requiredElements.forEach((element) => {
+      const value = element.value
+      const isEmpty =
+        value === null ||
+        value === undefined ||
+        (typeof value === 'string' && value.trim() === '')
+
+      if (isEmpty) {
+        element.classList.add('is-invalid')
+        element.classList.remove('is-valid')
+        setIsValid(false)
+      } else {
+        element.classList.add('is-valid')
+        element.classList.remove('is-invalid')
+      }
+      if (resetValidation === true) {
+        element.classList.remove('is-valid')
+        element.classList.remove('is-invalid')
+      }
+    })
+  }
 
   const onSubmit = async () => {
-    await addNewRace(state)
+    handleValidation()
+    if (isValid && isValid !== false) {
+      await addNewRace(state)
+    } else {
+      setErrorMessage('Please fill out all required fields')
+    }
   }
 
   let content
@@ -159,13 +207,15 @@ const NewRaceForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.feat${
                     multipleOptions && '.options'
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  state={item.feat}
+                  value={item.feat}
                   options={feats}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -219,19 +269,22 @@ const NewRaceForm = () => {
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                   placeholder='Modifier Type'
-                  state={item.modType}
+                  value={item.modType}
                   options={builders.modifier.modType}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
                 />
                 {item.modType?.name && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.module`}
                     placeholder='Modifier Category'
-                    state={item.module}
+                    value={item.module}
                     options={builders.modifier.module?.filter((moduleItem) =>
                       builders.modifier.modType
                         .find(
@@ -240,6 +293,7 @@ const NewRaceForm = () => {
                         ?.module.map((m) => m.id)
                         .some((moduleID) => moduleID === moduleItem._id)
                     )}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -253,13 +307,15 @@ const NewRaceForm = () => {
                   <>
                     {item.module?.name === 'ability' && (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.ability${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Ability'
-                        state={item.ability}
+                        value={item.ability}
                         options={builders.ability}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -267,13 +323,15 @@ const NewRaceForm = () => {
                     )}
                     {item.module?.name === 'saveAbility' && (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.saveAbility${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Save Ability'
-                        state={item.saveAbility}
+                        value={item.saveAbility}
                         options={builders.ability}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -281,13 +339,15 @@ const NewRaceForm = () => {
                     )}
                     {item.module?.name === 'skill' && (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.skill${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Skill'
-                        state={item.skill}
+                        value={item.skill}
                         options={builders.skill}
+                        require={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -299,14 +359,16 @@ const NewRaceForm = () => {
                   item.modType?.name === 'penalty') &&
                   item.modType?.name !== 'setValue' && (
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.method`}
                       placeholder='Method'
-                      state={item.method}
+                      value={item.method}
                       options={builders.modifier.method.filter((methodItem) =>
                         methodItem.module.some(
                           (moduleItem) => moduleItem.id === item.module?.id
                         )
                       )}
+                      require={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -314,39 +376,45 @@ const NewRaceForm = () => {
                   )}
                 {item.module?.name === 'condition' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.condition${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Condition Type'
-                    state={item.condition}
+                    value={item.condition}
                     options={builders.condition}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
                   />
                 ) : item.module?.name === 'speed' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.speed${
                       multipleOptions && '.options'
                     }`}
                     multiple={multipleOptions}
-                    state={item.speed}
+                    value={item.speed}
                     placeholder='Speed Type'
                     options={builders.speed}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
                   />
                 ) : item.module?.name === 'passive' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.passive${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Passive Type'
-                    state={item.passive}
+                    value={item.passive}
                     options={builders.passive}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -354,13 +422,15 @@ const NewRaceForm = () => {
                 ) : (
                   item.module?.name === 'damage' && (
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.damage${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Damage Type'
-                      state={item.damage.damageType}
+                      value={item.damage.damageType}
                       options={builders.damage}
+                      require={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -383,15 +453,18 @@ const NewRaceForm = () => {
                       invalidText='Must contain only numbers'
                       autoComplete='off'
                       value={item.method?.setValue ?? ''}
+                      require={true}
                       onChange={(input) =>
                         setState({ payload: { target: input } })
                       }
                     />
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                       placeholder='Multiplier'
-                      state={item.multiplier}
+                      value={item.multiplier}
                       options={builders.modifier.multiplier}
+                      require={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -399,10 +472,12 @@ const NewRaceForm = () => {
                   </>
                 ) : item.method?.name === 'ability' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                     placeholder='Method Ability'
-                    state={item.method.ability}
+                    value={item.method.ability}
                     options={builders.ability}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -410,10 +485,12 @@ const NewRaceForm = () => {
                 ) : (
                   item.method?.name === 'skill' && (
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                       placeholder='Method Skill'
-                      state={item.method.skill}
+                      value={item.method.skill}
                       options={builders.skill}
+                      require={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -423,13 +500,15 @@ const NewRaceForm = () => {
                 {(item.modType?.name === 'bonus' ||
                   item.modType?.name === 'setValue') && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
                     placeholder='Exceeds Max'
-                    state={item.exceedMax}
+                    value={item.exceedMax}
                     options={[
                       { name: true, value: 'Yes' },
                       { name: false, value: 'No' },
                     ]}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -484,23 +563,27 @@ const NewRaceForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.area`}
                   placeholder='Proficiency Area'
-                  state={item.area}
+                  value={item.area}
                   options={builders.proficiency.area}
+                  require={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
                 />
                 {item?.area?.name === 'skill' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.skill${
                       multipleOptions && '.options'
                     }`}
                     multiple={multipleOptions}
                     placeholder='Skill'
-                    state={item.skill}
+                    value={item.skill}
                     options={builders.skill}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -508,13 +591,15 @@ const NewRaceForm = () => {
                 )}
                 {item?.area?.name === 'saveAbility' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.saveAbility${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Save Ability'
-                    state={item.saveAbility}
+                    value={item.saveAbility}
                     options={builders.ability}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -522,13 +607,15 @@ const NewRaceForm = () => {
                 )}
                 {item?.area?.name === 'tool' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.tool${
                       multipleOptions && '.options'
                     }`}
                     multiple={multipleOptions}
                     placeholder='Tool'
-                    state={item.tool}
+                    value={item.tool}
                     options={builders.tool}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -536,13 +623,15 @@ const NewRaceForm = () => {
                 )}
                 {item?.area?.name === 'language' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.language${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Language'
-                    state={item.language}
+                    value={item.language}
                     options={builders.language}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -550,12 +639,14 @@ const NewRaceForm = () => {
                 )}
                 {item.area?.name === 'itemType' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.itemType${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Item Type'
-                    state={item.itemType}
+                    value={item.itemType}
+                    require={true}
                     options={[].concat(
                       ...builders.item.itemCategory.map(
                         (categoryItem) => categoryItem.itemType
@@ -568,12 +659,14 @@ const NewRaceForm = () => {
                 )}
                 {item.area?.name === 'itemProperty' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.itemProperty${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Item Property'
-                    state={item.itemProperty}
+                    value={item.itemProperty}
+                    require={true}
                     options={[].concat(
                       ...builders.item.itemCategory.map(
                         (categoryItem) => categoryItem.itemProperty
@@ -585,10 +678,12 @@ const NewRaceForm = () => {
                   />
                 )}
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.level`}
                   placeholder='Proficiency Level'
-                  state={item.level}
+                  value={item.level}
                   options={builders.proficiency.level}
+                  require={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -642,13 +737,15 @@ const NewRaceForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.sense${
                     multipleOptions && '.options'
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  state={item.sense}
+                  value={item.sense}
                   options={builders.sense}
+                  require={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -702,23 +799,27 @@ const NewRaceForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   multiple='true'
                   name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                   options={builders.feat.feature.spell.attribute}
                   placeholder='Spell Attributes'
-                  state={item.attribute}
+                  value={item.attribute}
+                  require={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
                 />
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions && '.options'
                   }`}
                   multiple={multipleOptions}
                   placeholder='Spell'
-                  state={item}
+                  value={item}
                   options={spells}
+                  require={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -727,13 +828,15 @@ const NewRaceForm = () => {
                   (attributeItem) => attributeItem.name === 'optionalAbility'
                 ) && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.ability${multipleOptions && 'options'}`}
                     multiple={multipleOptions}
                     placeholder='Ability'
-                    state={item.ability}
+                    value={item.ability}
                     options={builders.ability}
+                    require={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -860,7 +963,7 @@ const NewRaceForm = () => {
                   <div className='pb-3'>
                     <TextEditor
                       placeholder='Feature description'
-                      state={featureItem.desc}
+                      value={featureItem.desc}
                       name={`feature.${featureIndex}.desc`}
                       onChange={setState}
                     />
@@ -871,7 +974,7 @@ const NewRaceForm = () => {
                       name={`feature.${featureIndex}.attribute`}
                       options={builders.race.feature.attribute}
                       placeholder='Feature Attributes'
-                      state={featureItem.attribute}
+                      value={featureItem.attribute}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -885,7 +988,7 @@ const NewRaceForm = () => {
                         name={`feature.${featureIndex}.ancestry`}
                         options={state.ancestry}
                         placeholder='Ancestry'
-                        state={featureItem.ancestry}
+                        value={featureItem.ancestry}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -900,7 +1003,7 @@ const NewRaceForm = () => {
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
                         options={builders.race.feature.requirements}
-                        state={featureItem.requirement?.option}
+                        value={featureItem.requirement?.option}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -923,7 +1026,7 @@ const NewRaceForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                         placeholder='Skill Proficiency'
-                        state={featureItem.requirement?.skillProficiency}
+                        value={featureItem.requirement?.skillProficiency}
                         options={builders.skill}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
@@ -948,7 +1051,7 @@ const NewRaceForm = () => {
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           placeholder='Item Category'
-                          state={
+                          value={
                             featureItem.requirement?.itemProficiency
                               ?.itemCategory
                           }
@@ -960,7 +1063,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
-                          state={
+                          value={
                             featureItem.requirement?.itemProficiency?.itemType
                           }
                           options={[].concat(
@@ -980,7 +1083,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
-                          state={
+                          value={
                             featureItem.requirement?.itemProficiency
                               ?.itemProperty
                           }
@@ -1017,7 +1120,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
-                          state={featureItem.limitUse?.limitBy}
+                          value={featureItem.limitUse?.limitBy}
                           options={builders.race.feature.chargeLimit}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
@@ -1027,7 +1130,7 @@ const NewRaceForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
-                            state={featureItem.limitUse?.ability}
+                            value={featureItem.limitUse?.ability}
                             options={builders.ability}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
@@ -1037,7 +1140,7 @@ const NewRaceForm = () => {
                           <Select
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
-                            state={featureItem.limitUse?.skill}
+                            value={featureItem.limitUse?.skill}
                             options={builders.skill}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
@@ -1069,7 +1172,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
-                          state={featureItem.limitUse?.resetsOn}
+                          value={featureItem.limitUse?.resetsOn}
                           options={builders.race.feature.chargeReset}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
@@ -1094,7 +1197,7 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
-                          state={featureItem.action}
+                          value={featureItem.action}
                           options={builders.race.feature.action}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
@@ -1170,7 +1273,7 @@ const NewRaceForm = () => {
                       <Select
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
-                        state={featureItem.saveAbility}
+                        value={featureItem.saveAbility}
                         options={builders.ability}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
@@ -1209,7 +1312,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             placeholder='Item Category'
-                            state={featureItem.requirement?.equipped}
+                            value={featureItem.requirement?.equipped}
                             options={builders.item.itemCategory}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
@@ -1219,7 +1322,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
-                            state={featureItem.requirement?.equipped?.itemType}
+                            value={featureItem.requirement?.equipped?.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1238,7 +1341,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
-                            state={
+                            value={
                               featureItem.requirement?.equipped?.itemProperty
                             }
                             options={[].concat(
@@ -1290,7 +1393,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                             placeholder='Item Category'
-                            state={
+                            value={
                               featureItem.requirement?.notEquipped?.itemCategory
                             }
                             options={builders.item.itemCategory}
@@ -1302,7 +1405,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
-                            state={
+                            value={
                               featureItem.requirement?.notEquipped?.itemType
                             }
                             options={[].concat(
@@ -1323,7 +1426,7 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             placeholder='Item Property'
-                            state={
+                            value={
                               featureItem.requirement?.notEquipped?.itemProperty
                             }
                             options={[].concat(
@@ -1386,7 +1489,7 @@ const NewRaceForm = () => {
                             },
                           ]}
                           name={`feature.${featureIndex}.limitUse.level`}
-                          state={featureItem.limitUse?.level}
+                          value={featureItem.limitUse?.level}
                           onChange={setState}
                           dynamic={true}
                         />
@@ -1410,7 +1513,7 @@ const NewRaceForm = () => {
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
-                          state={featureItem.damage?.damageAttribute}
+                          value={featureItem.damage?.damageAttribute}
                           options={builders.race.feature.damageAttribute}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
@@ -1420,7 +1523,7 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.damage.damageType`}
                           multiple={true}
                           placeholder='Damage Type'
-                          state={featureItem.damage?.damageType}
+                          value={featureItem.damage?.damageType}
                           options={builders.damage}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
@@ -1458,7 +1561,7 @@ const NewRaceForm = () => {
                         <Table
                           inputs={damageTableInputs()}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
-                          state={featureItem.damage?.damageByLevel}
+                          value={featureItem.damage?.damageByLevel}
                           onChange={setState}
                           dynamic={true}
                         />
@@ -1520,7 +1623,7 @@ const NewRaceForm = () => {
         {successMessage && (
           <h5 className='add-success-message'>{successMessage}</h5>
         )}
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+        {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
         <form className='needs-validation' noValidate>
           <div className='row g-2 pb-2'>
             <Input
@@ -1533,19 +1636,23 @@ const NewRaceForm = () => {
               onChange={(input) => setState({ payload: { target: input } })}
             />
             <Select
+              ref={addToSelectRefs}
               name='category'
               placeholder='Race Category'
-              state={state.category}
+              value={state.category}
               options={builders.race.category}
+              required={true}
               onChange={(option) => setState({ payload: { target: option } })}
             />
             {state.category?.name === 'variant' && (
               <Select
+                ref={addToSelectRefs}
                 multiple={true}
                 name='lineage'
                 placeholder='Race Lineage'
-                state={state.lineage}
+                value={state.lineage}
                 options={races}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
             )}
@@ -1561,7 +1668,7 @@ const NewRaceForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <TextEditor
               name={'quote'}
-              state={state.quote}
+              value={state.quote}
               placeholder={'Opening Quote'}
               onChange={setState}
             />
@@ -1620,7 +1727,7 @@ const NewRaceForm = () => {
                         </div>
                         <TextEditor
                           name={`details.${detailIndex}.text`}
-                          state={detailItem.text}
+                          value={detailItem.text}
                           placeholder={'Section Text'}
                           onChange={setState}
                         />
@@ -1642,19 +1749,21 @@ const NewRaceForm = () => {
           <div className='accordion-collapse collapse show pb-2' id='trait'>
             <div className='row g-2 pb-2'>
               <Select
+                ref={addToSelectRefs}
                 size='col-lg-3 col-md-4 col-sm-12'
                 multiple={true}
                 name='attribute'
                 placeholder='Attributes'
-                state={state.attribute}
+                value={state.attribute}
                 options={builders.race.attribute}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <TextEditor
                 className='shortDesc'
                 size='col-sm'
                 name='age'
-                state={state.age}
+                value={state.age}
                 noMenuBar={true}
                 placeholder='Age Description'
                 onChange={setState}
@@ -1662,18 +1771,20 @@ const NewRaceForm = () => {
             </div>
             <div className='row g-2 pb-2'>
               <Select
+                ref={addToSelectRefs}
                 size='col-lg-3 col-md-4 col-sm-12'
                 name='size'
                 placeholder='Size'
-                state={state.size}
+                value={state.size}
                 options={builders.race.size}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <TextEditor
                 className='shortDesc'
                 size='col-sm'
                 name='size.desc'
-                state={state.size?.desc}
+                value={state.size?.desc}
                 noMenuBar={true}
                 placeholder='Size Description'
                 onChange={setState}
@@ -1695,13 +1806,15 @@ const NewRaceForm = () => {
                   placeholder='Walking Speed'
                   label={true}
                   invalidText='Must contain only numbers'
-                  value={state.speed.climbing.value ?? ''}
+                  value={state.speed?.walking?.value ?? ''}
+                  required={true}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc col-sm'
+                  className='shortDesc'
+                  size='col-sm'
                   name='speed.walking.desc'
-                  state={state.speed?.walking?.desc}
+                  value={state.speed?.walking?.desc}
                   noMenuBar={true}
                   placeholder='Speed Description'
                   onChange={setState}
@@ -1724,13 +1837,15 @@ const NewRaceForm = () => {
                   placeholder='Climbing Speed'
                   label={true}
                   invalidText='Must contain only numbers'
-                  value={state.speed.climbing.value ?? ''}
+                  required={true}
+                  value={state.speed?.climbing?.value ?? ''}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc col-sm'
+                  className='shortDesc'
+                  size='col-sm'
                   name='speed.climbing.desc'
-                  state={state.speed?.climbing?.desc}
+                  value={state.speed?.climbing?.desc}
                   noMenuBar={true}
                   placeholder='Speed Description'
                   onChange={setState}
@@ -1753,13 +1868,15 @@ const NewRaceForm = () => {
                   placeholder='Swimming Speed'
                   label={true}
                   invalidText='Must contain only numbers'
-                  value={state.speed.swimming.value ?? ''}
+                  required={true}
+                  value={state.speed?.swimming?.value ?? ''}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc col-sm'
+                  className='shortDesc'
+                  size='col-sm'
                   name='speed.swimming.desc'
-                  state={state.speed?.swimming?.desc}
+                  value={state.speed?.swimming?.desc}
                   noMenuBar={true}
                   placeholder='Speed Description'
                   onChange={setState}
@@ -1782,13 +1899,15 @@ const NewRaceForm = () => {
                   placeholder='Flying Speed'
                   label={true}
                   invalidText='Must contain only numbers'
-                  value={state.speed.flying.value ?? ''}
+                  required={true}
+                  value={state.speed?.flying?.value ?? ''}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc col-sm'
+                  className='shortDesc'
+                  size='col-sm'
                   name='speed.flying.desc'
-                  state={state.speed?.flying?.desc}
+                  value={state.speed?.flying?.desc}
                   noMenuBar={true}
                   placeholder='Speed Description'
                   onChange={setState}
@@ -1838,7 +1957,7 @@ const NewRaceForm = () => {
                       },
                     ]}
                     name='ancestry'
-                    state={state.ancestry}
+                    value={state.ancestry}
                     onChange={setState}
                     dynamic={true}
                   />
@@ -1869,7 +1988,6 @@ const NewRaceForm = () => {
               className='btn btn-primary'
               type='button'
               onClick={() => {
-                validateForm()
                 onSubmit()
               }}
             >

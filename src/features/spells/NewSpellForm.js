@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useAddNewSpellMutation } from './spellsApiSlice'
@@ -26,23 +26,8 @@ const NewSpellForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-
-  useEffect(() => {
-    const forms = document.querySelectorAll('.needs-validation')
-    Array.from(forms).forEach(function (form) {
-      form.addEventListener(
-        'submit',
-        function (event) {
-          if (!form.checkValidity()) {
-            event.preventDefault()
-            event.stopPropagation()
-          }
-          form.classList.add('was-validated')
-        },
-        false
-      )
-    })
-  })
+  const [isValid, setIsValid] = useState()
+  const selectRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -68,6 +53,8 @@ const NewSpellForm = () => {
       if (!!errorMessage) {
         setErrorMessage()
       }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage) {
@@ -76,13 +63,68 @@ const NewSpellForm = () => {
       if (!!errorMessage) {
         setErrorMessage()
       }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
   })
 
-  function validateForm() {}
+  const addToSelectRefs = (ref) => {
+    if (ref && !selectRefs.current.includes(ref)) {
+      selectRefs.current.push(ref)
+    }
+  }
+
+  const handleValidation = (resetValidation) => {
+    selectRefs.current.forEach((selectRef) => {
+      if (selectRef) {
+        const selectValue = selectRef.getValue()
+        const isEmpty =
+          selectValue === null ||
+          (Array.isArray(selectValue) && selectValue.length === 0)
+
+        if (isEmpty) {
+          selectRef.setClass('is-invalid')
+          setIsValid(false)
+        } else {
+          selectRef.setClass('is-valid')
+        }
+      }
+      if (resetValidation === true) {
+        selectRef.setClass('')
+      }
+    })
+
+    // Validate other elements with the required attribute
+    const requiredElements = document.querySelectorAll('[required]')
+    requiredElements.forEach((element) => {
+      const value = element.value
+      const isEmpty =
+        value === null ||
+        value === undefined ||
+        (typeof value === 'string' && value.trim() === '')
+
+      if (isEmpty) {
+        element.classList.add('is-invalid')
+        element.classList.remove('is-valid')
+        setIsValid(false)
+      } else {
+        element.classList.add('is-valid')
+        element.classList.remove('is-invalid')
+      }
+      if (resetValidation === true) {
+        element.classList.remove('is-valid')
+        element.classList.remove('is-invalid')
+      }
+    })
+  }
 
   const onSubmit = async () => {
-    await addNewSpell(state)
+    handleValidation()
+    if (isValid && isValid !== false) {
+      await addNewSpell(state)
+    } else {
+      setErrorMessage('Please fill out all required fields')
+    }
   }
 
   let content
@@ -136,7 +178,6 @@ const NewSpellForm = () => {
           }
         )
       }
-
       return inputArray
     }
 
@@ -152,9 +193,9 @@ const NewSpellForm = () => {
           </button>
         </div>
         {successMessage && (
-          <h3 className='success-message'>{successMessage}</h3>
+          <h5 className='success-message'>{successMessage}</h5>
         )}
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+        {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
         <form className='needs-validation' noValidate>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
@@ -191,19 +232,23 @@ const NewSpellForm = () => {
                 onChange={(input) => setState({ payload: { target: input } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='school'
                 id='school'
                 placeholder={'Spell School'}
-                state={state.school}
+                value={state.school}
                 options={builders.spell.school}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <Select
                 name='requirement'
+                ref={addToSelectRefs}
                 multiple={true}
                 placeholder={'Requirements'}
-                state={state.requirement}
+                value={state.requirement}
                 options={builders.spell.requirement}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
             </div>
@@ -222,7 +267,7 @@ const NewSpellForm = () => {
           >
             <TextEditor
               name='desc'
-              state={state.desc}
+              value={state.desc}
               placeholder='Spell Description'
               onChange={setState}
             />
@@ -238,10 +283,12 @@ const NewSpellForm = () => {
           <div className='accordion-collapse collapse show' id='attributes'>
             <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
               <Select
+                ref={addToSelectRefs}
                 multiple={true}
                 name='attribute'
                 placeholder='Spell Attributes'
-                state={state.attribute}
+                value={state.attribute}
+                required={true}
                 options={builders.spell.attribute.filter((attributeItem) =>
                   !!state.attribute?.some(
                     (stateItem) => stateItem.name === 'doesDamage'
@@ -252,10 +299,12 @@ const NewSpellForm = () => {
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='action.actionType'
                 placeholder='Casting Time'
-                state={state.action?.actionType}
+                value={state.action?.actionType}
                 options={builders.spell.action}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <Input
@@ -273,10 +322,12 @@ const NewSpellForm = () => {
                 onChange={(input) => setState({ payload: { target: input } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='duration.durationType'
                 placeholder='Duration'
-                state={state.duration?.durationType}
+                value={state.duration?.durationType}
                 options={builders.spell.duration}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               {state.duration &&
@@ -301,10 +352,12 @@ const NewSpellForm = () => {
                   />
                 )}
               <Select
+                ref={addToSelectRefs}
                 name='range.rangeType'
                 placeholder='Range'
-                state={state.range?.rangeType}
+                value={state.range?.rangeType}
                 options={builders.spell.range}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               {state.range?.rangeType &&
@@ -331,10 +384,12 @@ const NewSpellForm = () => {
                       />
                     )}
                     <Select
+                      ref={addToSelectRefs}
                       name='shape.shapeType'
                       placeholder='Shape'
                       options={builders.spell.shape}
-                      state={state.shape?.shapeType}
+                      value={state.shape?.shapeType}
+                      required={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -368,10 +423,12 @@ const NewSpellForm = () => {
                 (attributeItem) => attributeItem.name === 'requireSave'
               ) && (
                 <Select
+                  ref={addToSelectRefs}
                   name='saveAbility'
                   placeholder='DC Ability'
-                  state={state.saveAbility}
+                  value={state.saveAbility}
                   options={builders.ability}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -394,21 +451,25 @@ const NewSpellForm = () => {
               ) : (
                 <div className='row gx-2 align-items-end pb-2'>
                   <Select
+                    ref={addToSelectRefs}
                     multiple={true}
                     name='damage.damageAttribute'
                     placeholder='Damage Attribute'
-                    state={state.damage?.damageAttribute}
+                    value={state.damage?.damageAttribute}
                     options={builders.spell.damageAttribute}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
                   />
                   <Select
+                    ref={addToSelectRefs}
                     name='damage.damageType'
                     multiple={true}
                     placeholder='Damage Type'
-                    state={state.damage?.damageType}
+                    value={state.damage?.damageType}
                     options={builders.damage}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -436,7 +497,7 @@ const NewSpellForm = () => {
                 <Table
                   inputs={damageTableInputs()}
                   name='damage.damageByLevel'
-                  state={state.damage?.damageByLevel}
+                  value={state.damage?.damageByLevel}
                   onChange={setState}
                   dynamic={true}
                 />
@@ -448,7 +509,6 @@ const NewSpellForm = () => {
               className='btn btn-primary'
               type='button'
               onClick={() => {
-                validateForm()
                 onSubmit()
               }}
             >
