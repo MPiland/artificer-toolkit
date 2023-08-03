@@ -339,26 +339,27 @@ const NewSpellForm = () => {
                         setState({ payload: { target: option } })
                       }
                     />
-                    {state.shape.shapeType.name !== 'none' && (
-                      <Input
-                        className={`${
-                          state?.shape?.size &&
-                          (NUM_REGEX.test(state.shape.size)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
-                        name='shape.size'
-                        label={true}
-                        invalidText='Must contain only numbers'
-                        placeholder='Shape Size (ft)'
-                        autoComplete='off'
-                        required={true}
-                        value={state.shape?.size ?? ''}
-                        onChange={(input) =>
-                          setState({ payload: { target: input } })
-                        }
-                      />
-                    )}
+                    {state.shape?.shapeType.name &&
+                      state.shape?.shapeType.name !== 'none' && (
+                        <Input
+                          className={`${
+                            state?.shape?.size &&
+                            (NUM_REGEX.test(state.shape.size)
+                              ? 'is-valid'
+                              : 'is-invalid')
+                          }`}
+                          name='shape.size'
+                          label={true}
+                          invalidText='Must contain only numbers'
+                          placeholder='Shape Size (ft)'
+                          autoComplete='off'
+                          required={true}
+                          value={state.shape?.size ?? ''}
+                          onChange={(input) =>
+                            setState({ payload: { target: input } })
+                          }
+                        />
+                      )}
                   </>
                 )}
             </div>

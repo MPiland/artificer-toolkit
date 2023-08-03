@@ -221,7 +221,7 @@ const TextEditor = ({
   state,
   size,
 }) => {
-  const [content, setContent] = useState(state)
+  const [content] = useState(state)
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
