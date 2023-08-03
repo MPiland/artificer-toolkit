@@ -332,7 +332,7 @@ const SpellList = () => {
               multiple={true}
               name='action.actionType'
               placeholder='Casting Time'
-              options={spells.map((spellItem) => spellItem.action.actionType)}
+              options={spells.map((spellItem) => spellItem.action?.actionType)}
               state={listFilter.action?.actionType}
               onChange={(option) =>
                 setListFilter({
@@ -347,7 +347,7 @@ const SpellList = () => {
               name='duration.durationType'
               placeholder='Duration'
               options={spells.map(
-                (spellItem) => spellItem.duration.durationType
+                (spellItem) => spellItem.duration?.durationType
               )}
               state={listFilter.duration?.durationType}
               onChange={(option) =>
@@ -362,7 +362,7 @@ const SpellList = () => {
               multiple={true}
               name='range.rangeType'
               placeholder='Range'
-              options={spells.map((spellItem) => spellItem.range.rangeType)}
+              options={spells.map((spellItem) => spellItem.range?.rangeType)}
               state={listFilter.range?.rangeType}
               onChange={(option) =>
                 setListFilter({
