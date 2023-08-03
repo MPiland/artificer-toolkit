@@ -984,11 +984,13 @@ const NewRaceForm = () => {
                         attributeItem.name === 'ancestrySpecific'
                     ) && (
                       <Select
+                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.ancestry`}
                         options={state.ancestry}
                         placeholder='Ancestry'
                         value={featureItem.ancestry}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -999,11 +1001,13 @@ const NewRaceForm = () => {
                         attributeItem.name === 'hasRequirements'
                     ) ? (
                       <Select
+                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
                         options={builders.race.feature.requirements}
                         value={featureItem.requirement?.option}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -1023,11 +1027,13 @@ const NewRaceForm = () => {
                       (optionItem) => optionItem.name === 'skillProficiency'
                     ) ? (
                       <Select
+                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                         placeholder='Skill Proficiency'
                         value={featureItem.requirement?.skillProficiency}
                         options={builders.skill}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -1048,6 +1054,7 @@ const NewRaceForm = () => {
                     ) ? (
                       <>
                         <Select
+                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           placeholder='Item Category'
@@ -1056,11 +1063,13 @@ const NewRaceForm = () => {
                               ?.itemCategory
                           }
                           options={builders.item.itemCategory}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
                           value={
@@ -1076,11 +1085,13 @@ const NewRaceForm = () => {
                               )
                               .map((filteredItem) => filteredItem.itemType)
                           )}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
                           value={
@@ -1097,6 +1108,7 @@ const NewRaceForm = () => {
                               )
                               .map((filteredItem) => filteredItem.itemProperty)
                           )}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -1118,30 +1130,36 @@ const NewRaceForm = () => {
                     ) ? (
                       <>
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           value={featureItem.limitUse?.limitBy}
                           options={builders.race.feature.chargeLimit}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
+                            ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
                             value={featureItem.limitUse?.ability}
                             options={builders.ability}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                         ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
+                            ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
                             value={featureItem.limitUse?.skill}
                             options={builders.skill}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -1170,10 +1188,12 @@ const NewRaceForm = () => {
                           )
                         )}
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           value={featureItem.limitUse?.resetsOn}
                           options={builders.race.feature.chargeReset}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -1195,10 +1215,12 @@ const NewRaceForm = () => {
                     ) ? (
                       <>
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
                           value={featureItem.action}
                           options={builders.race.feature.action}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -1271,10 +1293,12 @@ const NewRaceForm = () => {
                       (attributeItem) => attributeItem.name === 'requireSave'
                     ) ? (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
                         value={featureItem.saveAbility}
                         options={builders.ability}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -1309,16 +1333,19 @@ const NewRaceForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             placeholder='Item Category'
                             value={featureItem.requirement?.equipped}
                             options={builders.item.itemCategory}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
@@ -1333,11 +1360,13 @@ const NewRaceForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
@@ -1356,6 +1385,7 @@ const NewRaceForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
+                            required={true}
                             onChange={setState}
                           />
                         </div>
@@ -1390,6 +1420,7 @@ const NewRaceForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                             placeholder='Item Category'
@@ -1397,11 +1428,13 @@ const NewRaceForm = () => {
                               featureItem.requirement?.notEquipped?.itemCategory
                             }
                             options={builders.item.itemCategory}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
@@ -1418,11 +1451,13 @@ const NewRaceForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             placeholder='Item Property'
@@ -1441,6 +1476,7 @@ const NewRaceForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -1510,21 +1546,25 @@ const NewRaceForm = () => {
                     ) : (
                       <div className='row g-2 align-items-end pb-2'>
                         <Select
+                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
                           value={featureItem.damage?.damageAttribute}
                           options={builders.race.feature.damageAttribute}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.damage.damageType`}
                           multiple={true}
                           placeholder='Damage Type'
                           value={featureItem.damage?.damageType}
                           options={builders.damage}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }

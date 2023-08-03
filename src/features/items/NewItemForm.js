@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAddNewItemMutation } from './itemsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
@@ -12,6 +12,7 @@ import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
+import { textPasteRule } from '@tiptap/react'
 
 const NUM_REGEX = /^[0-9\b]+$/
 const CUR_REGEX = /^\d*\.?\d*$/
@@ -46,23 +47,8 @@ const NewItemForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-
-  useEffect(() => {
-    const forms = document.querySelectorAll('.needs-validation')
-    Array.from(forms).forEach(function (form) {
-      form.addEventListener(
-        'submit',
-        function (event) {
-          if (!form.checkValidity()) {
-            event.preventDefault()
-            event.stopPropagation()
-          }
-          form.classList.add('was-validated')
-        },
-        false
-      )
-    })
-  })
+  const [isValid, setIsValid] = useState()
+  const selectRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -85,18 +71,81 @@ const NewItemForm = () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
   })
 
-  function validateForm() {}
+  const addToSelectRefs = (ref) => {
+    if (ref && !selectRefs.current.includes(ref)) {
+      selectRefs.current.push(ref)
+    }
+  }
+
+  const handleValidation = (resetValidation) => {
+    selectRefs.current.forEach((selectRef) => {
+      if (selectRef) {
+        const selectValue = selectRef.getValue()
+        const isEmpty =
+          selectValue === null ||
+          (Array.isArray(selectValue) && selectValue.length === 0)
+
+        if (isEmpty) {
+          selectRef.setClass('is-invalid')
+          setIsValid(false)
+        } else {
+          selectRef.setClass('is-valid')
+        }
+      }
+      if (resetValidation === true) {
+        selectRef.setClass('')
+      }
+    })
+
+    // Validate other elements with the required attribute
+    const requiredElements = document.querySelectorAll('[required]')
+    requiredElements.forEach((element) => {
+      const value = element.value
+      const isEmpty =
+        value === null ||
+        value === undefined ||
+        (typeof value === 'string' && value.trim() === '')
+
+      if (isEmpty) {
+        element.classList.add('is-invalid')
+        element.classList.remove('is-valid')
+        setIsValid(false)
+      } else {
+        element.classList.add('is-valid')
+        element.classList.remove('is-invalid')
+      }
+      if (resetValidation === true) {
+        element.classList.remove('is-valid')
+        element.classList.remove('is-invalid')
+      }
+    })
+  }
 
   const onSubmit = async () => {
-    await addNewItem(state)
+    handleValidation()
+    if (isValid && isValid !== false) {
+      await addNewItem(state)
+    } else {
+      setErrorMessage('Please fill out all required fields')
+    }
   }
 
   let content
@@ -106,7 +155,6 @@ const NewItemForm = () => {
   }
 
   if (builderSuccess && spellSuccess && featSuccess) {
-
     const sections = [
       {
         name: 'feat',
@@ -692,11 +740,13 @@ const NewItemForm = () => {
                         attributeItem.name === 'hasRequirements'
                     ) ? (
                       <Select
+                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
                         value={featureItem.requirement?.option}
                         options={builders.item.feature.requirements}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -716,11 +766,13 @@ const NewItemForm = () => {
                       (optionItem) => optionItem.name === 'skillProficiency'
                     ) ? (
                       <Select
+                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                         value={featureItem.requirement?.skillProficiency?.skill}
                         placeholder='Skill Proficiency'
                         options={builders.skill}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -741,6 +793,7 @@ const NewItemForm = () => {
                     ) ? (
                       <>
                         <Select
+                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           placeholder='Item Category'
@@ -749,11 +802,13 @@ const NewItemForm = () => {
                               ?.itemCategory
                           }
                           options={builders.item.itemCategory}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
                           value={
@@ -769,11 +824,13 @@ const NewItemForm = () => {
                               )
                               .map((filteredItem) => filteredItem.itemType)
                           )}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
                           value={
@@ -790,6 +847,7 @@ const NewItemForm = () => {
                               )
                               .map((filteredItem) => filteredItem.itemProperty)
                           )}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -811,30 +869,36 @@ const NewItemForm = () => {
                     ) ? (
                       <>
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           value={featureItem.limitUse?.limitBy}
                           options={builders.item.feature.chargeLimit}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
+                            ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
                             value={featureItem.limitUse?.ability}
                             options={builders.ability}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                         ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
+                            ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
                             value={featureItem.limitUse?.skill}
                             options={builders.skill}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -862,10 +926,12 @@ const NewItemForm = () => {
                           )
                         )}
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           value={featureItem.limitUse?.resetsOn}
                           options={builders.item.feature.chargeReset}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -888,10 +954,12 @@ const NewItemForm = () => {
                       <>
                         <div className='col-sm'>
                           <Select
+                            ref={addToSelectRefs}
                             name={`feature.${featureIndex}.action`}
                             placeholder='Action Type'
                             value={featureItem.action}
                             options={builders.item.feature.action}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -965,10 +1033,12 @@ const NewItemForm = () => {
                       (attributeItem) => attributeItem.name === 'requireSave'
                     ) ? (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
                         value={featureItem.saveAbility}
                         options={builders.ability}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -1003,6 +1073,7 @@ const NewItemForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             placeholder='Item Category'
@@ -1010,11 +1081,13 @@ const NewItemForm = () => {
                               featureItem.requirement.equipped.itemCategory
                             }
                             options={builders.item.itemCategory}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
@@ -1029,9 +1102,11 @@ const NewItemForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
+                            required={true}
                             onChange={setState}
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
@@ -1050,6 +1125,7 @@ const NewItemForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -1086,6 +1162,7 @@ const NewItemForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                             value={
@@ -1093,11 +1170,13 @@ const NewItemForm = () => {
                             }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
+                            required={textPasteRule}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
@@ -1112,11 +1191,13 @@ const NewItemForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             placeholder='Item Property'
@@ -1135,6 +1216,7 @@ const NewItemForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -1205,20 +1287,24 @@ const NewItemForm = () => {
                     ) : (
                       <div className='row g-2 align-items-end pb-2'>
                         <Select
+                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           value={featureItem.damage.damageAttribute}
                           placeholder='Damage Attribute'
                           options={builders.item.feature.damageAttribute}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.damage.damageType`}
                           placeholder='Damage Type'
                           value={featureItem.damage.damageType}
                           options={builders.damage}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -1339,13 +1425,16 @@ const NewItemForm = () => {
                 onChange={(input) => setState({ payload: { target: input } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='itemCategory'
                 placeholder='Item category'
                 value={state.itemCategory}
                 options={builders.item.itemCategory}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='itemType'
                 placeholder='Item type'
                 value={state.itemType}
@@ -1355,9 +1444,11 @@ const NewItemForm = () => {
                       itemCategory._id === state.itemCategory?.id
                   )?.itemType
                 }
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='itemProperty'
                 multiple={true}
                 placeholder='Properties'
@@ -1368,13 +1459,16 @@ const NewItemForm = () => {
                       itemCategory._id === state.itemCategory?.id
                   )?.itemProperty
                 }
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='rarity'
                 placeholder='Rarity'
                 value={state.rarity}
                 options={builders.item.rarity}
+                required={true}
                 onChange={setState}
               />
               <Input
@@ -1394,10 +1488,12 @@ const NewItemForm = () => {
                 onChange={(input) => setState({ payload: { target: input } })}
               />
               <Select
+                ref={addToSelectRefs}
                 name='cost.currency'
                 placeholder='Currency'
                 value={state.cost?.currency}
                 options={builders.currency}
+                required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               {state.itemCategory && state.itemCategory?.name !== 'item' && (
@@ -1451,11 +1547,13 @@ const NewItemForm = () => {
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               <div className='col-sm'>
                 <Select
+                  ref={addToSelectRefs}
                   name='attribute'
                   multiple={true}
                   placeholder='Attributes'
                   value={state.attribute}
                   options={builders?.item.attribute}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -1476,6 +1574,7 @@ const NewItemForm = () => {
                   invalidText='Must contain only numbers'
                   placeholder='Item Weight'
                   autoComplete='off'
+                  required={true}
                   value={state.itemWeight ?? ''}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
@@ -1495,6 +1594,7 @@ const NewItemForm = () => {
                   invalidText='Must contain only numbers'
                   placeholder='Capacity Weight'
                   autoComplete='off'
+                  required={true}
                   value={state.capacityWeight ?? ''}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
@@ -1513,6 +1613,7 @@ const NewItemForm = () => {
                   invalidText='Must contain only numbers'
                   placeholder='Max Stack Size'
                   autoComplete='off'
+                  required={true}
                   value={state.maxStack ?? ''}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
@@ -1531,6 +1632,7 @@ const NewItemForm = () => {
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Count'
                     value={state.damage?.diceCount ?? ''}
+                    required={true}
                     onChange={(input) =>
                       setState({ payload: { target: input } })
                     }
@@ -1547,25 +1649,30 @@ const NewItemForm = () => {
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Value'
                     value={state.damage?.diceValue ?? ''}
+                    required={true}
                     onChange={(input) =>
                       setState({ payload: { target: input } })
                     }
                   />
                   <Select
+                    ref={addToSelectRefs}
                     name='damage.damageType'
                     multiple={true}
                     placeholder='Damage Type'
                     value={state.damage?.damageType}
                     options={builders.damage}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
                   />
                   <Select
+                    ref={addToSelectRefs}
                     name='primaryAbility'
                     placeholder='Primary Ability'
                     value={state.primaryAbility}
                     options={builders.ability}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -1574,9 +1681,11 @@ const NewItemForm = () => {
                     return property.name === 'versatile'
                   }) && (
                     <Select
+                      ref={addToSelectRefs}
                       name={'secondaryAbility'}
                       placeholder='Secondary Ability'
                       value={state.secondaryAbility}
+                      required={true}
                       options={builders.ability?.filter(
                         (abilityItem) =>
                           abilityItem?._id !== state?.primaryAbility?.id
@@ -1600,6 +1709,7 @@ const NewItemForm = () => {
                   label={true}
                   invalidText='Must contain only numbers'
                   placeholder='Armor Value'
+                  required={true}
                   value={state.armorValue ?? ''}
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
@@ -1621,6 +1731,7 @@ const NewItemForm = () => {
                     invalidText='Must contain only numbers'
                     placeholder='Thrown Min Range'
                     value={state.thrown?.minRange ?? ''}
+                    required={true}
                     onChange={(input) =>
                       setState({ payload: { target: input } })
                     }
@@ -1637,6 +1748,7 @@ const NewItemForm = () => {
                     invalidText='Must contain only numbers'
                     placeholder='Thrown Max Range'
                     value={state.thrown?.maxRange ?? ''}
+                    required={true}
                     onChange={(input) =>
                       setState({ payload: { target: input } })
                     }
@@ -1658,7 +1770,6 @@ const NewItemForm = () => {
               className='btn btn-primary'
               type='button'
               onClick={() => {
-                validateForm()
                 onSubmit()
               }}
             >

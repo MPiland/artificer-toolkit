@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useReducer, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAddNewFeatMutation } from './featsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
@@ -45,23 +45,8 @@ const NewFeatForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-
-  useEffect(() => {
-    const forms = document.querySelectorAll('.needs-validation')
-    Array.from(forms).forEach(function (form) {
-      form.addEventListener(
-        'submit',
-        function (event) {
-          if (!form.checkValidity()) {
-            event.preventDefault()
-            event.stopPropagation()
-          }
-          form.classList.add('was-validated')
-        },
-        false
-      )
-    })
-  })
+  const [isValid, setIsValid] = useState()
+  const selectRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -84,18 +69,81 @@ const NewFeatForm = () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage) {
         setSuccessMessage()
       }
+      if (!!errorMessage) {
+        setErrorMessage()
+      }
+      const resetValidation = true
+      handleValidation(resetValidation)
     })
   })
 
-  function validateForm() {}
+  const addToSelectRefs = (ref) => {
+    if (ref && !selectRefs.current.includes(ref)) {
+      selectRefs.current.push(ref)
+    }
+  }
+
+  const handleValidation = (resetValidation) => {
+    selectRefs.current.forEach((selectRef) => {
+      if (selectRef) {
+        const selectValue = selectRef.getValue()
+        const isEmpty =
+          selectValue === null ||
+          (Array.isArray(selectValue) && selectValue.length === 0)
+
+        if (isEmpty) {
+          selectRef.setClass('is-invalid')
+          setIsValid(false)
+        } else {
+          selectRef.setClass('is-valid')
+        }
+      }
+      if (resetValidation === true) {
+        selectRef.setClass('')
+      }
+    })
+
+    // Validate other elements with the required attribute
+    const requiredElements = document.querySelectorAll('[required]')
+    requiredElements.forEach((element) => {
+      const value = element.value
+      const isEmpty =
+        value === null ||
+        value === undefined ||
+        (typeof value === 'string' && value.trim() === '')
+
+      if (isEmpty) {
+        element.classList.add('is-invalid')
+        element.classList.remove('is-valid')
+        setIsValid(false)
+      } else {
+        element.classList.add('is-valid')
+        element.classList.remove('is-invalid')
+      }
+      if (resetValidation === true) {
+        element.classList.remove('is-valid')
+        element.classList.remove('is-invalid')
+      }
+    })
+  }
 
   const onSubmit = async () => {
-    await addNewFeat(state)
+    handleValidation()
+    if (isValid && isValid !== false) {
+      await addNewFeat(state)
+    } else {
+      setErrorMessage('Please fill out all required fields')
+    }
   }
 
   let content
@@ -150,6 +198,7 @@ const NewFeatForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.feat${
                     multipleOptions && '.options'
                   }`}
@@ -157,6 +206,7 @@ const NewFeatForm = () => {
                   placeholder='Feat'
                   value={item.feat}
                   options={feats}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -210,16 +260,19 @@ const NewFeatForm = () => {
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                   placeholder='Modifier Type'
                   value={item.modType}
                   options={builders.modifier.modType}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
                 />
                 {item.modType?.name && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.module`}
                     placeholder='Modifier Category'
                     value={item.module}
@@ -231,6 +284,7 @@ const NewFeatForm = () => {
                         ?.module.map((m) => m.id)
                         .some((moduleID) => moduleID === moduleItem._id)
                     )}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -244,6 +298,7 @@ const NewFeatForm = () => {
                   <>
                     {item.module?.name === 'ability' && (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.ability${multipleOptions && '.options'}`}
@@ -251,11 +306,13 @@ const NewFeatForm = () => {
                         placeholder='Ability'
                         value={item.ability}
                         options={builders.ability}
+                        required={true}
                         onChange={setState}
                       />
                     )}
                     {item.module?.name === 'saveAbility' && (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.saveAbility${multipleOptions && '.options'}`}
@@ -263,6 +320,7 @@ const NewFeatForm = () => {
                         placeholder='Save Ability'
                         value={item.saveAbility}
                         options={builders.ability}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -270,6 +328,7 @@ const NewFeatForm = () => {
                     )}
                     {item.module?.name === 'skill' && (
                       <Select
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.skill${multipleOptions && '.options'}`}
@@ -277,6 +336,7 @@ const NewFeatForm = () => {
                         placeholder='Skill'
                         value={item.skill}
                         options={builders.skill}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -288,6 +348,7 @@ const NewFeatForm = () => {
                   item.modType?.name === 'penalty') &&
                   item.modType?.name !== 'setValue' && (
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.method`}
                       placeholder='Method'
                       value={item.method}
@@ -296,6 +357,7 @@ const NewFeatForm = () => {
                           (moduleItem) => moduleItem.id === item.module?.id
                         )
                       )}
+                      required={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -303,6 +365,7 @@ const NewFeatForm = () => {
                   )}
                 {item.module?.name === 'condition' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.condition${multipleOptions && '.options'}`}
@@ -310,12 +373,14 @@ const NewFeatForm = () => {
                     placeholder='Condition Type'
                     value={item.condition}
                     options={builders.condition}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
                   />
                 ) : item.module?.name === 'speed' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.speed${
                       multipleOptions && '.options'
                     }`}
@@ -323,12 +388,14 @@ const NewFeatForm = () => {
                     value={item.speed}
                     placeholder='Speed Type'
                     options={builders.speed}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
                   />
                 ) : item.module?.name === 'passive' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.passive${multipleOptions && '.options'}`}
@@ -336,6 +403,7 @@ const NewFeatForm = () => {
                     placeholder='Passive Type'
                     value={item.passive}
                     options={builders.passive}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -343,6 +411,7 @@ const NewFeatForm = () => {
                 ) : (
                   item.module?.name === 'damage' && (
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.damage${multipleOptions && '.options'}`}
@@ -350,6 +419,7 @@ const NewFeatForm = () => {
                       placeholder='Damage Type'
                       value={item.damage.damageType}
                       options={builders.damage}
+                      required={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -372,15 +442,18 @@ const NewFeatForm = () => {
                       invalidText='Must contain only numbers'
                       autoComplete='off'
                       value={item.method?.setValue ?? ''}
+                      required={true}
                       onChange={(input) =>
                         setState({ payload: { target: input } })
                       }
                     />
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                       placeholder='Multiplier'
                       value={item.multiplier}
                       options={builders.modifier.multiplier}
+                      required={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -388,10 +461,12 @@ const NewFeatForm = () => {
                   </>
                 ) : item.method?.name === 'ability' ? (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                     placeholder='Method Ability'
                     value={item.method.ability}
                     options={builders.ability}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -399,10 +474,12 @@ const NewFeatForm = () => {
                 ) : (
                   item.method?.name === 'skill' && (
                     <Select
+                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                       placeholder='Method Skill'
                       value={item.method.skill}
                       options={builders.skill}
+                      required={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -412,6 +489,7 @@ const NewFeatForm = () => {
                 {(item.modType?.name === 'bonus' ||
                   item.modType?.name === 'setValue') && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
                     placeholder='Exceeds Max'
                     value={item.exceedMax}
@@ -419,6 +497,7 @@ const NewFeatForm = () => {
                       { name: true, value: 'Yes' },
                       { name: false, value: 'No' },
                     ]}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -465,6 +544,7 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
+                    required={true}
                     onChange={(input) =>
                       setState({ payload: { target: input } })
                     }
@@ -473,16 +553,19 @@ const NewFeatForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.area`}
                   placeholder='Proficiency Area'
                   value={item.area}
                   options={builders.proficiency.area}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
                 />
                 {item?.area?.name === 'skill' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.skill${
                       multipleOptions && '.options'
                     }`}
@@ -490,6 +573,7 @@ const NewFeatForm = () => {
                     placeholder='Skill'
                     value={item.skill}
                     options={builders.skill}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -497,6 +581,7 @@ const NewFeatForm = () => {
                 )}
                 {item?.area?.name === 'saveAbility' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.saveAbility${multipleOptions && '.options'}`}
@@ -504,6 +589,7 @@ const NewFeatForm = () => {
                     placeholder='Save Ability'
                     value={item.saveAbility}
                     options={builders.ability}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -511,6 +597,7 @@ const NewFeatForm = () => {
                 )}
                 {item?.area?.name === 'tool' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.tool${
                       multipleOptions && '.options'
                     }`}
@@ -518,6 +605,7 @@ const NewFeatForm = () => {
                     placeholder='Tool'
                     value={item.tool}
                     options={builders.tool}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -525,6 +613,7 @@ const NewFeatForm = () => {
                 )}
                 {item?.area?.name === 'language' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.language${multipleOptions && '.options'}`}
@@ -532,6 +621,7 @@ const NewFeatForm = () => {
                     placeholder='Language'
                     value={item.language}
                     options={builders.language}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -539,6 +629,7 @@ const NewFeatForm = () => {
                 )}
                 {item.area?.name === 'itemType' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.itemType${multipleOptions && '.options'}`}
@@ -550,6 +641,7 @@ const NewFeatForm = () => {
                         (categoryItem) => categoryItem.itemType
                       )
                     )}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -557,6 +649,7 @@ const NewFeatForm = () => {
                 )}
                 {item.area?.name === 'itemProperty' && (
                   <Select
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.itemProperty${multipleOptions && '.options'}`}
@@ -568,16 +661,19 @@ const NewFeatForm = () => {
                         (categoryItem) => categoryItem.itemProperty
                       )
                     )}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
                   />
                 )}
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.level`}
                   placeholder='Proficiency Level'
                   value={item.level}
                   options={builders.proficiency.level}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -623,6 +719,7 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
+                    required={true}
                     onChange={(input) =>
                       setState({ payload: { target: input } })
                     }
@@ -631,6 +728,7 @@ const NewFeatForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.sense${
                     multipleOptions && '.options'
                   }`}
@@ -638,6 +736,7 @@ const NewFeatForm = () => {
                   placeholder='Sense'
                   value={item.sense}
                   options={builders.sense}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -683,6 +782,7 @@ const NewFeatForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
+                    required={true}
                     onChange={(input) =>
                       setState({ payload: { target: input } })
                     }
@@ -691,16 +791,19 @@ const NewFeatForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
-                  multiple='true'
+                ref={addToSelectRefs}
+                  multiple={true}
                   name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                   options={builders.feat.feature.spell.attribute}
                   placeholder='Spell Attributes'
                   value={item.attribute}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
                 />
                 <Select
+                ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions && '.options'
                   }`}
@@ -708,6 +811,7 @@ const NewFeatForm = () => {
                   placeholder='Spell'
                   value={item}
                   options={spells}
+                  required={true}
                   onChange={(option) =>
                     setState({ payload: { target: option } })
                   }
@@ -716,6 +820,7 @@ const NewFeatForm = () => {
                   (attributeItem) => attributeItem.name === 'optionalAbility'
                 ) && (
                   <Select
+                ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.ability${multipleOptions && 'options'}`}
@@ -723,6 +828,7 @@ const NewFeatForm = () => {
                     placeholder='Ability'
                     value={item.ability}
                     options={builders.ability}
+                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
@@ -855,11 +961,13 @@ const NewFeatForm = () => {
                   </div>
                   <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                     <Select
+                ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
                       value={featureItem.attribute}
                       options={builders.feat.feature.attribute}
                       placeholder='Feature Attributes'
+                      required={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -869,11 +977,13 @@ const NewFeatForm = () => {
                         attributeItem.name === 'hasRequirements'
                     ) ? (
                       <Select
+                ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         value={featureItem.requirement?.option}
                         placeholder='Requirement'
                         options={builders.feat.feature.requirements}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -893,11 +1003,13 @@ const NewFeatForm = () => {
                       (optionItem) => optionItem.name === 'skillProficiency'
                     ) ? (
                       <Select
+                ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                         value={featureItem.requirement?.skillProficiency?.skill}
                         placeholder='Skill Proficiency'
                         options={builders.skill}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -918,6 +1030,7 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Select
+                ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           value={
@@ -926,11 +1039,13 @@ const NewFeatForm = () => {
                           }
                           placeholder='Item Category'
                           options={builders.item.itemCategory}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
                           value={
@@ -946,9 +1061,11 @@ const NewFeatForm = () => {
                               )
                               .map((filteredItem) => filteredItem.itemType)
                           )}
+                          required={true}
                           onChange={setState}
                         />
                         <Select
+                ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
                           value={
@@ -965,6 +1082,7 @@ const NewFeatForm = () => {
                               )
                               .map((filteredItem) => filteredItem.itemProperty)
                           )}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -986,30 +1104,36 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Select
+                ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           value={featureItem.limitUse?.limitBy}
                           options={builders.feat.feature.chargeLimit}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
+                ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
                             value={featureItem.limitUse?.ability}
                             options={builders.ability}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                         ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
+                ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
                             value={featureItem.limitUse?.skill}
                             options={builders.skill}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -1037,10 +1161,12 @@ const NewFeatForm = () => {
                           )
                         )}
                         <Select
+                ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           value={featureItem.limitUse?.resetsOn}
                           options={builders.feat.feature.chargeReset}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -1062,10 +1188,12 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Select
+                ref={addToSelectRefs}
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
                           value={featureItem.action}
                           options={builders.feat.feature.action}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -1138,10 +1266,12 @@ const NewFeatForm = () => {
                       (attributeItem) => attributeItem.name === 'requireSave'
                     ) ? (
                       <Select
+                ref={addToSelectRefs}
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
                         value={featureItem.saveAbility}
                         options={builders.ability}
+                        required={true}
                         onChange={(option) =>
                           setState({ payload: { target: option } })
                         }
@@ -1176,6 +1306,7 @@ const NewFeatForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
+                ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             value={
@@ -1183,11 +1314,13 @@ const NewFeatForm = () => {
                             }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
@@ -1202,11 +1335,13 @@ const NewFeatForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
@@ -1225,6 +1360,7 @@ const NewFeatForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -1261,6 +1397,7 @@ const NewFeatForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
+                ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                             value={
@@ -1268,11 +1405,13 @@ const NewFeatForm = () => {
                             }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
@@ -1287,11 +1426,13 @@ const NewFeatForm = () => {
                                 )
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
                           />
                           <Select
+                ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             value={
@@ -1310,6 +1451,7 @@ const NewFeatForm = () => {
                                   (filteredItem) => filteredItem.itemProperty
                                 )
                             )}
+                            required={true}
                             onChange={(option) =>
                               setState({ payload: { target: option } })
                             }
@@ -1379,21 +1521,25 @@ const NewFeatForm = () => {
                     ) : (
                       <div className='row g-2 align-items-end pb-2'>
                         <Select
+                ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           value={featureItem.damage?.damageAttribute}
                           placeholder='Damage Attribute'
                           options={builders.feat.feature.damageAttribute}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
                         />
                         <Select
+                ref={addToSelectRefs}
                           name={`feature.${featureIndex}.damage.damageType`}
                           multiple={true}
                           placeholder='Damage Type'
                           value={featureItem.damage?.damageType}
                           options={builders.damage}
+                          required={true}
                           onChange={(option) =>
                             setState({ payload: { target: option } })
                           }
@@ -1536,7 +1682,6 @@ const NewFeatForm = () => {
               className='btn btn-primary'
               type='button'
               onClick={() => {
-                validateForm()
                 onSubmit()
               }}
             >
