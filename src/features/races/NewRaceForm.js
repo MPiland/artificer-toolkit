@@ -2031,7 +2031,7 @@ const NewRaceForm = () => {
                 onSubmit()
               }}
             >
-              Add Item
+              Add Race
             </button>
           </div>
           {featureContent}

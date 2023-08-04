@@ -283,12 +283,10 @@ const NewSpellForm = () => {
           <div className='accordion-collapse collapse show' id='attributes'>
             <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name='attribute'
                 placeholder='Spell Attributes'
                 value={state.attribute}
-                required={true}
                 options={builders.spell.attribute.filter((attributeItem) =>
                   !!state.attribute?.some(
                     (stateItem) => stateItem.name === 'doesDamage'
@@ -451,13 +449,11 @@ const NewSpellForm = () => {
               ) : (
                 <div className='row gx-2 align-items-end pb-2'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='damage.damageAttribute'
                     placeholder='Damage Attribute'
                     value={state.damage?.damageAttribute}
                     options={builders.spell.damageAttribute}
-                    required={true}
                     onChange={(option) =>
                       setState({ payload: { target: option } })
                     }
