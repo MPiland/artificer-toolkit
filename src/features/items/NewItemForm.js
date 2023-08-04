@@ -47,7 +47,7 @@ const NewItemForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-  const [isValid, setIsValid] = useState()
+  const [isValid, setIsValid] = useState(true)
   const selectRefs = useRef([])
 
   useEffect(() => {
@@ -112,6 +112,7 @@ const NewItemForm = () => {
       }
       if (resetValidation === true) {
         selectRef.setClass('')
+        setIsValid(true)
       }
     })
 
@@ -135,13 +136,14 @@ const NewItemForm = () => {
       if (resetValidation === true) {
         element.classList.remove('is-valid')
         element.classList.remove('is-invalid')
+        setIsValid(true)
       }
     })
   }
 
   const onSubmit = async () => {
     handleValidation()
-    if (isValid && isValid !== false) {
+    if (isValid) {
       await addNewItem(state)
     } else {
       setErrorMessage('Please fill out all required fields')
@@ -175,7 +177,7 @@ const NewItemForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
-                    ref={addToSelectRefs}
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.sense`}
                   placeholder='Feat'
                   value={item.sense}
@@ -209,7 +211,7 @@ const NewItemForm = () => {
               </div>
               <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
                 <Select
-                    ref={addToSelectRefs}
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                   placeholder='Modifier Type'
                   value={item.modType}

@@ -39,7 +39,7 @@ const EditSpellForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const [match, setMatch] = useState()
-  const [isValid, setIsValid] = useState()
+  const [isValid, setIsValid] = useState(true)
   const selectRefs = useRef([])
 
   useEffect(() => {
@@ -107,6 +107,7 @@ const EditSpellForm = () => {
       }
       if (resetValidation === true) {
         selectRef.setClass('')
+        setIsValid(true)
       }
     })
 
@@ -130,6 +131,7 @@ const EditSpellForm = () => {
       if (resetValidation === true) {
         element.classList.remove('is-valid')
         element.classList.remove('is-invalid')
+        setIsValid(true)
       }
     })
   }
@@ -144,7 +146,7 @@ const EditSpellForm = () => {
 
   const onSubmit = async () => {
     handleValidation()
-    if (isValid && isValid !== false) {
+    if (isValid) {
       await addNewSpell(state)
     } else {
       setErrorMessage('Please fill out all required fields')
@@ -153,7 +155,7 @@ const EditSpellForm = () => {
 
   const onUpdate = async () => {
     handleValidation()
-    if (isValid && isValid !== false) {
+    if (isValid) {
       if (match) {
         setErrorMessage('No changes made')
       } else {
@@ -182,6 +184,8 @@ const EditSpellForm = () => {
   }
 
   let content
+
+  console.log(isValid)
 
   if (isLoading) content = <p>Loading...</p>
 
@@ -338,12 +342,10 @@ const EditSpellForm = () => {
           <div className='accordion-collapse collapse show' id='attributes'>
             <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name='attribute'
                 placeholder='Spell Attributes'
                 value={state.attribute}
-                required={true}
                 options={builders.spell.attribute.filter((attributeItem) =>
                   !!state.attribute?.some(
                     (stateItem) => stateItem.name === 'doesDamage'

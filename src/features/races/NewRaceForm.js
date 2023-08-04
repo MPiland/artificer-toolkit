@@ -52,7 +52,7 @@ const NewRaceForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-  const [isValid, setIsValid] = useState()
+  const [isValid, setIsValid] = useState(true)
   const selectRefs = useRef([])
 
   useEffect(() => {
@@ -117,6 +117,7 @@ const NewRaceForm = () => {
       }
       if (resetValidation === true) {
         selectRef.setClass('')
+        setIsValid(true)
       }
     })
 
@@ -140,13 +141,14 @@ const NewRaceForm = () => {
       if (resetValidation === true) {
         element.classList.remove('is-valid')
         element.classList.remove('is-invalid')
+        setIsValid(true)
       }
     })
   }
 
   const onSubmit = async () => {
     handleValidation()
-    if (isValid && isValid !== false) {
+    if (isValid) {
       await addNewRace(state)
     } else {
       setErrorMessage('Please fill out all required fields')
@@ -1684,7 +1686,7 @@ const NewRaceForm = () => {
               required={true}
               onChange={(option) => setState({ payload: { target: option } })}
             />
-            {state.category?.name === 'variant' && (
+            {state.category?.name && state.category?.name !== 'base' && (
               <Select
                 ref={addToSelectRefs}
                 multiple={true}

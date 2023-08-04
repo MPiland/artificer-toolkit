@@ -45,7 +45,7 @@ const NewFeatForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-  const [isValid, setIsValid] = useState()
+  const [isValid, setIsValid] = useState(true)
   const selectRefs = useRef([])
 
   useEffect(() => {
@@ -110,6 +110,7 @@ const NewFeatForm = () => {
       }
       if (resetValidation === true) {
         selectRef.setClass('')
+        setIsValid(true)
       }
     })
 
@@ -133,13 +134,14 @@ const NewFeatForm = () => {
       if (resetValidation === true) {
         element.classList.remove('is-valid')
         element.classList.remove('is-invalid')
+        setIsValid(true)
       }
     })
   }
 
   const onSubmit = async () => {
     handleValidation()
-    if (isValid && isValid !== false) {
+    if (isValid) {
       await addNewFeat(state)
     } else {
       setErrorMessage('Please fill out all required fields')
@@ -791,7 +793,7 @@ const NewFeatForm = () => {
               </div>
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
-                ref={addToSelectRefs}
+                  ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                   options={builders.feat.feature.spell.attribute}
@@ -803,7 +805,7 @@ const NewFeatForm = () => {
                   }
                 />
                 <Select
-                ref={addToSelectRefs}
+                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions && '.options'
                   }`}
@@ -820,7 +822,7 @@ const NewFeatForm = () => {
                   (attributeItem) => attributeItem.name === 'optionalAbility'
                 ) && (
                   <Select
-                ref={addToSelectRefs}
+                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
                     }.${index}.ability${multipleOptions && 'options'}`}
@@ -961,13 +963,11 @@ const NewFeatForm = () => {
                   </div>
                   <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                     <Select
-                ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
                       value={featureItem.attribute}
                       options={builders.feat.feature.attribute}
                       placeholder='Feature Attributes'
-                      required={true}
                       onChange={(option) =>
                         setState({ payload: { target: option } })
                       }
@@ -977,7 +977,7 @@ const NewFeatForm = () => {
                         attributeItem.name === 'hasRequirements'
                     ) ? (
                       <Select
-                ref={addToSelectRefs}
+                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         value={featureItem.requirement?.option}
@@ -1003,7 +1003,7 @@ const NewFeatForm = () => {
                       (optionItem) => optionItem.name === 'skillProficiency'
                     ) ? (
                       <Select
-                ref={addToSelectRefs}
+                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                         value={featureItem.requirement?.skillProficiency?.skill}
@@ -1030,7 +1030,7 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                           value={
@@ -1045,7 +1045,7 @@ const NewFeatForm = () => {
                           }
                         />
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
                           value={
@@ -1065,7 +1065,7 @@ const NewFeatForm = () => {
                           onChange={setState}
                         />
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                           placeholder='Item Property'
                           value={
@@ -1104,7 +1104,7 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           value={featureItem.limitUse?.limitBy}
@@ -1116,7 +1116,7 @@ const NewFeatForm = () => {
                         />
                         {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.ability`}
                             placeholder='Ability'
                             value={featureItem.limitUse?.ability}
@@ -1128,7 +1128,7 @@ const NewFeatForm = () => {
                           />
                         ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             name={`feature.${featureIndex}.limitUse.skill`}
                             placeholder='Skill'
                             value={featureItem.limitUse?.skill}
@@ -1161,7 +1161,7 @@ const NewFeatForm = () => {
                           )
                         )}
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           value={featureItem.limitUse?.resetsOn}
@@ -1188,7 +1188,7 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
                           value={featureItem.action}
@@ -1266,7 +1266,7 @@ const NewFeatForm = () => {
                       (attributeItem) => attributeItem.name === 'requireSave'
                     ) ? (
                       <Select
-                ref={addToSelectRefs}
+                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.saveAbility`}
                         placeholder='DC Ability'
                         value={featureItem.saveAbility}
@@ -1306,7 +1306,7 @@ const NewFeatForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             value={
@@ -1320,7 +1320,7 @@ const NewFeatForm = () => {
                             }
                           />
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
@@ -1341,7 +1341,7 @@ const NewFeatForm = () => {
                             }
                           />
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
@@ -1397,7 +1397,7 @@ const NewFeatForm = () => {
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                             value={
@@ -1411,7 +1411,7 @@ const NewFeatForm = () => {
                             }
                           />
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
@@ -1432,7 +1432,7 @@ const NewFeatForm = () => {
                             }
                           />
                           <Select
-                ref={addToSelectRefs}
+                            ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             value={
@@ -1521,7 +1521,7 @@ const NewFeatForm = () => {
                     ) : (
                       <div className='row g-2 align-items-end pb-2'>
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           value={featureItem.damage?.damageAttribute}
@@ -1533,7 +1533,7 @@ const NewFeatForm = () => {
                           }
                         />
                         <Select
-                ref={addToSelectRefs}
+                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.damage.damageType`}
                           multiple={true}
                           placeholder='Damage Type'
