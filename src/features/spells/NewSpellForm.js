@@ -253,6 +253,18 @@ const NewSpellForm = () => {
                 required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
+              {state.requirement?.some(
+                (requirementItem) => requirementItem.name === 'material'
+              ) && (
+                <Input
+                  name='materialDesc'
+                  label={true}
+                  placeholder='Material Description'
+                  required={true}
+                  value={state.materialDesc ?? ''}
+                  onChange={(input) => setState({ payload: { target: input } })}
+                />
+              )}
             </div>
           </div>
           <AccordionButton

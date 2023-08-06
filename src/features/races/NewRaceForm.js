@@ -54,7 +54,6 @@ const NewRaceForm = () => {
   const [errorMessage, setErrorMessage] = useState()
   const [isValid, setIsValid] = useState(true)
   const selectRefs = useRef([])
-
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
@@ -1853,7 +1852,7 @@ const NewRaceForm = () => {
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc'
+                  short={true}
                   size='col-sm'
                   name='speed.walking.desc'
                   value={state.speed?.walking?.desc}
@@ -1884,7 +1883,7 @@ const NewRaceForm = () => {
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc'
+                  short={true}
                   size='col-sm'
                   name='speed.climbing.desc'
                   value={state.speed?.climbing?.desc}
@@ -1915,7 +1914,7 @@ const NewRaceForm = () => {
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc'
+                  short={true}
                   size='col-sm'
                   name='speed.swimming.desc'
                   value={state.speed?.swimming?.desc}
@@ -1946,7 +1945,7 @@ const NewRaceForm = () => {
                   onChange={(input) => setState({ payload: { target: input } })}
                 />
                 <TextEditor
-                  className='shortDesc'
+                  short={true}
                   size='col-sm'
                   name='speed.flying.desc'
                   value={state.speed?.flying?.desc}

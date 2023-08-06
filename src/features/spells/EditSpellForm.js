@@ -169,7 +169,6 @@ const EditSpellForm = () => {
 
   const onBackClick = () => {
     if (location.state.previous.state.background.pathname === '/spells') {
-      console.log('button clicked', match)
       navigate(`/spells/${state.name}`, {
         state: {
           data: match ? state : oldState,
@@ -310,6 +309,18 @@ const EditSpellForm = () => {
                 required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
               />
+              {state.requirement?.some(
+                (requirementItem) => requirementItem.name === 'material'
+              ) && (
+                <Input
+                  name='materialDesc'
+                  label={true}
+                  placeholder='Material Description'
+                  required={true}
+                  value={state.materialDesc ?? ''}
+                  onChange={(input) => setState({ payload: { target: input } })}
+                />
+              )}
             </div>
           </div>
           <AccordionButton

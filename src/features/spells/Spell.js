@@ -7,6 +7,8 @@ const Spell = ({ state: spell }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const materialDesc = '*' + spell.materialDesc
+
   const editSpell = () => {
     navigate(`/spells/edit/${spell.name}`, {
       state: { data: spell, previous: location },
@@ -113,6 +115,9 @@ const Spell = ({ state: spell }) => {
       <hr />
       <div>{parse(spell.desc)}</div>
       <div className='d-flex justify-content-end'>
+        <span className='card-subText'>
+          {materialDesc && parse(materialDesc)}
+        </span>
         <button
           className='btn btn-outline-secondary btn-small'
           onClick={editSpell}

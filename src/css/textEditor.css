@@ -107,7 +107,7 @@
 
 /* ............................ */
 .textEditor {
-  border: 1px solid grey;
+  position: relative;
   background: transparent;
   border-radius: 5px;
   min-height: 40px;
@@ -115,29 +115,83 @@
 
 .text-editor-content {
   height: 80px;
-  padding: 10px;
+  padding: 0 12px 10px;
+  border: 1px solid grey;
+  border-top: none;
   margin-bottom: 0 !important;
   resize: vertical;
   overflow: auto;
+  outline: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
 
 .text-editor-content > p {
   margin-bottom: 0 !important;
 }
 
-.text-editor-content.shortDesc {
-  height: 56px;
+.textEditor.shortDesc .text-editor-content {
+  position: absolute;
+  top: 0;
+  height: 58px;
+  width: calc(100% - 8px);
   resize: none;
-  overflow: auto;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid grey;
+  padding-top: 1.625rem;
+  padding-bottom: 0.625rem;
+}
+
+.label-container {
+  border-left: 1px solid grey;
+  border-right: 1px solid grey;
+}
+
+.text-editor-label {
+  left: 0;
+  padding-top: 0.5rem;
+  padding-left: 0.5rem;
+  transform-origin: 0 0;
+  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.textEditor:focus-within .text-editor-label,
+.text-editor-label.filled {
+  transform: scale(0.85);
+  opacity: 0.65;
+}
+
+.textEditor.shortDesc .text-editor-label {
+  position: absolute;
+  top: 0;
+  height: 58px;
+  width: calc(100% - 8px);
+  border: none;
+  padding: 1rem 0.75rem;
+  transform-origin: 0 0;
+  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.textEditor.shortDesc:focus-within .text-editor-label {
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+  opacity: 0.65;
+}
+
+.textEditor.shortDesc .text-editor-label.filled {
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+  opacity: 0.65;
 }
 
 .menuBar {
-  border-bottom: 1px grey solid;
+  border: 1px grey solid;
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-left: 0px;
   margin-right: 0px;
+  border-top-right-radius: 6px;
+  border-top-left-radius: 6px;
 }
 
 .menuBar > span {

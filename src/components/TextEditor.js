@@ -1,13 +1,10 @@
 import '../css/textEditor.css'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
-import Placeholder from '@tiptap/extension-placeholder'
+import useDebounce from '../hooks/useDebounce'
+import useAutosave from '../hooks/useAutosave'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
-import Table from '@tiptap/extension-table'
-import TableCell from '@tiptap/extension-table-cell'
-import TableHeader from '@tiptap/extension-table-header'
-import TableRow from '@tiptap/extension-table-row'
 import {
   FaBold,
   FaItalic,
@@ -221,7 +218,45 @@ const TextEditor = ({
   value,
   size,
 }) => {
-  const [content] = useState(value)
+  const [content, setContent] = useState()
+  const [initialState] = useState(value)
+  const [isChanges, setIsChanges] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const isEmpty = () => !editor.state.doc.textContent.trim().length
+
+  const debounceChanges = useDebounce(
+    function (editor) {
+      setContent(editor.getHTML())
+      debounceSave() // trigger save for any changes
+    },
+    250,
+    []
+  ) // every .25 of a second max
+
+  // debounce save after no activity in editor
+  const debounceSave = useDebounce(function () {
+    handleSave()
+  }, 3 * 1000) // every 3 seconds max
+
+  useAutosave(
+    () => {
+      // run save if changes and not already saving
+      if (isChanges && !isSaving) {
+        handleSave()
+      }
+    },
+    60 * 1000,
+    name
+  ) // autosave every minute
+
+  function handleSave() {
+    setIsSaving(true)
+    onChange({ payload: { target: { name: name, value: value } } })
+    setIsSaving(false)
+    setIsChanges(false)
+  }
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -230,29 +265,35 @@ const TextEditor = ({
         },
       }),
       Underline,
-      Placeholder.configure({
-        placeholder: placeholder,
-      }),
-      Table.configure({ resizable: true, lastColumnResizable: true }),
-      TableCell,
-      TableRow,
-      TableHeader,
     ],
     editorProps: {
       attributes: {
-        class: `text-editor-content ${className ?? ''}`,
+        class: `text-editor-content`,
       },
     },
-    content: content,
+    content: '',
     onUpdate: ({ editor }) => {
-      const value = editor.getHTML()
-      onChange({ payload: { target: { name: name, value: value } } })
+      debounceChanges(editor)
+      setIsChanges(true)
     },
   })
 
+  useEffect(() => {
+    if (!content) {
+      editor?.commands.setContent(initialState)
+    }
+  }, [editor, content, initialState])
+
   return (
-    <div className={`textEditor${size ? ` ${size} mx-1` : ' mb-2'}`}>
+    <div
+      className={`textEditor${size ? ` ${size}` : ' mb-2'} ${className ?? ''}`}
+    >
       <MenuBar editor={editor} noMenuBar={noMenuBar} />
+      <div className='label-container'>
+        <div className={`text-editor-label ${!isEmpty() ? 'filled' : ''}`}>
+          {placeholder}
+        </div>
+      </div>
       <EditorContent editor={editor} />
     </div>
   )
