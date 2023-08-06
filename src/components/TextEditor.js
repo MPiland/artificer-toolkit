@@ -213,7 +213,7 @@ const TextEditor = ({
   onChange,
   placeholder,
   name,
-  className,
+  short,
   noMenuBar,
   value,
   size,
@@ -286,7 +286,9 @@ const TextEditor = ({
 
   return (
     <div
-      className={`textEditor${size ? ` ${size}` : ' mb-2'} ${className ?? ''}`}
+      className={`textEditor${size ? ` ${size}` : ' mb-2'} ${
+        short ? 'shortDesc' : ''
+      }`}
     >
       <MenuBar editor={editor} noMenuBar={noMenuBar} />
       <div className='label-container'>

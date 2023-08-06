@@ -1801,7 +1801,7 @@ const NewRaceForm = () => {
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <TextEditor
-                className='shortDesc'
+                short={true}
                 size='col-sm'
                 name='age'
                 value={state.age}
@@ -1822,7 +1822,7 @@ const NewRaceForm = () => {
                 onChange={(option) => setState({ payload: { target: option } })}
               />
               <TextEditor
-                className='shortDesc'
+                short={true}
                 size='col-sm'
                 name='size.desc'
                 value={state.size?.desc}
