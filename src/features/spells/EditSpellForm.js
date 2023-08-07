@@ -160,7 +160,7 @@ const EditSpellForm = () => {
     })
     setState({
       type: 'reset',
-      payload: { target: { userId: id } },
+      payload: { target: oldState },
     })
   }
 
@@ -261,12 +261,20 @@ const EditSpellForm = () => {
       <div className='builder-form'>
         <div className='d-flex justify-content-between'>
           <h1>Edit Spell</h1>
-          <button
-            className='btn btn-secondary btn-small'
-            onClick={() => onBackClick()}
-          >
-            Back
-          </button>
+          <div>
+            <button
+              className='btn btn-secondary btn-small me-2'
+              onClick={onReset}
+            >
+              Reset Form
+            </button>
+            <button
+              className='btn btn-secondary btn-small'
+              onClick={() => onBackClick()}
+            >
+              Back
+            </button>
+          </div>
         </div>
         {successMessage && (
           <h5 className='success-message'>{successMessage}</h5>
