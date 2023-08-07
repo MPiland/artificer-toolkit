@@ -124,7 +124,7 @@ const Table = ({
                     ? getValueFromState(inputItem, valueItem)
                     : ''
                 }
-                onChange={onChange}
+                onChange={(e) => onChange({ payload: { target: e } })}
                 readOnly={readOnly === true ? true : false}
               />
             )

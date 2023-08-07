@@ -1993,8 +1993,7 @@ const NewRaceForm = () => {
                       {
                         name: 'description',
                         value: 'Description',
-                        type: 'text',
-                        short: true,
+                        label: true,
                         size: 'col-sm',
                       },
                     ]}
