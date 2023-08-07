@@ -25,6 +25,8 @@ const NewSpellForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const selectRefs = useRef([])
+  const inputRefs = useRef([])
+  const textRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -67,8 +69,20 @@ const NewSpellForm = () => {
     }
   }
 
+  const addToInputRefs = (ref) => {
+    if (ref && !inputRefs.current.includes(ref)) {
+      inputRefs.current.push(ref)
+    }
+  }
+
+  const addToTextRefs = (ref) => {
+    if (ref && !textRefs.current.includes(ref)) {
+      textRefs.current.push(ref)
+    }
+  }
+
   const handleValidation = (resetValidation) => {
-    let isValid
+    let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
         const selectValue = selectRef.getValue()
@@ -112,6 +126,19 @@ const NewSpellForm = () => {
     return isValid
   }
 
+  const onReset = () => {
+    inputRefs.current.forEach((inputRef) => {
+      inputRef.resetState()
+    })
+    textRefs.current.forEach((textRef) => {
+      textRef.resetState()
+    })
+    setState({
+      type: 'reset',
+      payload: { target: { userId: id } },
+    })
+  }
+
   const onSubmit = async () => {
     const isValid = handleValidation()
     if (isValid) {
@@ -122,8 +149,6 @@ const NewSpellForm = () => {
   }
 
   let content
-
-  console.log(state)
 
   if (isLoading) content = <p>Loading...</p>
 
@@ -181,12 +206,17 @@ const NewSpellForm = () => {
       <div className='builder-form'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create a Spell</h3>
-          <button
-            className='btn btn-secondary btn-small'
-            onClick={() => navigate(-1)}
-          >
-            Back
-          </button>
+          <div>
+            <button className='btn btn-secondary btn-small me-2' onClick={onReset}>
+              Reset Form
+            </button>
+            <button
+              className='btn btn-secondary btn-small'
+              onClick={() => navigate(-1)}
+            >
+              Back
+            </button>
+          </div>
         </div>
         {successMessage && (
           <h5 className='success-message'>{successMessage}</h5>
@@ -204,23 +234,25 @@ const NewSpellForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start pb-2'>
               <Input
+                ref={addToInputRefs}
                 name='value'
                 label={true}
                 placeholder='Spell Name'
                 autoComplete='off'
-                value={state.value ?? ''}
+                value={state.value}
                 required={true}
                 clickable={false}
                 onChange={setState}
               />
               <Input
+                ref={addToInputRefs}
                 validation={'num'}
                 name='level'
                 label={true}
                 invalidText='Must contain only numbers'
                 placeholder='Spell Level'
                 required={true}
-                value={state.level ?? ''}
+                value={state.level}
                 onChange={setState}
               />
               <Select
@@ -228,7 +260,7 @@ const NewSpellForm = () => {
                 name='school'
                 id='school'
                 placeholder={'Spell School'}
-                value={state.school}
+                value={state?.school}
                 options={builders.spell.school}
                 required={true}
                 onChange={setState}
@@ -247,11 +279,12 @@ const NewSpellForm = () => {
                 (requirementItem) => requirementItem.name === 'material'
               ) && (
                 <Input
+                  ref={addToInputRefs}
                   name='materialDesc'
                   label={true}
                   placeholder='Material Description'
                   required={true}
-                  value={state.materialDesc ?? ''}
+                  value={state.materialDesc}
                   onChange={setState}
                 />
               )}
@@ -270,6 +303,7 @@ const NewSpellForm = () => {
             id='description'
           >
             <TextEditor
+              ref={addToTextRefs}
               name='desc'
               value={state.desc}
               placeholder='Spell Description'
@@ -310,11 +344,12 @@ const NewSpellForm = () => {
                 onChange={setState}
               />
               <Input
+                ref={addToInputRefs}
                 validation={'num'}
                 name='action.value'
                 label={true}
                 placeholder='Casting Increment'
-                value={state.action?.value ?? ''}
+                value={state.action?.value}
                 required={true}
                 onChange={setState}
               />
@@ -330,6 +365,7 @@ const NewSpellForm = () => {
               {state.duration &&
                 state.duration?.durationType.name !== 'instantaneous' && (
                   <Input
+                    ref={addToInputRefs}
                     validation={'num'}
                     name='duration.value'
                     label={true}
@@ -337,7 +373,7 @@ const NewSpellForm = () => {
                     placeholder='Duration Increment'
                     autoComplete='off'
                     required={true}
-                    value={state.duration?.value ?? ''}
+                    value={state.duration.value}
                     onChange={setState}
                   />
                 )}
@@ -355,6 +391,7 @@ const NewSpellForm = () => {
                   <>
                     {state.range.rangeType.name === 'distance' && (
                       <Input
+                        ref={addToInputRefs}
                         validation={'num'}
                         name='range.distance'
                         label={true}
@@ -376,8 +413,10 @@ const NewSpellForm = () => {
                       onChange={setState}
                     />
                     {state.shape?.shapeType.name &&
-                      state.shape?.shapeType.name !== 'none' && (
+                      state.shape?.shapeType.name !== 'none' &&
+                      state.shape?.shapeType.name !== 'weapon' && (
                         <Input
+                          ref={addToInputRefs}
                           validation={'num'}
                           name='shape.size'
                           label={true}

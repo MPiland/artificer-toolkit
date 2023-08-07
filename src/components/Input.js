@@ -44,7 +44,7 @@ const Input = forwardRef(
     }
 
     useEffect(() => {
-      if (inputValue === null && value) {
+      if (inputValue === null && (value || value === 0)) {
         setInputValue(value)
       }
     }, [setInputValue, value, inputValue])
@@ -94,7 +94,7 @@ const Input = forwardRef(
           id={name}
           placeholder={placeholder}
           required={required}
-          autoComplete={autoComplete}
+          autoComplete={autoComplete ?? 'off'}
           readOnly={readOnly}
           value={inputValue ?? ''}
           onChange={(e) => handleChange(e)}
@@ -131,6 +131,9 @@ const Input = forwardRef(
       },
       setClass(valid) {
         setClassText(valid)
+      },
+      resetState() {
+        setInputValue(null)
       },
     }))
 

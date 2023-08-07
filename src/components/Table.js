@@ -17,7 +17,9 @@ const Table = ({
   clickable,
   onClick,
   rowSize,
+  empty,
 }) => {
+  console.log(value)
   const getValueFromState = (inputItem, valueItem) => {
     const processItem = (item, state) => {
       if (Array.isArray(item)) {
@@ -26,9 +28,15 @@ const Table = ({
           .join(' ')
       } else {
         const value = get(state, item)
-        return Array.isArray(value)
-          ? value.map((nestedValue) => nestedValue.value).join(' / ')
-          : value
+        if (Array.isArray(value)) {
+          if (value.length > 0) {
+            return value.map((nestedValue) => nestedValue.value).join(' / ')
+          } else {
+            return empty ? empty : null
+          }
+        } else {
+          return value
+        }
       }
     }
 
@@ -39,12 +47,12 @@ const Table = ({
       return nameItems
         .map((nameItem) => {
           const value = processItem(nameItem, valueItem)
-          return value !== undefined ? value : null
+          return value !== undefined ? value : empty ? empty : null
         })
         .join(' / ')
     }
 
-    return null
+    return empty ? empty : null
   }
 
   const content = (

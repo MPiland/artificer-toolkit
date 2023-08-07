@@ -38,6 +38,8 @@ const EditSpellForm = () => {
   const [errorMessage, setErrorMessage] = useState()
   const [match, setMatch] = useState()
   const selectRefs = useRef([])
+  const inputRefs = useRef([])
+  const textRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -60,26 +62,30 @@ const EditSpellForm = () => {
 
   useEffect(() => {
     document.addEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-      }
-      if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-      }
-      if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
   })
+
+  useEffect(() => {
+    if (isEqual(oldState, state)) {
+      setMatch(true)
+    } else {
+      setMatch(false)
+    }
+  }, [state, oldState])
 
   const addToSelectRefs = (ref) => {
     if (ref && !selectRefs.current.includes(ref)) {
@@ -87,8 +93,20 @@ const EditSpellForm = () => {
     }
   }
 
+  const addToInputRefs = (ref) => {
+    if (ref && !inputRefs.current.includes(ref)) {
+      inputRefs.current.push(ref)
+    }
+  }
+
+  const addToTextRefs = (ref) => {
+    if (ref && !textRefs.current.includes(ref)) {
+      textRefs.current.push(ref)
+    }
+  }
+
   const handleValidation = (resetValidation) => {
-    let isValid
+    let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
         const selectValue = selectRef.getValue()
@@ -129,16 +147,22 @@ const EditSpellForm = () => {
         element.classList.remove('is-invalid')
       }
     })
+    console.log(isValid)
     return isValid
   }
 
-  useEffect(() => {
-    if (isEqual(oldState, state)) {
-      setMatch(true)
-    } else {
-      setMatch(false)
-    }
-  }, [state, oldState])
+  const onReset = () => {
+    inputRefs.current.forEach((inputRef) => {
+      inputRef.resetState()
+    })
+    textRefs.current.forEach((textRef) => {
+      textRef.resetState()
+    })
+    setState({
+      type: 'reset',
+      payload: { target: { userId: id } },
+    })
+  }
 
   const onSubmit = async () => {
     const isValid = handleValidation()
@@ -260,6 +284,7 @@ const EditSpellForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start pb-2'>
               <Input
+                ref={addToInputRefs}
                 name='value'
                 label={true}
                 placeholder='Spell Name'
@@ -270,6 +295,7 @@ const EditSpellForm = () => {
                 onChange={setState}
               />
               <Input
+                ref={addToInputRefs}
                 validation={'num'}
                 name='level'
                 label={true}
@@ -303,6 +329,7 @@ const EditSpellForm = () => {
                 (requirementItem) => requirementItem.name === 'material'
               ) && (
                 <Input
+                  ref={addToInputRefs}
                   name='materialDesc'
                   label={true}
                   placeholder='Material Description'
@@ -326,6 +353,7 @@ const EditSpellForm = () => {
             id='description'
           >
             <TextEditor
+              ref={addToTextRefs}
               name='desc'
               value={state.desc}
               placeholder='Spell Description'
@@ -366,6 +394,7 @@ const EditSpellForm = () => {
                 onChange={setState}
               />
               <Input
+                ref={addToInputRefs}
                 validation={'num'}
                 name='action.value'
                 label={true}
@@ -386,6 +415,7 @@ const EditSpellForm = () => {
               {state.duration &&
                 state.duration?.durationType.name !== 'instantaneous' && (
                   <Input
+                    ref={addToInputRefs}
                     validation={'num'}
                     name='duration.value'
                     label={true}
@@ -411,6 +441,7 @@ const EditSpellForm = () => {
                   <>
                     {state.range.rangeType.name === 'distance' && (
                       <Input
+                        ref={addToInputRefs}
                         validation={'num'}
                         name='range.distance'
                         label={true}
@@ -435,6 +466,7 @@ const EditSpellForm = () => {
                       state.shape?.shapeType.name !== 'none' &&
                       state.shape?.shapeType.name !== 'weapon' && (
                         <Input
+                          ref={addToInputRefs}
                           validation={'num'}
                           name='shape.size'
                           label={true}
@@ -480,7 +512,6 @@ const EditSpellForm = () => {
               ) : (
                 <div className='row gx-2 align-items-end pb-2'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='damage.damageAttribute'
                     placeholder='Damage Attribute'

@@ -45,6 +45,8 @@ const NewItemForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const selectRefs = useRef([])
+  const inputRefs = useRef([])
+  const textRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -84,6 +86,18 @@ const NewItemForm = () => {
   const addToSelectRefs = (ref) => {
     if (ref && !selectRefs.current.includes(ref)) {
       selectRefs.current.push(ref)
+    }
+  }
+
+  const addToInputRefs = (ref) => {
+    if (ref && !inputRefs.current.includes(ref)) {
+      inputRefs.current.push(ref)
+    }
+  }
+
+  const addToTextRefs = (ref) => {
+    if (ref && !textRefs.current.includes(ref)) {
+      textRefs.current.push(ref)
     }
   }
 
@@ -130,6 +144,19 @@ const NewItemForm = () => {
       }
     })
     return isValid
+  }
+
+  const onReset = () => {
+    inputRefs.current.forEach((inputRef) => {
+      inputRef.resetState()
+    })
+    textRefs.current.forEach((textRef) => {
+      textRef.resetState()
+    })
+    setState({
+      type: 'reset',
+      payload: { target: { userId: id } },
+    })
   }
 
   const onSubmit = async () => {
@@ -330,6 +357,7 @@ const NewItemForm = () => {
                 item.modType?.name === 'setValue' ? (
                   <>
                     <Input
+                      ref={addToInputRefs}
                       validation={'num'}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                       placeholder='Set Value'
@@ -337,7 +365,7 @@ const NewItemForm = () => {
                       invalidText='Must contain only numbers'
                       autoComplete='off'
                       required={true}
-                      value={item.method?.setValue ?? ''}
+                      value={item.method?.setValue}
                       onChange={setState}
                     />
                     <Select
@@ -657,12 +685,13 @@ const NewItemForm = () => {
                   target={`feature${featureIndex}AccordionBody`}
                 >
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-4'
                     name={`feature.${featureIndex}.value`}
                     border={false}
                     autoComplete='off'
                     placeholder='Feature Name'
-                    value={featureItem.value ?? ''}
+                    value={featureItem.value}
                     clickable={false}
                     onChange={setState}
                     onClick={(e) => e.stopPropagation()}
@@ -705,6 +734,7 @@ const NewItemForm = () => {
                     ))}
                   </div>
                   <TextEditor
+                    ref={addToTextRefs}
                     className='pb-2'
                     placeholder='Feature description'
                     value={featureItem.desc}
@@ -876,13 +906,14 @@ const NewItemForm = () => {
                           featureItem.limitUse?.limitBy?.name ===
                             'setNumber' && (
                             <Input
+                              ref={addToInputRefs}
                               validation={'num'}
                               name={`feature.${featureIndex}.limitUse.setAmount`}
                               label={true}
                               invalidText='Must contain only numbers'
                               placeholder='Use Amount'
                               required={true}
-                              value={featureItem.limitUse?.setAmount ?? ''}
+                              value={featureItem.limitUse?.setAmount}
                               onChange={setState}
                             />
                           )
@@ -940,6 +971,7 @@ const NewItemForm = () => {
                     ) ? (
                       <>
                         <Input
+                          ref={addToInputRefs}
                           validation={'num'}
                           name={`feature.${featureIndex}.range.minRange`}
                           autoComplete='off'
@@ -947,10 +979,11 @@ const NewItemForm = () => {
                           placeholder='Min Range'
                           required={true}
                           invalidText='Must contain only numbers'
-                          value={featureItem.range.minRange ?? ''}
+                          value={featureItem.range.minRange}
                           onChange={setState}
                         />
                         <Input
+                          ref={addToInputRefs}
                           validation={'num'}
                           name={`feature.${featureIndex}.range.maxRange`}
                           label={true}
@@ -958,7 +991,7 @@ const NewItemForm = () => {
                           placeholder='Max Range'
                           required={true}
                           invalidText='Must contain only numbers'
-                          value={featureItem.range.maxRange ?? ''}
+                          value={featureItem.range.maxRange}
                           onChange={setState}
                         />
                       </>
@@ -1321,12 +1354,20 @@ const NewItemForm = () => {
       <div className='builder-form'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create an Item</h3>
-          <button
-            className='btn btn-secondary btn-small'
-            onClick={() => navigate(-1)}
-          >
-            Back
-          </button>
+          <div>
+            <button
+              className='btn btn-secondary btn-small me-2'
+              onClick={onReset}
+            >
+              Reset Form
+            </button>
+            <button
+              className='btn btn-secondary btn-small'
+              onClick={() => navigate(-1)}
+            >
+              Back
+            </button>
+          </div>
         </div>
         {successMessage && (
           <h3 className='add-success-message'>{successMessage}</h3>
@@ -1344,12 +1385,13 @@ const NewItemForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               <Input
+                ref={addToInputRefs}
                 name='value'
                 autoComplete='off'
                 label={true}
                 placeholder='Item Name'
                 required={true}
-                value={state.value ?? ''}
+                value={state.value}
                 onChange={setState}
               />
               <Select
@@ -1400,6 +1442,7 @@ const NewItemForm = () => {
                 onChange={setState}
               />
               <Input
+                ref={addToInputRefs}
                 validation={'cur'}
                 name='cost.amount'
                 autoComplete='off'
@@ -1407,7 +1450,7 @@ const NewItemForm = () => {
                 placeholder='Cost'
                 required={true}
                 invalidText='Must contain only decimal amounts'
-                value={state.cost?.amount ?? ''}
+                value={state.cost?.amount}
                 onChange={setState}
               />
               <Select
@@ -1421,13 +1464,14 @@ const NewItemForm = () => {
               />
               {state.itemCategory && state.itemCategory?.name !== 'item' && (
                 <Input
+                  ref={addToInputRefs}
                   validation={'num'}
                   name='itemRank'
                   label={true}
                   invalidText='Must contain only numbers'
                   placeholder='Item Rank'
                   autoComplete='off'
-                  value={state.itemRank ?? ''}
+                  value={state.itemRank}
                   onChange={setState}
                 />
               )}
@@ -1443,12 +1487,14 @@ const NewItemForm = () => {
           </AccordionButton>
           <div className='accordion-collapse collapse show' id='description'>
             <TextEditor
+              ref={addToTextRefs}
               onChange={setState}
               value={state.desc}
               placeholder={'Item description'}
               name={'desc'}
             />
             <TextEditor
+              ref={addToTextRefs}
               onChange={setState}
               value={state.quote}
               placeholder={'Item quote'}
@@ -1481,6 +1527,7 @@ const NewItemForm = () => {
                 (attributeItem) => attributeItem.name === 'weight'
               ) && (
                 <Input
+                  ref={addToInputRefs}
                   validation={'num'}
                   name='itemWeight'
                   label={true}
@@ -1488,7 +1535,7 @@ const NewItemForm = () => {
                   placeholder='Item Weight'
                   autoComplete='off'
                   required={true}
-                  value={state.itemWeight ?? ''}
+                  value={state.itemWeight}
                   onChange={setState}
                 />
               )}
@@ -1496,6 +1543,7 @@ const NewItemForm = () => {
                 (attributeItem) => attributeItem.name === 'container'
               ) && (
                 <Input
+                  ref={addToInputRefs}
                   validation={'num'}
                   name='capacityWeight'
                   label={true}
@@ -1503,7 +1551,7 @@ const NewItemForm = () => {
                   placeholder='Capacity Weight'
                   autoComplete='off'
                   required={true}
-                  value={state.capacityWeight ?? ''}
+                  value={state.capacityWeight}
                   onChange={setState}
                 />
               )}
@@ -1511,6 +1559,7 @@ const NewItemForm = () => {
                 (attributeItem) => attributeItem.name === 'stackable'
               ) && (
                 <Input
+                  ref={addToInputRefs}
                   validation={'num'}
                   type='text'
                   name='maxStack'
@@ -1519,29 +1568,31 @@ const NewItemForm = () => {
                   placeholder='Max Stack Size'
                   autoComplete='off'
                   required={true}
-                  value={state.maxStack ?? ''}
+                  value={state.maxStack}
                   onChange={setState}
                 />
               )}
               {state.itemCategory?.name === 'weapon' && (
                 <>
                   <Input
+                    ref={addToInputRefs}
                     validation={'num'}
                     name='damage.diceCount'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Count'
-                    value={state.damage?.diceCount ?? ''}
+                    value={state.damage?.diceCount}
                     required={true}
                     onChange={setState}
                   />
                   <Input
+                    ref={addToInputRefs}
                     validation={'num'}
                     name='damage.diceValue'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Value'
-                    value={state.damage?.diceValue ?? ''}
+                    value={state.damage?.diceValue}
                     required={true}
                     onChange={setState}
                   />
@@ -1584,13 +1635,14 @@ const NewItemForm = () => {
               )}
               {state.itemCategory?.name === 'armor' && (
                 <Input
+                  ref={addToInputRefs}
                   validation={'num'}
                   name='armorValue'
                   label={true}
                   invalidText='Must contain only numbers'
                   placeholder='Armor Value'
                   required={true}
-                  value={state.armorValue ?? ''}
+                  value={state.armorValue}
                   onChange={setState}
                 />
               )}
@@ -1600,22 +1652,24 @@ const NewItemForm = () => {
               ) && (
                 <>
                   <Input
+                    ref={addToInputRefs}
                     validation={'num'}
                     name='thrown.minRange'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Thrown Min Range'
-                    value={state.thrown?.minRange ?? ''}
+                    value={state.thrown?.minRange}
                     required={true}
                     onChange={setState}
                   />
                   <Input
+                    ref={addToInputRefs}
                     validation={'num'}
                     name='thrown.maxRange'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Thrown Max Range'
-                    value={state.thrown?.maxRange ?? ''}
+                    value={state.thrown?.maxRange}
                     required={true}
                     onChange={setState}
                   />

@@ -20,6 +20,7 @@ const Select = forwardRef(
     const dropdownRef = useRef(null)
 
     let newOptions
+    let updatedOptions
 
     if (options?.length) {
       newOptions = options?.map(({ name, value, _id }) => ({
@@ -81,7 +82,6 @@ const Select = forwardRef(
     }
 
     const handleOptionClick = (option) => {
-      let updatedOptions
       if (multiple) {
         // Clear all options
         if (option.name === 'clear') {
@@ -136,10 +136,6 @@ const Select = forwardRef(
       }
 
       onChange({ payload: { target: { name: name, value: updatedOptions } } })
-      if (classText === 'is-invalid') {
-        // setClassText('is-valid')
-      }
-      console.log('stuff')
     }
 
     const selectClass = (option) => {
@@ -241,7 +237,7 @@ const Select = forwardRef(
       >
         <button
           ref={buttonRef}
-          className={`btn dropdown-toggle align-items-center w-100 justify-content-between ${containerClass()} ${classText}`}
+          className={`btn dropdown-toggle focus-ring align-items-center w-100 justify-content-between ${containerClass()} ${classText}`}
           data-bs-toggle='dropdown'
           data-bs-auto-close={autoClose}
           aria-expanded='false'
@@ -275,7 +271,7 @@ const Select = forwardRef(
 
     useImperativeHandle(ref, () => ({
       getValue() {
-        return selectedOptions
+        return updatedOptions
       },
       setClass(valid) {
         setClassText(valid)

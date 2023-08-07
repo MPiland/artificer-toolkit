@@ -436,6 +436,7 @@ const SpellList = () => {
           inputs={tableColumns.inputs}
           clickable={true}
           onClick={(spell) => showCard(spell)}
+          empty='---'
         />
       </div>
     )

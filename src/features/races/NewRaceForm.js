@@ -14,8 +14,6 @@ import Select from '../../components/Select'
 import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
 
-const NUM_REGEX = /^[0-9\b]+$/
-
 const NewRaceForm = () => {
   const { id } = useAuth()
   const navigate = useNavigate()
@@ -53,6 +51,9 @@ const NewRaceForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const selectRefs = useRef([])
+  const inputRefs = useRef([])
+  const textRefs = useRef([])
+
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
@@ -71,24 +72,16 @@ const NewRaceForm = () => {
 
   useEffect(() => {
     document.addEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
-      }
-      if (!!errorMessage) {
         setErrorMessage()
         const resetValidation = true
         handleValidation(resetValidation)
       }
     })
     return document.removeEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
-      }
-      if (!!errorMessage) {
         setErrorMessage()
         const resetValidation = true
         handleValidation(resetValidation)
@@ -99,6 +92,18 @@ const NewRaceForm = () => {
   const addToSelectRefs = (ref) => {
     if (ref && !selectRefs.current.includes(ref)) {
       selectRefs.current.push(ref)
+    }
+  }
+
+  const addToInputRefs = (ref) => {
+    if (ref && !inputRefs.current.includes(ref)) {
+      inputRefs.current.push(ref)
+    }
+  }
+
+  const addToTextRefs = (ref) => {
+    if (ref && !textRefs.current.includes(ref)) {
+      textRefs.current.push(ref)
     }
   }
 
@@ -147,6 +152,19 @@ const NewRaceForm = () => {
     return isValid
   }
 
+  const onReset = () => {
+    inputRefs.current.forEach((inputRef) => {
+      inputRef.resetState()
+    })
+    textRefs.current.forEach((textRef) => {
+      textRef.resetState()
+    })
+    setState({
+      type: 'reset',
+      payload: { target: { userId: id } },
+    })
+  }
+
   const onSubmit = async () => {
     const isValid = handleValidation()
     if (isValid) {
@@ -189,18 +207,14 @@ const NewRaceForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validate='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -247,18 +261,14 @@ const NewRaceForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validate='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -418,18 +428,14 @@ const NewRaceForm = () => {
                 item.modType?.name === 'setValue' ? (
                   <>
                     <Input
-                      className={`${
-                        item.method?.setValue &&
-                        (NUM_REGEX.test(item.method.setValue)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
+                      ref={addToInputRefs}
+                      validate='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                       placeholder='Set Value'
                       label={true}
                       invalidText='Must contain only numbers'
                       autoComplete='off'
-                      value={item.method?.setValue ?? ''}
+                      value={item.method?.setValue}
                       require={true}
                       onChange={setState}
                     />
@@ -509,18 +515,14 @@ const NewRaceForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-2'
-                    className={`${
-                      item.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validate='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -665,18 +667,14 @@ const NewRaceForm = () => {
                   (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validate='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -723,18 +721,14 @@ const NewRaceForm = () => {
                   (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validate='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     onChange={setState}
                   />
@@ -848,12 +842,13 @@ const NewRaceForm = () => {
                   target={`feature${featureIndex}AccordionBody`}
                 >
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-4'
                     name={`feature.${featureIndex}.value`}
                     border={false}
                     autoComplete='off'
                     placeholder='Feature Name'
-                    value={featureItem.value ?? ''}
+                    value={featureItem.value}
                     onChange={setState}
                     clickable={false}
                     onClick={(e) => e.stopPropagation()}
@@ -896,6 +891,7 @@ const NewRaceForm = () => {
                     ))}
                   </div>
                   <TextEditor
+                ref={addToTextRefs}
                     className='pb-2'
                     placeholder='Feature description'
                     value={featureItem.desc}
@@ -1082,18 +1078,14 @@ const NewRaceForm = () => {
                           featureItem.limitUse?.limitBy?.name ===
                             'setNumber' && (
                             <Input
-                              className={`${
-                                featureItem.limitUse?.setAmount &&
-                                (NUM_REGEX.test(featureItem.limitUse?.setAmount)
-                                  ? 'is-valid'
-                                  : 'is-invalid')
-                              }`}
+                              ref={addToInputRefs}
+                              validate='num'
                               type='text'
                               name={`feature.${featureIndex}.limitUse.setAmount`}
                               label={true}
                               invalidText='Must contain only numbers'
                               placeholder='Use Amount'
-                              value={featureItem.limitUse?.setAmount ?? ''}
+                              value={featureItem.limitUse?.setAmount}
                               required={true}
                               onChange={setState}
                             />
@@ -1150,35 +1142,27 @@ const NewRaceForm = () => {
                     ) ? (
                       <>
                         <Input
-                          className={`${
-                            featureItem.range?.minRange &&
-                            (NUM_REGEX.test(featureItem.range?.minRange)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
+                          ref={addToInputRefs}
+                          validate='num'
                           name={`feature.${featureIndex}.range.minRange`}
                           autoComplete='off'
                           label={true}
                           placeholder='Min Range'
                           required={true}
-                          value={featureItem.range?.minRange ?? ''}
+                          value={featureItem.range?.minRange}
                           invalidText='Must contain only numbers'
                           onChange={setState}
                         />
                         <Input
-                          className={`${
-                            featureItem.range?.maxRange &&
-                            (NUM_REGEX.test(featureItem.range?.maxRange)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
+                          ref={addToInputRefs}
+                          validate='num'
                           name={`feature.${featureIndex}.range.maxRange`}
                           label={true}
                           autoComplete='off'
                           placeholder='Max Range'
                           required={true}
                           invalidText='Must contain only numbers'
-                          value={featureItem.range?.maxRange ?? ''}
+                          value={featureItem.range?.maxRange}
                           onChange={setState}
                         />
                       </>
@@ -1541,12 +1525,20 @@ const NewRaceForm = () => {
       <div className='builder-form'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create a Race</h3>
-          <button
-            className='btn btn-secondary btn-small'
-            onClick={() => navigate(-1)}
-          >
-            Back
-          </button>
+          <div>
+            <button
+              className='btn btn-secondary btn-small me-2'
+              onClick={onReset}
+            >
+              Reset Form
+            </button>
+            <button
+              className='btn btn-secondary btn-small'
+              onClick={() => navigate(-1)}
+            >
+              Back
+            </button>
+          </div>
         </div>
         {successMessage && (
           <h5 className='add-success-message'>{successMessage}</h5>
@@ -1555,12 +1547,13 @@ const NewRaceForm = () => {
         <form className='needs-validation' noValidate>
           <div className='row g-2 pb-2'>
             <Input
+              ref={addToInputRefs}
               name='value'
               label={true}
               autoComplete='off'
               placeholder='Race Name'
               required={true}
-              value={state.value ?? ''}
+              value={state.value}
               onChange={setState}
             />
             <Select
@@ -1595,6 +1588,7 @@ const NewRaceForm = () => {
           </AccordionButton>
           <div className='accordion-collapse collapse show' id='details'>
             <TextEditor
+                ref={addToTextRefs}
               name={'quote'}
               value={state?.quote}
               placeholder={'Opening Quote'}
@@ -1621,13 +1615,14 @@ const NewRaceForm = () => {
                         key={detailIndex}
                       >
                         <Input
+                          ref={addToInputRefs}
                           size='col-sm-4'
                           name={`details.${detailIndex}.title`}
                           border={false}
                           autoComplete='off'
                           placeholder='Section Title'
                           label={true}
-                          value={detailItem.title ?? ''}
+                          value={detailItem.title}
                           onChange={setState}
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -1652,6 +1647,7 @@ const NewRaceForm = () => {
                           </button>
                         </div>
                         <TextEditor
+                ref={addToTextRefs}
                           name={`details.${detailIndex}.text`}
                           value={detailItem.text}
                           placeholder={'Section Text'}
@@ -1686,6 +1682,7 @@ const NewRaceForm = () => {
                 onChange={setState}
               />
               <TextEditor
+                ref={addToTextRefs}
                 short={true}
                 size='col-sm'
                 name='age'
@@ -1707,6 +1704,7 @@ const NewRaceForm = () => {
                 onChange={setState}
               />
               <TextEditor
+                ref={addToTextRefs}
                 short={true}
                 size='col-sm'
                 name='size.desc'
@@ -1721,22 +1719,19 @@ const NewRaceForm = () => {
             ) && (
               <div className='row g-2 pb-2'>
                 <Input
+                  ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
-                  className={`${
-                    state.speed?.walking?.value &&
-                    (NUM_REGEX.test(state.speed?.walking?.value)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
+                  validate='num'
                   name='speed.walking.value'
                   placeholder='Walking Speed'
                   label={true}
                   invalidText='Must contain only numbers'
-                  value={state.speed?.walking?.value ?? ''}
+                  value={state.speed?.walking?.value}
                   required={true}
                   onChange={setState}
                 />
                 <TextEditor
+                ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.walking.desc'
@@ -1752,22 +1747,19 @@ const NewRaceForm = () => {
             ) && (
               <div className='row g-2 pb-2'>
                 <Input
+                  ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
-                  className={`${
-                    state.speed?.climbing?.value &&
-                    (NUM_REGEX.test(state.climbing?.value)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
+                  validate='num'
                   name='speed.climbing.value'
                   placeholder='Climbing Speed'
                   label={true}
                   invalidText='Must contain only numbers'
                   required={true}
-                  value={state.speed?.climbing?.value ?? ''}
+                  value={state.speed?.climbing?.value}
                   onChange={setState}
                 />
                 <TextEditor
+                ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.climbing.desc'
@@ -1783,22 +1775,19 @@ const NewRaceForm = () => {
             ) && (
               <div className='row g-2 pb-2'>
                 <Input
+                  ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
-                  className={`${
-                    state.speed?.swimming?.value &&
-                    (NUM_REGEX.test(state.swimming?.value)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
+                  validate='num'
                   name='speed.swimming.value'
                   placeholder='Swimming Speed'
                   label={true}
                   invalidText='Must contain only numbers'
                   required={true}
-                  value={state.speed?.swimming?.value ?? ''}
+                  value={state.speed?.swimming?.value}
                   onChange={setState}
                 />
                 <TextEditor
+                ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.swimming.desc'
@@ -1814,22 +1803,19 @@ const NewRaceForm = () => {
             ) && (
               <div className='row g-2 pb-2'>
                 <Input
+                  ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
-                  className={`${
-                    state.speed?.flying?.value &&
-                    (NUM_REGEX.test(state.flying?.value)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
+                  validate='num'
                   name='speed.flying.value'
                   placeholder='Flying Speed'
                   label={true}
                   invalidText='Must contain only numbers'
                   required={true}
-                  value={state.speed?.flying?.value ?? ''}
+                  value={state.speed?.flying?.value}
                   onChange={setState}
                 />
                 <TextEditor
+                ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.flying.desc'

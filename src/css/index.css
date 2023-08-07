@@ -107,6 +107,11 @@ h6 {
   color: red;
 }
 
+.card-subtext {
+  font-size: small;
+  font-style: italic;
+}
+
 /* Modal */
 .modal-xl {
   min-width: calc(100vw - (2.75rem * 2));

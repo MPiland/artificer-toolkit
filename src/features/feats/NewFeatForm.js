@@ -44,6 +44,8 @@ const NewFeatForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const selectRefs = useRef([])
+  const inputRefs = useRef([])
+  const textRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
@@ -83,6 +85,18 @@ const NewFeatForm = () => {
   const addToSelectRefs = (ref) => {
     if (ref && !selectRefs.current.includes(ref)) {
       selectRefs.current.push(ref)
+    }
+  }
+
+  const addToInputRefs = (ref) => {
+    if (ref && !inputRefs.current.includes(ref)) {
+      inputRefs.current.push(ref)
+    }
+  }
+
+  const addToTextRefs = (ref) => {
+    if (ref && !textRefs.current.includes(ref)) {
+      textRefs.current.push(ref)
     }
   }
 
@@ -131,6 +145,19 @@ const NewFeatForm = () => {
     return isValid
   }
 
+  const onReset = () => {
+    inputRefs.current.forEach((inputRef) => {
+      inputRef.resetState()
+    })
+    textRefs.current.forEach((textRef) => {
+      textRef.resetState()
+    })
+    setState({
+      type: 'reset',
+      payload: { target: { userId: id } },
+    })
+  }
+
   const onSubmit = async () => {
     const isValid = handleValidation()
     if (isValid) {
@@ -171,16 +198,15 @@ const NewFeatForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
-                    validation={'num'}
+                    ref={addToInputRefs}
+                    validation='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -195,9 +221,7 @@ const NewFeatForm = () => {
                   value={item.feat}
                   options={feats}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -227,16 +251,15 @@ const NewFeatForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
-                    validation={'num'}
+                    ref={addToInputRefs}
+                    validation='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -248,9 +271,7 @@ const NewFeatForm = () => {
                   value={item.modType}
                   options={builders.modifier.modType}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item.modType?.name && (
                   <Select
@@ -267,9 +288,7 @@ const NewFeatForm = () => {
                         .some((moduleID) => moduleID === moduleItem._id)
                     )}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {(item.modType?.name === 'bonus' ||
@@ -303,9 +322,7 @@ const NewFeatForm = () => {
                         value={item.saveAbility}
                         options={builders.ability}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                     {item.module?.name === 'skill' && (
@@ -319,9 +336,7 @@ const NewFeatForm = () => {
                         value={item.skill}
                         options={builders.skill}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                   </>
@@ -340,9 +355,7 @@ const NewFeatForm = () => {
                         )
                       )}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )}
                 {item.module?.name === 'condition' ? (
@@ -356,9 +369,7 @@ const NewFeatForm = () => {
                     value={item.condition}
                     options={builders.condition}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : item.module?.name === 'speed' ? (
                   <Select
@@ -371,9 +382,7 @@ const NewFeatForm = () => {
                     placeholder='Speed Type'
                     options={builders.speed}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : item.module?.name === 'passive' ? (
                   <Select
@@ -386,9 +395,7 @@ const NewFeatForm = () => {
                     value={item.passive}
                     options={builders.passive}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : (
                   item.module?.name === 'damage' && (
@@ -402,9 +409,7 @@ const NewFeatForm = () => {
                       value={item.damage.damageType}
                       options={builders.damage}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )
                 )}
@@ -412,17 +417,16 @@ const NewFeatForm = () => {
                 item.modType?.name === 'setValue' ? (
                   <>
                     <Input
-                      validation={'num'}
+                      ref={addToInputRefs}
+                      validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                       placeholder='Set Value'
                       label={true}
                       invalidText='Must contain only numbers'
                       autoComplete='off'
-                      value={item.method?.setValue ?? ''}
+                      value={item.method?.setValue}
                       required={true}
-                      onChange={(input) =>
-                        setState({ payload: { target: input } })
-                      }
+                      onChange={setState}
                     />
                     <Select
                       ref={addToSelectRefs}
@@ -431,9 +435,7 @@ const NewFeatForm = () => {
                       value={item.multiplier}
                       options={builders.modifier.multiplier}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   </>
                 ) : item.method?.name === 'ability' ? (
@@ -444,9 +446,7 @@ const NewFeatForm = () => {
                     value={item.method.ability}
                     options={builders.ability}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : (
                   item.method?.name === 'skill' && (
@@ -457,9 +457,7 @@ const NewFeatForm = () => {
                       value={item.method.skill}
                       options={builders.skill}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )
                 )}
@@ -475,9 +473,7 @@ const NewFeatForm = () => {
                       { name: false, value: 'No' },
                     ]}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -508,17 +504,16 @@ const NewFeatForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
-                    validation={'num'}
+                    ref={addToInputRefs}
+                    validation='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     required={true}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -530,9 +525,7 @@ const NewFeatForm = () => {
                   value={item.area}
                   options={builders.proficiency.area}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item?.area?.name === 'skill' && (
                   <Select
@@ -545,9 +538,7 @@ const NewFeatForm = () => {
                     value={item.skill}
                     options={builders.skill}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'saveAbility' && (
@@ -561,9 +552,7 @@ const NewFeatForm = () => {
                     value={item.saveAbility}
                     options={builders.ability}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'tool' && (
@@ -577,9 +566,7 @@ const NewFeatForm = () => {
                     value={item.tool}
                     options={builders.tool}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'language' && (
@@ -593,9 +580,7 @@ const NewFeatForm = () => {
                     value={item.language}
                     options={builders.language}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item.area?.name === 'itemType' && (
@@ -613,9 +598,7 @@ const NewFeatForm = () => {
                       )
                     )}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item.area?.name === 'itemProperty' && (
@@ -633,9 +616,7 @@ const NewFeatForm = () => {
                       )
                     )}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 <Select
@@ -645,9 +626,7 @@ const NewFeatForm = () => {
                   value={item.level}
                   options={builders.proficiency.level}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -677,17 +656,16 @@ const NewFeatForm = () => {
                   (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
-                    validation={'num'}
+                    ref={addToInputRefs}
+                    validation='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     required={true}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -702,9 +680,7 @@ const NewFeatForm = () => {
                   value={item.sense}
                   options={builders.sense}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -734,17 +710,16 @@ const NewFeatForm = () => {
                   (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
-                    validation={'num'}
+                    ref={addToInputRefs}
+                    validation='num'
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
                     autoComplete='off'
-                    value={item.optionGroup ?? ''}
+                    value={item.optionGroup}
                     invalidText='Must contain only numbers'
                     required={true}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -757,9 +732,7 @@ const NewFeatForm = () => {
                   placeholder='Spell Attributes'
                   value={item.attribute}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 <Select
                   ref={addToSelectRefs}
@@ -771,9 +744,7 @@ const NewFeatForm = () => {
                   value={item}
                   options={spells}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item.attribute?.some(
                   (attributeItem) => attributeItem.name === 'optionalAbility'
@@ -788,9 +759,7 @@ const NewFeatForm = () => {
                     value={item.ability}
                     options={builders.ability}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -861,16 +830,15 @@ const NewFeatForm = () => {
                   target={`feature${featureIndex}AccordionBody`}
                 >
                   <Input
+                    ref={addToInputRefs}
                     size='col-sm-4'
                     name={`feature.${featureIndex}.value`}
                     border={false}
                     autoComplete='off'
                     placeholder='Feature Name'
-                    value={featureItem.value ?? ''}
+                    value={featureItem.value}
                     clickable={false}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </AccordionButton>
@@ -911,6 +879,7 @@ const NewFeatForm = () => {
                     ))}
                   </div>
                   <TextEditor
+                    ref={addToTextRefs}
                     className='pb-2'
                     placeholder='Feature description'
                     value={featureItem.desc}
@@ -924,9 +893,7 @@ const NewFeatForm = () => {
                       value={featureItem.attribute}
                       options={builders.feat.feature.attribute}
                       placeholder='Feature Attributes'
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                     {featureItem.attribute?.some(
                       (attributeItem) =>
@@ -940,9 +907,7 @@ const NewFeatForm = () => {
                         placeholder='Requirement'
                         options={builders.feat.feature.requirements}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.requirement &&
@@ -966,9 +931,7 @@ const NewFeatForm = () => {
                         placeholder='Skill Proficiency'
                         options={builders.skill}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.requirement?.skillProficiency &&
@@ -996,9 +959,7 @@ const NewFeatForm = () => {
                           placeholder='Item Category'
                           options={builders.item.itemCategory}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -1039,9 +1000,7 @@ const NewFeatForm = () => {
                               .map((filteredItem) => filteredItem.itemProperty)
                           )}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1066,9 +1025,7 @@ const NewFeatForm = () => {
                           value={featureItem.limitUse?.limitBy}
                           options={builders.feat.feature.chargeLimit}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
@@ -1078,9 +1035,7 @@ const NewFeatForm = () => {
                             value={featureItem.limitUse?.ability}
                             options={builders.ability}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
@@ -1090,24 +1045,21 @@ const NewFeatForm = () => {
                             value={featureItem.limitUse?.skill}
                             options={builders.skill}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         ) : (
                           featureItem.limitUse?.limitBy?.name ===
                             'setNumber' && (
                             <Input
+                              ref={addToInputRefs}
                               validation={'num'}
                               name={`feature.${featureIndex}.limitUse.setAmount`}
                               label={true}
                               invalidText='Must contain only numbers'
                               placeholder='Use Amount'
                               required={true}
-                              value={featureItem.limitUse.setAmount ?? ''}
-                              onChange={(input) =>
-                                setState({ payload: { target: input } })
-                              }
+                              value={featureItem.limitUse.setAmount}
+                              onChange={setState}
                             />
                           )
                         )}
@@ -1118,9 +1070,7 @@ const NewFeatForm = () => {
                           value={featureItem.limitUse?.resetsOn}
                           options={builders.feat.feature.chargeReset}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1145,9 +1095,7 @@ const NewFeatForm = () => {
                           value={featureItem.action}
                           options={builders.feat.feature.action}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1166,19 +1114,19 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Input
+                          ref={addToInputRefs}
                           validation={'num'}
                           name={`feature.${featureIndex}.range.minRange`}
                           autoComplete='off'
                           label={true}
                           placeholder='Min Range'
                           required={true}
-                          value={featureItem.range.minRange ?? ''}
+                          value={featureItem.range.minRange}
                           invalidText='Must contain only numbers'
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          onChange={setState}
                         />
                         <Input
+                          ref={addToInputRefs}
                           validation={'num'}
                           name={`feature.${featureIndex}.range.maxRange`}
                           label={true}
@@ -1186,10 +1134,8 @@ const NewFeatForm = () => {
                           placeholder='Max Range'
                           invalidText='Must contain only numbers'
                           required={true}
-                          value={featureItem.range.maxRange ?? ''}
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          value={featureItem.range.maxRange}
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1213,9 +1159,7 @@ const NewFeatForm = () => {
                         value={featureItem.saveAbility}
                         options={builders.ability}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.saveAbility &&
@@ -1256,9 +1200,7 @@ const NewFeatForm = () => {
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1277,9 +1219,7 @@ const NewFeatForm = () => {
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1302,9 +1242,7 @@ const NewFeatForm = () => {
                                 )
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         </div>
                       </div>
@@ -1347,9 +1285,7 @@ const NewFeatForm = () => {
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1368,9 +1304,7 @@ const NewFeatForm = () => {
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1393,9 +1327,7 @@ const NewFeatForm = () => {
                                 )
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         </div>
                       </div>
@@ -1469,9 +1401,7 @@ const NewFeatForm = () => {
                           placeholder='Damage Attribute'
                           options={builders.feat.feature.damageAttribute}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -1481,9 +1411,7 @@ const NewFeatForm = () => {
                           value={featureItem.damage?.damageType}
                           options={builders.damage}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </div>
                     )
@@ -1569,12 +1497,20 @@ const NewFeatForm = () => {
       <div className='builder-form'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create a Feat</h3>
-          <button
-            className='btn btn-secondary btn-small'
-            onClick={() => navigate(-1)}
-          >
-            Back
-          </button>
+          <div>
+            <button
+              className='btn btn-secondary btn-small me-2'
+              onClick={onReset}
+            >
+              Reset Form
+            </button>
+            <button
+              className='btn btn-secondary btn-small'
+              onClick={() => navigate(-1)}
+            >
+              Back
+            </button>
+          </div>
         </div>
         {successMessage && (
           <h3 className='add-success-message'>{successMessage}</h3>
@@ -1583,11 +1519,12 @@ const NewFeatForm = () => {
         <form className='needs-validation' noValidate>
           <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
             <Input
+              ref={addToInputRefs}
               name='value'
               autoComplete='off'
               placeholder='Feat Name'
               label={true}
-              value={state.value ?? ''}
+              value={state.value}
               required={true}
               onChange={setState}
             />
@@ -1603,6 +1540,7 @@ const NewFeatForm = () => {
           <div className='accordion-collapse collapse show' id='description'>
             <div className='pb-2'>
               <TextEditor
+                ref={addToTextRefs}
                 name={'desc'}
                 value={state.desc}
                 placeholder={'feat Description'}

@@ -1,5 +1,5 @@
 import '../css/textEditor.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import useDebounce from '../hooks/useDebounce'
 import useAutosave from '../hooks/useAutosave'
@@ -209,99 +209,101 @@ const MenuBar = ({ editor, noMenuBar }) => {
   )
 }
 
-const TextEditor = ({
-  onChange,
-  placeholder,
-  name,
-  short,
-  noMenuBar,
-  value,
-  size,
-  className,
-}) => {
-  const [initialState] = useState(value)
-  const [isChanges, setIsChanges] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+const TextEditor = forwardRef(
+  (
+    { onChange, placeholder, name, short, noMenuBar, value, size, className },
+    ref
+  ) => {
+    const [initialState] = useState(value)
+    const [isChanges, setIsChanges] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
 
-  const isEmpty = () => !editor?.state?.doc?.textContent?.trim().length
+    const isEmpty = () => !editor?.state?.doc?.textContent?.trim().length
 
-  let content
+    let content
 
-  const debounceChanges = useDebounce(
-    function (editor) {
-      content = editor.getHTML()
-      debounceSave(content) // trigger save for any changes
-    },
-    250,
-    name
-  ) // every .25 of a second max
-
-  // debounce save after no activity in editor
-  const debounceSave = useDebounce(function (content) {
-    handleSave(content)
-  }, 3 * 1000) // every 3 seconds max
-
-  useAutosave(
-    (content) => {
-      // run save if changes and not already saving
-      if (isChanges && !isSaving) {
-        handleSave(content)
-      }
-    },
-    60 * 1000,
-    name
-  ) // autosave every minute
-
-  const handleSave = (content) => {
-    console.log('saving')
-    setIsSaving(true)
-    onChange({ payload: { target: { name: name, value: content } } })
-    setIsSaving(false)
-    setIsChanges(false)
-  }
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4, 5],
-        },
-      }),
-      Underline,
-    ],
-    editorProps: {
-      attributes: {
-        class: `text-editor-content`,
+    const debounceChanges = useDebounce(
+      function (editor) {
+        content = editor.getHTML()
+        debounceSave(content) // trigger save for any changes
       },
-    },
-    content: '',
-    onUpdate: ({ editor }) => {
-      debounceChanges(editor)
-      setIsChanges(true)
-    },
-  })
+      250,
+      name
+    ) // every .25 of a second max
 
-  useEffect(() => {
-    if (!content) {
-      editor?.commands.setContent(initialState)
+    // debounce save after no activity in editor
+    const debounceSave = useDebounce(function (content) {
+      handleSave(content)
+    }, 3 * 1000) // every 3 seconds max
+
+    useAutosave(
+      (content) => {
+        // run save if changes and not already saving
+        if (isChanges && !isSaving) {
+          handleSave(content)
+        }
+      },
+      60 * 1000,
+      name
+    ) // autosave every minute
+
+    const handleSave = (content) => {
+      console.log('saving')
+      setIsSaving(true)
+      onChange({ payload: { target: { name: name, value: content } } })
+      setIsSaving(false)
+      setIsChanges(false)
     }
-  }, [editor, content, initialState])
 
-  return (
-    <div
-      className={`textEditor${size ? ` ${size}` : ' mb-2'} ${
-        short ? 'shortDesc' : ''
-      } ${className ? className : ''}`}
-    >
-      <MenuBar editor={editor} noMenuBar={noMenuBar} />
-      <div className='label-container'>
-        <div className={`text-editor-label ${!isEmpty() ? 'filled' : ''}`}>
-          {placeholder}
+    const editor = useEditor({
+      extensions: [
+        StarterKit.configure({
+          heading: {
+            levels: [1, 2, 3, 4, 5],
+          },
+        }),
+        Underline,
+      ],
+      editorProps: {
+        attributes: {
+          class: `text-editor-content`,
+        },
+      },
+      content: '',
+      onUpdate: ({ editor }) => {
+        debounceChanges(editor)
+        setIsChanges(true)
+      },
+    })
+
+    useEffect(() => {
+      if (!content) {
+        editor?.commands.setContent(initialState)
+      }
+    }, [editor, content, initialState])
+
+    useImperativeHandle(ref, () => ({
+      resetState() {
+        editor?.commands.setContent(null)
+      },
+    }))
+
+    return (
+      <div
+        className={`textEditor${size ? ` ${size}` : ' mb-2'} ${
+          short ? 'shortDesc' : ''
+        } ${className ? className : ''}`}
+      >
+        <MenuBar editor={editor} noMenuBar={noMenuBar} />
+        <div className='label-container'>
+          <div className={`text-editor-label ${!isEmpty() ? 'filled' : ''}`}>
+            {placeholder}
+          </div>
         </div>
+        <EditorContent editor={editor} />
       </div>
-      <EditorContent editor={editor} />
-    </div>
-  )
-}
+    )
+  }
+)
 
 export default TextEditor

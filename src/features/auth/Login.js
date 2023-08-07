@@ -1,4 +1,4 @@
-import { useState, useReducer, useRef } from 'react'
+import { useState, useReducer, useRef, useEffect } from 'react'
 import { useLoginMutation, useGoogleLoginMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
 import { useNavigate } from 'react-router-dom'
@@ -8,19 +8,32 @@ import Input from '../../components/Input'
 
 const Login = () => {
   // Login hook
-  const [login, { isLoading, isError, error }] = useLoginMutation()
+  const [
+    login,
+    { isLoading: loginIsLoading, isError: loadingIsError, error: loginError },
+  ] = useLoginMutation()
   const [
     googleLogin,
-    { isLoading: isGoogleLoading, isError: isGoogleError, error: googleError },
+    { isLoading: googleIsLoading, isError: googleIsError, error: googleError },
   ] = useGoogleLoginMutation()
 
   const navigate = useNavigate()
 
   const [state, setState] = useReducer(formReducer, {})
   const [persist, setPersist] = usePersist()
-  const [errMsg, setErrMsg] = useState('')
+  const [errMsg, setErrMsg] = useState()
   const inputRefs = useRef([])
 
+  useEffect(() => {
+    if (loadingIsError) {
+      setErrMsg(loginError.message.data)
+      setState()
+    }
+    if (googleIsError) {
+      setErrMsg(googleError.message.data)
+      setState()
+    }
+  }, [loadingIsError, loginError, googleIsError, googleError])
   const addToInputRefs = (ref) => {
     if (ref && !inputRefs.current.includes(ref)) {
       inputRefs.current.push(ref)
@@ -28,7 +41,7 @@ const Login = () => {
   }
 
   const handleValidation = () => {
-    let isValid
+    let isValid = true
     inputRefs.current.forEach((inputRef) => {
       if (inputRef) {
         const validStatus = inputRef.getValidation()
@@ -46,7 +59,7 @@ const Login = () => {
   // Login function
   const onLoginClicked = async () => {
     const isValid = handleValidation()
-    if (isValid !== false) {
+    if (isValid) {
       setState({ payload: { target: { name: 'submitting', value: true } } })
       try {
         await login({ username: state.username, password: state.password })
@@ -67,7 +80,7 @@ const Login = () => {
         await googleLogin({ code })
         navigate('/')
       } catch (err) {
-        console.log(err.message)
+        setErrMsg(err.message)
       }
     },
     flow: 'auth-code',
@@ -75,7 +88,7 @@ const Login = () => {
 
   const content = (
     <form className='needs-validation' noValidate>
-      {isError && <p>{errMsg}</p>}
+      {errMsg && <p>{errMsg}</p>}
       <div className='pb-2'>
         <Input
           ref={addToInputRefs}
@@ -143,14 +156,11 @@ const Login = () => {
           onLoginClicked()
         }}
       >
-        {(!isLoading || !isGoogleLoading) && !state.submitting
+        {(!loginIsLoading || !googleIsLoading) && !state.submitting
           ? 'Submit'
           : 'Submitting'}
       </button>
-      {isError && <div className='register-error'>{error?.data?.message}</div>}
-      {isGoogleError && (
-        <div className='register-error'>{googleError?.data?.message}</div>
-      )}
+      {errMsg && <div className='register-error'>{errMsg}</div>}
       <div className='text-body-secondary text-center'>
         By clicking Submit, you agree to the terms of use.
       </div>

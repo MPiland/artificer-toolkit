@@ -1,4 +1,4 @@
-import { useEffect, useState, useReducer } from 'react'
+import { useEffect, useState, useReducer, useRef } from 'react'
 import {
   useGoogleLoginMutation,
   useRegisterMutation,
@@ -9,57 +9,67 @@ import { useGoogleLogin } from '@react-oauth/google'
 import formReducer from '../../hooks/useReducer'
 import Input from '../../components/Input'
 
-const PWD_REGEX =
-  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
-const USER_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
 const Register = () => {
   // Register hook
-  const [register, { isLoading, isError, error }] = useRegisterMutation()
+  const [
+    register,
+    {
+      isLoading: registerIsLoading,
+      isError: registerIsError,
+      error: registerError,
+    },
+  ] = useRegisterMutation()
 
   // Google register hook
   const [
     googleLogin,
-    { isLoading: isGoogleLoading, isError: isGoogleError, error: googleError },
+    { isLoading: googleIsLoading, isError: googleIsError, error: googleError },
   ] = useGoogleLoginMutation()
 
   const navigate = useNavigate()
 
   const [state, setState] = useReducer(formReducer, {})
   const [persist, setPersist] = usePersist()
-  const [errMsg, setErrMsg] = useState('')
+  const [errMsg, setErrMsg] = useState()
+  const inputRefs = useRef([])
 
   useEffect(() => {
-    setState({
-      payload: {
-        target: {
-          name: 'validUsername',
-          value: USER_REGEX.test(state.username),
-        },
-      },
-    })
-  }, [state.username])
-
-  useEffect(() => {
-    setState({
-      payload: {
-        target: {
-          name: 'validPassword',
-          value: PWD_REGEX.test(state.password),
-        },
-      },
-    })
-  }, [state.password])
-
-  useEffect(() => {
-    if (isError || isGoogleError) {
-      console.log('error')
+    if (registerIsError) {
+      setErrMsg(registerError.message.data)
       setState()
     }
-  }, [isError, isGoogleError])
+    if (googleIsError) {
+      setErrMsg(googleError.message.data)
+      setState()
+    }
+  }, [registerIsError, registerError, googleIsError, googleError])
+
+  const addToInputRefs = (ref) => {
+    if (ref && !inputRefs.current.includes(ref)) {
+      inputRefs.current.push(ref)
+    }
+  }
+
+  const handleValidation = () => {
+    let isValid = true
+    inputRefs.current.forEach((inputRef) => {
+      if (inputRef) {
+        const validStatus = inputRef.getValidation()
+        if (!validStatus) {
+          inputRef.setClass('is-invalid')
+          isValid = false
+        } else {
+          inputRef.setClass('is-valid')
+        }
+      }
+    })
+    return isValid
+  }
 
   const onRegisterClicked = async () => {
-    if (state.validUsername === true && state.validPassword === true) {
+    const isValid = handleValidation()
+    if (isValid) {
+      setState({ payload: { target: { name: 'submitting', value: true } } })
       try {
         await register({
           username: state.username,
@@ -75,25 +85,6 @@ const Register = () => {
           setErrMsg(err.message)
         }
       }
-    } else {
-      if (!state.validUsername) {
-        setState({
-          payload: { target: { name: 'validUClass', value: 'is-invalid' } },
-        })
-      } else {
-        setState({
-          payload: { target: { name: 'validUClass', value: 'is-valid' } },
-        })
-      }
-      if (!state.validPassword) {
-        setState({
-          payload: { target: { name: 'validPClass', value: 'is-invalid' } },
-        })
-      } else {
-        setState({
-          payload: { target: { name: 'validPClass', value: 'is-valid' } },
-        })
-      }
     }
   }
 
@@ -103,54 +94,58 @@ const Register = () => {
         await googleLogin({ code })
         navigate('/')
       } catch (err) {
-        console.log(err.message)
+        setErrMsg(err.message)
       }
     },
     flow: 'auth-code',
   })
 
-  console.log(state)
-
   const content = (
     <form className='needs-validation' noValidate>
-      {isError && <p>{errMsg}</p>}
-      <Input
-        type='email'
-        className={`${state.validUClass} mb-3`}
-        name='username'
-        label={true}
-        placeholder='Email Address'
-        autoComplete='username'
-        invalidText='Username must be a valid email address.'
-        onChange={setState}
-      />
-      <div className='input-group mb-3 position-relative'>
+      {errMsg && <p>{errMsg}</p>}
+      <div className='pb-2'>
         <Input
-          type={state.showPassword ? 'text' : 'password'}
-          className={`${state.validPClass}`}
-          name='password'
-          placeholder='Password'
+          ref={addToInputRefs}
+          validation='user'
+          type='email'
+          name='username'
           label={true}
-          autoComplete='password'
-          aria-describedby='eye-addon'
-          invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
+          placeholder='Email Address'
+          autoComplete='username'
+          invalidText='Username must be a valid email address.'
           onChange={setState}
         />
-        <span
-          className='input-group-text bi bi-eye>'
-          id='eye-addon'
-          onClick={() =>
-            setState({
-              payload: {
-                target: { name: 'showPassword', value: !state.showPassword },
-              },
-            })
-          }
-        >
-          <i
-            className={state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}
-          ></i>
-        </span>
+      </div>
+      <div className='pb-2'>
+        <div className='input-group'>
+          <Input
+            ref={addToInputRefs}
+            validation='pwd'
+            type={state.showPassword ? 'text' : 'password'}
+            name='password'
+            placeholder='Password'
+            label={true}
+            autoComplete='password'
+            aria-describedby='eye-addon'
+            invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
+            onChange={setState}
+          />
+          <span
+            className='input-group-text bi bi-eye>'
+            id='eye-addon'
+            onClick={() =>
+              setState({
+                payload: {
+                  target: { name: 'showPassword', value: !state.showPassword },
+                },
+              })
+            }
+          >
+            <i
+              className={state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}
+            ></i>
+          </span>
+        </div>
       </div>
       <div className='pb-2'>
         <input
@@ -158,6 +153,7 @@ const Register = () => {
           className='form-check-input'
           id='persist'
           onChange={() => setPersist((prev) => !prev)}
+          checked={persist}
         />
         <label htmlFor='persist' className='ps-2'>
           Trust This Device
@@ -169,19 +165,14 @@ const Register = () => {
         disabled={state?.submitting}
         onClick={(e) => {
           e.preventDefault()
-          setState({ payload: { target: { name: 'submitting', value: true } } })
           onRegisterClicked()
         }}
       >
-        {(!isLoading || !isGoogleLoading) && !state.submitting
+        {(!registerIsLoading || !googleIsLoading) && !state.submitting
           ? 'Submit'
           : 'Submitting'}
       </button>
-      {isError && <div className='register-error'>{error?.data?.message}</div>}
-      {isGoogleError && (
-        <div className='register-error'>{googleError?.data?.message}</div>
-      )}
-
+      {errMsg && <div className='register-error'>{errMsg}</div>}
       <div className='text-body-secondary text-center'>
         By clicking Sign up, you agree to the terms of use.
       </div>

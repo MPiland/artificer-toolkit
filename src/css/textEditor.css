@@ -113,6 +113,12 @@
   background: transparent;
   border-radius: 5px;
   height: 160px;
+  resize: vertical;
+  overflow: hidden;
+}
+
+.textEditor:focus-within {
+  box-shadow: 0 0 0.05rem 0.3rem rgba(13, 110, 253, 0.25);
 }
 
 .textEditor > div:last-child {
@@ -123,7 +129,6 @@
   border-top: none;
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
-  resize: vertical;
   overflow: auto;
 }
 
@@ -134,12 +139,12 @@
 .text-editor-content {
   height: 100%;
   padding: 0 12px 10px;
-  margin-bottom: 0 !important;
+  margin-bottom: 0;
   outline: none;
 }
 
 .text-editor-content > p {
-  margin-bottom: 0 !important;
+  margin-bottom: 0;
 }
 
 .textEditor.shortDesc .text-editor-content {
@@ -209,7 +214,6 @@
 
 .menuBar > span {
   margin: 0;
-  outline: none;
   border: none;
   background: none;
   cursor: pointer;

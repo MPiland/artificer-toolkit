@@ -28,8 +28,10 @@ const Spell = ({ state: spell }) => {
         return nestedValues.join(' ')
       } else {
         const value = get(state, item)
-        const formattedValue = Array.isArray(value)
-          ? value
+        let formattedValue
+        if (Array.isArray(value)) {
+          if (value.length > 0) {
+            formattedValue = value
               .map((nestedValue) =>
                 shouldTruncate
                   ? truncate(nestedValue.value, {
@@ -39,9 +41,13 @@ const Spell = ({ state: spell }) => {
                   : nestedValue.value
               )
               .join(' / ')
-          : shouldTruncate
-          ? truncate(value, { length: truncateNum })
-          : value
+            return formattedValue
+          }
+        } else {
+          formattedValue = shouldTruncate
+            ? truncate(value, { length: truncateNum })
+            : value
+        }
         return formattedValue
       }
     }
@@ -119,9 +125,7 @@ const Spell = ({ state: spell }) => {
       <hr />
       <div>{parse(spell.desc)}</div>
       <div className='d-flex justify-content-between'>
-        <span className='card-subText'>
-          {materialDesc()}
-        </span>
+        <span className='card-subtext'>{materialDesc()}</span>
         <button
           className='btn btn-outline-secondary btn-small'
           onClick={editSpell}
