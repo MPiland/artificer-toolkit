@@ -1680,7 +1680,7 @@ const NewRaceForm = () => {
               ref={addToSelectRefs}
               name='category'
               placeholder='Race Category'
-              value={state.category}
+              value={state?.category}
               options={builders.race.category}
               required={true}
               onChange={(option) => setState({ payload: { target: option } })}
@@ -1691,7 +1691,7 @@ const NewRaceForm = () => {
                 multiple={true}
                 name='lineage'
                 placeholder='Race Lineage'
-                value={state.lineage}
+                value={state?.lineage}
                 options={races}
                 required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
@@ -1709,7 +1709,7 @@ const NewRaceForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <TextEditor
               name={'quote'}
-              value={state.quote}
+              value={state?.quote}
               placeholder={'Opening Quote'}
               onChange={setState}
             />
@@ -1795,7 +1795,7 @@ const NewRaceForm = () => {
                 multiple={true}
                 name='attribute'
                 placeholder='Attributes'
-                value={state.attribute}
+                value={state?.attribute}
                 options={builders.race.attribute}
                 required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
@@ -1804,7 +1804,7 @@ const NewRaceForm = () => {
                 short={true}
                 size='col-sm'
                 name='age'
-                value={state.age}
+                value={state?.age}
                 noMenuBar={true}
                 placeholder='Age Description'
                 onChange={setState}
@@ -1816,7 +1816,7 @@ const NewRaceForm = () => {
                 size='col-lg-3 col-md-4 col-sm-12'
                 name='size'
                 placeholder='Size'
-                value={state.size}
+                value={state?.size}
                 options={builders.race.size}
                 required={true}
                 onChange={(option) => setState({ payload: { target: option } })}
@@ -1998,7 +1998,7 @@ const NewRaceForm = () => {
                       },
                     ]}
                     name='ancestry'
-                    value={state.ancestry}
+                    value={state?.ancestry}
                     onChange={setState}
                     dynamic={true}
                   />
@@ -2006,7 +2006,7 @@ const NewRaceForm = () => {
               </>
             )
           ) : (
-            !!state.ancestry &&
+            !!state?.ancestry &&
             setState({
               action: 'removed',
               payload: {
