@@ -223,7 +223,7 @@ const TextEditor = ({
   const [isChanges, setIsChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const isEmpty = () => !editor.state.doc.textContent.trim().length
+  const isEmpty = () => !editor?.state?.doc?.textContent?.trim().length
 
   const debounceChanges = useDebounce(
     function (editor) {
