@@ -24,6 +24,8 @@ const Input = ({
     }
   }
 
+  console.log('name', name, 'label', label)
+
   const content = (
     <div
       className={`position-relative ${size ? `${size}` : 'col-sm'} ${

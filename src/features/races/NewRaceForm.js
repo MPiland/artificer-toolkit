@@ -1979,22 +1979,23 @@ const NewRaceForm = () => {
                   <hr className='flex-grow-1 me-3' />
                 </AccordionButton>
                 <div
-                  className='accordion-collapse collapse show pb-2'
+                  className='accordion-collapse collapse show pb-2 row'
                   id='ancestry'
                 >
                   <Table
-                    headers={[
+                    inputs={[
                       {
-                        name: 'value',
-                        value: 'Value',
-                        size: 3,
-                        invalid: 'Must contain only numbers',
+                        name: 'ancestry',
+                        value: 'Ancestry',
+                        size: 'col-lg-3 col-md-4 col-sm-12',
                         label: true,
                       },
                       {
                         name: 'description',
                         value: 'Description',
                         type: 'text',
+                        short: true,
+                        size: 'col-sm',
                       },
                     ]}
                     name='ancestry'

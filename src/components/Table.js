@@ -50,7 +50,7 @@ const Table = ({
   const content = (
     <>
       {headers && (
-        <div className={`row align-items-center g-2 pb-2 ${rowSize ?? ''}`}>
+        <div className={`row align-items-center g-2 ${rowSize ?? ''}`}>
           {headers?.map((headerItem, headerIndex) => {
             return readOnly ? (
               <div
@@ -78,14 +78,14 @@ const Table = ({
       {value?.map((valueItem, itemIndex) => (
         <div
           key={itemIndex}
-          className={`row align-items-center g-2 pb-2 ${className ?? ''} ${
+          className={`row align-items-center gx-2 gy-1 ${className ?? ''} ${
             clickable ? 'row-clickable' : ''
           } ${rowSize ?? ''}`}
           onClick={() => {
             onClick && onClick(valueItem)
           }}
         >
-          {inputs.map((inputItem, inputIndex) => {
+          {inputs?.map((inputItem, inputIndex) => {
             return readOnly ? (
               <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
                 {getValueFromState(inputItem, valueItem) !== null
@@ -94,11 +94,13 @@ const Table = ({
               </div>
             ) : !!inputItem.type && inputItem.type === 'text' ? (
               <TextEditor
-                className={`shortDesc ${inputItem.className ?? ''}`}
+                short={inputItem.short}
+                size={inputItem.size}
                 noMenuBar={true}
                 placeholder={`${inputItem.value}`}
                 name={`${name}.${itemIndex}.${inputItem.name}`}
                 value={getValueFromState(inputItem, valueItem)}
+                key={inputIndex}
                 onChange={onChange}
               />
             ) : (

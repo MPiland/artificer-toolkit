@@ -110,12 +110,22 @@
   position: relative;
   background: transparent;
   border-radius: 5px;
-  min-height: 40px;
+  margin: none;
+  height: 140px;
+}
+
+.textEditor.shortDesc {
+  height: 58px;
+}
+
+.textEditor > div:last-child {
+  position: relative;
+  height: calc(100% - 40px - 32px)
 }
 
 .text-editor-content {
-  height: 80px;
   padding: 0 12px 10px;
+  height: 100%;
   border: 1px solid grey;
   border-top: none;
   margin-bottom: 0 !important;
@@ -144,6 +154,7 @@
 }
 
 .label-container {
+  position: relative;
   border-left: 1px solid grey;
   border-right: 1px solid grey;
 }
@@ -168,7 +179,7 @@
   height: 58px;
   width: calc(100% - 8px);
   border: none;
-  padding: 1rem 0.75rem;
+  padding: 1rem 0.5rem;
   transform-origin: 0 0;
   transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
 }
@@ -195,12 +206,15 @@
 }
 
 .menuBar > span {
-  height: 100%;
   margin: 0;
   outline: none;
   border: none;
   background: none;
   cursor: pointer;
+}
+
+.menuBar .btn {
+  height: 38px;
 }
 
 .menuBar select {
