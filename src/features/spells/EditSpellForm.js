@@ -39,7 +39,6 @@ const EditSpellForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const [match, setMatch] = useState()
-  const [isValid, setIsValid] = useState(true)
   const selectRefs = useRef([])
 
   useEffect(() => {
@@ -91,23 +90,22 @@ const EditSpellForm = () => {
   }
 
   const handleValidation = (resetValidation) => {
+    let isValid
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
         const selectValue = selectRef.getValue()
         const isEmpty =
           selectValue === null ||
           (Array.isArray(selectValue) && selectValue.length === 0)
-
         if (isEmpty) {
           selectRef.setClass('is-invalid')
-          setIsValid(false)
+          isValid = false
         } else {
           selectRef.setClass('is-valid')
         }
       }
       if (resetValidation === true) {
         selectRef.setClass('')
-        setIsValid(true)
       }
     })
 
@@ -123,7 +121,7 @@ const EditSpellForm = () => {
       if (isEmpty) {
         element.classList.add('is-invalid')
         element.classList.remove('is-valid')
-        setIsValid(false)
+        isValid = false
       } else {
         element.classList.add('is-valid')
         element.classList.remove('is-invalid')
@@ -131,9 +129,9 @@ const EditSpellForm = () => {
       if (resetValidation === true) {
         element.classList.remove('is-valid')
         element.classList.remove('is-invalid')
-        setIsValid(true)
       }
     })
+    return isValid
   }
 
   useEffect(() => {
@@ -145,7 +143,7 @@ const EditSpellForm = () => {
   }, [state, oldState])
 
   const onSubmit = async () => {
-    handleValidation()
+    const isValid = handleValidation()
     if (isValid) {
       await addNewSpell(state)
     } else {
@@ -154,7 +152,7 @@ const EditSpellForm = () => {
   }
 
   const onUpdate = async () => {
-    handleValidation()
+    const isValid = handleValidation()
     if (isValid) {
       if (match) {
         setErrorMessage('No changes made')
@@ -183,8 +181,6 @@ const EditSpellForm = () => {
   }
 
   let content
-
-  console.log(isValid)
 
   if (isLoading) content = <p>Loading...</p>
 

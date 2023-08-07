@@ -47,7 +47,6 @@ const NewItemForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-  const [isValid, setIsValid] = useState(true)
   const selectRefs = useRef([])
 
   useEffect(() => {
@@ -96,23 +95,22 @@ const NewItemForm = () => {
   }
 
   const handleValidation = (resetValidation) => {
+    let isValid
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
         const selectValue = selectRef.getValue()
         const isEmpty =
           selectValue === null ||
           (Array.isArray(selectValue) && selectValue.length === 0)
-
         if (isEmpty) {
           selectRef.setClass('is-invalid')
-          setIsValid(false)
+          isValid = false
         } else {
           selectRef.setClass('is-valid')
         }
       }
       if (resetValidation === true) {
         selectRef.setClass('')
-        setIsValid(true)
       }
     })
 
@@ -128,7 +126,7 @@ const NewItemForm = () => {
       if (isEmpty) {
         element.classList.add('is-invalid')
         element.classList.remove('is-valid')
-        setIsValid(false)
+        isValid = false
       } else {
         element.classList.add('is-valid')
         element.classList.remove('is-invalid')
@@ -136,13 +134,13 @@ const NewItemForm = () => {
       if (resetValidation === true) {
         element.classList.remove('is-valid')
         element.classList.remove('is-invalid')
-        setIsValid(true)
       }
     })
+    return isValid
   }
 
   const onSubmit = async () => {
-    handleValidation()
+    const isValid = handleValidation()
     if (isValid) {
       await addNewItem(state)
     } else {
