@@ -771,7 +771,7 @@ const NewItemForm = () => {
                     ))}
                   </div>
                   <TextEditor
-                    className='pb-3'
+                    className='pb-2'
                     placeholder='Feature description'
                     value={featureItem.desc}
                     name={`feature.${featureIndex}.desc`}

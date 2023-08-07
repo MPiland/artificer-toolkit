@@ -217,6 +217,7 @@ const TextEditor = ({
   noMenuBar,
   value,
   size,
+  className,
 }) => {
   const [content, setContent] = useState()
   const [initialState] = useState(value)
@@ -288,7 +289,7 @@ const TextEditor = ({
     <div
       className={`textEditor${size ? ` ${size}` : ' mb-2'} ${
         short ? 'shortDesc' : ''
-      }`}
+      } ${className ? className : ''}`}
     >
       <MenuBar editor={editor} noMenuBar={noMenuBar} />
       <div className='label-container'>

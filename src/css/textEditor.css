@@ -107,33 +107,35 @@
 
 /* ............................ */
 .textEditor {
+  display: flex;
+  flex-direction: column;
   position: relative;
   background: transparent;
   border-radius: 5px;
-  margin: none;
-  height: 140px;
+  height: 160px;
+}
+
+.textEditor > div:last-child {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid grey;
+  border-top: none;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  resize: vertical;
+  overflow: auto;
 }
 
 .textEditor.shortDesc {
   height: 58px;
 }
 
-.textEditor > div:last-child {
-  position: relative;
-  height: calc(100% - 40px - 32px)
-}
-
 .text-editor-content {
-  padding: 0 12px 10px;
   height: 100%;
-  border: 1px solid grey;
-  border-top: none;
+  padding: 0 12px 10px;
   margin-bottom: 0 !important;
-  resize: vertical;
-  overflow: auto;
   outline: none;
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
 }
 
 .text-editor-content > p {

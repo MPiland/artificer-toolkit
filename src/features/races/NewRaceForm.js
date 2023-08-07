@@ -959,14 +959,13 @@ const NewRaceForm = () => {
                       </div>
                     ))}
                   </div>
-                  <div className='pb-3'>
-                    <TextEditor
-                      placeholder='Feature description'
-                      value={featureItem.desc}
-                      name={`feature.${featureIndex}.desc`}
-                      onChange={setState}
-                    />
-                  </div>
+                  <TextEditor
+                    className='pb-2'
+                    placeholder='Feature description'
+                    value={featureItem.desc}
+                    name={`feature.${featureIndex}.desc`}
+                    onChange={setState}
+                  />
                   <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                     <Select
                       multiple={true}

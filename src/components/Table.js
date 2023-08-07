@@ -48,9 +48,9 @@ const Table = ({
   }
 
   const content = (
-    <>
+    <div>
       {headers && (
-        <div className={`row align-items-center g-2 ${rowSize ?? ''}`}>
+        <div className={`row align-items-center pb-2 g-2 ${rowSize ?? ''}`}>
           {headers?.map((headerItem, headerIndex) => {
             return readOnly ? (
               <div
@@ -78,7 +78,7 @@ const Table = ({
       {value?.map((valueItem, itemIndex) => (
         <div
           key={itemIndex}
-          className={`row align-items-center gx-2 gy-1 ${className ?? ''} ${
+          className={`row pb-2 g-2 ${className ?? ''} ${
             clickable ? 'row-clickable' : ''
           } ${rowSize ?? ''}`}
           onClick={() => {
@@ -153,7 +153,7 @@ const Table = ({
           )}
         </div>
       ))}
-    </>
+    </div>
   )
 
   return content
