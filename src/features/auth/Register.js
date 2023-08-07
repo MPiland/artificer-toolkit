@@ -122,7 +122,7 @@ const Register = () => {
         placeholder='Email Address'
         autoComplete='username'
         invalidText='Username must be a valid email address.'
-        onChange={(input) => setState({ payload: { target: input } })}
+        onChange={setState}
       />
       <div className='input-group mb-3 position-relative'>
         <Input
@@ -134,7 +134,7 @@ const Register = () => {
           autoComplete='password'
           aria-describedby='eye-addon'
           invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
-          onChange={(input) => setState({ payload: { target: input } })}
+          onChange={setState}
         />
         <span
           className='input-group-text bi bi-eye>'

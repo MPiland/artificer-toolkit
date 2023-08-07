@@ -1,14 +1,10 @@
-import { useEffect, useState, useReducer } from 'react'
+import { useState, useReducer, useRef } from 'react'
 import { useLoginMutation, useGoogleLoginMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
 import { useNavigate } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 import formReducer from '../../hooks/useReducer'
 import Input from '../../components/Input'
-
-const PWD_REGEX =
-  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
-const USER_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const Login = () => {
   // Login hook
@@ -23,34 +19,35 @@ const Login = () => {
   const [state, setState] = useReducer(formReducer, {})
   const [persist, setPersist] = usePersist()
   const [errMsg, setErrMsg] = useState('')
+  const inputRefs = useRef([])
 
-  console.log(persist)
+  const addToInputRefs = (ref) => {
+    if (ref && !inputRefs.current.includes(ref)) {
+      inputRefs.current.push(ref)
+    }
+  }
 
-  useEffect(() => {
-    setState({
-      payload: {
-        target: {
-          name: 'validUsername',
-          value: USER_REGEX.test(state.username),
-        },
-      },
+  const handleValidation = () => {
+    let isValid
+    inputRefs.current.forEach((inputRef) => {
+      if (inputRef) {
+        const validStatus = inputRef.getValidation()
+        if (!validStatus) {
+          inputRef.setClass('is-invalid')
+          isValid = false
+        } else {
+          inputRef.setClass('is-valid')
+        }
+      }
     })
-  }, [state.username])
-
-  useEffect(() => {
-    setState({
-      payload: {
-        target: {
-          name: 'validPassword',
-          value: PWD_REGEX.test(state.password),
-        },
-      },
-    })
-  }, [state.password])
+    return isValid
+  }
 
   // Login function
   const onLoginClicked = async () => {
-    if (state.validUsername === true && state.validPassword === true) {
+    const isValid = handleValidation()
+    if (isValid !== false) {
+      setState({ payload: { target: { name: 'submitting', value: true } } })
       try {
         await login({ username: state.username, password: state.password })
         navigate('/')
@@ -60,25 +57,6 @@ const Login = () => {
         } else {
           setErrMsg(err.message)
         }
-      }
-    } else {
-      if (!state.validUsername) {
-        setState({
-          payload: { target: { name: 'validUClass', value: 'is-invalid' } },
-        })
-      } else {
-        setState({
-          payload: { target: { name: 'validUClass', value: 'is-valid' } },
-        })
-      }
-      if (!state.validPassword) {
-        setState({
-          payload: { target: { name: 'validPClass', value: 'is-invalid' } },
-        })
-      } else {
-        setState({
-          payload: { target: { name: 'validPClass', value: 'is-valid' } },
-        })
       }
     }
   }
@@ -98,43 +76,51 @@ const Login = () => {
   const content = (
     <form className='needs-validation' noValidate>
       {isError && <p>{errMsg}</p>}
-      <Input
-        type='email'
-        className={`${state?.validUClass} mb-3`}
-        name='username'
-        label={true}
-        placeholder='Email Address'
-        autoComplete='username'
-        onChange={(input) => setState({ payload: { target: input } })}
-        invalidText='Username must be a valid email address.'
-      />
-      <div className='input-group mb-3'>
+      <div className='pb-2'>
         <Input
-          type={state.showPassword ? 'text' : 'password'}
-          className={`${state?.validPClass}`}
-          name='password'
-          placeholder='Password'
+          ref={addToInputRefs}
+          validation='user'
+          type='email'
+          name='username'
           label={true}
-          autoComplete='password'
-          aria-describedby='eye-addon'
-          invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
-          onChange={(input) => setState({ payload: { target: input } })}
+          placeholder='Email Address'
+          autoComplete='username'
+          required={true}
+          onChange={setState}
+          invalidText='Username must be a valid email address.'
         />
-        <span
-          className='input-group-text bi bi-eye>'
-          id='eye-addon'
-          onClick={() =>
-            setState({
-              payload: {
-                target: { name: 'showPassword', value: !state.showPassword },
-              },
-            })
-          }
-        >
-          <i
-            className={state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}
-          ></i>
-        </span>
+      </div>
+      <div className='pb-2'>
+        <div className='input-group'>
+          <Input
+            ref={addToInputRefs}
+            validation='pwd'
+            type={state.showPassword ? 'text' : 'password'}
+            name='password'
+            placeholder='Password'
+            label={true}
+            autoComplete='password'
+            required={true}
+            aria-describedby='eye-addon'
+            invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
+            onChange={setState}
+          />
+          <span
+            className='input-group-text bi bi-eye>'
+            id='eye-addon'
+            onClick={() =>
+              setState({
+                payload: {
+                  target: { name: 'showPassword', value: !state.showPassword },
+                },
+              })
+            }
+          >
+            <i
+              className={state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'}
+            ></i>
+          </span>
+        </div>
       </div>
       <div className='pb-2'>
         <input
@@ -154,7 +140,6 @@ const Login = () => {
         disabled={state?.submitting}
         onClick={(e) => {
           e.preventDefault()
-          setState({ payload: { target: { name: 'submitting', value: true } } })
           onLoginClicked()
         }}
       >

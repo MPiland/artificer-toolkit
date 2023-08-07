@@ -77,7 +77,6 @@ const Select = forwardRef(
       ) {
         dropdownRef.current.classList.remove('show')
         buttonRef.current.setAttribute('aria-expanded', 'false')
-        console.log(event.target)
       }
     }
 
@@ -136,7 +135,7 @@ const Select = forwardRef(
         }
       }
 
-      onChange({ name: name, value: updatedOptions })
+      onChange({ payload: { target: { name: name, value: updatedOptions } } })
       if (classText === 'is-invalid') {
         // setClassText('is-valid')
       }

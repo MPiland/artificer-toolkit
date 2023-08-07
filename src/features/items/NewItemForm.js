@@ -14,9 +14,6 @@ import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
 import { textPasteRule } from '@tiptap/react'
 
-const NUM_REGEX = /^[0-9\b]+$/
-const CUR_REGEX = /^\d*\.?\d*$/
-
 const NewItemForm = () => {
   const { id } = useAuth()
   const navigate = useNavigate()
@@ -67,24 +64,20 @@ const NewItemForm = () => {
 
   useEffect(() => {
     document.addEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-      }
-      if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-      }
-      if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
   })
 
@@ -95,7 +88,7 @@ const NewItemForm = () => {
   }
 
   const handleValidation = (resetValidation) => {
-    let isValid
+    let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
         const selectValue = selectRef.getValue()
@@ -181,9 +174,7 @@ const NewItemForm = () => {
                   value={item.sense}
                   options={feats}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -215,9 +206,7 @@ const NewItemForm = () => {
                   value={item.modType}
                   options={builders.modifier.modType}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item.modType?.name && (
                   <Select
@@ -234,9 +223,7 @@ const NewItemForm = () => {
                         .some((moduleID) => moduleID === moduleItem._id)
                     )}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {(item.modType?.name === 'bonus' ||
@@ -253,9 +240,7 @@ const NewItemForm = () => {
                         value={item.ability}
                         options={builders.ability}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                     {item.module?.name === 'saveAbility' && (
@@ -277,9 +262,7 @@ const NewItemForm = () => {
                         value={item.skill}
                         options={builders.skill}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                   </>
@@ -298,9 +281,7 @@ const NewItemForm = () => {
                         )
                       )}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )}
                 {item.module?.name === 'condition' ? (
@@ -311,9 +292,7 @@ const NewItemForm = () => {
                     value={item.condition}
                     options={builders.condition}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : item.module?.name === 'speed' ? (
                   <Select
@@ -323,9 +302,7 @@ const NewItemForm = () => {
                     value={item.speed}
                     options={builders.speed}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : item.module?.name === 'passive' ? (
                   <Select
@@ -335,9 +312,7 @@ const NewItemForm = () => {
                     placeholder='Passive Type'
                     options={builders.passive}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : (
                   item.module?.name === 'damage' && (
@@ -347,9 +322,7 @@ const NewItemForm = () => {
                       placeholder='Damage Type'
                       options={builders.damage}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )
                 )}
@@ -357,12 +330,7 @@ const NewItemForm = () => {
                 item.modType?.name === 'setValue' ? (
                   <>
                     <Input
-                      className={`${
-                        item.method?.setValue &&
-                        (NUM_REGEX.test(item.method.setValue)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
+                      validation={'num'}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                       placeholder='Set Value'
                       label={true}
@@ -379,9 +347,7 @@ const NewItemForm = () => {
                       value={item.multiplier}
                       options={builders.modifier.multiplier}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   </>
                 ) : item.method?.name === 'ability' ? (
@@ -392,9 +358,7 @@ const NewItemForm = () => {
                     value={item.method.ability}
                     options={builders.ability}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : (
                   item.method?.name === 'skill' && (
@@ -405,9 +369,7 @@ const NewItemForm = () => {
                       value={item.method.skill}
                       options={builders.skill}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )
                 )}
@@ -424,9 +386,7 @@ const NewItemForm = () => {
                         { name: false, value: 'No' },
                       ]}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )}
               </div>
@@ -459,9 +419,7 @@ const NewItemForm = () => {
                   value={item.area}
                   options={builders.proficiency.area}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item.area?.name === 'skill' && (
                   <Select
@@ -471,9 +429,7 @@ const NewItemForm = () => {
                     placeholder='Skill'
                     options={builders.skill}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item.area?.name === 'saveAbility' && (
@@ -484,9 +440,7 @@ const NewItemForm = () => {
                     placeholder='Save Ability'
                     options={builders.ability}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'tool' && (
@@ -497,9 +451,7 @@ const NewItemForm = () => {
                     value={item.tool}
                     options={builders.tool}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'language' && (
@@ -510,9 +462,7 @@ const NewItemForm = () => {
                     value={item.language}
                     options={builders.language}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item.area?.name === 'itemType' && (
@@ -527,9 +477,7 @@ const NewItemForm = () => {
                       )
                     )}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item.area?.name === 'itemProperty' && (
@@ -544,9 +492,7 @@ const NewItemForm = () => {
                       )
                     )}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 <Select
@@ -556,9 +502,7 @@ const NewItemForm = () => {
                   value={item.level}
                   options={builders.proficiency.level}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -590,9 +534,7 @@ const NewItemForm = () => {
                   value={item.sense}
                   options={builders.sense}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -623,9 +565,7 @@ const NewItemForm = () => {
                   value={item.attribute}
                   options={builders.feat.feature.spell.attribute}
                   placeholder='Spell Attributes'
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 <Select
                   ref={addToSelectRefs}
@@ -634,9 +574,7 @@ const NewItemForm = () => {
                   value={item}
                   options={spells}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item.attribute?.some(
                   (attributeItem) => attributeItem.name === 'optionalAbility'
@@ -648,9 +586,7 @@ const NewItemForm = () => {
                     value={item.ability}
                     options={builders.ability}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -728,9 +664,7 @@ const NewItemForm = () => {
                     placeholder='Feature Name'
                     value={featureItem.value ?? ''}
                     clickable={false}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </AccordionButton>
@@ -784,9 +718,7 @@ const NewItemForm = () => {
                       options={builders.item.feature.attribute}
                       placeholder='Feature Attributes'
                       value={featureItem.attribute}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                     {featureItem.attribute?.some(
                       (attributeItem) =>
@@ -800,9 +732,7 @@ const NewItemForm = () => {
                         value={featureItem.requirement?.option}
                         options={builders.item.feature.requirements}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.requirement &&
@@ -826,9 +756,7 @@ const NewItemForm = () => {
                         placeholder='Skill Proficiency'
                         options={builders.skill}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.requirement?.skillProficiency &&
@@ -856,9 +784,7 @@ const NewItemForm = () => {
                           }
                           options={builders.item.itemCategory}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -878,9 +804,7 @@ const NewItemForm = () => {
                               .map((filteredItem) => filteredItem.itemType)
                           )}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -901,9 +825,7 @@ const NewItemForm = () => {
                               .map((filteredItem) => filteredItem.itemProperty)
                           )}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -928,9 +850,7 @@ const NewItemForm = () => {
                           value={featureItem.limitUse?.limitBy}
                           options={builders.item.feature.chargeLimit}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
@@ -940,9 +860,7 @@ const NewItemForm = () => {
                             value={featureItem.limitUse?.ability}
                             options={builders.ability}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
@@ -952,29 +870,20 @@ const NewItemForm = () => {
                             value={featureItem.limitUse?.skill}
                             options={builders.skill}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         ) : (
                           featureItem.limitUse?.limitBy?.name ===
                             'setNumber' && (
                             <Input
-                              className={`${
-                                featureItem.limitUse?.setAmount &&
-                                (NUM_REGEX.test(featureItem.limitUse?.setAmount)
-                                  ? 'is-valid'
-                                  : 'is-invalid')
-                              }`}
+                              validation={'num'}
                               name={`feature.${featureIndex}.limitUse.setAmount`}
                               label={true}
                               invalidText='Must contain only numbers'
                               placeholder='Use Amount'
                               required={true}
                               value={featureItem.limitUse?.setAmount ?? ''}
-                              onChange={(input) =>
-                                setState({ payload: { target: input } })
-                              }
+                              onChange={setState}
                             />
                           )
                         )}
@@ -985,9 +894,7 @@ const NewItemForm = () => {
                           value={featureItem.limitUse?.resetsOn}
                           options={builders.item.feature.chargeReset}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1013,9 +920,7 @@ const NewItemForm = () => {
                             value={featureItem.action}
                             options={builders.item.feature.action}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         </div>
                       </>
@@ -1035,12 +940,7 @@ const NewItemForm = () => {
                     ) ? (
                       <>
                         <Input
-                          className={`${
-                            featureItem.range?.minRange &&
-                            (NUM_REGEX.test(featureItem.range?.minRange)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
+                          validation={'num'}
                           name={`feature.${featureIndex}.range.minRange`}
                           autoComplete='off'
                           label={true}
@@ -1048,17 +948,10 @@ const NewItemForm = () => {
                           required={true}
                           invalidText='Must contain only numbers'
                           value={featureItem.range.minRange ?? ''}
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          onChange={setState}
                         />
                         <Input
-                          className={`${
-                            featureItem.range?.maxRange &&
-                            (NUM_REGEX.test(featureItem.range?.maxRange)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
+                          validation={'num'}
                           name={`feature.${featureIndex}.range.maxRange`}
                           label={true}
                           autoComplete='off'
@@ -1066,9 +959,7 @@ const NewItemForm = () => {
                           required={true}
                           invalidText='Must contain only numbers'
                           value={featureItem.range.maxRange ?? ''}
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1092,9 +983,7 @@ const NewItemForm = () => {
                         value={featureItem.saveAbility}
                         options={builders.ability}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.saveAbility &&
@@ -1135,9 +1024,7 @@ const NewItemForm = () => {
                             }
                             options={builders.item.itemCategory}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1179,9 +1066,7 @@ const NewItemForm = () => {
                                 )
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         </div>
                       </div>
@@ -1224,9 +1109,7 @@ const NewItemForm = () => {
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
                             required={textPasteRule}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1245,9 +1128,7 @@ const NewItemForm = () => {
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1270,9 +1151,7 @@ const NewItemForm = () => {
                                 )
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         </div>
                       </div>
@@ -1347,9 +1226,7 @@ const NewItemForm = () => {
                           placeholder='Damage Attribute'
                           options={builders.item.feature.damageAttribute}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -1358,9 +1235,7 @@ const NewItemForm = () => {
                           value={featureItem.damage.damageType}
                           options={builders.damage}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </div>
                     )
@@ -1475,7 +1350,7 @@ const NewItemForm = () => {
                 placeholder='Item Name'
                 required={true}
                 value={state.value ?? ''}
-                onChange={(input) => setState({ payload: { target: input } })}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -1484,7 +1359,7 @@ const NewItemForm = () => {
                 value={state.itemCategory}
                 options={builders.item.itemCategory}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -1498,7 +1373,7 @@ const NewItemForm = () => {
                   )?.itemType
                 }
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -1513,7 +1388,7 @@ const NewItemForm = () => {
                   )?.itemProperty
                 }
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -1525,12 +1400,7 @@ const NewItemForm = () => {
                 onChange={setState}
               />
               <Input
-                className={`${
-                  state.cost?.amount &&
-                  (CUR_REGEX.test(state.cost?.amount)
-                    ? 'is-valid'
-                    : 'is-invalid')
-                }`}
+                validation={'cur'}
                 name='cost.amount'
                 autoComplete='off'
                 label={true}
@@ -1538,7 +1408,7 @@ const NewItemForm = () => {
                 required={true}
                 invalidText='Must contain only decimal amounts'
                 value={state.cost?.amount ?? ''}
-                onChange={(input) => setState({ payload: { target: input } })}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -1547,21 +1417,18 @@ const NewItemForm = () => {
                 value={state.cost?.currency}
                 options={builders.currency}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               {state.itemCategory && state.itemCategory?.name !== 'item' && (
                 <Input
-                  className={`${
-                    state?.itemRank &&
-                    (NUM_REGEX.test(state.itemRank) ? 'is-valid' : 'is-invalid')
-                  }`}
+                  validation={'num'}
                   name='itemRank'
                   label={true}
                   invalidText='Must contain only numbers'
                   placeholder='Item Rank'
                   autoComplete='off'
                   value={state.itemRank ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
               )}
             </div>
@@ -1607,21 +1474,14 @@ const NewItemForm = () => {
                   value={state.attribute}
                   options={builders?.item.attribute}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'weight'
               ) && (
                 <Input
-                  className={`${
-                    state.itemWeight &&
-                    (NUM_REGEX.test(state.itemWeight)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
+                  validation={'num'}
                   name='itemWeight'
                   label={true}
                   invalidText='Must contain only numbers'
@@ -1629,19 +1489,14 @@ const NewItemForm = () => {
                   autoComplete='off'
                   required={true}
                   value={state.itemWeight ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'container'
               ) && (
                 <Input
-                  className={`${
-                    state.capacityWeight &&
-                    (NUM_REGEX.test(state.capacityWeight)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
+                  validation={'num'}
                   name='capacityWeight'
                   label={true}
                   invalidText='Must contain only numbers'
@@ -1649,17 +1504,14 @@ const NewItemForm = () => {
                   autoComplete='off'
                   required={true}
                   value={state.capacityWeight ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'stackable'
               ) && (
                 <Input
-                  className={`${
-                    state.maxStack &&
-                    (NUM_REGEX.test(state.maxStack) ? 'is-valid' : 'is-invalid')
-                  }`}
+                  validation={'num'}
                   type='text'
                   name='maxStack'
                   label={true}
@@ -1668,44 +1520,30 @@ const NewItemForm = () => {
                   autoComplete='off'
                   required={true}
                   value={state.maxStack ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
               )}
               {state.itemCategory?.name === 'weapon' && (
                 <>
                   <Input
-                    className={`${
-                      state.damage?.diceCount &&
-                      (NUM_REGEX.test(state.damage?.diceCount)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name='damage.diceCount'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Count'
                     value={state.damage?.diceCount ?? ''}
                     required={true}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                   <Input
-                    className={`${
-                      state.damage?.diceValue &&
-                      (NUM_REGEX.test(state.damage?.diceValue)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name='damage.diceValue'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Damage Dice Value'
                     value={state.damage?.diceValue ?? ''}
                     required={true}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                   <Select
                     ref={addToSelectRefs}
@@ -1715,9 +1553,7 @@ const NewItemForm = () => {
                     value={state.damage?.damageType}
                     options={builders.damage}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                   <Select
                     ref={addToSelectRefs}
@@ -1726,9 +1562,7 @@ const NewItemForm = () => {
                     value={state.primaryAbility}
                     options={builders.ability}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                   {state?.itemProperty?.find((property) => {
                     return property.name === 'versatile'
@@ -1743,28 +1577,21 @@ const NewItemForm = () => {
                         (abilityItem) =>
                           abilityItem?._id !== state?.primaryAbility?.id
                       )}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )}
                 </>
               )}
               {state.itemCategory?.name === 'armor' && (
                 <Input
-                  className={`${
-                    state.armorValue &&
-                    (NUM_REGEX.test(state.armorValue)
-                      ? 'is-valid'
-                      : 'is-invalid')
-                  }`}
+                  validation={'num'}
                   name='armorValue'
                   label={true}
                   invalidText='Must contain only numbers'
                   placeholder='Armor Value'
                   required={true}
                   value={state.armorValue ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
               )}
               {state.itemProperty?.find(
@@ -1773,38 +1600,24 @@ const NewItemForm = () => {
               ) && (
                 <>
                   <Input
-                    className={`${
-                      state.thrown?.minRange &&
-                      (NUM_REGEX.test(state.thrown?.minRange)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name='thrown.minRange'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Thrown Min Range'
                     value={state.thrown?.minRange ?? ''}
                     required={true}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                   <Input
-                    className={`${
-                      state.thrown?.maxRange &&
-                      (NUM_REGEX.test(state.thrown?.maxRange)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name='thrown.maxRange'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Thrown Max Range'
                     value={state.thrown?.maxRange ?? ''}
                     required={true}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 </>
               )}

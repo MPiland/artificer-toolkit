@@ -219,41 +219,43 @@ const TextEditor = ({
   size,
   className,
 }) => {
-  const [content, setContent] = useState()
   const [initialState] = useState(value)
   const [isChanges, setIsChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   const isEmpty = () => !editor?.state?.doc?.textContent?.trim().length
 
+  let content
+
   const debounceChanges = useDebounce(
     function (editor) {
-      setContent(editor.getHTML())
-      debounceSave() // trigger save for any changes
+      content = editor.getHTML()
+      debounceSave(content) // trigger save for any changes
     },
     250,
-    []
+    name
   ) // every .25 of a second max
 
   // debounce save after no activity in editor
-  const debounceSave = useDebounce(function () {
-    handleSave()
+  const debounceSave = useDebounce(function (content) {
+    handleSave(content)
   }, 3 * 1000) // every 3 seconds max
 
   useAutosave(
-    () => {
+    (content) => {
       // run save if changes and not already saving
       if (isChanges && !isSaving) {
-        handleSave()
+        handleSave(content)
       }
     },
     60 * 1000,
     name
   ) // autosave every minute
 
-  function handleSave() {
+  const handleSave = (content) => {
+    console.log('saving')
     setIsSaving(true)
-    onChange({ payload: { target: { name: name, value: value } } })
+    onChange({ payload: { target: { name: name, value: content } } })
     setIsSaving(false)
     setIsChanges(false)
   }

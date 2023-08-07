@@ -15,8 +15,6 @@ import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
 import AccordionButton from '../../components/AccordionButton'
 
-const NUM_REGEX = /^[0-9\b]+$/
-
 const EditSpellForm = () => {
   const { id } = useAuth()
   const location = useLocation()
@@ -266,24 +264,20 @@ const EditSpellForm = () => {
                 label={true}
                 placeholder='Spell Name'
                 autoComplete='off'
-                value={state.value ?? ''}
+                value={state.value}
                 required={true}
                 clickable={false}
-                onChange={(input) => setState({ payload: { target: input } })}
-                onClick={(e) => e.stopPropagation()}
+                onChange={setState}
               />
               <Input
-                className={`${
-                  state.level &&
-                  (NUM_REGEX.test(state.level) ? 'is-valid' : 'is-invalid')
-                }`}
+                validation={'num'}
                 name='level'
                 label={true}
                 invalidText='Must contain only numbers'
                 placeholder='Spell Level'
                 required={true}
-                value={state.level ?? ''}
-                onChange={(input) => setState({ payload: { target: input } })}
+                value={state.level}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -293,7 +287,7 @@ const EditSpellForm = () => {
                 value={state.school}
                 options={builders.spell.school}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <Select
                 name='requirement'
@@ -303,7 +297,7 @@ const EditSpellForm = () => {
                 value={state.requirement}
                 options={builders.spell.requirement}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               {state.requirement?.some(
                 (requirementItem) => requirementItem.name === 'material'
@@ -314,7 +308,7 @@ const EditSpellForm = () => {
                   placeholder='Material Description'
                   required={true}
                   value={state.materialDesc ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
               )}
             </div>
@@ -360,7 +354,7 @@ const EditSpellForm = () => {
                     ? attributeItem
                     : attributeItem.name !== 'secondaryDamage'
                 )}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -369,21 +363,16 @@ const EditSpellForm = () => {
                 value={state.action?.actionType}
                 options={builders.spell.action}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <Input
-                className={`${
-                  state?.action?.value &&
-                  (NUM_REGEX.test(state.action?.value)
-                    ? 'is-valid'
-                    : 'is-invalid')
-                }`}
+                validation={'num'}
                 name='action.value'
                 label={true}
                 placeholder='Casting Increment'
                 value={state.action?.value ?? ''}
                 required={true}
-                onChange={(input) => setState({ payload: { target: input } })}
+                onChange={setState}
               />
               <Select
                 ref={addToSelectRefs}
@@ -392,17 +381,12 @@ const EditSpellForm = () => {
                 value={state.duration?.durationType}
                 options={builders.spell.duration}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               {state.duration &&
                 state.duration?.durationType.name !== 'instantaneous' && (
                   <Input
-                    className={`${
-                      state?.duration?.value &&
-                      (NUM_REGEX.test(state.duration.value)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name='duration.value'
                     label={true}
                     invalidText='Must contain only numbers'
@@ -410,9 +394,7 @@ const EditSpellForm = () => {
                     autoComplete='off'
                     required={true}
                     value={state.duration?.value ?? ''}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               <Select
@@ -422,19 +404,14 @@ const EditSpellForm = () => {
                 value={state.range?.rangeType}
                 options={builders.spell.range}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               {state.range?.rangeType &&
                 state.range?.rangeType?.name !== 'touch' && (
                   <>
                     {state.range.rangeType.name === 'distance' && (
                       <Input
-                        className={`${
-                          state.range?.distance &&
-                          (NUM_REGEX.test(state.range?.distance)
-                            ? 'is-valid'
-                            : 'is-invalid')
-                        }`}
+                        validation={'num'}
                         name='range.distance'
                         label={true}
                         invalidText='Must contain only numbers'
@@ -442,9 +419,7 @@ const EditSpellForm = () => {
                         autoComplete='off'
                         required={true}
                         value={state.range?.distance ?? ''}
-                        onChange={(input) =>
-                          setState({ payload: { target: input } })
-                        }
+                        onChange={setState}
                       />
                     )}
                     <Select
@@ -454,19 +429,13 @@ const EditSpellForm = () => {
                       options={builders.spell.shape}
                       value={state.shape?.shapeType}
                       required={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                     {state.shape?.shapeType.name &&
-                      state.shape?.shapeType.name !== 'none' && (
+                      state.shape?.shapeType.name !== 'none' &&
+                      state.shape?.shapeType.name !== 'weapon' && (
                         <Input
-                          className={`${
-                            state?.shape?.size &&
-                            (NUM_REGEX.test(state.shape.size)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
+                          validation={'num'}
                           name='shape.size'
                           label={true}
                           invalidText='Must contain only numbers'
@@ -474,9 +443,7 @@ const EditSpellForm = () => {
                           autoComplete='off'
                           required={true}
                           value={state.shape?.size ?? ''}
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          onChange={setState}
                         />
                       )}
                   </>
@@ -493,9 +460,7 @@ const EditSpellForm = () => {
                   value={state.saveAbility}
                   options={builders.ability}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               )}
             </div>
@@ -521,10 +486,7 @@ const EditSpellForm = () => {
                     placeholder='Damage Attribute'
                     value={state.damage?.damageAttribute}
                     options={builders.spell.damageAttribute}
-                    required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                   <Select
                     ref={addToSelectRefs}
@@ -534,9 +496,7 @@ const EditSpellForm = () => {
                     value={state.damage?.damageType}
                     options={builders.damage}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                   <div className='col-lg-6 col-md-12'></div>
                 </div>

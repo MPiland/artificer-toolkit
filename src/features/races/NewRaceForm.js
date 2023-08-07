@@ -73,22 +73,26 @@ const NewRaceForm = () => {
     document.addEventListener('keypress', () => {
       if (!!successMessage) {
         setSuccessMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
       if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage) {
         setSuccessMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
       if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
   })
 
@@ -99,7 +103,7 @@ const NewRaceForm = () => {
   }
 
   const handleValidation = (resetValidation) => {
-    let isValid
+    let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
         const selectValue = selectRef.getValue()
@@ -198,9 +202,7 @@ const NewRaceForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -215,9 +217,7 @@ const NewRaceForm = () => {
                   value={item.feat}
                   options={feats}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -260,9 +260,7 @@ const NewRaceForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -274,9 +272,7 @@ const NewRaceForm = () => {
                   value={item.modType}
                   options={builders.modifier.modType}
                   required={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item.modType?.name && (
                   <Select
@@ -293,9 +289,7 @@ const NewRaceForm = () => {
                         .some((moduleID) => moduleID === moduleItem._id)
                     )}
                     required={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {(item.modType?.name === 'bonus' ||
@@ -315,9 +309,7 @@ const NewRaceForm = () => {
                         value={item.ability}
                         options={builders.ability}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                     {item.module?.name === 'saveAbility' && (
@@ -331,9 +323,7 @@ const NewRaceForm = () => {
                         value={item.saveAbility}
                         options={builders.ability}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                     {item.module?.name === 'skill' && (
@@ -347,9 +337,7 @@ const NewRaceForm = () => {
                         value={item.skill}
                         options={builders.skill}
                         require={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                   </>
@@ -368,9 +356,7 @@ const NewRaceForm = () => {
                         )
                       )}
                       require={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )}
                 {item.module?.name === 'condition' ? (
@@ -384,9 +370,7 @@ const NewRaceForm = () => {
                     value={item.condition}
                     options={builders.condition}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : item.module?.name === 'speed' ? (
                   <Select
@@ -399,9 +383,7 @@ const NewRaceForm = () => {
                     placeholder='Speed Type'
                     options={builders.speed}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : item.module?.name === 'passive' ? (
                   <Select
@@ -414,9 +396,7 @@ const NewRaceForm = () => {
                     value={item.passive}
                     options={builders.passive}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : (
                   item.module?.name === 'damage' && (
@@ -430,9 +410,7 @@ const NewRaceForm = () => {
                       value={item.damage.damageType}
                       options={builders.damage}
                       require={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )
                 )}
@@ -453,9 +431,7 @@ const NewRaceForm = () => {
                       autoComplete='off'
                       value={item.method?.setValue ?? ''}
                       require={true}
-                      onChange={(input) =>
-                        setState({ payload: { target: input } })
-                      }
+                      onChange={setState}
                     />
                     <Select
                       ref={addToSelectRefs}
@@ -464,9 +440,7 @@ const NewRaceForm = () => {
                       value={item.multiplier}
                       options={builders.modifier.multiplier}
                       require={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   </>
                 ) : item.method?.name === 'ability' ? (
@@ -477,9 +451,7 @@ const NewRaceForm = () => {
                     value={item.method.ability}
                     options={builders.ability}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 ) : (
                   item.method?.name === 'skill' && (
@@ -490,9 +462,7 @@ const NewRaceForm = () => {
                       value={item.method.skill}
                       options={builders.skill}
                       require={true}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                   )
                 )}
@@ -508,9 +478,7 @@ const NewRaceForm = () => {
                       { name: false, value: 'No' },
                     ]}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -554,9 +522,7 @@ const NewRaceForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -568,9 +534,7 @@ const NewRaceForm = () => {
                   value={item.area}
                   options={builders.proficiency.area}
                   require={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item?.area?.name === 'skill' && (
                   <Select
@@ -583,9 +547,7 @@ const NewRaceForm = () => {
                     value={item.skill}
                     options={builders.skill}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'saveAbility' && (
@@ -599,9 +561,7 @@ const NewRaceForm = () => {
                     value={item.saveAbility}
                     options={builders.ability}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'tool' && (
@@ -615,9 +575,7 @@ const NewRaceForm = () => {
                     value={item.tool}
                     options={builders.tool}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item?.area?.name === 'language' && (
@@ -631,9 +589,7 @@ const NewRaceForm = () => {
                     value={item.language}
                     options={builders.language}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item.area?.name === 'itemType' && (
@@ -651,9 +607,7 @@ const NewRaceForm = () => {
                         (categoryItem) => categoryItem.itemType
                       )
                     )}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 {item.area?.name === 'itemProperty' && (
@@ -671,9 +625,7 @@ const NewRaceForm = () => {
                         (categoryItem) => categoryItem.itemProperty
                       )
                     )}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
                 <Select
@@ -683,9 +635,7 @@ const NewRaceForm = () => {
                   value={item.level}
                   options={builders.proficiency.level}
                   require={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -728,9 +678,7 @@ const NewRaceForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -745,9 +693,7 @@ const NewRaceForm = () => {
                   value={item.sense}
                   options={builders.sense}
                   require={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
               </div>
             </>
@@ -790,9 +736,7 @@ const NewRaceForm = () => {
                     autoComplete='off'
                     value={item.optionGroup ?? ''}
                     invalidText='Must contain only numbers'
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -805,9 +749,7 @@ const NewRaceForm = () => {
                   placeholder='Spell Attributes'
                   value={item.attribute}
                   require={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 <Select
                   ref={addToSelectRefs}
@@ -819,9 +761,7 @@ const NewRaceForm = () => {
                   value={item}
                   options={spells}
                   require={true}
-                  onChange={(option) =>
-                    setState({ payload: { target: option } })
-                  }
+                  onChange={setState}
                 />
                 {item.attribute?.some(
                   (attributeItem) => attributeItem.name === 'optionalAbility'
@@ -836,9 +776,7 @@ const NewRaceForm = () => {
                     value={item.ability}
                     options={builders.ability}
                     require={true}
-                    onChange={(option) =>
-                      setState({ payload: { target: option } })
-                    }
+                    onChange={setState}
                   />
                 )}
               </div>
@@ -916,9 +854,7 @@ const NewRaceForm = () => {
                     autoComplete='off'
                     placeholder='Feature Name'
                     value={featureItem.value ?? ''}
-                    onChange={(input) =>
-                      setState({ payload: { target: input } })
-                    }
+                    onChange={setState}
                     clickable={false}
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -973,9 +909,7 @@ const NewRaceForm = () => {
                       options={builders.race.feature.attribute}
                       placeholder='Feature Attributes'
                       value={featureItem.attribute}
-                      onChange={(option) =>
-                        setState({ payload: { target: option } })
-                      }
+                      onChange={setState}
                     />
                     {featureItem.attribute?.some(
                       (attributeItem) =>
@@ -989,9 +923,7 @@ const NewRaceForm = () => {
                         placeholder='Ancestry'
                         value={featureItem.ancestry}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     )}
                     {featureItem.attribute?.some(
@@ -1006,9 +938,7 @@ const NewRaceForm = () => {
                         options={builders.race.feature.requirements}
                         value={featureItem.requirement?.option}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.requirement &&
@@ -1032,9 +962,7 @@ const NewRaceForm = () => {
                         value={featureItem.requirement?.skillProficiency}
                         options={builders.skill}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.requirement?.skillProficiency &&
@@ -1062,9 +990,7 @@ const NewRaceForm = () => {
                           }
                           options={builders.item.itemCategory}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -1084,9 +1010,7 @@ const NewRaceForm = () => {
                               .map((filteredItem) => filteredItem.itemType)
                           )}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -1107,9 +1031,7 @@ const NewRaceForm = () => {
                               .map((filteredItem) => filteredItem.itemProperty)
                           )}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1134,9 +1056,7 @@ const NewRaceForm = () => {
                           value={featureItem.limitUse?.limitBy}
                           options={builders.race.feature.chargeLimit}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                           <Select
@@ -1146,9 +1066,7 @@ const NewRaceForm = () => {
                             value={featureItem.limitUse?.ability}
                             options={builders.ability}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                           <Select
@@ -1158,9 +1076,7 @@ const NewRaceForm = () => {
                             value={featureItem.limitUse?.skill}
                             options={builders.skill}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         ) : (
                           featureItem.limitUse?.limitBy?.name ===
@@ -1179,9 +1095,7 @@ const NewRaceForm = () => {
                               placeholder='Use Amount'
                               value={featureItem.limitUse?.setAmount ?? ''}
                               required={true}
-                              onChange={(input) =>
-                                setState({ payload: { target: input } })
-                              }
+                              onChange={setState}
                             />
                           )
                         )}
@@ -1192,9 +1106,7 @@ const NewRaceForm = () => {
                           value={featureItem.limitUse?.resetsOn}
                           options={builders.race.feature.chargeReset}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1219,9 +1131,7 @@ const NewRaceForm = () => {
                           value={featureItem.action}
                           options={builders.race.feature.action}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1253,9 +1163,7 @@ const NewRaceForm = () => {
                           required={true}
                           value={featureItem.range?.minRange ?? ''}
                           invalidText='Must contain only numbers'
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          onChange={setState}
                         />
                         <Input
                           className={`${
@@ -1271,9 +1179,7 @@ const NewRaceForm = () => {
                           required={true}
                           invalidText='Must contain only numbers'
                           value={featureItem.range?.maxRange ?? ''}
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          onChange={setState}
                         />
                       </>
                     ) : (
@@ -1297,9 +1203,7 @@ const NewRaceForm = () => {
                         value={featureItem.saveAbility}
                         options={builders.ability}
                         required={true}
-                        onChange={(option) =>
-                          setState({ payload: { target: option } })
-                        }
+                        onChange={setState}
                       />
                     ) : (
                       !!featureItem.saveAbility &&
@@ -1338,9 +1242,7 @@ const NewRaceForm = () => {
                             value={featureItem.requirement?.equipped}
                             options={builders.item.itemCategory}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1359,9 +1261,7 @@ const NewRaceForm = () => {
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1427,9 +1327,7 @@ const NewRaceForm = () => {
                             }
                             options={builders.item.itemCategory}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1450,9 +1348,7 @@ const NewRaceForm = () => {
                                 .map((filteredItem) => filteredItem.itemType)
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
@@ -1475,9 +1371,7 @@ const NewRaceForm = () => {
                                 )
                             )}
                             required={true}
-                            onChange={(option) =>
-                              setState({ payload: { target: option } })
-                            }
+                            onChange={setState}
                           />
                         </div>
                       </div>
@@ -1551,9 +1445,7 @@ const NewRaceForm = () => {
                           value={featureItem.damage?.damageAttribute}
                           options={builders.race.feature.damageAttribute}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                         <Select
                           ref={addToSelectRefs}
@@ -1563,9 +1455,7 @@ const NewRaceForm = () => {
                           value={featureItem.damage?.damageType}
                           options={builders.damage}
                           required={true}
-                          onChange={(option) =>
-                            setState({ payload: { target: option } })
-                          }
+                          onChange={setState}
                         />
                       </div>
                     )
@@ -1671,7 +1561,7 @@ const NewRaceForm = () => {
               placeholder='Race Name'
               required={true}
               value={state.value ?? ''}
-              onChange={(input) => setState({ payload: { target: input } })}
+              onChange={setState}
             />
             <Select
               ref={addToSelectRefs}
@@ -1680,7 +1570,7 @@ const NewRaceForm = () => {
               value={state?.category}
               options={builders.race.category}
               required={true}
-              onChange={(option) => setState({ payload: { target: option } })}
+              onChange={setState}
             />
             {state.category?.name && state.category?.name !== 'base' && (
               <Select
@@ -1691,7 +1581,7 @@ const NewRaceForm = () => {
                 value={state?.lineage}
                 options={races}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
             )}
           </div>
@@ -1738,9 +1628,7 @@ const NewRaceForm = () => {
                           placeholder='Section Title'
                           label={true}
                           value={detailItem.title ?? ''}
-                          onChange={(input) =>
-                            setState({ payload: { target: input } })
-                          }
+                          onChange={setState}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </AccordionButton>
@@ -1795,7 +1683,7 @@ const NewRaceForm = () => {
                 value={state?.attribute}
                 options={builders.race.attribute}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <TextEditor
                 short={true}
@@ -1816,7 +1704,7 @@ const NewRaceForm = () => {
                 value={state?.size}
                 options={builders.race.size}
                 required={true}
-                onChange={(option) => setState({ payload: { target: option } })}
+                onChange={setState}
               />
               <TextEditor
                 short={true}
@@ -1846,7 +1734,7 @@ const NewRaceForm = () => {
                   invalidText='Must contain only numbers'
                   value={state.speed?.walking?.value ?? ''}
                   required={true}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
                 <TextEditor
                   short={true}
@@ -1877,7 +1765,7 @@ const NewRaceForm = () => {
                   invalidText='Must contain only numbers'
                   required={true}
                   value={state.speed?.climbing?.value ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
                 <TextEditor
                   short={true}
@@ -1908,7 +1796,7 @@ const NewRaceForm = () => {
                   invalidText='Must contain only numbers'
                   required={true}
                   value={state.speed?.swimming?.value ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
                 <TextEditor
                   short={true}
@@ -1939,7 +1827,7 @@ const NewRaceForm = () => {
                   invalidText='Must contain only numbers'
                   required={true}
                   value={state.speed?.flying?.value ?? ''}
-                  onChange={(input) => setState({ payload: { target: input } })}
+                  onChange={setState}
                 />
                 <TextEditor
                   short={true}

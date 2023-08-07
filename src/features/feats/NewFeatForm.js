@@ -13,8 +13,6 @@ import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
 import AccordionButton from '../../components/AccordionButton'
 
-const NUM_REGEX = /^[0-9\b]+$/
-
 const NewFeatForm = () => {
   const { id } = useAuth()
   const navigate = useNavigate()
@@ -65,24 +63,20 @@ const NewFeatForm = () => {
 
   useEffect(() => {
     document.addEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-      }
-      if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
     return document.removeEventListener('keypress', () => {
-      if (!!successMessage) {
+      if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
-      }
-      if (!!errorMessage) {
         setErrorMessage()
+        const resetValidation = true
+        handleValidation(resetValidation)
       }
-      const resetValidation = true
-      handleValidation(resetValidation)
     })
   })
 
@@ -93,7 +87,7 @@ const NewFeatForm = () => {
   }
 
   const handleValidation = (resetValidation) => {
-    let isValid
+    let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
         const selectValue = selectRef.getValue()
@@ -177,13 +171,7 @@ const NewFeatForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
-                    size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
@@ -239,13 +227,7 @@ const NewFeatForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
-                    size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
@@ -430,12 +412,7 @@ const NewFeatForm = () => {
                 item.modType?.name === 'setValue' ? (
                   <>
                     <Input
-                      className={`${
-                        item.method?.setValue &&
-                        (NUM_REGEX.test(item.method.setValue)
-                          ? 'is-valid'
-                          : 'is-invalid')
-                      }`}
+                      validation={'num'}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                       placeholder='Set Value'
                       label={true}
@@ -531,13 +508,7 @@ const NewFeatForm = () => {
                   (item) => item.name === 'optionGroups'
                 ) && (
                   <Input
-                    size='col-sm-2'
-                    className={`${
-                      item.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
@@ -706,13 +677,7 @@ const NewFeatForm = () => {
                   (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
-                    size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
@@ -769,13 +734,7 @@ const NewFeatForm = () => {
                   (attributeItem) => attributeItem.name === 'optionGroups'
                 ) && (
                   <Input
-                    size='col-sm-2'
-                    className={`${
-                      item?.optionGroup &&
-                      (NUM_REGEX.test(item?.optionGroup)
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
+                    validation={'num'}
                     name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                     label={true}
                     placeholder='Opt. Grp. #'
@@ -1139,12 +1098,7 @@ const NewFeatForm = () => {
                           featureItem.limitUse?.limitBy?.name ===
                             'setNumber' && (
                             <Input
-                              className={`${
-                                featureItem.limitUse?.setAmount &&
-                                (NUM_REGEX.test(featureItem.limitUse?.setAmount)
-                                  ? 'is-valid'
-                                  : 'is-invalid')
-                              }`}
+                              validation={'num'}
                               name={`feature.${featureIndex}.limitUse.setAmount`}
                               label={true}
                               invalidText='Must contain only numbers'
@@ -1212,12 +1166,7 @@ const NewFeatForm = () => {
                     ) ? (
                       <>
                         <Input
-                          className={`${
-                            featureItem.range?.minRange &&
-                            (NUM_REGEX.test(featureItem.range?.minRange)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
+                          validation={'num'}
                           name={`feature.${featureIndex}.range.minRange`}
                           autoComplete='off'
                           label={true}
@@ -1230,12 +1179,7 @@ const NewFeatForm = () => {
                           }
                         />
                         <Input
-                          className={`${
-                            featureItem.range?.maxRange &&
-                            (NUM_REGEX.test(featureItem.range?.maxRange)
-                              ? 'is-valid'
-                              : 'is-invalid')
-                          }`}
+                          validation={'num'}
                           name={`feature.${featureIndex}.range.maxRange`}
                           label={true}
                           autoComplete='off'
@@ -1645,7 +1589,7 @@ const NewFeatForm = () => {
               label={true}
               value={state.value ?? ''}
               required={true}
-              onChange={(input) => setState({ payload: { target: input } })}
+              onChange={setState}
             />
           </div>
           <AccordionButton
