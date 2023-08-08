@@ -156,6 +156,8 @@ const NewSpellForm = () => {
     }
   }
 
+  console.log(textRefs)
+
   let content
 
   if (isLoading) content = <p>Loading...</p>

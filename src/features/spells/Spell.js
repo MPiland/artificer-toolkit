@@ -1,23 +1,13 @@
 import '../../scss/card.scss'
 import parse from 'html-react-parser'
 import { get, truncate } from 'lodash'
-import { memo } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { forwardRef, useImperativeHandle } from 'react'
 
-const Spell = ({ state: spell }) => {
-  const navigate = useNavigate()
-  const location = useLocation()
-
+const Spell = forwardRef(({ state: spell }, ref) => {
   const materialDesc = () => {
     if (spell.materialDesc) {
       return '*' + spell.materialDesc
     } else return ''
-  }
-
-  const editSpell = () => {
-    navigate(`/spells/edit/${spell.name}`, {
-      state: { data: spell, previous: location },
-    })
   }
 
   const getValueFromState = (inputItem, stateItem, truncateNum) => {
@@ -101,7 +91,6 @@ const Spell = ({ state: spell }) => {
 
   const content = (
     <>
-      <hr />
       <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 gy-3'>
         {cols.map((colItem, colIndex) => {
           return (
@@ -127,19 +116,17 @@ const Spell = ({ state: spell }) => {
       <div className='spell-desc'>{parse(spell.desc)}</div>
       <div className='d-flex justify-content-between'>
         <span className='card-subtext'>{materialDesc()}</span>
-        <button
-          className='btn btn-outline-secondary btn-small'
-          onClick={editSpell}
-        >
-          Edit
-        </button>
       </div>
     </>
   )
 
+  useImperativeHandle(ref, () => ({
+    subtext: () => {
+      return 'test'
+    },
+  }))
+
   return content
-}
+})
 
-const memoizedSpell = memo(Spell)
-
-export default memoizedSpell
+export default Spell
