@@ -156,12 +156,20 @@ const EditSpellForm = () => {
       inputRef.resetState()
     })
     textRefs.current.forEach((textRef) => {
-      textRef.resetState()
+      textRef.revertState(oldState)
     })
     setState({
       type: 'reset',
       payload: { target: oldState },
     })
+    if (isEqual(oldState, state)) {
+      setMatch(true)
+    } else {
+      setMatch(false)
+    }
+    setSuccessMessage()
+    setErrorMessage()
+    handleValidation(true)
   }
 
   const onSubmit = async () => {

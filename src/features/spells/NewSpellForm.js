@@ -49,16 +49,14 @@ const NewSpellForm = () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
   })
@@ -137,6 +135,9 @@ const NewSpellForm = () => {
       type: 'reset',
       payload: { target: { userId: id } },
     })
+    setSuccessMessage()
+    setErrorMessage()
+    handleValidation(true)
   }
 
   const onSubmit = async () => {

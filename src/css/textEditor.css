@@ -112,6 +112,7 @@
   position: relative;
   background: transparent;
   border-radius: 5px;
+  border: 1px solid grey;
   height: 160px;
   resize: vertical;
   overflow: hidden;
@@ -121,95 +122,12 @@
   box-shadow: 0 0 0.05rem 0.3rem rgba(13, 110, 253, 0.25);
 }
 
-.textEditor > div:last-child {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid grey;
-  border-top: none;
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
-  overflow: auto;
-}
-
-.textEditor.shortDesc {
-  height: 58px;
-}
-
-.text-editor-content {
-  height: 100%;
-  padding: 0 12px 10px;
-  margin-bottom: 0;
-  outline: none;
-}
-
-.text-editor-content > p {
-  margin-bottom: 0;
-}
-
-.textEditor.shortDesc .text-editor-content {
-  position: absolute;
-  top: 0;
-  height: 58px;
-  width: calc(100% - 8px);
-  resize: none;
-  overflow: hidden;
-  border-radius: 6px;
-  border: 1px solid grey;
-  padding-top: 1.625rem;
-  padding-bottom: 0.625rem;
-}
-
-.label-container {
-  position: relative;
-  border-left: 1px solid grey;
-  border-right: 1px solid grey;
-}
-
-.text-editor-label {
-  left: 0;
-  padding-top: 0.5rem;
-  padding-left: 0.5rem;
-  transform-origin: 0 0;
-  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
-}
-
-.textEditor:focus-within .text-editor-label,
-.text-editor-label.filled {
-  transform: scale(0.85);
-  opacity: 0.65;
-}
-
-.textEditor.shortDesc .text-editor-label {
-  position: absolute;
-  top: 0;
-  height: 58px;
-  width: calc(100% - 8px);
-  border: none;
-  padding: 1rem 0.5rem;
-  transform-origin: 0 0;
-  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
-}
-
-.textEditor.shortDesc:focus-within .text-editor-label {
-  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
-  opacity: 0.65;
-}
-
-.textEditor.shortDesc .text-editor-label.filled {
-  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
-  opacity: 0.65;
-}
-
 .menuBar {
-  border: 1px grey solid;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-left: 0px;
-  margin-right: 0px;
-  border-top-right-radius: 6px;
-  border-top-left-radius: 6px;
+  border-bottom: 1px solid grey;
 }
 
 .menuBar > span {
@@ -235,6 +153,77 @@
 span.is_active {
   background: rgb(197, 197, 197);
   border-radius: 2px;
+}
+
+.label-container {
+  position: relative;
+}
+
+.text-editor-label {
+  left: 0;
+  padding-top: 0.5rem;
+  padding-left: 0.5rem;
+  transform-origin: 0 0;
+  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.textEditor.shortDesc .text-editor-label {
+  position: absolute;
+  top: 0;
+  height: 58px;
+  width: calc(100% - 8px);
+  border: none;
+  padding: 1rem 0.5rem;
+  transform-origin: 0 0;
+  transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.textEditor:focus-within .text-editor-label,
+.text-editor-label.filled {
+  transform: scale(0.85);
+  opacity: 0.65;
+}
+
+.textEditor.shortDesc:focus-within .text-editor-label,
+.textEditor.shortDesc .text-editor-label.filled {
+  transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+  opacity: 0.65;
+}
+
+.textEditor.shortDesc {
+  height: 58px;
+  overflow: hidden;
+  resize: none;
+}
+
+.textEditor > div:last-child {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  border-top: none;
+  overflow: auto;
+}
+
+.text-editor-content {
+  height: 100%;
+  padding: 0 12px 10px;
+  margin-bottom: 0;
+  outline: none;
+}
+
+.text-editor-content > p {
+  margin-bottom: 0;
+}
+
+.textEditor.shortDesc .text-editor-content {
+  position: absolute;
+  top: 0;
+  height: 58px;
+  width: calc(100% - 8px);
+  resize: none;
+  overflow: hidden;
+  padding-top: 1.625rem;
+  padding-bottom: 0.625rem;
 }
 
 /* Placeholder (at the top) */

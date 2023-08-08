@@ -69,16 +69,14 @@ const NewItemForm = () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
   })
@@ -157,6 +155,9 @@ const NewItemForm = () => {
       type: 'reset',
       payload: { target: { userId: id } },
     })
+    setSuccessMessage(true)
+    setErrorMessage(true)
+    handleValidation(true)
   }
 
   const onSubmit = async () => {

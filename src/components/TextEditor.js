@@ -286,21 +286,26 @@ const TextEditor = forwardRef(
       resetState() {
         editor?.commands.setContent(null)
       },
+      revertState() {
+        editor?.commands.setContent(initialState)
+      },
     }))
 
     return (
-      <div
-        className={`textEditor${size ? ` ${size}` : ' mb-2'} ${
-          short ? 'shortDesc' : ''
-        } ${className ? className : ''}`}
-      >
-        <MenuBar editor={editor} noMenuBar={noMenuBar} />
-        <div className='label-container'>
-          <div className={`text-editor-label ${!isEmpty() ? 'filled' : ''}`}>
-            {placeholder}
+      <div className={`${size ? ` ${size}` : ' mb-2'}`}>
+        <div
+          className={`textEditor ${short ? 'shortDesc' : ''} ${
+            className ? className : ''
+          }`}
+        >
+          <MenuBar editor={editor} noMenuBar={noMenuBar} />
+          <div className='label-container'>
+            <div className={`text-editor-label ${!isEmpty() ? 'filled' : ''}`}>
+              {placeholder}
+            </div>
           </div>
+          <EditorContent editor={editor} />
         </div>
-        <EditorContent editor={editor} />
       </div>
     )
   }

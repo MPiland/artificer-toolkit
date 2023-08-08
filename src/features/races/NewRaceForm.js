@@ -75,16 +75,14 @@ const NewRaceForm = () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
   })
@@ -163,6 +161,9 @@ const NewRaceForm = () => {
       type: 'reset',
       payload: { target: { userId: id } },
     })
+    setSuccessMessage()
+    setErrorMessage()
+    handleValidation(true)
   }
 
   const onSubmit = async () => {
@@ -891,7 +892,7 @@ const NewRaceForm = () => {
                     ))}
                   </div>
                   <TextEditor
-                ref={addToTextRefs}
+                    ref={addToTextRefs}
                     className='pb-2'
                     placeholder='Feature description'
                     value={featureItem.desc}
@@ -1588,7 +1589,7 @@ const NewRaceForm = () => {
           </AccordionButton>
           <div className='accordion-collapse collapse show' id='details'>
             <TextEditor
-                ref={addToTextRefs}
+              ref={addToTextRefs}
               name={'quote'}
               value={state?.quote}
               placeholder={'Opening Quote'}
@@ -1647,7 +1648,7 @@ const NewRaceForm = () => {
                           </button>
                         </div>
                         <TextEditor
-                ref={addToTextRefs}
+                          ref={addToTextRefs}
                           name={`details.${detailIndex}.text`}
                           value={detailItem.text}
                           placeholder={'Section Text'}
@@ -1731,7 +1732,7 @@ const NewRaceForm = () => {
                   onChange={setState}
                 />
                 <TextEditor
-                ref={addToTextRefs}
+                  ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.walking.desc'
@@ -1759,7 +1760,7 @@ const NewRaceForm = () => {
                   onChange={setState}
                 />
                 <TextEditor
-                ref={addToTextRefs}
+                  ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.climbing.desc'
@@ -1787,7 +1788,7 @@ const NewRaceForm = () => {
                   onChange={setState}
                 />
                 <TextEditor
-                ref={addToTextRefs}
+                  ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.swimming.desc'
@@ -1815,7 +1816,7 @@ const NewRaceForm = () => {
                   onChange={setState}
                 />
                 <TextEditor
-                ref={addToTextRefs}
+                  ref={addToTextRefs}
                   short={true}
                   size='col-sm'
                   name='speed.flying.desc'
