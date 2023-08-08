@@ -215,7 +215,10 @@ const NewSpellForm = () => {
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create a Spell</h3>
           <div>
-            <button className='btn btn-secondary btn-small me-2' onClick={onReset}>
+            <button
+              className='btn btn-secondary btn-small me-2'
+              onClick={onReset}
+            >
               Reset Form
             </button>
             <button
@@ -439,6 +442,31 @@ const NewSpellForm = () => {
                   </>
                 )}
             </div>
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'secondaryAction'
+            ) && (
+              <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
+                <Select
+                  ref={addToSelectRefs}
+                  name='secondaryAction.actionType'
+                  placeholder='Secondary Action'
+                  value={state.secondaryAction?.actionType}
+                  options={builders.spell.action}
+                  required={true}
+                  onChange={setState}
+                />
+                <Input
+                  ref={addToInputRefs}
+                  validation={'num'}
+                  name='secondaryAction.value'
+                  label={true}
+                  placeholder='Action Increment'
+                  value={state.seccondaryAction?.value}
+                  required={true}
+                  onChange={setState}
+                />
+              </div>
+            )}
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'requireSave'

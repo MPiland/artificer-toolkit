@@ -1,4 +1,6 @@
 import '../css/table.css'
+import { useNavigate, useLocation } from 'react-router-dom'
+import useSortableData from '../hooks/useSortableData'
 import { get } from 'lodash'
 import Input from './Input'
 import TextEditor from './TextEditor'
@@ -15,11 +17,31 @@ const Table = ({
   headers,
   readOnly,
   clickable,
-  onClick,
   rowSize,
   empty,
+  sortable,
 }) => {
-  console.log(value)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const getClassNames = (value) => {
+    if (!sortConfig) {
+      return
+    }
+    return sortConfig.key === value ? sortConfig.direction : ''
+  }
+
+  const showCard = (spell) => {
+    navigate(`/spells/${spell.name}`, {
+      state: {
+        background: location,
+        context: spell.value,
+        data: spell,
+        size: 'xl',
+      },
+    })
+  }
+
   const getValueFromState = (inputItem, valueItem) => {
     const processItem = (item, state) => {
       if (Array.isArray(item)) {
@@ -55,86 +77,95 @@ const Table = ({
     return empty ? empty : null
   }
 
+  const { items, requestSort, sortConfig } = useSortableData(value)
+
   const content = (
     <div>
       {headers && (
         <div className={`row align-items-center pb-2 g-2 ${rowSize ?? ''}`}>
           {headers?.map((headerItem, headerIndex) => {
-            return readOnly ? (
-              <div
-                className={`${headerItem.size ?? ''} ${
-                  headerItem.className ?? ''
-                }`}
-                key={headerIndex}
-              >
-                {headerItem.name}
-              </div>
-            ) : (
-              <Input
-                size={headerItem.size ?? null}
-                className={headerItem.className}
-                key={headerIndex}
-                name={headerItem.name}
-                value={headerItem.name}
-                readOnly={readOnly === true ? true : false}
-                border={headerItem.border}
-              />
+            return (
+              !headerItem.breakpoint &&
+              (readOnly ? (
+                <div
+                  className={`${headerItem.size ?? ''} ${
+                    headerItem.className ?? ''
+                  }  ${getClassNames(headerItem.value)} ${sortable ? 'sortable-header' : ''}`}
+                  key={headerIndex}
+                  onClick={() => sortable && requestSort(headerItem.value)}
+                >
+                  {headerItem.name}
+                </div>
+              ) : (
+                <Input
+                  size={headerItem.size ?? null}
+                  className={headerItem.className}
+                  key={headerIndex}
+                  name={headerItem.name}
+                  value={headerItem.name}
+                  readOnly={readOnly === true ? true : false}
+                  border={headerItem.border}
+                />
+              ))
             )
           })}
         </div>
       )}
-      {value?.map((valueItem, itemIndex) => (
+      {items?.map((valueItem, itemIndex) => (
         <div
           key={itemIndex}
           className={`row pb-2 g-2 ${className ?? ''} ${
             clickable ? 'row-clickable' : ''
           } ${rowSize ?? ''}`}
           onClick={() => {
-            onClick && onClick(valueItem)
+            showCard(valueItem)
           }}
         >
           {inputs?.map((inputItem, inputIndex) => {
-            return readOnly ? (
-              <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
-                {getValueFromState(inputItem, valueItem) !== null
-                  ? getValueFromState(inputItem, valueItem)
-                  : ''}
-              </div>
-            ) : !!inputItem.type && inputItem.type === 'text' ? (
-              <TextEditor
-                short={inputItem.short}
-                size={inputItem.size}
-                noMenuBar={true}
-                placeholder={`${inputItem.value}`}
-                name={`${name}.${itemIndex}.${inputItem.name}`}
-                value={getValueFromState(inputItem, valueItem)}
-                key={inputIndex}
-                onChange={onChange}
-              />
-            ) : (
-              <Input
-                className={`${
-                  inputItem.validation === true &&
-                  valueItem[inputItem.name] &&
-                  (NUM_REGEX.test(valueItem[inputItem.name])
-                    ? 'is-valid'
-                    : 'is-invalid')
-                }`}
-                size={inputItem.size ?? null}
-                name={`${name}.${itemIndex}.${inputItem.name}`}
-                label={inputItem.label ?? false}
-                border={inputItem.border}
-                key={inputIndex}
-                placeholder={inputItem.value}
-                invalidText={inputItem.invalid}
-                value={
-                  getValueFromState(inputItem, valueItem) !== null
+            return (
+              !inputItem.breakpoint &&
+              (readOnly ? (
+                <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
+                  {getValueFromState(inputItem, valueItem) !== null
                     ? getValueFromState(inputItem, valueItem)
-                    : ''
-                }
-                onChange={(e) => onChange({ payload: { target: e } })}
-                readOnly={readOnly === true ? true : false}
-              />
+                    : ''}
+                </div>
+              ) : !!inputItem.type && inputItem.type === 'text' ? (
+                <TextEditor
+                  short={inputItem.short}
+                  size={inputItem.size}
+                  noMenuBar={true}
+                  placeholder={`${inputItem.value}`}
+                  name={`${name}.${itemIndex}.${inputItem.name}`}
+                  value={getValueFromState(inputItem, valueItem)}
+                  key={inputIndex}
+                  onChange={onChange}
+                />
+              ) : (
+                <Input
+                  className={`${
+                    inputItem.validation === true &&
+                    valueItem[inputItem.name] &&
+                    (NUM_REGEX.test(valueItem[inputItem.name])
+                      ? 'is-valid'
+                      : 'is-invalid')
+                  }`}
+                  size={inputItem.size ?? null}
+                  name={`${name}.${itemIndex}.${inputItem.name}`}
+                  label={inputItem.label ?? false}
+                  border={inputItem.border}
+                  key={inputIndex}
+                  placeholder={inputItem.value}
+                  invalidText={inputItem.invalid}
+                  value={
+                    getValueFromState(inputItem, valueItem) !== null
+                      ? getValueFromState(inputItem, valueItem)
+                      : ''
+                  }
+                  onChange={onChange}
+                  readOnly={readOnly === true ? true : false}
+                />
+              ))
             )
           })}
           {!!dynamic && (

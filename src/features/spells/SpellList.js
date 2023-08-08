@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useReducer, useState, useEffect } from 'react'
 import { useGetSpellQuery } from './spellsApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
@@ -11,7 +11,6 @@ import AccordionButton from '../../components/AccordionButton'
 
 const SpellList = () => {
   const { id } = useAuth()
-  const location = useLocation()
   const navigate = useNavigate()
 
   const [listFilter, setListFilter] = useReducer(formReducer, {})
@@ -39,161 +38,93 @@ const SpellList = () => {
   }, [spellError, spellErrorMsg])
 
   useEffect(() => {
-    if (is1200) {
-      setTableColumns({
-        headers: [
-          {
-            name: 'Level',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-1 col-md-3 col-sm-2 col-2',
-          },
-          {
-            name: 'Name',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-sm-3 col-5',
-          },
-          {
-            name: 'Casting Time',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-3',
-          },
-          {
-            name: 'Duration',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3',
-          },
-          {
-            name: 'Range (ft)/Area (ft)',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-md',
-          },
-          {
-            name: 'Damage Type',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-sm-4 col-5',
-          },
-        ],
-        inputs: [
-          {
-            name: 'level',
-            size: 'col-lg-1 col-md-3 col-sm-2 col-2',
-          },
-          {
-            name: 'value',
-            size: 'col-lg-2 col-md-3 col-sm-3 col-5',
-          },
-          {
-            name: ['action.value', 'action.actionType.value'],
-            size: 'col-lg-2 col-md-3 col-3',
-          },
-          {
-            name: ['duration.value', 'duration.durationType.value'],
-            size: 'col-lg-2 col-md-3',
-          },
-          {
-            name: [
-              ['range.rangeType.value', 'range.distance'],
-              ['shape.shapeType.value', 'shape.size'],
-            ],
-            size: 'col-md',
-          },
-          {
-            name: 'damage.damageType',
-            size: 'col-lg-2 col-md-3 col-sm-4 col-5',
-          },
-        ],
-      })
-    } else if (is1000) {
-      setTableColumns({
-        headers: [
-          {
-            name: 'Level',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-1 col-md-3 col-sm-2 col-2',
-          },
-          {
-            name: 'Name',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-sm-3 col-5',
-          },
-          {
-            name: 'Casting Time',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-3',
-          },
-          {
-            name: 'Damage Type',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-sm-4 col-5',
-          },
-        ],
-        inputs: [
-          {
-            name: 'level',
-            size: 'col-lg-1 col-md-3 col-sm-2 col-2',
-          },
-          {
-            name: 'value',
-            size: 'col-lg-2 col-md-3 col-sm-3 col-5',
-          },
-          {
-            name: 'action.actionType.value',
-            size: 'col-lg-2 col-md-3 col-3',
-          },
-          {
-            name: 'damage.damageType',
-            size: 'col-lg-2 col-md-3 col-sm-4 col-5',
-          },
-        ],
-      })
-    } else if (is600) {
-      setTableColumns({
-        headers: [
-          {
-            name: 'Level',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-1 col-md-3 col-sm-2 col-2',
-          },
-          {
-            name: 'Name',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-sm-3 col-5',
-          },
-          {
-            name: 'Damage Type',
-            border: false,
-            className: 'fw-bold',
-            size: 'col-lg-2 col-md-3 col-sm-4 col-5',
-          },
-        ],
-        inputs: [
-          {
-            name: 'level',
-            size: 'col-lg-1 col-md-3 col-sm-2 col-2',
-          },
-          {
-            name: 'value',
-            size: 'col-lg-2 col-md-3 col-sm-3 col-5',
-          },
-          {
-            name: 'damage.damageType',
-            size: 'col-lg-2 col-md-3 col-sm-4 col-5',
-          },
-        ],
-      })
-    }
+    setTableColumns({
+      headers: [
+        {
+          name: 'Level',
+          value: 'level',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-lg-1 col-md-3 col-sm-2 col-3',
+          breakpoint: '',
+        },
+        {
+          name: 'Name',
+          value: 'name',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-lg-2 col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'Casting Time',
+          value: 'action.actionType.value',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-lg-2 col-md-3 col-3',
+          breakpoint: is600 && true,
+        },
+        {
+          name: 'Duration',
+          value: 'duration.durationType.value',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-lg-2 col-md-3',
+          breakpoint: (is1000 || is600) && true,
+        },
+        {
+          name: 'Range (ft)/Area (ft)',
+          value: 'range.rangeType.value',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-md',
+          breakpoint: (is1000 || is600) && true,
+        },
+        {
+          name: 'Damage Type',
+          value: 'damage.damageType',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-lg-2 col-md-3 col-sm-4 col-4',
+          breakpoint: '',
+        },
+      ],
+      inputs: [
+        {
+          name: 'level',
+          size: 'col-lg-1 col-md-3 col-sm-2 col-3',
+          breakpoint: '',
+        },
+        {
+          name: 'value',
+          size: 'col-lg-2 col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+        },
+        {
+          name: ['action.value', 'action.actionType.value'],
+          size: 'col-lg-2 col-md-3 col-3',
+          breakpoint: is600 && true,
+        },
+        {
+          name: ['duration.value', 'duration.durationType.value'],
+          size: 'col-lg-2 col-md-3',
+          breakpoint: (is1000 || is600) && true,
+        },
+        {
+          name: [
+            ['range.rangeType.value', 'range.distance'],
+            ['shape.shapeType.value', 'shape.size'],
+          ],
+          size: 'col-md',
+          breakpoint: (is1000 || is600) && true,
+        },
+        {
+          name: 'damage.damageType',
+          size: 'col-lg-2 col-md-3 col-sm-4 col-4',
+          breakpoint: '',
+        },
+      ],
+    })
   }, [setTableColumns, is1200, is1000, is600])
 
   const spellListFiltered = () => {
@@ -272,23 +203,15 @@ const SpellList = () => {
     })
   }
 
+  const onFilterReset = () => {
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
+
   let content
 
   if (spellLoading) content = <p>Loading spells...</p>
 
   if (spellSuccess) {
-    console.log(spells)
-
-    const showCard = (spell) => {
-      navigate(`${spell.name}`, {
-        state: {
-          background: location,
-          context: spell.value,
-          data: spell,
-          size: 'xl',
-        },
-      })
-    }
     const filter = (
       <>
         {!is1200 && !is1000 && (
@@ -308,39 +231,25 @@ const SpellList = () => {
               name='level'
               placeholder='Level'
               options={spells.map((spellItem) => ({ value: spellItem.level }))}
-              state={listFilter.level}
-              onChange={(option) =>
-                setListFilter({
-                  payload: {
-                    target: option,
-                  },
-                })
-              }
+              value={listFilter.level}
+              onChange={setListFilter}
             />
             <Input
               name='value'
               label={true}
               placeholder='Spell Name'
               autoComplete='off'
-              value={listFilter.value ?? ''}
+              value={listFilter.value}
               invalidText='Must contain only numbers'
-              onChange={(input) =>
-                setListFilter({ payload: { target: input } })
-              }
+              onChange={setListFilter}
             />
             <Select
               multiple={true}
               name='action.actionType'
               placeholder='Casting Time'
               options={spells.map((spellItem) => spellItem.action?.actionType)}
-              state={listFilter.action?.actionType}
-              onChange={(option) =>
-                setListFilter({
-                  payload: {
-                    target: option,
-                  },
-                })
-              }
+              value={listFilter.action?.actionType}
+              onChange={setListFilter}
             />
             <Select
               multiple={true}
@@ -349,28 +258,16 @@ const SpellList = () => {
               options={spells.map(
                 (spellItem) => spellItem.duration?.durationType
               )}
-              state={listFilter.duration?.durationType}
-              onChange={(option) =>
-                setListFilter({
-                  payload: {
-                    target: option,
-                  },
-                })
-              }
+              value={listFilter.duration?.durationType}
+              onChange={setListFilter}
             />
             <Select
               multiple={true}
               name='range.rangeType'
               placeholder='Range'
               options={spells.map((spellItem) => spellItem.range?.rangeType)}
-              state={listFilter.range?.rangeType}
-              onChange={(option) =>
-                setListFilter({
-                  payload: {
-                    target: option,
-                  },
-                })
-              }
+              value={listFilter.range?.rangeType}
+              onChange={setListFilter}
             />
             <Select
               multiple={true}
@@ -386,28 +283,16 @@ const SpellList = () => {
                   return []
                 }
               })}
-              state={listFilter.damage?.damageType}
-              onChange={(option) =>
-                setListFilter({
-                  payload: {
-                    target: option,
-                  },
-                })
-              }
+              value={listFilter.damage?.damageType}
+              onChange={setListFilter}
             />
             <Select
               multiple={true}
               name='school'
               placeholder='Spell School'
               options={spells.map((spellItem) => spellItem.school)}
-              state={listFilter.school}
-              onChange={(option) =>
-                setListFilter({
-                  payload: {
-                    target: option,
-                  },
-                })
-              }
+              value={listFilter.school}
+              onChange={setListFilter}
             />
           </div>
         </div>
@@ -417,7 +302,22 @@ const SpellList = () => {
     content = (
       <div>
         <div className='d-flex justify-content-between pb-2'>
-          <h3>Spells</h3>
+          <div className='d-flex'>
+            <h3 className='me-3'>Spells</h3>
+            <button
+              type='button'
+              className='btn btn-outline-secondary btn-small me-1'
+              onClick={onFilterReset}
+            >
+              Clear Filters
+            </button>
+            <button
+              type='button'
+              className='btn btn-outline-secondary btn-small me-1'
+            >
+              Clear Sort
+            </button>
+          </div>
           <button
             className='btn btn-outline-secondary btn-small'
             onClick={() => navigate('/spells/new')}
@@ -431,11 +331,11 @@ const SpellList = () => {
           name='spellList.table'
           dynamic={false}
           readOnly={true}
+          sortable={true}
           value={spellListFiltered()}
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}
           clickable={true}
-          onClick={(spell) => showCard(spell)}
           empty='---'
         />
       </div>

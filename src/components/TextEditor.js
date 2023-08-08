@@ -1,6 +1,11 @@
-import '../css/textEditor.css'
+import '../scss/textEditor.scss'
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import TextAlign from '@tiptap/extension-text-align'
+import Table from '@tiptap/extension-table'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
+import TableRow from '@tiptap/extension-table-row'
 import useDebounce from '../hooks/useDebounce'
 import useAutosave from '../hooks/useAutosave'
 import StarterKit from '@tiptap/starter-kit'
@@ -12,17 +17,23 @@ import {
   FaListUl,
   FaStrikethrough,
   FaUnderline,
-  FaQuoteLeft,
-  FaTable,
 } from 'react-icons/fa'
+import { RiDeleteColumn, RiDeleteRow } from 'react-icons/ri'
 import {
-  RiDeleteColumn,
-  RiInsertColumnLeft,
-  RiInsertColumnRight,
-  RiDeleteRow,
-  RiInsertRowBottom,
-  RiInsertRowTop,
-} from 'react-icons/ri'
+  TbTablePlus,
+  TbTableMinus,
+  TbBlockquote,
+  TbColumnInsertLeft,
+  TbColumnInsertRight,
+  TbRowInsertBottom,
+  TbRowInsertTop,
+} from 'react-icons/tb'
+// import {
+//   TfiAlignLeft,
+//   TfiAlignRight,
+//   TfiAlignCenter,
+//   TfiAlignJustify,
+// } from 'react-icons/tfi'
 
 const MenuBar = ({ editor, noMenuBar }) => {
   if (!editor || noMenuBar) {
@@ -93,6 +104,46 @@ const MenuBar = ({ editor, noMenuBar }) => {
           >
             <FaStrikethrough />
           </span>
+          {/* <span
+            onClick={() => editor.chain().focus().setTextAlign('left').run()}
+            className={`${
+              editor.isActive('leftAlign') ? 'is_active' : ''
+            } btn`}
+            type='button'
+            title='Left Align'
+          >
+            <TfiAlignLeft />
+          </span>
+          <span
+            onClick={() => editor.chain().focus().setTextAlign('right').run()}
+            className={`${
+              editor.isActive('rightAlign') ? 'is_active' : ''
+            } btn`}
+            type='button'
+            title='Right Align'
+          >
+            <TfiAlignRight />
+          </span>
+          <span
+            onClick={() => editor.chain().focus().setTextAlign('center').run()}
+            className={`${
+              editor.isActive('centerAlign') ? 'is_active' : ''
+            } btn`}
+            type='button'
+            title='Center Align'
+          >
+            <TfiAlignCenter />
+          </span>
+          <span
+            onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+            className={`${
+              editor.isActive('justifyAlign') ? 'is_active' : ''
+            } btn`}
+            type='button'
+            title='Justify Align'
+          >
+            <TfiAlignJustify />
+          </span> */}
           <span
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={`${
@@ -123,7 +174,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
             type='button'
             title='Quote'
           >
-            <FaQuoteLeft />
+            <TbBlockquote />
           </span>
           <span
             onClick={() =>
@@ -137,7 +188,21 @@ const MenuBar = ({ editor, noMenuBar }) => {
             type='button'
             title='Add Table'
           >
-            <FaTable />
+            <TbTablePlus />
+          </span>
+          <span
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .deleteTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run()
+            }
+            className={`${editor.isActive('table') ? 'is_active' : ''} btn`}
+            type='button'
+            title='Remove Table'
+          >
+            <TbTableMinus />
           </span>
         </div>
         <div className='col-auto p-0'>
@@ -159,7 +224,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
             type='button'
             title='Insert Column Before'
           >
-            <RiInsertColumnLeft />
+            <TbColumnInsertLeft />
           </span>
         </div>
         <div className='col-auto p-0'>
@@ -171,7 +236,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
             type='button'
             title='Insert Column After'
           >
-            <RiInsertColumnRight />
+            <TbColumnInsertRight />
           </span>
           <span
             onClick={() => editor.chain().focus().deleteRow().run()}
@@ -191,7 +256,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
             type='button'
             title='Insert Row Above'
           >
-            <RiInsertRowTop />
+            <TbRowInsertTop />
           </span>
           <span
             onClick={() => editor.chain().focus().addRowAfter().run()}
@@ -201,7 +266,7 @@ const MenuBar = ({ editor, noMenuBar }) => {
             type='button'
             title='Insert Row Below'
           >
-            <RiInsertRowBottom />
+            <TbRowInsertBottom />
           </span>
         </div>
       </div>
@@ -263,6 +328,13 @@ const TextEditor = forwardRef(
           },
         }),
         Underline,
+        Table.configure({
+          resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+        TextAlign,
       ],
       editorProps: {
         attributes: {

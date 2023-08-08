@@ -19,6 +19,8 @@ const Select = forwardRef(
     const buttonRef = useRef(null)
     const dropdownRef = useRef(null)
 
+    console.log('value', value)
+
     let newOptions
     let updatedOptions
 
@@ -134,7 +136,6 @@ const Select = forwardRef(
           value: option.value,
         }
       }
-
       onChange({ payload: { target: { name: name, value: updatedOptions } } })
     }
 

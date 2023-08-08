@@ -1,3 +1,4 @@
+import '../../scss/card.scss'
 import parse from 'html-react-parser'
 import { get, truncate } from 'lodash'
 import { memo } from 'react'

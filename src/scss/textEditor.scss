@@ -1,10 +1,6 @@
 /* Basic editor styles */
 
 .ProseMirror {
-  > * + * {
-    margin-top: 0.75em;
-  }
-
   ul,
   ol {
     padding: 0 2rem;
@@ -63,7 +59,7 @@
 
     td,
     th {
-      border: 2px solid #ced4da;
+      border: 1px solid #ced4da;
       box-sizing: border-box;
       min-width: 1em;
       padding: 3px 5px;
@@ -77,6 +73,7 @@
 
     th {
       background-color: #f1f3f5;
+      border-bottom: 2px solid lightgrey;
       font-weight: bold;
       text-align: left;
     }
@@ -100,9 +97,13 @@
       right: -2px;
       top: 0;
       width: 4px;
-      cursor: pointer;
     }
   }
+}
+
+.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
 }
 
 /* ............................ */
