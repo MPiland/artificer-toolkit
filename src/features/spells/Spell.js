@@ -123,7 +123,7 @@ const Spell = ({ state: spell }) => {
         })}
       </div>
       <hr />
-      <div>{parse(spell.desc)}</div>
+      <div className='spell-desc'>{parse(spell.desc)}</div>
       <div className='d-flex justify-content-between'>
         <span className='card-subtext'>{materialDesc()}</span>
         <button

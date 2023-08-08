@@ -51,10 +51,17 @@ const NewItemForm = () => {
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
+      inputRefs.current.forEach((inputRef) => {
+        inputRef.resetState()
+      })
+      textRefs.current.forEach((textRef) => {
+        textRef.resetState()
+      })
       setState({
         type: 'reset',
         payload: { target: { userId: id } },
       })
+      handleValidation(true)
     }
   }, [addIsSuccess, id, setState])
 

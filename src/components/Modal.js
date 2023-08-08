@@ -34,7 +34,7 @@ const Modal = ({ child }) => {
       onClick={() => navigate(`${location.state.background.pathname}`)}
     >
       <div // Modal body
-        className={`modal-dialog ${
+        className={`modal-dialog modal-dialog-scrollable ${
           location.state.size && `modal-${location.state.size}`
         } modal-fullscreen-sm-down modal-dialog-centered`}
         role='document'

@@ -48,6 +48,7 @@ const EditSpellForm = () => {
     }
     if (updateIsSuccess) {
       setSuccessMessage('Spell updated successfully!')
+      handleValidation(true)
     }
   }, [addIsSuccess, id, navigate, updateIsSuccess])
 
