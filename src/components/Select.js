@@ -241,7 +241,7 @@ const Select = forwardRef(
       } else if (selectedOptions?.value === option.value) {
         return 'rounded-pill border selected'
       } else {
-        return 'rouned-pill border'
+        return 'rounded-pill'
       }
     }
 
