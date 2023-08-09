@@ -33,6 +33,26 @@
   border-color: rgb(13, 110, 253);
 }
 
+.dropdown-item {
+  cursor: pointer;
+}
+
+.dropdown-item:hover,
+.dropdown-item.selected {
+  background-color: rgb(118, 184, 255);
+  outline: none;
+}
+
+.dropdown-item:focus {
+  background-color: lightgrey;
+  outline: none
+}
+
+.dropdown-item.selected:focus {
+  background-color: rgb(18, 132, 255);
+  outline: none;
+}
+
 .select-container {
   position: relative;
   width: inherit;
@@ -77,8 +97,4 @@
 .select-menu {
   max-height: 300px;
   overflow-y: auto;
-}
-
-.dropdown-item {
-  cursor: pointer;
 }

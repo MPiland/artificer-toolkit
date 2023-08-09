@@ -4,6 +4,7 @@ import {
   forwardRef,
   useImperativeHandle,
   useRef,
+  useCallback,
 } from 'react'
 import { uniqBy } from 'lodash'
 import '../css/select.css'
@@ -15,9 +16,13 @@ const Select = forwardRef(
   ) => {
     const [selectedOptions, setSelectedOptions] = useState(multiple ? [] : null)
     const [classText, setClassText] = useState('')
+    const [currentLetter, setCurrentLetter] = useState()
     const [autoClose] = useState(multiple ? 'outside' : 'true')
+    const parentRef = useRef(null)
     const buttonRef = useRef(null)
     const dropdownRef = useRef(null)
+    const dropdownChildren = useRef([])
+    const focusedIndex = useRef(0)
 
     let newOptions
     let updatedOptions
@@ -43,7 +48,6 @@ const Select = forwardRef(
     }
 
     useEffect(() => {
-      // Set the initial selectedOptions based on the value prop
       if (value && Array.isArray(value)) {
         if (value.some((item) => item.name === 'all')) {
           setSelectedOptions(
@@ -63,11 +67,93 @@ const Select = forwardRef(
 
       document.addEventListener('click', handleOutsideClick)
 
-      // Clean up the event listener when the component is unmounted
       return () => {
         document.removeEventListener('click', handleOutsideClick)
       }
     }, [value, multiple, options])
+
+    useEffect(() => {
+      const parentCurrent = parentRef.current
+      const dropdownCurrent = dropdownRef.current
+      const buttonCurrent = buttonRef.current
+
+      const handleKeyUp = (event) => {
+        const key = event.key
+        setCurrentLetter(key)
+        if (key === 'Enter') {
+          const focusedIndex = dropdownChildren.current.findIndex(
+            (child) => document.activeElement === child
+          )
+          if (focusedIndex >= 0) {
+            event.preventDefault()
+            dropdownChildren.current[focusedIndex].click()
+          }
+        } else if (key === 'Tab') {
+          dropdownCurrent.classList.remove('show')
+          buttonCurrent.setAttribute('aria-expanded', 'false')
+          buttonCurrent.focus()
+        } else if (/^[a-zA-Z0-9]$/.test(key)) {
+          if (key !== currentLetter) {
+            setCurrentLetter(key)
+            focusedIndex.current = 0
+          } else {
+            focusedIndex.current += 1
+          }
+
+          dropdownCurrent.classList.add('show')
+          buttonCurrent.setAttribute('aria-expanded', 'true')
+
+          const optionMatches = newOptions.filter((option) => {
+            return (
+              option.value &&
+              option.value
+                .toString()
+                .toLowerCase()
+                .startsWith(key.toLowerCase())
+            )
+          })
+
+          if (optionMatches.length > 0) {
+            const nextFocusedIndex = findOptionIndex(
+              optionMatches,
+              focusedIndex.current
+            )
+
+            focusedIndex.current = nextFocusedIndex
+
+            setFocus(nextFocusedIndex)
+          }
+        }
+      }
+
+      const findOptionIndex = (optionMatches, index) => {
+        if (index > optionMatches.length - 1) {
+          index = 0
+        }
+
+        const optionIndexValue = newOptions.findIndex(
+          (option) => option.value === optionMatches[index].value
+        )
+
+        if (optionIndexValue === -1) {
+          return 0
+        } else {
+          return optionIndexValue
+        }
+      }
+
+      const setFocus = (index) => {
+        if (dropdownChildren.current[index]) {
+          dropdownChildren.current[index].focus()
+        }
+      }
+
+      parentCurrent.addEventListener('keyup', handleKeyUp)
+
+      return () => {
+        parentCurrent.removeEventListener('keyup', handleKeyUp)
+      }
+    }, [newOptions, currentLetter, focusedIndex])
 
     const handleOutsideClick = (event) => {
       const target = event.target
@@ -141,21 +227,21 @@ const Select = forwardRef(
       if (multiple) {
         if (selectedOptions?.length > 0) {
           if (selectedOptions?.some((item) => item.value === option.value)) {
-            return 'rounded-pill border border-primary'
+            return 'rounded-pill selected'
           } else {
             return 'rounded-pill border border-secondary-subtle'
           }
         } else {
           if (selectedOptions?.value === option.value) {
-            return 'rounded-pill border border-primary'
+            return 'rounded-pill border selected'
           } else {
             return 'rounded-pill border border-secondary-subtle'
           }
         }
       } else if (selectedOptions?.value === option.value) {
-        return 'rounded-pill border border-primary'
+        return 'rounded-pill border selected'
       } else {
-        return ''
+        return 'rouned-pill border'
       }
     }
 
@@ -233,6 +319,7 @@ const Select = forwardRef(
         className={`dropdown ${size ?? 'col-sm'} ${
           className ? `${className}` : ''
         }`}
+        ref={parentRef}
       >
         <button
           ref={buttonRef}
@@ -255,11 +342,13 @@ const Select = forwardRef(
         >
           {newOptions.map((option, optionIndex) => (
             <li
+              tabIndex='0'
               className={`dropdown-item mb-2 py-0 px-2 ${selectClass(option)}`}
               key={optionIndex}
               onClick={(e) => {
                 handleOptionClick(option)
               }}
+              ref={(el) => (dropdownChildren.current[optionIndex] = el)}
             >
               {option.value}
             </li>

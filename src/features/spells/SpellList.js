@@ -311,12 +311,6 @@ const SpellList = () => {
             >
               Clear Filters
             </button>
-            <button
-              type='button'
-              className='btn btn-outline-secondary btn-small me-1'
-            >
-              Clear Sort
-            </button>
           </div>
           <button
             className='btn btn-outline-secondary btn-small'
