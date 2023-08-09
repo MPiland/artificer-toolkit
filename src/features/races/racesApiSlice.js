@@ -9,7 +9,14 @@ export const racesApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
-      providesTags: (result, error, id) => [{ type: 'Race', id: 'LIST' }],
+      providesTags: (result, error, id) => {
+        if (result?._ids) {
+          return [
+            { type: 'Race', id: 'LIST' },
+            ...result._ids.map((id) => ({ type: 'Race', id })),
+          ]
+        } else return [{ type: 'Race', id: 'LIST' }]
+      },
     }),
     addNewRace: builder.mutation({
       query: (initialNoteData) => ({

@@ -1,5 +1,4 @@
 import '../css/table.css'
-import { useNavigate, useLocation } from 'react-router-dom'
 import useSortableData from '../hooks/useSortableData'
 import { get } from 'lodash'
 import Input from './Input'
@@ -17,29 +16,16 @@ const Table = ({
   headers,
   readOnly,
   clickable,
-  rowSize,
+  onClick,
   empty,
   sortable,
+  scrollable,
 }) => {
-  const location = useLocation()
-  const navigate = useNavigate()
-
   const getClassNames = (value) => {
     if (!sortConfig) {
       return
     }
     return sortConfig.key === value ? sortConfig.direction : ''
-  }
-
-  const showCard = (spell) => {
-    navigate(`/spells/${spell.name}`, {
-      state: {
-        background: location,
-        context: spell.value,
-        data: spell,
-        size: 'xl',
-      },
-    })
   }
 
   const getValueFromState = (inputItem, valueItem) => {
@@ -80,9 +66,9 @@ const Table = ({
   const { items, requestSort, sortConfig } = useSortableData(value)
 
   const content = (
-    <div>
+    <div className={`${scrollable ? 'table-scrollable' : ''}`}>
       {headers && (
-        <div className={`row align-items-center pb-2 g-2 ${rowSize ?? ''}`}>
+        <div className={`row align-items-center pb-2 g-2`}>
           {headers?.map((headerItem, headerIndex) => {
             return (
               !headerItem.breakpoint &&
@@ -90,7 +76,9 @@ const Table = ({
                 <div
                   className={`${headerItem.size ?? ''} ${
                     headerItem.className ?? ''
-                  }  ${getClassNames(headerItem.value)} ${sortable ? 'sortable-header' : ''}`}
+                  }  ${getClassNames(headerItem.value)} ${
+                    sortable ? 'sortable-header' : ''
+                  }`}
                   key={headerIndex}
                   onClick={() => sortable && requestSort(headerItem.value)}
                 >
@@ -116,9 +104,9 @@ const Table = ({
           key={itemIndex}
           className={`row pb-2 g-2 ${className ?? ''} ${
             clickable ? 'row-clickable' : ''
-          } ${rowSize ?? ''}`}
+          } ${scrollable ? 'scrollable' : ''}`}
           onClick={() => {
-            showCard(valueItem)
+            onClick && onClick(valueItem)
           }}
         >
           {inputs?.map((inputItem, inputIndex) => {
@@ -133,7 +121,7 @@ const Table = ({
               ) : !!inputItem.type && inputItem.type === 'text' ? (
                 <TextEditor
                   short={inputItem.short}
-                  size={inputItem.size}
+                  size={inputItem.size ?? ''}
                   noMenuBar={true}
                   placeholder={`${inputItem.value}`}
                   name={`${name}.${itemIndex}.${inputItem.name}`}

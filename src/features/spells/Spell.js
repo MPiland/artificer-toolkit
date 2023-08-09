@@ -1,7 +1,7 @@
 import '../../scss/card.scss'
 import parse from 'html-react-parser'
 import { get, truncate } from 'lodash'
-import { forwardRef, useImperativeHandle } from 'react'
+import { forwardRef } from 'react'
 
 const Spell = forwardRef(({ state: spell }, ref) => {
   const materialDesc = () => {
@@ -119,12 +119,6 @@ const Spell = forwardRef(({ state: spell }, ref) => {
       </div>
     </>
   )
-
-  useImperativeHandle(ref, () => ({
-    subtext: () => {
-      return 'test'
-    },
-  }))
 
   return content
 })

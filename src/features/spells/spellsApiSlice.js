@@ -14,9 +14,9 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
         if (result?._ids) {
           return [
             { type: 'Spell', id: 'LIST' },
-            ...result._ids.map((id) => ({ type: 'Note', id })),
+            ...result._ids.map((id) => ({ type: 'Spell', id })),
           ]
-        } else return [{ type: 'Note', id: 'LIST' }]
+        } else return [{ type: 'Spell', id: 'LIST' }]
       },
     }),
     addNewSpell: builder.mutation({

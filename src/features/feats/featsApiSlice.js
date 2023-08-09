@@ -10,7 +10,14 @@ export const featsApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
-      providesTags: (result, error, id) => [{ type: 'Feat', id: 'LIST' }],
+      providesTags: (result, error, id) => {
+        if (result?._ids) {
+          return [
+            { type: 'Feat', id: 'LIST' },
+            ...result._ids.map((id) => ({ type: 'Feat', id })),
+          ]
+        } else return [{ type: 'Feat', id: 'LIST' }]
+      },
     }),
     addNewFeat: builder.mutation({
       query: (initialFeatData) => ({
@@ -20,7 +27,16 @@ export const featsApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Feat', id: 'LIST' }],
     }),
+    updateFeat: builder.mutation({
+      query: (initialSpellData) => ({
+        url: `/feat/`,
+        method: 'PATCH',
+        body: { ...initialSpellData },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Feat', id: arg._id }],
+    }),
   }),
 })
 
-export const { useGetFeatQuery, useAddNewFeatMutation } = featsApiSlice
+export const { useGetFeatQuery, useAddNewFeatMutation, useUpdateFeatMutation } =
+  featsApiSlice

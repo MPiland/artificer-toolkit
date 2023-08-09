@@ -11,14 +11,16 @@ import Login from './features/auth/Login'
 import CharacterList from './features/characters/CharacterList'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
-import SpellList from './features/spells/SpellList'
 import Spell from './features/spells/Spell'
+import SpellList from './features/spells/SpellList'
 import NewSpellForm from './features/spells/NewSpellForm'
 import EditSpellForm from './features/spells/EditSpellForm'
 import ItemList from './features/items/ItemList'
 import NewItemForm from './features/items/NewItemForm'
+import Feat from './features/feats/Feat'
 import FeatList from './features/feats/FeatList'
-import NewfeatForm from './features/feats/NewFeatForm'
+import NewFeatForm from './features/feats/NewFeatForm'
+import EditFeatForm from './features/feats/EditFeatForm'
 import { useSelector } from 'react-redux'
 import { selectCurrentToken } from './features/auth/authSlice'
 
@@ -59,7 +61,9 @@ const App = () => {
                 </Route>
                 <Route path='feats'>
                   <Route index element={<FeatList />} />
-                  <Route path='new' element={<NewfeatForm />} />
+                  <Route path='new' element={<NewFeatForm />} />
+                  <Route path=':id' element={<Modal child={<Feat />} />} />
+                  <Route path='edit/:id' element={<EditFeatForm />} />
                 </Route>
               </Route>
             </Route>
@@ -71,6 +75,7 @@ const App = () => {
           <Route path='/register' element={<Modal child={<Register />} />} />
           <Route path='/login' element={<Modal child={<Login />} />} />
           <Route path='spells/:id' element={<Modal child={<Spell />} />} />
+          <Route path='feats/:id' element={<Modal child={<Feat />} />} />
         </Routes>
       )}
     </>

@@ -20,26 +20,26 @@ const NewRaceForm = () => {
 
   const {
     data: builders,
-    isSuccess: builderSuccess,
-    isLoading: builderLoading,
+    isSuccess: builderIsSuccess,
+    isLoading: builderIsLoading,
   } = useGetBuilderQuery(id)
 
   const {
     data: spells,
-    isSuccess: spellSuccess,
-    isLoading: spellLoading,
+    isSuccess: spellIsSuccess,
+    isLoading: spellIsLoading,
   } = useGetSpellQuery(id)
 
   const {
     data: feats,
-    isSuccess: featSuccess,
-    isLoading: featLoading,
+    isSuccess: featIsSuccess,
+    isLoading: featIsLoading,
   } = useGetFeatQuery(id)
 
   const {
     data: races,
-    isSuccess: raceSuccess,
-    isLoading: raceLoading,
+    isSuccess: raceIsSuccess,
+    isLoading: raceIsLoading,
   } = useGetRaceQuery(id)
 
   const [
@@ -184,12 +184,61 @@ const NewRaceForm = () => {
 
   let content
 
-  if (builderLoading || spellLoading || featLoading || raceLoading) {
+  if (builderIsLoading || spellIsLoading || featIsLoading || raceIsLoading) {
     content = <p>Loading...</p>
   }
 
-  if (builderSuccess && spellSuccess && featSuccess && raceSuccess) {
-    // Submit to databases
+  if (builderIsSuccess && spellIsSuccess && featIsSuccess && raceIsSuccess) {
+    const damageTableInputs = (secondary) => {
+      const inputArray = [
+        {
+          name: 'level',
+          value: 'Level',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+          size: 'damage-col',
+        },
+        {
+          name: 'diceCount',
+          value: 'Dice Count',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+          size: 'damage-col',
+        },
+        {
+          name: 'diceValue',
+          value: 'Dice Value',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+          size: 'damage-col',
+        },
+      ]
+      if (secondary) {
+        inputArray.push(
+          {
+            name: 'secDiceCount',
+            value: 'Sec. Dice Count',
+            invalid: 'Must contain only numbers',
+            validation: true,
+            label: true,
+            size: 'damage-col',
+          },
+          {
+            name: 'secDiceValue',
+            value: 'Sec. Dice Value',
+            invalid: 'Must contain only numbers',
+            validation: true,
+            label: true,
+            size: 'damage-col',
+          }
+        )
+      }
+
+      return inputArray
+    }
 
     const sections = [
       {
@@ -236,7 +285,7 @@ const NewRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  value={item.feat}
+                  value={multipleOptions ? item.feat.options : item.feat}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -324,7 +373,9 @@ const NewRaceForm = () => {
                         }.${index}.ability${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Ability'
-                        value={item.ability}
+                        value={
+                          multipleOptions ? item.abilty.options : item.ability
+                        }
                         options={builders.ability}
                         required={true}
                         onChange={setState}
@@ -338,7 +389,11 @@ const NewRaceForm = () => {
                         }.${index}.saveAbility${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Save Ability'
-                        value={item.saveAbility}
+                        value={
+                          multipleOptions
+                            ? item.saveAbility.options
+                            : item.saveAbility
+                        }
                         options={builders.ability}
                         required={true}
                         onChange={setState}
@@ -352,7 +407,9 @@ const NewRaceForm = () => {
                         }.${index}.skill${multipleOptions && '.options'}`}
                         multiple={multipleOptions}
                         placeholder='Skill'
-                        value={item.skill}
+                        value={
+                          multipleOptions ? item.skill.options : item.skill
+                        }
                         options={builders.skill}
                         require={true}
                         onChange={setState}
@@ -385,7 +442,9 @@ const NewRaceForm = () => {
                     }.${index}.condition${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Condition Type'
-                    value={item.condition}
+                    value={
+                      multipleOptions ? item.condition.options : item.condition
+                    }
                     options={builders.condition}
                     require={true}
                     onChange={setState}
@@ -397,7 +456,7 @@ const NewRaceForm = () => {
                       multipleOptions && '.options'
                     }`}
                     multiple={multipleOptions}
-                    value={item.speed}
+                    value={multipleOptions ? item.speed.options : item.speed}
                     placeholder='Speed Type'
                     options={builders.speed}
                     require={true}
@@ -411,7 +470,9 @@ const NewRaceForm = () => {
                     }.${index}.passive${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Passive Type'
-                    value={item.passive}
+                    value={
+                      multipleOptions ? item.passive.options : item.passive
+                    }
                     options={builders.passive}
                     require={true}
                     onChange={setState}
@@ -425,9 +486,11 @@ const NewRaceForm = () => {
                       }.${index}.damage${multipleOptions && '.options'}`}
                       multiple={multipleOptions}
                       placeholder='Damage Type'
-                      value={item.damage.damageType}
+                      value={
+                        multipleOptions ? item.damage?.options : item.damage
+                      }
                       options={builders.damage}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   )
@@ -554,7 +617,7 @@ const NewRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Skill'
-                    value={item.skill}
+                    value={multipleOptions ? item.skill.options : item.skill}
                     options={builders.skill}
                     require={true}
                     onChange={setState}
@@ -568,7 +631,11 @@ const NewRaceForm = () => {
                     }.${index}.saveAbility${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Save Ability'
-                    value={item.saveAbility}
+                    value={
+                      multipleOptions
+                        ? item.saveAbility.options
+                        : item.saveAbility
+                    }
                     options={builders.ability}
                     require={true}
                     onChange={setState}
@@ -582,7 +649,7 @@ const NewRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Tool'
-                    value={item.tool}
+                    value={multipleOptions ? item.tool.options : item.tool}
                     options={builders.tool}
                     require={true}
                     onChange={setState}
@@ -596,7 +663,9 @@ const NewRaceForm = () => {
                     }.${index}.language${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Language'
-                    value={item.language}
+                    value={
+                      multipleOptions ? item.language.options : item.language
+                    }
                     options={builders.language}
                     require={true}
                     onChange={setState}
@@ -610,7 +679,9 @@ const NewRaceForm = () => {
                     }.${index}.itemType${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Item Type'
-                    value={item.itemType}
+                    value={
+                      multipleOptions ? item.itemType.options : item.itemType
+                    }
                     require={true}
                     options={[].concat(
                       ...builders.item.itemCategory.map(
@@ -628,7 +699,11 @@ const NewRaceForm = () => {
                     }.${index}.itemProperty${multipleOptions && '.options'}`}
                     multiple={multipleOptions}
                     placeholder='Item Property'
-                    value={item.itemProperty}
+                    value={
+                      multipleOptions
+                        ? item.itemProperty.options
+                        : item.itemProperty
+                    }
                     require={true}
                     options={[].concat(
                       ...builders.item.itemCategory.map(
@@ -696,7 +771,7 @@ const NewRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  value={item.sense}
+                  value={multipleOptions ? item.sense.options : item.sense}
                   options={builders.sense}
                   require={true}
                   onChange={setState}
@@ -760,7 +835,7 @@ const NewRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Spell'
-                  value={item}
+                  value={multipleOptions ? item.options : item}
                   options={spells}
                   require={true}
                   onChange={setState}
@@ -775,7 +850,9 @@ const NewRaceForm = () => {
                     }.${index}.ability${multipleOptions && 'options'}`}
                     multiple={multipleOptions}
                     placeholder='Ability'
-                    value={item.ability}
+                    value={
+                      multipleOptions ? item.ability.options : item.ability
+                    }
                     options={builders.ability}
                     require={true}
                     onChange={setState}
@@ -791,56 +868,6 @@ const NewRaceForm = () => {
     const featureContent =
       state.feature?.length !== 0 &&
       state.feature?.map((featureItem, featureIndex) => {
-        const damageTableInputs = () => {
-          const inputArray = [
-            {
-              name: 'level',
-              value: 'Level',
-              invalid: 'Must contain only numbers',
-              validation: true,
-              label: true,
-            },
-            {
-              name: 'diceCount',
-              value: 'Dice Count',
-              invalid: 'Must contain only numbers',
-              validation: true,
-              label: true,
-            },
-            {
-              name: 'diceValue',
-              value: 'Dice Value',
-              invalid: 'Must contain only numbers',
-              validation: true,
-              label: true,
-            },
-          ]
-          if (
-            featureItem.attribute?.some(
-              (attributeItem) => attributeItem.name === 'secondaryDamage'
-            )
-          ) {
-            inputArray.push(
-              {
-                name: 'secDiceCount',
-                value: 'Sec. Dice Count',
-                invalid: 'Must contain only numbers',
-                validation: true,
-                label: true,
-              },
-              {
-                name: 'secDiceValue',
-                value: 'Sec. Dice Value',
-                invalid: 'Must contain only numbers',
-                validation: true,
-                label: true,
-              }
-            )
-          }
-
-          return inputArray
-        }
-
         return (
           <div key={featureIndex} className='accordion' id='featureAccordion'>
             <div className='accordion-item'>
@@ -910,7 +937,14 @@ const NewRaceForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.race.feature.attribute}
+                      options={builders.feat.feature.attribute.filter(
+                        (attributeItem) =>
+                          !featureItem.attribute?.some(
+                            (item) => item.name === 'doesDamage'
+                          )
+                            ? attributeItem.name !== 'secondaryDamage'
+                            : attributeItem
+                      )}
                       placeholder='Feature Attributes'
                       value={featureItem.attribute}
                       onChange={setState}
@@ -1045,6 +1079,43 @@ const NewRaceForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.itemProficiency`,
+                          },
+                        },
+                      })
+                    )}
+                    {featureItem.requirement?.option.some(
+                      (optionItem) => optionItem.name === 'abilityScore'
+                    ) ? (
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.abilityScore.ability`}
+                          value={featureItem.requirement?.abilityScore?.ability}
+                          placeholder='Ability'
+                          options={builders.ability}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Input
+                          ref={addToInputRefs}
+                          name={`feature.${featureIndex}.requirement.abilityScore.score`}
+                          value={featureItem.requirement?.abilityScore?.score}
+                          placeholder='Score'
+                          required={true}
+                          label={true}
+                          validation='num'
+                          invalidText='Must contain only numbers'
+                          onChange={setState}
+                        />
+                      </>
+                    ) : (
+                      !!featureItem.requirement?.abilityScore &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.abilityScore`,
                           },
                         },
                       })
@@ -1231,7 +1302,9 @@ const NewRaceForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             placeholder='Item Category'
-                            value={featureItem.requirement?.equipped}
+                            value={
+                              featureItem.requirement?.equipped?.itemCategory
+                            }
                             options={builders.item.itemCategory}
                             required={true}
                             onChange={setState}
@@ -1479,11 +1552,17 @@ const NewRaceForm = () => {
                         id='damageTable'
                       >
                         <Table
-                          inputs={damageTableInputs()}
+                          inputs={damageTableInputs(
+                            featureItem.attribute?.some(
+                              (attributeItem) =>
+                                attributeItem.name === 'secondaryDamage'
+                            )
+                          )}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           value={featureItem.damage?.damageByLevel}
                           onChange={setState}
                           dynamic={true}
+                          scrollable={true}
                         />
                       </div>
                     </>
@@ -1549,7 +1628,7 @@ const NewRaceForm = () => {
           </div>
         </div>
         {successMessage && (
-          <h5 className='add-success-message'>{successMessage}</h5>
+          <h5 className='success-message'>{successMessage}</h5>
         )}
         {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
         <form className='needs-validation' noValidate>
@@ -1895,7 +1974,7 @@ const NewRaceForm = () => {
               },
             })
           )}
-          <div className='pb-3'>
+          <div className='d-flex pb-3 justify-content-between'>
             <button
               className='btn btn-secondary me-2'
               name='feature'

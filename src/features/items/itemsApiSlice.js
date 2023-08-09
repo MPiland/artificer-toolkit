@@ -10,7 +10,14 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
-      providesTags: (result, error, id) => [{ type: 'Item', id: 'LIST' }],
+      providesTags: (result, error, id) => {
+        if (result?._ids) {
+          return [
+            { type: 'Item', id: 'LIST' },
+            ...result._ids.map((id) => ({ type: 'Item', id })),
+          ]
+        } else return [{ type: 'Item', id: 'LIST' }]
+      },
     }),
     addNewItem: builder.mutation({
       query: (initialItemData) => ({
@@ -23,5 +30,4 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
   }),
 })
 
-export const { useGetItemQuery, useAddNewItemMutation } =
-  itemsApiSlice
+export const { useGetItemQuery, useAddNewItemMutation } = itemsApiSlice

@@ -20,20 +20,20 @@ const NewItemForm = () => {
 
   const {
     data: builders,
-    isSuccess: builderSuccess,
-    isLoading: builderLoading,
+    isSuccess: builderIsSuccess,
+    isLoading: builderIsLoading,
   } = useGetBuilderQuery(id)
 
   const {
     data: spells,
-    isSuccess: spellSuccess,
-    isLoading: spellLoading,
+    isSuccess: spellIsSuccess,
+    isLoading: spellIsLoading,
   } = useGetSpellQuery(id)
 
   const {
     data: feats,
-    isSuccess: featSuccess,
-    isLoading: featLoading,
+    isSuccess: featIsSuccess,
+    isLoading: featIsLoading,
   } = useGetFeatQuery(id)
 
   const [
@@ -178,11 +178,62 @@ const NewItemForm = () => {
 
   let content
 
-  if (builderLoading || spellLoading || featLoading) {
+  if (builderIsLoading || spellIsLoading || featIsLoading) {
     content = <p>Loading...</p>
   }
 
-  if (builderSuccess && spellSuccess && featSuccess) {
+  if (builderIsSuccess && spellIsSuccess && featIsSuccess) {
+    const damageTableInputs = (secondary) => {
+      const inputArray = [
+        {
+          name: 'level',
+          value: 'Level',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+          size: 'damage-col',
+        },
+        {
+          name: 'diceCount',
+          value: 'Dice Count',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+          size: 'damage-col',
+        },
+        {
+          name: 'diceValue',
+          value: 'Dice Value',
+          invalid: 'Must contain only numbers',
+          validation: true,
+          label: true,
+          size: 'damage-col',
+        },
+      ]
+      if (secondary) {
+        inputArray.push(
+          {
+            name: 'secDiceCount',
+            value: 'Sec. Dice Count',
+            invalid: 'Must contain only numbers',
+            validation: true,
+            label: true,
+            size: 'damage-col',
+          },
+          {
+            name: 'secDiceValue',
+            value: 'Sec. Dice Value',
+            invalid: 'Must contain only numbers',
+            validation: true,
+            label: true,
+            size: 'damage-col',
+          }
+        )
+      }
+
+      return inputArray
+    }
+
     const sections = [
       {
         name: 'feat',
@@ -635,55 +686,6 @@ const NewItemForm = () => {
     const featureContent =
       state.feature?.length !== 0 &&
       state.feature?.map((featureItem, featureIndex) => {
-        const damageTableInputs = () => {
-          const inputArray = [
-            {
-              name: 'level',
-              value: 'Level',
-              invalid: 'Must contain only numbers',
-              validation: true,
-              label: true,
-            },
-            {
-              name: 'diceCount',
-              value: 'Dice Count',
-              invalid: 'Must contain only numbers',
-              validation: true,
-              label: true,
-            },
-            {
-              name: 'diceValue',
-              value: 'Dice Value',
-              invalid: 'Must contain only numbers',
-              validation: true,
-              label: true,
-            },
-          ]
-          if (
-            featureItem.attribute?.some(
-              (attributeItem) => attributeItem.name === 'secondaryDamage'
-            )
-          ) {
-            inputArray.push(
-              {
-                name: 'secDiceCount',
-                value: 'Sec. Dice Count',
-                invalid: 'Must contain only numbers',
-                validation: true,
-                label: true,
-              },
-              {
-                name: 'secDiceValue',
-                value: 'Sec. Dice Value',
-                invalid: 'Must contain only numbers',
-                validation: true,
-                label: true,
-              }
-            )
-          }
-
-          return inputArray
-        }
         return (
           <div key={featureIndex} className='accordion' id='featureAccordion'>
             <div className='accordion-item'>
@@ -753,7 +755,14 @@ const NewItemForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.item.feature.attribute}
+                      options={builders.feat.feature.attribute.filter(
+                        (attributeItem) =>
+                          !featureItem.attribute?.some(
+                            (item) => item.name === 'doesDamage'
+                          )
+                            ? attributeItem.name !== 'secondaryDamage'
+                            : attributeItem
+                      )}
                       placeholder='Feature Attributes'
                       value={featureItem.attribute}
                       onChange={setState}
@@ -873,6 +882,43 @@ const NewItemForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.itemProficiency`,
+                          },
+                        },
+                      })
+                    )}
+                    {featureItem.requirement?.option.some(
+                      (optionItem) => optionItem.name === 'abilityScore'
+                    ) ? (
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.abilityScore.ability`}
+                          value={featureItem.requirement?.abilityScore?.ability}
+                          placeholder='Ability'
+                          options={builders.ability}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Input
+                          ref={addToInputRefs}
+                          name={`feature.${featureIndex}.requirement.abilityScore.score`}
+                          value={featureItem.requirement?.abilityScore?.score}
+                          placeholder='Score'
+                          required={true}
+                          label={true}
+                          validation='num'
+                          invalidText='Must contain only numbers'
+                          onChange={setState}
+                        />
+                      </>
+                    ) : (
+                      !!featureItem.requirement?.abilityScore &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.abilityScore`,
                           },
                         },
                       })
@@ -1061,7 +1107,7 @@ const NewItemForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                             placeholder='Item Category'
                             value={
-                              featureItem.requirement.equipped.itemCategory
+                              featureItem.requirement?.equipped?.itemCategory
                             }
                             options={builders.item.itemCategory}
                             required={true}
@@ -1072,7 +1118,7 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
-                            value={featureItem.requirement.equipped.itemType}
+                            value={featureItem.requirement?.equipped?.itemType}
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1092,7 +1138,7 @@ const NewItemForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                             placeholder='Item Property'
                             value={
-                              featureItem.requirement.equipped.itemProperty
+                              featureItem.requirement?.equipped?.itemProperty
                             }
                             options={[].concat(
                               ...builders.item.itemCategory
@@ -1145,7 +1191,7 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                             value={
-                              featureItem.requirement.notEquipped.itemCategory
+                              featureItem.requirement?.notEquipped?.itemCategory
                             }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
@@ -1157,7 +1203,9 @@ const NewItemForm = () => {
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                             placeholder='Item type'
-                            value={featureItem.requirement.notEquipped.itemType}
+                            value={
+                              featureItem.requirement?.notEquipped?.itemType
+                            }
                             options={[].concat(
                               ...builders.item.itemCategory
                                 .filter((itemCategory) =>
@@ -1177,7 +1225,7 @@ const NewItemForm = () => {
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                             placeholder='Item Property'
                             value={
-                              featureItem.requirement.notEquipped.itemProperty
+                              featureItem.requirement?.notEquipped?.itemProperty
                             }
                             options={[].concat(
                               ...builders.item.itemCategory
@@ -1308,11 +1356,17 @@ const NewItemForm = () => {
                         id='damageTable'
                       >
                         <Table
-                          inputs={damageTableInputs()}
+                          inputs={damageTableInputs(
+                            featureItem.attribute?.some(
+                              (attributeItem) =>
+                                attributeItem.name === 'secondaryDamage'
+                            )
+                          )}
                           name={`feature.${featureIndex}.damage.damageByLevel`}
                           value={featureItem.damage?.damageByLevel}
                           onChange={setState}
                           dynamic={true}
+                          scrollable={true}
                         />
                       </div>
                     </>
@@ -1378,9 +1432,9 @@ const NewItemForm = () => {
           </div>
         </div>
         {successMessage && (
-          <h3 className='add-success-message'>{successMessage}</h3>
+          <h5 className='success-message'>{successMessage}</h5>
         )}
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+        {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
         <form className='needs-validation' noValidate>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
@@ -1685,7 +1739,7 @@ const NewItemForm = () => {
               )}
             </div>
           </div>
-          <div className='pb-3'>
+          <div className='d-flex justify-content-between pb-3'>
             <button
               className='btn btn-secondary me-2'
               name='feature'

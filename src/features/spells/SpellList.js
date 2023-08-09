@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useReducer, useState, useEffect } from 'react'
 import { useGetSpellQuery } from './spellsApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
@@ -11,6 +11,7 @@ import AccordionButton from '../../components/AccordionButton'
 
 const SpellList = () => {
   const { id } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
 
   const [listFilter, setListFilter] = useReducer(formReducer, {})
@@ -23,19 +24,19 @@ const SpellList = () => {
 
   const {
     data: spells,
-    isSuccess: spellSuccess,
-    isLoading: spellLoading,
-    isError: spellError,
-    error: spellErrorMsg,
+    isSuccess: spellIsSuccess,
+    isLoading: spellIsLoading,
+    isError: spellIsError,
+    error: spellError,
   } = useGetSpellQuery(id, {
     refetchOnMountOrArgChange: true,
   })
 
   useEffect(() => {
-    if (spellError) {
-      setErrorMessage(spellErrorMsg.data.message)
+    if (spellIsError) {
+      setErrorMessage(spellError.data.message)
     }
-  }, [spellError, spellErrorMsg])
+  }, [spellIsError, spellError])
 
   useEffect(() => {
     setTableColumns({
@@ -155,6 +156,17 @@ const SpellList = () => {
     return filteredSpells
   }
 
+  const showCard = (spell) => {
+    navigate(`/spells/${spell.name}`, {
+      state: {
+        background: location,
+        context: spell.value,
+        data: spell,
+        size: 'xl',
+      },
+    })
+  }
+
   const filterByArray = (spells, filterItem, filterValues) => {
     const filteredValues = filterValues.filter(
       (valueItem) => valueItem.value !== 'All'
@@ -209,9 +221,9 @@ const SpellList = () => {
 
   let content
 
-  if (spellLoading) content = <p>Loading spells...</p>
+  if (spellIsLoading) content = <p>Loading spells...</p>
 
-  if (spellSuccess) {
+  if (spellIsSuccess) {
     const filter = (
       <>
         {!is1200 && !is1000 && (
@@ -330,6 +342,7 @@ const SpellList = () => {
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}
           clickable={true}
+          onClick={(spell) => showCard(spell)}
           empty='---'
         />
       </div>

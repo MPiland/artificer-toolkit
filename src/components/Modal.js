@@ -6,10 +6,15 @@ const Modal = ({ child }) => {
   const navigate = useNavigate()
   const setRef = useRef()
 
+  console.log(location)
+
   const onEditClicked = () => {
-    navigate(`/spells/edit/${location.state.data.name}`, {
-      state: { data: location.state.data, previous: location },
-    })
+    navigate(
+      `${location.state.background.pathname}/edit/${location.state.data.name}`,
+      {
+        state: { data: location.state.data, previous: location },
+      }
+    )
   }
 
   const clonedElement = cloneElement(child, {

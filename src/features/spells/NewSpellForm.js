@@ -14,7 +14,11 @@ const NewSpellForm = () => {
   const { id } = useAuth()
   const navigate = useNavigate()
 
-  const { data: builders, isSuccess, isLoading } = useGetBuilderQuery(id)
+  const {
+    data: builders,
+    isSuccess: builderIsSuccess,
+    isLoading: builderIsLoading,
+  } = useGetBuilderQuery(id)
 
   const [
     addNewSpell,
@@ -160,10 +164,10 @@ const NewSpellForm = () => {
 
   let content
 
-  if (isLoading) content = <p>Loading...</p>
+  if (builderIsLoading) content = <p>Loading...</p>
 
-  if (isSuccess) {
-    const damageTableInputs = () => {
+  if (builderIsSuccess) {
+    const damageTableInputs = (secondary) => {
       const inputArray = [
         {
           name: 'level',
@@ -171,6 +175,7 @@ const NewSpellForm = () => {
           invalid: 'Must contain only numbers',
           validation: true,
           label: true,
+          size: 'damage-col',
         },
         {
           name: 'diceCount',
@@ -178,6 +183,7 @@ const NewSpellForm = () => {
           invalid: 'Must contain only numbers',
           validation: true,
           label: true,
+          size: 'damage-col',
         },
         {
           name: 'diceValue',
@@ -185,13 +191,10 @@ const NewSpellForm = () => {
           invalid: 'Must contain only numbers',
           validation: true,
           label: true,
+          size: 'damage-col',
         },
       ]
-      if (
-        state.attribute?.some(
-          (attributeItem) => attributeItem.name === 'secondaryDamage'
-        )
-      ) {
+      if (secondary) {
         inputArray.push(
           {
             name: 'secDiceCount',
@@ -199,6 +202,7 @@ const NewSpellForm = () => {
             invalid: 'Must contain only numbers',
             validation: true,
             label: true,
+            size: 'damage-col',
           },
           {
             name: 'secDiceValue',
@@ -206,9 +210,11 @@ const NewSpellForm = () => {
             invalid: 'Must contain only numbers',
             validation: true,
             label: true,
+            size: 'damage-col',
           }
         )
       }
+
       return inputArray
     }
 
@@ -538,16 +544,22 @@ const NewSpellForm = () => {
                 id='damageTable'
               >
                 <Table
-                  inputs={damageTableInputs()}
+                  inputs={damageTableInputs(
+                    state.attribute?.some(
+                      (attributeItem) =>
+                        attributeItem.name === 'secondaryDamage'
+                    )
+                  )}
                   name='damage.damageByLevel'
                   value={state.damage?.damageByLevel}
                   onChange={setState}
                   dynamic={true}
+                  scrollable={true}
                 />
               </div>
             </>
           )}
-          <div className='pb-2'>
+          <div className='d-flex pb-3 justify-content-end'>
             <button
               className='btn btn-primary'
               type='button'

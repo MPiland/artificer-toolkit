@@ -1,11 +1,10 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import {
   useAddNewSpellMutation,
   useUpdateSpellMutation,
 } from './spellsApiSlice'
-import { useLocation } from 'react-router-dom'
 import { isEqual } from 'lodash'
 import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
@@ -20,7 +19,11 @@ const EditSpellForm = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const { data: builders, isSuccess, isLoading } = useGetBuilderQuery(id)
+  const {
+    data: builders,
+    isSuccess: builderIsSuccess,
+    isLoading: builderIsLoading,
+  } = useGetBuilderQuery(id)
 
   const [
     addNewSpell,
@@ -213,10 +216,10 @@ const EditSpellForm = () => {
 
   let content
 
-  if (isLoading) content = <p>Loading...</p>
+  if (builderIsLoading) content = <p>Loading...</p>
 
-  if (isSuccess) {
-    const damageTableInputs = () => {
+  if (builderIsSuccess) {
+    const damageTableInputs = (secondary) => {
       const inputArray = [
         {
           name: 'level',
@@ -224,6 +227,7 @@ const EditSpellForm = () => {
           invalid: 'Must contain only numbers',
           validation: true,
           label: true,
+          size: 'damage-col',
         },
         {
           name: 'diceCount',
@@ -231,6 +235,7 @@ const EditSpellForm = () => {
           invalid: 'Must contain only numbers',
           validation: true,
           label: true,
+          size: 'damage-col',
         },
         {
           name: 'diceValue',
@@ -238,13 +243,10 @@ const EditSpellForm = () => {
           invalid: 'Must contain only numbers',
           validation: true,
           label: true,
+          size: 'damage-col',
         },
       ]
-      if (
-        state.attribute?.some(
-          (attributeItem) => attributeItem.name === 'secondaryDamage'
-        )
-      ) {
+      if (secondary) {
         inputArray.push(
           {
             name: 'secDiceCount',
@@ -252,6 +254,7 @@ const EditSpellForm = () => {
             invalid: 'Must contain only numbers',
             validation: true,
             label: true,
+            size: 'damage-col',
           },
           {
             name: 'secDiceValue',
@@ -259,6 +262,7 @@ const EditSpellForm = () => {
             invalid: 'Must contain only numbers',
             validation: true,
             label: true,
+            size: 'damage-col',
           }
         )
       }
@@ -278,8 +282,9 @@ const EditSpellForm = () => {
               Reset Form
             </button>
             <button
+              type='button'
               className='btn btn-secondary btn-small'
-              onClick={() => onBackClick()}
+              onClick={onBackClick}
             >
               Back
             </button>
@@ -567,16 +572,22 @@ const EditSpellForm = () => {
                 id='damageTable'
               >
                 <Table
-                  inputs={damageTableInputs()}
+                  inputs={damageTableInputs(
+                    state.attribute?.some(
+                      (attributeItem) =>
+                        attributeItem.name === 'secondaryDamage'
+                    )
+                  )}
                   name='damage.damageByLevel'
                   value={state.damage?.damageByLevel}
                   onChange={setState}
                   dynamic={true}
+                  scrollable={true}
                 />
               </div>
             </>
           )}
-          <div className='pb-2'>
+          <div className='d-flex justify-content-between pb-3'>
             <button
               className='btn btn-success me-2'
               type='button'

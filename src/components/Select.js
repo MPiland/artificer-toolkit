@@ -63,13 +63,15 @@ const Select = forwardRef(
       } else {
         setSelectedOptions(multiple ? [] : null)
       }
+    }, [value, multiple, options])
 
+    useEffect(() => {
       document.addEventListener('click', handleOutsideClick)
 
       return () => {
         document.removeEventListener('click', handleOutsideClick)
       }
-    }, [value, multiple, options])
+    }, [])
 
     useEffect(() => {
       const parentCurrent = parentRef.current
@@ -78,7 +80,6 @@ const Select = forwardRef(
 
       const handleKeyUp = (event) => {
         const key = event.key
-        setCurrentLetter(key)
         if (key === 'Enter') {
           const focusedIndex = dropdownChildren.current.findIndex(
             (child) => document.activeElement === child
@@ -88,50 +89,48 @@ const Select = forwardRef(
             dropdownChildren.current[focusedIndex].click()
           }
         } else if (key === 'Tab') {
+          event.preventDefault()
           dropdownCurrent.classList.remove('show')
           buttonCurrent.setAttribute('aria-expanded', 'false')
-          buttonCurrent.focus()
         } else if (/^[a-zA-Z0-9]$/.test(key)) {
+          setCurrentLetter(key)
+          dropdownCurrent.classList.add('show')
+          buttonCurrent.setAttribute('aria-expanded', 'true')
+
           if (key !== currentLetter) {
+            console.log('no match')
             setCurrentLetter(key)
             focusedIndex.current = 0
           } else {
-            focusedIndex.current += 1
+            console.log('matched key')
+            focusedIndex.current = focusedIndex.current + 1
           }
-
-          dropdownCurrent.classList.add('show')
-          buttonCurrent.setAttribute('aria-expanded', 'true')
 
           const optionMatches = newOptions.filter((option) => {
             return (
               option.value &&
-              option.value
-                .toString()
-                .toLowerCase()
-                .startsWith(key.toLowerCase())
+              String(option.value).toLowerCase().startsWith(key.toLowerCase())
             )
           })
 
           if (optionMatches.length > 0) {
-            const nextFocusedIndex = findOptionIndex(
-              optionMatches,
-              focusedIndex.current
-            )
-
-            focusedIndex.current = nextFocusedIndex
+            const nextFocusedIndex = findOptionIndex(optionMatches)
 
             setFocus(nextFocusedIndex)
           }
         }
       }
 
-      const findOptionIndex = (optionMatches, index) => {
-        if (index > optionMatches.length - 1) {
-          index = 0
+      const findOptionIndex = (optionMatches) => {
+        if (focusedIndex.current > optionMatches.length - 1) {
+          console.log('greater than')
+          focusedIndex.current = 0
         }
 
+        console.log('index after', focusedIndex.current)
+
         const optionIndexValue = newOptions.findIndex(
-          (option) => option.value === optionMatches[index].value
+          (option) => option.value === optionMatches[focusedIndex.current].value
         )
 
         if (optionIndexValue === -1) {
@@ -155,12 +154,9 @@ const Select = forwardRef(
     }, [newOptions, currentLetter, focusedIndex])
 
     const handleOutsideClick = (event) => {
+      const parentCurrent = parentRef.current
       const target = event.target
-      if (
-        !buttonRef.current.contains(target) &&
-        !dropdownRef.current.contains(target) &&
-        dropdownRef.current.classList.contains('show')
-      ) {
+      if (!parentCurrent.contains(target)) {
         dropdownRef.current.classList.remove('show')
         buttonRef.current.setAttribute('aria-expanded', 'false')
       }
@@ -288,7 +284,7 @@ const Select = forwardRef(
 
     const displayClass = () => {
       if (multiple && selectedOptions?.length > 0) {
-        return 'border border-primary rounded-3 me-1 px-1'
+        return 'border border-primary rounded-pill me-1 px-1'
       } else if (!!selectedOptions.value) {
         return ''
       }
