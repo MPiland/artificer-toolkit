@@ -4,7 +4,6 @@ import {
   forwardRef,
   useImperativeHandle,
   useRef,
-  useCallback,
 } from 'react'
 import { uniqBy } from 'lodash'
 import '../css/select.css'
