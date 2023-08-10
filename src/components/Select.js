@@ -16,7 +16,6 @@ const Select = forwardRef(
     const [selectedOptions, setSelectedOptions] = useState(multiple ? [] : null)
     const [classText, setClassText] = useState('')
     const [currentLetter, setCurrentLetter] = useState()
-    const [autoClose] = useState(multiple ? 'outside' : 'true')
     const parentRef = useRef(null)
     const buttonRef = useRef(null)
     const dropdownRef = useRef(null)
@@ -85,8 +84,11 @@ const Select = forwardRef(
             (child) => document.activeElement === child
           )
           if (focusedIndex >= 0) {
-            event.preventDefault()
             dropdownChildren.current[focusedIndex].click()
+          }
+          if (!multiple) {
+            dropdownCurrent.classList.remove('show')
+            buttonCurrent.setAttribute('aria-expanded', 'false')
           }
         } else if (key === 'Tab') {
           event.preventDefault()
@@ -98,11 +100,9 @@ const Select = forwardRef(
           buttonCurrent.setAttribute('aria-expanded', 'true')
 
           if (key !== currentLetter) {
-            console.log('no match')
             setCurrentLetter(key)
             focusedIndex.current = 0
           } else {
-            console.log('matched key')
             focusedIndex.current = focusedIndex.current + 1
           }
 
@@ -123,11 +123,8 @@ const Select = forwardRef(
 
       const findOptionIndex = (optionMatches) => {
         if (focusedIndex.current > optionMatches.length - 1) {
-          console.log('greater than')
           focusedIndex.current = 0
         }
-
-        console.log('index after', focusedIndex.current)
 
         const optionIndexValue = newOptions.findIndex(
           (option) => option.value === optionMatches[focusedIndex.current].value
@@ -151,7 +148,7 @@ const Select = forwardRef(
       return () => {
         parentCurrent.removeEventListener('keyup', handleKeyUp)
       }
-    }, [newOptions, currentLetter, focusedIndex])
+    }, [newOptions, currentLetter, focusedIndex, multiple])
 
     const handleOutsideClick = (event) => {
       const parentCurrent = parentRef.current
@@ -320,7 +317,6 @@ const Select = forwardRef(
           ref={buttonRef}
           className={`btn dropdown-toggle focus-ring align-items-center w-100 justify-content-between ${containerClass()} ${classText}`}
           data-bs-toggle='dropdown'
-          data-bs-auto-close={autoClose}
           aria-expanded='false'
           type='button'
           id='selectButton'
@@ -342,6 +338,7 @@ const Select = forwardRef(
               key={optionIndex}
               onClick={(e) => {
                 handleOptionClick(option)
+                multiple && e.stopPropagation()
               }}
               ref={(el) => (dropdownChildren.current[optionIndex] = el)}
             >

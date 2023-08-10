@@ -29,7 +29,7 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
     }),
     updateSpell: builder.mutation({
       query: (initialSpellData) => ({
-        url: `/spell/`,
+        url: `/spell`,
         method: 'PATCH',
         body: { ...initialSpellData },
       }),

@@ -50,16 +50,6 @@ const NewFeatForm = () => {
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Feat added successfully!')
-      inputRefs.current.forEach((inputRef) => {
-        inputRef.resetState()
-      })
-      textRefs.current.forEach((textRef) => {
-        textRef.resetState()
-      })
-      setState({
-        type: 'reset',
-        payload: { target: { userId: id } },
-      })
       handleValidation(true)
     }
   }, [addIsSuccess, id, setState])
@@ -343,7 +333,7 @@ const NewFeatForm = () => {
                           (typeItem) => typeItem.name === item.modType?.name
                         )
                         ?.module.map((m) => m.id)
-                        .some((moduleID) => moduleID === moduleItem._id)
+                        ?.some((moduleID) => moduleID === moduleItem._id)
                     )}
                     required={true}
                     onChange={setState}
@@ -416,7 +406,7 @@ const NewFeatForm = () => {
                       placeholder='Method'
                       value={item.method}
                       options={builders.modifier.method.filter((methodItem) =>
-                        methodItem.module.some(
+                        methodItem.module?.some(
                           (moduleItem) => moduleItem.id === item.module?.id
                         )
                       )}
@@ -956,7 +946,7 @@ const NewFeatForm = () => {
                         onChange={setState}
                       />
                     ) : (
-                      !!featureItem.requirement &&
+                      !!featureItem?.requirement &&
                       setState({
                         action: 'removed',
                         payload: {
@@ -966,7 +956,7 @@ const NewFeatForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'skillProficiency'
                     ) ? (
                       <Select
@@ -990,7 +980,7 @@ const NewFeatForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'itemProficiency'
                     ) ? (
                       <>
@@ -1060,7 +1050,7 @@ const NewFeatForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'abilityScore'
                     ) ? (
                       <>
@@ -1256,7 +1246,7 @@ const NewFeatForm = () => {
                       })
                     )}
                   </div>
-                  {featureItem.requirement?.option.some(
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'equipped'
                   ) ? (
                     <>
@@ -1341,7 +1331,7 @@ const NewFeatForm = () => {
                       },
                     })
                   )}
-                  {featureItem.requirement?.option.some(
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'notEquipped'
                   ) ? (
                     <>
@@ -1686,7 +1676,7 @@ const NewFeatForm = () => {
                   },
                 })
               )}
-              {state.requirement?.option.some(
+              {state.requirement?.option?.some(
                 (optionItem) => optionItem.name === 'skillProficiency'
               ) ? (
                 <Select
@@ -1710,7 +1700,7 @@ const NewFeatForm = () => {
                   },
                 })
               )}
-              {state.requirement?.option.some(
+              {state.requirement?.option?.some(
                 (optionItem) => optionItem.name === 'itemProficiency'
               ) ? (
                 <>
@@ -1772,7 +1762,7 @@ const NewFeatForm = () => {
                   },
                 })
               )}
-              {state.requirement?.option.some(
+              {state.requirement?.option?.some(
                 (optionItem) => optionItem.name === 'abilityScore'
               ) ? (
                 <>
@@ -1967,7 +1957,7 @@ const NewFeatForm = () => {
                 })
               )}
             </div>
-            {state.requirement?.option.some(
+            {state.requirement?.option?.some(
               (optionItem) => optionItem.name === 'equipped'
             ) ? (
               <>
@@ -2046,7 +2036,7 @@ const NewFeatForm = () => {
                 },
               })
             )}
-            {state.requirement?.option.some(
+            {state.requirement?.option?.some(
               (optionItem) => optionItem.name === 'notEquipped'
             ) ? (
               <>

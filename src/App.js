@@ -16,8 +16,10 @@ import Spell from './features/spells/Spell'
 import SpellList from './features/spells/SpellList'
 import NewSpellForm from './features/spells/NewSpellForm'
 import EditSpellForm from './features/spells/EditSpellForm'
+import Item from './features/items/Item'
 import ItemList from './features/items/ItemList'
 import NewItemForm from './features/items/NewItemForm'
+import EditItemForm from './features/items/EditItemForm'
 import Feat from './features/feats/Feat'
 import FeatList from './features/feats/FeatList'
 import NewFeatForm from './features/feats/NewFeatForm'
@@ -73,6 +75,8 @@ const App = () => {
                 <Route path='items'>
                   <Route index element={<ItemList />} />
                   <Route path='new' element={<NewItemForm />} />
+                  <Route path=':id' element={<Modal child={<Item />} />} />
+                  <Route path='edit/:id' element={<EditItemForm />} />
                 </Route>
                 <Route path='feats'>
                   <Route index element={<FeatList />} />
@@ -91,6 +95,7 @@ const App = () => {
           <Route path='/login' element={<Modal child={<Login />} />} />
           <Route path='spells/:id' element={<Modal child={<Spell />} />} />
           <Route path='feats/:id' element={<Modal child={<Feat />} />} />
+          <Route path='items/:id' element={<Modal child={<Item />} />} />
         </Routes>
       )}
     </>

@@ -252,7 +252,6 @@ const SpellList = () => {
               placeholder='Spell Name'
               autoComplete='off'
               value={listFilter.value}
-              invalidText='Must contain only numbers'
               onChange={setListFilter}
             />
             <Select

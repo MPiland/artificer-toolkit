@@ -47,10 +47,20 @@ const EditSpellForm = () => {
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Spell added successfully!')
-      navigate('..')
+      inputRefs.current.forEach((inputRef) => {
+        inputRef.resetState()
+      })
+      textRefs.current.forEach((textRef) => {
+        textRef.resetState()
+      })
+      setState({
+        type: 'reset',
+        payload: { target: { userId: id } },
+      })
+      handleValidation(true)
     }
     if (updateIsSuccess) {
-      setSuccessMessage('Spell updated successfully!')
+      setSuccessMessage('Feat updated successfully!')
       handleValidation(true)
     }
   }, [addIsSuccess, id, navigate, updateIsSuccess])
@@ -69,16 +79,14 @@ const EditSpellForm = () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
     return document.removeEventListener('keypress', () => {
       if (!!successMessage || !!errorMessage) {
         setSuccessMessage()
         setErrorMessage()
-        const resetValidation = true
-        handleValidation(resetValidation)
+        handleValidation(true)
       }
     })
   })
@@ -587,7 +595,7 @@ const EditSpellForm = () => {
               </div>
             </>
           )}
-          <div className='d-flex justify-content-between pb-3'>
+          <div className='d-flex justify-content-end pb-3'>
             <button
               className='btn btn-success me-2'
               type='button'

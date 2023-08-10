@@ -29,7 +29,7 @@ export const featsApiSlice = apiSlice.injectEndpoints({
     }),
     updateFeat: builder.mutation({
       query: (initialSpellData) => ({
-        url: `/feat/`,
+        url: `/feat`,
         method: 'PATCH',
         body: { ...initialSpellData },
       }),

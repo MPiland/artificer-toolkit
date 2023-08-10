@@ -27,7 +27,16 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Item', id: 'LIST' }],
     }),
+    updateItem: builder.mutation({
+      query: (initialSpellData) => ({
+        url: `/item`,
+        method: 'PATCH',
+        body: { ...initialSpellData },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Item', id: arg._id }],
+    }),
   }),
 })
 
-export const { useGetItemQuery, useAddNewItemMutation } = itemsApiSlice
+export const { useGetItemQuery, useAddNewItemMutation, useUpdateItemMutation } =
+  itemsApiSlice

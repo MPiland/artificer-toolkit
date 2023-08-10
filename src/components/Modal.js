@@ -6,8 +6,6 @@ const Modal = ({ child }) => {
   const navigate = useNavigate()
   const setRef = useRef()
 
-  console.log(location)
-
   const onEditClicked = () => {
     navigate(
       `${location.state.background.pathname}/edit/${location.state.data.name}`,

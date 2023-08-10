@@ -154,7 +154,6 @@ const FeatList = () => {
             placeholder='Feat Name'
             autoComplete='off'
             value={listFilter.value}
-            invalidText='Must contain only numbers'
             onChange={setListFilter}
           />
         </div>

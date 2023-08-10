@@ -56,17 +56,7 @@ const NewRaceForm = () => {
 
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Spell added successfully!')
-      inputRefs.current.forEach((inputRef) => {
-        inputRef.resetState()
-      })
-      textRefs.current.forEach((textRef) => {
-        textRef.resetState()
-      })
-      setState({
-        type: 'reset',
-        payload: { target: { userId: id } },
-      })
+      setSuccessMessage('Race added successfully!')
       handleValidation(true)
     }
   }, [addIsSuccess, id, setState])
@@ -353,7 +343,7 @@ const NewRaceForm = () => {
                           (typeItem) => typeItem.name === item.modType?.name
                         )
                         ?.module.map((m) => m.id)
-                        .some((moduleID) => moduleID === moduleItem._id)
+                        ?.some((moduleID) => moduleID === moduleItem._id)
                     )}
                     required={true}
                     onChange={setState}
@@ -426,7 +416,7 @@ const NewRaceForm = () => {
                       placeholder='Method'
                       value={item.method}
                       options={builders.modifier.method.filter((methodItem) =>
-                        methodItem.module.some(
+                        methodItem.module?.some(
                           (moduleItem) => moduleItem.id === item.module?.id
                         )
                       )}
@@ -979,7 +969,7 @@ const NewRaceForm = () => {
                         onChange={setState}
                       />
                     ) : (
-                      !!featureItem.requirement &&
+                      !!featureItem?.requirement &&
                       setState({
                         action: 'removed',
                         payload: {
@@ -989,7 +979,7 @@ const NewRaceForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'skillProficiency'
                     ) ? (
                       <Select
@@ -1013,7 +1003,7 @@ const NewRaceForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'itemProficiency'
                     ) ? (
                       <>
@@ -1083,7 +1073,7 @@ const NewRaceForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'abilityScore'
                     ) ? (
                       <>
@@ -1280,7 +1270,7 @@ const NewRaceForm = () => {
                       })
                     )}
                   </div>
-                  {featureItem.requirement?.option.some(
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'equipped'
                   ) ? (
                     <>
@@ -1365,7 +1355,7 @@ const NewRaceForm = () => {
                       },
                     })
                   )}
-                  {featureItem.requirement?.option.some(
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'notEquipped'
                   ) ? (
                     <>

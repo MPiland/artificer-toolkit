@@ -12,7 +12,6 @@ import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
-import { textPasteRule } from '@tiptap/react'
 
 const NewItemForm = () => {
   const { id } = useAuth()
@@ -50,17 +49,7 @@ const NewItemForm = () => {
 
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Spell added successfully!')
-      inputRefs.current.forEach((inputRef) => {
-        inputRef.resetState()
-      })
-      textRefs.current.forEach((textRef) => {
-        textRef.resetState()
-      })
-      setState({
-        type: 'reset',
-        payload: { target: { userId: id } },
-      })
+      setSuccessMessage('Item added successfully!')
       handleValidation(true)
     }
   }, [addIsSuccess, id, setState])
@@ -124,6 +113,9 @@ const NewItemForm = () => {
       if (resetValidation === true) {
         selectRef.setClass('')
       }
+      if (!isValid) {
+        console.log('isValid', isValid, 'value', selectRef)
+      }
     })
 
     // Validate other elements with the required attribute
@@ -146,6 +138,9 @@ const NewItemForm = () => {
       if (resetValidation === true) {
         element.classList.remove('is-valid')
         element.classList.remove('is-invalid')
+      }
+      if (!isValid) {
+        console.log('isValid', isValid, 'value', element)
       }
     })
     return isValid
@@ -306,7 +301,7 @@ const NewItemForm = () => {
                           (typeItem) => typeItem.name === item.modType?.name
                         )
                         ?.module.map((m) => m.id)
-                        .some((moduleID) => moduleID === moduleItem._id)
+                        ?.some((moduleID) => moduleID === moduleItem._id)
                     )}
                     required={true}
                     onChange={setState}
@@ -362,7 +357,7 @@ const NewItemForm = () => {
                       placeholder='Method'
                       value={item.method}
                       options={builders.modifier.method.filter((methodItem) =>
-                        methodItem.module.some(
+                        methodItem.module?.some(
                           (moduleItem) => moduleItem.id === item.module?.id
                         )
                       )}
@@ -552,7 +547,7 @@ const NewItemForm = () => {
                     onChange={setState}
                   />
                 )}
-                {item.area?.name === 'itemType' && (
+                {/* {item.area?.name === 'itemType' && (
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.itemType`}
@@ -566,7 +561,7 @@ const NewItemForm = () => {
                     required={true}
                     onChange={setState}
                   />
-                )}
+                )} */}
                 {item.area?.name === 'itemProperty' && (
                   <Select
                     ref={addToSelectRefs}
@@ -782,7 +777,7 @@ const NewItemForm = () => {
                         onChange={setState}
                       />
                     ) : (
-                      !!featureItem.requirement &&
+                      !!featureItem?.requirement &&
                       setState({
                         action: 'removed',
                         payload: {
@@ -792,7 +787,7 @@ const NewItemForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'skillProficiency'
                     ) ? (
                       <Select
@@ -816,7 +811,7 @@ const NewItemForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'itemProficiency'
                     ) ? (
                       <>
@@ -833,7 +828,7 @@ const NewItemForm = () => {
                           required={true}
                           onChange={setState}
                         />
-                        <Select
+                        {/* <Select
                           ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                           placeholder='Item type'
@@ -852,7 +847,7 @@ const NewItemForm = () => {
                           )}
                           required={true}
                           onChange={setState}
-                        />
+                        /> */}
                         <Select
                           ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
@@ -886,7 +881,7 @@ const NewItemForm = () => {
                         },
                       })
                     )}
-                    {featureItem.requirement?.option.some(
+                    {featureItem.requirement?.option?.some(
                       (optionItem) => optionItem.name === 'abilityScore'
                     ) ? (
                       <>
@@ -1084,7 +1079,7 @@ const NewItemForm = () => {
                       })
                     )}
                   </div>
-                  {featureItem.requirement?.option.some(
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'equipped'
                   ) ? (
                     <>
@@ -1113,7 +1108,7 @@ const NewItemForm = () => {
                             required={true}
                             onChange={setState}
                           />
-                          <Select
+                          {/* <Select
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
@@ -1131,7 +1126,7 @@ const NewItemForm = () => {
                             )}
                             required={true}
                             onChange={setState}
-                          />
+                          /> */}
                           <Select
                             ref={addToSelectRefs}
                             multiple={true}
@@ -1169,7 +1164,7 @@ const NewItemForm = () => {
                       },
                     })
                   )}
-                  {featureItem.requirement?.option.some(
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'notEquipped'
                   ) ? (
                     <>
@@ -1195,10 +1190,10 @@ const NewItemForm = () => {
                             }
                             placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            required={textPasteRule}
+                            required={true}
                             onChange={setState}
                           />
-                          <Select
+                          {/* <Select
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
@@ -1218,7 +1213,7 @@ const NewItemForm = () => {
                             )}
                             required={true}
                             onChange={setState}
-                          />
+                          /> */}
                           <Select
                             ref={addToSelectRefs}
                             multiple={true}
@@ -1465,7 +1460,7 @@ const NewItemForm = () => {
                 required={true}
                 onChange={setState}
               />
-              <Select
+              {/* <Select
                 ref={addToSelectRefs}
                 name='itemType'
                 placeholder='Item type'
@@ -1478,7 +1473,7 @@ const NewItemForm = () => {
                 }
                 required={true}
                 onChange={setState}
-              />
+              /> */}
               <Select
                 ref={addToSelectRefs}
                 name='itemProperty'
@@ -1552,14 +1547,14 @@ const NewItemForm = () => {
               ref={addToTextRefs}
               onChange={setState}
               value={state.desc}
-              placeholder={'Item description'}
+              placeholder={'Item Description'}
               name={'desc'}
             />
             <TextEditor
               ref={addToTextRefs}
               onChange={setState}
               value={state.quote}
-              placeholder={'Item quote'}
+              placeholder={'Item Quote'}
               name={'quote'}
             />
           </div>
@@ -1585,55 +1580,7 @@ const NewItemForm = () => {
                   onChange={setState}
                 />
               </div>
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'weight'
-              ) && (
-                <Input
-                  ref={addToInputRefs}
-                  validation={'num'}
-                  name='itemWeight'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Item Weight'
-                  autoComplete='off'
-                  required={true}
-                  value={state.itemWeight}
-                  onChange={setState}
-                />
-              )}
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'container'
-              ) && (
-                <Input
-                  ref={addToInputRefs}
-                  validation={'num'}
-                  name='capacityWeight'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Capacity Weight'
-                  autoComplete='off'
-                  required={true}
-                  value={state.capacityWeight}
-                  onChange={setState}
-                />
-              )}
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'stackable'
-              ) && (
-                <Input
-                  ref={addToInputRefs}
-                  validation={'num'}
-                  type='text'
-                  name='maxStack'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Max Stack Size'
-                  autoComplete='off'
-                  required={true}
-                  value={state.maxStack}
-                  onChange={setState}
-                />
-              )}
+
               {state.itemCategory?.name === 'weapon' && (
                 <>
                   <Input
@@ -1696,17 +1643,28 @@ const NewItemForm = () => {
                 </>
               )}
               {state.itemCategory?.name === 'armor' && (
-                <Input
-                  ref={addToInputRefs}
-                  validation={'num'}
-                  name='armorValue'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Armor Value'
-                  required={true}
-                  value={state.armorValue}
-                  onChange={setState}
-                />
+                <>
+                  <Input
+                    ref={addToInputRefs}
+                    validation={'num'}
+                    name='armorValue'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Armor Value'
+                    required={true}
+                    value={state.armorValue}
+                    onChange={setState}
+                  />
+                  <Select
+                    ref={addToSelectRefs}
+                    name='primaryAbility'
+                    placeholder='Primary Ability'
+                    value={state.primaryAbility}
+                    options={builders.ability}
+                    required={true}
+                    onChange={setState}
+                  />
+                </>
               )}
               {state.itemProperty?.find(
                 (property) =>
@@ -1737,6 +1695,55 @@ const NewItemForm = () => {
                   />
                 </>
               )}
+              {state?.attribute?.some(
+                (attributeItem) => attributeItem.name === 'weight'
+              ) && (
+                <Input
+                  ref={addToInputRefs}
+                  validation={'num'}
+                  name='itemWeight'
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Item Weight'
+                  autoComplete='off'
+                  required={true}
+                  value={state.itemWeight}
+                  onChange={setState}
+                />
+              )}
+              {state?.attribute?.some(
+                (attributeItem) => attributeItem.name === 'container'
+              ) && (
+                <Input
+                  ref={addToInputRefs}
+                  validation={'num'}
+                  name='capacityWeight'
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Capacity Weight'
+                  autoComplete='off'
+                  required={true}
+                  value={state.capacityWeight}
+                  onChange={setState}
+                />
+              )}
+              {state?.attribute?.some(
+                (attributeItem) => attributeItem.name === 'stackable'
+              ) && (
+                <Input
+                  ref={addToInputRefs}
+                  validation={'num'}
+                  type='text'
+                  name='maxStack'
+                  label={true}
+                  invalidText='Must contain only numbers'
+                  placeholder='Max Stack Size'
+                  autoComplete='off'
+                  required={true}
+                  value={state.maxStack}
+                  onChange={setState}
+                />
+              )}
             </div>
           </div>
           <div className='d-flex justify-content-between pb-3'>
@@ -1755,7 +1762,7 @@ const NewItemForm = () => {
                 onSubmit()
               }}
             >
-              Add
+              Add Item
             </button>
           </div>
           {featureContent}
