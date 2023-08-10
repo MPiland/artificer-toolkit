@@ -1,4 +1,4 @@
-import { useState, useReducer, useRef, useEffect } from 'react'
+import { useState, useReducer, useRef, useEffect, forwardRef } from 'react'
 import { useLoginMutation, useGoogleLoginMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
 import { useNavigate } from 'react-router-dom'
@@ -6,7 +6,7 @@ import { useGoogleLogin } from '@react-oauth/google'
 import formReducer from '../../hooks/useReducer'
 import Input from '../../components/Input'
 
-const Login = () => {
+const Login = forwardRef((props, ref) => {
   // Login hook
   const [
     login,
@@ -148,7 +148,7 @@ const Login = () => {
         </label>
       </div>
       <button
-        className='w-100 mb-2 btn btn-lg rounded-3 btn-primary'
+        className='login w-100 mb-2 btn btn-lg rounded-3 btn-primary'
         type='button'
         disabled={state?.submitting}
         onClick={(e) => {
@@ -167,20 +167,20 @@ const Login = () => {
       <hr className='my-4' />
       <h2 className='fs-5 fw-bold mb-3 text-center'>Or use a third-party</h2>
       <button
-        className='w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='login w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
         type='button'
         onClick={onGoogleLoginClicked}
       >
         <i className='bi bi-google'></i> Login with Google
       </button>
       <button
-        className='disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='login disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
         type='button'
       >
         <i className='bi bi-facebook'></i> Login with Facebook
       </button>
       <button
-        className='disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='login disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
         type='button'
       >
         <i className='bi bi-twitch'></i> Login with Twitch
@@ -189,5 +189,5 @@ const Login = () => {
   )
 
   return content
-}
+})
 export default Login

@@ -1,5 +1,5 @@
 import { apiSlice } from '../../app/api/apiSlice'
-import { setCredentials } from './authSlice'
+import { setCredentials, logOut } from './authSlice'
 
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -22,6 +22,18 @@ export const authApiSlice = apiSlice.injectEndpoints({
         url: '/auth/logout',
         method: 'POST',
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          console.log(data)
+          dispatch(logOut())
+          setTimeout(() => {
+            dispatch(apiSlice.util.resetApiState())
+          }, 1000)
+        } catch (err) {
+          console.log(err)
+        }
+      },
     }),
     refresh: builder.mutation({
       query: () => ({

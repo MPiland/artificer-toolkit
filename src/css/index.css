@@ -46,6 +46,10 @@ a.btn {
   height: 38px;
 }
 
+.btn.login {
+  height: 58px;
+}
+
 button.bi {
   border: none;
   background: none;
