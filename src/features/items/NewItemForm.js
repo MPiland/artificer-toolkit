@@ -1755,7 +1755,7 @@ const NewItemForm = () => {
                 onSubmit()
               }}
             >
-              Add Item
+              Add
             </button>
           </div>
           {featureContent}

@@ -2257,7 +2257,7 @@ const NewFeatForm = () => {
                 onSubmit()
               }}
             >
-              Add Feat
+              Add
             </button>
           </div>
           {featureContent}

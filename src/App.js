@@ -1,4 +1,5 @@
 import 'react-tooltip/dist/react-tooltip.css'
+import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import RequireAuth from './features/auth/RequireAuth'
 import PersistLogin from './features/auth/PersistLogin'
@@ -25,6 +26,20 @@ import { useSelector } from 'react-redux'
 import { selectCurrentToken } from './features/auth/authSlice'
 
 const App = () => {
+  const documentHeight = () => {
+    const doc = document.documentElement
+    doc.style.setProperty('--doc-height', `${window.innerHeight}px`)
+  }
+
+  useEffect(() => {
+    documentHeight()
+    window.addEventListener('resize', documentHeight)
+
+    return () => {
+      window.addEventListener('resize', documentHeight)
+    }
+  }, [])
+
   const token = useSelector(selectCurrentToken)
   const location = useLocation()
   const background = location.state?.background

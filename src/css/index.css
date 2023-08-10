@@ -4,22 +4,27 @@
   margin: 0;
 }
 
+:root {
+  --doc-height: 100%
+}
+
 #root {
   position: absolute;
   top: 0;
   left: 0;
-  max-height: 100vh;
+  height: var(--doc-height);
+  width: 100%;
   overflow: hidden;
 }
 
 #layout-container {
-  width: 100vw;
-  height: 100vh;
+  width: inherit;
+  height: var(--doc-height);
   overflow: auto;
 }
 
 .main-container {
-  padding: 1rem calc(((100vw - 70vw) / 2) + 3rem) 0;
+  padding: 1rem calc(((100% - 70%) / 2) + 3rem) 0;
   overflow: auto;
   width: 100%;
 }
@@ -131,6 +136,12 @@ h6 {
     padding: 1rem 3rem 0;
     margin: 0 auto;
     justify-content: center;
+  }
+
+  .btn {
+    height: 38px;
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
   }
 }
 

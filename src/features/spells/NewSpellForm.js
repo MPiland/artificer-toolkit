@@ -567,7 +567,7 @@ const NewSpellForm = () => {
                 onSubmit()
               }}
             >
-              Add Spell
+              Add
             </button>
           </div>
         </form>

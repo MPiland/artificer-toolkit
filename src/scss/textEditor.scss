@@ -234,3 +234,9 @@ span.is_active {
   color: #adb5bd;
   pointer-events: none;
 }
+
+@media only screen and (max-width: 768px) {
+  .textEditor {
+    height: 220px;
+  }
+}

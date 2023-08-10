@@ -2299,7 +2299,7 @@ const EditFeatForm = () => {
             >
               Add Feature
             </button>
-            <div>
+            <div className='row'>
               <button
                 className='btn btn-success me-2'
                 type='button'
@@ -2307,7 +2307,7 @@ const EditFeatForm = () => {
                   onUpdate()
                 }}
               >
-                Update Feat
+                Update
               </button>
               <button
                 className='btn btn-primary'
@@ -2316,7 +2316,7 @@ const EditFeatForm = () => {
                   onSubmit()
                 }}
               >
-                Add Feat
+                Add New
               </button>
             </div>
           </div>

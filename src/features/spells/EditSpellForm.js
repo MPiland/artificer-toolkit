@@ -595,7 +595,7 @@ const EditSpellForm = () => {
                 onUpdate()
               }}
             >
-              Update Spell
+              Update
             </button>
             <button
               className='btn btn-primary'
@@ -604,7 +604,7 @@ const EditSpellForm = () => {
                 onSubmit()
               }}
             >
-              Add As New
+              Add New
             </button>
           </div>
         </form>
