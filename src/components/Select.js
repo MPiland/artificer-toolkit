@@ -155,13 +155,13 @@ const Select = forwardRef(
       const parentCurrent = parentRef.current
 
       const target = event.target
-      if (!parentCurrent.contains(target)) {
-        dropdownRef.current.classList.remove('show')
-        buttonRef.current.setAttribute('aria-expanded', 'false')
+      if (target && !parentCurrent?.contains(target)) {
+        dropdownCurrent?.classList.remove('show')
+        buttonCurrent?.setAttribute('aria-expanded', 'false')
       }
       if (event.key === 'Tab') {
-        dropdownCurrent.classList.remove('show')
-        buttonCurrent.setAttribute('aria-expanded', 'false')
+        dropdownCurrent?.classList.remove('show')
+        buttonCurrent?.setAttribute('aria-expanded', 'false')
       }
     }
 

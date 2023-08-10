@@ -148,6 +148,7 @@ const NewItemForm = () => {
     }
     return isValid
   }
+  
   const onReset = () => {
     setState({
       type: 'reset',
