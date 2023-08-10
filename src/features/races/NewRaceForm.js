@@ -5,6 +5,7 @@ import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import { useGetFeatQuery } from '../feats/featsApiSlice'
 import { useGetRaceQuery } from './racesApiSlice'
+import { useGetItemQuery } from '../items/itemsApiSlice'
 import { startCase } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import AccordionButton from '../../components/AccordionButton'
@@ -42,6 +43,12 @@ const NewRaceForm = () => {
     isLoading: raceIsLoading,
   } = useGetRaceQuery(id)
 
+  const {
+    data: items,
+    isSuccess: ItemIsSuccess,
+    isLoading: ItemIsLoading,
+  } = useGetItemQuery(id)
+
   const [
     addNewRace,
     { isSuccess: addIsSuccess, isError: addIsError, error: addError },
@@ -56,8 +63,12 @@ const NewRaceForm = () => {
 
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Race added successfully!')
+      setSuccessMessage('Item added successfully!')
       handleValidation(true)
+      setState({
+        type: 'reset',
+        payload: { target: { userId: id } },
+      })
     }
   }, [addIsSuccess, id, setState])
 
@@ -106,61 +117,60 @@ const NewRaceForm = () => {
     let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
-        const selectValue = selectRef.getValue()
-        const isEmpty =
-          selectValue === null ||
-          (Array.isArray(selectValue) && selectValue.length === 0)
-        if (isEmpty) {
-          selectRef.setClass('is-invalid')
-          isValid = false
+        if (resetValidation === true) {
+          selectRef.setClass('')
         } else {
-          selectRef.setClass('is-valid')
+          const selectValue = selectRef.getValue()
+          const isEmpty =
+            selectValue === null ||
+            (Array.isArray(selectValue) && selectValue.length === 0)
+          if (isEmpty) {
+            selectRef.setClass('is-invalid')
+            isValid = false
+          } else {
+            selectRef.setClass('is-valid')
+          }
         }
-      }
-      if (resetValidation === true) {
-        selectRef.setClass('')
       }
     })
 
     // Validate other elements with the required attribute
     const requiredElements = document.querySelectorAll('[required]')
     requiredElements.forEach((element) => {
-      const value = element.value
-      const isEmpty =
-        value === null ||
-        value === undefined ||
-        (typeof value === 'string' && value.trim() === '')
-
-      if (isEmpty) {
-        element.classList.add('is-invalid')
+      if (resetValidation) {
         element.classList.remove('is-valid')
-        isValid = false
+        element.classList.remove('is-invalid')
       } else {
-        element.classList.add('is-valid')
-        element.classList.remove('is-invalid')
-      }
-      if (resetValidation === true) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
+        const value = element.value
+        const isEmpty =
+          value === null ||
+          value === undefined ||
+          (typeof value === 'string' && value.trim() === '')
+
+        if (isEmpty) {
+          element.classList.add('is-invalid')
+          element.classList.remove('is-valid')
+          isValid = false
+        } else {
+          element.classList.add('is-valid')
+          element.classList.remove('is-invalid')
+        }
       }
     })
+    if(resetValidation) {
+      setErrorMessage()
+    }
     return isValid
   }
 
   const onReset = () => {
-    inputRefs.current.forEach((inputRef) => {
-      inputRef.resetState()
-    })
-    textRefs.current.forEach((textRef) => {
-      textRef.resetState()
-    })
     setState({
       type: 'reset',
       payload: { target: { userId: id } },
     })
     setSuccessMessage()
     setErrorMessage()
-    handleValidation(true)
+    handleValidation()
   }
 
   const onSubmit = async () => {
@@ -174,11 +184,23 @@ const NewRaceForm = () => {
 
   let content
 
-  if (builderIsLoading || spellIsLoading || featIsLoading || raceIsLoading) {
+  if (
+    builderIsLoading ||
+    spellIsLoading ||
+    featIsLoading ||
+    raceIsLoading ||
+    ItemIsLoading
+  ) {
     content = <p>Loading...</p>
   }
 
-  if (builderIsSuccess && spellIsSuccess && featIsSuccess && raceIsSuccess) {
+  if (
+    builderIsSuccess &&
+    spellIsSuccess &&
+    featIsSuccess &&
+    raceIsSuccess &&
+    ItemIsSuccess
+  ) {
     const damageTableInputs = (secondary) => {
       const inputArray = [
         {
@@ -271,7 +293,7 @@ const NewRaceForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.feat${
-                    multipleOptions && '.options'
+                    multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
@@ -360,7 +382,7 @@ const NewRaceForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.ability${multipleOptions && '.options'}`}
+                        }.${index}.ability${multipleOptions ? '.options' : ''}`}
                         multiple={multipleOptions}
                         placeholder='Ability'
                         value={
@@ -376,7 +398,9 @@ const NewRaceForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.saveAbility${multipleOptions && '.options'}`}
+                        }.${index}.saveAbility${
+                          multipleOptions ? '.options' : ''
+                        }`}
                         multiple={multipleOptions}
                         placeholder='Save Ability'
                         value={
@@ -394,7 +418,7 @@ const NewRaceForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.skill${multipleOptions && '.options'}`}
+                        }.${index}.skill${multipleOptions ? '.options' : ''}`}
                         multiple={multipleOptions}
                         placeholder='Skill'
                         value={
@@ -429,7 +453,7 @@ const NewRaceForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.condition${multipleOptions && '.options'}`}
+                    }.${index}.condition${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Condition Type'
                     value={
@@ -443,7 +467,7 @@ const NewRaceForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.speed${
-                      multipleOptions && '.options'
+                      multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
                     value={multipleOptions ? item.speed.options : item.speed}
@@ -457,7 +481,7 @@ const NewRaceForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.passive${multipleOptions && '.options'}`}
+                    }.${index}.passive${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Passive Type'
                     value={
@@ -473,7 +497,7 @@ const NewRaceForm = () => {
                       ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.damage${multipleOptions && '.options'}`}
+                      }.${index}.damage${multipleOptions ? '.options' : ''}`}
                       multiple={multipleOptions}
                       placeholder='Damage Type'
                       value={
@@ -603,7 +627,7 @@ const NewRaceForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.skill${
-                      multipleOptions && '.options'
+                      multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
                     placeholder='Skill'
@@ -618,7 +642,7 @@ const NewRaceForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.saveAbility${multipleOptions && '.options'}`}
+                    }.${index}.saveAbility${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Save Ability'
                     value={
@@ -635,7 +659,7 @@ const NewRaceForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.tool${
-                      multipleOptions && '.options'
+                      multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
                     placeholder='Tool'
@@ -650,7 +674,7 @@ const NewRaceForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.language${multipleOptions && '.options'}`}
+                    }.${index}.language${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Language'
                     value={
@@ -666,18 +690,14 @@ const NewRaceForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.itemType${multipleOptions && '.options'}`}
+                    }.${index}.itemType${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Item Type'
                     value={
                       multipleOptions ? item.itemType.options : item.itemType
                     }
                     require={true}
-                    options={[].concat(
-                      ...builders.item.itemCategory.map(
-                        (categoryItem) => categoryItem.itemType
-                      )
-                    )}
+                    options={items}
                     onChange={setState}
                   />
                 )}
@@ -686,7 +706,9 @@ const NewRaceForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.itemProperty${multipleOptions && '.options'}`}
+                    }.${index}.itemProperty${
+                      multipleOptions ? '.options' : ''
+                    }`}
                     multiple={multipleOptions}
                     placeholder='Item Property'
                     value={
@@ -757,7 +779,7 @@ const NewRaceForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.sense${
-                    multipleOptions && '.options'
+                    multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
@@ -821,7 +843,7 @@ const NewRaceForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions && '.options'
+                    multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Spell'
@@ -876,7 +898,9 @@ const NewRaceForm = () => {
                     value={featureItem.value}
                     onChange={setState}
                     clickable={false}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                    }}
                   />
                 </AccordionButton>
               </div>
@@ -1027,15 +1051,10 @@ const NewRaceForm = () => {
                           value={
                             featureItem.requirement?.itemProficiency?.itemType
                           }
-                          options={[].concat(
-                            ...builders.item.itemCategory
-                              .filter((itemCategory) =>
-                                featureItem.requirement?.itemCategory?.some(
-                                  (categoryItem) =>
-                                    itemCategory._id.includes(categoryItem.id)
-                                )
-                              )
-                              .map((filteredItem) => filteredItem.itemType)
+                          options={items.filter(
+                            (item) =>
+                              item.itemCategory.value !==
+                              featureItem.requirement?.itemCategory?.value
                           )}
                           required={true}
                           onChange={setState}
@@ -1305,15 +1324,11 @@ const NewRaceForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
-                            options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
-                                  )
-                                )
-                                .map((filteredItem) => filteredItem.itemType)
+                            options={items.filter(
+                              (item) =>
+                                item.itemCategory.value !==
+                                featureItem.requirement?.equipped?.itemCategory
+                                  ?.value
                             )}
                             required={true}
                             onChange={setState}
@@ -1392,15 +1407,11 @@ const NewRaceForm = () => {
                             value={
                               featureItem.requirement?.notEquipped?.itemType
                             }
-                            options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
-                                  )
-                                )
-                                .map((filteredItem) => filteredItem.itemType)
+                            options={items.filter(
+                              (item) =>
+                                item.itemCategory.value !==
+                                featureItem.requirement?.notEquipped
+                                  ?.itemCategory?.value
                             )}
                             required={true}
                             onChange={setState}
@@ -1698,7 +1709,6 @@ const NewRaceForm = () => {
                           border={false}
                           autoComplete='off'
                           placeholder='Section Title'
-                          label={true}
                           value={detailItem.title}
                           onChange={setState}
                           onClick={(e) => e.stopPropagation()}
@@ -1725,9 +1735,9 @@ const NewRaceForm = () => {
                         </div>
                         <TextEditor
                           ref={addToTextRefs}
-                          name={`details.${detailIndex}.text`}
-                          value={detailItem.text}
-                          placeholder={'Section Text'}
+                          name={`details.${detailIndex}.desc`}
+                          value={detailItem.desc}
+                          placeholder={'Section Description'}
                           onChange={setState}
                         />
                       </div>
@@ -1746,6 +1756,13 @@ const NewRaceForm = () => {
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
           <div className='accordion-collapse collapse show pb-2' id='trait'>
+            <TextEditor
+              ref={addToTextRefs}
+              name='traits.desc'
+              value={state.traits?.desc}
+              placeholder={'Traits Description'}
+              onChange={setState}
+            />
             <div className='row g-2 pb-2'>
               <Select
                 ref={addToSelectRefs}
@@ -1753,156 +1770,86 @@ const NewRaceForm = () => {
                 multiple={true}
                 name='attribute'
                 placeholder='Attributes'
-                value={state?.attribute}
+                value={state.attribute}
                 options={builders.race.attribute}
                 required={true}
                 onChange={setState}
               />
-              <TextEditor
-                ref={addToTextRefs}
-                short={true}
-                size='col-sm'
-                name='age'
-                value={state?.age}
-                noMenuBar={true}
-                placeholder='Age Description'
-                onChange={setState}
-              />
-            </div>
-            <div className='row g-2 pb-2'>
               <Select
                 ref={addToSelectRefs}
                 size='col-lg-3 col-md-4 col-sm-12'
-                name='size'
+                name='traits.size'
                 placeholder='Size'
-                value={state?.size}
+                value={state.traits?.size}
                 options={builders.race.size}
                 required={true}
                 onChange={setState}
               />
-              <TextEditor
-                ref={addToTextRefs}
-                short={true}
-                size='col-sm'
-                name='size.desc'
-                value={state.size?.desc}
-                noMenuBar={true}
-                placeholder='Size Description'
-                onChange={setState}
-              />
-            </div>
-            {state.attribute?.some(
-              (attributeItem) => attributeItem.name === 'walking'
-            ) && (
-              <div className='row g-2 pb-2'>
+              {state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'walking'
+              ) && (
                 <Input
                   ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
-                  name='speed.walking.value'
+                  name='traits.speed.walking'
                   placeholder='Walking Speed'
                   label={true}
                   invalidText='Must contain only numbers'
-                  value={state.speed?.walking?.value}
+                  value={state.traits?.speed?.walking}
                   required={true}
                   onChange={setState}
                 />
-                <TextEditor
-                  ref={addToTextRefs}
-                  short={true}
-                  size='col-sm'
-                  name='speed.walking.desc'
-                  value={state.speed?.walking?.desc}
-                  noMenuBar={true}
-                  placeholder='Speed Description'
-                  onChange={setState}
-                />
-              </div>
-            )}
-            {state.attribute?.some(
-              (attributeItem) => attributeItem.name === 'climbing'
-            ) && (
-              <div className='row g-2 pb-2'>
+              )}
+              {state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'climbing'
+              ) && (
                 <Input
                   ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
-                  name='speed.climbing.value'
+                  name='traits.speed.climbing'
                   placeholder='Climbing Speed'
                   label={true}
                   invalidText='Must contain only numbers'
                   required={true}
-                  value={state.speed?.climbing?.value}
+                  value={state.traits?.speed?.climbing}
                   onChange={setState}
                 />
-                <TextEditor
-                  ref={addToTextRefs}
-                  short={true}
-                  size='col-sm'
-                  name='speed.climbing.desc'
-                  value={state.speed?.climbing?.desc}
-                  noMenuBar={true}
-                  placeholder='Speed Description'
-                  onChange={setState}
-                />
-              </div>
-            )}
-            {state.attribute?.some(
-              (attributeItem) => attributeItem.name === 'swimming'
-            ) && (
-              <div className='row g-2 pb-2'>
+              )}
+              {state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'swimming'
+              ) && (
                 <Input
                   ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
-                  name='speed.swimming.value'
+                  name='traits.speed.swimming'
                   placeholder='Swimming Speed'
                   label={true}
                   invalidText='Must contain only numbers'
                   required={true}
-                  value={state.speed?.swimming?.value}
+                  value={state.traits?.speed?.swimming}
                   onChange={setState}
                 />
-                <TextEditor
-                  ref={addToTextRefs}
-                  short={true}
-                  size='col-sm'
-                  name='speed.swimming.desc'
-                  value={state.speed?.swimming?.desc}
-                  noMenuBar={true}
-                  placeholder='Speed Description'
-                  onChange={setState}
-                />
-              </div>
-            )}
-            {state.attribute?.some(
-              (attributeItem) => attributeItem.name === 'flying'
-            ) && (
-              <div className='row g-2 pb-2'>
+              )}
+              {state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'flying'
+              ) && (
                 <Input
                   ref={addToInputRefs}
                   size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
-                  name='speed.flying.value'
+                  name='traits.speed.flying'
                   placeholder='Flying Speed'
                   label={true}
                   invalidText='Must contain only numbers'
                   required={true}
-                  value={state.speed?.flying?.value}
+                  value={state.traits?.speed?.flying}
                   onChange={setState}
                 />
-                <TextEditor
-                  ref={addToTextRefs}
-                  short={true}
-                  size='col-sm'
-                  name='speed.flying.desc'
-                  value={state.speed?.flying?.desc}
-                  noMenuBar={true}
-                  placeholder='Speed Description'
-                  onChange={setState}
-                />
-              </div>
-            )}
+              )}
+            </div>
           </div>
           {state.attribute?.some(
             (attributeItem) => attributeItem.name === 'ancestryOptions'

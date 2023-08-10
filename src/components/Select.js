@@ -66,9 +66,11 @@ const Select = forwardRef(
 
     useEffect(() => {
       document.addEventListener('click', handleOutsideClick)
+      document.addEventListener('keydown', handleOutsideClick)
 
       return () => {
         document.removeEventListener('click', handleOutsideClick)
+        document.addEventListener('keydown', handleOutsideClick)
       }
     }, [])
 
@@ -78,6 +80,7 @@ const Select = forwardRef(
       const buttonCurrent = buttonRef.current
 
       const handleKeyUp = (event) => {
+        console.log(event.key)
         const key = event.key
         if (key === 'Enter') {
           const focusedIndex = dropdownChildren.current.findIndex(
@@ -90,10 +93,6 @@ const Select = forwardRef(
             dropdownCurrent.classList.remove('show')
             buttonCurrent.setAttribute('aria-expanded', 'false')
           }
-        } else if (key === 'Tab') {
-          event.preventDefault()
-          dropdownCurrent.classList.remove('show')
-          buttonCurrent.setAttribute('aria-expanded', 'false')
         } else if (/^[a-zA-Z0-9]$/.test(key)) {
           setCurrentLetter(key)
           dropdownCurrent.classList.add('show')
@@ -151,16 +150,24 @@ const Select = forwardRef(
     }, [newOptions, currentLetter, focusedIndex, multiple])
 
     const handleOutsideClick = (event) => {
+      const dropdownCurrent = dropdownRef.current
+      const buttonCurrent = buttonRef.current
       const parentCurrent = parentRef.current
+
       const target = event.target
       if (!parentCurrent.contains(target)) {
         dropdownRef.current.classList.remove('show')
         buttonRef.current.setAttribute('aria-expanded', 'false')
       }
+      if (event.key === 'Tab') {
+        dropdownCurrent.classList.remove('show')
+        buttonCurrent.setAttribute('aria-expanded', 'false')
+      }
     }
 
-    const handleOptionClick = (option) => {
+    const handleOptionClick = (option, e) => {
       if (multiple) {
+        e.preventDefault()
         // Clear all options
         if (option.name === 'clear') {
           updatedOptions = []
@@ -337,8 +344,7 @@ const Select = forwardRef(
               className={`dropdown-item mb-2 py-0 px-2 ${selectClass(option)}`}
               key={optionIndex}
               onClick={(e) => {
-                handleOptionClick(option)
-                multiple && e.stopPropagation()
+                handleOptionClick(option, e)
               }}
               ref={(el) => (dropdownChildren.current[optionIndex] = el)}
             >

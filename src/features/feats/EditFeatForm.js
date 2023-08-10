@@ -4,6 +4,7 @@ import { useAddNewFeatMutation } from './featsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import { useGetFeatQuery, useUpdateFeatMutation } from './featsApiSlice'
+import { useGetItemQuery } from '../items/itemsApiSlice'
 import { startCase, isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import TextEditor from '../../components/TextEditor'
@@ -35,6 +36,12 @@ const EditFeatForm = () => {
     isSuccess: featIsSuccess,
     isLoading: featIsLoading,
   } = useGetFeatQuery(id)
+
+  const {
+    data: items,
+    isSuccess: ItemIsSuccess,
+    isLoading: ItemIsLoading,
+  } = useGetItemQuery(id)
 
   const [
     addNewFeat,
@@ -122,63 +129,57 @@ const EditFeatForm = () => {
     let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
-        const selectValue = selectRef.getValue()
-        const isEmpty =
-          selectValue === null ||
-          (Array.isArray(selectValue) && selectValue.length === 0)
-        if (isEmpty) {
-          selectRef.setClass('is-invalid')
-          isValid = false
+        if (resetValidation === true) {
+          selectRef.setClass('')
         } else {
-          selectRef.setClass('is-valid')
+          const selectValue = selectRef.getValue()
+          const isEmpty =
+            selectValue === null ||
+            (Array.isArray(selectValue) && selectValue.length === 0)
+          if (isEmpty) {
+            selectRef.setClass('is-invalid')
+            isValid = false
+          } else {
+            selectRef.setClass('is-valid')
+          }
         }
-      }
-      if (resetValidation === true) {
-        selectRef.setClass('')
       }
     })
 
     // Validate other elements with the required attribute
     const requiredElements = document.querySelectorAll('[required]')
     requiredElements.forEach((element) => {
-      const value = element.value
-      const isEmpty =
-        value === null ||
-        value === undefined ||
-        (typeof value === 'string' && value.trim() === '')
-
-      if (isEmpty) {
-        element.classList.add('is-invalid')
+      if (resetValidation) {
         element.classList.remove('is-valid')
-        isValid = false
+        element.classList.remove('is-invalid')
       } else {
-        element.classList.add('is-valid')
-        element.classList.remove('is-invalid')
-      }
-      if (resetValidation === true) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
+        const value = element.value
+        const isEmpty =
+          value === null ||
+          value === undefined ||
+          (typeof value === 'string' && value.trim() === '')
+
+        if (isEmpty) {
+          element.classList.add('is-invalid')
+          element.classList.remove('is-valid')
+          isValid = false
+        } else {
+          element.classList.add('is-valid')
+          element.classList.remove('is-invalid')
+        }
       }
     })
+    if(resetValidation) {
+      setErrorMessage()
+    }
     return isValid
   }
 
   const onReset = () => {
-    inputRefs.current.forEach((inputRef) => {
-      inputRef.resetState()
-    })
-    textRefs.current.forEach((textRef) => {
-      textRef.revertState(oldState)
-    })
     setState({
       type: 'reset',
       payload: { target: oldState },
     })
-    if (isEqual(oldState, state)) {
-      setMatch(true)
-    } else {
-      setMatch(false)
-    }
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)
@@ -224,11 +225,11 @@ const EditFeatForm = () => {
 
   let content
 
-  if (builderIsLoading || spellIsLoading || featIsLoading) {
+  if (builderIsLoading || spellIsLoading || featIsLoading || ItemIsLoading) {
     content = <p>Loading...</p>
   }
 
-  if (builderIsSuccess && spellIsSuccess && featIsSuccess) {
+  if (builderIsSuccess && spellIsSuccess && featIsSuccess && ItemIsSuccess) {
     const damageTableInputs = (secondary) => {
       const inputArray = [
         {
@@ -319,7 +320,7 @@ const EditFeatForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.feat${
-                    multipleOptions && '.options'
+                    multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
@@ -407,7 +408,7 @@ const EditFeatForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.ability${multipleOptions && '.options'}`}
+                        }.${index}.ability${multipleOptions ? '.options' : ''}`}
                         multiple={multipleOptions}
                         placeholder='Ability'
                         value={
@@ -423,7 +424,9 @@ const EditFeatForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.saveAbility${multipleOptions && '.options'}`}
+                        }.${index}.saveAbility${
+                          multipleOptions ? '.options' : ''
+                        }`}
                         multiple={multipleOptions}
                         placeholder='Save Ability'
                         value={
@@ -441,7 +444,7 @@ const EditFeatForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.skill${multipleOptions && '.options'}`}
+                        }.${index}.skill${multipleOptions ? '.options' : ''}`}
                         multiple={multipleOptions}
                         placeholder='Skill'
                         value={
@@ -476,7 +479,7 @@ const EditFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.condition${multipleOptions && '.options'}`}
+                    }.${index}.condition${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Condition Type'
                     value={
@@ -490,7 +493,7 @@ const EditFeatForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.speed${
-                      multipleOptions && '.options'
+                      multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
                     value={multipleOptions ? item.speed.options : item.speed}
@@ -504,7 +507,7 @@ const EditFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.passive${multipleOptions && '.options'}`}
+                    }.${index}.passive${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Passive Type'
                     value={
@@ -520,7 +523,7 @@ const EditFeatForm = () => {
                       ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.damage${multipleOptions && '.options'}`}
+                      }.${index}.damage${multipleOptions ? '.options' : ''}`}
                       multiple={multipleOptions}
                       placeholder='Damage Type'
                       value={
@@ -650,7 +653,7 @@ const EditFeatForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.skill${
-                      multipleOptions && '.options'
+                      multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
                     placeholder='Skill'
@@ -665,7 +668,7 @@ const EditFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.saveAbility${multipleOptions && '.options'}`}
+                    }.${index}.saveAbility${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Save Ability'
                     value={
@@ -682,7 +685,7 @@ const EditFeatForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.tool${
-                      multipleOptions && '.options'
+                      multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
                     placeholder='Tool'
@@ -697,7 +700,7 @@ const EditFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.language${multipleOptions && '.options'}`}
+                    }.${index}.language${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Language'
                     value={
@@ -713,17 +716,13 @@ const EditFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.itemType${multipleOptions && '.options'}`}
+                    }.${index}.itemType${multipleOptions ? '.options' : ''}`}
                     multiple={multipleOptions}
                     placeholder='Item Type'
                     value={
                       multipleOptions ? item.itemType.options : item.itemType
                     }
-                    options={[].concat(
-                      ...builders.item.itemCategory.map(
-                        (categoryItem) => categoryItem.itemType
-                      )
-                    )}
+                    options={items}
                     required={true}
                     onChange={setState}
                   />
@@ -733,7 +732,9 @@ const EditFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.itemProperty${multipleOptions && '.options'}`}
+                    }.${index}.itemProperty${
+                      multipleOptions ? '.options' : ''
+                    }`}
                     multiple={multipleOptions}
                     placeholder='Item Property'
                     value={
@@ -804,7 +805,7 @@ const EditFeatForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}.sense${
-                    multipleOptions && '.options'
+                    multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
@@ -868,7 +869,7 @@ const EditFeatForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions && '.options'
+                    multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Spell'
@@ -998,7 +999,7 @@ const EditFeatForm = () => {
                         name={`feature.${featureIndex}.requirement.option`}
                         value={featureItem.requirement?.option}
                         placeholder='Requirement'
-                        options={builders.feat.feature.requirements}
+                        options={builders.feat.featurerequirement}
                         required={true}
                         onChange={setState}
                       />
@@ -1061,15 +1062,10 @@ const EditFeatForm = () => {
                           value={
                             featureItem.requirement?.itemProficiency?.itemType
                           }
-                          options={[].concat(
-                            ...builders.item.itemCategory
-                              .filter((itemCategory) =>
-                                featureItem.requirement?.itemCategory?.some(
-                                  (categoryItem) =>
-                                    itemCategory._id.includes(categoryItem.id)
-                                )
-                              )
-                              .map((filteredItem) => filteredItem.itemType)
+                          options={items.filter(
+                            (item) =>
+                              item.itemCategory.value !==
+                              featureItem.requirement?.itemCategory?.value
                           )}
                           required={true}
                           onChange={setState}
@@ -1338,15 +1334,11 @@ const EditFeatForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
-                            options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
-                                  )
-                                )
-                                .map((filteredItem) => filteredItem.itemType)
+                            options={items.filter(
+                              (item) =>
+                                item.itemCategory.value !==
+                                featureItem.requirement?.equipped?.itemCategory
+                                  ?.value
                             )}
                             required={true}
                             onChange={setState}
@@ -1425,15 +1417,11 @@ const EditFeatForm = () => {
                             value={
                               featureItem.requirement?.notEquipped?.itemType
                             }
-                            options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
-                                  )
-                                )
-                                .map((filteredItem) => filteredItem.itemType)
+                            options={items.filter(
+                              (item) =>
+                                item.itemCategory.value !==
+                                featureItem.requirement?.notEquipped
+                                  ?.itemCategory?.value
                             )}
                             required={true}
                             onChange={setState}
@@ -1718,7 +1706,7 @@ const EditFeatForm = () => {
                   name='requirement.option'
                   value={state.requirement?.option}
                   placeholder='Requirement'
-                  options={builders.feat.feature.requirements}
+                  options={builders.feat.featurerequirement}
                   required={true}
                   onChange={setState}
                 />
@@ -1776,15 +1764,10 @@ const EditFeatForm = () => {
                     name='requirement.itemProficiency.itemType'
                     placeholder='Item type'
                     value={state.requirement?.itemProficiency?.itemType}
-                    options={[].concat(
-                      ...builders.item.itemCategory
-                        .filter((itemCategory) =>
-                          state.requirement?.itemCategory?.some(
-                            (categoryItem) =>
-                              itemCategory._id.includes(categoryItem.id)
-                          )
-                        )
-                        .map((filteredItem) => filteredItem.itemType)
+                    options={items.filter(
+                      (item) =>
+                        item.itemCategory.value !==
+                        state.requirement?.itemCategory?.value
                     )}
                     required={true}
                     onChange={setState}
@@ -2047,15 +2030,10 @@ const EditFeatForm = () => {
                       name='requirement.equipped.itemType'
                       placeholder='Item type'
                       value={state.requirement?.equipped?.itemType}
-                      options={[].concat(
-                        ...builders.item.itemCategory
-                          .filter((itemCategory) =>
-                            state.requirement?.equipped?.itemCategory?.some(
-                              (categoryItem) =>
-                                itemCategory._id.includes(categoryItem.id)
-                            )
-                          )
-                          .map((filteredItem) => filteredItem.itemType)
+                      options={items.filter(
+                        (item) =>
+                          item.itemCategory.value !==
+                          state.requirement?.equipped?.itemCategory?.value
                       )}
                       required={true}
                       onChange={setState}
@@ -2126,15 +2104,10 @@ const EditFeatForm = () => {
                       name='requirement.notEquipped.itemType'
                       placeholder='Item type'
                       value={state.requirement?.notEquipped?.itemType}
-                      options={[].concat(
-                        ...builders.item.itemCategory
-                          .filter((itemCategory) =>
-                            state.requirement?.notEquipped?.itemCategory?.some(
-                              (categoryItem) =>
-                                itemCategory._id.includes(categoryItem.id)
-                            )
-                          )
-                          .map((filteredItem) => filteredItem.itemType)
+                      options={items.filter(
+                        (item) =>
+                          item.itemCategory.value !==
+                          state.requirement?.notEquipped?.itemCategory?.value
                       )}
                       required={true}
                       onChange={setState}

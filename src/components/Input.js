@@ -1,9 +1,9 @@
 import {
-  useEffect,
   useRef,
   useState,
   forwardRef,
   useImperativeHandle,
+  useEffect,
 } from 'react'
 import useDebounce from '../hooks/useDebounce'
 
@@ -34,7 +34,7 @@ const Input = forwardRef(
     ref
   ) => {
     const inputRef = useRef(null)
-    const [inputValue, setInputValue] = useState(null)
+    const [inputValue, setInputValue] = useState(value)
     const [classText, setClassText] = useState('')
 
     const handleFocus = () => {
@@ -44,16 +44,10 @@ const Input = forwardRef(
     }
 
     useEffect(() => {
-      if (inputValue === null && (value || value === 0)) {
-        setInputValue(value)
-      }
-    }, [setInputValue, value, inputValue])
+      setInputValue(value)
+    }, [setInputValue, value])
 
     const handleChange = (e) => {
-      if (e.target.value === '') {
-        setInputValue('')
-      }
-
       setInputValue(e.target.value)
 
       if (validation) {

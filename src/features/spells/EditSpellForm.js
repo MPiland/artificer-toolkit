@@ -46,22 +46,11 @@ const EditSpellForm = () => {
 
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Spell added successfully!')
-      inputRefs.current.forEach((inputRef) => {
-        inputRef.resetState()
-      })
-      textRefs.current.forEach((textRef) => {
-        textRef.resetState()
-      })
-      setState({
-        type: 'reset',
-        payload: { target: { userId: id } },
-      })
+      setSuccessMessage('Item added successfully!')
       handleValidation(true)
     }
     if (updateIsSuccess) {
-      setSuccessMessage('Feat updated successfully!')
-      handleValidation(true)
+      setSuccessMessage('Item updated successfully!')
     }
   }, [addIsSuccess, id, navigate, updateIsSuccess])
 
@@ -121,64 +110,57 @@ const EditSpellForm = () => {
     let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
-        const selectValue = selectRef.getValue()
-        const isEmpty =
-          selectValue === null ||
-          (Array.isArray(selectValue) && selectValue.length === 0)
-        if (isEmpty) {
-          selectRef.setClass('is-invalid')
-          isValid = false
+        if (resetValidation === true) {
+          selectRef.setClass('')
         } else {
-          selectRef.setClass('is-valid')
+          const selectValue = selectRef.getValue()
+          const isEmpty =
+            selectValue === null ||
+            (Array.isArray(selectValue) && selectValue.length === 0)
+          if (isEmpty) {
+            selectRef.setClass('is-invalid')
+            isValid = false
+          } else {
+            selectRef.setClass('is-valid')
+          }
         }
-      }
-      if (resetValidation === true) {
-        selectRef.setClass('')
       }
     })
 
     // Validate other elements with the required attribute
     const requiredElements = document.querySelectorAll('[required]')
     requiredElements.forEach((element) => {
-      const value = element.value
-      const isEmpty =
-        value === null ||
-        value === undefined ||
-        (typeof value === 'string' && value.trim() === '')
-
-      if (isEmpty) {
-        element.classList.add('is-invalid')
+      if (resetValidation) {
         element.classList.remove('is-valid')
-        isValid = false
+        element.classList.remove('is-invalid')
       } else {
-        element.classList.add('is-valid')
-        element.classList.remove('is-invalid')
-      }
-      if (resetValidation === true) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
+        const value = element.value
+        const isEmpty =
+          value === null ||
+          value === undefined ||
+          (typeof value === 'string' && value.trim() === '')
+
+        if (isEmpty) {
+          element.classList.add('is-invalid')
+          element.classList.remove('is-valid')
+          isValid = false
+        } else {
+          element.classList.add('is-valid')
+          element.classList.remove('is-invalid')
+        }
       }
     })
-    console.log(isValid)
+    if(resetValidation) {
+      setErrorMessage()
+    }
     return isValid
   }
 
   const onReset = () => {
-    inputRefs.current.forEach((inputRef) => {
-      inputRef.resetState()
-    })
-    textRefs.current.forEach((textRef) => {
-      textRef.revertState(oldState)
-    })
     setState({
       type: 'reset',
       payload: { target: oldState },
     })
-    if (isEqual(oldState, state)) {
-      setMatch(true)
-    } else {
-      setMatch(false)
-    }
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)

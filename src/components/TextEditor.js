@@ -313,7 +313,6 @@ const TextEditor = forwardRef(
     ) // autosave every minute
 
     const handleSave = (content) => {
-      console.log('saving')
       setIsSaving(true)
       onChange({ payload: { target: { name: name, value: content } } })
       setIsSaving(false)

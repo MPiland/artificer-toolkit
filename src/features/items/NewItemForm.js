@@ -51,6 +51,10 @@ const NewItemForm = () => {
     if (addIsSuccess) {
       setSuccessMessage('Item added successfully!')
       handleValidation(true)
+      setState({
+        type: 'reset',
+        payload: { target: { userId: id } },
+      })
     }
   }, [addIsSuccess, id, setState])
 
@@ -99,66 +103,58 @@ const NewItemForm = () => {
     let isValid = true
     selectRefs.current.forEach((selectRef) => {
       if (selectRef) {
-        const selectValue = selectRef.getValue()
-        const isEmpty =
-          selectValue === null ||
-          (Array.isArray(selectValue) && selectValue.length === 0)
-        if (isEmpty) {
-          selectRef.setClass('is-invalid')
-          isValid = false
+        if (resetValidation === true) {
+          selectRef.setClass('')
         } else {
-          selectRef.setClass('is-valid')
+          const selectValue = selectRef.getValue()
+          const isEmpty =
+            selectValue === null ||
+            (Array.isArray(selectValue) && selectValue.length === 0)
+          if (isEmpty) {
+            selectRef.setClass('is-invalid')
+            isValid = false
+          } else {
+            selectRef.setClass('is-valid')
+          }
         }
-      }
-      if (resetValidation === true) {
-        selectRef.setClass('')
-      }
-      if (!isValid) {
-        console.log('isValid', isValid, 'value', selectRef)
       }
     })
 
     // Validate other elements with the required attribute
     const requiredElements = document.querySelectorAll('[required]')
     requiredElements.forEach((element) => {
-      const value = element.value
-      const isEmpty =
-        value === null ||
-        value === undefined ||
-        (typeof value === 'string' && value.trim() === '')
-
-      if (isEmpty) {
-        element.classList.add('is-invalid')
+      if (resetValidation) {
         element.classList.remove('is-valid')
-        isValid = false
+        element.classList.remove('is-invalid')
       } else {
-        element.classList.add('is-valid')
-        element.classList.remove('is-invalid')
-      }
-      if (resetValidation === true) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
-      }
-      if (!isValid) {
-        console.log('isValid', isValid, 'value', element)
+        const value = element.value
+        const isEmpty =
+          value === null ||
+          value === undefined ||
+          (typeof value === 'string' && value.trim() === '')
+
+        if (isEmpty) {
+          element.classList.add('is-invalid')
+          element.classList.remove('is-valid')
+          isValid = false
+        } else {
+          element.classList.add('is-valid')
+          element.classList.remove('is-invalid')
+        }
       }
     })
+    if(resetValidation) {
+      setErrorMessage()
+    }
     return isValid
   }
-
   const onReset = () => {
-    inputRefs.current.forEach((inputRef) => {
-      inputRef.resetState()
-    })
-    textRefs.current.forEach((textRef) => {
-      textRef.resetState()
-    })
     setState({
       type: 'reset',
       payload: { target: { userId: id } },
     })
-    setSuccessMessage(true)
-    setErrorMessage(true)
+    setSuccessMessage()
+    setErrorMessage()
     handleValidation(true)
   }
 
@@ -547,21 +543,6 @@ const NewItemForm = () => {
                     onChange={setState}
                   />
                 )}
-                {/* {item.area?.name === 'itemType' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.itemType`}
-                    placeholder='Item Type'
-                    value={item.itemType}
-                    options={[].concat(
-                      ...builders.item.itemCategory.map(
-                        (categoryItem) => categoryItem.itemType
-                      )
-                    )}
-                    required={true}
-                    onChange={setState}
-                  />
-                )} */}
                 {item.area?.name === 'itemProperty' && (
                   <Select
                     ref={addToSelectRefs}
@@ -772,7 +753,7 @@ const NewItemForm = () => {
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
                         value={featureItem.requirement?.option}
-                        options={builders.item.feature.requirements}
+                        options={builders.item.feature.requirement}
                         required={true}
                         onChange={setState}
                       />
@@ -828,26 +809,6 @@ const NewItemForm = () => {
                           required={true}
                           onChange={setState}
                         />
-                        {/* <Select
-                          ref={addToSelectRefs}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
-                          placeholder='Item type'
-                          value={
-                            featureItem.requirement?.itemProficiency?.itemType
-                          }
-                          options={[].concat(
-                            ...builders.item.itemCategory
-                              .filter((itemCategory) =>
-                                featureItem.requirement?.itemCategory?.some(
-                                  (categoryItem) =>
-                                    itemCategory._id.includes(categoryItem.id)
-                                )
-                              )
-                              .map((filteredItem) => filteredItem.itemType)
-                          )}
-                          required={true}
-                          onChange={setState}
-                        /> */}
                         <Select
                           ref={addToSelectRefs}
                           name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
@@ -1108,25 +1069,6 @@ const NewItemForm = () => {
                             required={true}
                             onChange={setState}
                           />
-                          {/* <Select
-                            ref={addToSelectRefs}
-                            multiple={true}
-                            name={`feature.${featureIndex}.requirement.equipped.itemType`}
-                            placeholder='Item type'
-                            value={featureItem.requirement?.equipped?.itemType}
-                            options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
-                                  )
-                                )
-                                .map((filteredItem) => filteredItem.itemType)
-                            )}
-                            required={true}
-                            onChange={setState}
-                          /> */}
                           <Select
                             ref={addToSelectRefs}
                             multiple={true}
@@ -1193,27 +1135,6 @@ const NewItemForm = () => {
                             required={true}
                             onChange={setState}
                           />
-                          {/* <Select
-                            ref={addToSelectRefs}
-                            multiple={true}
-                            name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
-                            placeholder='Item type'
-                            value={
-                              featureItem.requirement?.notEquipped?.itemType
-                            }
-                            options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
-                                  )
-                                )
-                                .map((filteredItem) => filteredItem.itemType)
-                            )}
-                            required={true}
-                            onChange={setState}
-                          /> */}
                           <Select
                             ref={addToSelectRefs}
                             multiple={true}
@@ -1460,20 +1381,6 @@ const NewItemForm = () => {
                 required={true}
                 onChange={setState}
               />
-              {/* <Select
-                ref={addToSelectRefs}
-                name='itemType'
-                placeholder='Item type'
-                value={state.itemType}
-                options={
-                  builders.item.itemCategory.find(
-                    (itemCategory) =>
-                      itemCategory._id === state.itemCategory?.id
-                  )?.itemType
-                }
-                required={true}
-                onChange={setState}
-              /> */}
               <Select
                 ref={addToSelectRefs}
                 name='itemProperty'
@@ -1575,12 +1482,16 @@ const NewItemForm = () => {
                   multiple={true}
                   placeholder='Attributes'
                   value={state.attribute}
-                  options={builders?.item.attribute}
+                  options={builders?.item.attribute.filter((attributeItem) =>
+                    state.itemCategory?.name === 'armor' ||
+                    state.itemCategory?.name === 'weapon'
+                      ? attributeItem
+                      : attributeItem.name !== 'maxBonus'
+                  )}
                   required={true}
                   onChange={setState}
                 />
               </div>
-
               {state.itemCategory?.name === 'weapon' && (
                 <>
                   <Input
@@ -1624,6 +1535,21 @@ const NewItemForm = () => {
                     required={true}
                     onChange={setState}
                   />
+                  {state.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'maxBonus'
+                  ) && (
+                    <Input
+                      ref={addToInputRefs}
+                      validation='num'
+                      name='maxBonus'
+                      label={true}
+                      invalidText='Must contain only numbers'
+                      placeholder='Max Bonus'
+                      required={true}
+                      value={state.maxBonus}
+                      onChange={setState}
+                    />
+                  )}
                   {state?.itemProperty?.find((property) => {
                     return property.name === 'versatile'
                   }) && (
@@ -1656,14 +1582,27 @@ const NewItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name='primaryAbility'
                     placeholder='Primary Ability'
                     value={state.primaryAbility}
                     options={builders.ability}
-                    required={true}
                     onChange={setState}
                   />
+                  {state.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'maxBonus'
+                  ) && (
+                    <Input
+                      ref={addToInputRefs}
+                      validation='num'
+                      name='maxBonus'
+                      label={true}
+                      invalidText='Must contain only numbers'
+                      placeholder='Max Bonus'
+                      required={true}
+                      value={state.maxBonus}
+                      onChange={setState}
+                    />
+                  )}
                 </>
               )}
               {state.itemProperty?.find(
@@ -1743,6 +1682,136 @@ const NewItemForm = () => {
                   value={state.maxStack}
                   onChange={setState}
                 />
+              )}
+
+              {state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'hasRequirements'
+              ) ? (
+                <Select
+                  ref={addToSelectRefs}
+                  multiple={true}
+                  name='requirement.option'
+                  placeholder='Requirement'
+                  value={state.requirement?.option}
+                  options={builders.item.feature.requirement}
+                  required={true}
+                  onChange={setState}
+                />
+              ) : (
+                !!state?.requirement &&
+                setState({
+                  action: 'removed',
+                  payload: {
+                    target: {
+                      name: 'requirement',
+                    },
+                  },
+                })
+              )}
+              {state.requirement?.option?.some(
+                (optionItem) => optionItem.name === 'skillProficiency'
+              ) ? (
+                <Select
+                  ref={addToSelectRefs}
+                  multiple={true}
+                  name='requirement.skillProficiency.skill'
+                  value={state.requirement?.skillProficiency?.skill}
+                  placeholder='Skill Proficiency'
+                  options={builders.skill}
+                  required={true}
+                  onChange={setState}
+                />
+              ) : (
+                !!state.requirement?.skillProficiency &&
+                setState({
+                  action: 'removed',
+                  payload: {
+                    target: {
+                      name: 'requirement.skillProficiency',
+                    },
+                  },
+                })
+              )}
+              {state.requirement?.option?.some(
+                (optionItem) => optionItem.name === 'itemProficiency'
+              ) ? (
+                <>
+                  <Select
+                    ref={addToSelectRefs}
+                    multiple={true}
+                    name='requirement.itemProficiency.itemCategory'
+                    placeholder='Item Category'
+                    value={state.requirement?.itemProficiency?.itemCategory}
+                    options={builders.item.itemCategory}
+                    required={true}
+                    onChange={setState}
+                  />
+                  <Select
+                    ref={addToSelectRefs}
+                    name='requirement.itemProficiency.itemProperty'
+                    placeholder='Item Property'
+                    value={state.requirement?.itemProficiency?.itemProperty}
+                    options={[].concat(
+                      ...builders.item.itemCategory
+                        .filter((itemCategory) =>
+                          state.requirement?.itemCategory?.some(
+                            (categoryItem) =>
+                              itemCategory._id.includes(categoryItem.id)
+                          )
+                        )
+                        .map((filteredItem) => filteredItem.itemProperty)
+                    )}
+                    required={true}
+                    onChange={setState}
+                  />
+                </>
+              ) : (
+                !!state.requirement?.itemProficiency &&
+                setState({
+                  action: 'removed',
+                  payload: {
+                    target: {
+                      name: 'requirement.itemProficiency',
+                    },
+                  },
+                })
+              )}
+              {state.requirement?.option?.some(
+                (optionItem) => optionItem.name === 'abilityScore'
+              ) ? (
+                <>
+                  <Select
+                    ref={addToSelectRefs}
+                    multiple={true}
+                    name='requirement.abilityScore.ability'
+                    value={state.requirement?.abilityScore?.ability}
+                    placeholder='Ability'
+                    options={builders.ability}
+                    required={true}
+                    onChange={setState}
+                  />
+                  <Input
+                    ref={addToInputRefs}
+                    name='requirement.abilityScore.score'
+                    value={state.requirement?.abilityScore?.score}
+                    placeholder='Score'
+                    required={true}
+                    label={true}
+                    validation='num'
+                    invalidText='Must contain only numbers'
+                    onChange={setState}
+                  />
+                </>
+              ) : (
+                !!state.requirement?.abilityScore &&
+                setState({
+                  action: 'removed',
+                  payload: {
+                    target: {
+                      name: 'requirement.abilityScore',
+                    },
+                  },
+                })
               )}
             </div>
           </div>
