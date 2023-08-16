@@ -35,11 +35,11 @@ const Register = forwardRef((props, ref) => {
 
   useEffect(() => {
     if (registerIsError) {
-      setErrMsg(registerError.message.data)
+      setErrMsg(registerError.data)
       setState()
     }
     if (googleIsError) {
-      setErrMsg(googleError.message.data)
+      setErrMsg(googleError.data)
       setState()
     }
   }, [registerIsError, registerError, googleIsError, googleError])
@@ -161,7 +161,7 @@ const Register = forwardRef((props, ref) => {
       </div>
       <button
         className='login w-100 mb-2 btn btn-lg rounded-3 btn-primary'
-        type='button'
+        type='submit'
         disabled={state?.submitting}
         onClick={(e) => {
           e.preventDefault()

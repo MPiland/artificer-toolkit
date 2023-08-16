@@ -26,11 +26,11 @@ const Login = forwardRef((props, ref) => {
 
   useEffect(() => {
     if (loadingIsError) {
-      setErrMsg(loginError.message.data)
+      setErrMsg(loginError.message)
       setState()
     }
     if (googleIsError) {
-      setErrMsg(googleError.message.data)
+      setErrMsg(googleError.message)
       setState()
     }
   }, [loadingIsError, loginError, googleIsError, googleError])
@@ -149,7 +149,7 @@ const Login = forwardRef((props, ref) => {
       </div>
       <button
         className='login w-100 mb-2 btn btn-lg rounded-3 btn-primary'
-        type='button'
+        type='submit'
         disabled={state?.submitting}
         onClick={(e) => {
           e.preventDefault()

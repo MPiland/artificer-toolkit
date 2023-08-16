@@ -10,7 +10,17 @@ import '../css/select.css'
 
 const Select = forwardRef(
   (
-    { name, multiple, placeholder, options, value, onChange, size, className },
+    {
+      name,
+      multiple,
+      placeholder,
+      options,
+      optionalKey,
+      value,
+      onChange,
+      size,
+      className,
+    },
     ref
   ) => {
     const [selectedOptions, setSelectedOptions] = useState(multiple ? [] : null)
@@ -26,11 +36,15 @@ const Select = forwardRef(
     let updatedOptions
 
     if (options?.length) {
-      newOptions = options?.map(({ name, value, _id }) => ({
-        name,
-        value,
-        _id,
-      }))
+      newOptions = options?.map(
+        ({ name, value, _id, [optionalKey]: optionalValue }) => {
+          const newObj = { name, value, _id }
+          if (optionalKey && optionalValue !== undefined) {
+            newObj[optionalKey] = optionalValue
+          }
+          return newObj
+        }
+      )
       newOptions.sort((a, b) => (a.value > b.value ? 1 : -1))
     } else {
       newOptions = []
@@ -65,12 +79,14 @@ const Select = forwardRef(
     }, [value, multiple, options])
 
     useEffect(() => {
+      const parentCurrent = parentRef.current
+
       document.addEventListener('click', handleOutsideClick)
-      document.addEventListener('keydown', handleOutsideClick)
+      parentCurrent.addEventListener('keydown', handleOutsideClick)
 
       return () => {
         document.removeEventListener('click', handleOutsideClick)
-        document.addEventListener('keydown', handleOutsideClick)
+        parentCurrent.addEventListener('keydown', handleOutsideClick)
       }
     }, [])
 
@@ -80,7 +96,6 @@ const Select = forwardRef(
       const buttonCurrent = buttonRef.current
 
       const handleKeyUp = (event) => {
-        console.log(event.key)
         const key = event.key
         if (key === 'Enter') {
           const focusedIndex = dropdownChildren.current.findIndex(
@@ -141,7 +156,6 @@ const Select = forwardRef(
           dropdownChildren.current[index].focus()
         }
       }
-
       parentCurrent.addEventListener('keyup', handleKeyUp)
 
       return () => {
@@ -155,7 +169,7 @@ const Select = forwardRef(
       const parentCurrent = parentRef.current
 
       const target = event.target
-      if (target && !parentCurrent?.contains(target)) {
+      if (!parentCurrent.contains(target)) {
         dropdownCurrent?.classList.remove('show')
         buttonCurrent?.setAttribute('aria-expanded', 'false')
       }
@@ -165,34 +179,35 @@ const Select = forwardRef(
       }
     }
 
-    const handleOptionClick = (option, e) => {
+    const handleOptionClick = (option) => {
       if (multiple) {
-        e.preventDefault()
-        // Clear all options
         if (option.name === 'clear') {
           updatedOptions = []
-          // Add all options
         } else if (option.name === 'all') {
           updatedOptions = [
             {
               name: option.name ?? null,
               id: option._id ?? null,
               value: option.value,
+              ...(optionalKey && { [optionalKey]: option[optionalKey] }),
             },
           ]
-          // If shown options are an array and all valid
         } else if (
           Array.isArray(selectedOptions) &&
-          selectedOptions.every((option) =>
-            newOptions.some((item) => item.value === option.value)
+          selectedOptions.every((selectedOption) =>
+            newOptions.some(
+              (newOption) => newOption.value === selectedOption.value
+            )
           )
         ) {
-          // Remove the option selected if it's part of the selected options
-          if (selectedOptions.some((item) => item.value === option.value)) {
-            updatedOptions = selectedOptions.filter(
-              (item) => item.value !== option.value
+          if (
+            selectedOptions.some(
+              (selectedOption) => selectedOption.value === option.value
             )
-            // Add the option if it's not
+          ) {
+            updatedOptions = selectedOptions.filter(
+              (selectedOption) => selectedOption.value !== option.value
+            )
           } else {
             updatedOptions = [
               ...selectedOptions,
@@ -200,6 +215,7 @@ const Select = forwardRef(
                 name: option.name ?? null,
                 id: option._id ?? null,
                 value: option.value,
+                ...(optionalKey && { [optionalKey]: option[optionalKey] }),
               },
             ]
           }
@@ -209,14 +225,17 @@ const Select = forwardRef(
               name: option.name ?? null,
               id: option._id ?? null,
               value: option.value,
+              ...(optionalKey && { [optionalKey]: option[optionalKey] }),
             },
           ]
         }
+        console.log(updatedOptions)
       } else {
         updatedOptions = {
           name: option.name,
           id: option._id,
           value: option.value,
+          ...(optionalKey && { [optionalKey]: option[optionalKey] }),
         }
       }
       onChange({ payload: { target: { name: name, value: updatedOptions } } })
@@ -344,7 +363,8 @@ const Select = forwardRef(
               className={`dropdown-item mb-2 py-0 px-2 ${selectClass(option)}`}
               key={optionIndex}
               onClick={(e) => {
-                handleOptionClick(option, e)
+                multiple && e.stopPropagation()
+                handleOptionClick(option)
               }}
               ref={(el) => (dropdownChildren.current[optionIndex] = el)}
             >

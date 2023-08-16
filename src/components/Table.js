@@ -25,7 +25,11 @@ const Table = ({
     if (!sortConfig) {
       return
     }
-    return sortConfig.key === value ? sortConfig.direction : ''
+    if (Array.isArray(sortConfig.key)) {
+      return sortConfig.key[0] === value ? sortConfig.direction : ''
+    } else {
+      return sortConfig.key === value ? sortConfig.direction : ''
+    }
   }
 
   const getValueFromState = (inputItem, valueItem) => {
@@ -80,7 +84,9 @@ const Table = ({
                     sortable ? 'sortable-header' : ''
                   }`}
                   key={headerIndex}
-                  onClick={() => sortable && requestSort(headerItem.value)}
+                  onClick={() =>
+                    sortable && requestSort(headerItem.value, headerItem.order)
+                  }
                 >
                   {headerItem.name}
                 </div>

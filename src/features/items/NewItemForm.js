@@ -143,12 +143,12 @@ const NewItemForm = () => {
         }
       }
     })
-    if(resetValidation) {
+    if (resetValidation) {
       setErrorMessage()
     }
     return isValid
   }
-  
+
   const onReset = () => {
     setState({
       type: 'reset',
@@ -1424,6 +1424,7 @@ const NewItemForm = () => {
                 placeholder='Currency'
                 value={state.cost?.currency}
                 options={builders.currency}
+                optionalKey='short'
                 required={true}
                 onChange={setState}
               />
@@ -1517,6 +1518,34 @@ const NewItemForm = () => {
                     required={true}
                     onChange={setState}
                   />
+                  {state.itemProperty?.some(
+                    (property) => property.name === 'versatile'
+                  ) && (
+                    <>
+                      <Input
+                        ref={addToInputRefs}
+                        validation={'num'}
+                        name='damage.versatileDiceCount'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        placeholder='Damage Dice Count'
+                        value={state.damage?.versatileDiceCount}
+                        required={true}
+                        onChange={setState}
+                      />
+                      <Input
+                        ref={addToInputRefs}
+                        validation={'num'}
+                        name='damage.versatileDiceValue'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        placeholder='Damage Dice Value'
+                        value={state.damage?.versatileDiceValue}
+                        required={true}
+                        onChange={setState}
+                      />
+                    </>
+                  )}
                   <Select
                     ref={addToSelectRefs}
                     name='damage.damageType'
@@ -1551,9 +1580,9 @@ const NewItemForm = () => {
                       onChange={setState}
                     />
                   )}
-                  {state?.itemProperty?.find((property) => {
-                    return property.name === 'versatile'
-                  }) && (
+                  {state?.itemProperty?.some(
+                    (property) => property.name === 'finesse'
+                  ) && (
                     <Select
                       ref={addToSelectRefs}
                       name={'secondaryAbility'}
@@ -1606,7 +1635,7 @@ const NewItemForm = () => {
                   )}
                 </>
               )}
-              {state.itemProperty?.find(
+              {state.itemProperty?.some(
                 (property) =>
                   property.name === 'thrown' || property.name === 'ranged'
               ) && (

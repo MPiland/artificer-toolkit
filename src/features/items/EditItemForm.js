@@ -1471,6 +1471,7 @@ const EditItemForm = () => {
                 placeholder='Currency'
                 value={state.cost?.currency}
                 options={builders.currency}
+                optionalKey='short'
                 required={true}
                 onChange={setState}
               />
@@ -1565,6 +1566,34 @@ const EditItemForm = () => {
                     required={true}
                     onChange={setState}
                   />
+                  {state.itemProperty?.some(
+                    (property) => property.name === 'versatile'
+                  ) && (
+                    <>
+                      <Input
+                        ref={addToInputRefs}
+                        validation={'num'}
+                        name='damage.versatileDiceCount'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        placeholder='Damage Dice Count'
+                        value={state.damage?.versatileDiceCount}
+                        required={true}
+                        onChange={setState}
+                      />
+                      <Input
+                        ref={addToInputRefs}
+                        validation={'num'}
+                        name='damage.versatileDiceValue'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        placeholder='Damage Dice Value'
+                        value={state.damage?.versatileDiceValue}
+                        required={true}
+                        onChange={setState}
+                      />
+                    </>
+                  )}
                   <Select
                     ref={addToSelectRefs}
                     name='damage.damageType'
@@ -1599,9 +1628,9 @@ const EditItemForm = () => {
                       onChange={setState}
                     />
                   )}
-                  {state?.itemProperty?.find((property) => {
-                    return property.name === 'versatile'
-                  }) && (
+                  {state?.itemProperty?.some(
+                    (property) => property.name === 'finesse'
+                  ) && (
                     <Select
                       ref={addToSelectRefs}
                       name={'secondaryAbility'}

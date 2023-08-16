@@ -28,12 +28,6 @@ import {
   TbRowInsertBottom,
   TbRowInsertTop,
 } from 'react-icons/tb'
-// import {
-//   TfiAlignLeft,
-//   TfiAlignRight,
-//   TfiAlignCenter,
-//   TfiAlignJustify,
-// } from 'react-icons/tfi'
 
 const MenuBar = ({ editor, noMenuBar }) => {
   if (!editor || noMenuBar) {
@@ -104,46 +98,6 @@ const MenuBar = ({ editor, noMenuBar }) => {
           >
             <FaStrikethrough />
           </span>
-          {/* <span
-            onClick={() => editor.chain().focus().setTextAlign('left').run()}
-            className={`${
-              editor.isActive('leftAlign') ? 'is_active' : ''
-            } btn`}
-            type='button'
-            title='Left Align'
-          >
-            <TfiAlignLeft />
-          </span>
-          <span
-            onClick={() => editor.chain().focus().setTextAlign('right').run()}
-            className={`${
-              editor.isActive('rightAlign') ? 'is_active' : ''
-            } btn`}
-            type='button'
-            title='Right Align'
-          >
-            <TfiAlignRight />
-          </span>
-          <span
-            onClick={() => editor.chain().focus().setTextAlign('center').run()}
-            className={`${
-              editor.isActive('centerAlign') ? 'is_active' : ''
-            } btn`}
-            type='button'
-            title='Center Align'
-          >
-            <TfiAlignCenter />
-          </span>
-          <span
-            onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-            className={`${
-              editor.isActive('justifyAlign') ? 'is_active' : ''
-            } btn`}
-            type='button'
-            title='Justify Align'
-          >
-            <TfiAlignJustify />
-          </span> */}
           <span
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             className={`${
@@ -290,27 +244,26 @@ const TextEditor = forwardRef(
     const debounceChanges = useDebounce(
       function (editor) {
         content = editor.getHTML()
-        debounceSave(content) // trigger save for any changes
+        debounceSave(content)
       },
       250,
       name
-    ) // every .25 of a second max
+    ) 
 
     // debounce save after no activity in editor
     const debounceSave = useDebounce(function (content) {
       handleSave(content)
-    }, 3 * 1000) // every 3 seconds max
+    }, 1 * 1000)
 
     useAutosave(
       (content) => {
-        // run save if changes and not already saving
         if (isChanges && !isSaving) {
           handleSave(content)
         }
       },
       60 * 1000,
       name
-    ) // autosave every minute
+    ) 
 
     const handleSave = (content) => {
       setIsSaving(true)

@@ -113,7 +113,7 @@ const Spell = forwardRef(({ state: spell }, ref) => {
         })}
       </div>
       <hr />
-      <div className='spell-desc'>{parse(spell.desc)}</div>
+      <div className='card-desc'>{parse(spell.desc)}</div>
       <div className='d-flex justify-content-between'>
         <span className='card-subtext'>{materialDesc()}</span>
       </div>

@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useReducer, useState, useEffect } from 'react'
 import { useGetItemQuery } from './itemsApiSlice'
+import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import formReducer from '../../hooks/useReducer'
 import useAuth from '../../hooks/useAuth'
@@ -26,10 +27,17 @@ const ItemList = () => {
     isSuccess: itemIsSuccess,
     isError: itemIsError,
     error: itemError,
-  } = useGetItemQuery(id)
+  } = useGetItemQuery(id, {
+    refetchOnMountOrArgChange: true,
+  })
+
+  const {
+    data: builders,
+    isSuccess: builderIsSuccess,
+    isLoading: builderIsLoading,
+  } = useGetBuilderQuery(id)
 
   const showCard = (item) => {
-    console.log(item.name)
     navigate(`/items/${item.name}`, {
       state: {
         background: location,
@@ -54,26 +62,76 @@ const ItemList = () => {
           value: 'name',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3 col-sm-3 col-5',
+          size: 'col-md-3 col-sm-3 col-5',
           breakpoint: '',
+        },
+        {
+          name: 'Category',
+          value: 'itemCategory.value',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'Weight (lbs)',
+          value: 'itemWeight',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'Cost',
+          value: ['cost.amount', 'cost.currency.name'],
+          border: false,
+          className: 'fw-bold',
+          size: 'col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+          order: [
+            { value: 2 },
+            [
+              { 1: 'copper' },
+              { 2: 'silver' },
+              { 3: 'etherium' },
+              { 4: 'gold' },
+              { 5: 'platinum' },
+            ],
+          ],
         },
       ],
       inputs: [
         {
           name: 'value',
-          size: 'col-lg-2 col-md-3 col-sm-3 col-5',
+          size: 'col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'itemCategory.value',
+          size: 'col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'itemWeight',
+          size: 'col-md-3 col-sm-3 col-5',
+          breakpoint: '',
+        },
+        {
+          name: ['cost.amount', 'cost.currency.short'],
+          size: 'col-md-3 col-sm-3 col-5',
           breakpoint: '',
         },
       ],
     })
-  }, [setTableColumns, is1200, is1000, is600])
+  }, [setTableColumns, is1200, is1000, is600, builders])
 
   const itemListFiltered = () => {
     if (!listFilter) {
       return items
     }
 
-    let filteredItems = items
+    let filteredItems = [...items]
+    filteredItems.sort((a, b) => (a.value > b.value ? 1 : -1))
 
     Object.entries(listFilter).forEach(([filterItem, filterValues]) => {
       if (Array.isArray(filterValues)) {
@@ -142,9 +200,9 @@ const ItemList = () => {
 
   let content
 
-  if (itemIsLoading) content = <p>Loading items...</p>
+  if (itemIsLoading || builderIsLoading) content = <p>Loading items...</p>
 
-  if (itemIsSuccess) {
+  if (itemIsSuccess && builderIsSuccess) {
     const filter = (
       <>
         <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
