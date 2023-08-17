@@ -1609,7 +1609,12 @@ const EditItemForm = () => {
                     name='primaryAbility'
                     placeholder='Primary Ability'
                     value={state.primaryAbility}
-                    options={builders.ability}
+                    options={[].concat(builders.ability, [
+                      {
+                        name: 'spellAbility',
+                        value: 'Spell Ability',
+                      },
+                    ])}
                     required={true}
                     onChange={setState}
                   />
@@ -1637,10 +1642,17 @@ const EditItemForm = () => {
                       placeholder='Secondary Ability'
                       value={state.secondaryAbility}
                       required={true}
-                      options={builders.ability?.filter(
-                        (abilityItem) =>
-                          abilityItem?._id !== state?.primaryAbility?.id
-                      )}
+                      options={[]
+                        .concat(builders.ability, [
+                          {
+                            name: 'spellAbility',
+                            value: 'Spell Ability',
+                          },
+                        ])
+                        ?.filter(
+                          (abilityItem) =>
+                            abilityItem?.name !== state?.primaryAbility?.name
+                        )}
                       onChange={setState}
                     />
                   )}

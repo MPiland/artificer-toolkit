@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useReducer, useState, useEffect } from 'react'
+import { useReducer, useState, useEffect, useRef } from 'react'
 import { useGetItemQuery } from './itemsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
@@ -16,6 +16,7 @@ const ItemList = () => {
   const [listFilter, setListFilter] = useReducer(formReducer, {})
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
+  const tableRef = useRef(null)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -62,7 +63,7 @@ const ItemList = () => {
           value: 'name',
           border: false,
           className: 'fw-bold',
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-2 col-5',
           breakpoint: '',
         },
         {
@@ -70,7 +71,31 @@ const ItemList = () => {
           value: 'itemCategory.value',
           border: false,
           className: 'fw-bold',
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-2 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'Property',
+          value: 'itemProperty',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-sm-2 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'Damage Type',
+          value: 'damage.damageType',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-sm-2 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'AC',
+          value: 'armorValue',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-sm-1 col-5',
           breakpoint: '',
         },
         {
@@ -78,7 +103,7 @@ const ItemList = () => {
           value: 'itemWeight',
           border: false,
           className: 'fw-bold',
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-1 col-5',
           breakpoint: '',
         },
         {
@@ -86,7 +111,7 @@ const ItemList = () => {
           value: ['cost.amount', 'cost.currency.name'],
           border: false,
           className: 'fw-bold',
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-1 col-5',
           breakpoint: '',
           order: [
             { value: 2 },
@@ -103,22 +128,37 @@ const ItemList = () => {
       inputs: [
         {
           name: 'value',
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-2 col-5',
           breakpoint: '',
         },
         {
           name: 'itemCategory.value',
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-2 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'itemProperty',
+          size: 'col-sm-2 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'damage.damageType',
+          size: 'col-sm-2 col-5',
+          breakpoint: '',
+        },
+        {
+          name: 'armorValue',
+          size: 'col-sm-1 col-5',
           breakpoint: '',
         },
         {
           name: 'itemWeight',
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-1 col-5',
           breakpoint: '',
         },
         {
           name: ['cost.amount', 'cost.currency.short'],
-          size: 'col-md-3 col-sm-3 col-5',
+          size: 'col-sm-1 col-5',
           breakpoint: '',
         },
       ],
@@ -241,6 +281,7 @@ const ItemList = () => {
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         {filter}
         <Table
+          ref={tableRef}
           name='spellList.table'
           dynamic={false}
           readOnly={true}
