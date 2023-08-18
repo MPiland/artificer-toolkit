@@ -435,7 +435,12 @@ const NewItemForm = () => {
                     name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                     placeholder='Method Ability'
                     value={item.method.ability}
-                    options={builders.ability}
+                    options={[].concat(builders.ability, [
+                      {
+                        name: 'spellAbility',
+                        value: 'Spell Ability',
+                      },
+                    ])}
                     required={true}
                     onChange={setState}
                   />
@@ -1528,7 +1533,7 @@ const NewItemForm = () => {
                         name='damage.versatileDiceCount'
                         label={true}
                         invalidText='Must contain only numbers'
-                        placeholder='Damage Dice Count'
+                        placeholder='Alt. Dmg. Dice Count'
                         value={state.damage?.versatileDiceCount}
                         required={true}
                         onChange={setState}
@@ -1539,7 +1544,7 @@ const NewItemForm = () => {
                         name='damage.versatileDiceValue'
                         label={true}
                         invalidText='Must contain only numbers'
-                        placeholder='Damage Dice Value'
+                        placeholder='Alt. Dmg. Dice Value'
                         value={state.damage?.versatileDiceValue}
                         required={true}
                         onChange={setState}
