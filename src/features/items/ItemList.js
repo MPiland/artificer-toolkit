@@ -226,59 +226,61 @@ const ItemList = () => {
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
         )}
-        <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
-          <Input
-            name='value'
-            label={true}
-            placeholder='Item Name'
-            autoComplete='off'
-            value={listFilter?.value}
-            onChange={setListFilter}
-          />
-          <Select
-            multiple={true}
-            name='itemCategory'
-            placeholder='Item Category'
-            options={items?.map((item) => item.itemCategory)}
-            value={listFilter?.itemCategory}
-            onChange={setListFilter}
-          />
-          <Select
-            multiple={true}
-            name='itemProperty'
-            placeholder='Item Property'
-            options={items?.flatMap((item) => {
-              if (item.itemProperty && Array.isArray(item.itemProperty)) {
-                return item.itemProperty
-              } else {
-                return []
-              }
-            })}
-            value={listFilter?.itemProperty}
-            onChange={setListFilter}
-          />
-          <Select
-            multiple={true}
-            name='damage.damageType'
-            placeholder='Damage Type'
-            options={items?.flatMap((item) => {
-              if (item.damage && Array.isArray(item.damage.damageType)) {
-                return item.damage.damageType
-              } else {
-                return []
-              }
-            })}
-            value={listFilter?.damage?.damageType}
-            onChange={setListFilter}
-          />
-          <Select
-            multiple={true}
-            name='armorValue'
-            placeholder='Item Category'
-            options={items?.map((item) => ({ value: item.armorValue }))}
-            value={listFilter.armorValue}
-            onChange={setListFilter}
-          />
+        <div className='accordion-collapse collapse show' id='filter'>
+          <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Item Name'
+              autoComplete='off'
+              value={listFilter?.value}
+              onChange={setListFilter}
+            />
+            <Select
+              multiple={true}
+              name='itemCategory'
+              placeholder='Item Category'
+              options={items?.map((item) => item.itemCategory)}
+              value={listFilter?.itemCategory}
+              onChange={setListFilter}
+            />
+            <Select
+              multiple={true}
+              name='itemProperty'
+              placeholder='Item Property'
+              options={items?.flatMap((item) => {
+                if (item.itemProperty && Array.isArray(item.itemProperty)) {
+                  return item.itemProperty
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.itemProperty}
+              onChange={setListFilter}
+            />
+            <Select
+              multiple={true}
+              name='damage.damageType'
+              placeholder='Damage Type'
+              options={items?.flatMap((item) => {
+                if (item.damage && Array.isArray(item.damage.damageType)) {
+                  return item.damage.damageType
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.damage?.damageType}
+              onChange={setListFilter}
+            />
+            <Select
+              multiple={true}
+              name='armorValue'
+              placeholder='Item Category'
+              options={items?.map((item) => ({ value: item.armorValue }))}
+              value={listFilter.armorValue}
+              onChange={setListFilter}
+            />
+          </div>
         </div>
       </>
     )

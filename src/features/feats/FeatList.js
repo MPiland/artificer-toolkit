@@ -6,6 +6,7 @@ import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
+import AccordionButton from '../../components/AccordionButton'
 
 const FeatList = () => {
   const { id } = useAuth()
@@ -85,15 +86,28 @@ const FeatList = () => {
   if (featIsSuccess) {
     const filter = (
       <>
-        <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
-          <Input
-            name='value'
-            label={true}
-            placeholder='Feat Name'
-            autoComplete='off'
-            value={filteredList?.value}
-            onChange={setListFilter}
-          />
+        {' '}
+        {!is1200 && !is1000 && (
+          <AccordionButton
+            className='accordion form-details justify-content-between align-items-center'
+            id='filterButton'
+            target='filter'
+          >
+            <span className='me-3'>Filters</span>
+            <hr className='flex-grow-1 me-3' />
+          </AccordionButton>
+        )}
+        <div className='accordion-collapse collapse show' id='filter'>
+          <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Feat Name'
+              autoComplete='off'
+              value={filteredList?.value}
+              onChange={setListFilter}
+            />
+          </div>
         </div>
       </>
     )

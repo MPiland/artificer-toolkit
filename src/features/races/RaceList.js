@@ -96,15 +96,17 @@ const RaceList = () => {
             <hr className='flex-grow-1 me-3' />
           </AccordionButton>
         )}
-        <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
-          <Input
-            name='value'
-            label={true}
-            placeholder='Race Name'
-            autoComplete='off'
-            value={filteredList?.value}
-            onChange={setListFilter}
-          />
+        <div className='accordion-collapse collapse show' id='filter'>
+          <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Race Name'
+              autoComplete='off'
+              value={filteredList?.value}
+              onChange={setListFilter}
+            />
+          </div>
         </div>
       </>
     )
