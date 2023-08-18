@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom'
 
 const Layout = () => {
   const content = (
-    <div className='d-flex flex-column' id='layout-container'>
+    <div className='layout-container'>
       <Outlet />
     </div>
   )

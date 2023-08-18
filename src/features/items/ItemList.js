@@ -1,26 +1,19 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useReducer, useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useGetItemQuery } from './itemsApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
-import formReducer from '../../hooks/useReducer'
+import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
+import Select from '../../components/Select'
+import AccordionButton from '../../components/AccordionButton'
 
 const ItemList = () => {
   const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-
-  const [listFilter, setListFilter] = useReducer(formReducer, {})
-  const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
-  const [errorMessage, setErrorMessage] = useState()
-  const tableRef = useRef(null)
-
-  const is1200 = useMediaQuery('(min-width: 992px)')
-  const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
-  const is600 = useMediaQuery('(max-width: 576px)')
 
   const {
     data: items,
@@ -34,9 +27,24 @@ const ItemList = () => {
 
   const {
     data: builders,
-    isSuccess: builderIsSuccess,
     isLoading: builderIsLoading,
-  } = useGetBuilderQuery(id)
+    isSuccess: builderIsSuccess,
+    isError: builderIsError,
+    error: builderError,
+  } = useGetBuilderQuery(id, {
+    refetchOnMountOrArgChange: true,
+  })
+
+  const { listFilter, filteredList, setListFilter, setFilterItems } =
+    useFilteredList()
+  const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
+  const [errorMessage, setErrorMessage] = useState()
+  const tableRef = useRef(null)
+  const updatedItemsRef = useRef([])
+
+  const is1200 = useMediaQuery('(min-width: 992px)')
+  const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
+  const is600 = useMediaQuery('(max-width: 576px)')
 
   const showCard = (item) => {
     navigate(`/items/${item.name}`, {
@@ -53,17 +61,49 @@ const ItemList = () => {
     if (itemIsError) {
       setErrorMessage(itemError.data.message)
     }
-  }, [itemIsError, itemError])
+    if (builderIsError) {
+      setErrorMessage(builderError.data.message)
+    }
+  }, [itemIsError, itemError, builderIsError, builderError])
+
+  useEffect(() => {
+    if (itemIsSuccess && builderIsSuccess) {
+      const updatedItems = items.map((item) => {
+        if (item.cost && item.cost.currency && item.cost.currency._id) {
+          const currencyId = item.cost.currency._id
+          const matchingCurrency = builders.currency.find(
+            (currency) => currency._id === currencyId
+          )
+          if (matchingCurrency) {
+            return {
+              ...item,
+              cost: {
+                ...item.cost,
+                currency: {
+                  ...item.cost.currency,
+                  short: matchingCurrency.short,
+                },
+              },
+            }
+          }
+        }
+        return item
+      })
+      updatedItems.sort((a, b) => (a.value > b.value ? 1 : -1))
+      updatedItemsRef.current = updatedItems
+      setFilterItems(updatedItemsRef.current)
+    }
+  }, [itemIsSuccess, builderIsSuccess, items, builders, setFilterItems])
 
   useEffect(() => {
     setTableColumns({
       headers: [
         {
           name: 'Name',
-          value: 'name',
+          value: 'value',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-2 col-5',
+          size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
@@ -71,7 +111,7 @@ const ItemList = () => {
           value: 'itemCategory.value',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-2 col-5',
+          size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
@@ -79,7 +119,7 @@ const ItemList = () => {
           value: 'itemProperty',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-2 col-5',
+          size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
@@ -87,32 +127,32 @@ const ItemList = () => {
           value: 'damage.damageType',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-2 col-5',
-          breakpoint: '',
+          size: ' col-2',
+          breakpoint: is600 && true,
         },
         {
           name: 'AC',
           value: 'armorValue',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-1 col-5',
-          breakpoint: '',
+          size: 'col-1',
+          breakpoint: is600 && true,
         },
         {
           name: 'Weight (lbs)',
           value: 'itemWeight',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-1 col-5',
-          breakpoint: '',
+          size: 'col-1',
+          breakpoint: (is1000 || is600) && true,
         },
         {
           name: 'Cost',
           value: ['cost.amount', 'cost.currency.name'],
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-1 col-5',
-          breakpoint: '',
+          size: 'col-1',
+          breakpoint: (is1000 || is600) && true,
           order: [
             { value: 2 },
             [
@@ -128,111 +168,42 @@ const ItemList = () => {
       inputs: [
         {
           name: 'value',
-          size: 'col-sm-2 col-5',
+          size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
           name: 'itemCategory.value',
-          size: 'col-sm-2 col-5',
+          size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
           name: 'itemProperty',
-          size: 'col-sm-2 col-5',
+          size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
           name: 'damage.damageType',
-          size: 'col-sm-2 col-5',
-          breakpoint: '',
+          size: ' col-2',
+          breakpoint: is600 && true,
         },
         {
           name: 'armorValue',
-          size: 'col-sm-1 col-5',
-          breakpoint: '',
+          size: 'col-1',
+          breakpoint: is600 && true,
         },
         {
           name: 'itemWeight',
-          size: 'col-sm-1 col-5',
-          breakpoint: '',
+          size: 'col-1',
+          breakpoint: (is1000 || is600) && true,
         },
         {
           name: ['cost.amount', 'cost.currency.short'],
-          size: 'col-sm-1 col-5',
-          breakpoint: '',
+          size: 'col-1',
+          breakpoint: (is1000 || is600) && true,
         },
       ],
     })
-  }, [setTableColumns, is1200, is1000, is600, builders])
-
-  const itemListFiltered = () => {
-    if (!listFilter) {
-      return items
-    }
-
-    let filteredItems = [...items]
-    filteredItems.sort((a, b) => (a.value > b.value ? 1 : -1))
-
-    Object.entries(listFilter).forEach(([filterItem, filterValues]) => {
-      if (Array.isArray(filterValues)) {
-        filteredItems = filterByArray(filteredItems, filterItem, filterValues)
-      } else if (typeof filterValues === 'string') {
-        filteredItems = filterByString(filteredItems, filterItem, filterValues)
-      } else if (typeof filterValues === 'object' && filterValues !== null) {
-        filteredItems = filterByObject(filteredItems, filterItem, filterValues)
-      }
-    })
-
-    return filteredItems
-  }
-
-  const filterByArray = (spells, filterItem, filterValues) => {
-    const filteredValues = filterValues.filter(
-      (valueItem) => valueItem.value !== 'All'
-    )
-
-    if (filteredValues.length === 0) {
-      return spells
-    }
-
-    return spells.filter((spellItem) => {
-      const spellValue = spellItem[filterItem].value || spellItem[filterItem]
-      return filteredValues.some((valueItem) => valueItem.value === spellValue)
-    })
-  }
-
-  const filterByString = (spells, filterItem, filterValues) => {
-    const filterWords = filterValues.toLowerCase().split(' ')
-    return spells.filter((spellItem) => {
-      const spellValue = spellItem[filterItem].toLowerCase()
-      return filterWords.every((word) => spellValue.includes(word))
-    })
-  }
-
-  const filterByObject = (spells, filterItem, filterValues) => {
-    return spells.filter((spellItem) => {
-      return Object.entries(filterValues).every(([valueItem, items]) => {
-        if (Array.isArray(items)) {
-          const filteredItems = items.filter((item) => item.value !== 'All')
-          if (filteredItems.length === 0) {
-            return true
-          }
-
-          const spellValue = Array.isArray(spellItem[filterItem][valueItem])
-            ? spellItem[filterItem][valueItem].map((subItem) => subItem.value)
-            : spellItem[filterItem][valueItem].value
-
-          return filteredItems.some((item) => {
-            const itemValue = Array.isArray(item.value)
-              ? item.value
-              : [item.value]
-            return itemValue.some((value) => spellValue.includes(value))
-          })
-        }
-        return false
-      })
-    })
-  }
+  }, [setTableColumns, is1200, is1000, is600])
 
   const onFilterReset = () => {
     setListFilter({ type: 'reset', payload: { target: {} } })
@@ -245,13 +216,67 @@ const ItemList = () => {
   if (itemIsSuccess && builderIsSuccess) {
     const filter = (
       <>
+        {!is1200 && !is1000 && (
+          <AccordionButton
+            className='accordion form-details justify-content-between align-items-center'
+            id='filterButton'
+            target='filter'
+          >
+            <span className='me-3'>Filters</span>
+            <hr className='flex-grow-1 me-3' />
+          </AccordionButton>
+        )}
         <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
           <Input
             name='value'
             label={true}
             placeholder='Item Name'
             autoComplete='off'
-            value={listFilter.value}
+            value={listFilter?.value}
+            onChange={setListFilter}
+          />
+          <Select
+            multiple={true}
+            name='itemCategory'
+            placeholder='Item Category'
+            options={items?.map((item) => item.itemCategory)}
+            value={listFilter?.itemCategory}
+            onChange={setListFilter}
+          />
+          <Select
+            multiple={true}
+            name='itemProperty'
+            placeholder='Item Property'
+            options={items?.flatMap((item) => {
+              if (item.itemProperty && Array.isArray(item.itemProperty)) {
+                return item.itemProperty
+              } else {
+                return []
+              }
+            })}
+            value={listFilter?.itemProperty}
+            onChange={setListFilter}
+          />
+          <Select
+            multiple={true}
+            name='damage.damageType'
+            placeholder='Damage Type'
+            options={items?.flatMap((item) => {
+              if (item.damage && Array.isArray(item.damage.damageType)) {
+                return item.damage.damageType
+              } else {
+                return []
+              }
+            })}
+            value={listFilter?.damage?.damageType}
+            onChange={setListFilter}
+          />
+          <Select
+            multiple={true}
+            name='armorValue'
+            placeholder='Item Category'
+            options={items?.map((item) => ({ value: item.armorValue }))}
+            value={listFilter.armorValue}
             onChange={setListFilter}
           />
         </div>
@@ -259,7 +284,7 @@ const ItemList = () => {
     )
 
     content = (
-      <div>
+      <div className='main-container list'>
         <div className='d-flex justify-content-between pb-2'>
           <div className='d-flex'>
             <h3 className='me-3'>Items</h3>
@@ -286,7 +311,8 @@ const ItemList = () => {
           dynamic={false}
           readOnly={true}
           sortable={true}
-          value={itemListFiltered()}
+          scrollable={true}
+          value={filteredList}
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}
           clickable={true}

@@ -10,8 +10,10 @@ import Modal from './components/Modal'
 import Register from './features/auth/Register'
 import Login from './features/auth/Login'
 import CharacterList from './features/characters/CharacterList'
+import Race from './features/races/Race'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
+import EditRaceForm from './features/races/EditRaceForm'
 import Spell from './features/spells/Spell'
 import SpellList from './features/spells/SpellList'
 import NewSpellForm from './features/spells/NewSpellForm'
@@ -65,6 +67,8 @@ const App = () => {
                 <Route path='races'>
                   <Route index element={<RaceList />} />
                   <Route path='new' element={<NewRaceForm />} />
+                  <Route path=':id' element={<Modal child={<Race />} />} />
+                  <Route path='edit/:id' element={<EditRaceForm />} />
                 </Route>
                 <Route path='spells'>
                   <Route index element={<SpellList />} />
@@ -96,6 +100,7 @@ const App = () => {
           <Route path='spells/:id' element={<Modal child={<Spell />} />} />
           <Route path='feats/:id' element={<Modal child={<Feat />} />} />
           <Route path='items/:id' element={<Modal child={<Item />} />} />
+          <Route path='races/:id' element={<Modal child={<Race />} />} />
         </Routes>
       )}
     </>

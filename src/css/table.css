@@ -1,5 +1,7 @@
 .table-scrollable {
   overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
 }
 
 .row.scrollable {

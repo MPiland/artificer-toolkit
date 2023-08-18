@@ -1610,7 +1610,7 @@ const NewRaceForm = () => {
       })
 
     content = (
-      <div className='builder-form'>
+      <div className='main-container'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create a Race</h3>
           <div>

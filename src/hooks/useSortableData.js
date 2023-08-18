@@ -49,11 +49,19 @@ const useSortableData = (items, config = null) => {
           if (Array.isArray(aValue) && Array.isArray(bValue)) {
             const sortedAValue =
               aValue.length > 1
-                ? aValue.slice().sort((x, y) => x.value.localeCompare(y.value))
+                ? aValue
+                    .slice()
+                    .sort((x, y) =>
+                      String(x.value).localeCompare(String(y.value))
+                    )
                 : aValue
             const sortedBValue =
               bValue.length > 1
-                ? bValue.slice().sort((x, y) => x.value.localeCompare(y.value))
+                ? bValue
+                    .slice()
+                    .sort((x, y) =>
+                      String(x.value).localeCompare(String(y.value))
+                    )
                 : bValue
 
             for (
@@ -76,11 +84,11 @@ const useSortableData = (items, config = null) => {
 
             return sortedAValue.length - sortedBValue.length
           } else {
-            return aValue > bValue
-              ? sortConfig.direction === 'ascending'
-                ? 1
-                : -1
-              : -1
+            if (sortConfig.direction === 'ascending') {
+              return String(aValue).localeCompare(String(bValue))
+            } else {
+              return String(bValue).localeCompare(String(aValue))
+            }
           }
         })
       }

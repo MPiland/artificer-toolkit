@@ -1335,7 +1335,7 @@ const NewItemForm = () => {
       })
 
     content = (
-      <div className='builder-form'>
+      <div className='main-container'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create an Item</h3>
           <div>
@@ -1381,7 +1381,7 @@ const NewItemForm = () => {
               <Select
                 ref={addToSelectRefs}
                 name='itemCategory'
-                placeholder='Item category'
+                placeholder='Item Category'
                 value={state.itemCategory}
                 options={builders.item.itemCategory}
                 required={true}

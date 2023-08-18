@@ -1382,7 +1382,7 @@ const EditItemForm = () => {
       })
 
     content = (
-      <div className='builder-form'>
+      <div className='main-container'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Edit Item</h3>
           <div>

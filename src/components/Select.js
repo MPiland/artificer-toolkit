@@ -36,16 +36,20 @@ const Select = forwardRef(
     let updatedOptions
 
     if (options?.length) {
-      newOptions = options?.map(
-        ({ name, value, _id, [optionalKey]: optionalValue }) => {
+      newOptions = options
+        ?.filter(
+          (option) => option.value !== null && option.value !== undefined
+        )
+        .map(({ name, value, _id, [optionalKey]: optionalValue }) => {
           const newObj = { name, value, _id }
           if (optionalKey && optionalValue !== undefined) {
             newObj[optionalKey] = optionalValue
           }
           return newObj
-        }
+        })
+      newOptions.sort((a, b) =>
+        a.value === b.value ? 0 : a.value > b.value ? 1 : -1
       )
-      newOptions.sort((a, b) => (a.value > b.value ? 1 : -1))
     } else {
       newOptions = []
     }
@@ -194,6 +198,7 @@ const Select = forwardRef(
           ]
         } else if (
           Array.isArray(selectedOptions) &&
+          selectedOptions.length > 0 &&
           selectedOptions.every((selectedOption) =>
             newOptions.some(
               (newOption) => newOption.value === selectedOption.value
@@ -229,11 +234,10 @@ const Select = forwardRef(
             },
           ]
         }
-        console.log(updatedOptions)
       } else {
         updatedOptions = {
-          name: option.name,
-          id: option._id,
+          name: option.name ?? null,
+          id: option._id ?? null,
           value: option.value,
           ...(optionalKey && { [optionalKey]: option[optionalKey] }),
         }

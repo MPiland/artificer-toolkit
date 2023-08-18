@@ -1572,7 +1572,7 @@ const NewFeatForm = () => {
       })
 
     content = (
-      <div className='builder-form'>
+      <div className='main-container'>
         <div className='d-flex justify-content-between pb-2'>
           <h3>Create a Feat</h3>
           <div>
