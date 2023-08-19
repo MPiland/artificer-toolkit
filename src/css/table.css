@@ -2,6 +2,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1 1 auto;
+  height: 100%;
 }
 
 .row.scrollable {

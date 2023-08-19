@@ -24,7 +24,8 @@ const SpellList = () => {
     refetchOnMountOrArgChange: true,
   })
 
-  const { listFilter, filteredList, setListFilter, setFilterItems } = useFilteredList()
+  const { listFilter, filteredList, setListFilter, setFilterItems } =
+    useFilteredList()
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
 
@@ -262,6 +263,7 @@ const SpellList = () => {
           dynamic={false}
           readOnly={true}
           sortable={true}
+          scrollable={true}
           value={filteredList}
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}
