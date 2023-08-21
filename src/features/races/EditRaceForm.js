@@ -1129,6 +1129,32 @@ const EditRaceForm = () => {
                         },
                       })
                     )}
+                    {featureItem.requirement?.option?.some(
+                      (optionItem) => optionItem.name === 'size'
+                    ) ? (
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.size`}
+                          value={featureItem.requirement?.size}
+                          placeholder='Size'
+                          options={builders.race.size}
+                          required={true}
+                          onChange={setState}
+                        />
+                      </>
+                    ) : (
+                      !!featureItem.requirement?.abilityScore &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.size`,
+                          },
+                        },
+                      })
+                    )}
                     {featureItem.attribute?.some(
                       (attributeItem) => attributeItem.name === 'limitUse'
                     ) ? (

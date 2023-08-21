@@ -885,6 +885,32 @@ const NewItemForm = () => {
                         },
                       })
                     )}
+                    {featureItem.requirement?.option?.some(
+                      (optionItem) => optionItem.name === 'size'
+                    ) ? (
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.size`}
+                          value={featureItem.requirement?.size}
+                          placeholder='Size'
+                          options={builders.race.size}
+                          required={true}
+                          onChange={setState}
+                        />
+                      </>
+                    ) : (
+                      !!featureItem.requirement?.abilityScore &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.size`,
+                          },
+                        },
+                      })
+                    )}
                     {featureItem.attribute?.some(
                       (attributeItem) => attributeItem.name === 'limitUse'
                     ) ? (
@@ -1660,22 +1686,22 @@ const NewItemForm = () => {
                   <Input
                     ref={addToInputRefs}
                     validation={'num'}
-                    name='thrown.minRange'
+                    name='minRange'
                     label={true}
                     invalidText='Must contain only numbers'
-                    placeholder='Thrown Min Range'
-                    value={state.thrown?.minRange}
+                    placeholder='Min Range'
+                    value={state?.minRange}
                     required={true}
                     onChange={setState}
                   />
                   <Input
                     ref={addToInputRefs}
                     validation={'num'}
-                    name='thrown.maxRange'
+                    name='maxRange'
                     label={true}
                     invalidText='Must contain only numbers'
-                    placeholder='Thrown Max Range'
-                    value={state.thrown?.maxRange}
+                    placeholder='Max Range'
+                    value={state?.maxRange}
                     required={true}
                     onChange={setState}
                   />
@@ -1856,6 +1882,32 @@ const NewItemForm = () => {
                   payload: {
                     target: {
                       name: 'requirement.abilityScore',
+                    },
+                  },
+                })
+              )}
+              {state.requirement?.option?.some(
+                (optionItem) => optionItem.name === 'size'
+              ) ? (
+                <>
+                  <Select
+                    ref={addToSelectRefs}
+                    multiple={true}
+                    name='requirement.size'
+                    value={state.requirement?.size}
+                    placeholder='Size'
+                    options={builders.race.size}
+                    required={true}
+                    onChange={setState}
+                  />
+                </>
+              ) : (
+                !!state.requirement?.abilityScore &&
+                setState({
+                  action: 'removed',
+                  payload: {
+                    target: {
+                      name: 'requirement.size',
                     },
                   },
                 })

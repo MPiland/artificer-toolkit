@@ -63,7 +63,7 @@ const NewRaceForm = () => {
 
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Item added successfully!')
+      setSuccessMessage('Race added successfully!')
       handleValidation(true)
       setState({
         type: 'reset',
@@ -157,7 +157,7 @@ const NewRaceForm = () => {
         }
       }
     })
-    if(resetValidation) {
+    if (resetValidation) {
       setErrorMessage()
     }
     return isValid
@@ -1125,6 +1125,32 @@ const NewRaceForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.abilityScore`,
+                          },
+                        },
+                      })
+                    )}
+                    {featureItem.requirement?.option?.some(
+                      (optionItem) => optionItem.name === 'size'
+                    ) ? (
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.size`}
+                          value={featureItem.requirement?.size}
+                          placeholder='Size'
+                          options={builders.race.size}
+                          required={true}
+                          onChange={setState}
+                        />
+                      </>
+                    ) : (
+                      !!featureItem.requirement?.abilityScore &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.size`,
                           },
                         },
                       })

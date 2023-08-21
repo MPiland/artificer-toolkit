@@ -150,7 +150,7 @@ const NewFeatForm = () => {
         }
       }
     })
-    if(resetValidation) {
+    if (resetValidation) {
       setErrorMessage()
     }
     return isValid
@@ -1088,6 +1088,32 @@ const NewFeatForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.abilityScore`,
+                          },
+                        },
+                      })
+                    )}
+                    {featureItem.requirement?.option?.some(
+                      (optionItem) => optionItem.name === 'size'
+                    ) ? (
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          multiple={true}
+                          name={`feature.${featureIndex}.requirement.size`}
+                          value={featureItem.requirement?.size}
+                          placeholder='Size'
+                          options={builders.race.size}
+                          required={true}
+                          onChange={setState}
+                        />
+                      </>
+                    ) : (
+                      !!featureItem.requirement?.abilityScore &&
+                      setState({
+                        action: 'removed',
+                        payload: {
+                          target: {
+                            name: `feature.${featureIndex}.requirement.size`,
                           },
                         },
                       })

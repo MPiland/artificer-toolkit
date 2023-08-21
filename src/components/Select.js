@@ -176,10 +176,12 @@ const Select = forwardRef(
       if (!parentCurrent.contains(target)) {
         dropdownCurrent?.classList.remove('show')
         buttonCurrent?.setAttribute('aria-expanded', 'false')
+        setCurrentLetter()
       }
       if (event.key === 'Tab') {
         dropdownCurrent?.classList.remove('show')
         buttonCurrent?.setAttribute('aria-expanded', 'false')
+        setCurrentLetter()
       }
     }
 
@@ -243,6 +245,9 @@ const Select = forwardRef(
         }
       }
       onChange({ payload: { target: { name: name, value: updatedOptions } } })
+      if (!multiple) {
+        setCurrentLetter()
+      }
     }
 
     const selectClass = (option) => {
