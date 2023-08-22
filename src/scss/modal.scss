@@ -1,5 +1,25 @@
-/* Spell Card */
-.spell-desc {
+:root {
+  --doc-height: 100vh;
+}
+
+/* Modal */
+.modal-xl {
+  min-width: calc(100vw - (2.75rem * 2));
+}
+
+.modal-header {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+/* Card */
+.detailCard-body {
   table {
     border-collapse: collapse;
     margin: 0;
@@ -28,4 +48,12 @@
       text-align: left;
     }
   }
+  overflow-y: auto;
+  position: relative;
+  flex: 1 1 auto;
+}
+
+.detailCard-subtext {
+  font-size: small;
+  font-style: italic;
 }

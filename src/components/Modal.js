@@ -1,3 +1,4 @@
+import '../scss/modal.scss'
 import { useEffect, useCallback, cloneElement, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 

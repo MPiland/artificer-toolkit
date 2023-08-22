@@ -1,4 +1,3 @@
-import '../../scss/card.scss'
 import parse from 'html-react-parser'
 import { get, truncate } from 'lodash'
 import { forwardRef } from 'react'
@@ -91,7 +90,7 @@ const Spell = forwardRef(({ state: spell }, ref) => {
 
   const content = (
     <>
-      <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 gy-3'>
+      <div className='detailCard-detail row row-cols-lg-4 row-cols-md-3 row-cols-2 gy-3'>
         {cols.map((colItem, colIndex) => {
           return (
             <div className='col' key={colIndex}>
@@ -113,9 +112,11 @@ const Spell = forwardRef(({ state: spell }, ref) => {
         })}
       </div>
       <hr />
-      <div className='card-desc'>{parse(spell.desc)}</div>
-      <div className='d-flex justify-content-between'>
-        <span className='card-subtext'>{materialDesc()}</span>
+      <div className='detailCard-body'>
+        <div>{parse(spell.desc)}</div>
+        <div className='d-flex justify-content-between'>
+          <span className='detailCard-subtext'>{materialDesc()}</span>
+        </div>
       </div>
     </>
   )
