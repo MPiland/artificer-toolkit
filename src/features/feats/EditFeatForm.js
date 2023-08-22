@@ -412,7 +412,7 @@ const EditFeatForm = () => {
                         multiple={multipleOptions}
                         placeholder='Ability'
                         value={
-                          multipleOptions ? item.ability.options : item.ability
+                          multipleOptions ? item.ability?.options : item.ability
                         }
                         options={builders.ability}
                         required={true}
@@ -431,7 +431,7 @@ const EditFeatForm = () => {
                         placeholder='Save Ability'
                         value={
                           multipleOptions
-                            ? item.saveAbility.options
+                            ? item.saveAbility?.options
                             : item.saveAbility
                         }
                         options={builders.ability}
@@ -448,7 +448,7 @@ const EditFeatForm = () => {
                         multiple={multipleOptions}
                         placeholder='Skill'
                         value={
-                          multipleOptions ? item.skill.options : item.skill
+                          multipleOptions ? item.skill?.options : item.skill
                         }
                         options={builders.skill}
                         required={true}
@@ -483,7 +483,7 @@ const EditFeatForm = () => {
                     multiple={multipleOptions}
                     placeholder='Condition Type'
                     value={
-                      multipleOptions ? item.condition.options : item.condition
+                      multipleOptions ? item.condition?.options : item.condition
                     }
                     options={builders.condition}
                     required={true}
@@ -496,7 +496,7 @@ const EditFeatForm = () => {
                       multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
-                    value={multipleOptions ? item.speed.options : item.speed}
+                    value={multipleOptions ? item.speed?.options : item.speed}
                     placeholder='Speed Type'
                     options={builders.speed}
                     required={true}
@@ -511,7 +511,7 @@ const EditFeatForm = () => {
                     multiple={multipleOptions}
                     placeholder='Passive Type'
                     value={
-                      multipleOptions ? item.passive.options : item.passive
+                      multipleOptions ? item.passive?.options : item.passive
                     }
                     options={builders.passive}
                     required={true}
@@ -550,13 +550,16 @@ const EditFeatForm = () => {
                       required={true}
                       onChange={setState}
                     />
-                    <Select
-                      ref={addToSelectRefs}
+                    <Input
+                      ref={addToInputRefs}
+                      validate='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                       placeholder='Multiplier'
+                      label={true}
+                      invalidText='Must contain only whole numbers'
+                      autoComplete='off'
                       value={item.multiplier}
-                      options={builders.modifier.multiplier}
-                      required={true}
+                      require={true}
                       onChange={setState}
                     />
                   </>
@@ -657,7 +660,7 @@ const EditFeatForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Skill'
-                    value={multipleOptions ? item.skill.options : item.skill}
+                    value={multipleOptions ? item.skill?.options : item.skill}
                     options={builders.skill}
                     required={true}
                     onChange={setState}
@@ -673,7 +676,7 @@ const EditFeatForm = () => {
                     placeholder='Save Ability'
                     value={
                       multipleOptions
-                        ? item.saveAbility.options
+                        ? item.saveAbility?.options
                         : item.saveAbility
                     }
                     options={builders.ability}
@@ -689,7 +692,7 @@ const EditFeatForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Tool'
-                    value={multipleOptions ? item.tool.options : item.tool}
+                    value={multipleOptions ? item.tool?.options : item.tool}
                     options={builders.tool}
                     required={true}
                     onChange={setState}
@@ -704,7 +707,7 @@ const EditFeatForm = () => {
                     multiple={multipleOptions}
                     placeholder='Language'
                     value={
-                      multipleOptions ? item.language.options : item.language
+                      multipleOptions ? item.language?.options : item.language
                     }
                     options={builders.language}
                     required={true}
@@ -720,7 +723,7 @@ const EditFeatForm = () => {
                     multiple={multipleOptions}
                     placeholder='Item Type'
                     value={
-                      multipleOptions ? item.itemType.options : item.itemType
+                      multipleOptions ? item.itemType?.options : item.itemType
                     }
                     options={items}
                     required={true}
@@ -739,7 +742,7 @@ const EditFeatForm = () => {
                     placeholder='Item Property'
                     value={
                       multipleOptions
-                        ? item.itemProperty.options
+                        ? item.itemProperty?.options
                         : item.itemProperty
                     }
                     options={[].concat(
@@ -809,7 +812,7 @@ const EditFeatForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  value={multipleOptions ? item.sense.options : item.sense}
+                  value={multipleOptions ? item.sense?.options : item.sense}
                   options={builders.sense}
                   required={true}
                   onChange={setState}
@@ -874,7 +877,7 @@ const EditFeatForm = () => {
                   multiple={multipleOptions}
                   placeholder='Spell'
                   value={
-                    multipleOptions ? item.saveAbility.options : item.options
+                    multipleOptions ? item.saveAbility?.options : item?.options
                   }
                   options={spells}
                   required={true}
@@ -891,7 +894,7 @@ const EditFeatForm = () => {
                     multiple={multipleOptions}
                     placeholder='Ability'
                     value={
-                      multipleOptions ? item.ability.options : item.ability
+                      multipleOptions ? item.ability?.options : item.ability
                     }
                     options={builders.ability}
                     required={true}
@@ -1612,8 +1615,8 @@ const EditFeatForm = () => {
                           <div key={itemIndex} className='accordion-item'>
                             <div className='accordion-header'>
                               <AccordionButton
-                                id={`${sectionItem.name}${itemIndex}AccordionButton`}
-                                target={`${sectionItem.name}${itemIndex}AccordionBody`}
+                                id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionButton`}
+                                target={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               >
                                 <h6>{`${startCase(sectionItem.name)} ${
                                   itemIndex + 1
@@ -1622,7 +1625,7 @@ const EditFeatForm = () => {
                             </div>
                             <div
                               className='accordion-collapse collapse show'
-                              id={`${sectionItem.name}${itemIndex}AccordionBody`}
+                              id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               data-bs-parent='#sectionAccordion'
                             >
                               <div className='accordion-body'>

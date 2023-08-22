@@ -419,13 +419,16 @@ const NewItemForm = () => {
                       value={item.method?.setValue}
                       onChange={setState}
                     />
-                    <Select
-                      ref={addToSelectRefs}
+                    <Input
+                      ref={addToInputRefs}
+                      validate='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                       placeholder='Multiplier'
+                      label={true}
+                      invalidText='Must contain only whole numbers'
+                      autoComplete='off'
                       value={item.multiplier}
-                      options={builders.modifier.multiplier}
-                      required={true}
+                      require={true}
                       onChange={setState}
                     />
                   </>
@@ -1327,8 +1330,8 @@ const NewItemForm = () => {
                           <div key={itemIndex} className='accordion-item'>
                             <div className='accordion-header'>
                               <AccordionButton
-                                id={`${sectionItem.name}${itemIndex}AccordionButton`}
-                                target={`${sectionItem.name}${itemIndex}AccordionBody`}
+                                id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionButton`}
+                                target={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               >
                                 <h6>{`${startCase(sectionItem.name)} ${
                                   itemIndex + 1
@@ -1337,7 +1340,7 @@ const NewItemForm = () => {
                             </div>
                             <div
                               className='accordion-collapse collapse show'
-                              id={`${sectionItem.name}${itemIndex}AccordionBody`}
+                              id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               data-bs-parent='#sectionAccordion'
                             >
                               <div className='accordion-body'>

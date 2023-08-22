@@ -386,7 +386,7 @@ const NewRaceForm = () => {
                         multiple={multipleOptions}
                         placeholder='Ability'
                         value={
-                          multipleOptions ? item.abilty.options : item.ability
+                          multipleOptions ? item.ability?.options : item.ability
                         }
                         options={builders.ability}
                         required={true}
@@ -405,7 +405,7 @@ const NewRaceForm = () => {
                         placeholder='Save Ability'
                         value={
                           multipleOptions
-                            ? item.saveAbility.options
+                            ? item.saveAbility?.options
                             : item.saveAbility
                         }
                         options={builders.ability}
@@ -422,7 +422,7 @@ const NewRaceForm = () => {
                         multiple={multipleOptions}
                         placeholder='Skill'
                         value={
-                          multipleOptions ? item.skill.options : item.skill
+                          multipleOptions ? item.skill?.options : item.skill
                         }
                         options={builders.skill}
                         require={true}
@@ -457,7 +457,7 @@ const NewRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Condition Type'
                     value={
-                      multipleOptions ? item.condition.options : item.condition
+                      multipleOptions ? item.condition?.options : item.condition
                     }
                     options={builders.condition}
                     require={true}
@@ -470,7 +470,7 @@ const NewRaceForm = () => {
                       multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
-                    value={multipleOptions ? item.speed.options : item.speed}
+                    value={multipleOptions ? item.speed?.options : item.speed}
                     placeholder='Speed Type'
                     options={builders.speed}
                     require={true}
@@ -485,14 +485,15 @@ const NewRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Passive Type'
                     value={
-                      multipleOptions ? item.passive.options : item.passive
+                      multipleOptions ? item.passive?.options : item.passive
                     }
                     options={builders.passive}
                     require={true}
                     onChange={setState}
                   />
                 ) : (
-                  item.module?.name === 'damage' && (
+                  (item.module?.name === 'damage' ||
+                    item.module?.name === 'saveAgainstDamage') && (
                     <Select
                       ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
@@ -524,12 +525,15 @@ const NewRaceForm = () => {
                       require={true}
                       onChange={setState}
                     />
-                    <Select
-                      ref={addToSelectRefs}
+                    <Input
+                      ref={addToInputRefs}
+                      validate='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                       placeholder='Multiplier'
+                      label={true}
+                      invalidText='Must contain only whole numbers'
+                      autoComplete='off'
                       value={item.multiplier}
-                      options={builders.modifier.multiplier}
                       require={true}
                       onChange={setState}
                     />
@@ -631,7 +635,7 @@ const NewRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Skill'
-                    value={multipleOptions ? item.skill.options : item.skill}
+                    value={multipleOptions ? item.skill?.options : item.skill}
                     options={builders.skill}
                     require={true}
                     onChange={setState}
@@ -647,7 +651,7 @@ const NewRaceForm = () => {
                     placeholder='Save Ability'
                     value={
                       multipleOptions
-                        ? item.saveAbility.options
+                        ? item.saveAbility?.options
                         : item.saveAbility
                     }
                     options={builders.ability}
@@ -663,7 +667,7 @@ const NewRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Tool'
-                    value={multipleOptions ? item.tool.options : item.tool}
+                    value={multipleOptions ? item.tool?.options : item.tool}
                     options={builders.tool}
                     require={true}
                     onChange={setState}
@@ -678,7 +682,7 @@ const NewRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Language'
                     value={
-                      multipleOptions ? item.language.options : item.language
+                      multipleOptions ? item.language?.options : item.language
                     }
                     options={builders.language}
                     require={true}
@@ -694,7 +698,7 @@ const NewRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Item Type'
                     value={
-                      multipleOptions ? item.itemType.options : item.itemType
+                      multipleOptions ? item.itemType?.options : item.itemType
                     }
                     require={true}
                     options={items}
@@ -713,7 +717,7 @@ const NewRaceForm = () => {
                     placeholder='Item Property'
                     value={
                       multipleOptions
-                        ? item.itemProperty.options
+                        ? item.itemProperty?.options
                         : item.itemProperty
                     }
                     require={true}
@@ -783,7 +787,7 @@ const NewRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  value={multipleOptions ? item.sense.options : item.sense}
+                  value={multipleOptions ? item.sense?.options : item.sense}
                   options={builders.sense}
                   require={true}
                   onChange={setState}
@@ -847,7 +851,7 @@ const NewRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Spell'
-                  value={multipleOptions ? item.options : item}
+                  value={multipleOptions ? item?.options : item}
                   options={spells}
                   require={true}
                   onChange={setState}
@@ -863,7 +867,7 @@ const NewRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Ability'
                     value={
-                      multipleOptions ? item.ability.options : item.ability
+                      multipleOptions ? item.ability?.options : item.ability
                     }
                     options={builders.ability}
                     require={true}
@@ -1602,8 +1606,8 @@ const NewRaceForm = () => {
                           <div key={itemIndex} className='accordion-item'>
                             <div className='accordion-header'>
                               <AccordionButton
-                                id={`${sectionItem.name}${itemIndex}AccordionButton`}
-                                target={`${sectionItem.name}${itemIndex}AccordionBody`}
+                                id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionButton`}
+                                target={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               >
                                 <h6>{`${startCase(sectionItem.name)} ${
                                   itemIndex + 1
@@ -1612,7 +1616,7 @@ const NewRaceForm = () => {
                             </div>
                             <div
                               className='accordion-collapse collapse show'
-                              id={`${sectionItem.name}${itemIndex}AccordionBody`}
+                              id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               data-bs-parent='#sectionAccordion'
                             >
                               <div className='accordion-body'>

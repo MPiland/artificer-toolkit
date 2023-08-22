@@ -7,6 +7,9 @@ const Race = forwardRef(({ state: race }, ref) => {
     <>
       <div className='card-desc'>{race?.desc && parse(race.desc)}</div>
       <div className='card-desc'>{race?.quote && parse(race.quote)}</div>
+      <hr />
+      <h4>Traits</h4>
+      <div className='card-desc'>{race?.quote && parse(race.traits.desc)}</div>
     </>
   )
 

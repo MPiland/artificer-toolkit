@@ -26,7 +26,16 @@ export const racesApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'Race', id: 'LIST' }],
     }),
+    updateRace: builder.mutation({
+      query: (initialSpellData) => ({
+        url: `/race`,
+        method: 'PATCH',
+        body: { ...initialSpellData },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Race', id: arg._id }],
+    }),
   }),
 })
 
-export const { useGetRaceQuery, useAddNewRaceMutation } = racesApiSlice
+export const { useGetRaceQuery, useAddNewRaceMutation, useUpdateRaceMutation } =
+  racesApiSlice

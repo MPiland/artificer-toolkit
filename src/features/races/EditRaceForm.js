@@ -1,12 +1,12 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAddNewRaceMutation } from './racesApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import { useGetFeatQuery } from '../feats/featsApiSlice'
-import { useGetRaceQuery } from './racesApiSlice'
+import { useGetRaceQuery, useUpdateRaceMutation } from './racesApiSlice'
 import { useGetItemQuery } from '../items/itemsApiSlice'
-import { startCase } from 'lodash'
+import { startCase, isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import AccordionButton from '../../components/AccordionButton'
 import TextEditor from '../../components/TextEditor'
@@ -17,6 +17,7 @@ import useAuth from '../../hooks/useAuth'
 
 const EditRaceForm = () => {
   const { id } = useAuth()
+  const location = useLocation()
   const navigate = useNavigate()
 
   const {
@@ -54,29 +55,38 @@ const EditRaceForm = () => {
     { isSuccess: addIsSuccess, isError: addIsError, error: addError },
   ] = useAddNewRaceMutation()
 
-  const [state, setState] = useReducer(formReducer, { userId: id })
+  const [
+    updateRace,
+    { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
+  ] = useUpdateRaceMutation()
+
+  const [oldState, setOldState] = useState(location.state.data)
+  const [state, setState] = useReducer(formReducer, location.state.data)
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
+  const [match, setMatch] = useState()
   const selectRefs = useRef([])
   const inputRefs = useRef([])
   const textRefs = useRef([])
 
   useEffect(() => {
     if (addIsSuccess) {
-      setSuccessMessage('Item added successfully!')
+      setSuccessMessage('Race added successfully!')
       handleValidation(true)
-      setState({
-        type: 'reset',
-        payload: { target: { userId: id } },
-      })
     }
-  }, [addIsSuccess, id, setState])
+    if (updateIsSuccess) {
+      setSuccessMessage('Race updated successfully!')
+    }
+  }, [addIsSuccess, id, navigate, updateIsSuccess])
 
   useEffect(() => {
     if (addIsError) {
-      setErrorMessage(addError.message)
+      setErrorMessage(addError.data.message)
     }
-  }, [addIsError, addError])
+    if (updateIsError) {
+      setErrorMessage(updateError.data.message)
+    }
+  }, [addIsError, id, updateIsError, addError, updateError])
 
   useEffect(() => {
     document.addEventListener('keypress', () => {
@@ -94,6 +104,14 @@ const EditRaceForm = () => {
       }
     })
   })
+
+  useEffect(() => {
+    if (isEqual(oldState, state)) {
+      setMatch(true)
+    } else {
+      setMatch(false)
+    }
+  }, [state, oldState])
 
   const addToSelectRefs = (ref) => {
     if (ref && !selectRefs.current.includes(ref)) {
@@ -179,6 +197,35 @@ const EditRaceForm = () => {
       await addNewRace(state)
     } else {
       setErrorMessage('Please fill out all required fields')
+    }
+  }
+
+  const onUpdate = async () => {
+    const isValid = handleValidation()
+    if (isValid) {
+      if (match) {
+        setErrorMessage('No changes made')
+      } else {
+        await updateRace(state)
+        setOldState(state)
+      }
+    } else {
+      setErrorMessage('Please fill out all required fields')
+    }
+  }
+
+  const onBackClick = () => {
+    if (location.state.previous.state.background.pathname === '/races') {
+      navigate(`/races/${state.name}`, {
+        state: {
+          data: match ? state : oldState,
+          background: location.state.previous.state.background,
+          context: match ? state.value : oldState.value,
+          size: 'xl',
+        },
+      })
+    } else {
+      navigate(-1)
     }
   }
 
@@ -386,7 +433,7 @@ const EditRaceForm = () => {
                         multiple={multipleOptions}
                         placeholder='Ability'
                         value={
-                          multipleOptions ? item.abilty.options : item.ability
+                          multipleOptions ? item.abilty?.options : item.ability
                         }
                         options={builders.ability}
                         required={true}
@@ -405,7 +452,7 @@ const EditRaceForm = () => {
                         placeholder='Save Ability'
                         value={
                           multipleOptions
-                            ? item.saveAbility.options
+                            ? item.saveAbility?.options
                             : item.saveAbility
                         }
                         options={builders.ability}
@@ -422,9 +469,29 @@ const EditRaceForm = () => {
                         multiple={multipleOptions}
                         placeholder='Skill'
                         value={
-                          multipleOptions ? item.skill.options : item.skill
+                          multipleOptions ? item.skill?.options : item.skill
                         }
                         options={builders.skill}
+                        require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {item.module?.name === 'damageSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.damageSave${
+                          multipleOptions ? '.options' : ''
+                        }`}
+                        multiple={multipleOptions}
+                        placeholder='Damage'
+                        value={
+                          multipleOptions
+                            ? item.damageSave?.options
+                            : item.damageSave
+                        }
+                        options={builders.damage}
                         require={true}
                         onChange={setState}
                       />
@@ -457,7 +524,7 @@ const EditRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Condition Type'
                     value={
-                      multipleOptions ? item.condition.options : item.condition
+                      multipleOptions ? item.condition?.options : item.condition
                     }
                     options={builders.condition}
                     require={true}
@@ -470,7 +537,7 @@ const EditRaceForm = () => {
                       multipleOptions ? '.options' : ''
                     }`}
                     multiple={multipleOptions}
-                    value={multipleOptions ? item.speed.options : item.speed}
+                    value={multipleOptions ? item.speed?.options : item.speed}
                     placeholder='Speed Type'
                     options={builders.speed}
                     require={true}
@@ -485,7 +552,7 @@ const EditRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Passive Type'
                     value={
-                      multipleOptions ? item.passive.options : item.passive
+                      multipleOptions ? item.passive?.options : item.passive
                     }
                     options={builders.passive}
                     require={true}
@@ -524,12 +591,15 @@ const EditRaceForm = () => {
                       require={true}
                       onChange={setState}
                     />
-                    <Select
-                      ref={addToSelectRefs}
+                    <Input
+                      ref={addToInputRefs}
+                      validate='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                       placeholder='Multiplier'
+                      label={true}
+                      invalidText='Must contain only whole numbers'
+                      autoComplete='off'
                       value={item.multiplier}
-                      options={builders.modifier.multiplier}
                       require={true}
                       onChange={setState}
                     />
@@ -631,7 +701,7 @@ const EditRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Skill'
-                    value={multipleOptions ? item.skill.options : item.skill}
+                    value={multipleOptions ? item.skill?.options : item.skill}
                     options={builders.skill}
                     require={true}
                     onChange={setState}
@@ -647,7 +717,7 @@ const EditRaceForm = () => {
                     placeholder='Save Ability'
                     value={
                       multipleOptions
-                        ? item.saveAbility.options
+                        ? item.saveAbility?.options
                         : item.saveAbility
                     }
                     options={builders.ability}
@@ -663,7 +733,7 @@ const EditRaceForm = () => {
                     }`}
                     multiple={multipleOptions}
                     placeholder='Tool'
-                    value={multipleOptions ? item.tool.options : item.tool}
+                    value={multipleOptions ? item.tool?.options : item.tool}
                     options={builders.tool}
                     require={true}
                     onChange={setState}
@@ -678,7 +748,7 @@ const EditRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Language'
                     value={
-                      multipleOptions ? item.language.options : item.language
+                      multipleOptions ? item.language?.options : item.language
                     }
                     options={builders.language}
                     require={true}
@@ -694,7 +764,7 @@ const EditRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Item Type'
                     value={
-                      multipleOptions ? item.itemType.options : item.itemType
+                      multipleOptions ? item.itemType?.options : item.itemType
                     }
                     require={true}
                     options={items}
@@ -713,7 +783,7 @@ const EditRaceForm = () => {
                     placeholder='Item Property'
                     value={
                       multipleOptions
-                        ? item.itemProperty.options
+                        ? item.itemProperty?.options
                         : item.itemProperty
                     }
                     require={true}
@@ -783,7 +853,7 @@ const EditRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  value={multipleOptions ? item.sense.options : item.sense}
+                  value={multipleOptions ? item.sense?.options : item.sense}
                   options={builders.sense}
                   require={true}
                   onChange={setState}
@@ -847,7 +917,7 @@ const EditRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Spell'
-                  value={multipleOptions ? item.options : item}
+                  value={multipleOptions ? item?.options : item}
                   options={spells}
                   require={true}
                   onChange={setState}
@@ -863,7 +933,7 @@ const EditRaceForm = () => {
                     multiple={multipleOptions}
                     placeholder='Ability'
                     value={
-                      multipleOptions ? item.ability.options : item.ability
+                      multipleOptions ? item.ability?.options : item.ability
                     }
                     options={builders.ability}
                     require={true}
@@ -1602,8 +1672,8 @@ const EditRaceForm = () => {
                           <div key={itemIndex} className='accordion-item'>
                             <div className='accordion-header'>
                               <AccordionButton
-                                id={`${sectionItem.name}${itemIndex}AccordionButton`}
-                                target={`${sectionItem.name}${itemIndex}AccordionBody`}
+                                id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionButton`}
+                                target={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               >
                                 <h6>{`${startCase(sectionItem.name)} ${
                                   itemIndex + 1
@@ -1612,7 +1682,7 @@ const EditRaceForm = () => {
                             </div>
                             <div
                               className='accordion-collapse collapse show'
-                              id={`${sectionItem.name}${itemIndex}AccordionBody`}
+                              id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
                               data-bs-parent='#sectionAccordion'
                             >
                               <div className='accordion-body'>
@@ -1648,7 +1718,7 @@ const EditRaceForm = () => {
             </button>
             <button
               className='btn btn-secondary btn-small'
-              onClick={() => navigate(-1)}
+              onClick={onBackClick}
             >
               Back
             </button>
@@ -1946,15 +2016,26 @@ const EditRaceForm = () => {
             >
               Add Feature
             </button>
-            <button
-              className='btn btn-primary'
-              type='button'
-              onClick={() => {
-                onSubmit()
-              }}
-            >
-              Add
-            </button>
+            <div className='d-flex'>
+              <button
+                className='btn btn-success me-2'
+                type='button'
+                onClick={() => {
+                  onUpdate()
+                }}
+              >
+                Update
+              </button>
+              <button
+                className='btn btn-primary'
+                type='button'
+                onClick={() => {
+                  onSubmit()
+                }}
+              >
+                Add New
+              </button>
+            </div>
           </div>
           {featureContent}
         </form>
