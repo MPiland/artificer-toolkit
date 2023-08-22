@@ -75,7 +75,7 @@ const Input = forwardRef(
     const content = (
       <div
         className={`position-relative ${size ? `${size}` : 'col-sm'} ${
-          !!label ? 'form-floating' : ''
+          label ? 'form-floating' : ''
         }`}
       >
         <input

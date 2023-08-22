@@ -229,6 +229,55 @@ const EditRaceForm = () => {
     }
   }
 
+  const onSubrace = () => {
+    if (state.category?.name === 'subrace' && state.lineage && !state.feature) {
+      setState({
+        payload: {
+          target: {
+            name: 'feature',
+            value: races.find((race) => race._id === state.lineage?.id).feature,
+          },
+        },
+      })
+    }
+    if (state.lineage && !state.traits) {
+      textRefs.current.forEach((textRef) => {
+        const textName = textRef.getName()
+        if (textName === 'traits.desc') {
+          textRef.updateState(
+            races.find((race) => race._id === state.lineage?.id)?.traits.desc
+          )
+          setState({
+            payload: {
+              target: {
+                name: 'traits',
+                value: races.find((race) => race._id === state.lineage?.id)
+                  ?.traits,
+              },
+            },
+          })
+        }
+      })
+      selectRefs.current.forEach((selectRef) => {
+        const selectName = selectRef.getName()
+        if (selectName === 'attribute') {
+          selectRef.setValue(
+            races.find((race) => race._id === state.lineage?.id)?.attribute
+          )
+          setState({
+            payload: {
+              target: {
+                name: 'attribute',
+                value: races.find((race) => race._id === state.lineage?.id)
+                  ?.attribute,
+              },
+            },
+          })
+        }
+      })
+    }
+  }
+
   let content
 
   if (
@@ -254,7 +303,7 @@ const EditRaceForm = () => {
           name: 'level',
           value: 'Level',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -262,7 +311,7 @@ const EditRaceForm = () => {
           name: 'diceCount',
           value: 'Dice Count',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -270,7 +319,7 @@ const EditRaceForm = () => {
           name: 'diceValue',
           value: 'Dice Value',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -281,7 +330,7 @@ const EditRaceForm = () => {
             name: 'secDiceCount',
             value: 'Sec. Dice Count',
             invalid: 'Must contain only numbers',
-            validation: true,
+            validation: 'num',
             label: true,
             size: 'damage-col',
           },
@@ -289,7 +338,7 @@ const EditRaceForm = () => {
             name: 'secDiceValue',
             value: 'Sec. Dice Value',
             invalid: 'Must contain only numbers',
-            validation: true,
+            validation: 'num',
             label: true,
             size: 'damage-col',
           }
@@ -600,7 +649,6 @@ const EditRaceForm = () => {
                       invalidText='Must contain only whole numbers'
                       autoComplete='off'
                       value={item.multiplier}
-                      require={true}
                       onChange={setState}
                     />
                   </>
@@ -627,18 +675,32 @@ const EditRaceForm = () => {
                     />
                   )
                 )}
-                {(item.modType?.name === 'bonus' ||
-                  item.modType?.name === 'setValue') && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                    placeholder='Exceeds Max'
-                    value={item.exceedMax}
-                    options={[
-                      { name: true, value: 'Yes' },
-                      { name: false, value: 'No' },
-                    ]}
-                    require={true}
+                {((item.modType?.name === 'bonus' &&
+                  item.module?.name !== 'hitPoints') ||
+                  item.modType?.name === 'setValue') &&
+                  item.module?.name === 'ability' && (
+                    <Select
+                      ref={addToSelectRefs}
+                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                      placeholder='Exceeds Max'
+                      value={item.exceedMax}
+                      options={[
+                        { name: true, value: 'Yes' },
+                        { name: false, value: 'No' },
+                      ]}
+                      require={true}
+                      onChange={setState}
+                    />
+                  )}
+                {item.method?.name === 'perLevel' && (
+                  <Input
+                    name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                    label={true}
+                    placeholder='Per Level Amt.'
+                    validate='num'
+                    invalidText='Must contain whole numbers only'
+                    autoComplete='off'
+                    value={item.addPerLevel}
                     onChange={setState}
                   />
                 )}
@@ -1569,12 +1631,14 @@ const EditRaceForm = () => {
                               name: 'level',
                               value: 'Level',
                               invalid: 'Must contain only numbers',
+                              validation: 'num',
                               label: true,
                             },
                             {
                               name: 'uses',
                               value: 'Uses',
                               invalid: 'Must contain only numbers',
+                              validation: 'num',
                               label: true,
                             },
                           ]}
@@ -1761,6 +1825,9 @@ const EditRaceForm = () => {
                 onChange={setState}
               />
             )}
+            {state.category?.name === 'subrace' &&
+              state?.lineage &&
+              onSubrace()}
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'

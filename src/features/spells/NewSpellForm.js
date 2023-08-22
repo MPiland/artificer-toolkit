@@ -41,6 +41,9 @@ const NewSpellForm = () => {
         payload: { target: { userId: id } },
       })
     }
+    textRefs.current.forEach((textRef) => {
+      textRef.updateState('')
+    })
   }, [addIsSuccess, id, setState])
 
   useEffect(() => {

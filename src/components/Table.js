@@ -5,8 +5,6 @@ import { get } from 'lodash'
 import Input from './Input'
 import TextEditor from './TextEditor'
 
-const NUM_REGEX = /^[0-9\b]+$/
-
 const Table = forwardRef(
   (
     {
@@ -121,7 +119,7 @@ const Table = forwardRef(
                     className={headerItem.className}
                     key={headerIndex}
                     name={headerItem.name}
-                    value={headerItem.name}
+                    value={headerItem.value}
                     readOnly={readOnly === true ? true : false}
                     border={headerItem.border}
                   />
@@ -162,13 +160,6 @@ const Table = forwardRef(
                   />
                 ) : (
                   <Input
-                    className={`${
-                      inputItem.validation === true &&
-                      valueItem[inputItem.name] &&
-                      (NUM_REGEX.test(valueItem[inputItem.name])
-                        ? 'is-valid'
-                        : 'is-invalid')
-                    }`}
                     size={inputItem.size ?? null}
                     name={`${name}.${itemIndex}.${inputItem.name}`}
                     label={inputItem.label ?? false}
@@ -183,6 +174,7 @@ const Table = forwardRef(
                     }
                     onChange={onChange}
                     readOnly={readOnly === true ? true : false}
+                    validation={inputItem.validation}
                   />
                 ))
               )

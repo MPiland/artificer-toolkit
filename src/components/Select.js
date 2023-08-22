@@ -391,6 +391,12 @@ const Select = forwardRef(
       setClass(valid) {
         setClassText(valid)
       },
+      getName() {
+        return name
+      },
+      setValue(data) {
+        setSelectedOptions(data)
+      },
     }))
 
     return content

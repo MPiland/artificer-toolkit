@@ -45,8 +45,8 @@ const NewRaceForm = () => {
 
   const {
     data: items,
-    isSuccess: ItemIsSuccess,
-    isLoading: ItemIsLoading,
+    isSuccess: itemIsSuccess,
+    isLoading: itemIsLoading,
   } = useGetItemQuery(id)
 
   const [
@@ -70,6 +70,9 @@ const NewRaceForm = () => {
         payload: { target: { userId: id } },
       })
     }
+    textRefs.current.forEach((textRef) => {
+      textRef.updateState('')
+    })
   }, [addIsSuccess, id, setState])
 
   useEffect(() => {
@@ -182,6 +185,55 @@ const NewRaceForm = () => {
     }
   }
 
+  const onSubrace = () => {
+    if (state.category?.name === 'subrace' && state.lineage && !state.feature) {
+      setState({
+        payload: {
+          target: {
+            name: 'feature',
+            value: races.find((race) => race._id === state.lineage?.id).feature,
+          },
+        },
+      })
+    }
+    if (state.lineage && !state.traits) {
+      textRefs.current.forEach((textRef) => {
+        const textName = textRef.getName()
+        if (textName === 'traits.desc') {
+          textRef.updateState(
+            races.find((race) => race._id === state.lineage?.id)?.traits.desc
+          )
+          setState({
+            payload: {
+              target: {
+                name: 'traits',
+                value: races.find((race) => race._id === state.lineage?.id)
+                  ?.traits,
+              },
+            },
+          })
+        }
+      })
+      selectRefs.current.forEach((selectRef) => {
+        const selectName = selectRef.getName()
+        if (selectName === 'attribute') {
+          selectRef.setValue(
+            races.find((race) => race._id === state.lineage?.id)?.attribute
+          )
+          setState({
+            payload: {
+              target: {
+                name: 'attribute',
+                value: races.find((race) => race._id === state.lineage?.id)
+                  ?.attribute,
+              },
+            },
+          })
+        }
+      })
+    }
+  }
+
   let content
 
   if (
@@ -189,7 +241,7 @@ const NewRaceForm = () => {
     spellIsLoading ||
     featIsLoading ||
     raceIsLoading ||
-    ItemIsLoading
+    itemIsLoading
   ) {
     content = <p>Loading...</p>
   }
@@ -199,7 +251,7 @@ const NewRaceForm = () => {
     spellIsSuccess &&
     featIsSuccess &&
     raceIsSuccess &&
-    ItemIsSuccess
+    itemIsSuccess
   ) {
     const damageTableInputs = (secondary) => {
       const inputArray = [
@@ -207,7 +259,7 @@ const NewRaceForm = () => {
           name: 'level',
           value: 'Level',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -215,7 +267,7 @@ const NewRaceForm = () => {
           name: 'diceCount',
           value: 'Dice Count',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -223,7 +275,7 @@ const NewRaceForm = () => {
           name: 'diceValue',
           value: 'Dice Value',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -234,7 +286,7 @@ const NewRaceForm = () => {
             name: 'secDiceCount',
             value: 'Sec. Dice Count',
             invalid: 'Must contain only numbers',
-            validation: true,
+            validation: 'num',
             label: true,
             size: 'damage-col',
           },
@@ -242,7 +294,7 @@ const NewRaceForm = () => {
             name: 'secDiceValue',
             value: 'Sec. Dice Value',
             invalid: 'Must contain only numbers',
-            validation: true,
+            validation: 'num',
             label: true,
             size: 'damage-col',
           }
@@ -534,7 +586,6 @@ const NewRaceForm = () => {
                       invalidText='Must contain only whole numbers'
                       autoComplete='off'
                       value={item.multiplier}
-                      require={true}
                       onChange={setState}
                     />
                   </>
@@ -561,18 +612,32 @@ const NewRaceForm = () => {
                     />
                   )
                 )}
-                {(item.modType?.name === 'bonus' ||
-                  item.modType?.name === 'setValue') && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                    placeholder='Exceeds Max'
-                    value={item.exceedMax}
-                    options={[
-                      { name: true, value: 'Yes' },
-                      { name: false, value: 'No' },
-                    ]}
-                    require={true}
+                {((item.modType?.name === 'bonus' &&
+                  item.module?.name !== 'hitPoints') ||
+                  item.modType?.name === 'setValue') &&
+                  item.module?.name === 'ability' && (
+                    <Select
+                      ref={addToSelectRefs}
+                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                      placeholder='Exceeds Max'
+                      value={item.exceedMax}
+                      options={[
+                        { name: true, value: 'Yes' },
+                        { name: false, value: 'No' },
+                      ]}
+                      require={true}
+                      onChange={setState}
+                    />
+                  )}
+                {item.method?.name === 'perLevel' && (
+                  <Input
+                    name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                    label={true}
+                    placeholder='Per Level Amt.'
+                    validate='num'
+                    invalidText='Must contain whole numbers only'
+                    autoComplete='off'
+                    value={item.addPerLevel}
                     onChange={setState}
                   />
                 )}
@@ -1498,18 +1563,20 @@ const NewRaceForm = () => {
                       })) && (
                       <div>
                         <Table
-                          headers={[
+                          inputs={[
                             {
                               name: 'level',
                               value: 'Level',
                               invalid: 'Must contain only numbers',
                               label: true,
+                              validation: 'num',
                             },
                             {
                               name: 'uses',
                               value: 'Uses',
                               invalid: 'Must contain only numbers',
                               label: true,
+                              validation: 'num',
                             },
                           ]}
                           name={`feature.${featureIndex}.limitUse.level`}
@@ -1686,7 +1753,7 @@ const NewRaceForm = () => {
             {state.category?.name && state.category?.name !== 'base' && (
               <Select
                 ref={addToSelectRefs}
-                multiple={true}
+                multiple={state.category.name === 'variant' && true}
                 name='lineage'
                 placeholder='Race Lineage'
                 value={state?.lineage}
@@ -1695,6 +1762,9 @@ const NewRaceForm = () => {
                 onChange={setState}
               />
             )}
+            {state.category?.name === 'subrace' &&
+              state?.lineage &&
+              onSubrace()}
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'

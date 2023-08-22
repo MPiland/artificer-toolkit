@@ -248,7 +248,7 @@ const TextEditor = forwardRef(
       },
       250,
       name
-    ) 
+    )
 
     // debounce save after no activity in editor
     const debounceSave = useDebounce(function (content) {
@@ -263,7 +263,7 @@ const TextEditor = forwardRef(
       },
       60 * 1000,
       name
-    ) 
+    )
 
     const handleSave = (content) => {
       setIsSaving(true)
@@ -312,6 +312,12 @@ const TextEditor = forwardRef(
       },
       revertState() {
         editor?.commands.setContent(initialState)
+      },
+      updateState(data) {
+        editor?.commands.setContent(data)
+      },
+      getName() {
+        return name
       },
     }))
 

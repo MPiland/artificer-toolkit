@@ -19,7 +19,9 @@ const RaceList = () => {
     isSuccess: raceIsSuccess,
     isError: raceIsError,
     error: raceError,
-  } = useGetRaceQuery(id)
+  } = useGetRaceQuery(id, {
+    refetchOnMountOrArgChange: true,
+  })
 
   const { filteredList, setListFilter, setFilterItems } = useFilteredList()
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })

@@ -63,6 +63,9 @@ const NewFeatForm = () => {
         payload: { target: { userId: id } },
       })
     }
+    textRefs.current.forEach((textRef) => {
+      textRef.updateState('')
+    })
   }, [addIsSuccess, id, setState])
 
   useEffect(() => {
@@ -188,7 +191,7 @@ const NewFeatForm = () => {
           name: 'level',
           value: 'Level',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -196,7 +199,7 @@ const NewFeatForm = () => {
           name: 'diceCount',
           value: 'Dice Count',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -204,7 +207,7 @@ const NewFeatForm = () => {
           name: 'diceValue',
           value: 'Dice Value',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
           size: 'damage-col',
         },
@@ -215,7 +218,7 @@ const NewFeatForm = () => {
             name: 'secDiceCount',
             value: 'Sec. Dice Count',
             invalid: 'Must contain only numbers',
-            validation: true,
+            validation: 'num',
             label: true,
             size: 'damage-col',
           },
@@ -223,7 +226,7 @@ const NewFeatForm = () => {
             name: 'secDiceValue',
             value: 'Sec. Dice Value',
             invalid: 'Must contain only numbers',
-            validation: true,
+            validation: 'num',
             label: true,
             size: 'damage-col',
           }
@@ -511,7 +514,6 @@ const NewFeatForm = () => {
                       invalidText='Must contain only whole numbers'
                       autoComplete='off'
                       value={item.multiplier}
-                      require={true}
                       onChange={setState}
                     />
                   </>
@@ -538,18 +540,32 @@ const NewFeatForm = () => {
                     />
                   )
                 )}
-                {(item.modType?.name === 'bonus' ||
-                  item.modType?.name === 'setValue') && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                    placeholder='Exceeds Max'
-                    value={item.exceedMax}
-                    options={[
-                      { name: true, value: 'Yes' },
-                      { name: false, value: 'No' },
-                    ]}
-                    required={true}
+                {((item.modType?.name === 'bonus' &&
+                  item.module?.name !== 'hitPoints') ||
+                  item.modType?.name === 'setValue') &&
+                  item.module?.name === 'ability' && (
+                    <Select
+                      ref={addToSelectRefs}
+                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
+                      placeholder='Exceeds Max'
+                      value={item.exceedMax}
+                      options={[
+                        { name: true, value: 'Yes' },
+                        { name: false, value: 'No' },
+                      ]}
+                      required={true}
+                      onChange={setState}
+                    />
+                  )}
+                {item.method?.name === 'perLevel' && (
+                  <Input
+                    name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                    label={true}
+                    placeholder='Per Level Amt.'
+                    validate='num'
+                    invalidText='Must contain whole numbers only'
+                    autoComplete='off'
+                    value={item.addPerLevel}
                     onChange={setState}
                   />
                 )}
@@ -1464,12 +1480,14 @@ const NewFeatForm = () => {
                               name: 'level',
                               value: 'Level',
                               invalid: 'Must contain only numbers',
+                              validation: 'num',
                               label: true,
                             },
                             {
                               name: 'uses',
                               value: 'Uses',
                               invalid: 'Must contain only numbers',
+                              validation: 'num',
                               label: true,
                             },
                           ]}
@@ -2146,12 +2164,14 @@ const NewFeatForm = () => {
                         name: 'level',
                         value: 'Level',
                         invalid: 'Must contain only numbers',
+                        validation: 'num',
                         label: true,
                       },
                       {
                         name: 'uses',
                         value: 'Uses',
                         invalid: 'Must contain only numbers',
+                        validation: 'num',
                         label: true,
                       },
                     ]}
