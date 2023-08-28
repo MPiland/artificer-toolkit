@@ -346,6 +346,28 @@ const NewItemForm = () => {
                         onChange={setState}
                       />
                     )}
+                    {item.module?.name === 'damageSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${this.name}.${index}.damageSave`}
+                        placeholder='Damage'
+                        value={item.damageSave}
+                        options={builders.damage}
+                        require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {item.module?.name === 'conditionSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${this.name}.${index}.conditionSave`}
+                        placeholder='Condition'
+                        value={item.conditionSave}
+                        options={builders.condition}
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
                   </>
                 )}
                 {(item.modType?.name === 'bonus' ||
@@ -755,7 +777,7 @@ const NewItemForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.feat.feature.attribute.filter(
+                      options={builders.item.feature.attribute.filter(
                         (attributeItem) =>
                           !featureItem.attribute?.some(
                             (item) => item.name === 'doesDamage'

@@ -410,6 +410,46 @@ const NewFeatForm = () => {
                         onChange={setState}
                       />
                     )}
+                    {item.module?.name === 'damageSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.damageSave${
+                          multipleOptions ? '.options' : ''
+                        }`}
+                        multiple={multipleOptions}
+                        placeholder='Damage'
+                        value={
+                          multipleOptions
+                            ? item.damageSave?.options
+                            : item.damageSave
+                        }
+                        options={builders.damage}
+                        require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {item.module?.name === 'conditionSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.conditionSave${
+                          multipleOptions ? '.options' : ''
+                        }`}
+                        multiple={multipleOptions}
+                        placeholder='Condition'
+                        value={
+                          multipleOptions
+                            ? item.conditionSave?.options
+                            : item.conditionSave
+                        }
+                        options={builders.condition}
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
                   </>
                 )}
                 {(item.modType?.name === 'bonus' ||

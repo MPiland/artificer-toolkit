@@ -1,170 +1,157 @@
 import '../css/table.css'
-import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { useEffect, useState, Fragment } from 'react'
 import useSortableData from '../hooks/useSortableData'
 import { get } from 'lodash'
 import Input from './Input'
-import TextEditor from './TextEditor'
 
-const Table = forwardRef(
-  (
-    {
-      inputs,
-      name,
-      value,
-      onChange,
-      className,
-      dynamic,
-      headers,
-      readOnly,
-      clickable,
-      onClick,
-      empty,
-      sortable,
-      scrollable,
-    },
-    ref
-  ) => {
-    const [sortState, setSortState] = useState()
-    const { items, requestSort, sortConfig } = useSortableData(value)
+const Table = ({
+  inputs,
+  indentedInputs,
+  indentedName,
+  name,
+  value,
+  onChange,
+  className,
+  dynamic,
+  headers,
+  readOnly,
+  clickable,
+  onClick,
+  empty,
+  sortable,
+  scrollable,
+}) => {
+  const [sortState, setSortState] = useState()
+  const { items, requestSort, sortConfig } = useSortableData(value)
 
-    useEffect(() => {
-      setSortState({ items: items, sortConfig: sortConfig })
-    }, [setSortState, items, sortConfig])
+  useEffect(() => {
+    setSortState({ valueItems: items, sortConfig: sortConfig })
+  }, [setSortState, items, sortConfig])
 
-    const getClassNames = (value) => {
-      if (!sortState?.sortConfig) {
-        return
-      }
-      if (Array.isArray(sortState.sortConfig.key)) {
-        return sortState.sortConfig.key[0] === value
-          ? sortState.sortConfig.direction
-          : ''
-      } else {
-        return sortState.sortConfig.key === value
-          ? sortState.sortConfig.direction
-          : ''
-      }
+  const getClassNames = (value) => {
+    if (!sortState?.sortConfig) {
+      return
     }
+    if (Array.isArray(sortState.sortConfig.key)) {
+      return sortState.sortConfig.key[0] === value
+        ? sortState.sortConfig.direction
+        : ''
+    } else {
+      return sortState.sortConfig.key === value
+        ? sortState.sortConfig.direction
+        : ''
+    }
+  }
 
-    const getValueFromState = (inputItem, valueItem) => {
-      const processItem = (item, state) => {
-        if (Array.isArray(item)) {
-          return item
-            .map((nestedItem) => processItem(nestedItem, state))
-            .join(' ')
-        } else {
-          const value = get(state, item)
-          if (Array.isArray(value)) {
-            if (value.length > 0) {
-              if (value.length > 1) {
-                const sortedValues = [...value] // Create a new array to avoid modifying the original
-                sortedValues.sort((a, b) =>
-                  a.value.toString().localeCompare(b.value.toString())
-                )
-                return sortedValues
-                  .map((nestedValue) => nestedValue.value)
-                  .join(' / ')
-              } else {
-                return value[0].value
-              }
+  const getValueFromState = (inputItem, valueItem) => {
+    const processItem = (item, state) => {
+      if (Array.isArray(item)) {
+        return item
+          .map((nestedItem) => processItem(nestedItem, state))
+          .join(' ')
+      } else {
+        const value = get(state, item)
+        if (Array.isArray(value)) {
+          if (value.length > 0) {
+            if (value.length > 1) {
+              const sortedValues = [...value]
+              sortedValues.sort((a, b) =>
+                a.value.toString().localeCompare(b.value.toString())
+              )
+              return sortedValues
+                .map((nestedValue) => nestedValue.value)
+                .join(' / ')
             } else {
-              return empty ? empty : null
+              return value[0].value
             }
           } else {
-            return value
+            return empty ? empty : null
           }
+        } else {
+          return value
         }
       }
-
-      if (inputItem && inputItem.name) {
-        const nameItems = Array.isArray(inputItem.name[0])
-          ? inputItem.name
-          : [inputItem.name]
-        return nameItems
-          .map((nameItem) => {
-            const value = processItem(nameItem, valueItem)
-            return value !== undefined ? value : empty ? empty : null
-          })
-          .join(' / ')
-      }
-
-      return empty ? empty : null
     }
 
-    const content = (
-      <div className={`${scrollable ? 'table-scrollable' : ''}`}>
-        {headers && (
-          <div className={`row align-items-center pb-2 g-2`}>
-            {headers?.map((headerItem, headerIndex) => {
-              return (
-                !headerItem.breakpoint &&
-                (readOnly ? (
-                  <div
-                    className={`${headerItem.size ?? ''} ${
-                      headerItem.className ?? ''
-                    }  ${getClassNames(headerItem.value)} ${
-                      sortable ? 'sortable-header' : ''
-                    }`}
-                    key={headerIndex}
-                    onClick={() =>
-                      sortable &&
-                      requestSort(headerItem.value, headerItem.order)
-                    }
-                  >
-                    {headerItem.name}
-                  </div>
-                ) : (
-                  <Input
-                    size={headerItem.size ?? null}
-                    className={headerItem.className}
-                    key={headerIndex}
-                    name={headerItem.name}
-                    value={headerItem.value}
-                    readOnly={readOnly === true ? true : false}
-                    border={headerItem.border}
-                  />
-                ))
-              )
-            })}
-          </div>
-        )}
-        {sortState?.items?.map((valueItem, itemIndex) => (
-          <div
-            key={itemIndex}
-            className={`row pb-2 g-2 ${className ?? ''} ${
-              clickable ? 'row-clickable' : ''
-            } ${scrollable ? 'scrollable' : ''}`}
-            onClick={() => {
-              onClick && onClick(valueItem)
-            }}
-          >
-            {inputs?.map((inputItem, inputIndex) => {
-              return (
-                !inputItem.breakpoint &&
-                (readOnly ? (
-                  <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
-                    {getValueFromState(inputItem, valueItem) !== null
-                      ? getValueFromState(inputItem, valueItem)
-                      : ''}
-                  </div>
-                ) : !!inputItem.type && inputItem.type === 'text' ? (
-                  <TextEditor
-                    short={inputItem.short}
-                    size={inputItem.size ?? ''}
-                    noMenuBar={true}
-                    placeholder={`${inputItem.value}`}
-                    name={`${name}.${itemIndex}.${inputItem.name}`}
-                    value={getValueFromState(inputItem, valueItem)}
-                    key={inputIndex}
-                    onChange={onChange}
-                  />
-                ) : (
+    if (inputItem && inputItem.name) {
+      const nameItems = Array.isArray(inputItem.name[0])
+        ? inputItem.name
+        : [inputItem.name]
+      return nameItems
+        .map((nameItem) => {
+          const value = processItem(nameItem, valueItem)
+          return value !== undefined ? value : empty ? empty : null
+        })
+        .join(' / ')
+    }
+
+    return empty ? empty : null
+  }
+
+  console.log(indentedInputs)
+
+  const content = (
+    <div className={`${scrollable ? 'table-scrollable' : ''}`}>
+      {headers && (
+        <div className={`row align-items-center pb-2 g-2`}>
+          {headers?.map((headerItem, headerIndex) => {
+            return (
+              !headerItem.breakpoint &&
+              (readOnly ? (
+                <div
+                  className={`${headerItem.size ?? ''} ${
+                    headerItem.className ?? ''
+                  }  ${getClassNames(headerItem.value)} ${
+                    sortable ? 'sortable-header' : ''
+                  }`}
+                  key={headerIndex}
+                  onClick={() =>
+                    sortable && requestSort(headerItem.value, headerItem.order)
+                  }
+                >
+                  {headerItem.name}
+                </div>
+              ) : (
+                <Input
+                  size={headerItem.size ?? null}
+                  className={headerItem.className}
+                  key={headerIndex}
+                  name={headerItem.name}
+                  value={headerItem.value}
+                  readOnly={readOnly === true ? true : false}
+                  border={headerItem.border}
+                />
+              ))
+            )
+          })}
+        </div>
+      )}
+      {sortState?.valueItems?.map((valueItem, valueIndex) => (
+        <div
+          key={valueIndex}
+          className={`row pb-2 g-2 ${className ?? ''} ${
+            clickable ? 'row-clickable' : ''
+          } ${scrollable ? 'scrollable' : ''}`}
+          onClick={() => {
+            onClick && onClick(valueItem)
+          }}
+        >
+          {inputs?.map(
+            (inputItem, inputIndex) =>
+              !inputItem.breakpoint &&
+              (readOnly ? (
+                <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
+                  {getValueFromState(inputItem, valueItem) !== null
+                    ? getValueFromState(inputItem, valueItem)
+                    : ''}
+                </div>
+              ) : (
+                <Fragment key={inputIndex}>
                   <Input
                     size={inputItem.size ?? null}
-                    name={`${name}.${itemIndex}.${inputItem.name}`}
+                    name={`${name}.${valueIndex}.${inputItem.name}`}
                     label={inputItem.label ?? false}
                     border={inputItem.border}
-                    key={inputIndex}
                     placeholder={inputItem.value}
                     invalidText={inputItem.invalid}
                     value={
@@ -176,46 +163,95 @@ const Table = forwardRef(
                     readOnly={readOnly === true ? true : false}
                     validation={inputItem.validation}
                   />
-                ))
-              )
-            })}
-            {!!dynamic && (
-              <>
-                <div className='col-1'>
-                  <button
-                    className='bi bi-plus-circle'
-                    type='button'
-                    name={`${name}`}
-                    onClick={(e) => onChange({ type: 'added', payload: e })}
-                  />
-                </div>
-                <div className='col-1'>
-                  {itemIndex !== 0 && (
-                    <button
-                      className='bi bi-trash3'
-                      type='button'
-                      name={`${name}.${itemIndex}`}
-                      onClick={(e) => onChange({ type: 'removed', payload: e })}
-                    />
+                  {!!dynamic && inputIndex === inputs.length - 1 && (
+                    <div className='col-1'>
+                      <button
+                        className='bi bi-plus-circle'
+                        type='button'
+                        name={`${name}`}
+                        onClick={(e) => {
+                          onChange({ type: 'added', payload: e })
+                        }}
+                      />
+                    </div>
                   )}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-    )
+                  {!!dynamic &&
+                    inputIndex === inputs.length - 1 &&
+                    valueIndex !== 0 && (
+                      <div className='col-1'>
+                        <button
+                          className='bi bi-trash3'
+                          type='button'
+                          name={`${name}.${valueIndex}`}
+                          onClick={(e) =>
+                            onChange({ type: 'removed', payload: e })
+                          }
+                        />
+                      </div>
+                    )}
+                </Fragment>
+              ))
+          )}
+          {indentedInputs?.length !== 0 &&
+            valueItem[indentedName]?.map((subValueItem, subValueIndex) => (
+              <div className='row gx-2 gy-1' key={subValueIndex}>
+                <div className='col-2'></div>
+                <div className='col-2'></div>
+                {indentedInputs.map((indentedItem, indentedIndex) => (
+                  <Fragment key={indentedIndex}>
+                    <Input
+                      size={indentedItem.size ?? null}
+                      name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}.${indentedIndex.name}`}
+                      label={indentedItem.label ?? false}
+                      border={indentedItem.border}
+                      key={indentedIndex}
+                      placeholder={indentedItem.value}
+                      invalidText={indentedItem.invalid}
+                      value={
+                        getValueFromState(indentedItem, subValueItem) !== null
+                          ? getValueFromState(indentedItem, subValueItem)
+                          : ''
+                      }
+                      onChange={onChange}
+                      readOnly={readOnly === true ? true : false}
+                      validation={indentedItem.validation}
+                    />
+                    {!!dynamic &&
+                      indentedIndex === indentedInputs.length - 1 && (
+                        <>
+                          <div className='col-1'>
+                            <button
+                              className='bi bi-plus-circle'
+                              type='button'
+                              name={`${name}.${valueIndex}.${indentedName}`}
+                              onClick={(e) =>
+                                onChange({ type: 'added', payload: e })
+                              }
+                            />
+                          </div>
+                          <div className='col-1'>
+                            {subValueIndex !== 0 && (
+                              <button
+                                className='bi bi-trash3'
+                                type='button'
+                                name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}`}
+                                onClick={(e) =>
+                                  onChange({ type: 'removed', payload: e })
+                                }
+                              />
+                            )}
+                          </div>
+                        </>
+                      )}
+                  </Fragment>
+                ))}
+              </div>
+            ))}
+        </div>
+      ))}
+    </div>
+  )
 
-    useImperativeHandle(ref, () => ({
-      getSortState() {
-        return sortState
-      },
-      setSortState(value) {
-        setSortState(value)
-      },
-    }))
-
-    return content
-  }
-)
+  return content
+}
 export default Table

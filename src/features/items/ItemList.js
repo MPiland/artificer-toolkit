@@ -39,7 +39,6 @@ const ItemList = () => {
     useFilteredList()
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
-  const tableRef = useRef(null)
   const updatedItemsRef = useRef([])
 
   const is1200 = useMediaQuery('(min-width: 992px)')
@@ -221,6 +220,7 @@ const ItemList = () => {
             className='accordion form-details justify-content-between align-items-center'
             id='filterButton'
             target='filter'
+            expanded='false'
           >
             <span className='me-3'>Filters</span>
             <hr className='flex-grow-1 me-3' />
@@ -308,7 +308,6 @@ const ItemList = () => {
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         {filter}
         <Table
-          ref={tableRef}
           name='spellList.table'
           dynamic={false}
           readOnly={true}

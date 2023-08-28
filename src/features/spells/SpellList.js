@@ -162,6 +162,7 @@ const SpellList = () => {
             className='accordion form-details justify-content-between align-items-center'
             id='filterButton'
             target='filter'
+            expanded='false'
           >
             <span className='me-3'>Filters</span>
             <hr className='flex-grow-1 me-3' />

@@ -1,10 +1,9 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAddNewRaceMutation } from './racesApiSlice'
+import { useGetRaceQuery, useAddNewRaceMutation } from './racesApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import { useGetFeatQuery } from '../feats/featsApiSlice'
-import { useGetRaceQuery } from './racesApiSlice'
 import { useGetItemQuery } from '../items/itemsApiSlice'
 import { startCase } from 'lodash'
 import formReducer from '../../hooks/useReducer'
@@ -173,7 +172,7 @@ const NewRaceForm = () => {
     })
     setSuccessMessage()
     setErrorMessage()
-    handleValidation()
+    handleValidation(true)
   }
 
   const onSubmit = async () => {
@@ -478,6 +477,46 @@ const NewRaceForm = () => {
                         }
                         options={builders.skill}
                         require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {item.module?.name === 'damageSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.damageSave${
+                          multipleOptions ? '.options' : ''
+                        }`}
+                        multiple={multipleOptions}
+                        placeholder='Damage'
+                        value={
+                          multipleOptions
+                            ? item.damageSave?.options
+                            : item.damageSave
+                        }
+                        options={builders.damage}
+                        require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {item.module?.name === 'conditionSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.conditionSave${
+                          multipleOptions ? '.options' : ''
+                        }`}
+                        multiple={multipleOptions}
+                        placeholder='Condition'
+                        value={
+                          multipleOptions
+                            ? item.conditionSave?.options
+                            : item.conditionSave
+                        }
+                        options={builders.condition}
+                        required={true}
                         onChange={setState}
                       />
                     )}
@@ -1020,7 +1059,7 @@ const NewRaceForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.feat.feature.attribute.filter(
+                      options={builders.race.feature.attribute.filter(
                         (attributeItem) =>
                           !featureItem.attribute?.some(
                             (item) => item.name === 'doesDamage'
@@ -1863,10 +1902,9 @@ const NewRaceForm = () => {
               placeholder={'Traits Description'}
               onChange={setState}
             />
-            <div className='row g-2 pb-2'>
+            <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-sm-1'>
               <Select
                 ref={addToSelectRefs}
-                size='col-lg-3 col-md-4 col-sm-12'
                 multiple={true}
                 name='attribute'
                 placeholder='Attributes'
@@ -1877,7 +1915,6 @@ const NewRaceForm = () => {
               />
               <Select
                 ref={addToSelectRefs}
-                size='col-lg-3 col-md-4 col-sm-12'
                 name='traits.size'
                 placeholder='Size'
                 value={state.traits?.size}
@@ -1890,7 +1927,6 @@ const NewRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.walking'
                   placeholder='Walking Speed'
@@ -1906,7 +1942,6 @@ const NewRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.climbing'
                   placeholder='Climbing Speed'
@@ -1922,7 +1957,6 @@ const NewRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.swimming'
                   placeholder='Swimming Speed'
@@ -1938,7 +1972,6 @@ const NewRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.flying'
                   placeholder='Flying Speed'

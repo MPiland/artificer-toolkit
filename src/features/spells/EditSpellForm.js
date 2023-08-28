@@ -150,7 +150,7 @@ const EditSpellForm = () => {
         }
       }
     })
-    if(resetValidation) {
+    if (resetValidation) {
       setErrorMessage()
     }
     return isValid
@@ -553,6 +553,7 @@ const EditSpellForm = () => {
                 className='accordion form-details justify-content-between align-items-center'
                 id='damageTableButton'
                 target='damageTable'
+                expanded='false'
               >
                 <span className='me-3'>Damage Table</span>
                 <hr className='flex-grow-1 me-3' />

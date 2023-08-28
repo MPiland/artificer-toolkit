@@ -88,7 +88,7 @@ h6 {
 .accordion-button.form-details,
 .accordion-button.feature-attribute-divider {
   background-color: transparent;
-  flex: 1;
+  flex: 0 1 auto;
   border-color: rgba(0, 0, 0, 0.125);
   box-shadow: none;
   padding-left: 0;

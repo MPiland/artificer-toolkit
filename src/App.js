@@ -10,6 +10,10 @@ import Modal from './components/Modal'
 import Register from './features/auth/Register'
 import Login from './features/auth/Login'
 import CharacterList from './features/characters/CharacterList'
+import Class from './features/classes/Class'
+import ClassList from './features/classes/ClassList'
+import NewClassForm from './features/classes/NewClassForm'
+import EditClassForm from './features/classes/EditClassForm'
 import Race from './features/races/Race'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
@@ -64,6 +68,12 @@ const App = () => {
                 <Route path='characters'>
                   <Route index element={<CharacterList />} />
                 </Route>
+                <Route path='classes'>
+                  <Route index element={<ClassList />} />
+                  <Route path='new' element={<NewClassForm />} />
+                  <Route path=':id' element={<Modal child={<Class />} />} />
+                  <Route path='edit/:id' element={<EditClassForm />} />
+                </Route>
                 <Route path='races'>
                   <Route index element={<RaceList />} />
                   <Route path='new' element={<NewRaceForm />} />
@@ -101,6 +111,7 @@ const App = () => {
           <Route path='feats/:id' element={<Modal child={<Feat />} />} />
           <Route path='items/:id' element={<Modal child={<Item />} />} />
           <Route path='races/:id' element={<Modal child={<Race />} />} />
+          <Route path='classes/:id' element={<Modal child={<Class />} />} />
         </Routes>
       )}
     </>

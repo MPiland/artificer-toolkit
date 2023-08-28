@@ -92,6 +92,7 @@ const FeatList = () => {
             className='accordion form-details justify-content-between align-items-center'
             id='filterButton'
             target='filter'
+            expanded='false'
           >
             <span className='me-3'>Filters</span>
             <hr className='flex-grow-1 me-3' />
@@ -135,7 +136,7 @@ const FeatList = () => {
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         {filter}
         <Table
-          name='spellList.table'
+          name='featList.table'
           dynamic={false}
           readOnly={true}
           sortable={true}

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useGetRaceQuery } from './racesApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
@@ -26,7 +26,6 @@ const RaceList = () => {
   const { filteredList, setListFilter, setFilterItems } = useFilteredList()
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
-  const tableRef = useRef(null)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -93,6 +92,7 @@ const RaceList = () => {
             className='accordion form-details justify-content-between align-items-center'
             id='filterButton'
             target='filter'
+            expanded='false'
           >
             <span className='me-3'>Filters</span>
             <hr className='flex-grow-1 me-3' />
@@ -135,8 +135,7 @@ const RaceList = () => {
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         {filter}
         <Table
-          ref={tableRef}
-          name='spellList.table'
+          name='raceList.table'
           dynamic={false}
           readOnly={true}
           sortable={true}

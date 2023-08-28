@@ -53,7 +53,9 @@ const DashHeader = () => {
                   </NavLink>
                 </li>
                 <li data-bs-dismiss='offcanvas'>
-                  <NavLink className='nav-link'>Classes</NavLink>
+                  <NavLink className='nav-link' to='classes'>
+                    Classes
+                  </NavLink>
                 </li>
                 <li data-bs-dismiss='offcanvas'>
                   <NavLink className='nav-link' to='races'>

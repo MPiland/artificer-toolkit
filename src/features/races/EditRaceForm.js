@@ -1,10 +1,13 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAddNewRaceMutation } from './racesApiSlice'
+import {
+  useGetRaceQuery,
+  useAddNewRaceMutation,
+  useUpdateRaceMutation,
+} from './racesApiSlice'
 import { useGetBuilderQuery } from '../builders/buildersApiSlice'
 import { useGetSpellQuery } from '../spells/spellsApiSlice'
 import { useGetFeatQuery } from '../feats/featsApiSlice'
-import { useGetRaceQuery, useUpdateRaceMutation } from './racesApiSlice'
 import { useGetItemQuery } from '../items/itemsApiSlice'
 import { startCase, isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
@@ -188,7 +191,7 @@ const EditRaceForm = () => {
     })
     setSuccessMessage()
     setErrorMessage()
-    handleValidation()
+    handleValidation(true)
   }
 
   const onSubmit = async () => {
@@ -542,6 +545,26 @@ const EditRaceForm = () => {
                         }
                         options={builders.damage}
                         require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {item.module?.name === 'conditionSave' && (
+                      <Select
+                        ref={addToSelectRefs}
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.conditionSave${
+                          multipleOptions ? '.options' : ''
+                        }`}
+                        multiple={multipleOptions}
+                        placeholder='Condition'
+                        value={
+                          multipleOptions
+                            ? item.conditionSave?.options
+                            : item.conditionSave
+                        }
+                        options={builders.condition}
+                        required={true}
                         onChange={setState}
                       />
                     )}
@@ -1019,6 +1042,7 @@ const EditRaceForm = () => {
                 <AccordionButton
                   id={`feature${featureIndex}AccordionButton`}
                   target={`feature${featureIndex}AccordionBody`}
+                  expanded='false'
                 >
                   <Input
                     ref={addToInputRefs}
@@ -1083,7 +1107,7 @@ const EditRaceForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.feat.feature.attribute.filter(
+                      options={builders.race.feature.attribute.filter(
                         (attributeItem) =>
                           !featureItem.attribute?.some(
                             (item) => item.name === 'doesDamage'
@@ -1536,6 +1560,7 @@ const EditRaceForm = () => {
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
                         id='featureNotEquippedButton'
                         target='featureNotEquipped'
+                        expanded='false'
                       >
                         <span className='me-3'>Not Equipped</span>
                         <hr className='flex-grow-1 me-3' />
@@ -1704,6 +1729,7 @@ const EditRaceForm = () => {
                         className='accordion form-details justify-content-between align-items-center'
                         id='damageTableButton'
                         target='damageTable'
+                        expanded='false'
                       >
                         <span className='me-3'>Damage Table</span>
                         <hr className='flex-grow-1 me-3' />
@@ -1738,6 +1764,7 @@ const EditRaceForm = () => {
                               <AccordionButton
                                 id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionButton`}
                                 target={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
+                                expanded='false'
                               >
                                 <h6>{`${startCase(sectionItem.name)} ${
                                   itemIndex + 1
@@ -1926,10 +1953,9 @@ const EditRaceForm = () => {
               placeholder={'Traits Description'}
               onChange={setState}
             />
-            <div className='row g-2 pb-2'>
+            <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-sm-1'>
               <Select
                 ref={addToSelectRefs}
-                size='col-lg-3 col-md-4 col-sm-12'
                 multiple={true}
                 name='attribute'
                 placeholder='Attributes'
@@ -1940,7 +1966,6 @@ const EditRaceForm = () => {
               />
               <Select
                 ref={addToSelectRefs}
-                size='col-lg-3 col-md-4 col-sm-12'
                 name='traits.size'
                 placeholder='Size'
                 value={state.traits?.size}
@@ -1953,7 +1978,6 @@ const EditRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.walking'
                   placeholder='Walking Speed'
@@ -1969,7 +1993,6 @@ const EditRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.climbing'
                   placeholder='Climbing Speed'
@@ -1985,7 +2008,6 @@ const EditRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.swimming'
                   placeholder='Swimming Speed'
@@ -2001,7 +2023,6 @@ const EditRaceForm = () => {
               ) && (
                 <Input
                   ref={addToInputRefs}
-                  size='col-lg-3 col-md-4 col-sm-12'
                   validate='num'
                   name='traits.speed.flying'
                   placeholder='Flying Speed'
