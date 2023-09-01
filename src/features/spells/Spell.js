@@ -1,8 +1,10 @@
 import parse from 'html-react-parser'
 import { get, truncate } from 'lodash'
-import { forwardRef } from 'react'
+import { useOutletContext } from 'react-router-dom'
 
-const Spell = forwardRef(({ state: spell }, ref) => {
+const Spell = () => {
+  const { data: spell } = useOutletContext()
+
   const materialDesc = () => {
     if (spell.materialDesc) {
       return '*' + spell.materialDesc
@@ -122,6 +124,6 @@ const Spell = forwardRef(({ state: spell }, ref) => {
   )
 
   return content
-})
+}
 
 export default Spell

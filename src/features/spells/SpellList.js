@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { useGetSpellQuery } from './spellsApiSlice'
+import { useGetSpellQuery } from './spellApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -37,7 +37,8 @@ const SpellList = () => {
     navigate(`/spells/${spell.name}`, {
       state: {
         background: location,
-        context: spell.value,
+        title: spell.value,
+        context: 'itemCard',
         data: spell,
         size: 'xl',
       },

@@ -1,6 +1,6 @@
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const buildersApiSlice = apiSlice.injectEndpoints({
+export const builderApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBuilder: builder.query({
       query: (id) => ({
@@ -14,4 +14,4 @@ export const buildersApiSlice = apiSlice.injectEndpoints({
   }),
 })
 
-export const { useGetBuilderQuery, usePrefetch } = buildersApiSlice
+export const { useGetBuilderQuery, usePrefetch } = builderApiSlice

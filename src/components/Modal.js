@@ -1,25 +1,22 @@
 import '../scss/modal.scss'
-import { useEffect, useCallback, cloneElement, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, useCallback } from 'react'
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 
-const Modal = ({ child }) => {
+const Modal = ({ children }) => {
   const location = useLocation()
   const navigate = useNavigate()
-  const setRef = useRef()
+
+  const data = location.state.data
+  const customFunction = () => location.state.customFunction
 
   const onEditClicked = () => {
     navigate(
       `${location.state.background.pathname}/edit/${location.state.data.name}`,
       {
-        state: { data: location.state.data, previous: location },
+        state: { data: data, previous: location },
       }
     )
   }
-
-  const clonedElement = cloneElement(child, {
-    state: location.state.data,
-    ref: setRef,
-  })
 
   // Closes modal when Escape is pressed
   const handleEscKey = useCallback(
@@ -30,6 +27,10 @@ const Modal = ({ child }) => {
     },
     [navigate, location]
   )
+
+  const handleClose = () => {
+    navigate(`${location.state.background.pathname}`)
+  }
 
   // Listens for Key to close modal
   useEffect(() => {
@@ -47,7 +48,7 @@ const Modal = ({ child }) => {
       tabIndex='-1'
       role='dialog'
       id='modal'
-      onClick={() => navigate(`${location.state.background.pathname}`)}
+      onClick={handleClose}
     >
       <div
         className={`modal-dialog modal-dialog-scrollable ${
@@ -59,23 +60,27 @@ const Modal = ({ child }) => {
         <div className='modal-content rounded-4 shadow'>
           <div className='modal-header'>
             <h1 className='fw-bold mb-0 fs-2 ms-auto'>
-              {location.state.context}
+              {location.state.title}
             </h1>
             <button
               type='button'
               className='btn-close'
               aria-label='Close'
-              onClick={() => navigate(`${location.state.background.pathname}`)}
+              onClick={handleClose}
             ></button>
           </div>
-          <div className='modal-body'>{clonedElement}</div>
+          <div className='modal-body'>
+            <Outlet context={{ data, customFunction, handleClose }} />
+          </div>
           <div className='modal-footer'>
-            <button
-              className='btn btn-outline-secondary btn-small'
-              onClick={onEditClicked}
-            >
-              Edit
-            </button>
+            {location.state.context === 'itemCard' && (
+              <button
+                className='btn btn-outline-secondary btn-small'
+                onClick={onEditClicked}
+              >
+                Edit
+              </button>
+            )}
           </div>
         </div>
       </div>

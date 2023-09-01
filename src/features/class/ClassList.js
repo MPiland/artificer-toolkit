@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect} from 'react'
-import { useGetClassQuery } from './classesApiSlice'
+import { useState, useEffect } from 'react'
+import { useGetClassQuery } from './classApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -35,7 +35,8 @@ const ClassList = () => {
     navigate(`/classes/${uClass.name}`, {
       state: {
         background: location,
-        context: uClass.value,
+        title: uClass.value,
+        context: 'itemCard',
         data: uClass,
         size: 'xl',
       },

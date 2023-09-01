@@ -4,11 +4,11 @@ import {
   useGetClassQuery,
   useAddNewClassMutation,
   useUpdateClassMutation,
-} from './classesApiSlice'
-import { useGetBuilderQuery } from '../builders/buildersApiSlice'
-import { useGetSpellQuery } from '../spells/spellsApiSlice'
-import { useGetFeatQuery } from '../feats/featsApiSlice'
-import { useGetItemQuery } from '../items/itemsApiSlice'
+} from './classApiSlice'
+import { useGetBuilderQuery } from '../builders/builderApiSlice'
+import { useGetSpellQuery } from '../spells/spellApiSlice'
+import { useGetFeatQuery } from '../feats/featApiSlice'
+import { useGetItemQuery } from '../items/itemApiSlice'
 import { startCase, isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import AccordionButton from '../../components/AccordionButton'
@@ -49,8 +49,8 @@ const EditClassForm = () => {
 
   const {
     data: items,
-    isSuccess: ItemIsSuccess,
-    isLoading: ItemIsLoading,
+    isSuccess: itemIsSuccess,
+    isLoading: itemIsLoading,
   } = useGetItemQuery(id)
 
   const [
@@ -187,7 +187,7 @@ const EditClassForm = () => {
   const onReset = () => {
     setState({
       type: 'reset',
-      payload: { target: { userId: id } },
+      payload: { target: oldState },
     })
     setSuccessMessage()
     setErrorMessage()
@@ -240,7 +240,7 @@ const EditClassForm = () => {
     spellIsLoading ||
     featIsLoading ||
     classIsLoading ||
-    ItemIsLoading
+    itemIsLoading
   ) {
     content = <p>Loading...</p>
   }
@@ -250,8 +250,9 @@ const EditClassForm = () => {
     spellIsSuccess &&
     featIsSuccess &&
     classIsSuccess &&
-    ItemIsSuccess
+    itemIsSuccess
   ) {
+    console.log(state)
     const addArray = (name) => {
       setState({ type: 'added', payload: { target: { name: name } } })
     }
@@ -314,7 +315,7 @@ const EditClassForm = () => {
           invalid: 'Must contain only numbers',
           validation: 'num',
           label: true,
-          size: 'col-2',
+          size: 'col-4',
         },
         {
           name: 'proficiencyBonus',
@@ -322,7 +323,7 @@ const EditClassForm = () => {
           invalid: 'Must contain only numbers',
           validation: 'num',
           label: true,
-          size: 'col-2',
+          size: 'col-4',
         },
       ]
       return inputArray
@@ -338,7 +339,7 @@ const EditClassForm = () => {
             invalid: 'Must contain only numbers',
             validation: 'num',
             label: true,
-            size: 'col-2',
+            size: 'col-4',
             indented: true,
           },
           {
@@ -347,7 +348,7 @@ const EditClassForm = () => {
             invalid: 'Must contain only numbers',
             validation: 'num',
             label: true,
-            size: 'col-2',
+            size: 'col-4',
             indented: true,
           }
         )
@@ -364,7 +365,7 @@ const EditClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -400,11 +401,25 @@ const EditClassForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  value={multipleOptions ? item.feat.options : item.feat}
+                  value={multipleOptions ? item.feat?.options : item.feat}
                   options={feats}
                   required={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -418,7 +433,7 @@ const EditClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -489,7 +504,7 @@ const EditClassForm = () => {
                         multiple={multipleOptions}
                         placeholder='Ability'
                         value={
-                          multipleOptions ? item.abilty?.options : item.ability
+                          multipleOptions ? item.ability?.options : item.ability
                         }
                         options={builders.ability}
                         required={true}
@@ -635,7 +650,8 @@ const EditClassForm = () => {
                     onChange={setState}
                   />
                 ) : (
-                  item.module?.name === 'damage' && (
+                  (item.module?.name === 'damage' ||
+                    item.module?.name === 'saveAgainstDamage') && (
                     <Select
                       ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
@@ -719,18 +735,58 @@ const EditClassForm = () => {
                       onChange={setState}
                     />
                   )}
-                {item.method?.name === 'perLevel' && (
+                {multipleOptions && (
                   <Input
-                    name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                     label={true}
-                    placeholder='Per Level Amt.'
-                    validate='num'
-                    invalidText='Must contain whole numbers only'
+                    placeholder='# of Selections'
                     autoComplete='off'
-                    value={item.addPerLevel}
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
                     onChange={setState}
                   />
                 )}
+              </div>
+              <div className='row'>
+                {item.method?.name === 'addPerLevel' &&
+                  (!item?.addPerLevel ? (
+                    setState({
+                      type: 'added',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.${this.name}.${index}.addPerLevel`,
+                        },
+                      },
+                    })
+                  ) : (
+                    <Table
+                      name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                      inputs={[
+                        {
+                          name: 'level',
+                          value: 'Level',
+                          validation: 'num',
+                          invalidText: 'Must be whole numbers only',
+                          label: true,
+                          size: 'col-5',
+                        },
+                        {
+                          name: 'amount',
+                          value: 'Level',
+                          validation: 'num',
+                          invalidText: 'Must be whole numbers only',
+                          label: true,
+                          size: 'col-5',
+                        },
+                      ]}
+                      value={item.addPerLevel}
+                      dynamic={true}
+                      onChange={setState}
+                    />
+                  ))}
               </div>
             </>
           )
@@ -744,7 +800,7 @@ const EditClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -893,6 +949,20 @@ const EditClassForm = () => {
                   require={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -906,7 +976,7 @@ const EditClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -947,6 +1017,20 @@ const EditClassForm = () => {
                   require={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -960,7 +1044,7 @@ const EditClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -1026,6 +1110,20 @@ const EditClassForm = () => {
                     }
                     options={builders.ability}
                     require={true}
+                    onChange={setState}
+                  />
+                )}
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
                     onChange={setState}
                   />
                 )}
@@ -1108,6 +1206,19 @@ const EditClassForm = () => {
                     onChange={setState}
                   />
                   <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                    <Input
+                      ref={addToInputRefs}
+                      size='col-md-2'
+                      name={`feature.${featureIndex}.levelAvailable`}
+                      autoComplete='off'
+                      placeholder='Level Avail.'
+                      validation='num'
+                      invalidText='Must contain whole numbers only'
+                      label={true}
+                      required={true}
+                      value={featureItem?.levelAvailable}
+                      onChange={setState}
+                    />
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
@@ -1147,7 +1258,7 @@ const EditClassForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
-                        options={builders.class.feature.requirements}
+                        options={builders.class.feature.requirement}
                         value={featureItem.requirement?.option}
                         required={true}
                         onChange={setState}
@@ -1183,71 +1294,6 @@ const EditClassForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.skillProficiency`,
-                          },
-                        },
-                      })
-                    )}
-                    {featureItem.requirement?.option?.some(
-                      (optionItem) => optionItem.name === 'itemProficiency'
-                    ) ? (
-                      <>
-                        <Select
-                          ref={addToSelectRefs}
-                          multiple={true}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
-                          placeholder='Item Category'
-                          value={
-                            featureItem.requirement?.itemProficiency
-                              ?.itemCategory
-                          }
-                          options={builders.item.itemCategory}
-                          required={true}
-                          onChange={setState}
-                        />
-                        <Select
-                          ref={addToSelectRefs}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
-                          placeholder='Item type'
-                          value={
-                            featureItem.requirement?.itemProficiency?.itemType
-                          }
-                          options={items.filter(
-                            (item) =>
-                              item.itemCategory.value !==
-                              featureItem.requirement?.itemCategory?.value
-                          )}
-                          required={true}
-                          onChange={setState}
-                        />
-                        <Select
-                          ref={addToSelectRefs}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
-                          placeholder='Item Property'
-                          value={
-                            featureItem.requirement?.itemProficiency
-                              ?.itemProperty
-                          }
-                          options={[].concat(
-                            ...builders.item.itemCategory
-                              .filter((itemCategory) =>
-                                featureItem.requirement?.itemCategory?.some(
-                                  (categoryItem) =>
-                                    itemCategory._id.includes(categoryItem.id)
-                                )
-                              )
-                              .map((filteredItem) => filteredItem.itemProperty)
-                          )}
-                          required={true}
-                          onChange={setState}
-                        />
-                      </>
-                    ) : (
-                      !!featureItem.requirement?.itemProficiency &&
-                      setState({
-                        action: 'removed',
-                        payload: {
-                          target: {
-                            name: `feature.${featureIndex}.requirement.itemProficiency`,
                           },
                         },
                       })
@@ -1497,12 +1543,11 @@ const EditClassForm = () => {
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
-                            placeholder='Item Category'
                             value={
                               featureItem.requirement?.equipped?.itemCategory
                             }
+                            placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1511,13 +1556,12 @@ const EditClassForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
-                            options={items.filter(
-                              (item) =>
-                                item.itemCategory.value !==
-                                featureItem.requirement?.equipped?.itemCategory
-                                  ?.value
+                            options={items.filter((item) =>
+                              featureItem.requirement.equipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
                             )}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1529,18 +1573,15 @@ const EditClassForm = () => {
                               featureItem.requirement?.equipped?.itemProperty
                             }
                             options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
+                              ...items
+                                .filter((item) =>
+                                  featureItem.requirement?.equipped?.itemCategory.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
                                   )
                                 )
-                                .map(
-                                  (filteredItem) => filteredItem.itemProperty
-                                )
+                                .map((item) => item.itemProperty)
                             )}
-                            required={true}
                             onChange={setState}
                           />
                         </div>
@@ -1579,12 +1620,11 @@ const EditClassForm = () => {
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
-                            placeholder='Item Category'
                             value={
                               featureItem.requirement?.notEquipped?.itemCategory
                             }
+                            placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1595,36 +1635,32 @@ const EditClassForm = () => {
                             value={
                               featureItem.requirement?.notEquipped?.itemType
                             }
-                            options={items.filter(
-                              (item) =>
-                                item.itemCategory.value !==
-                                featureItem.requirement?.notEquipped
-                                  ?.itemCategory?.value
+                            options={items.filter((item) =>
+                              featureItem.requirement.notEquipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
                             )}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
-                            placeholder='Item Property'
                             value={
                               featureItem.requirement?.notEquipped?.itemProperty
                             }
+                            placeholder='Item Property'
                             options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
+                              ...items
+                                .filter((item) =>
+                                  featureItem.requirement.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
                                   )
                                 )
-                                .map(
-                                  (filteredItem) => filteredItem.itemProperty
-                                )
+                                .map((item) => item.itemProperty)
                             )}
-                            required={true}
                             onChange={setState}
                           />
                         </div>
@@ -1655,14 +1691,16 @@ const EditClassForm = () => {
                         },
                       })) && (
                       <div>
+                        <h6>Limit Use Table</h6>
                         <Table
-                          headers={[
+                          inputs={[
                             {
                               name: 'level',
                               value: 'Level',
                               invalid: 'Must contain only numbers',
                               validation: 'num',
                               label: true,
+                              size: 'col-5',
                             },
                             {
                               name: 'uses',
@@ -1670,6 +1708,7 @@ const EditClassForm = () => {
                               invalid: 'Must contain only numbers',
                               validation: 'num',
                               label: true,
+                              size: 'col-5',
                             },
                           ]}
                           name={`feature.${featureIndex}.limitUse.level`}
@@ -2117,7 +2156,7 @@ const EditClassForm = () => {
                 </div>
               </>
             )}
-            <div className='row g-2'>
+            <div className='row g-2 px-4'>
               <AccordionButton
                 className='accordion form-details justify-content-between align-items-center'
                 id='attributeTableButton'
@@ -2130,18 +2169,18 @@ const EditClassForm = () => {
                 className='accordion-collapse collapse show'
                 id='attributeTable'
               >
-                {!state?.levelAttribute
-                  ? addArray('levelAttribute')
-                  : state.attribute?.some(
-                      (attributeItem) => attributeItem.name === 'spellCaster'
-                    ) &&
-                    state?.levelAttribute.map(
-                      (levelAttributeItem, levelAttributeIndex) =>
-                        !levelAttributeItem?.spellSlots &&
-                        addArray(
-                          `levelAttribute.${levelAttributeIndex}.spellSlots`
-                        )
-                    )}
+                {!state?.levelAttribute && addArray('levelAttribute')}
+                {state.attribute?.some(
+                  (attributeItem) => attributeItem.name === 'spellCaster'
+                ) &&
+                  state?.levelAttribute.map(
+                    (levelAttributeItem, levelAttributeIndex) =>
+                      (!levelAttributeItem?.spellSlots ||
+                        levelAttributeItem?.spellSlots.length === 0) &&
+                      addArray(
+                        `levelAttribute.${levelAttributeIndex}.spellSlots`
+                      )
+                  )}
                 <Table
                   name='levelAttribute'
                   inputs={levelAttributeInputs()}

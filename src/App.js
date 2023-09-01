@@ -7,13 +7,14 @@ import Layout from './components/Layout'
 import Public from './components/Public'
 import Member from './components/Member'
 import Modal from './components/Modal'
+import Delete from './components/Delete'
 import Register from './features/auth/Register'
 import Login from './features/auth/Login'
 import CharacterList from './features/characters/CharacterList'
-import Class from './features/classes/Class'
-import ClassList from './features/classes/ClassList'
-import NewClassForm from './features/classes/NewClassForm'
-import EditClassForm from './features/classes/EditClassForm'
+import Class from './features/class/Class'
+import ClassList from './features/class/ClassList'
+import NewClassForm from './features/class/NewClassForm'
+import EditClassForm from './features/class/EditClassForm'
 import Race from './features/races/Race'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
@@ -58,11 +59,8 @@ const App = () => {
         <Route element={<Layout />}>
           <Route element={<PersistLogin />}>
             <Route path='/' element={token ? <Member /> : <Public />}>
-              <Route path='register' element={<Modal child={<Register />} />} />
-              <Route path='login' element={<Modal child={<Login />} />} />
               <Route path='media' />
               <Route path='about' />
-
               {/*Logged in*/}
               <Route element={<RequireAuth />}>
                 <Route path='characters'>
@@ -105,13 +103,16 @@ const App = () => {
       </Routes>
       {background && (
         <Routes>
-          <Route path='/register' element={<Modal child={<Register />} />} />
-          <Route path='/login' element={<Modal child={<Login />} />} />
-          <Route path='spells/:id' element={<Modal child={<Spell />} />} />
-          <Route path='feats/:id' element={<Modal child={<Feat />} />} />
-          <Route path='items/:id' element={<Modal child={<Item />} />} />
-          <Route path='races/:id' element={<Modal child={<Race />} />} />
-          <Route path='classes/:id' element={<Modal child={<Class />} />} />
+          <Route element={<Modal />}>
+            <Route path='/register' element={<Register />} />
+            <Route path='/login' element={<Login />} />
+            <Route path='spells/:id' element={<Spell />} />
+            <Route path='feats/:id' element={<Feat />} />
+            <Route path='items/:id' element={<Item />} />
+            <Route path='races/:id' element={<Race />} />
+            <Route path='classes/:id' element={<Class />} />
+            <Route path='/delete/:id' element={<Delete />} />
+          </Route>
         </Routes>
       )}
     </>

@@ -1,4 +1,4 @@
-import { useGetCharacterQuery } from './charactersApiSlice'
+import { useGetCharacterQuery } from './characterApiSlice'
 import Character from './Character'
 import useAuth from '../../hooks/useAuth'
 

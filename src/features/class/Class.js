@@ -1,7 +1,9 @@
 import parse from 'html-react-parser'
-import { forwardRef } from 'react'
+import { useOutletContext } from 'react-router-dom'
 
-const Class = forwardRef(({ state: userClass }, ref) => {
+const Class = () => {
+  const { data: userClass } = useOutletContext()
+
   const content = (
     <div className='detailCard-body'>
       <div>{userClass?.quote && parse(userClass.quote)}</div>
@@ -13,6 +15,6 @@ const Class = forwardRef(({ state: userClass }, ref) => {
   )
 
   return content
-})
+}
 
 export default Class

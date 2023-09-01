@@ -1,6 +1,6 @@
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const classesApiSlice = apiSlice.injectEndpoints({
+export const classApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getClass: builder.query({
       query: (id) => ({
@@ -41,4 +41,4 @@ export const {
   useGetClassQuery,
   useAddNewClassMutation,
   useUpdateClassMutation,
-} = classesApiSlice
+} = classApiSlice

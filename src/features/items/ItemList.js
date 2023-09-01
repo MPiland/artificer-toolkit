@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
-import { useGetItemQuery } from './itemsApiSlice'
-import { useGetBuilderQuery } from '../builders/buildersApiSlice'
+import { useGetItemQuery } from './itemApiSlice'
+import { useGetBuilderQuery } from '../builders/builderApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -49,7 +49,8 @@ const ItemList = () => {
     navigate(`/items/${item.name}`, {
       state: {
         background: location,
-        context: item.value,
+        title: item.value,
+        context: 'itemCard',
         data: item,
         size: 'xl',
       },

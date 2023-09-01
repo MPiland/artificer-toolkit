@@ -1,6 +1,6 @@
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const charactersApiSlice = apiSlice.injectEndpoints({
+export const characterApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getCharacter: builder.query({
       query: (id) => ({
@@ -14,4 +14,4 @@ export const charactersApiSlice = apiSlice.injectEndpoints({
   }),
 })
 
-export const { useGetCharacterQuery } = charactersApiSlice
+export const { useGetCharacterQuery } = characterApiSlice

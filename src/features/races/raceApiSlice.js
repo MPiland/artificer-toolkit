@@ -1,6 +1,6 @@
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const racesApiSlice = apiSlice.injectEndpoints({
+export const raceApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getRace: builder.query({
       query: (id) => ({
@@ -38,4 +38,4 @@ export const racesApiSlice = apiSlice.injectEndpoints({
 })
 
 export const { useGetRaceQuery, useAddNewRaceMutation, useUpdateRaceMutation } =
-  racesApiSlice
+  raceApiSlice

@@ -1,6 +1,6 @@
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const spellsApiSlice = apiSlice.injectEndpoints({
+export const spellApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getSpell: builder.query({
       query: (id) => ({
@@ -42,4 +42,4 @@ export const {
   useGetSpellQuery,
   useAddNewSpellMutation,
   useUpdateSpellMutation,
-} = spellsApiSlice
+} = spellApiSlice

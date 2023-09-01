@@ -1,6 +1,6 @@
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const featsApiSlice = apiSlice.injectEndpoints({
+export const featApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getFeat: builder.query({
       query: (id) => ({
@@ -35,8 +35,20 @@ export const featsApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Feat', id: arg._id }],
     }),
+    deleteFeat: builder.mutation({
+      query: ({ id }) => ({
+        url: `/feat`,
+        method: 'DELETE',
+        body: { id },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Feat', id: arg._id }],
+    }),
   }),
 })
 
-export const { useGetFeatQuery, useAddNewFeatMutation, useUpdateFeatMutation } =
-  featsApiSlice
+export const {
+  useGetFeatQuery,
+  useAddNewFeatMutation,
+  useUpdateFeatMutation,
+  useDeleteFeatMutation,
+} = featApiSlice

@@ -1,10 +1,10 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useGetBuilderQuery } from '../builders/buildersApiSlice'
+import { useGetBuilderQuery } from '../builders/builderApiSlice'
 import {
   useAddNewSpellMutation,
   useUpdateSpellMutation,
-} from './spellsApiSlice'
+} from './spellApiSlice'
 import { isEqual } from 'lodash'
 import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
@@ -261,7 +261,7 @@ const EditSpellForm = () => {
     }
 
     content = (
-      <div className='builder-form'>
+      <div className='main-container'>
         <div className='d-flex justify-content-between'>
           <h1>Edit Spell</h1>
           <div>

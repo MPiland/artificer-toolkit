@@ -1,10 +1,10 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetRaceQuery, useAddNewRaceMutation } from './racesApiSlice'
-import { useGetBuilderQuery } from '../builders/buildersApiSlice'
-import { useGetSpellQuery } from '../spells/spellsApiSlice'
-import { useGetFeatQuery } from '../feats/featsApiSlice'
-import { useGetItemQuery } from '../items/itemsApiSlice'
+import { useGetRaceQuery, useAddNewRaceMutation } from './raceApiSlice'
+import { useGetBuilderQuery } from '../builders/builderApiSlice'
+import { useGetSpellQuery } from '../spells/spellApiSlice'
+import { useGetFeatQuery } from '../feats/featApiSlice'
+import { useGetItemQuery } from '../items/itemApiSlice'
 import { startCase } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import AccordionButton from '../../components/AccordionButton'
@@ -173,6 +173,9 @@ const NewRaceForm = () => {
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)
+    textRefs.current.forEach((textRef) => {
+      textRef.updateState('')
+    })
   }
 
   const onSubmit = async () => {
@@ -312,7 +315,7 @@ const NewRaceForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -348,11 +351,25 @@ const NewRaceForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  value={multipleOptions ? item.feat.options : item.feat}
+                  value={multipleOptions ? item.feat?.options : item.feat}
                   options={feats}
                   required={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -366,7 +383,7 @@ const NewRaceForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -668,18 +685,58 @@ const NewRaceForm = () => {
                       onChange={setState}
                     />
                   )}
-                {item.method?.name === 'perLevel' && (
+                {multipleOptions && (
                   <Input
-                    name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                     label={true}
-                    placeholder='Per Level Amt.'
-                    validate='num'
-                    invalidText='Must contain whole numbers only'
+                    placeholder='# of Selections'
                     autoComplete='off'
-                    value={item.addPerLevel}
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
                     onChange={setState}
                   />
                 )}
+              </div>
+              <div className='row'>
+                {item.method?.name === 'addPerLevel' &&
+                  (!item?.addPerLevel ? (
+                    setState({
+                      type: 'added',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.${this.name}.${index}.addPerLevel`,
+                        },
+                      },
+                    })
+                  ) : (
+                    <Table
+                      name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                      inputs={[
+                        {
+                          name: 'level',
+                          value: 'Level',
+                          validation: 'num',
+                          invalidText: 'Must be whole numbers only',
+                          label: true,
+                          size: 'col-5',
+                        },
+                        {
+                          name: 'amount',
+                          value: 'Level',
+                          validation: 'num',
+                          invalidText: 'Must be whole numbers only',
+                          label: true,
+                          size: 'col-5',
+                        },
+                      ]}
+                      value={item.addPerLevel}
+                      dynamic={true}
+                      onChange={setState}
+                    />
+                  ))}
               </div>
             </>
           )
@@ -693,7 +750,7 @@ const NewRaceForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -842,6 +899,20 @@ const NewRaceForm = () => {
                   require={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -855,7 +926,7 @@ const NewRaceForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -896,6 +967,20 @@ const NewRaceForm = () => {
                   require={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -909,7 +994,7 @@ const NewRaceForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -975,6 +1060,20 @@ const NewRaceForm = () => {
                     }
                     options={builders.ability}
                     require={true}
+                    onChange={setState}
+                  />
+                )}
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
                     onChange={setState}
                   />
                 )}
@@ -1095,7 +1194,7 @@ const NewRaceForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
-                        options={builders.race.feature.requirements}
+                        options={builders.race.feature.requirement}
                         value={featureItem.requirement?.option}
                         required={true}
                         onChange={setState}
@@ -1131,71 +1230,6 @@ const NewRaceForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.skillProficiency`,
-                          },
-                        },
-                      })
-                    )}
-                    {featureItem.requirement?.option?.some(
-                      (optionItem) => optionItem.name === 'itemProficiency'
-                    ) ? (
-                      <>
-                        <Select
-                          ref={addToSelectRefs}
-                          multiple={true}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
-                          placeholder='Item Category'
-                          value={
-                            featureItem.requirement?.itemProficiency
-                              ?.itemCategory
-                          }
-                          options={builders.item.itemCategory}
-                          required={true}
-                          onChange={setState}
-                        />
-                        <Select
-                          ref={addToSelectRefs}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
-                          placeholder='Item type'
-                          value={
-                            featureItem.requirement?.itemProficiency?.itemType
-                          }
-                          options={items.filter(
-                            (item) =>
-                              item.itemCategory.value !==
-                              featureItem.requirement?.itemCategory?.value
-                          )}
-                          required={true}
-                          onChange={setState}
-                        />
-                        <Select
-                          ref={addToSelectRefs}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
-                          placeholder='Item Property'
-                          value={
-                            featureItem.requirement?.itemProficiency
-                              ?.itemProperty
-                          }
-                          options={[].concat(
-                            ...builders.item.itemCategory
-                              .filter((itemCategory) =>
-                                featureItem.requirement?.itemCategory?.some(
-                                  (categoryItem) =>
-                                    itemCategory._id.includes(categoryItem.id)
-                                )
-                              )
-                              .map((filteredItem) => filteredItem.itemProperty)
-                          )}
-                          required={true}
-                          onChange={setState}
-                        />
-                      </>
-                    ) : (
-                      !!featureItem.requirement?.itemProficiency &&
-                      setState({
-                        action: 'removed',
-                        payload: {
-                          target: {
-                            name: `feature.${featureIndex}.requirement.itemProficiency`,
                           },
                         },
                       })
@@ -1424,6 +1458,96 @@ const NewRaceForm = () => {
                     )}
                   </div>
                   {featureItem.requirement?.option?.some(
+                    (optionItem) => optionItem.name === 'itemProficiency'
+                  ) ? (
+                    <>
+                      <AccordionButton
+                        className='accordion feature-attribute-divider justify-content-between align-items-center'
+                        id='featureItemProficiencyButton'
+                        target='featureItemProficiency'
+                      >
+                        <span className='me-3'>Item Proficiency</span>
+                        <hr className='flex-grow-1 me-3' />
+                      </AccordionButton>
+                      <div
+                        className='accordion-collapse collapse show'
+                        id='featureItemProficiency'
+                      >
+                        <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                          <Select
+                            ref={addToSelectRefs}
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
+                            value={
+                              featureItem.requirement?.itemProficiency
+                                ?.itemCategory
+                            }
+                            placeholder='Item Category'
+                            options={builders.item.itemCategory}
+                            onChange={setState}
+                          />
+                          <Select
+                            ref={addToSelectRefs}
+                            name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
+                            multiple={true}
+                            placeholder='Item type'
+                            value={
+                              featureItem.requirement?.itemProficiency?.itemType
+                            }
+                            options={items.filter((item) =>
+                              featureItem.requirement.itemProficiency?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
+                            )}
+                            onChange={setState}
+                          />
+                          <Select
+                            ref={addToSelectRefs}
+                            name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
+                            multiple={true}
+                            placeholder='Item Property'
+                            value={
+                              featureItem.requirement?.itemProficiency
+                                ?.itemProperty
+                            }
+                            options={[].concat(
+                              ...items
+                                .filter((item) =>
+                                  featureItem.requirement?.itemProficiency?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                )
+                                .filter((item) =>
+                                  !featureItem.requirement.itemProficiency
+                                    ?.itemType ||
+                                  featureItem.requirement.itemProficiency
+                                    ?.itemType?.length === 0
+                                    ? item
+                                    : featureItem.requirement.itemProficiency.itemType.some(
+                                        (type) => type.name === item.name
+                                      )
+                                )
+                                .map((item) => item.itemProperty)
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    !!featureItem.requirement?.itemProficiency &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement.itemProficiency`,
+                        },
+                      },
+                    })
+                  )}
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'equipped'
                   ) ? (
                     <>
@@ -1444,12 +1568,11 @@ const NewRaceForm = () => {
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
-                            placeholder='Item Category'
                             value={
                               featureItem.requirement?.equipped?.itemCategory
                             }
+                            placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1458,13 +1581,12 @@ const NewRaceForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
-                            options={items.filter(
-                              (item) =>
-                                item.itemCategory.value !==
-                                featureItem.requirement?.equipped?.itemCategory
-                                  ?.value
+                            options={items.filter((item) =>
+                              featureItem.requirement.equipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
                             )}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1476,18 +1598,24 @@ const NewRaceForm = () => {
                               featureItem.requirement?.equipped?.itemProperty
                             }
                             options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
+                              ...items
+                                .filter((item) =>
                                   featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
+                                    (category) =>
+                                      category.name === item.itemCategory.name
                                   )
                                 )
-                                .map(
-                                  (filteredItem) => filteredItem.itemProperty
+                                .filter((item) =>
+                                  !featureItem.requirement.equipped?.itemType ||
+                                  featureItem.requirement.equipped?.itemType
+                                    ?.length === 0
+                                    ? item
+                                    : featureItem.requirement.equipped.itemType.some(
+                                        (type) => type.name === item.name
+                                      )
                                 )
+                                .map((item) => item.itemProperty)
                             )}
-                            required={true}
                             onChange={setState}
                           />
                         </div>
@@ -1525,12 +1653,11 @@ const NewRaceForm = () => {
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
-                            placeholder='Item Category'
                             value={
                               featureItem.requirement?.notEquipped?.itemCategory
                             }
+                            placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1541,36 +1668,42 @@ const NewRaceForm = () => {
                             value={
                               featureItem.requirement?.notEquipped?.itemType
                             }
-                            options={items.filter(
-                              (item) =>
-                                item.itemCategory.value !==
-                                featureItem.requirement?.notEquipped
-                                  ?.itemCategory?.value
+                            options={items.filter((item) =>
+                              featureItem.requirement.notEquipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
                             )}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
-                            placeholder='Item Property'
                             value={
                               featureItem.requirement?.notEquipped?.itemProperty
                             }
+                            placeholder='Item Property'
                             options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
+                              ...items
+                                .filter((item) =>
                                   featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
+                                    (category) =>
+                                      category.name === item.itemCategory.name
                                   )
                                 )
-                                .map(
-                                  (filteredItem) => filteredItem.itemProperty
+                                .filter((item) =>
+                                  !featureItem.requirement.notEquipped
+                                    ?.itemType ||
+                                  featureItem.requirement.notEquipped?.itemType
+                                    ?.length === 0
+                                    ? item
+                                    : featureItem.requirement.notEquipped.itemType.some(
+                                        (type) => type.name === item.name
+                                      )
                                 )
+                                .map((item) => item.itemProperty)
                             )}
-                            required={true}
                             onChange={setState}
                           />
                         </div>
@@ -1601,6 +1734,7 @@ const NewRaceForm = () => {
                         },
                       })) && (
                       <div>
+                        <h6>Limit Use Table</h6>
                         <Table
                           inputs={[
                             {
@@ -1609,6 +1743,7 @@ const NewRaceForm = () => {
                               invalid: 'Must contain only numbers',
                               label: true,
                               validation: 'num',
+                              size: 'col-5',
                             },
                             {
                               name: 'uses',
@@ -1616,6 +1751,7 @@ const NewRaceForm = () => {
                               invalid: 'Must contain only numbers',
                               label: true,
                               validation: 'num',
+                              size: 'col-5',
                             },
                           ]}
                           name={`feature.${featureIndex}.limitUse.level`}

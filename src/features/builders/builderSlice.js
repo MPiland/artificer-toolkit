@@ -1,13 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { buildersApiSlice } from './buildersApiSlice'
+import { builderApiSlice } from './builderApiSlice'
 
-const buildersSlice = createSlice({
+const builderSlice = createSlice({
   name: 'builders',
   initialState: { builders: null },
   reducers: {},
   extraReducers: (builder) => {
     builder.addMatcher(
-      buildersApiSlice.endpoints.getBuilder.matchFulfilled,
+      builderApiSlice.endpoints.getBuilder.matchFulfilled,
       (state, { payload }) => {
         state.data = payload
       }
@@ -15,6 +15,6 @@ const buildersSlice = createSlice({
   },
 })
 
-export default buildersSlice.reducer
+export default builderSlice.reducer
 
 export const selectBuilders = (state) => state.builders.data

@@ -1,10 +1,10 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetClassQuery, useAddNewClassMutation } from './classesApiSlice'
-import { useGetBuilderQuery } from '../builders/buildersApiSlice'
-import { useGetSpellQuery } from '../spells/spellsApiSlice'
-import { useGetFeatQuery } from '../feats/featsApiSlice'
-import { useGetItemQuery } from '../items/itemsApiSlice'
+import { useGetClassQuery, useAddNewClassMutation } from './classApiSlice'
+import { useGetBuilderQuery } from '../builders/builderApiSlice'
+import { useGetSpellQuery } from '../spells/spellApiSlice'
+import { useGetFeatQuery } from '../feats/featApiSlice'
+import { useGetItemQuery } from '../items/itemApiSlice'
 import { startCase } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import AccordionButton from '../../components/AccordionButton'
@@ -173,6 +173,9 @@ const NewClassForm = () => {
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)
+    textRefs.current.forEach((textRef) => {
+      textRef.updateState('')
+    })
   }
 
   const onSubmit = async () => {
@@ -265,7 +268,7 @@ const NewClassForm = () => {
           invalid: 'Must contain only numbers',
           validation: 'num',
           label: true,
-          size: 'col-2',
+          size: 'col-4',
         },
         {
           name: 'proficiencyBonus',
@@ -273,7 +276,7 @@ const NewClassForm = () => {
           invalid: 'Must contain only numbers',
           validation: 'num',
           label: true,
-          size: 'col-2',
+          size: 'col-4',
         },
       ]
       return inputArray
@@ -289,7 +292,7 @@ const NewClassForm = () => {
             invalid: 'Must contain only numbers',
             validation: 'num',
             label: true,
-            size: 'col-2',
+            size: 'col-4',
             indented: true,
           },
           {
@@ -298,7 +301,7 @@ const NewClassForm = () => {
             invalid: 'Must contain only numbers',
             validation: 'num',
             label: true,
-            size: 'col-2',
+            size: 'col-4',
             indented: true,
           }
         )
@@ -315,7 +318,7 @@ const NewClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -351,11 +354,25 @@ const NewClassForm = () => {
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  value={multipleOptions ? item.feat.options : item.feat}
+                  value={multipleOptions ? item.feat?.options : item.feat}
                   options={feats}
                   required={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -369,7 +386,7 @@ const NewClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -671,18 +688,58 @@ const NewClassForm = () => {
                       onChange={setState}
                     />
                   )}
-                {item.method?.name === 'perLevel' && (
+                {multipleOptions && (
                   <Input
-                    name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                     label={true}
-                    placeholder='Per Level Amt.'
-                    validate='num'
-                    invalidText='Must contain whole numbers only'
+                    placeholder='# of Selections'
                     autoComplete='off'
-                    value={item.addPerLevel}
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
                     onChange={setState}
                   />
                 )}
+              </div>
+              <div className='row'>
+                {item.method?.name === 'addPerLevel' &&
+                  (!item?.addPerLevel ? (
+                    setState({
+                      type: 'added',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.${this.name}.${index}.addPerLevel`,
+                        },
+                      },
+                    })
+                  ) : (
+                    <Table
+                      name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                      inputs={[
+                        {
+                          name: 'level',
+                          value: 'Level',
+                          validation: 'num',
+                          invalidText: 'Must be whole numbers only',
+                          label: true,
+                          size: 'col-5',
+                        },
+                        {
+                          name: 'amount',
+                          value: 'Level',
+                          validation: 'num',
+                          invalidText: 'Must be whole numbers only',
+                          label: true,
+                          size: 'col-5',
+                        },
+                      ]}
+                      value={item.addPerLevel}
+                      dynamic={true}
+                      onChange={setState}
+                    />
+                  ))}
               </div>
             </>
           )
@@ -696,7 +753,7 @@ const NewClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -845,6 +902,20 @@ const NewClassForm = () => {
                   require={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -858,7 +929,7 @@ const NewClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -899,6 +970,20 @@ const NewClassForm = () => {
                   require={true}
                   onChange={setState}
                 />
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
               </div>
             </>
           )
@@ -912,7 +997,7 @@ const NewClassForm = () => {
           )
           return (
             <>
-              <div className='pb-3 row justify-content-between'>
+              <div className='pb-3 row gx-2 justify-content-between'>
                 <div className='col'>
                   <button
                     className='btn btn-outline-primary col-auto'
@@ -978,6 +1063,20 @@ const NewClassForm = () => {
                     }
                     options={builders.ability}
                     require={true}
+                    onChange={setState}
+                  />
+                )}
+                {multipleOptions && (
+                  <Input
+                    ref={addToInputRefs}
+                    validation='num'
+                    name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                    label={true}
+                    placeholder='# of Selections'
+                    autoComplete='off'
+                    value={item.selectCount}
+                    invalidText='Must contain only numbers'
+                    required={true}
                     onChange={setState}
                   />
                 )}
@@ -1059,6 +1158,18 @@ const NewClassForm = () => {
                     onChange={setState}
                   />
                   <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                    <Input
+                      ref={addToInputRefs}
+                      name={`feature.${featureIndex}.levelAvailable`}
+                      autoComplete='off'
+                      placeholder='Level Avail.'
+                      validation='num'
+                      invalidText='Must contain whole numbers only'
+                      label={true}
+                      required={true}
+                      value={featureItem?.levelAvailable}
+                      onChange={setState}
+                    />
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
@@ -1098,7 +1209,7 @@ const NewClassForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
-                        options={builders.class.feature.requirements}
+                        options={builders.class.feature.requirement}
                         value={featureItem.requirement?.option}
                         required={true}
                         onChange={setState}
@@ -1134,71 +1245,6 @@ const NewClassForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.skillProficiency`,
-                          },
-                        },
-                      })
-                    )}
-                    {featureItem.requirement?.option?.some(
-                      (optionItem) => optionItem.name === 'itemProficiency'
-                    ) ? (
-                      <>
-                        <Select
-                          ref={addToSelectRefs}
-                          multiple={true}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
-                          placeholder='Item Category'
-                          value={
-                            featureItem.requirement?.itemProficiency
-                              ?.itemCategory
-                          }
-                          options={builders.item.itemCategory}
-                          required={true}
-                          onChange={setState}
-                        />
-                        <Select
-                          ref={addToSelectRefs}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
-                          placeholder='Item type'
-                          value={
-                            featureItem.requirement?.itemProficiency?.itemType
-                          }
-                          options={items.filter(
-                            (item) =>
-                              item.itemCategory.value !==
-                              featureItem.requirement?.itemCategory?.value
-                          )}
-                          required={true}
-                          onChange={setState}
-                        />
-                        <Select
-                          ref={addToSelectRefs}
-                          name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
-                          placeholder='Item Property'
-                          value={
-                            featureItem.requirement?.itemProficiency
-                              ?.itemProperty
-                          }
-                          options={[].concat(
-                            ...builders.item.itemCategory
-                              .filter((itemCategory) =>
-                                featureItem.requirement?.itemCategory?.some(
-                                  (categoryItem) =>
-                                    itemCategory._id.includes(categoryItem.id)
-                                )
-                              )
-                              .map((filteredItem) => filteredItem.itemProperty)
-                          )}
-                          required={true}
-                          onChange={setState}
-                        />
-                      </>
-                    ) : (
-                      !!featureItem.requirement?.itemProficiency &&
-                      setState({
-                        action: 'removed',
-                        payload: {
-                          target: {
-                            name: `feature.${featureIndex}.requirement.itemProficiency`,
                           },
                         },
                       })
@@ -1447,12 +1493,11 @@ const NewClassForm = () => {
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
-                            placeholder='Item Category'
                             value={
                               featureItem.requirement?.equipped?.itemCategory
                             }
+                            placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1461,13 +1506,12 @@ const NewClassForm = () => {
                             name={`feature.${featureIndex}.requirement.equipped.itemType`}
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
-                            options={items.filter(
-                              (item) =>
-                                item.itemCategory.value !==
-                                featureItem.requirement?.equipped?.itemCategory
-                                  ?.value
+                            options={items.filter((item) =>
+                              featureItem.requirement.equipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
                             )}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1479,18 +1523,15 @@ const NewClassForm = () => {
                               featureItem.requirement?.equipped?.itemProperty
                             }
                             options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
+                              ...items
+                                .filter((item) =>
+                                  featureItem.requirement?.equipped?.itemCategory.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
                                   )
                                 )
-                                .map(
-                                  (filteredItem) => filteredItem.itemProperty
-                                )
+                                .map((item) => item.itemProperty)
                             )}
-                            required={true}
                             onChange={setState}
                           />
                         </div>
@@ -1528,12 +1569,11 @@ const NewClassForm = () => {
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
-                            placeholder='Item Category'
                             value={
                               featureItem.requirement?.notEquipped?.itemCategory
                             }
+                            placeholder='Item Category'
                             options={builders.item.itemCategory}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
@@ -1544,36 +1584,32 @@ const NewClassForm = () => {
                             value={
                               featureItem.requirement?.notEquipped?.itemType
                             }
-                            options={items.filter(
-                              (item) =>
-                                item.itemCategory.value !==
-                                featureItem.requirement?.notEquipped
-                                  ?.itemCategory?.value
+                            options={items.filter((item) =>
+                              featureItem.requirement.notEquipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
                             )}
-                            required={true}
                             onChange={setState}
                           />
                           <Select
                             ref={addToSelectRefs}
                             multiple={true}
                             name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
-                            placeholder='Item Property'
                             value={
                               featureItem.requirement?.notEquipped?.itemProperty
                             }
+                            placeholder='Item Property'
                             options={[].concat(
-                              ...builders.item.itemCategory
-                                .filter((itemCategory) =>
-                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (categoryItem) =>
-                                      itemCategory._id.includes(categoryItem.id)
+                              ...items
+                                .filter((item) =>
+                                  featureItem.requirement.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
                                   )
                                 )
-                                .map(
-                                  (filteredItem) => filteredItem.itemProperty
-                                )
+                                .map((item) => item.itemProperty)
                             )}
-                            required={true}
                             onChange={setState}
                           />
                         </div>
@@ -1604,6 +1640,7 @@ const NewClassForm = () => {
                         },
                       })) && (
                       <div>
+                        <h6>Limit Use `Tab`le</h6>
                         <Table
                           inputs={[
                             {
@@ -1612,6 +1649,7 @@ const NewClassForm = () => {
                               invalid: 'Must contain only numbers',
                               label: true,
                               validation: 'num',
+                              size: 'col-5',
                             },
                             {
                               name: 'uses',
@@ -1619,6 +1657,7 @@ const NewClassForm = () => {
                               invalid: 'Must contain only numbers',
                               label: true,
                               validation: 'num',
+                              size: 'col-5',
                             },
                           ]}
                           name={`feature.${featureIndex}.limitUse.level`}
@@ -2063,7 +2102,7 @@ const NewClassForm = () => {
                 </div>
               </>
             )}
-            <div className='row g-2'>
+            <div className='row g-2 px-4'>
               <AccordionButton
                 className='accordion form-details justify-content-between align-items-center'
                 id='attributeTableButton'
@@ -2076,18 +2115,17 @@ const NewClassForm = () => {
                 className='accordion-collapse collapse show'
                 id='attributeTable'
               >
-                {!state?.levelAttribute
-                  ? addArray('levelAttribute')
-                  : state.attribute?.some(
-                      (attributeItem) => attributeItem.name === 'spellCaster'
-                    ) &&
-                    state?.levelAttribute.map(
-                      (levelAttributeItem, levelAttributeIndex) =>
-                        !levelAttributeItem?.spellSlots &&
-                        addArray(
-                          `levelAttribute.${levelAttributeIndex}.spellSlots`
-                        )
-                    )}
+                {!state?.levelAttribute && addArray('levelAttribute')}
+                {state.attribute?.some(
+                  (attributeItem) => attributeItem.name === 'spellCaster'
+                ) &&
+                  state?.levelAttribute.map(
+                    (levelAttributeItem, levelAttributeIndex) =>
+                      !levelAttributeItem?.spellSlots &&
+                      addArray(
+                        `levelAttribute.${levelAttributeIndex}.spellSlots`
+                      )
+                  )}
                 <Table
                   name='levelAttribute'
                   inputs={levelAttributeInputs()}

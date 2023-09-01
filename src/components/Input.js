@@ -12,6 +12,7 @@ const CUR_REGEX = /^\d*\.?\d*$/
 const PWD_REGEX =
   /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
 const USER_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const DEL_REGEX = /^DELETE$/
 
 const Input = forwardRef(
   (
@@ -65,7 +66,7 @@ const Input = forwardRef(
           }
         }
       }
-      debounceSave(e.target)
+      debounceSave(e.target.value)
     }
 
     const debounceSave = useDebounce(function (target) {
@@ -117,6 +118,12 @@ const Input = forwardRef(
           }
         } else if (validation === 'user') {
           if (USER_REGEX.test(inputRef.current.value) === false) {
+            return false
+          } else {
+            return true
+          }
+        } else if (validation === 'delete') {
+          if (DEL_REGEX.test(inputRef.current.value) === false) {
             return false
           } else {
             return true

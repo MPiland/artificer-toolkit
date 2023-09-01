@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { useGetFeatQuery } from './featsApiSlice'
+import { useState, useEffect, useCallback } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useGetFeatQuery, useDeleteFeatMutation } from './featApiSlice'
+import { clearConfirm } from '../../app/deleteSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -12,6 +14,10 @@ const FeatList = () => {
   const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const feat = useSelector((state) => state.delete.data)
 
   const {
     data: feats,
@@ -20,6 +26,9 @@ const FeatList = () => {
     isError: featIsError,
     error: featError,
   } = useGetFeatQuery(id)
+
+  const [deleteFeat, { isError: delIsError, error: delError }] =
+    useDeleteFeatMutation()
 
   const { filteredList, setListFilter, setFilterItems } = useFilteredList()
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
@@ -30,22 +39,51 @@ const FeatList = () => {
   const is600 = useMediaQuery('(max-width: 576px)')
 
   const showCard = (feat) => {
-    console.log(feat.name)
     navigate(`/feats/${feat.name}`, {
       state: {
         background: location,
-        context: feat.value,
+        title: feat.value,
+        context: 'itemCard',
         data: feat,
         size: 'xl',
       },
     })
   }
 
+  const onDelete = (feat) => {
+    navigate(`/delete/${feat.name}`, {
+      state: {
+        background: location,
+        title: feat.value,
+        data: feat,
+        size: 'md',
+      },
+    })
+  }
+
+  const onDeleteSubmit = useCallback(async () => {
+    try {
+      await deleteFeat({ id: feat._id })
+    } catch (err) {
+      console.log(err.message)
+    }
+    dispatch(clearConfirm())
+  }, [feat, dispatch, deleteFeat])
+
+  useEffect(() => {
+    if (deleteConfirmed) {
+      onDeleteSubmit()
+    }
+  }, [deleteConfirmed, onDeleteSubmit])
+
   useEffect(() => {
     if (featIsError) {
       setErrorMessage(featError.data.message)
     }
-  }, [featIsError, featError])
+    if (delIsError) {
+      setErrorMessage(delError.data.message)
+    }
+  }, [featIsError, featError, delIsError, delError])
 
   useEffect(() => {
     if (featIsSuccess) {
@@ -61,14 +99,14 @@ const FeatList = () => {
           value: 'name',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3 col-sm-3 col-5',
+          size: 'col-10',
           breakpoint: '',
         },
       ],
       inputs: [
         {
           name: 'value',
-          size: 'col-lg-2 col-md-3 col-sm-3 col-5',
+          size: 'col-10',
           breakpoint: '',
         },
       ],
@@ -86,7 +124,6 @@ const FeatList = () => {
   if (featIsSuccess) {
     const filter = (
       <>
-        {' '}
         {!is1200 && !is1000 && (
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
@@ -145,6 +182,7 @@ const FeatList = () => {
           inputs={tableColumns.inputs}
           clickable={true}
           onClick={(feat) => showCard(feat)}
+          deleteRow={(feat) => onDelete(feat)}
           empty='---'
         />
       </div>

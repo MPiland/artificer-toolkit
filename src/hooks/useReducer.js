@@ -16,10 +16,10 @@ const formReducer = produce((draft, action) => {
   }
 
   if (type === 'added') {
-    if (!!get(draft, path)) {
+    if (get(draft, path)) {
       get(draft, path).push({})
     } else {
-      set(draft, path, [!!target.value ? target.value : {}])
+      set(draft, path, !!target.value ? target.value : [{}])
     }
   } else if (type === 'removed') {
     const newPath = path.filter((_, index) => index !== path.length - 1)

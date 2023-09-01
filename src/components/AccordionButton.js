@@ -3,6 +3,16 @@ import { useEffect, useRef } from 'react'
 const AccordionButton = ({ children, className, id, target, expanded }) => {
   const buttonRef = useRef(null)
 
+  useEffect(() => {
+    const accordion = document.getElementById(target)
+    const accordionButton = buttonRef.current
+    if (expanded && expanded === 'false') {
+      accordionButton.setAttribute('aria-expanded', 'false')
+      accordionButton.classList.add('collapsed')
+      accordion.classList.remove('show')
+    }
+  }, [expanded, target])
+
   const accordionToggle = (e) => {
     const accordion = document.getElementById(target)
     const accordionButton = buttonRef.current
@@ -12,20 +22,6 @@ const AccordionButton = ({ children, className, id, target, expanded }) => {
       accordion.classList.toggle('show')
     }
   }
-
-  useEffect(() => {
-    const accordion = document.getElementById(target)
-    const accordionButton = buttonRef.current
-    if (
-      expanded === 'false' &&
-      accordionButton.getAttribute('aria-expanded') !== false
-    ) {
-      console.log('true')
-      accordionButton.toggleAttribute('aria-expanded')
-      accordionButton.classList.toggle('collapsed')
-      accordion.classList.toggle('show')
-    }
-  }, [expanded, target])
 
   const content = (
     <button

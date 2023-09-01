@@ -52,7 +52,7 @@ const Header = () => {
                   <NavLink
                     className='nav-link'
                     to='/register'
-                    state={{ background: location, context: 'Register' }}
+                    state={{ background: location, title: 'Register' }}
                   >
                     Register
                   </NavLink>
@@ -61,7 +61,7 @@ const Header = () => {
                   <NavLink
                     className='nav-link'
                     to='/login'
-                    state={{ background: location, context: 'Login' }}
+                    state={{ background: location, title: 'Login' }}
                   >
                     Login
                   </NavLink>

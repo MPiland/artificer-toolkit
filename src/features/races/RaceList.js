@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { useGetRaceQuery } from './racesApiSlice'
+import { useGetRaceQuery } from './raceApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -35,7 +35,8 @@ const RaceList = () => {
     navigate(`/races/${race.name}`, {
       state: {
         background: location,
-        context: race.value,
+        title: race.value,
+        context: 'itemCard',
         data: race,
         size: 'xl',
       },

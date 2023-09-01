@@ -1,6 +1,6 @@
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const itemsApiSlice = apiSlice.injectEndpoints({
+export const itemApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getItem: builder.query({
       query: (id) => ({
@@ -39,4 +39,4 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
 })
 
 export const { useGetItemQuery, useAddNewItemMutation, useUpdateItemMutation } =
-  itemsApiSlice
+  itemApiSlice

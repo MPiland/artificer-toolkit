@@ -20,6 +20,7 @@ const Table = ({
   empty,
   sortable,
   scrollable,
+  deleteRow,
 }) => {
   const [sortState, setSortState] = useState()
   const { items, requestSort, sortConfig } = useSortableData(value)
@@ -88,8 +89,6 @@ const Table = ({
     return empty ? empty : null
   }
 
-  console.log(indentedInputs)
-
   const content = (
     <div className={`${scrollable ? 'table-scrollable' : ''}`}>
       {headers && (
@@ -140,11 +139,25 @@ const Table = ({
             (inputItem, inputIndex) =>
               !inputItem.breakpoint &&
               (readOnly ? (
-                <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
-                  {getValueFromState(inputItem, valueItem) !== null
-                    ? getValueFromState(inputItem, valueItem)
-                    : ''}
-                </div>
+                <Fragment key={inputIndex}>
+                  <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
+                    {getValueFromState(inputItem, valueItem) !== null
+                      ? getValueFromState(inputItem, valueItem)
+                      : ''}
+                  </div>
+                  {deleteRow && (
+                    <div className='col-1'>
+                      <button
+                        className='bi bi-trash3'
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteRow(valueItem)
+                        }}
+                      />
+                    </div>
+                  )}
+                </Fragment>
               ) : (
                 <Fragment key={inputIndex}>
                   <Input
@@ -164,89 +177,94 @@ const Table = ({
                     validation={inputItem.validation}
                   />
                   {!!dynamic && inputIndex === inputs.length - 1 && (
-                    <div className='col-1'>
-                      <button
-                        className='bi bi-plus-circle'
-                        type='button'
-                        name={`${name}`}
-                        onClick={(e) => {
-                          onChange({ type: 'added', payload: e })
-                        }}
-                      />
+                    <div className='col-auto d-flex'>
+                      <div className='row g-0 row-cols-auto'>
+                        <div className='col-auto'>
+                          <button
+                            className='bi bi-plus-circle mx-2'
+                            type='button'
+                            name={`${name}`}
+                            onClick={(e) => {
+                              onChange({ type: 'added', payload: e })
+                            }}
+                          />
+                        </div>
+                        {valueIndex !== 0 && (
+                          <div className='col-auto'>
+                            <button
+                              className='bi bi-trash3 mx-2'
+                              type='button'
+                              name={`${name}.${valueIndex}`}
+                              onClick={(e) =>
+                                onChange({ type: 'removed', payload: e })
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                  {!!dynamic &&
-                    inputIndex === inputs.length - 1 &&
-                    valueIndex !== 0 && (
-                      <div className='col-1'>
-                        <button
-                          className='bi bi-trash3'
-                          type='button'
-                          name={`${name}.${valueIndex}`}
-                          onClick={(e) =>
-                            onChange({ type: 'removed', payload: e })
-                          }
-                        />
-                      </div>
-                    )}
                 </Fragment>
               ))
           )}
           {indentedInputs?.length !== 0 &&
-            valueItem[indentedName]?.map((subValueItem, subValueIndex) => (
-              <div className='row gx-2 gy-1' key={subValueIndex}>
-                <div className='col-2'></div>
-                <div className='col-2'></div>
-                {indentedInputs.map((indentedItem, indentedIndex) => (
-                  <Fragment key={indentedIndex}>
-                    <Input
-                      size={indentedItem.size ?? null}
-                      name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}.${indentedIndex.name}`}
-                      label={indentedItem.label ?? false}
-                      border={indentedItem.border}
-                      key={indentedIndex}
-                      placeholder={indentedItem.value}
-                      invalidText={indentedItem.invalid}
-                      value={
-                        getValueFromState(indentedItem, subValueItem) !== null
-                          ? getValueFromState(indentedItem, subValueItem)
-                          : ''
-                      }
-                      onChange={onChange}
-                      readOnly={readOnly === true ? true : false}
-                      validation={indentedItem.validation}
-                    />
-                    {!!dynamic &&
-                      indentedIndex === indentedInputs.length - 1 && (
-                        <>
-                          <div className='col-1'>
-                            <button
-                              className='bi bi-plus-circle'
-                              type='button'
-                              name={`${name}.${valueIndex}.${indentedName}`}
-                              onClick={(e) =>
-                                onChange({ type: 'added', payload: e })
-                              }
-                            />
+            valueItem[indentedName]?.map((subValueItem, subValueIndex) => {
+              return (
+                <div className='row gx-2 gy-1' key={subValueIndex}>
+                  <div className='col-2'></div>
+                  {indentedInputs.map((indentedItem, indentedIndex) => (
+                    <Fragment key={indentedIndex}>
+                      <Input
+                        size={indentedItem.size ?? null}
+                        name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}.${indentedIndex.name}`}
+                        label={indentedItem.label ?? false}
+                        border={indentedItem.border}
+                        key={indentedIndex}
+                        placeholder={indentedItem.value}
+                        invalidText={indentedItem.invalid}
+                        value={
+                          getValueFromState(indentedItem, subValueItem) !== null
+                            ? getValueFromState(indentedItem, subValueItem)
+                            : ''
+                        }
+                        onChange={onChange}
+                        readOnly={readOnly === true ? true : false}
+                        validation={indentedItem.validation}
+                      />
+                      {!!dynamic &&
+                        indentedIndex === indentedInputs.length - 1 && (
+                          <div className='col-auto d-flex'>
+                            <div className='row g-2 row-cols-auto'>
+                              <div className='col-auto'>
+                                <button
+                                  className='bi bi-plus-circle'
+                                  type='button'
+                                  name={`${name}.${valueIndex}.${indentedName}`}
+                                  onClick={(e) =>
+                                    onChange({ type: 'added', payload: e })
+                                  }
+                                />
+                              </div>
+                              {subValueIndex !== 0 && (
+                                <div className='col-auto'>
+                                  <button
+                                    className='bi bi-trash3'
+                                    type='button'
+                                    name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}`}
+                                    onClick={(e) =>
+                                      onChange({ type: 'removed', payload: e })
+                                    }
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className='col-1'>
-                            {subValueIndex !== 0 && (
-                              <button
-                                className='bi bi-trash3'
-                                type='button'
-                                name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}`}
-                                onClick={(e) =>
-                                  onChange({ type: 'removed', payload: e })
-                                }
-                              />
-                            )}
-                          </div>
-                        </>
-                      )}
-                  </Fragment>
-                ))}
-              </div>
-            ))}
+                        )}
+                    </Fragment>
+                  ))}
+                </div>
+              )
+            })}
         </div>
       ))}
     </div>
