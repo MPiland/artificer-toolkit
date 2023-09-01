@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { useGetClassQuery } from './classApiSlice'
+import { useState, useEffect, useCallback } from 'react'
+import { useGetClassQuery, useDeleteClassMutation } from './classApiSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { clearConfirm } from '../../app/deleteSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -12,6 +14,10 @@ const ClassList = () => {
   const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const uClass = useSelector((state) => state.delete.data)
 
   const {
     data: classes,
@@ -22,6 +28,9 @@ const ClassList = () => {
   } = useGetClassQuery(id, {
     refetchOnMountOrArgChange: true,
   })
+
+  const [deleteClass, { isError: delIsError, error: delError }] =
+    useDeleteClassMutation()
 
   const { filteredList, setListFilter, setFilterItems } = useFilteredList()
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
@@ -43,11 +52,40 @@ const ClassList = () => {
     })
   }
 
+  const onDelete = (uClass) => {
+    navigate(`/delete/${uClass.name}`, {
+      state: {
+        background: location,
+        title: uClass.value,
+        data: uClass,
+        size: 'md',
+      },
+    })
+  }
+
+  const onDeleteSubmit = useCallback(async () => {
+    try {
+      await deleteClass({ id: uClass._id })
+    } catch (err) {
+      console.log(err.message)
+    }
+    dispatch(clearConfirm())
+  }, [uClass, dispatch, deleteClass])
+
+  useEffect(() => {
+    if (deleteConfirmed) {
+      onDeleteSubmit()
+    }
+  }, [deleteConfirmed, onDeleteSubmit])
+
   useEffect(() => {
     if (classIsError) {
       setErrorMessage(classError.data.message)
     }
-  }, [classError, classIsError])
+    if (delIsError) {
+      setErrorMessage(delError.data.message)
+    }
+  }, [classError, classIsError, delIsError, delError])
 
   useEffect(() => {
     if (classIsSuccess) {
@@ -63,14 +101,14 @@ const ClassList = () => {
           value: 'name',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-2 col-5',
+          size: 'col-sm-10',
           breakpoint: '',
         },
       ],
       inputs: [
         {
           name: 'value',
-          size: 'col-sm-2 col-5',
+          size: 'col-sm-10',
           breakpoint: '',
         },
       ],
@@ -144,6 +182,7 @@ const ClassList = () => {
           inputs={tableColumns.inputs}
           clickable={true}
           onClick={(uClass) => showCard(uClass)}
+          deleteRow={(uClass) => onDelete(uClass)}
           empty='---'
         />
       </div>

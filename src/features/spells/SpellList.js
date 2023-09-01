@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { useGetSpellQuery } from './spellApiSlice'
+import { useState, useEffect, useCallback } from 'react'
+import { useGetSpellQuery, useDeleteSpellMutation } from './spellApiSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { clearConfirm } from '../../app/deleteSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -13,6 +15,10 @@ const SpellList = () => {
   const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const spell = useSelector((state) => state.delete.data)
 
   const {
     data: spells,
@@ -23,6 +29,9 @@ const SpellList = () => {
   } = useGetSpellQuery(id, {
     refetchOnMountOrArgChange: true,
   })
+
+  const [deleteSpell, { isError: delIsError, error: delError }] =
+    useDeleteSpellMutation()
 
   const { listFilter, filteredList, setListFilter, setFilterItems } =
     useFilteredList()
@@ -45,11 +54,40 @@ const SpellList = () => {
     })
   }
 
+  const onDelete = (spell) => {
+    navigate(`/delete/${spell.name}`, {
+      state: {
+        background: location,
+        title: spell.value,
+        data: spell,
+        size: 'md',
+      },
+    })
+  }
+
+  const onDeleteSubmit = useCallback(async () => {
+    try {
+      await deleteSpell({ id: spell._id })
+    } catch (err) {
+      console.log(err.message)
+    }
+    dispatch(clearConfirm())
+  }, [spell, dispatch, deleteSpell])
+
+  useEffect(() => {
+    if (deleteConfirmed) {
+      onDeleteSubmit()
+    }
+  }, [deleteConfirmed, onDeleteSubmit])
+
   useEffect(() => {
     if (spellIsError) {
       setErrorMessage(spellError.data.message)
     }
-  }, [spellIsError, spellError])
+    if (delIsError) {
+      setErrorMessage(delError.data.message)
+    }
+  }, [spellIsError, spellError, delIsError, delError])
 
   useEffect(() => {
     if (spellIsSuccess) {
@@ -97,7 +135,7 @@ const SpellList = () => {
           value: 'range.rangeType.value',
           border: false,
           className: 'fw-bold',
-          size: 'col-md',
+          size: 'col-md-2',
           breakpoint: (is1000 || is600) && true,
         },
         {
@@ -135,7 +173,7 @@ const SpellList = () => {
             ['range.rangeType.value', 'range.distance'],
             ['shape.shapeType.value', 'shape.size'],
           ],
-          size: 'col-md',
+          size: 'col-md-2',
           breakpoint: (is1000 || is600) && true,
         },
         {
@@ -271,6 +309,7 @@ const SpellList = () => {
           inputs={tableColumns.inputs}
           clickable={true}
           onClick={(spell) => showCard(spell)}
+          deleteRow={(spell) => onDelete(spell)}
           empty='---'
         />
       </div>

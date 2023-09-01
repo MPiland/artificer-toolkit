@@ -25,7 +25,9 @@ const FeatList = () => {
     isSuccess: featIsSuccess,
     isError: featIsError,
     error: featError,
-  } = useGetFeatQuery(id)
+  } = useGetFeatQuery(id, {
+    refetchOnMountOrArgChange: true,
+  })
 
   const [deleteFeat, { isError: delIsError, error: delError }] =
     useDeleteFeatMutation()

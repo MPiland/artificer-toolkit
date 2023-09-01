@@ -35,8 +35,20 @@ export const itemApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Item', id: arg._id }],
     }),
+    deleteItem: builder.mutation({
+      query: ({ id }) => ({
+        url: `/item`,
+        method: 'DELETE',
+        body: { id },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Item', id: arg._id }],
+    }),
   }),
 })
 
-export const { useGetItemQuery, useAddNewItemMutation, useUpdateItemMutation } =
-  itemApiSlice
+export const {
+  useGetItemQuery,
+  useAddNewItemMutation,
+  useUpdateItemMutation,
+  useDeleteItemMutation,
+} = itemApiSlice

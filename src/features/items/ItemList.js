@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, useRef } from 'react'
-import { useGetItemQuery } from './itemApiSlice'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useGetItemQuery, useDeleteItemMutation } from './itemApiSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { clearConfirm } from '../../app/deleteSlice'
 import { useGetBuilderQuery } from '../builders/builderApiSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
@@ -14,6 +16,10 @@ const ItemList = () => {
   const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const item = useSelector((state) => state.delete.data)
 
   const {
     data: items,
@@ -34,6 +40,9 @@ const ItemList = () => {
   } = useGetBuilderQuery(id, {
     refetchOnMountOrArgChange: true,
   })
+
+  const [deleteItem, { isError: delIsError, error: delError }] =
+    useDeleteItemMutation()
 
   const { listFilter, filteredList, setListFilter, setFilterItems } =
     useFilteredList()
@@ -57,6 +66,32 @@ const ItemList = () => {
     })
   }
 
+  const onDelete = (item) => {
+    navigate(`/delete/${item.name}`, {
+      state: {
+        background: location,
+        title: item.value,
+        data: item,
+        size: 'md',
+      },
+    })
+  }
+
+  const onDeleteSubmit = useCallback(async () => {
+    try {
+      await deleteItem({ id: item._id })
+    } catch (err) {
+      console.log(err.message)
+    }
+    dispatch(clearConfirm())
+  }, [item, dispatch, deleteItem])
+
+  useEffect(() => {
+    if (deleteConfirmed) {
+      onDeleteSubmit()
+    }
+  }, [deleteConfirmed, onDeleteSubmit])
+
   useEffect(() => {
     if (itemIsError) {
       setErrorMessage(itemError.data.message)
@@ -64,7 +99,17 @@ const ItemList = () => {
     if (builderIsError) {
       setErrorMessage(builderError.data.message)
     }
-  }, [itemIsError, itemError, builderIsError, builderError])
+    if (delIsError) {
+      setErrorMessage(delError.data.message)
+    }
+  }, [
+    itemIsError,
+    itemError,
+    builderIsError,
+    builderError,
+    delIsError,
+    delError,
+  ])
 
   useEffect(() => {
     if (itemIsSuccess && builderIsSuccess) {
@@ -128,7 +173,7 @@ const ItemList = () => {
           border: false,
           className: 'fw-bold',
           size: ' col-2',
-          breakpoint: is600 && true,
+          breakpoint: is600 ? true : '',
         },
         {
           name: 'AC',
@@ -319,6 +364,7 @@ const ItemList = () => {
           inputs={tableColumns.inputs}
           clickable={true}
           onClick={(item) => showCard(item)}
+          deleteRow={(item) => onDelete(item)}
           empty='---'
         />
       </div>

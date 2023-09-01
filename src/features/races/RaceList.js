@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import { useGetRaceQuery } from './raceApiSlice'
+import { useState, useEffect, useCallback } from 'react'
+import { useGetRaceQuery, useDeleteRaceMutation } from './raceApiSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { clearConfirm } from '../../app/deleteSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import useAuth from '../../hooks/useAuth'
@@ -12,6 +14,10 @@ const RaceList = () => {
   const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const race = useSelector((state) => state.delete.data)
 
   const {
     data: races,
@@ -22,6 +28,9 @@ const RaceList = () => {
   } = useGetRaceQuery(id, {
     refetchOnMountOrArgChange: true,
   })
+
+  const [deleteRace, { isError: delIsError, error: delError }] =
+    useDeleteRaceMutation()
 
   const { filteredList, setListFilter, setFilterItems } = useFilteredList()
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
@@ -43,11 +52,40 @@ const RaceList = () => {
     })
   }
 
+  const onDelete = (race) => {
+    navigate(`/delete/${race.name}`, {
+      state: {
+        background: location,
+        title: race.value,
+        data: race,
+        size: 'md',
+      },
+    })
+  }
+
+  const onDeleteSubmit = useCallback(async () => {
+    try {
+      await deleteRace({ id: race._id })
+    } catch (err) {
+      console.log(err.message)
+    }
+    dispatch(clearConfirm())
+  }, [race, dispatch, deleteRace])
+
+  useEffect(() => {
+    if (deleteConfirmed) {
+      onDeleteSubmit()
+    }
+  }, [deleteConfirmed, onDeleteSubmit])
+
   useEffect(() => {
     if (raceIsError) {
       setErrorMessage(raceError.data.message)
     }
-  }, [raceError, raceIsError])
+    if (delIsError) {
+      setErrorMessage(delError.data.message)
+    }
+  }, [raceError, raceIsError, delIsError, delError])
 
   useEffect(() => {
     if (raceIsSuccess) {
@@ -63,14 +101,14 @@ const RaceList = () => {
           value: 'name',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-2 col-5',
+          size: 'col-sm-10',
           breakpoint: '',
         },
       ],
       inputs: [
         {
           name: 'value',
-          size: 'col-sm-2 col-5',
+          size: 'col-sm-10',
           breakpoint: '',
         },
       ],
@@ -145,6 +183,7 @@ const RaceList = () => {
           inputs={tableColumns.inputs}
           clickable={true}
           onClick={(race) => showCard(race)}
+          deleteRow={(race) => onDelete(race)}
           empty='---'
         />
       </div>

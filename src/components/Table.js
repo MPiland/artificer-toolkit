@@ -92,35 +92,45 @@ const Table = ({
   const content = (
     <div className={`${scrollable ? 'table-scrollable' : ''}`}>
       {headers && (
-        <div className={`row align-items-center pb-2 g-2`}>
+        <div
+          className={`row pb-2 g-2${className ? ` ${className}` : ''}${
+            scrollable ? ' scrollable' : ''
+          }`}
+        >
           {headers?.map((headerItem, headerIndex) => {
             return (
-              !headerItem.breakpoint &&
-              (readOnly ? (
-                <div
-                  className={`${headerItem.size ?? ''} ${
-                    headerItem.className ?? ''
-                  }  ${getClassNames(headerItem.value)} ${
-                    sortable ? 'sortable-header' : ''
-                  }`}
-                  key={headerIndex}
-                  onClick={() =>
-                    sortable && requestSort(headerItem.value, headerItem.order)
-                  }
-                >
-                  {headerItem.name}
-                </div>
-              ) : (
-                <Input
-                  size={headerItem.size ?? null}
-                  className={headerItem.className}
-                  key={headerIndex}
-                  name={headerItem.name}
-                  value={headerItem.value}
-                  readOnly={readOnly === true ? true : false}
-                  border={headerItem.border}
-                />
-              ))
+              <Fragment key={headerIndex}>
+                {!headerItem.breakpoint &&
+                  (readOnly ? (
+                    <div
+                      className={`${headerItem.size ?? ''} ${
+                        headerItem.className ?? ''
+                      }  ${getClassNames(headerItem.value)} ${
+                        sortable ? 'sortable-header' : ''
+                      }`}
+                      key={headerIndex}
+                      onClick={() =>
+                        sortable &&
+                        requestSort(headerItem.value, headerItem.order)
+                      }
+                    >
+                      {headerItem.name}
+                    </div>
+                  ) : (
+                    <Input
+                      size={headerItem.size ?? null}
+                      className={headerItem.className}
+                      key={headerIndex}
+                      name={headerItem.name}
+                      value={headerItem.value}
+                      readOnly={readOnly === true ? true : false}
+                      border={headerItem.border}
+                    />
+                  ))}
+                {deleteRow && headerIndex === headers.length - 1 && (
+                  <div className='col-1'></div>
+                )}
+              </Fragment>
             )
           })}
         </div>
@@ -128,9 +138,9 @@ const Table = ({
       {sortState?.valueItems?.map((valueItem, valueIndex) => (
         <div
           key={valueIndex}
-          className={`row pb-2 g-2 ${className ?? ''} ${
-            clickable ? 'row-clickable' : ''
-          } ${scrollable ? 'scrollable' : ''}`}
+          className={`row pb-2 g-2${className ? ` ${className}` : ''}${
+            clickable ? ' row-clickable' : ''
+          }${scrollable ? ' scrollable' : ''}`}
           onClick={() => {
             onClick && onClick(valueItem)
           }}
@@ -145,7 +155,7 @@ const Table = ({
                       ? getValueFromState(inputItem, valueItem)
                       : ''}
                   </div>
-                  {deleteRow && (
+                  {deleteRow && inputIndex === inputs.length - 1 && (
                     <div className='col-1'>
                       <button
                         className='bi bi-trash3'

@@ -35,6 +35,14 @@ export const spellApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: arg._id }],
     }),
+    deleteSpell: builder.mutation({
+      query: ({ id }) => ({
+        url: `/spell`,
+        method: 'DELETE',
+        body: { id },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: arg._id }],
+    }),
   }),
 })
 
@@ -42,4 +50,5 @@ export const {
   useGetSpellQuery,
   useAddNewSpellMutation,
   useUpdateSpellMutation,
+  useDeleteSpellMutation,
 } = spellApiSlice

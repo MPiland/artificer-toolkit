@@ -34,8 +34,20 @@ export const raceApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Race', id: arg._id }],
     }),
+    deleteRace: builder.mutation({
+      query: ({ id }) => ({
+        url: `/race`,
+        method: 'DELETE',
+        body: { id },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'Race', id: arg._id }],
+    }),
   }),
 })
 
-export const { useGetRaceQuery, useAddNewRaceMutation, useUpdateRaceMutation } =
-  raceApiSlice
+export const {
+  useGetRaceQuery,
+  useAddNewRaceMutation,
+  useUpdateRaceMutation,
+  useDeleteRaceMutation,
+} = raceApiSlice
