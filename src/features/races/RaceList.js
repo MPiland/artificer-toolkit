@@ -101,14 +101,14 @@ const RaceList = () => {
           value: 'name',
           border: false,
           className: 'fw-bold',
-          size: 'col-sm-10',
+          size: 'col',
           breakpoint: '',
         },
       ],
       inputs: [
         {
           name: 'value',
-          size: 'col-sm-10',
+          size: 'col',
           breakpoint: '',
         },
       ],

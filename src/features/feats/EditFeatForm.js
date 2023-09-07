@@ -214,7 +214,8 @@ const EditFeatForm = () => {
         state: {
           data: match ? state : oldState,
           background: location.state.previous.state.background,
-          context: match ? state.value : oldState.value,
+          title: match ? state.value : oldState.value,
+          context: 'itemCard',
           size: 'xl',
         },
       })
@@ -321,12 +322,12 @@ const EditFeatForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}.feat${
+                  name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  value={multipleOptions ? item.feat?.options : item.feat}
+                  value={multipleOptions ? item?.options : item}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -646,15 +647,15 @@ const EditFeatForm = () => {
                   item.module?.name !== 'hitPoints') ||
                   item.modType?.name === 'setValue') &&
                   item.module?.name === 'ability' && (
-                    <Select
-                      ref={addToSelectRefs}
-                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                      placeholder='Exceeds Max'
-                      value={item.exceedMax}
-                      options={[
-                        { name: true, value: 'Yes' },
-                        { name: false, value: 'No' },
-                      ]}
+                    <Input
+                      ref={addToInputRefs}
+                      validation='num'
+                      name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
+                      label={true}
+                      placeholder='Max Value'
+                      autoComplete='off'
+                      value={item.maxValue}
+                      invalidText='Must contain only numbers'
                       required={true}
                       onChange={setState}
                     />
@@ -933,12 +934,12 @@ const EditFeatForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}.sense${
+                  name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  value={multipleOptions ? item.sense?.options : item.sense}
+                  value={multipleOptions ? item?.options : item}
                   options={builders.sense}
                   required={true}
                   onChange={setState}
@@ -1004,7 +1005,7 @@ const EditFeatForm = () => {
                   ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                  options={builders.feat.feature.spell.attribute}
+                  options={builders.feature.spell.attribute}
                   placeholder='Spell Attributes'
                   value={item.attribute}
                   required={true}
@@ -1153,7 +1154,7 @@ const EditFeatForm = () => {
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
                       value={featureItem.attribute}
-                      options={builders.feat.feature.attribute.filter(
+                      options={builders.feature.attribute.filter(
                         (attributeItem) =>
                           !featureItem.attribute?.some(
                             (item) => item.name === 'doesDamage'
@@ -1174,7 +1175,7 @@ const EditFeatForm = () => {
                         name={`feature.${featureIndex}.requirement.option`}
                         value={featureItem.requirement?.option}
                         placeholder='Requirement'
-                        options={builders.feat.feature.requirement}
+                        options={builders.feature.requirement}
                         required={true}
                         onChange={setState}
                       />
@@ -1285,7 +1286,7 @@ const EditFeatForm = () => {
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           value={featureItem.limitUse?.limitBy}
-                          options={builders.feat.feature.chargeLimit}
+                          options={builders.feature.chargeLimit}
                           required={true}
                           onChange={setState}
                         />
@@ -1330,7 +1331,7 @@ const EditFeatForm = () => {
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           value={featureItem.limitUse?.resetsOn}
-                          options={builders.feat.feature.chargeReset}
+                          options={builders.feature.chargeReset}
                           required={true}
                           onChange={setState}
                         />
@@ -1355,7 +1356,7 @@ const EditFeatForm = () => {
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
                           value={featureItem.action}
-                          options={builders.feat.feature.action}
+                          options={builders.feature.action}
                           required={true}
                           onChange={setState}
                         />
@@ -1401,7 +1402,7 @@ const EditFeatForm = () => {
                         />
                       </>
                     ) : (
-                      !!featureItem.saveAbility &&
+                      !!featureItem.range &&
                       setState({
                         action: 'removed',
                         payload: {
@@ -1414,15 +1415,53 @@ const EditFeatForm = () => {
                     {featureItem.attribute?.some(
                       (attributeItem) => attributeItem.name === 'requireSave'
                     ) ? (
-                      <Select
-                        ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.saveAbility`}
-                        placeholder='DC Ability'
-                        value={featureItem.saveAbility}
-                        options={builders.ability}
-                        required={true}
-                        onChange={setState}
-                      />
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          name={`feature.${featureIndex}.saveAbility.attribute`}
+                          multiple={true}
+                          placeholder='Save Attribute'
+                          value={featureItem.saveAbility?.attribute}
+                          options={builders.feature.saveAttribute}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Select
+                          ref={addToSelectRefs}
+                          name={`feature.${featureIndex}.saveAbility.ability`}
+                          placeholder='DC Ability'
+                          value={featureItem.saveAbility?.ability}
+                          options={builders.ability}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Input
+                          ref={addToInputRefs}
+                          validate='num'
+                          name={`feature.${featureIndex}.saveAbility.minValue`}
+                          label={true}
+                          autoComplete='off'
+                          placeholder='Min. Value'
+                          required={true}
+                          invalidText='Must contain only numbers'
+                          value={featureItem.saveAbility?.minValue}
+                          onChange={setState}
+                        />
+                        {featureItem.saveAbility?.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'addAbilityModifier'
+                        ) && (
+                          <Select
+                            ref={addToSelectRefs}
+                            name={`feature.${featureIndex}.saveAbility.abilityModifier`}
+                            placeholder='Modifier Ability'
+                            value={featureItem.saveAbility?.abilityModifier}
+                            options={builders.ability}
+                            required={true}
+                            onChange={setState}
+                          />
+                        )}
+                      </>
                     ) : (
                       !!featureItem.saveAbility &&
                       setState({
@@ -1441,15 +1480,15 @@ const EditFeatForm = () => {
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureItemProficiencyButton'
-                        target='featureItemProficiency'
+                        id={`feature${featureIndex}ItemProficiencyButton`}
+                        target={`feature${featureIndex}ItemProficiency`}
                       >
                         <span className='me-3'>Item Proficiency</span>
                         <hr className='flex-grow-1 me-3' />
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureItemProficiency'
+                        id={`feature${featureIndex}ItemProficiency`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1531,8 +1570,8 @@ const EditFeatForm = () => {
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureEquippedButton'
-                        target='featureEquipped'
+                        id={`feature${featureIndex}EquippedButton`}
+                        target={`feature${featureIndex}Equipped`}
                         expanded='false'
                       >
                         <span className='me-3'>Equipped</span>
@@ -1540,7 +1579,7 @@ const EditFeatForm = () => {
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureEquipped'
+                        id={`feature${featureIndex}Equipped`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1617,8 +1656,9 @@ const EditFeatForm = () => {
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureNotEquippedButton'
-                        target='featureNotEquipped'
+                        id={`feature${featureIndex}NotEquippedButton
+                        `}
+                        target={`feature${featureIndex}NotEquipped`}
                         expanded='false'
                       >
                         <span className='me-3'>Not Equipped</span>
@@ -1626,7 +1666,7 @@ const EditFeatForm = () => {
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureNotEquipped'
+                        id={`feature${featureIndex}NotEquipped`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1761,7 +1801,7 @@ const EditFeatForm = () => {
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           value={featureItem.damage?.damageAttribute}
                           placeholder='Damage Attribute'
-                          options={builders.feat.feature.damageAttribute}
+                          options={builders.feature.damageAttribute}
                           required={true}
                           onChange={setState}
                         />
@@ -1932,11 +1972,10 @@ const EditFeatForm = () => {
                 multiple={true}
                 name='attribute'
                 value={state.attribute}
-                options={builders.feat.feature.attribute.filter(
-                  (attributeItem) =>
-                    !state.attribute?.some((item) => item.name === 'doesDamage')
-                      ? attributeItem.name !== 'secondaryDamage'
-                      : attributeItem
+                options={builders.feature.attribute.filter((attributeItem) =>
+                  !state.attribute?.some((item) => item.name === 'doesDamage')
+                    ? attributeItem.name !== 'secondaryDamage'
+                    : attributeItem
                 )}
                 placeholder='Feat Attributes'
                 onChange={setState}
@@ -1950,7 +1989,7 @@ const EditFeatForm = () => {
                   name='requirement.option'
                   value={state.requirement?.option}
                   placeholder='Requirement'
-                  options={builders.feat.feature.requirement}
+                  options={builders.feature.requirement}
                   required={true}
                   onChange={setState}
                 />
@@ -2035,7 +2074,7 @@ const EditFeatForm = () => {
                     name='limitUse.limitBy'
                     placeholder='Limit By Option'
                     value={state.limitUse?.limitBy}
-                    options={builders.feat.feature.chargeLimit}
+                    options={builders.feature.chargeLimit}
                     required={true}
                     onChange={setState}
                   />
@@ -2079,7 +2118,7 @@ const EditFeatForm = () => {
                     name='limitUse.resetsOn'
                     placeholder='Reset Option'
                     value={state.limitUse?.resetsOn}
-                    options={builders.feat.feature.chargeReset}
+                    options={builders.feature.chargeReset}
                     required={true}
                     onChange={setState}
                   />
@@ -2104,7 +2143,7 @@ const EditFeatForm = () => {
                     name='action'
                     placeholder='Action Type'
                     value={state.action}
-                    options={builders.feat.feature.action}
+                    options={builders.feature.action}
                     required={true}
                     onChange={setState}
                   />
@@ -2481,7 +2520,7 @@ const EditFeatForm = () => {
                     name='damage.damageAttribute'
                     value={state.damage?.damageAttribute}
                     placeholder='Damage Attribute'
-                    options={builders.feat.feature.damageAttribute}
+                    options={builders.feature.damageAttribute}
                     required={true}
                     onChange={setState}
                   />

@@ -9,8 +9,6 @@ const Class = () => {
       <div>{userClass?.quote && parse(userClass.quote)}</div>
       <div>{userClass?.desc && parse(userClass.desc)}</div>
       <hr />
-      <h4>Traits</h4>
-      <div>{userClass?.traits && parse(userClass.traits.desc)}</div>
     </div>
   )
 

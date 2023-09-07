@@ -66,7 +66,7 @@ const Input = forwardRef(
           }
         }
       }
-      debounceSave(e.target.value)
+      debounceSave(e.target)
     }
 
     const debounceSave = useDebounce(function (target) {

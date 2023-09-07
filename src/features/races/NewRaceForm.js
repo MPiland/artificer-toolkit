@@ -346,12 +346,12 @@ const NewRaceForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}.feat${
+                  name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  value={multipleOptions ? item.feat?.options : item.feat}
+                  value={multipleOptions ? item?.options : item}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -672,16 +672,16 @@ const NewRaceForm = () => {
                   item.module?.name !== 'hitPoints') ||
                   item.modType?.name === 'setValue') &&
                   item.module?.name === 'ability' && (
-                    <Select
-                      ref={addToSelectRefs}
-                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                      placeholder='Exceeds Max'
-                      value={item.exceedMax}
-                      options={[
-                        { name: true, value: 'Yes' },
-                        { name: false, value: 'No' },
-                      ]}
-                      require={true}
+                    <Input
+                      ref={addToInputRefs}
+                      validation='num'
+                      name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
+                      label={true}
+                      placeholder='Max Value'
+                      autoComplete='off'
+                      value={item.maxValue}
+                      invalidText='Must contain only numbers'
+                      required={true}
                       onChange={setState}
                     />
                   )}
@@ -957,12 +957,12 @@ const NewRaceForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}.sense${
+                  name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  value={multipleOptions ? item.sense?.options : item.sense}
+                  value={multipleOptions ? item?.options : item}
                   options={builders.sense}
                   require={true}
                   onChange={setState}
@@ -1158,13 +1158,15 @@ const NewRaceForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.race.feature.attribute.filter(
-                        (attributeItem) =>
+                      options={[].concat(
+                        builders.feature.attribute.filter((attributeItem) =>
                           !featureItem.attribute?.some(
                             (item) => item.name === 'doesDamage'
                           )
                             ? attributeItem.name !== 'secondaryDamage'
                             : attributeItem
+                        ),
+                        builders.feature.race.attribute
                       )}
                       placeholder='Feature Attributes'
                       value={featureItem.attribute}
@@ -1194,7 +1196,7 @@ const NewRaceForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
-                        options={builders.race.feature.requirement}
+                        options={builders.feature.requirement}
                         value={featureItem.requirement?.option}
                         required={true}
                         onChange={setState}
@@ -1306,7 +1308,7 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           value={featureItem.limitUse?.limitBy}
-                          options={builders.race.feature.chargeLimit}
+                          options={builders.feature.chargeLimit}
                           required={true}
                           onChange={setState}
                         />
@@ -1352,7 +1354,7 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           value={featureItem.limitUse?.resetsOn}
-                          options={builders.race.feature.chargeReset}
+                          options={builders.feature.chargeReset}
                           required={true}
                           onChange={setState}
                         />
@@ -1377,7 +1379,7 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
                           value={featureItem.action}
-                          options={builders.race.feature.action}
+                          options={builders.feature.action}
                           required={true}
                           onChange={setState}
                         />
@@ -1423,7 +1425,7 @@ const NewRaceForm = () => {
                         />
                       </>
                     ) : (
-                      !!featureItem.saveAbility &&
+                      !!featureItem.range &&
                       setState({
                         action: 'removed',
                         payload: {
@@ -1436,15 +1438,53 @@ const NewRaceForm = () => {
                     {featureItem.attribute?.some(
                       (attributeItem) => attributeItem.name === 'requireSave'
                     ) ? (
-                      <Select
-                        ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.saveAbility`}
-                        placeholder='DC Ability'
-                        value={featureItem.saveAbility}
-                        options={builders.ability}
-                        required={true}
-                        onChange={setState}
-                      />
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          name={`feature.${featureIndex}.saveAbility.attribute`}
+                          multiple={true}
+                          placeholder='Save Attribute'
+                          value={featureItem.saveAbility?.attribute}
+                          options={builders.feature.saveAttribute}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Select
+                          ref={addToSelectRefs}
+                          name={`feature.${featureIndex}.saveAbility.ability`}
+                          placeholder='DC Ability'
+                          value={featureItem.saveAbility?.ability}
+                          options={builders.ability}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Input
+                          ref={addToInputRefs}
+                          validate='num'
+                          name={`feature.${featureIndex}.saveAbility.minValue`}
+                          label={true}
+                          autoComplete='off'
+                          placeholder='Min. Value'
+                          required={true}
+                          invalidText='Must contain only numbers'
+                          value={featureItem.saveAbility?.minValue}
+                          onChange={setState}
+                        />
+                        {featureItem.saveAbility?.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'addAbilityModifier'
+                        ) && (
+                          <Select
+                            ref={addToSelectRefs}
+                            name={`feature.${featureIndex}.saveAbility.abilityModifier`}
+                            placeholder='Modifier Ability'
+                            value={featureItem.saveAbility?.abilityModifier}
+                            options={builders.ability}
+                            required={true}
+                            onChange={setState}
+                          />
+                        )}
+                      </>
                     ) : (
                       !!featureItem.saveAbility &&
                       setState({
@@ -1463,15 +1503,15 @@ const NewRaceForm = () => {
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureItemProficiencyButton'
-                        target='featureItemProficiency'
+                        id={`feature${featureIndex}ItemProficiencyButton`}
+                        target={`feature${featureIndex}ItemProficiency`}
                       >
                         <span className='me-3'>Item Proficiency</span>
                         <hr className='flex-grow-1 me-3' />
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureItemProficiency'
+                        id={`feature${featureIndex}ItemProficiency`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1553,15 +1593,15 @@ const NewRaceForm = () => {
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureEquippedButton'
-                        target='featureEquipped'
+                        id={`feature${featureIndex}EquippedButton`}
+                        target={`feature${featureIndex}Equipped`}
                       >
                         <span className='me-3'>Equipped</span>
                         <hr className='flex-grow-1 me-3' />
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureEquipped'
+                        id={`feature${featureIndex}Equipped`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1638,15 +1678,15 @@ const NewRaceForm = () => {
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureNotEquippedButton'
-                        target='featureNotEquipped'
+                        id={`feature${featureIndex}NotEquippedButton`}
+                        target={`feature${featureIndex}NotEquipped`}
                       >
                         <span className='me-3'>Not Equipped</span>
                         <hr className='flex-grow-1 me-3' />
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureNotEquipped'
+                        id={`feature${featureIndex}NotEquipped`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1781,7 +1821,7 @@ const NewRaceForm = () => {
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
                           value={featureItem.damage?.damageAttribute}
-                          options={builders.race.feature.damageAttribute}
+                          options={builders.feature.damageAttribute}
                           required={true}
                           onChange={setState}
                         />

@@ -173,6 +173,7 @@ const Select = forwardRef(
       const parentCurrent = parentRef.current
 
       const target = event.target
+      console.log('target', target)
       if (!parentCurrent.contains(target)) {
         dropdownCurrent?.classList.remove('show')
         buttonCurrent?.setAttribute('aria-expanded', 'false')

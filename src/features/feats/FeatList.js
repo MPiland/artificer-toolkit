@@ -101,14 +101,14 @@ const FeatList = () => {
           value: 'name',
           border: false,
           className: 'fw-bold',
-          size: 'col-10',
+          size: 'col',
           breakpoint: '',
         },
       ],
       inputs: [
         {
           name: 'value',
-          size: 'col-10',
+          size: 'col',
           breakpoint: '',
         },
       ],

@@ -24,7 +24,7 @@ const Delete = () => {
   }
 
   const handleChange = ({ payload }) => {
-    setDeleteState(payload.target)
+    setDeleteState(payload.target.value)
   }
 
   const content = (

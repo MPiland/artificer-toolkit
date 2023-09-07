@@ -27,7 +27,7 @@
 }
 
 .dropdown-toggle.is-invalid {
-  border-color: rgb(220, 53, 69);
+  box-shadow: 0 0 0.05rem 0.3rem rgba(220, 53, 69, 0.25);
 }
 
 .dropdown-toggle.is-valid {
@@ -50,7 +50,7 @@
 
 .dropdown-item:focus {
   background-color: lightgrey;
-  outline: none
+  outline: none;
 }
 
 .dropdown-item.selected:focus {

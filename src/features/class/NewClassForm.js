@@ -349,12 +349,12 @@ const NewClassForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}.feat${
+                  name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Feat'
-                  value={multipleOptions ? item.feat?.options : item.feat}
+                  value={multipleOptions ? item?.options : item}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -675,16 +675,16 @@ const NewClassForm = () => {
                   item.module?.name !== 'hitPoints') ||
                   item.modType?.name === 'setValue') &&
                   item.module?.name === 'ability' && (
-                    <Select
-                      ref={addToSelectRefs}
-                      name={`feature.${featureIndex}.${this.name}.${index}.exceedMax`}
-                      placeholder='Exceeds Max'
-                      value={item.exceedMax}
-                      options={[
-                        { name: true, value: 'Yes' },
-                        { name: false, value: 'No' },
-                      ]}
-                      require={true}
+                    <Input
+                      ref={addToInputRefs}
+                      validation='num'
+                      name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
+                      label={true}
+                      placeholder='Max Value'
+                      autoComplete='off'
+                      value={item.maxValue}
+                      invalidText='Must contain only numbers'
+                      required={true}
                       onChange={setState}
                     />
                   )}
@@ -960,12 +960,12 @@ const NewClassForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}.sense${
+                  name={`feature.${featureIndex}.${this.name}.${index}${
                     multipleOptions ? '.options' : ''
                   }`}
                   multiple={multipleOptions}
                   placeholder='Sense'
-                  value={multipleOptions ? item.sense?.options : item.sense}
+                  value={multipleOptions ? item?.options : item}
                   options={builders.sense}
                   require={true}
                   onChange={setState}
@@ -1097,6 +1097,7 @@ const NewClassForm = () => {
                 <AccordionButton
                   id={`feature${featureIndex}AccordionButton`}
                   target={`feature${featureIndex}AccordionBody`}
+                  expanded='true'
                 >
                   <Input
                     ref={addToInputRefs}
@@ -1160,11 +1161,10 @@ const NewClassForm = () => {
                   <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                     <Input
                       ref={addToInputRefs}
+                      size='col-md-2'
                       name={`feature.${featureIndex}.levelAvailable`}
                       autoComplete='off'
                       placeholder='Level Avail.'
-                      validation='num'
-                      invalidText='Must contain whole numbers only'
                       label={true}
                       required={true}
                       value={featureItem?.levelAvailable}
@@ -1173,7 +1173,7 @@ const NewClassForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.class.feature.attribute.filter(
+                      options={builders.feature.attribute.filter(
                         (attributeItem) =>
                           !featureItem.attribute?.some(
                             (item) => item.name === 'doesDamage'
@@ -1187,21 +1187,6 @@ const NewClassForm = () => {
                     />
                     {featureItem.attribute?.some(
                       (attributeItem) =>
-                        attributeItem.name === 'ancestrySpecific'
-                    ) && (
-                      <Select
-                        ref={addToSelectRefs}
-                        multiple={true}
-                        name={`feature.${featureIndex}.ancestry`}
-                        options={state.ancestry}
-                        placeholder='Ancestry'
-                        value={featureItem.ancestry}
-                        required={true}
-                        onChange={setState}
-                      />
-                    )}
-                    {featureItem.attribute?.some(
-                      (attributeItem) =>
                         attributeItem.name === 'hasRequirements'
                     ) ? (
                       <Select
@@ -1209,7 +1194,7 @@ const NewClassForm = () => {
                         multiple={true}
                         name={`feature.${featureIndex}.requirement.option`}
                         placeholder='Requirement'
-                        options={builders.class.feature.requirement}
+                        options={builders.feature.requirement}
                         value={featureItem.requirement?.option}
                         required={true}
                         onChange={setState}
@@ -1321,7 +1306,7 @@ const NewClassForm = () => {
                           name={`feature.${featureIndex}.limitUse.limitBy`}
                           placeholder='Limit By Option'
                           value={featureItem.limitUse?.limitBy}
-                          options={builders.class.feature.chargeLimit}
+                          options={builders.feature.chargeLimit}
                           required={true}
                           onChange={setState}
                         />
@@ -1367,7 +1352,7 @@ const NewClassForm = () => {
                           name={`feature.${featureIndex}.limitUse.resetsOn`}
                           placeholder='Reset Option'
                           value={featureItem.limitUse?.resetsOn}
-                          options={builders.class.feature.chargeReset}
+                          options={builders.feature.chargeReset}
                           required={true}
                           onChange={setState}
                         />
@@ -1392,7 +1377,7 @@ const NewClassForm = () => {
                           name={`feature.${featureIndex}.action`}
                           placeholder='Action Type'
                           value={featureItem.action}
-                          options={builders.class.feature.action}
+                          options={builders.feature.action}
                           required={true}
                           onChange={setState}
                         />
@@ -1438,7 +1423,7 @@ const NewClassForm = () => {
                         />
                       </>
                     ) : (
-                      !!featureItem.saveAbility &&
+                      !!featureItem.range &&
                       setState({
                         action: 'removed',
                         payload: {
@@ -1451,15 +1436,53 @@ const NewClassForm = () => {
                     {featureItem.attribute?.some(
                       (attributeItem) => attributeItem.name === 'requireSave'
                     ) ? (
-                      <Select
-                        ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.saveAbility`}
-                        placeholder='DC Ability'
-                        value={featureItem.saveAbility}
-                        options={builders.ability}
-                        required={true}
-                        onChange={setState}
-                      />
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          name={`feature.${featureIndex}.saveAbility.attribute`}
+                          multiple={true}
+                          placeholder='Save Attribute'
+                          value={featureItem.saveAbility?.attribute}
+                          options={builders.feature.saveAttribute}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Select
+                          ref={addToSelectRefs}
+                          name={`feature.${featureIndex}.saveAbility.ability`}
+                          placeholder='DC Ability'
+                          value={featureItem.saveAbility?.ability}
+                          options={builders.ability}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Input
+                          ref={addToInputRefs}
+                          validate='num'
+                          name={`feature.${featureIndex}.saveAbility.minValue`}
+                          label={true}
+                          autoComplete='off'
+                          placeholder='Min. Value'
+                          required={true}
+                          invalidText='Must contain only numbers'
+                          value={featureItem.saveAbility?.minValue}
+                          onChange={setState}
+                        />
+                        {featureItem.saveAbility?.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'addAbilityModifier'
+                        ) && (
+                          <Select
+                            ref={addToSelectRefs}
+                            name={`feature.${featureIndex}.saveAbility.abilityModifier`}
+                            placeholder='Modifier Ability'
+                            value={featureItem.saveAbility?.abilityModifier}
+                            options={builders.ability}
+                            required={true}
+                            onChange={setState}
+                          />
+                        )}
+                      </>
                     ) : (
                       !!featureItem.saveAbility &&
                       setState({
@@ -1473,20 +1496,111 @@ const NewClassForm = () => {
                     )}
                   </div>
                   {featureItem.requirement?.option?.some(
+                    (optionItem) => optionItem.name === 'itemProficiency'
+                  ) ? (
+                    <>
+                      <AccordionButton
+                        className='accordion feature-attribute-divider justify-content-between align-items-center'
+                        id={`feature${featureIndex}ItemProficiencyButton`}
+                        target={`feature${featureIndex}ItemProficiency`}
+                      >
+                        <span className='me-3'>Item Proficiency</span>
+                        <hr className='flex-grow-1 me-3' />
+                      </AccordionButton>
+                      <div
+                        className='accordion-collapse collapse show'
+                        id={`feature${featureIndex}ItemProficiency`}
+                      >
+                        <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
+                          <Select
+                            ref={addToSelectRefs}
+                            multiple={true}
+                            name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
+                            value={
+                              featureItem.requirement?.itemProficiency
+                                ?.itemCategory
+                            }
+                            placeholder='Item Category'
+                            options={builders.item.itemCategory}
+                            onChange={setState}
+                          />
+                          <Select
+                            ref={addToSelectRefs}
+                            name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
+                            multiple={true}
+                            placeholder='Item type'
+                            value={
+                              featureItem.requirement?.itemProficiency?.itemType
+                            }
+                            options={items.filter((item) =>
+                              featureItem.requirement.itemProficiency?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
+                            )}
+                            onChange={setState}
+                          />
+                          <Select
+                            ref={addToSelectRefs}
+                            name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
+                            multiple={true}
+                            placeholder='Item Property'
+                            value={
+                              featureItem.requirement?.itemProficiency
+                                ?.itemProperty
+                            }
+                            options={[].concat(
+                              ...items
+                                .filter((item) =>
+                                  featureItem.requirement?.itemProficiency?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                )
+                                .filter((item) =>
+                                  !featureItem.requirement.itemProficiency
+                                    ?.itemType ||
+                                  featureItem.requirement.itemProficiency
+                                    ?.itemType?.length === 0
+                                    ? item
+                                    : featureItem.requirement.itemProficiency.itemType.some(
+                                        (type) => type.name === item.name
+                                      )
+                                )
+                                .map((item) => item.itemProperty)
+                            )}
+                            onChange={setState}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    !!featureItem.requirement?.itemProficiency &&
+                    setState({
+                      action: 'removed',
+                      payload: {
+                        target: {
+                          name: `feature.${featureIndex}.requirement.itemProficiency`,
+                        },
+                      },
+                    })
+                  )}
+                  {featureItem.requirement?.option?.some(
                     (optionItem) => optionItem.name === 'equipped'
                   ) ? (
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureEquippedButton'
-                        target='featureEquipped'
+                        id={`feature${featureIndex}EquippedButton`}
+                        target={`feature${featureIndex}Equipped`}
+                        expanded='true'
                       >
                         <span className='me-3'>Equipped</span>
                         <hr className='flex-grow-1 me-3' />
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureEquipped'
+                        id={`feature${featureIndex}Equipped`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1554,15 +1668,16 @@ const NewClassForm = () => {
                     <>
                       <AccordionButton
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
-                        id='featureNotEquippedButton'
-                        target='featureNotEquipped'
+                        id={`feature${featureIndex}NotEquippedButton`}
+                        target={`feature${featureIndex}NotEquipped`}
+                        expanded='true'
                       >
                         <span className='me-3'>Not Equipped</span>
                         <hr className='flex-grow-1 me-3' />
                       </AccordionButton>
                       <div
                         className='accordion-collapse collapse show'
-                        id='featureNotEquipped'
+                        id={`feature${featureIndex}NotEquipped`}
                       >
                         <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-3'>
                           <Select
@@ -1640,23 +1755,23 @@ const NewClassForm = () => {
                         },
                       })) && (
                       <div>
-                        <h6>Limit Use `Tab`le</h6>
+                        <h6>Limit Use Table</h6>
                         <Table
                           inputs={[
                             {
                               name: 'level',
                               value: 'Level',
                               invalid: 'Must contain only numbers',
-                              label: true,
                               validation: 'num',
+                              label: true,
                               size: 'col-5',
                             },
                             {
                               name: 'uses',
                               value: 'Uses',
                               invalid: 'Must contain only numbers',
-                              label: true,
                               validation: 'num',
+                              label: true,
                               size: 'col-5',
                             },
                           ]}
@@ -1687,7 +1802,7 @@ const NewClassForm = () => {
                           name={`feature.${featureIndex}.damage.damageAttribute`}
                           placeholder='Damage Attribute'
                           value={featureItem.damage?.damageAttribute}
-                          options={builders.class.feature.damageAttribute}
+                          options={builders.feature.damageAttribute}
                           required={true}
                           onChange={setState}
                         />
@@ -1722,6 +1837,7 @@ const NewClassForm = () => {
                         className='accordion form-details justify-content-between align-items-center'
                         id='damageTableButton'
                         target='damageTable'
+                        expanded='true'
                       >
                         <span className='me-3'>Damage Table</span>
                         <hr className='flex-grow-1 me-3' />
@@ -1756,6 +1872,7 @@ const NewClassForm = () => {
                               <AccordionButton
                                 id={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionButton`}
                                 target={`${featureIndex}${sectionItem.name}${sectionIndex}${itemIndex}AccordionBody`}
+                                expanded='true'
                               >
                                 <h6>{`${startCase(sectionItem.name)} ${
                                   itemIndex + 1
@@ -1842,30 +1959,34 @@ const NewClassForm = () => {
                 onChange={setState}
               />
             )}
-            <Input
-              ref={addToInputRefs}
-              name='hitPoint.diceCount'
-              label={true}
-              autoComplete='off'
-              placeholder='HP Dice Count'
-              required={true}
-              value={state.hitPoint?.diceCount}
-              validation='num'
-              invalidText='Must contain whole numbers only'
-              onChange={setState}
-            />
-            <Input
-              ref={addToInputRefs}
-              name='hitPoint.diceValue'
-              label={true}
-              autoComplete='off'
-              placeholder='HP Dice Value'
-              required={true}
-              value={state.hitPoint?.diceValue}
-              validation='num'
-              invalidText='Must contain whole numbers only'
-              onChange={setState}
-            />
+            {state.category?.name !== 'subclass' && (
+              <>
+                <Input
+                  ref={addToInputRefs}
+                  name='hitPoint.diceCount'
+                  label={true}
+                  autoComplete='off'
+                  placeholder='HP Dice Count'
+                  required={true}
+                  value={state.hitPoint?.diceCount}
+                  validation='num'
+                  invalidText='Must contain whole numbers only'
+                  onChange={setState}
+                />
+                <Input
+                  ref={addToInputRefs}
+                  name='hitPoint.diceValue'
+                  label={true}
+                  autoComplete='off'
+                  placeholder='HP Dice Value'
+                  required={true}
+                  value={state.hitPoint?.diceValue}
+                  validation='num'
+                  invalidText='Must contain whole numbers only'
+                  onChange={setState}
+                />
+              </>
+            )}
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
@@ -1878,9 +1999,9 @@ const NewClassForm = () => {
           <div className='accordion-collapse collapse show' id='details'>
             <TextEditor
               ref={addToTextRefs}
-              name={'quote'}
-              value={state?.quote}
-              placeholder={'Opening Quote'}
+              name={'desc'}
+              value={state?.desc}
+              placeholder={'Description'}
               onChange={setState}
             />
             <div className='pb-2'>
@@ -1902,6 +2023,7 @@ const NewClassForm = () => {
                         id={`details.${detailIndex}AccordionButton`}
                         target={`details.${detailIndex}AccordionBody`}
                         key={detailIndex}
+                        expanded='true'
                       >
                         <Input
                           ref={addToInputRefs}
@@ -1948,42 +2070,42 @@ const NewClassForm = () => {
               ))}
             </div>
           </div>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='attributeButton'
-            target='attribute'
-          >
-            <span className='me-3'>Attributes</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div className='accordion-collapse collapse show' id='attribute'>
-            <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-sm-1'>
-              <Select
-                ref={addToSelectRefs}
-                name='attribute'
-                placeholder='Attributes'
-                multiple={true}
-                value={state?.attribute}
-                options={builders.class.attribute
-                  .filter((attributeItem) =>
-                    state?.attribute?.some(
-                      (item) => item.name === 'primaryAbility'
-                    )
-                      ? attributeItem
-                      : attributeItem.name !== 'optionalAbility'
-                  )
-                  .filter((attributeItem) =>
-                    state?.attribute?.some(
-                      (item) => item.name === 'spellCaster'
-                    )
-                      ? attributeItem
-                      : attributeItem.name !== 'ritualCaster'
-                  )}
-                onChange={setState}
-              />
-            </div>
-            {state.category?.name !== 'subclass' && (
-              <>
+          {state.category?.name !== 'subclass' && (
+            <>
+              <AccordionButton
+                className='accordion form-details justify-content-between align-items-center'
+                id='attributeButton'
+                target='attribute'
+              >
+                <span className='me-3'>Attributes</span>
+                <hr className='flex-grow-1 me-3' />
+              </AccordionButton>
+              <div className='accordion-collapse collapse show' id='attribute'>
+                <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-sm-1'>
+                  <Select
+                    ref={addToSelectRefs}
+                    name='attribute'
+                    placeholder='Attributes'
+                    multiple={true}
+                    value={state?.attribute}
+                    options={builders.class.attribute
+                      .filter((attributeItem) =>
+                        state?.attribute?.some(
+                          (item) => item.name === 'primaryAbility'
+                        )
+                          ? attributeItem
+                          : attributeItem.name !== 'optionalAbility'
+                      )
+                      .filter((attributeItem) =>
+                        state?.attribute?.some(
+                          (item) => item.name === 'spellCaster'
+                        )
+                          ? attributeItem
+                          : attributeItem.name !== 'ritualCaster'
+                      )}
+                    onChange={setState}
+                  />
+                </div>
                 {state.attribute?.some(
                   (attributeItem) => attributeItem.name === 'primaryAbility'
                 ) && <h6 className='pb-2'>Multiclass Ability Requirements</h6>}
@@ -2100,48 +2222,90 @@ const NewClassForm = () => {
                     </>
                   )}
                 </div>
-              </>
-            )}
-            <div className='row g-2 px-4'>
+                <div className='row g-2 px-4'>
+                  <AccordionButton
+                    className='accordion form-details justify-content-between align-items-center'
+                    id='attributeTableButton'
+                    target='attributeTable'
+                  >
+                    <h6 className='me-3'>Attribute Table</h6>
+                    <hr className='flex-grow-1 me-3' />
+                  </AccordionButton>
+                  <div
+                    className='accordion-collapse collapse show'
+                    id='attributeTable'
+                  >
+                    {!state?.levelAttribute && addArray('levelAttribute')}
+                    {state.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'spellCaster'
+                    ) &&
+                      state?.levelAttribute.map(
+                        (levelAttributeItem, levelAttributeIndex) =>
+                          !levelAttributeItem?.spellSlots &&
+                          addArray(
+                            `levelAttribute.${levelAttributeIndex}.spellSlots`
+                          )
+                      )}
+                    <Table
+                      name='levelAttribute'
+                      inputs={levelAttributeInputs()}
+                      indentedInputs={indentedInputs(
+                        state.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'spellCaster'
+                        )
+                      )}
+                      value={state?.levelAttribute}
+                      indentedName='spellSlots'
+                      onChange={setState}
+                      dynamic={true}
+                    />
+                  </div>
+                </div>
+              </div>
               <AccordionButton
                 className='accordion form-details justify-content-between align-items-center'
-                id='attributeTableButton'
-                target='attributeTable'
+                id='subclassButton'
+                target='subclass'
               >
-                <h6 className='me-3'>Attribute Table</h6>
+                <span className='me-3'>Subclass Details</span>
                 <hr className='flex-grow-1 me-3' />
               </AccordionButton>
-              <div
-                className='accordion-collapse collapse show'
-                id='attributeTable'
-              >
-                {!state?.levelAttribute && addArray('levelAttribute')}
-                {state.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'spellCaster'
-                ) &&
-                  state?.levelAttribute.map(
-                    (levelAttributeItem, levelAttributeIndex) =>
-                      !levelAttributeItem?.spellSlots &&
-                      addArray(
-                        `levelAttribute.${levelAttributeIndex}.spellSlots`
-                      )
-                  )}
-                <Table
-                  name='levelAttribute'
-                  inputs={levelAttributeInputs()}
-                  indentedInputs={indentedInputs(
-                    state.attribute?.some(
-                      (attributeItem) => attributeItem.name === 'spellCaster'
-                    )
-                  )}
-                  value={state?.levelAttribute}
-                  indentedName='spellSlots'
+              <div className='accordion-collapse collapse show' id='subclass'>
+                <div className='row g-2 row-cols-sm-4 pb-2'>
+                  <Input
+                    ref={addToInputRefs}
+                    name='subclass.value'
+                    label={true}
+                    autoComplete='off'
+                    placeholder='Subclass Feature Name'
+                    required={true}
+                    value={state.subclass?.value}
+                    onChange={setState}
+                  />
+                  <Input
+                    ref={addToInputRefs}
+                    name='subclass.levelAcquired'
+                    label={true}
+                    autoComplete='off'
+                    placeholder='Level Acquired'
+                    required={true}
+                    value={state.subclass?.levelAcquired}
+                    validation='num'
+                    invalidText='Must contain whole numbers only'
+                    onChange={setState}
+                  />
+                </div>
+                <TextEditor
+                  ref={addToTextRefs}
+                  name={'subclass.desc'}
+                  value={state?.desc}
+                  placeholder={'Description'}
                   onChange={setState}
-                  dynamic={true}
                 />
               </div>
-            </div>
-          </div>
+            </>
+          )}
           <div className='d-flex pb-3 justify-content-between'>
             <button
               className='btn btn-secondary me-2'
