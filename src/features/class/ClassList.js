@@ -97,16 +97,16 @@ const ClassList = () => {
     setTableColumns({
       headers: [
         {
-          name: 'Name',
-          value: 'name',
+          name: 'name',
+          value: 'Name',
           border: false,
           className: 'fw-bold',
           size: 'col',
           breakpoint: '',
         },
         {
-          name: 'Category',
-          value: 'category',
+          name: 'category',
+          value: 'Category',
           border: false,
           className: 'fw-bold',
           size: 'col',

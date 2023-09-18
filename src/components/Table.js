@@ -6,8 +6,6 @@ import Input from './Input'
 
 const Table = ({
   inputs,
-  indentedInputs,
-  indentedName,
   name,
   value,
   onChange,
@@ -93,28 +91,28 @@ const Table = ({
     <div className={`${scrollable ? 'table-scrollable' : ''}`}>
       {headers && (
         <div
-          className={`row pb-2 g-2${className ? ` ${className}` : ''}${
+          className={`row pb-2 ms-0 me-0 g-2${className ? ` ${className}` : ''}${
             scrollable ? ' scrollable' : ''
-          }`}
+          } align-items-end`}
         >
           {headers?.map((headerItem, headerIndex) => {
             return (
               <Fragment key={headerIndex}>
                 {!headerItem.breakpoint &&
-                  (readOnly ? (
+                  (readOnly || headerItem.readOnly ? (
                     <div
                       className={`${headerItem.size ?? ''} ${
                         headerItem.className ?? ''
-                      }  ${getClassNames(headerItem.value)} ${
+                      }  ${getClassNames(headerItem.name)} ${
                         sortable ? 'sortable-header' : ''
                       }`}
                       key={headerIndex}
                       onClick={() =>
                         sortable &&
-                        requestSort(headerItem.value, headerItem.order)
+                        requestSort(headerItem.name, headerItem.order)
                       }
                     >
-                      {headerItem.name}
+                      {headerItem.value}
                     </div>
                   ) : (
                     <Input
@@ -123,73 +121,76 @@ const Table = ({
                       key={headerIndex}
                       name={headerItem.name}
                       value={headerItem.value}
-                      readOnly={readOnly === true ? true : false}
                       border={headerItem.border}
                     />
                   ))}
-                {deleteRow && headerIndex === headers.length - 1 && (
-                  <div className='col-1'></div>
+                {!!dynamic && headerIndex === inputs.length - 1 && (
+                  <>
+                    <div className='col-1'></div>
+                    <div className='col-1'></div>
+                  </>
                 )}
               </Fragment>
             )
           })}
         </div>
       )}
-      {sortState?.valueItems?.map((valueItem, valueIndex) => (
-        <div
-          key={valueIndex}
-          className={`row pb-2 g-2${className ? ` ${className}` : ''}${
-            clickable ? ' row-clickable' : ''
-          }${scrollable ? ' scrollable' : ''}`}
-          onClick={() => {
-            onClick && onClick(valueItem)
-          }}
-        >
-          {inputs?.map(
-            (inputItem, inputIndex) =>
-              !inputItem.breakpoint &&
-              (readOnly ? (
-                <Fragment key={inputIndex}>
-                  <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
-                    {getValueFromState(inputItem, valueItem) !== null
-                      ? getValueFromState(inputItem, valueItem)
-                      : ''}
-                  </div>
-                  {deleteRow && inputIndex === inputs.length - 1 && (
-                    <div className='col-1'>
-                      <button
-                        className='bi bi-trash3'
-                        type='button'
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          deleteRow(valueItem)
-                        }}
-                      />
-                    </div>
-                  )}
-                </Fragment>
-              ) : (
-                <Fragment key={inputIndex}>
-                  <Input
-                    size={inputItem.size ?? null}
-                    name={`${name}.${valueIndex}.${inputItem.name}`}
-                    label={inputItem.label ?? false}
-                    border={inputItem.border}
-                    placeholder={inputItem.value}
-                    invalidText={inputItem.invalid}
-                    value={
-                      getValueFromState(inputItem, valueItem) !== null
+      {sortState?.valueItems?.map((valueItem, valueIndex) => {
+        return (
+          <div
+            key={valueIndex}
+            className={`row pb-2 ms-0 me-0 g-2${className ? ` ${className}` : ''}${
+              clickable ? ' row-clickable' : ''
+            }${scrollable ? ' scrollable' : ''}`}
+            onClick={() => {
+              onClick && onClick(valueItem)
+            }}
+          >
+            {inputs?.map((inputItem, inputIndex) => {
+              return (
+                !inputItem.breakpoint &&
+                (readOnly ? (
+                  <Fragment key={inputIndex}>
+                    <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
+                      {getValueFromState(inputItem, valueItem) !== null
                         ? getValueFromState(inputItem, valueItem)
-                        : ''
-                    }
-                    onChange={onChange}
-                    readOnly={readOnly === true ? true : false}
-                    validation={inputItem.validation}
-                  />
-                  {!!dynamic && inputIndex === inputs.length - 1 && (
-                    <div className='col-auto d-flex'>
-                      <div className='row g-0 row-cols-auto'>
-                        <div className='col-auto'>
+                        : ''}
+                    </div>
+                    {deleteRow && inputIndex === inputs.length - 1 && (
+                      <div className='col-1'>
+                        <button
+                          className='bi bi-trash3'
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteRow(valueItem)
+                          }}
+                        />
+                      </div>
+                    )}
+                  </Fragment>
+                ) : (
+                  <Fragment key={inputIndex}>
+                    <Input
+                      size={inputItem.size ?? null}
+                      name={`${name}.${valueIndex}.${inputItem.name}`}
+                      label={inputItem.label ?? false}
+                      border={inputItem.border}
+                      placeholder={inputItem.value}
+                      invalidText={inputItem.invalid}
+                      value={
+                        getValueFromState(inputItem, valueItem) !== null
+                          ? getValueFromState(inputItem, valueItem)
+                          : ''
+                      }
+                      required={inputItem.required ?? false}
+                      onChange={onChange}
+                      readOnly={readOnly === true ? true : false}
+                      validation={inputItem.validation}
+                    />
+                    {!!dynamic && inputIndex === inputs.length - 1 && (
+                      <>
+                        <div className='col-1'>
                           <button
                             className='bi bi-plus-circle mx-2'
                             type='button'
@@ -199,8 +200,8 @@ const Table = ({
                             }}
                           />
                         </div>
-                        {valueIndex !== 0 && (
-                          <div className='col-auto'>
+                        <div className='col-1'>
+                          {valueIndex !== 0 && (
                             <button
                               className='bi bi-trash3 mx-2'
                               type='button'
@@ -209,74 +210,17 @@ const Table = ({
                                 onChange({ type: 'removed', payload: e })
                               }
                             />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </Fragment>
-              ))
-          )}
-          {indentedInputs?.length !== 0 &&
-            valueItem[indentedName]?.map((subValueItem, subValueIndex) => {
-              return (
-                <div className='row gx-2 gy-1' key={subValueIndex}>
-                  <div className='col-2'></div>
-                  {indentedInputs.map((indentedItem, indentedIndex) => (
-                    <Fragment key={indentedIndex}>
-                      <Input
-                        size={indentedItem.size ?? null}
-                        name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}.${indentedIndex.name}`}
-                        label={indentedItem.label ?? false}
-                        border={indentedItem.border}
-                        key={indentedIndex}
-                        placeholder={indentedItem.value}
-                        invalidText={indentedItem.invalid}
-                        value={
-                          getValueFromState(indentedItem, subValueItem) !== null
-                            ? getValueFromState(indentedItem, subValueItem)
-                            : ''
-                        }
-                        onChange={onChange}
-                        readOnly={readOnly === true ? true : false}
-                        validation={indentedItem.validation}
-                      />
-                      {!!dynamic &&
-                        indentedIndex === indentedInputs.length - 1 && (
-                          <div className='col-auto d-flex'>
-                            <div className='row g-2 row-cols-auto'>
-                              <div className='col-auto'>
-                                <button
-                                  className='bi bi-plus-circle'
-                                  type='button'
-                                  name={`${name}.${valueIndex}.${indentedName}`}
-                                  onClick={(e) =>
-                                    onChange({ type: 'added', payload: e })
-                                  }
-                                />
-                              </div>
-                              {subValueIndex !== 0 && (
-                                <div className='col-auto'>
-                                  <button
-                                    className='bi bi-trash3'
-                                    type='button'
-                                    name={`${name}.${valueIndex}.${indentedName}.${subValueIndex}`}
-                                    onClick={(e) =>
-                                      onChange({ type: 'removed', payload: e })
-                                    }
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                    </Fragment>
-                  ))}
-                </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </Fragment>
+                ))
               )
             })}
-        </div>
-      ))}
+          </div>
+        )
+      })}
     </div>
   )
 

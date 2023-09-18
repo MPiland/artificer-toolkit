@@ -14,9 +14,13 @@ const AccordionButton = ({ children, className, id, target, expanded }) => {
   }, [expanded, target])
 
   const accordionToggle = (e) => {
+    const element = e.target
     const accordion = document.getElementById(target)
     const accordionButton = buttonRef.current
-    if (e?.target === accordionButton) {
+    if (
+      element === accordionButton ||
+      element.parentElement === accordionButton
+    ) {
       accordionButton.toggleAttribute('aria-expanded')
       accordionButton.classList.toggle('collapsed')
       accordion.classList.toggle('show')

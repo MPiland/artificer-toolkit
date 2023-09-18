@@ -254,10 +254,21 @@ const EditClassForm = () => {
     classIsSuccess &&
     itemIsSuccess
   ) {
+    const spellCaster = state.attribute?.some(
+      (attributeItem) => attributeItem.name === 'spellCaster'
+    )
 
     const addArray = (name) => {
       setState({ type: 'added', payload: { target: { name: name } } })
     }
+
+    !state?.levelAttribute && addArray('levelAttribute')
+    spellCaster &&
+      state?.levelAttribute.map(
+        (levelAttributeItem, levelAttributeIndex) =>
+          !levelAttributeItem?.spellSlots &&
+          addArray(`levelAttribute.${levelAttributeIndex}.spellSlots`)
+      )
 
     const damageTableInputs = (secondary) => {
       const inputArray = [
@@ -309,6 +320,59 @@ const EditClassForm = () => {
       return inputArray
     }
 
+    const levelAttributeHeaders = () => {
+      const headerArray = [
+        {
+          name: 'level',
+          value: 'Level',
+          border: false,
+          className: 'fw-bold',
+          readOnly: true,
+          size: 'col',
+        },
+        {
+          name: 'proficiencyBonus',
+          value: 'Prof. Bonus',
+          border: false,
+          className: 'fw-bold',
+          readOnly: true,
+          size: 'col text-wrap',
+          wordwrap: true,
+        },
+      ]
+      if (spellCaster) {
+        if (
+          state.spellcasting?.attribute?.some(
+            (attributeItem) => attributeItem.name === 'limitKnownSpells'
+          )
+        ) {
+          headerArray.push({
+            name: 'spellsKnown',
+            value: 'Spells Known',
+            border: false,
+            className: 'fw-bold',
+            readOnly: true,
+            size: 'col text-wrap',
+            wordwrap: true,
+          })
+        }
+        if (state?.spellcasting?.maxSpellLevel) {
+          for (let i = 0; i <= state.spellcasting?.maxSpellLevel; i++) {
+            headerArray.push({
+              name: i,
+              value: i,
+              border: false,
+              className: 'fw-bold',
+              readOnly: true,
+              size: 'col',
+            })
+          }
+        }
+      }
+
+      return headerArray
+    }
+
     const levelAttributeInputs = () => {
       const inputArray = [
         {
@@ -316,44 +380,42 @@ const EditClassForm = () => {
           value: 'Level',
           invalid: 'Must contain only numbers',
           validation: 'num',
-          label: true,
-          size: 'col-4',
+          size: 'col',
+          required: true,
         },
         {
           name: 'proficiencyBonus',
-          value: 'Proficiency Bonus',
+          value: 'Prof. Bonus',
           invalid: 'Must contain only numbers',
           validation: 'num',
-          label: true,
-          size: 'col-4',
+          size: 'col',
         },
       ]
-      return inputArray
-    }
-
-    const indentedInputs = (spellCaster) => {
-      const inputArray = []
       if (spellCaster) {
-        inputArray.push(
-          {
-            name: 'slotCount',
-            value: 'Num. of Slots',
+        if (
+          state.spellcasting?.attribute?.some(
+            (attributeItem) => attributeItem.name === 'limitKnownSpells'
+          )
+        ) {
+          inputArray.push({
+            name: 'spellsKnown',
+            value: 'Spells Known',
             invalid: 'Must contain only numbers',
             validation: 'num',
-            label: true,
-            size: 'col-4',
-            indented: true,
-          },
-          {
-            name: 'slotLevel',
-            value: 'Slot Level',
-            invalid: 'Must contain only numbers',
-            validation: 'num',
-            label: true,
-            size: 'col-4',
-            indented: true,
+            size: 'col',
+          })
+        }
+        if (state.spellcasting?.maxSpellLevel) {
+          for (let i = 0; i <= state.spellcasting?.maxSpellLevel; i++) {
+            inputArray.push({
+              name: `spellSlots.${i}.slotCount`,
+              value: 'Num. Slots',
+              invalid: 'Must contain only numbers',
+              validation: 'num',
+              size: 'col',
+            })
           }
-        )
+        }
       }
       return inputArray
     }
@@ -1076,7 +1138,7 @@ const EditClassForm = () => {
                   ref={addToSelectRefs}
                   multiple='true'
                   name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                  options={builders.feat.feature.spell.attribute}
+                  options={builders.feature.spell.attribute}
                   placeholder='Spell Attributes'
                   value={item.attribute}
                   require={true}
@@ -2128,29 +2190,69 @@ const EditClassForm = () => {
               </AccordionButton>
               <div className='accordion-collapse collapse show' id='attribute'>
                 <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-sm-1'>
-                  <Select
-                    ref={addToSelectRefs}
-                    name='attribute'
-                    placeholder='Attributes'
-                    multiple={true}
-                    value={state?.attribute}
-                    options={builders.class.attribute
-                      .filter((attributeItem) =>
-                        state?.attribute?.some(
-                          (item) => item.name === 'primaryAbility'
+                  <>
+                    <Select
+                      ref={addToSelectRefs}
+                      name='attribute'
+                      placeholder='Attributes'
+                      multiple={true}
+                      value={state.attribute}
+                      options={builders.class.attribute
+                        .filter(
+                          (attributeItem) =>
+                            attributeItem.name !== 'ritualCaster' &&
+                            attributeItem.name !== 'limitKnownSpells'
                         )
-                          ? attributeItem
-                          : attributeItem.name !== 'optionalAbility'
-                      )
-                      .filter((attributeItem) =>
-                        state?.attribute?.some(
-                          (item) => item.name === 'spellCaster'
-                        )
-                          ? attributeItem
-                          : attributeItem.name !== 'ritualCaster'
-                      )}
-                    onChange={setState}
-                  />
+                        .filter((attributeItem) =>
+                          state?.attribute?.some(
+                            (item) => item.name === 'primaryAbility'
+                          )
+                            ? attributeItem
+                            : attributeItem.name !== 'optionalAbility'
+                        )}
+                      onChange={setState}
+                    />
+                    {state.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'spellCaster'
+                    ) && (
+                      <>
+                        <Select
+                          ref={addToSelectRefs}
+                          name='spellcasting.attribute'
+                          placeholder='Spell Casting Attributes'
+                          multiple={true}
+                          value={state.spellcasting?.attribute}
+                          options={builders.class.attribute.filter(
+                            (attributeItem) =>
+                              attributeItem.name === 'ritualCaster' ||
+                              attributeItem.name === 'limitKnownSpells'
+                          )}
+                          onChange={setState}
+                        />
+                        <Select
+                          ref={addToSelectRefs}
+                          name='spellcasting.Ability'
+                          placeholder='Spellcasting Ability'
+                          required={true}
+                          value={state.spellcasting?.Ability}
+                          options={builders.ability}
+                          onChange={setState}
+                        />
+                        <Input
+                          ref={addToInputRefs}
+                          name='spellcasting.maxSpellLevel'
+                          label={true}
+                          autoComplete='off'
+                          placeholder='Max Spell Level'
+                          required={true}
+                          value={state.spellcasting?.maxSpellLevel}
+                          validation='num'
+                          invalidText='Must contain whole numbers only'
+                          onChange={setState}
+                        />
+                      </>
+                    )}
+                  </>
                 </div>
                 {state.attribute?.some(
                   (attributeItem) => attributeItem.name === 'primaryAbility'
@@ -2273,6 +2375,7 @@ const EditClassForm = () => {
                     className='accordion form-details justify-content-between align-items-center'
                     id='attributeTableButton'
                     target='attributeTable'
+                    expanded='false'
                   >
                     <h6 className='me-3'>Attribute Table</h6>
                     <hr className='flex-grow-1 me-3' />
@@ -2281,29 +2384,14 @@ const EditClassForm = () => {
                     className='accordion-collapse collapse show'
                     id='attributeTable'
                   >
-                    {!state?.levelAttribute && addArray('levelAttribute')}
-                    {state.attribute?.some(
-                      (attributeItem) => attributeItem.name === 'spellCaster'
-                    ) &&
-                      state?.levelAttribute.map(
-                        (levelAttributeItem, levelAttributeIndex) =>
-                          !levelAttributeItem?.spellSlots &&
-                          addArray(
-                            `levelAttribute.${levelAttributeIndex}.spellSlots`
-                          )
-                      )}
                     <Table
                       name='levelAttribute'
+                      headers={levelAttributeHeaders()}
                       inputs={levelAttributeInputs()}
-                      indentedInputs={indentedInputs(
-                        state.attribute?.some(
-                          (attributeItem) =>
-                            attributeItem.name === 'spellCaster'
-                        )
-                      )}
                       value={state?.levelAttribute}
                       indentedName='spellSlots'
                       onChange={setState}
+                      scrollable={true}
                       dynamic={true}
                     />
                   </div>
@@ -2313,6 +2401,7 @@ const EditClassForm = () => {
                 className='accordion form-details justify-content-between align-items-center'
                 id='subclassButton'
                 target='subclass'
+                expanded='false'
               >
                 <span className='me-3'>Subclass Details</span>
                 <hr className='flex-grow-1 me-3' />

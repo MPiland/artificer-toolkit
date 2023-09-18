@@ -31,6 +31,7 @@ const Input = forwardRef(
       readOnly,
       onClick,
       validation,
+      className,
     },
     ref
   ) => {
@@ -83,7 +84,7 @@ const Input = forwardRef(
           ref={inputRef}
           className={`form-control${readOnly ? '-plaintext' : ''} ${
             border === false ? 'border-0' : ''
-          } ${classText}`}
+          } ${classText} ${className ?? ''}`}
           type={type ?? 'text'}
           name={name}
           id={name}

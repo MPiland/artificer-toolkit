@@ -97,8 +97,8 @@ const FeatList = () => {
     setTableColumns({
       headers: [
         {
-          name: 'Name',
-          value: 'name',
+          name: 'name',
+          value: 'Name',
           border: false,
           className: 'fw-bold',
           size: 'col',

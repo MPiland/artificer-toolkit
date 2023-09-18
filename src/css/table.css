@@ -1,6 +1,9 @@
-.table-scrollable {
-  overflow-y: auto;
+.table {
   overflow-x: hidden;
+}
+
+.table-scrollable {
+  overflow: auto;
   flex: 1 1 auto;
   height: 100%;
 }
