@@ -281,11 +281,11 @@ const NewFeatForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions ? '.options' : ''
+                    multipleOptions ? '.options' : '.set'
                   }`}
-                  multiple={multipleOptions}
+                  multiple={true}
                   placeholder='Feat'
-                  value={multipleOptions ? item?.options : item}
+                  value={multipleOptions ? item?.options : item?.set}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -384,11 +384,15 @@ const NewFeatForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.ability${multipleOptions ? '.options' : ''}`}
-                        multiple={multipleOptions}
+                        }.${index}.ability${
+                          multipleOptions ? '.options' : '.set'
+                        }`}
+                        multiple={true}
                         placeholder='Ability'
                         value={
-                          multipleOptions ? item.ability?.options : item.ability
+                          multipleOptions
+                            ? item.ability?.options
+                            : item.ability?.set
                         }
                         options={builders.ability}
                         required={true}
@@ -401,14 +405,14 @@ const NewFeatForm = () => {
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.saveAbility${
-                          multipleOptions ? '.options' : ''
+                          multipleOptions ? '.options' : '.set'
                         }`}
-                        multiple={multipleOptions}
+                        multiple={true}
                         placeholder='Save Ability'
                         value={
                           multipleOptions
                             ? item.saveAbility?.options
-                            : item.saveAbility
+                            : item.saveAbility?.set
                         }
                         options={builders.ability}
                         required={true}
@@ -420,11 +424,15 @@ const NewFeatForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.skill${multipleOptions ? '.options' : ''}`}
-                        multiple={multipleOptions}
+                        }.${index}.skill${
+                          multipleOptions ? '.options' : '.set'
+                        }`}
+                        multiple={true}
                         placeholder='Skill'
                         value={
-                          multipleOptions ? item.skill?.options : item.skill
+                          multipleOptions
+                            ? item.skill?.options
+                            : item.skill?.set
                         }
                         options={builders.skill}
                         required={true}
@@ -437,14 +445,14 @@ const NewFeatForm = () => {
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.damageSave${
-                          multipleOptions ? '.options' : ''
+                          multipleOptions ? '.options' : '.set'
                         }`}
-                        multiple={multipleOptions}
+                        multiple={true}
                         placeholder='Damage'
                         value={
                           multipleOptions
                             ? item.damageSave?.options
-                            : item.damageSave
+                            : item.damageSave?.set
                         }
                         options={builders.damage}
                         require={true}
@@ -457,14 +465,14 @@ const NewFeatForm = () => {
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.conditionSave${
-                          multipleOptions ? '.options' : ''
+                          multipleOptions ? '.options' : '.set'
                         }`}
-                        multiple={multipleOptions}
+                        multiple={true}
                         placeholder='Condition'
                         value={
                           multipleOptions
                             ? item.conditionSave?.options
-                            : item.conditionSave
+                            : item.conditionSave?.set
                         }
                         options={builders.condition}
                         required={true}
@@ -495,11 +503,15 @@ const NewFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.condition${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.condition${
+                      multipleOptions ? '.options' : '.set'
+                    }`}
+                    multiple={true}
                     placeholder='Condition Type'
                     value={
-                      multipleOptions ? item.condition?.options : item.condition
+                      multipleOptions
+                        ? item.condition?.options
+                        : item.condition?.set
                     }
                     options={builders.condition}
                     required={true}
@@ -509,10 +521,12 @@ const NewFeatForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.speed${
-                      multipleOptions ? '.options' : ''
+                      multipleOptions ? '.options' : '.set'
                     }`}
-                    multiple={multipleOptions}
-                    value={multipleOptions ? item.speed?.options : item.speed}
+                    multiple={true}
+                    value={
+                      multipleOptions ? item.speed?.options : item.speed?.set
+                    }
                     placeholder='Speed Type'
                     options={builders.speed}
                     required={true}
@@ -523,11 +537,13 @@ const NewFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.passive${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.passive${multipleOptions ? '.options' : '.set'}`}
+                    multiple={true}
                     placeholder='Passive Type'
                     value={
-                      multipleOptions ? item.passive?.options : item.passive
+                      multipleOptions
+                        ? item.passive?.options
+                        : item.passive?.set
                     }
                     options={builders.passive}
                     required={true}
@@ -539,11 +555,15 @@ const NewFeatForm = () => {
                       ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.damage${multipleOptions ? '.options' : ''}`}
-                      multiple={multipleOptions}
+                      }.${index}.damage${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
                       placeholder='Damage Type'
                       value={
-                        multipleOptions ? item.damage?.options : item.damage
+                        multipleOptions
+                          ? item.damage?.options
+                          : item.damage?.set
                       }
                       options={builders.damage}
                       required={true}
@@ -726,11 +746,13 @@ const NewFeatForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.skill${
-                      multipleOptions ? '.options' : ''
+                      multipleOptions ? '.options' : '.set'
                     }`}
-                    multiple={multipleOptions}
+                    multiple={true}
                     placeholder='Skill'
-                    value={multipleOptions ? item.skill?.options : item.skill}
+                    value={
+                      multipleOptions ? item.skill?.options : item.skill?.set
+                    }
                     options={builders.skill}
                     required={true}
                     onChange={setState}
@@ -741,29 +763,17 @@ const NewFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.saveAbility${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.saveAbility${
+                      multipleOptions ? '.options' : '.set'
+                    }`}
+                    multiple={true}
                     placeholder='Save Ability'
                     value={
                       multipleOptions
                         ? item.saveAbility?.options
-                        : item.saveAbility
+                        : item.saveAbility?.set
                     }
                     options={builders.ability}
-                    required={true}
-                    onChange={setState}
-                  />
-                )}
-                {item?.area?.name === 'tool' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.tool${
-                      multipleOptions ? '.options' : ''
-                    }`}
-                    multiple={multipleOptions}
-                    placeholder='Tool'
-                    value={multipleOptions ? item.tool?.options : item.tool}
-                    options={builders.tool}
                     required={true}
                     onChange={setState}
                   />
@@ -773,56 +783,124 @@ const NewFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.language${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.language${
+                      multipleOptions ? '.options' : '.set'
+                    }`}
+                    multiple={true}
                     placeholder='Language'
                     value={
-                      multipleOptions ? item.language?.options : item.language
+                      multipleOptions
+                        ? item.language?.options
+                        : item.language?.set
                     }
                     options={builders.language}
                     required={true}
                     onChange={setState}
                   />
                 )}
-                {item.area?.name === 'itemType' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemType${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
-                    placeholder='Item Type'
-                    value={
-                      multipleOptions ? item.itemType?.options : item.itemType
-                    }
-                    options={items}
-                    required={true}
-                    onChange={setState}
-                  />
-                )}
-                {item.area?.name === 'itemProperty' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemProperty${
-                      multipleOptions ? '.options' : ''
-                    }`}
-                    multiple={multipleOptions}
-                    placeholder='Item Property'
-                    value={
-                      multipleOptions
-                        ? item.itemProperty?.options
-                        : item.itemProperty
-                    }
-                    options={[].concat(
-                      ...builders.item.itemCategory.map(
-                        (categoryItem) => categoryItem.itemProperty
-                      )
-                    )}
-                    required={true}
-                    onChange={setState}
-                  />
+                {item.area?.name === 'item' && (
+                  <>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemCategory${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Category'
+                      value={
+                        multipleOptions
+                          ? item.itemCategory?.options
+                          : item.itemCategory?.set
+                      }
+                      options={builders.item.itemCategory}
+                      onChange={setState}
+                    />
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemProperty${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Property'
+                      value={
+                        multipleOptions
+                          ? item.itemProperty?.options
+                          : item.itemProperty?.set
+                      }
+                      options={[].concat(
+                        ...builders.item.itemCategory
+                          .filter((category) =>
+                            multipleOptions
+                              ? item.itemCategory?.options?.length > 0
+                                ? item.itemCategory?.options?.some(
+                                    (itemCategory) =>
+                                      itemCategory.name === category.name
+                                  )
+                                : category
+                              : item.itemCategory?.set?.length > 0
+                              ? item.itemCategory?.set?.some(
+                                  (itemCategory) =>
+                                    itemCategory.name === category.name
+                                )
+                              : category
+                          )
+                          .map((category) => category.itemProperty)
+                      )}
+                      onChange={setState}
+                    />
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemType${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Type'
+                      value={
+                        multipleOptions
+                          ? item.itemType?.options
+                          : item.itemType?.set
+                      }
+                      options={items
+                        .filter((itemType) =>
+                          multipleOptions
+                            ? item.itemCategory?.options?.length > 0
+                              ? item.itemCategory?.options?.some(
+                                  (itemCategory) =>
+                                    itemCategory.name ===
+                                    itemType.itemCategory.name
+                                )
+                              : itemType
+                            : item.itemCategory?.set?.length > 0
+                            ? item.itemCategory?.set?.some(
+                                (itemCategory) =>
+                                  itemCategory.name ===
+                                  itemType.itemCategory.name
+                              )
+                            : itemType
+                        )
+                        .filter((itemType) =>
+                          multipleOptions
+                            ? item.itemProperty?.options?.length > 0
+                              ? item.itemProperty?.options?.some(
+                                  (itemProperty) =>
+                                    itemProperty.name ===
+                                    itemType.itemProperty.name
+                                )
+                              : itemType
+                            : item.itemProperty?.set?.length > 0
+                            ? item.itemProperty?.set?.some(
+                                (itemProperty) =>
+                                  itemProperty.name ===
+                                  itemType.itemProperty.name
+                              )
+                            : itemType
+                        )}
+                      onChange={setState}
+                    />
+                  </>
                 )}
                 <Select
                   ref={addToSelectRefs}
@@ -893,11 +971,11 @@ const NewFeatForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions ? '.options' : ''
+                    multipleOptions ? '.options' : '.set'
                   }`}
-                  multiple={multipleOptions}
+                  multiple={true}
                   placeholder='Sense'
-                  value={multipleOptions ? item?.options : item}
+                  value={multipleOptions ? item?.options : item?.set}
                   options={builders.sense}
                   required={true}
                   onChange={setState}
@@ -972,12 +1050,14 @@ const NewFeatForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions ? '.options' : ''
+                    multipleOptions ? '.options' : '.set'
                   }`}
-                  multiple={multipleOptions}
+                  multiple={true}
                   placeholder='Spell'
                   value={
-                    multipleOptions ? item.saveAbility?.options : item?.options
+                    multipleOptions
+                      ? item.saveAbility?.options
+                      : item.saveAbility?.set
                   }
                   options={spells}
                   required={true}
@@ -990,11 +1070,13 @@ const NewFeatForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.ability${multipleOptions && 'options'}`}
-                    multiple={multipleOptions}
+                    }.${index}.ability${multipleOptions ? '.options' : '.set'}`}
+                    multiple={true}
                     placeholder='Ability'
                     value={
-                      multipleOptions ? item.ability?.options : item.ability
+                      multipleOptions
+                        ? item.ability?.options
+                        : item.ability?.set
                     }
                     options={builders.ability}
                     required={true}
@@ -1205,32 +1287,6 @@ const NewFeatForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.abilityScore`,
-                          },
-                        },
-                      })
-                    )}
-                    {featureItem.requirement?.option?.some(
-                      (optionItem) => optionItem.name === 'size'
-                    ) ? (
-                      <>
-                        <Select
-                          ref={addToSelectRefs}
-                          multiple={true}
-                          name={`feature.${featureIndex}.requirement.size`}
-                          value={featureItem.requirement?.size}
-                          placeholder='Size'
-                          options={builders.race.size}
-                          required={true}
-                          onChange={setState}
-                        />
-                      </>
-                    ) : (
-                      !!featureItem.requirement?.abilityScore &&
-                      setState({
-                        action: 'removed',
-                        payload: {
-                          target: {
-                            name: `feature.${featureIndex}.requirement.size`,
                           },
                         },
                       })
@@ -1470,10 +1526,13 @@ const NewFeatForm = () => {
                               featureItem.requirement?.itemProficiency?.itemType
                             }
                             options={items.filter((item) =>
-                              featureItem.requirement.itemProficiency?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              featureItem.requirement.itemProficiency
+                                ?.itemCategory?.length > 0
+                                ? featureItem.requirement.itemProficiency?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )}
                             onChange={setState}
                           />
@@ -1489,20 +1548,22 @@ const NewFeatForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.itemProficiency?.itemCategory?.some(
-                                    (category) =>
-                                      category.name === item.itemCategory.name
-                                  )
+                                  featureItem.requirement?.itemProficiency
+                                    ?.itemCategory?.length > 0
+                                    ? featureItem.requirement?.itemProficiency?.itemCategory?.some(
+                                        (category) =>
+                                          category.name ===
+                                          item.itemCategory.name
+                                      )
+                                    : item
                                 )
                                 .filter((item) =>
-                                  !featureItem.requirement.itemProficiency
-                                    ?.itemType ||
-                                  featureItem.requirement.itemProficiency
-                                    ?.itemType?.length === 0
-                                    ? item
-                                    : featureItem.requirement.itemProficiency.itemType.some(
+                                  featureItem.requirement?.itemProficiency
+                                    ?.itemType?.length > 0
+                                    ? featureItem.requirement?.itemProficiency?.itemType?.some(
                                         (type) => type.name === item.name
                                       )
+                                    : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1530,6 +1591,7 @@ const NewFeatForm = () => {
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
                         id={`feature${featureIndex}EquippedButton`}
                         target={`feature${featureIndex}Equipped`}
+                        expanded='true'
                       >
                         <span className='me-3'>Equipped</span>
                         <hr className='flex-grow-1 me-3' />
@@ -1557,10 +1619,13 @@ const NewFeatForm = () => {
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
                             options={items.filter((item) =>
-                              featureItem.requirement.equipped?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              featureItem.requirement.equipped?.itemCategory
+                                ?.length > 0
+                                ? featureItem.requirement.equipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )}
                             onChange={setState}
                           />
@@ -1575,19 +1640,14 @@ const NewFeatForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (category) =>
-                                      category.name === item.itemCategory.name
-                                  )
-                                )
-                                .filter((item) =>
-                                  !featureItem.requirement.equipped?.itemType ||
-                                  featureItem.requirement.equipped?.itemType
-                                    ?.length === 0
-                                    ? item
-                                    : featureItem.requirement.equipped.itemType.some(
-                                        (type) => type.name === item.name
+                                  featureItem.requirement?.equipped
+                                    ?.itemCategory?.length > 0
+                                    ? featureItem.requirement?.equipped?.itemCategory?.some(
+                                        (category) =>
+                                          category.name ===
+                                          item.itemCategory.name
                                       )
+                                    : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1615,6 +1675,7 @@ const NewFeatForm = () => {
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
                         id={`feature${featureIndex}NotEquippedButton`}
                         target={`feature${featureIndex}NotEquipped`}
+                        expanded='true'
                       >
                         <span className='me-3'>Not Equipped</span>
                         <hr className='flex-grow-1 me-3' />
@@ -1644,10 +1705,13 @@ const NewFeatForm = () => {
                               featureItem.requirement?.notEquipped?.itemType
                             }
                             options={items.filter((item) =>
-                              featureItem.requirement.notEquipped?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              featureItem.requirement.notEquipped?.itemCategory
+                                ?.length > 0
+                                ? featureItem.requirement.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )}
                             onChange={setState}
                           />
@@ -1662,20 +1726,14 @@ const NewFeatForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (category) =>
-                                      category.name === item.itemCategory.name
-                                  )
-                                )
-                                .filter((item) =>
-                                  !featureItem.requirement.notEquipped
-                                    ?.itemType ||
-                                  featureItem.requirement.notEquipped?.itemType
-                                    ?.length === 0
-                                    ? item
-                                    : featureItem.requirement.notEquipped.itemType.some(
-                                        (type) => type.name === item.name
+                                  featureItem.requirement.notEquipped
+                                    ?.itemCategory?.length > 0
+                                    ? featureItem.requirement.notEquipped?.itemCategory?.some(
+                                        (category) =>
+                                          category.name ===
+                                          item.itemCategory.name
                                       )
+                                    : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1913,8 +1971,8 @@ const NewFeatForm = () => {
           </div>
           <AccordionButton
             className='accordion form-details justify-content-between align-items-center'
-            id='descriptionButton'
-            target='description'
+            id='attributesButton'
+            target='attributes'
           >
             <span className='me-3'>Attributes</span>
             <hr className='flex-grow-1 me-3' />
@@ -2155,15 +2213,53 @@ const NewFeatForm = () => {
               {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'requireSave'
               ) ? (
-                <Select
-                  ref={addToSelectRefs}
-                  name='saveAbility'
-                  placeholder='DC Ability'
-                  value={state.saveAbility}
-                  options={builders.ability}
-                  required={true}
-                  onChange={setState}
-                />
+                <>
+                  <Select
+                    ref={addToSelectRefs}
+                    name='saveAbility.attribute'
+                    multiple={true}
+                    placeholder='Save Attribute'
+                    value={state.saveAbility?.attribute}
+                    options={builders.feature.saveAttribute}
+                    required={true}
+                    onChange={setState}
+                  />
+                  <Select
+                    ref={addToSelectRefs}
+                    name='saveAbility.ability'
+                    placeholder='DC Ability'
+                    value={state.saveAbility?.ability}
+                    options={builders.ability}
+                    required={true}
+                    onChange={setState}
+                  />
+                  <Input
+                    ref={addToInputRefs}
+                    validate='num'
+                    name='saveAbility.minValue'
+                    label={true}
+                    autoComplete='off'
+                    placeholder='Min. Value'
+                    required={true}
+                    invalidText='Must contain only numbers'
+                    value={state.saveAbility?.minValue}
+                    onChange={setState}
+                  />
+                  {state.saveAbility?.attribute?.some(
+                    (attributeItem) =>
+                      attributeItem.name === 'addAbilityModifier'
+                  ) && (
+                    <Select
+                      ref={addToSelectRefs}
+                      name='saveAbility.abilityModifier'
+                      placeholder='Modifier Ability'
+                      value={state.saveAbility?.abilityModifier}
+                      options={builders.ability}
+                      required={true}
+                      onChange={setState}
+                    />
+                  )}
+                </>
               ) : (
                 !!state.saveAbility &&
                 setState({
@@ -2208,9 +2304,13 @@ const NewFeatForm = () => {
                       placeholder='Item type'
                       value={state.requirement?.itemProficiency?.itemType}
                       options={items.filter((item) =>
-                        state.requirement.itemProficiency?.itemCategory?.some(
-                          (category) => category.name === item.itemCategory.name
-                        )
+                        state.requirement.itemProficiency?.itemCategory
+                          ?.length > 0
+                          ? state.requirement.itemProficiency?.itemCategory?.some(
+                              (category) =>
+                                category.name === item.itemCategory.name
+                            )
+                          : item
                       )}
                       onChange={setState}
                     />
@@ -2222,19 +2322,21 @@ const NewFeatForm = () => {
                       options={[].concat(
                         ...items
                           .filter((item) =>
-                            state.requirement.itemProficiency?.itemCategory?.some(
-                              (category) =>
-                                category.name === item.itemCategory.name
-                            )
+                            state.requirement.itemProficiency?.itemCategory
+                              ?.length > 0
+                              ? state.requirement.itemProficiency?.itemCategory?.some(
+                                  (category) =>
+                                    category.name === item.itemCategory.name
+                                )
+                              : item
                           )
                           .filter((item) =>
-                            !state.requirement.itemProficiency?.itemType ||
                             state.requirement.itemProficiency?.itemType
-                              ?.length === 0
-                              ? item
-                              : state.requirement.itemProficiency?.itemType?.some(
+                              ?.length > 0
+                              ? state.requirement.itemProficiency?.itemType?.some(
                                   (type) => type.name === item.name
                                 )
+                              : item
                           )
                           .map((item) => item.itemProperty)
                       )}
@@ -2287,9 +2389,12 @@ const NewFeatForm = () => {
                       placeholder='Item type'
                       value={state.requirement?.equipped?.itemType}
                       options={items.filter((item) =>
-                        state.requirement.equipped?.itemCategory?.some(
-                          (category) => category.name === item.itemCategory.name
-                        )
+                        state.requirement.equipped?.itemCategory?.length > 0
+                          ? state.requirement.equipped?.itemCategory?.some(
+                              (category) =>
+                                category.name === item.itemCategory.name
+                            )
+                          : item
                       )}
                       onChange={setState}
                     />
@@ -2302,18 +2407,19 @@ const NewFeatForm = () => {
                       options={[].concat(
                         ...items
                           .filter((item) =>
-                            state.requirement.equipped?.itemCategory?.some(
-                              (category) =>
-                                category.name === item.itemCategory.name
-                            )
+                            state.requirement.equipped?.itemCategory?.length > 0
+                              ? state.requirement.equipped?.itemCategory?.some(
+                                  (category) =>
+                                    category.name === item.itemCategory.name
+                                )
+                              : item
                           )
                           .filter((item) =>
-                            !state.requirement.equipped?.itemType ||
-                            state.requirement.equipped?.itemType?.length === 0
-                              ? item
-                              : state.requirement.equipped?.itemType?.some(
+                            state.requirement.equipped?.itemType?.length > 0
+                              ? state.requirement.equipped?.itemType?.some(
                                   (type) => type.name === item.name
                                 )
+                              : item
                           )
                           .map((item) => item.itemProperty)
                       )}
@@ -2366,9 +2472,12 @@ const NewFeatForm = () => {
                       placeholder='Item type'
                       value={state.requirement?.notEquipped?.itemType}
                       options={items.filter((item) =>
-                        state.requirement.notEquipped?.itemCategory?.some(
-                          (category) => category.name === item.itemCategory.name
-                        )
+                        state.requirement.notEquipped?.itemCategory?.length > 0
+                          ? state.requirement.notEquipped?.itemCategory?.some(
+                              (category) =>
+                                category.name === item.itemCategory.name
+                            )
+                          : item
                       )}
                       onChange={setState}
                     />
@@ -2381,19 +2490,20 @@ const NewFeatForm = () => {
                       options={[].concat(
                         ...items
                           .filter((item) =>
-                            state.requirement.notEquipped?.itemCategory?.some(
-                              (category) =>
-                                category.name === item.itemCategory.name
-                            )
+                            state.requirement.notEquipped?.itemCategory
+                              ?.length > 0
+                              ? state.requirement.notEquipped?.itemCategory?.some(
+                                  (category) =>
+                                    category.name === item.itemCategory.name
+                                )
+                              : item
                           )
                           .filter((item) =>
-                            !state.requirement.notEquipped?.itemType ||
-                            state.requirement.notEquipped?.itemType?.length ===
-                              0
-                              ? item
-                              : state.requirement.notEquipped?.itemType?.some(
+                            state.requirement.notEquipped?.itemType?.length > 0
+                              ? state.requirement.notEquipped?.itemType?.some(
                                   (type) => type.name === item.name
                                 )
+                              : item
                           )
                           .map((item) => item.itemProperty)
                       )}

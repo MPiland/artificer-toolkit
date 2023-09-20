@@ -1,10 +1,7 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useGetBuilderQuery } from '../builders/builderApiSlice'
-import {
-  useAddNewSpellMutation,
-  useUpdateSpellMutation,
-} from './spellApiSlice'
+import { useAddNewSpellMutation, useUpdateSpellMutation } from './spellApiSlice'
 import { isEqual } from 'lodash'
 import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
@@ -289,6 +286,7 @@ const EditSpellForm = () => {
             className='accordion form-details justify-content-between align-items-center'
             id='detailsButton'
             target='details'
+            expanded='false'
           >
             <span className='me-3'>Details</span>
             <hr className='flex-grow-1 me-3' />
@@ -356,6 +354,7 @@ const EditSpellForm = () => {
             className='accordion form-details justify-content-between align-items-center'
             id='descriptionButton'
             target='description'
+            expanded='false'
           >
             <span className='me-3'>Description</span>
             <hr className='flex-grow-1 me-3' />
@@ -376,6 +375,7 @@ const EditSpellForm = () => {
             className='accordion form-details justify-content-between align-items-center'
             id='attributesButton'
             target='attributes'
+            expanded='false'
           >
             <span className='me-3'>Attributes</span>
             <hr className='flex-grow-1 me-3' />

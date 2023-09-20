@@ -305,9 +305,10 @@ const EditItemForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
+                  multiple={true}
+                  name={`feature.${featureIndex}.${this.name}.${index}.set`}
                   placeholder='Feat'
-                  value={item}
+                  value={item?.set}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -371,9 +372,10 @@ const EditItemForm = () => {
                     {item.module?.name === 'ability' && (
                       <Select
                         ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.${this.name}.${index}.ability`}
+                        multiple={true}
+                        name={`feature.${featureIndex}.${this.name}.${index}.ability.set`}
                         placeholder='Ability'
-                        value={item.ability}
+                        value={item.ability?.set}
                         options={builders.ability}
                         required={true}
                         onChange={setState}
@@ -382,9 +384,10 @@ const EditItemForm = () => {
                     {item.module?.name === 'saveAbility' && (
                       <Select
                         ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
+                        multiple={true}
+                        name={`feature.${featureIndex}.${this.name}.${index}.saveAbility.set`}
                         placeholder='Save Ability'
-                        value={item.saveAbility}
+                        value={item.saveAbility?.set}
                         options={builders.ability}
                         required={true}
                         onChange={setState}
@@ -393,9 +396,10 @@ const EditItemForm = () => {
                     {item.module?.name === 'skill' && (
                       <Select
                         ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.${this.name}.${index}.skill`}
+                        multiple={true}
+                        name={`feature.${featureIndex}.${this.name}.${index}.skill.set`}
                         placeholder='Skill'
-                        value={item.skill}
+                        value={item.skill?.set}
                         options={builders.skill}
                         required={true}
                         onChange={setState}
@@ -404,9 +408,10 @@ const EditItemForm = () => {
                     {item.module?.name === 'damageSave' && (
                       <Select
                         ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.${this.name}.${index}.damageSave`}
+                        multiple={true}
+                        name={`feature.${featureIndex}.${this.name}.${index}.damageSave.set`}
                         placeholder='Damage'
-                        value={item.damageSave}
+                        value={item.damageSave?.set}
                         options={builders.damage}
                         require={true}
                         onChange={setState}
@@ -415,9 +420,10 @@ const EditItemForm = () => {
                     {item.module?.name === 'conditionSave' && (
                       <Select
                         ref={addToSelectRefs}
-                        name={`feature.${featureIndex}.${this.name}.${index}.conditionSave`}
+                        multiple={true}
+                        name={`feature.${featureIndex}.${this.name}.${index}.conditionSave.set`}
                         placeholder='Condition'
-                        value={item.conditionSave}
+                        value={item.conditionSave?.set}
                         options={builders.condition}
                         required={true}
                         onChange={setState}
@@ -445,9 +451,10 @@ const EditItemForm = () => {
                 {item.module?.name === 'condition' ? (
                   <Select
                     ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.condition`}
+                    multiple={true}
+                    name={`feature.${featureIndex}.${this.name}.${index}.condition.set`}
                     placeholder='Condition Type'
-                    value={item.condition}
+                    value={item.condition?.set}
                     options={builders.condition}
                     required={true}
                     onChange={setState}
@@ -455,9 +462,10 @@ const EditItemForm = () => {
                 ) : item.module?.name === 'speed' ? (
                   <Select
                     ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.speed`}
+                    multiple={true}
+                    name={`feature.${featureIndex}.${this.name}.${index}.speed.set`}
                     placeholder='Speed Type'
-                    value={item.speed}
+                    value={item.speed?.set}
                     options={builders.speed}
                     required={true}
                     onChange={setState}
@@ -465,8 +473,9 @@ const EditItemForm = () => {
                 ) : item.module?.name === 'passive' ? (
                   <Select
                     ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.speed`}
-                    value={item.passive}
+                    multiple={true}
+                    name={`feature.${featureIndex}.${this.name}.${index}.speed.set`}
+                    value={item.passive?.set}
                     placeholder='Passive Type'
                     options={builders.passive}
                     required={true}
@@ -476,9 +485,11 @@ const EditItemForm = () => {
                   item.module?.name === 'damage' && (
                     <Select
                       ref={addToSelectRefs}
-                      name={`feature.${featureIndex}.${this.name}.${index}.damage.damageType`}
+                      multiple={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.damage.set`}
                       placeholder='Damage Type'
                       options={builders.damage}
+                      value={item.damage?.set}
                       required={true}
                       onChange={setState}
                     />
@@ -629,8 +640,9 @@ const EditItemForm = () => {
                 {item.area?.name === 'skill' && (
                   <Select
                     ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.skill`}
-                    value={item.skill}
+                    multiple={true}
+                    name={`feature.${featureIndex}.${this.name}.${index}.skill.set`}
+                    value={item.skill?.set}
                     placeholder='Skill'
                     options={builders.skill}
                     required={true}
@@ -640,21 +652,11 @@ const EditItemForm = () => {
                 {item.area?.name === 'saveAbility' && (
                   <Select
                     ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
-                    value={item.saveAbility}
+                    multiple={true}
+                    name={`feature.${featureIndex}.${this.name}.${index}.saveAbility.set`}
+                    value={item.saveAbility?.set}
                     placeholder='Save Ability'
                     options={builders.ability}
-                    required={true}
-                    onChange={setState}
-                  />
-                )}
-                {item?.area?.name === 'tool' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.tool`}
-                    placeholder='Tool'
-                    value={item.tool}
-                    options={builders.tool}
                     required={true}
                     onChange={setState}
                   />
@@ -662,28 +664,71 @@ const EditItemForm = () => {
                 {item?.area?.name === 'language' && (
                   <Select
                     ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.language`}
+                    multiple={true}
+                    name={`feature.${featureIndex}.${this.name}.${index}.language.set`}
                     placeholder='Language'
-                    value={item.language}
+                    value={item.language?.set}
                     options={builders.language}
                     required={true}
                     onChange={setState}
                   />
                 )}
-                {item.area?.name === 'itemProperty' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.itemProperty`}
-                    placeholder='Item Property'
-                    value={item.itemProperty}
-                    options={[].concat(
-                      ...builders.item.itemCategory.map(
-                        (categoryItem) => categoryItem.itemProperty
-                      )
-                    )}
-                    required={true}
-                    onChange={setState}
-                  />
+                {item.area?.name === 'item' && (
+                  <>
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.itemCategory.set`}
+                      multiple={true}
+                      placeholder='Item Category'
+                      value={item.itemCategory?.set}
+                      options={builders.item.itemCategory}
+                      onChange={setState}
+                    />
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.itemProperty`}
+                      multiple={true}
+                      placeholder='Item Property'
+                      value={item.itemProperty?.set}
+                      options={[].concat(
+                        ...builders.item.itemCategory
+                          .filter((category) =>
+                            item.itemCategory?.set?.length > 0
+                              ? item.itemCategory?.set?.some(
+                                  (itemCategory) =>
+                                    itemCategory.name === category.name
+                                )
+                              : category
+                          )
+                          .map((category) => category.itemProperty)
+                      )}
+                      onChange={setState}
+                    />
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.itemType.set`}
+                      multiple={true}
+                      placeholder='Item Type'
+                      value={item.itemType?.set}
+                      options={items
+                        .filter((itemType) =>
+                          item.itemCategory?.set?.length > 0
+                            ? item.itemCategory?.set?.some(
+                                (itemCategory) =>
+                                  itemCategory.name ===
+                                  itemType.itemCategory.name
+                              )
+                            : itemType
+                        )
+                        .filter((itemType) =>
+                          item.itemProperty?.set?.length > 0
+                            ? item.itemProperty?.set?.some(
+                                (itemProperty) =>
+                                  itemProperty.name ===
+                                  itemType.itemProperty.name
+                              )
+                            : itemType
+                        )}
+                      onChange={setState}
+                    />
+                  </>
                 )}
                 <Select
                   ref={addToSelectRefs}
@@ -719,9 +764,10 @@ const EditItemForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-2 row-cols-sm-1 pb-2'>
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
+                  multiple={true}
+                  name={`feature.${featureIndex}.${this.name}.${index}.set`}
                   placeholder='Sense'
-                  value={item}
+                  value={item?.set}
                   options={builders.sense}
                   required={true}
                   onChange={setState}
@@ -759,9 +805,10 @@ const EditItemForm = () => {
                 />
                 <Select
                   ref={addToSelectRefs}
-                  name={`feature.${featureIndex}.${this.name}.${index}`}
+                  multiple={true}
+                  name={`feature.${featureIndex}.${this.name}.${index}.set`}
                   placeholder='Spell'
-                  value={item}
+                  value={item?.set}
                   options={spells}
                   required={true}
                   onChange={setState}
@@ -858,24 +905,27 @@ const EditItemForm = () => {
                     <Select
                       multiple={true}
                       name={`feature.${featureIndex}.attribute`}
-                      options={builders.feature.attribute
-                        .filter((attributeItem) => {
-                          if (
-                            attributeItem.name !== 'providesOptions' ||
-                            attributeItem.name !== 'optionGroups'
-                          ) {
-                            return false
-                          } else {
-                            return true
-                          }
-                        })
-                        .filter((attributeItem) =>
-                          !featureItem.attribute?.some(
-                            (item) => item.name === 'doesDamage'
-                          )
-                            ? attributeItem.name !== 'secondaryDamage'
-                            : attributeItem
-                        )}
+                      options={[].concat(
+                        builders.feature.attribute
+                          .filter((attributeItem) => {
+                            if (
+                              attributeItem.name !== 'providesOptions' ||
+                              attributeItem.name !== 'optionGroups'
+                            ) {
+                              return false
+                            } else {
+                              return true
+                            }
+                          })
+                          .filter((attributeItem) =>
+                            !featureItem.attribute?.some(
+                              (item) => item.name === 'doesDamage'
+                            )
+                              ? attributeItem.name !== 'secondaryDamage'
+                              : attributeItem
+                          ),
+                        builders.feature.item.attribute
+                      )}
                       placeholder='Feature Attributes'
                       value={featureItem.attribute}
                       onChange={setState}
@@ -1229,10 +1279,13 @@ const EditItemForm = () => {
                               featureItem.requirement?.itemProficiency?.itemType
                             }
                             options={items.filter((item) =>
-                              featureItem.requirement.itemProficiency?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              featureItem.requirement.itemProficiency
+                                ?.itemCategory?.length > 0
+                                ? featureItem.requirement.itemProficiency?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )}
                             onChange={setState}
                           />
@@ -1248,20 +1301,22 @@ const EditItemForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.itemProficiency?.itemCategory?.some(
-                                    (category) =>
-                                      category.name === item.itemCategory.name
-                                  )
+                                  featureItem.requirement?.itemProficiency
+                                    ?.itemCategory?.length > 0
+                                    ? featureItem.requirement?.itemProficiency?.itemCategory?.some(
+                                        (category) =>
+                                          category.name ===
+                                          item.itemCategory.name
+                                      )
+                                    : item
                                 )
                                 .filter((item) =>
-                                  !featureItem.requirement.itemProficiency
-                                    ?.itemType ||
-                                  featureItem.requirement.itemProficiency
-                                    ?.itemType?.length === 0
-                                    ? item
-                                    : featureItem.requirement.itemProficiency.itemType.some(
+                                  featureItem.requirement?.itemProficiency
+                                    ?.itemType?.length > 0
+                                    ? featureItem.requirement?.itemProficiency?.itemType?.some(
                                         (type) => type.name === item.name
                                       )
+                                    : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1289,6 +1344,7 @@ const EditItemForm = () => {
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
                         id={`feature${featureIndex}EquippedButton`}
                         target={`feature${featureIndex}Equipped`}
+                        expanded='true'
                       >
                         <span className='me-3'>Equipped</span>
                         <hr className='flex-grow-1 me-3' />
@@ -1316,10 +1372,13 @@ const EditItemForm = () => {
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
                             options={items.filter((item) =>
-                              featureItem.requirement.equipped?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              featureItem.requirement.equipped?.itemCategory
+                                ?.length > 0
+                                ? featureItem.requirement.equipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )}
                             onChange={setState}
                           />
@@ -1334,19 +1393,14 @@ const EditItemForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.equipped?.itemCategory?.some(
-                                    (category) =>
-                                      category.name === item.itemCategory.name
-                                  )
-                                )
-                                .filter((item) =>
-                                  !featureItem.requirement.equipped?.itemType ||
-                                  featureItem.requirement.equipped?.itemType
-                                    ?.length === 0
-                                    ? item
-                                    : featureItem.requirement.equipped.itemType.some(
-                                        (type) => type.name === item.name
+                                  featureItem.requirement?.equipped
+                                    ?.itemCategory?.length > 0
+                                    ? featureItem.requirement?.equipped?.itemCategory?.some(
+                                        (category) =>
+                                          category.name ===
+                                          item.itemCategory.name
                                       )
+                                    : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1374,6 +1428,7 @@ const EditItemForm = () => {
                         className='accordion feature-attribute-divider justify-content-between align-items-center'
                         id={`feature${featureIndex}NotEquippedButton`}
                         target={`feature${featureIndex}NotEquipped`}
+                        expanded='true'
                       >
                         <span className='me-3'>Not Equipped</span>
                         <hr className='flex-grow-1 me-3' />
@@ -1403,10 +1458,13 @@ const EditItemForm = () => {
                               featureItem.requirement?.notEquipped?.itemType
                             }
                             options={items.filter((item) =>
-                              featureItem.requirement.notEquipped?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              featureItem.requirement.notEquipped?.itemCategory
+                                ?.length > 0
+                                ? featureItem.requirement.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )}
                             onChange={setState}
                           />
@@ -1421,20 +1479,14 @@ const EditItemForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.notEquipped?.itemCategory?.some(
-                                    (category) =>
-                                      category.name === item.itemCategory.name
-                                  )
-                                )
-                                .filter((item) =>
-                                  !featureItem.requirement.notEquipped
-                                    ?.itemType ||
-                                  featureItem.requirement.notEquipped?.itemType
-                                    ?.length === 0
-                                    ? item
-                                    : featureItem.requirement.notEquipped.itemType.some(
-                                        (type) => type.name === item.name
+                                  featureItem.requirement.notEquipped
+                                    ?.itemCategory?.length > 0
+                                    ? featureItem.requirement.notEquipped?.itemCategory?.some(
+                                        (category) =>
+                                          category.name ===
+                                          item.itemCategory.name
                                       )
+                                    : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1915,7 +1967,12 @@ const EditItemForm = () => {
                     name='primaryAbility'
                     placeholder='Primary Ability'
                     value={state.primaryAbility}
-                    options={builders.ability}
+                    options={[].concat(builders.ability, [
+                      {
+                        name: 'spellAbility',
+                        value: 'Spell Ability',
+                      },
+                    ])}
                     onChange={setState}
                   />
                   {state.attribute?.some(
@@ -2100,32 +2157,6 @@ const EditItemForm = () => {
                 })
               )}
               {state.requirement?.option?.some(
-                (optionItem) => optionItem.name === 'size'
-              ) ? (
-                <>
-                  <Select
-                    ref={addToSelectRefs}
-                    multiple={true}
-                    name='requirement.size'
-                    value={state.requirement?.size}
-                    placeholder='Size'
-                    options={builders.race.size}
-                    required={true}
-                    onChange={setState}
-                  />
-                </>
-              ) : (
-                !!state.requirement?.abilityScore &&
-                setState({
-                  action: 'removed',
-                  payload: {
-                    target: {
-                      name: 'requirement.size',
-                    },
-                  },
-                })
-              )}
-              {state.requirement?.option?.some(
                 (optionItem) => optionItem.name === 'itemProficiency'
               ) ? (
                 <>
@@ -2154,37 +2185,44 @@ const EditItemForm = () => {
                       <Select
                         ref={addToSelectRefs}
                         name='requirement.itemProficiency.itemType'
+                        multiple={true}
                         placeholder='Item type'
                         value={state.requirement?.itemProficiency?.itemType}
                         options={items.filter((item) =>
-                          state.requirement.itemProficiency?.itemCategory?.some(
-                            (category) =>
-                              category.name === item.itemCategory.name
-                          )
+                          state.requirement.itemProficiency?.itemCategory
+                            ?.length > 0
+                            ? state.requirement.itemProficiency?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
+                            : item
                         )}
                         onChange={setState}
                       />
                       <Select
                         ref={addToSelectRefs}
                         name='requirement.itemProficiency.itemProperty'
+                        multiple={true}
                         placeholder='Item Property'
                         value={state.requirement?.itemProficiency?.itemProperty}
                         options={[].concat(
                           ...items
                             .filter((item) =>
-                              state.requirement.itemProficiency?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              state.requirement.itemProficiency?.itemCategory
+                                ?.length > 0
+                                ? state.requirement.itemProficiency?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )
                             .filter((item) =>
-                              !state.requirement.itemProficiency?.itemType ||
                               state.requirement.itemProficiency?.itemType
-                                ?.length === 0
-                                ? item
-                                : state.requirement.itemProficiency?.itemType?.some(
+                                ?.length > 0
+                                ? state.requirement.itemProficiency?.itemType?.some(
                                     (type) => type.name === item.name
                                   )
+                                : item
                             )
                             .map((item) => item.itemProperty)
                         )}
@@ -2237,10 +2275,12 @@ const EditItemForm = () => {
                         placeholder='Item type'
                         value={state.requirement?.equipped?.itemType}
                         options={items.filter((item) =>
-                          state.requirement.equipped?.itemCategory?.some(
-                            (category) =>
-                              category.name === item.itemCategory.name
-                          )
+                          state.requirement.equipped?.itemCategory?.length > 0
+                            ? state.requirement.equipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
+                            : item
                         )}
                         onChange={setState}
                       />
@@ -2253,18 +2293,19 @@ const EditItemForm = () => {
                         options={[].concat(
                           ...items
                             .filter((item) =>
-                              state.requirement.equipped?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              state.requirement.equipped?.itemCategory?.length
+                                ? state.requirement.equipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )
                             .filter((item) =>
-                              !state.requirement.equipped?.itemType ||
-                              state.requirement.equipped?.itemType?.length === 0
-                                ? item
-                                : state.requirement.equipped?.itemType?.some(
+                              state.requirement.equipped?.itemType?.length > 0
+                                ? state.requirement.equipped?.itemType?.some(
                                     (type) => type.name === item.name
                                   )
+                                : item
                             )
                             .map((item) => item.itemProperty)
                         )}
@@ -2317,10 +2358,13 @@ const EditItemForm = () => {
                         placeholder='Item type'
                         value={state.requirement?.notEquipped?.itemType}
                         options={items.filter((item) =>
-                          state.requirement.notEquipped?.itemCategory?.some(
-                            (category) =>
-                              category.name === item.itemCategory.name
-                          )
+                          state.requirement.notEquipped?.itemCategory?.length >
+                          0
+                            ? state.requirement.notEquipped?.itemCategory?.some(
+                                (category) =>
+                                  category.name === item.itemCategory.name
+                              )
+                            : item
                         )}
                         onChange={setState}
                       />
@@ -2333,19 +2377,21 @@ const EditItemForm = () => {
                         options={[].concat(
                           ...items
                             .filter((item) =>
-                              state.requirement.notEquipped?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              state.requirement.notEquipped?.itemCategory
+                                ?.length > 0
+                                ? state.requirement.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )
                             .filter((item) =>
-                              !state.requirement.notEquipped?.itemType ||
-                              state.requirement.notEquipped?.itemType
-                                ?.length === 0
-                                ? item
-                                : state.requirement.notEquipped?.itemType?.some(
+                              state.requirement.notEquipped?.itemType?.length >
+                              0
+                                ? state.requirement.notEquipped?.itemType?.some(
                                     (type) => type.name === item.name
                                   )
+                                : item
                             )
                             .map((item) => item.itemProperty)
                         )}

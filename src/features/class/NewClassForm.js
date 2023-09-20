@@ -413,11 +413,11 @@ const NewClassForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions ? '.options' : ''
+                    multipleOptions ? '.options' : '.set'
                   }`}
-                  multiple={multipleOptions}
+                  multiple={true}
                   placeholder='Feat'
-                  value={multipleOptions ? item?.options : item}
+                  value={multipleOptions ? item?.options : item.set}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -516,11 +516,15 @@ const NewClassForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.ability${multipleOptions ? '.options' : ''}`}
-                        multiple={multipleOptions}
+                        }.${index}.ability${
+                          multipleOptions ? '.options' : '.set'
+                        }`}
+                        multiple={true}
                         placeholder='Ability'
                         value={
-                          multipleOptions ? item.ability?.options : item.ability
+                          multipleOptions
+                            ? item.ability?.options
+                            : item.ability?.set
                         }
                         options={builders.ability}
                         required={true}
@@ -533,14 +537,14 @@ const NewClassForm = () => {
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.saveAbility${
-                          multipleOptions ? '.options' : ''
+                          multipleOptions ? '.options' : '.set'
                         }`}
-                        multiple={multipleOptions}
+                        multiple={true}
                         placeholder='Save Ability'
                         value={
                           multipleOptions
                             ? item.saveAbility?.options
-                            : item.saveAbility
+                            : item.saveAbility?.set
                         }
                         options={builders.ability}
                         required={true}
@@ -552,11 +556,15 @@ const NewClassForm = () => {
                         ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.skill${multipleOptions ? '.options' : ''}`}
-                        multiple={multipleOptions}
+                        }.${index}.skill${
+                          multipleOptions ? '.options' : '.set'
+                        }`}
+                        multiple={true}
                         placeholder='Skill'
                         value={
-                          multipleOptions ? item.skill?.options : item.skill
+                          multipleOptions
+                            ? item.skill?.options
+                            : item.skill?.set
                         }
                         options={builders.skill}
                         require={true}
@@ -569,14 +577,14 @@ const NewClassForm = () => {
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.damageSave${
-                          multipleOptions ? '.options' : ''
+                          multipleOptions ? '.options' : '.set'
                         }`}
-                        multiple={multipleOptions}
+                        multiple={true}
                         placeholder='Damage'
                         value={
                           multipleOptions
                             ? item.damageSave?.options
-                            : item.damageSave
+                            : item.damageSave?.set
                         }
                         options={builders.damage}
                         require={true}
@@ -589,14 +597,14 @@ const NewClassForm = () => {
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.conditionSave${
-                          multipleOptions ? '.options' : ''
+                          multipleOptions ? '.options' : '.set'
                         }`}
-                        multiple={multipleOptions}
+                        multiple={true}
                         placeholder='Condition'
                         value={
                           multipleOptions
                             ? item.conditionSave?.options
-                            : item.conditionSave
+                            : item.conditionSave?.set
                         }
                         options={builders.condition}
                         required={true}
@@ -627,11 +635,15 @@ const NewClassForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.condition${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.condition${
+                      multipleOptions ? '.options' : '.set'
+                    }`}
+                    multiple={true}
                     placeholder='Condition Type'
                     value={
-                      multipleOptions ? item.condition?.options : item.condition
+                      multipleOptions
+                        ? item.condition?.options
+                        : item.condition?.set
                     }
                     options={builders.condition}
                     require={true}
@@ -641,10 +653,12 @@ const NewClassForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.speed${
-                      multipleOptions ? '.options' : ''
+                      multipleOptions ? '.options' : '.set'
                     }`}
-                    multiple={multipleOptions}
-                    value={multipleOptions ? item.speed?.options : item.speed}
+                    multiple={true}
+                    value={
+                      multipleOptions ? item.speed?.options : item.speed?.set
+                    }
                     placeholder='Speed Type'
                     options={builders.speed}
                     require={true}
@@ -655,28 +669,33 @@ const NewClassForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.passive${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.passive${multipleOptions ? '.options' : '.set'}`}
+                    multiple={true}
                     placeholder='Passive Type'
                     value={
-                      multipleOptions ? item.passive?.options : item.passive
+                      multipleOptions
+                        ? item.passive?.options
+                        : item.passive?.set
                     }
                     options={builders.passive}
                     require={true}
                     onChange={setState}
                   />
                 ) : (
-                  (item.module?.name === 'damage' ||
-                    item.module?.name === 'saveAgainstDamage') && (
+                  item.module?.name === 'damage' && (
                     <Select
                       ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.damage${multipleOptions ? '.options' : ''}`}
-                      multiple={multipleOptions}
+                      }.${index}.damage${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
                       placeholder='Damage Type'
                       value={
-                        multipleOptions ? item.damage?.options : item.damage
+                        multipleOptions
+                          ? item.damage?.options
+                          : item.damage?.set
                       }
                       options={builders.damage}
                       required={true}
@@ -858,11 +877,13 @@ const NewClassForm = () => {
                   <Select
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.skill${
-                      multipleOptions ? '.options' : ''
+                      multipleOptions ? '.options' : '.set'
                     }`}
-                    multiple={multipleOptions}
+                    multiple={true}
                     placeholder='Skill'
-                    value={multipleOptions ? item.skill?.options : item.skill}
+                    value={
+                      multipleOptions ? item.skill?.options : item.skill?.set
+                    }
                     options={builders.skill}
                     require={true}
                     onChange={setState}
@@ -873,29 +894,17 @@ const NewClassForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.saveAbility${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.saveAbility${
+                      multipleOptions ? '.options' : '.set'
+                    }`}
+                    multiple={true}
                     placeholder='Save Ability'
                     value={
                       multipleOptions
                         ? item.saveAbility?.options
-                        : item.saveAbility
+                        : item.saveAbility?.set
                     }
                     options={builders.ability}
-                    require={true}
-                    onChange={setState}
-                  />
-                )}
-                {item?.area?.name === 'tool' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${this.name}.${index}.tool${
-                      multipleOptions ? '.options' : ''
-                    }`}
-                    multiple={multipleOptions}
-                    placeholder='Tool'
-                    value={multipleOptions ? item.tool?.options : item.tool}
-                    options={builders.tool}
                     require={true}
                     onChange={setState}
                   />
@@ -905,56 +914,123 @@ const NewClassForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.language${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
+                    }.${index}.language${
+                      multipleOptions ? '.options' : '.set'
+                    }`}
+                    multiple={true}
                     placeholder='Language'
                     value={
-                      multipleOptions ? item.language?.options : item.language
+                      multipleOptions
+                        ? item.language?.options
+                        : item.language?.set
                     }
                     options={builders.language}
-                    require={true}
                     onChange={setState}
                   />
                 )}
-                {item.area?.name === 'itemType' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemType${multipleOptions ? '.options' : ''}`}
-                    multiple={multipleOptions}
-                    placeholder='Item Type'
-                    value={
-                      multipleOptions ? item.itemType?.options : item.itemType
-                    }
-                    require={true}
-                    options={items}
-                    onChange={setState}
-                  />
-                )}
-                {item.area?.name === 'itemProperty' && (
-                  <Select
-                    ref={addToSelectRefs}
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemProperty${
-                      multipleOptions ? '.options' : ''
-                    }`}
-                    multiple={multipleOptions}
-                    placeholder='Item Property'
-                    value={
-                      multipleOptions
-                        ? item.itemProperty?.options
-                        : item.itemProperty
-                    }
-                    require={true}
-                    options={[].concat(
-                      ...builders.item.itemCategory.map(
-                        (categoryItem) => categoryItem.itemProperty
-                      )
-                    )}
-                    onChange={setState}
-                  />
+                {item.area?.name === 'item' && (
+                  <>
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemCategory${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Category'
+                      value={
+                        multipleOptions
+                          ? item.itemCategory?.options
+                          : item.itemCategory?.set
+                      }
+                      options={builders.item.itemCategory}
+                      onChange={setState}
+                    />
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemProperty${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Property'
+                      value={
+                        multipleOptions
+                          ? item.itemProperty?.options
+                          : item.itemProperty?.set
+                      }
+                      options={[].concat(
+                        ...builders.item.itemCategory
+                          .filter((category) =>
+                            multipleOptions
+                              ? item.itemCategory?.options?.length > 0
+                                ? item.itemCategory?.options?.some(
+                                    (itemCategory) =>
+                                      itemCategory.name === category.name
+                                  )
+                                : category
+                              : item.itemCategory?.set?.length > 0
+                              ? item.itemCategory?.set?.some(
+                                  (itemCategory) =>
+                                    itemCategory.name === category.name
+                                )
+                              : category
+                          )
+                          .map((category) => category.itemProperty)
+                      )}
+                      onChange={setState}
+                    />
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemType${
+                        multipleOptions ? '.options' : '.set'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Type'
+                      value={
+                        multipleOptions
+                          ? item.itemType?.options
+                          : item.itemType?.set
+                      }
+                      options={items
+                        .filter((itemType) =>
+                          multipleOptions
+                            ? item.itemCategory?.options?.length > 0
+                              ? item.itemCategory?.options?.some(
+                                  (itemCategory) =>
+                                    itemCategory.name ===
+                                    itemType.itemCategory.name
+                                )
+                              : itemType
+                            : item.itemCategory?.set?.length > 0
+                            ? item.itemCategory?.set?.some(
+                                (itemCategory) =>
+                                  itemCategory.name ===
+                                  itemType.itemCategory.name
+                              )
+                            : itemType
+                        )
+                        .filter((itemType) =>
+                          multipleOptions
+                            ? item.itemProperty?.options?.length > 0
+                              ? item.itemProperty?.options?.some(
+                                  (itemProperty) =>
+                                    itemProperty.name ===
+                                    itemType.itemProperty.name
+                                )
+                              : itemType
+                            : item.itemProperty?.set?.length > 0
+                            ? item.itemProperty?.set?.some(
+                                (itemProperty) =>
+                                  itemProperty.name ===
+                                  itemType.itemProperty.name
+                              )
+                            : itemType
+                        )}
+                      onChange={setState}
+                    />
+                  </>
                 )}
                 <Select
                   ref={addToSelectRefs}
@@ -1024,11 +1100,11 @@ const NewClassForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions ? '.options' : ''
+                    multipleOptions ? '.options' : '.set'
                   }`}
-                  multiple={multipleOptions}
+                  multiple={true}
                   placeholder='Sense'
-                  value={multipleOptions ? item?.options : item}
+                  value={multipleOptions ? item?.options : item?.set}
                   options={builders.sense}
                   require={true}
                   onChange={setState}
@@ -1102,11 +1178,11 @@ const NewClassForm = () => {
                 <Select
                   ref={addToSelectRefs}
                   name={`feature.${featureIndex}.${this.name}.${index}${
-                    multipleOptions ? '.options' : ''
+                    multipleOptions ? '.options' : '.set'
                   }`}
-                  multiple={multipleOptions}
+                  multiple={true}
                   placeholder='Spell'
-                  value={multipleOptions ? item?.options : item}
+                  value={multipleOptions ? item?.options : item?.set}
                   options={spells}
                   require={true}
                   onChange={setState}
@@ -1118,11 +1194,13 @@ const NewClassForm = () => {
                     ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${
                       this.name
-                    }.${index}.ability${multipleOptions && 'options'}`}
-                    multiple={multipleOptions}
+                    }.${index}.ability${multipleOptions ? '.options' : '.set'}`}
+                    multiple={true}
                     placeholder='Ability'
                     value={
-                      multipleOptions ? item.ability?.options : item.ability
+                      multipleOptions
+                        ? item.ability?.options
+                        : item.ability?.set
                     }
                     options={builders.ability}
                     require={true}
@@ -1330,32 +1408,6 @@ const NewClassForm = () => {
                         payload: {
                           target: {
                             name: `feature.${featureIndex}.requirement.abilityScore`,
-                          },
-                        },
-                      })
-                    )}
-                    {featureItem.requirement?.option?.some(
-                      (optionItem) => optionItem.name === 'size'
-                    ) ? (
-                      <>
-                        <Select
-                          ref={addToSelectRefs}
-                          multiple={true}
-                          name={`feature.${featureIndex}.requirement.size`}
-                          value={featureItem.requirement?.size}
-                          placeholder='Size'
-                          options={builders.race.size}
-                          required={true}
-                          onChange={setState}
-                        />
-                      </>
-                    ) : (
-                      !!featureItem.requirement?.abilityScore &&
-                      setState({
-                        action: 'removed',
-                        payload: {
-                          target: {
-                            name: `feature.${featureIndex}.requirement.size`,
                           },
                         },
                       })
@@ -1596,10 +1648,10 @@ const NewClassForm = () => {
                               featureItem.requirement?.itemProficiency?.itemType
                             }
                             options={items.filter((item) =>
-                              featureItem.requirement.itemProficiency?.itemCategory?.some(
+                              featureItem.requirement.itemProficiency?.itemCategory?.length > 0 ? featureItem.requirement.itemProficiency?.itemCategory?.some(
                                 (category) =>
                                   category.name === item.itemCategory.name
-                              )
+                              ) : item
                             )}
                             onChange={setState}
                           />
@@ -1615,20 +1667,15 @@ const NewClassForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.itemProficiency?.itemCategory?.some(
+                                featureItem.requirement?.itemProficiency?.itemCategory?.length > 0 ? featureItem.requirement?.itemProficiency?.itemCategory?.some(
                                     (category) =>
                                       category.name === item.itemCategory.name
-                                  )
+                                  ) : item
                                 )
                                 .filter((item) =>
-                                  !featureItem.requirement.itemProficiency
-                                    ?.itemType ||
-                                  featureItem.requirement.itemProficiency
-                                    ?.itemType?.length === 0
-                                    ? item
-                                    : featureItem.requirement.itemProficiency.itemType.some(
+                                featureItem.requirement?.itemProficiency?.itemType?.length > 0 ? featureItem.requirement?.itemProficiency?.itemType?.some(
                                         (type) => type.name === item.name
-                                      )
+                                      ) : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1684,10 +1731,10 @@ const NewClassForm = () => {
                             placeholder='Item type'
                             value={featureItem.requirement?.equipped?.itemType}
                             options={items.filter((item) =>
-                              featureItem.requirement.equipped?.itemCategory?.some(
+                              featureItem.requirement.equipped?.itemCategory?.length > 0 ? featureItem.requirement.equipped?.itemCategory?.some(
                                 (category) =>
                                   category.name === item.itemCategory.name
-                              )
+                              ) : item
                             )}
                             onChange={setState}
                           />
@@ -1702,10 +1749,10 @@ const NewClassForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement?.equipped?.itemCategory.some(
+                                featureItem.requirement?.equipped?.itemCategory?.length > 0 ? featureItem.requirement?.equipped?.itemCategory?.some(
                                     (category) =>
                                       category.name === item.itemCategory.name
-                                  )
+                                  ) : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -1763,10 +1810,13 @@ const NewClassForm = () => {
                               featureItem.requirement?.notEquipped?.itemType
                             }
                             options={items.filter((item) =>
-                              featureItem.requirement.notEquipped?.itemCategory?.some(
-                                (category) =>
-                                  category.name === item.itemCategory.name
-                              )
+                              featureItem.requirement.notEquipped?.itemCategory
+                                ?.length > 0
+                                ? featureItem.requirement.notEquipped?.itemCategory?.some(
+                                    (category) =>
+                                      category.name === item.itemCategory.name
+                                  )
+                                : item
                             )}
                             onChange={setState}
                           />
@@ -1781,10 +1831,14 @@ const NewClassForm = () => {
                             options={[].concat(
                               ...items
                                 .filter((item) =>
-                                  featureItem.requirement.notEquipped?.itemCategory?.some(
-                                    (category) =>
-                                      category.name === item.itemCategory.name
-                                  )
+                                  featureItem.requirement.notEquipped
+                                    ?.itemCategory?.length > 0
+                                    ? featureItem.requirement.notEquipped?.itemCategory?.some(
+                                        (category) =>
+                                          category.name ===
+                                          item.itemCategory.name
+                                      )
+                                    : item
                                 )
                                 .map((item) => item.itemProperty)
                             )}
@@ -2137,13 +2191,13 @@ const NewClassForm = () => {
             <>
               <AccordionButton
                 className='accordion form-details justify-content-between align-items-center'
-                id='attributeButton'
-                target='attribute'
+                id='attributesButton'
+                target='attributes'
               >
                 <span className='me-3'>Attributes</span>
                 <hr className='flex-grow-1 me-3' />
               </AccordionButton>
-              <div className='accordion-collapse collapse show' id='attribute'>
+              <div className='accordion-collapse collapse show' id='attributes'>
                 <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-sm-1'>
                   <>
                     <Select
