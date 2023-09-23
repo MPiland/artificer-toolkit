@@ -10,6 +10,7 @@ import Select from '../../components/Select'
 import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
 import AccordionButton from '../../components/AccordionButton'
+import TabNavigation from '../../components/TabNavigation'
 
 const EditSpellForm = () => {
   const { id } = useAuth()
@@ -257,41 +258,11 @@ const EditSpellForm = () => {
       return inputArray
     }
 
-    content = (
-      <div className='main-container'>
-        <div className='d-flex justify-content-between'>
-          <h1>Edit Spell</h1>
-          <div>
-            <button
-              className='btn btn-secondary btn-small me-2'
-              onClick={onReset}
-            >
-              Reset Form
-            </button>
-            <button
-              type='button'
-              className='btn btn-secondary btn-small'
-              onClick={onBackClick}
-            >
-              Back
-            </button>
-          </div>
-        </div>
-        {successMessage && (
-          <h5 className='success-message'>{successMessage}</h5>
-        )}
-        {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
-        <form className='needs-validation' noValidate>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='detailsButton'
-            target='details'
-            expanded='false'
-          >
-            <span className='me-3'>Details</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div className='accordion-collapse collapse show' id='details'>
+    const mainTabContent = [
+      {
+        value: 'Details',
+        content: (
+          <>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start pb-2'>
               <Input
                 ref={addToInputRefs}
@@ -320,7 +291,7 @@ const EditSpellForm = () => {
                 name='school'
                 id='school'
                 placeholder={'Spell School'}
-                value={state.school}
+                value={state?.school}
                 options={builders.spell.school}
                 required={true}
                 onChange={setState}
@@ -344,25 +315,11 @@ const EditSpellForm = () => {
                   label={true}
                   placeholder='Material Description'
                   required={true}
-                  value={state.materialDesc ?? ''}
+                  value={state.materialDesc}
                   onChange={setState}
                 />
               )}
             </div>
-          </div>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='descriptionButton'
-            target='description'
-            expanded='false'
-          >
-            <span className='me-3'>Description</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div
-            className='accordion-collapse collapse show pb-3'
-            id='description'
-          >
             <TextEditor
               ref={addToTextRefs}
               name='desc'
@@ -370,17 +327,13 @@ const EditSpellForm = () => {
               placeholder='Spell Description'
               onChange={setState}
             />
-          </div>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='attributesButton'
-            target='attributes'
-            expanded='false'
-          >
-            <span className='me-3'>Attributes</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div className='accordion-collapse collapse show' id='attributes'>
+          </>
+        ),
+      },
+      {
+        value: 'Attributes',
+        content: (
+          <>
             <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
               <Select
                 multiple={true}
@@ -411,7 +364,7 @@ const EditSpellForm = () => {
                 name='action.value'
                 label={true}
                 placeholder='Casting Increment'
-                value={state.action?.value ?? ''}
+                value={state.action?.value}
                 required={true}
                 onChange={setState}
               />
@@ -435,7 +388,7 @@ const EditSpellForm = () => {
                     placeholder='Duration Increment'
                     autoComplete='off'
                     required={true}
-                    value={state.duration?.value ?? ''}
+                    value={state.duration.value}
                     onChange={setState}
                   />
                 )}
@@ -493,7 +446,32 @@ const EditSpellForm = () => {
                   </>
                 )}
             </div>
-            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'secondaryAction'
+            ) && (
+              <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
+                <Select
+                  ref={addToSelectRefs}
+                  name='secondaryAction.actionType'
+                  placeholder='Secondary Action'
+                  value={state.secondaryAction?.actionType}
+                  options={builders.spell.action}
+                  required={true}
+                  onChange={setState}
+                />
+                <Input
+                  ref={addToInputRefs}
+                  validation={'num'}
+                  name='secondaryAction.value'
+                  label={true}
+                  placeholder='Action Increment'
+                  value={state.seccondaryAction?.value}
+                  required={true}
+                  onChange={setState}
+                />
+              </div>
+            )}
+            <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'requireSave'
               ) && (
@@ -507,80 +485,98 @@ const EditSpellForm = () => {
                   onChange={setState}
                 />
               )}
+              {state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'doesDamage'
+              ) &&
+                (!state?.damage?.damageByLevel ||
+                state?.damage?.damageByLevel?.length === 0 ? (
+                  setState({
+                    type: 'added',
+                    payload: {
+                      target: {
+                        name: 'damage.damageByLevel',
+                        value: { level: state?.level },
+                      },
+                    },
+                  })
+                ) : (
+                  <>
+                    <Select
+                      multiple={true}
+                      name='damage.damageAttribute'
+                      placeholder='Damage Attribute'
+                      value={state.damage?.damageAttribute}
+                      options={builders.spell.damageAttribute}
+                      onChange={setState}
+                    />
+                    <Select
+                      ref={addToSelectRefs}
+                      name='damage.damageType'
+                      multiple={true}
+                      placeholder='Damage Type'
+                      value={state.damage?.damageType}
+                      options={builders.damage}
+                      required={true}
+                      onChange={setState}
+                    />
+                  </>
+                ))}
             </div>
             {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'doesDamage'
-            ) &&
-              (!state?.damage?.damageByLevel ? (
-                setState({
-                  type: 'added',
-                  payload: {
-                    target: {
-                      name: 'damage.damageByLevel',
-                      value: { level: state?.level },
-                    },
-                  },
-                })
-              ) : (
-                <div className='row gx-2 align-items-end pb-2'>
-                  <Select
-                    multiple={true}
-                    name='damage.damageAttribute'
-                    placeholder='Damage Attribute'
-                    value={state.damage?.damageAttribute}
-                    options={builders.spell.damageAttribute}
+            ) && (
+              <>
+                <AccordionButton
+                  className='accordion form-details justify-content-between align-items-center'
+                  id='damageTableButton'
+                  target='damageTable'
+                >
+                  <span className='me-3'>Damage Table</span>
+                  <hr className='flex-grow-1 me-3' />
+                </AccordionButton>
+                <div
+                  className='accordion-collapse collapse show pb-2'
+                  id='damageTable'
+                >
+                  <Table
+                    inputs={damageTableInputs(
+                      state.attribute?.some(
+                        (attributeItem) =>
+                          attributeItem.name === 'secondaryDamage'
+                      )
+                    )}
+                    name='damage.damageByLevel'
+                    value={state.damage?.damageByLevel}
                     onChange={setState}
+                    dynamic={true}
+                    scrollable={true}
                   />
-                  <Select
-                    ref={addToSelectRefs}
-                    name='damage.damageType'
-                    multiple={true}
-                    placeholder='Damage Type'
-                    value={state.damage?.damageType}
-                    options={builders.damage}
-                    required={true}
-                    onChange={setState}
-                  />
-                  <div className='col-lg-6 col-md-12'></div>
                 </div>
-              ))}
-          </div>
-          {state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'doesDamage'
-          ) && (
-            <>
-              <AccordionButton
-                className='accordion form-details justify-content-between align-items-center'
-                id='damageTableButton'
-                target='damageTable'
-                expanded='false'
-              >
-                <span className='me-3'>Damage Table</span>
-                <hr className='flex-grow-1 me-3' />
-              </AccordionButton>
-              <div
-                className='accordion-collapse collapse show pb-2'
-                id='damageTable'
-              >
-                <Table
-                  inputs={damageTableInputs(
-                    state.attribute?.some(
-                      (attributeItem) =>
-                        attributeItem.name === 'secondaryDamage'
-                    )
-                  )}
-                  name='damage.damageByLevel'
-                  value={state.damage?.damageByLevel}
-                  onChange={setState}
-                  dynamic={true}
-                  scrollable={true}
-                />
-              </div>
-            </>
-          )}
-          <div className='d-flex justify-content-end pb-3'>
+              </>
+            )}
+          </>
+        ),
+      },
+    ]
+
+    console.log(state)
+
+    content = (
+      <div className='main-container'>
+        <div className='d-flex justify-content-between'>
+          <h1>Edit Spell</h1>
+          <div>
             <button
               className='btn btn-success me-2'
+              type='button'
+              onClick={() => {
+                onSubmit()
+              }}
+            >
+              Add
+            </button>
+            <button
+              className='btn btn-warning me-2'
               type='button'
               onClick={() => {
                 onUpdate()
@@ -588,16 +584,27 @@ const EditSpellForm = () => {
             >
               Update
             </button>
-            <button
-              className='btn btn-primary'
-              type='button'
-              onClick={() => {
-                onSubmit()
-              }}
-            >
-              Add New
+            <button className='btn btn-primary me-2' onClick={onReset}>
+              Reset Form
+            </button>
+            <button className='btn btn-secondary' onClick={onBackClick}>
+              Back
             </button>
           </div>
+        </div>
+        {successMessage && (
+          <h5 className='success-message'>{successMessage}</h5>
+        )}
+        {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
+        <form className='needs-validation' noValidate>
+          <TabNavigation
+            id={'main'}
+            dynamic={false}
+            tabState={mainTabContent}
+            tabContent={[].concat(
+              mainTabContent.map((content) => content.content)
+            )}
+          />
         </form>
       </div>
     )

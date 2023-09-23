@@ -6,6 +6,7 @@
 
 :root {
   --doc-height: 100%;
+  --background-color: white;
 }
 
 #root {
@@ -45,7 +46,7 @@
   text-align: center;
   height: 3rem;
   width: 100%;
-  background-color: white;
+  background-color: var(--background-color);
   line-height: 3rem;
 }
 
@@ -54,11 +55,11 @@ a.btn {
   display: flex;
 }
 
-.btn {
+.btn.removeBtn {
   height: 58px;
 }
 
-.btn-small {
+.btn {
   height: 38px;
 }
 
@@ -116,6 +117,12 @@ h6 {
   box-shadow: none;
   padding-left: 0;
   padding-right: 0;
+}
+
+/* Go from zero to full opacity */
+@keyframes fadeEffect {
+  from {opacity: 0;}
+  to {opacity: 1;}
 }
 
 /* Effect Sections */

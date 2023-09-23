@@ -34,14 +34,16 @@ const CharacterList = () => {
       ))
   }
 
-  return (
-    <>
+  content = (
+    <div className='main-container'>
       <h1>Characters</h1>
       <div className='row row-cols-1 row-cols-lg-3 row-cols-md-2 g-4 m-3'>
         {content}
       </div>
-    </>
+    </div>
   )
+
+  return content
 }
 
 export default CharacterList

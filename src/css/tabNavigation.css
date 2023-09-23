@@ -1,0 +1,76 @@
+.tabMain {
+  border: 1px solid grey;
+  border-radius: 5px;
+  justify-content: left;
+}
+
+.nav-tabs-wrapper {
+  position: relative;
+  margin: 0 auto;
+  overflow: hidden;
+  height: 50px;
+  padding-top: 0.5rem;
+  z-index: 1;
+}
+
+.nav-tabs {
+  position: absolute;
+  left: 0px;
+  width: max-content;
+  min-width: 100%;
+}
+
+.section-nav-link {
+  display: table-cell;
+  position: relative;
+  text-align: center;
+  cursor: grab;
+  cursor: -webkit-grab;
+  color: rgb(161, 161, 161);
+  vertical-align: middle;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.delete-nav-link {
+  margin-left: 0.5rem;
+}
+
+.section-nav-link:first-of-type {
+  margin-left: 1.75rem;
+}
+
+.section-nav-link:last-of-type {
+  margin-right: 1.75rem;
+}
+
+.left-scroller {
+  position: relative;
+  cursor: pointer;
+  background-color: var(--background-color);
+  height: 100%;
+  width: 1.75rem;
+  float: left;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.right-scroller {
+  position: relative;
+  cursor: pointer;
+  background-color: var(--background-color);
+  height: 100%;
+  width: 1.75rem;
+  float: right;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.tab-content {
+  padding: 0.5rem 0.75rem 0;
+}

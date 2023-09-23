@@ -9,6 +9,7 @@ import Select from '../../components/Select'
 import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
 import AccordionButton from '../../components/AccordionButton'
+import TabNavigation from '../../components/TabNavigation'
 
 const NewSpellForm = () => {
   const { id } = useAuth()
@@ -131,7 +132,7 @@ const NewSpellForm = () => {
         }
       }
     })
-    if(resetValidation) {
+    if (resetValidation) {
       setErrorMessage()
     }
     return isValid
@@ -214,39 +215,11 @@ const NewSpellForm = () => {
       return inputArray
     }
 
-    content = (
-      <div className='main-container'>
-        <div className='d-flex justify-content-between pb-2'>
-          <h3>Create a Spell</h3>
-          <div>
-            <button
-              className='btn btn-secondary btn-small me-2'
-              onClick={onReset}
-            >
-              Reset Form
-            </button>
-            <button
-              className='btn btn-secondary btn-small'
-              onClick={() => navigate(-1)}
-            >
-              Back
-            </button>
-          </div>
-        </div>
-        {successMessage && (
-          <h5 className='success-message'>{successMessage}</h5>
-        )}
-        {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
-        <form className='needs-validation' noValidate>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='detailsButton'
-            target='details'
-          >
-            <span className='me-3'>Details</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div className='accordion-collapse collapse show' id='details'>
+    const mainTabContent = [
+      {
+        value: 'Details',
+        content: (
+          <>
             <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start pb-2'>
               <Input
                 ref={addToInputRefs}
@@ -304,19 +277,6 @@ const NewSpellForm = () => {
                 />
               )}
             </div>
-          </div>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='descriptionButton'
-            target='description'
-          >
-            <span className='me-3'>Description</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div
-            className='accordion-collapse collapse show pb-3'
-            id='description'
-          >
             <TextEditor
               ref={addToTextRefs}
               name='desc'
@@ -324,16 +284,13 @@ const NewSpellForm = () => {
               placeholder='Spell Description'
               onChange={setState}
             />
-          </div>
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='attributesButton'
-            target='attributes'
-          >
-            <span className='me-3'>Attributes</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-          <div className='accordion-collapse collapse show' id='attributes'>
+          </>
+        ),
+      },
+      {
+        value: 'Attributes',
+        content: (
+          <>
             <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
               <Select
                 multiple={true}
@@ -471,7 +428,7 @@ const NewSpellForm = () => {
                 />
               </div>
             )}
-            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
+            <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
               {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'requireSave'
               ) && (
@@ -485,79 +442,87 @@ const NewSpellForm = () => {
                   onChange={setState}
                 />
               )}
+              {state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'doesDamage'
+              ) &&
+                (!state?.damage?.damageByLevel ||
+                state?.damage?.damageByLevel?.length === 0 ? (
+                  setState({
+                    type: 'added',
+                    payload: {
+                      target: {
+                        name: 'damage.damageByLevel',
+                        value: { level: state?.level },
+                      },
+                    },
+                  })
+                ) : (
+                  <>
+                    <Select
+                      multiple={true}
+                      name='damage.damageAttribute'
+                      placeholder='Damage Attribute'
+                      value={state.damage?.damageAttribute}
+                      options={builders.spell.damageAttribute}
+                      onChange={setState}
+                    />
+                    <Select
+                      ref={addToSelectRefs}
+                      name='damage.damageType'
+                      multiple={true}
+                      placeholder='Damage Type'
+                      value={state.damage?.damageType}
+                      options={builders.damage}
+                      required={true}
+                      onChange={setState}
+                    />
+                  </>
+                ))}
             </div>
             {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'doesDamage'
-            ) &&
-              (!state?.damage?.damageByLevel ? (
-                setState({
-                  type: 'added',
-                  payload: {
-                    target: {
-                      name: 'damage.damageByLevel',
-                      value: { level: state?.level },
-                    },
-                  },
-                })
-              ) : (
-                <div className='row gx-2 align-items-end pb-2'>
-                  <Select
-                    multiple={true}
-                    name='damage.damageAttribute'
-                    placeholder='Damage Attribute'
-                    value={state.damage?.damageAttribute}
-                    options={builders.spell.damageAttribute}
+            ) && (
+              <>
+                <AccordionButton
+                  className='accordion form-details justify-content-between align-items-center'
+                  id='damageTableButton'
+                  target='damageTable'
+                >
+                  <span className='me-3'>Damage Table</span>
+                  <hr className='flex-grow-1 me-3' />
+                </AccordionButton>
+                <div
+                  className='accordion-collapse collapse show pb-2'
+                  id='damageTable'
+                >
+                  <Table
+                    inputs={damageTableInputs(
+                      state.attribute?.some(
+                        (attributeItem) =>
+                          attributeItem.name === 'secondaryDamage'
+                      )
+                    )}
+                    name='damage.damageByLevel'
+                    value={state.damage?.damageByLevel}
                     onChange={setState}
+                    dynamic={true}
+                    scrollable={true}
                   />
-                  <Select
-                    ref={addToSelectRefs}
-                    name='damage.damageType'
-                    multiple={true}
-                    placeholder='Damage Type'
-                    value={state.damage?.damageType}
-                    options={builders.damage}
-                    required={true}
-                    onChange={setState}
-                  />
-                  <div className='col-lg-6 col-md-12'></div>
                 </div>
-              ))}
-          </div>
-          {state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'doesDamage'
-          ) && (
-            <>
-              <AccordionButton
-                className='accordion form-details justify-content-between align-items-center'
-                id='damageTableButton'
-                target='damageTable'
-              >
-                <span className='me-3'>Damage Table</span>
-                <hr className='flex-grow-1 me-3' />
-              </AccordionButton>
-              <div
-                className='accordion-collapse collapse show pb-2'
-                id='damageTable'
-              >
-                <Table
-                  inputs={damageTableInputs(
-                    state.attribute?.some(
-                      (attributeItem) =>
-                        attributeItem.name === 'secondaryDamage'
-                    )
-                  )}
-                  name='damage.damageByLevel'
-                  value={state.damage?.damageByLevel}
-                  onChange={setState}
-                  dynamic={true}
-                  scrollable={true}
-                />
-              </div>
-            </>
-          )}
-          <div className='d-flex pb-3 justify-content-end'>
+              </>
+            )}
+          </>
+        ),
+      },
+    ]
+
+    content = (
+      <div className='main-container'>
+        <div className='d-flex justify-content-between pb-2'>
+          <h3>Create a Spell</h3>
+          <div>
             <button
-              className='btn btn-primary'
+              className='btn btn-primary me-2'
               type='button'
               onClick={() => {
                 onSubmit()
@@ -565,7 +530,27 @@ const NewSpellForm = () => {
             >
               Add
             </button>
+            <button className='btn btn-secondary me-2' onClick={onReset}>
+              Reset Form
+            </button>
+            <button className='btn btn-secondary' onClick={() => navigate(-1)}>
+              Back
+            </button>
           </div>
+        </div>
+        {successMessage && (
+          <h5 className='success-message'>{successMessage}</h5>
+        )}
+        {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
+        <form className='needs-validation' noValidate>
+          <TabNavigation
+            id={'main'}
+            dynamic={false}
+            tabState={mainTabContent}
+            tabContent={[].concat(
+              mainTabContent.map((content) => content.content)
+            )}
+          />
         </form>
       </div>
     )
