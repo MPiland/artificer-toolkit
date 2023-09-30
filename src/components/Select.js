@@ -350,7 +350,7 @@ const Select = forwardRef(
       >
         <button
           ref={buttonRef}
-          className={`btn dropdown-toggle focus-ring align-items-center w-100 justify-content-between ${containerClass()} ${classText}`}
+          className={`btn dropdown-toggle select-dropdown-toggle focus-ring align-items-center w-100 justify-content-between ${containerClass()} ${classText}`}
           data-bs-toggle='dropdown'
           aria-expanded='false'
           type='button'
@@ -369,7 +369,7 @@ const Select = forwardRef(
           {newOptions.map((option, optionIndex) => (
             <li
               tabIndex='0'
-              className={`dropdown-item mb-2 py-0 px-2 ${selectClass(option)}`}
+              className={`dropdown-item select-dropdown-item mb-2 py-0 px-2 ${selectClass(option)}`}
               key={optionIndex}
               onClick={(e) => {
                 multiple && e.stopPropagation()

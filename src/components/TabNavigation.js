@@ -1,172 +1,235 @@
 import '../css/tabNavigation.css'
-import { useCallback, useEffect } from 'react'
+import React, { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { startCase } from 'lodash'
 const TabNavigation = ({
   tabState,
-  tabContent,
   id,
   onDelete,
   onAdd,
   dynamic,
+  customButton,
 }) => {
-  let tab
-  let pane
-  let currentTab
-  let currentPane
+  const [leftPosition, setLeftPosition] = useState(0)
+  const [hiddenWidth, setHiddenWidth] = useState(0)
+  const [tabContWidth, setTabContWidth] = useState()
+  const [wrapperWidth, setWrapperWidth] = useState()
+  const [tabContLeftPos, setTabContLeftPos] = useState()
+  const [wrapperLeftPos, setWrapperLeftPos] = useState()
+  const [tabStateLength, setTabStateLength] = useState(
+    tabState ? tabState.length : 0
+  )
 
-  const leftPosition = useCallback(() => {
-    const wrapper = document.getElementById(`${id}-nav-tabs-wrapper`)
-    const tabContainer = document.getElementById(`${id}-nav-tabs`)
-    if (!wrapper || !tabContainer) {
-      return 0
-    } else {
-      const containerLeft = tabContainer.getBoundingClientRect().x
-      const wrapperLeft = wrapper.getBoundingClientRect().x
-      return containerLeft - wrapperLeft
-    }
-  }, [id])
+  const wrapperRef = useRef(null)
+  const tabContainerRef = useRef(null)
+  const paneContainerRef = useRef(null)
+  const leftScrollerRef = useRef(null)
+  const rightScrollerRef = useRef(null)
+  const currentTabRef = useRef(null)
+  const currentPaneRef = useRef(null)
 
-  const widthOfHidden = useCallback(() => {
-    const wrapper = document.getElementById(`${id}-nav-tabs-wrapper`)
-    const tabContainer = document.getElementById(`${id}-nav-tabs`)
-    if (!wrapper || !tabContainer) {
-      return 0
-    } else {
-      const tabContainerWidth = tabContainer.getBoundingClientRect().width
-      const wrapperWidth = wrapper.getBoundingClientRect().width
-      if (tabContainerWidth > wrapperWidth) {
-        return tabContainerWidth - wrapperWidth + leftPosition()
-      } else {
-        return 0
+  const getActive = () => {
+    if (tabContainerRef.current) {
+      const tabs = tabContainerRef.current.children
+      const panes = paneContainerRef.current.children
+
+      for (let tab of tabs) {
+        if (tab.classList.contains('active')) {
+          currentTabRef.current = tab
+        }
+      }
+
+      for (let pane of panes) {
+        if (pane.classList.contains('active')) {
+          currentPaneRef.current = pane
+        }
       }
     }
-  }, [id, leftPosition])
+  }
+
+  useLayoutEffect(() => {
+    const minHiddenWidthThreshold = 0.1
+    wrapperRef.current = document.getElementById(`${id}-nav-tabs-wrapper`)
+    tabContainerRef.current = document.getElementById(`${id}-nav-tabs`)
+    paneContainerRef.current = document.getElementById(`${id}-tabContent`)
+    leftScrollerRef.current = document.getElementById(`${id}-scroll-left`)
+    rightScrollerRef.current = document.getElementById(`${id}-scroll-right`)
+
+    if (wrapperRef.current && tabContainerRef.current) {
+      const wrapper = wrapperRef.current
+      const tabContainer = tabContainerRef.current
+
+      setWrapperWidth(wrapper.getBoundingClientRect().width)
+      setWrapperLeftPos(wrapper.getBoundingClientRect().x)
+      setTabContWidth(tabContainer.getBoundingClientRect().width)
+      setTabContLeftPos(tabContainer.getBoundingClientRect().x)
+
+      setLeftPosition(wrapperLeftPos - tabContLeftPos)
+      const newHiddenWidth = tabContWidth - wrapperWidth - leftPosition
+      setHiddenWidth(newHiddenWidth)
+
+      if (leftScrollerRef.current) {
+        if (leftPosition > 0) {
+          leftScrollerRef.current.classList.add('show')
+          leftScrollerRef.current.classList.remove('hide')
+        } else {
+          leftScrollerRef.current.classList.add('hide')
+          leftScrollerRef.current.classList.remove('show')
+        }
+      }
+
+      if (rightScrollerRef.current) {
+        if (hiddenWidth > 0) {
+          if (hiddenWidth < minHiddenWidthThreshold) {
+            rightScrollerRef.current.classList.remove('show')
+            rightScrollerRef.current.classList.add('hide')
+          } else {
+            rightScrollerRef.current.classList.add('show')
+            rightScrollerRef.current.classList.remove('hide')
+          }
+        } else {
+          rightScrollerRef.current.classList.add('hide')
+          rightScrollerRef.current.classList.remove('show')
+        }
+      }
+    }
+
+    if (tabContainerRef.current && !currentTabRef.current) {
+      tabContainerRef.current.firstChild.setAttribute('aria-selected', 'true')
+      tabContainerRef.current.firstChild.classList.toggle('active')
+      paneContainerRef.current.firstChild.classList.toggle('active')
+      paneContainerRef.current.firstChild.classList.toggle('show')
+      currentTabRef.current = tabContainerRef.current.firstChild
+      currentPaneRef.current = paneContainerRef.current.firstChild
+      currentPaneRef.current.scrollIntoView()
+    }
+    setTabStateLength(tabState ? tabState.length : 0)
+  }, [
+    id,
+    tabStateLength,
+    tabState,
+    hiddenWidth,
+    leftPosition,
+    tabContWidth,
+    wrapperWidth,
+    tabContLeftPos,
+    wrapperLeftPos,
+  ])
 
   const scrollRight = () => {
-    const tabContainer = document.getElementById(`${id}-nav-tabs`)
-    if (widthOfHidden() - 90 < 0 && widthOfHidden() !== 0) {
-      tabContainer.style.left = leftPosition() - widthOfHidden() + 'px'
-      document.getElementById(`${id}-scroll-right`).hidden = true
-    } else if (widthOfHidden() !== 0) {
-      tabContainer.style.left = leftPosition() - 90 + 'px'
+    let newLeftPosition
+
+    if (hiddenWidth > 90) {
+      newLeftPosition = leftPosition + 90
+    } else if (hiddenWidth > 0) {
+      newLeftPosition = leftPosition + hiddenWidth
     }
-    document.getElementById(`${id}-scroll-left`).hidden = false
+
+    if (newLeftPosition !== undefined) {
+      setLeftPosition(newLeftPosition)
+
+      tabContainerRef.current.style.left = `-${newLeftPosition}px`
+    }
   }
 
   const scrollLeft = () => {
-    const tabContainer = document.getElementById(`${id}-nav-tabs`)
-    if (leftPosition() + 90 > -1) {
-      tabContainer.style.left = 0
-      document.getElementById(`${id}-scroll-left`).hidden = true
-    } else if (leftPosition() !== 0) {
-      tabContainer.style.left = leftPosition() + 90 + 'px'
+    let newLeftPosition
+
+    if (leftPosition > 90) {
+      newLeftPosition = leftPosition - 90
+    } else if (leftPosition > 0) {
+      newLeftPosition = 0
     }
-    document.getElementById(`${id}-scroll-right`).hidden = false
+
+    if (newLeftPosition !== undefined) {
+      setLeftPosition(newLeftPosition)
+
+      // Apply the scroll
+      tabContainerRef.current.style.left = `-${newLeftPosition}px`
+    }
   }
-
-  useEffect(() => {
-    const leftScroller = document.getElementById(`${id}-scroll-left`)
-    const rightScroller = document.getElementById(`${id}-scroll-right`)
-    if (leftScroller) {
-      leftScroller.hidden = true
-    }
-    if (rightScroller) {
-      rightScroller.hidden = false
-      if (widthOfHidden() <= 0) {
-        rightScroller.hidden = true
-      }
-    }
-  }, [id, leftPosition, widthOfHidden])
-
-  const activeTab = useCallback(() => {
-    const tabs = document.getElementsByClassName(`${id}-nav-link`)
-    for (let tab of tabs) {
-      if (tab.classList.contains('active')) {
-        return tab
-      }
-    }
-
-    return null
-  }, [id])
-
-  const activePane = () => {
-    const panes = document.getElementsByClassName(`${id}-tab-pane`)
-    for (let pane of panes) {
-      if (pane.classList.contains('active')) {
-        return pane
-      }
-    }
-
-    return null
-  }
-
-  useEffect(() => {
-    let currentTab = activeTab()
-    let currentPane
-    if (tabState?.length > 0 && !currentTab) {
-      currentTab = document.getElementById(`${id}${0}Tab`)
-      currentPane = document.getElementById(`${id}${0}TabPane`)
-      currentTab.classList.toggle('active')
-      currentTab.setAttribute('aria-selected', 'true')
-      currentPane.classList.toggle('active')
-      currentPane.classList.toggle('show')
-    }
-  }, [activeTab, id, tabState])
 
   const addTab = async () => {
-    await onAdd({ type: 'added', payload: { target: { name: id } } })
+    try {
+      await onAdd({ type: 'added', payload: { target: { name: id } } })
+    } catch (err) {
+      console.log(err.message)
+    } finally {
+      getActive()
 
-    let index
-    if (tabState?.length > 0) {
-      index = tabState?.length
-    } else {
-      index = 0
+      if (currentTabRef.current) {
+        currentTabRef.current.classList.remove('active')
+        currentTabRef.current.setAttribute('aria-selected', 'false')
+        currentPaneRef.current.classList.remove('active')
+        currentPaneRef.current.classList.remove('show')
+      }
+
+      let index
+      if (tabState?.length > 0) {
+        index = tabState?.length
+      } else {
+        index = 0
+      }
+      const tab = tabContainerRef.current.children.item(index)
+      const pane = paneContainerRef.current.children.item(index)
+      tab.classList.add('active')
+      tab.setAttribute('aria-selected', 'true')
+      pane.classList.add('show')
+      pane.classList.add('active')
+      currentTabRef.current = tab
+      currentPaneRef.current = pane
     }
 
-    if (index !== 0) {
-      currentTab = activeTab()
-      currentPane = activePane()
-      currentTab.classList.toggle('active')
-      currentTab.setAttribute('aria-selected', 'false')
-      currentPane.classList.toggle('active')
-      currentPane.classList.toggle('show')
-    }
-
-    tab = document.getElementById(`${id}${index}Tab`)
-    pane = document.getElementById(`${id}${index}TabPane`)
-
-    tab.classList.add('active')
-    tab.setAttribute('aria-selected', 'true')
-    pane.classList.add('active')
-    pane.classList.add('show')
-    pane.focus()
+    setTimeout(() => {
+      currentPaneRef.current.scrollIntoView()
+    }, 0)
   }
 
-  const deleteTab = async (e, index) => {
-    e.stopPropagation()
-    currentTab = activeTab()
-    currentPane = activePane()
+  const deleteTab = async (name, index) => {
+    let activeIndex
 
-    if (index === tabState?.length - 1 && tabState?.length !== 1) {
-      tab = document.getElementById(`${id}${index - 1}Tab`)
-      pane = document.getElementById(`${id}${index - 1}TabPane`)
-      tab.classList.toggle('active')
-      tab.setAttribute('aria-selected', 'true')
-      pane.classList.toggle('show')
-      pane.classList.toggle('active')
+    if (index === tabState.length - 1) {
+      activeIndex = index - 1
+    } else {
+      activeIndex = index
     }
-    await onDelete({
-      type: 'removed',
-      payload: { target: { name: `${id}.${index}` } },
-    })
+
+    currentTabRef.current.classList.remove('active')
+    currentTabRef.current.setAttribute('aria-selected', 'false')
+    currentPaneRef.current.classList.remove('active')
+    currentPaneRef.current.classList.remove('show')
+
+    if (index !== 0) {
+      const tabs = tabContainerRef.current.children
+      const panes = paneContainerRef.current.children
+      const tab = tabs.item(activeIndex)
+      const pane = panes.item(activeIndex)
+      tab.classList.add('active')
+      tab.setAttribute('aria-selected', 'true')
+      pane.classList.add('show')
+      pane.classList.add('active')
+      currentTabRef.current = tab
+      currentPaneRef.current = pane
+    }
+    try {
+      await onDelete({
+        type: 'removed',
+        payload: { target: { name: `${name}` } },
+      })
+    } finally {
+      if (index !== 0) {
+        setTimeout(() => {
+          currentPaneRef.current.scrollIntoView()
+        }, 0)
+      }
+    }
   }
 
   const content = (
     <>
       {onAdd && (
-        <div className='d-flex pb-3 justify-content-between'>
+        <div className='row g-2 px-3 pb-2 justify-content-between'>
           <button
-            className='btn btn-secondary me-2'
+            className='btn btn-secondary col-auto'
             name='feature'
             type='button'
             onClick={() => {
@@ -179,66 +242,102 @@ const TabNavigation = ({
       )}
       {tabState?.length > 0 && (
         <nav className='tabMain mb-2' id={`${id}TabContent`}>
-          <div className='nav-tabs-wrapper' id={`${id}-nav-tabs-wrapper`}>
+          <div
+            className='nav-tabs-wrapper'
+            id={`${id}-nav-tabs-wrapper`}
+            ref={wrapperRef}
+          >
             <div
-              className='left-scroller'
+              className='left-scroller hide'
               id={`${id}-scroll-left`}
               onClick={scrollLeft}
+              ref={leftScrollerRef}
             >
               <i className='bi bi-chevron-left' />
             </div>
             <div
-              className='right-scroller'
+              className='right-scroller hide'
               id={`${id}-scroll-right`}
               onClick={scrollRight}
+              ref={rightScrollerRef}
             >
               <i className='bi bi-chevron-right' />
             </div>
-            <div className='nav nav-tabs' id={`${id}-nav-tabs`} role='tablist'>
-              {tabState.map((tabItem, tabIndex) => (
-                <button
-                  className={`nav-link ${id}-nav-link section-nav-link`}
-                  role='tab'
-                  id={`${id}${tabIndex}Tab`}
-                  key={`${id}${tabIndex}Tab`}
-                  data-bs-toggle='tab'
-                  data-bs-target={`#${id}${tabIndex}TabPane`}
-                  type='button'
-                  aria-selected='true'
-                  aria-controls={`#${id}${tabIndex}TabPane`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {tabItem.value !== '' && !!tabItem.value
-                    ? tabItem.value
-                    : `${startCase(id)} ${tabIndex}`}
-                  {dynamic && (
-                    <i
-                      className='bi bi-x delete-nav-link'
-                      value={tabIndex}
-                      onClick={(e) => {
-                        deleteTab(e, tabIndex)
-                      }}
-                    />
-                  )}
-                </button>
-              ))}
+            <div
+              className='nav nav-tabs'
+              id={`${id}-nav-tabs`}
+              role='tablist'
+              ref={tabContainerRef}
+            >
+              {tabState.map(
+                (tabItem, tabIndex) =>
+                  tabItem && (
+                    <Fragment key={`${tabIndex}`}>
+                      <button
+                        className={`nav-link ${id}-nav-link section-nav-link`}
+                        role='tab'
+                        id={`${id}${tabIndex}Tab`}
+                        data-bs-toggle='tab'
+                        data-bs-target={`#${id}${tabIndex}TabPane`}
+                        type='button'
+                        aria-selected='false'
+                        aria-controls={`${id}${tabIndex}TabPane`}
+                      >
+                        {startCase(tabItem?.value)}
+                        {dynamic && (
+                          <i
+                            className='bi bi-x delete-nav-link'
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteTab(tabItem?.name, tabIndex)
+                            }}
+                          />
+                        )}
+                      </button>
+                    </Fragment>
+                  )
+              )}
             </div>
           </div>
-          <div className='tab-content' id='nav-tabContent'>
-            <>
-              {tabContent.map((pane, paneIndex) => (
-                <div
-                  className={`tab-pane ${id}-tab-pane section-tab-pane fade`}
-                  id={`${id}${paneIndex}TabPane`}
-                  aria-labelledby={`${id}${paneIndex}Tab`}
-                  key={`${id}${paneIndex}Tab`}
-                  role='tabpanel'
-                  tabIndex='0'
-                >
-                  {pane}
-                </div>
-              ))}
-            </>
+          <div
+            className='tab-content'
+            id={`${id}-tabContent`}
+            ref={paneContainerRef}
+          >
+            {tabState.map(
+              (tabItem, tabIndex) =>
+                tabItem && (
+                  <Fragment key={`${tabIndex}`}>
+                    {customButton && customButton.type === 'dropdown' && (
+                      <>
+                        <div className='dropdown col-auto'>
+                          <button
+                            className='btn btn-secondary dropdown-toggle'
+                            type='button'
+                            data-bs-toggle='dropdown'
+                            aria-expanded='false'
+                          >
+                            Add a...
+                          </button>
+                        </div>
+
+                        <ul className='dropdown-menu'>
+                          {customButton.content}
+                        </ul>
+                      </>
+                    )}
+                    <div
+                      className={`tab-pane ${id}-tab-pane section-tab-pane fade`}
+                      id={`${id}${tabIndex}TabPane`}
+                      aria-labelledby={`${id}${tabIndex}Tab`}
+                      role='tabpanel'
+                      tabIndex='0'
+                    >
+                      {tabItem?.content}
+                    </div>
+                  </Fragment>
+                )
+            )}
           </div>
         </nav>
       )}

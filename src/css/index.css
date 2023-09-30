@@ -28,7 +28,7 @@
 }
 
 .main-container {
-  padding: 1rem calc(((100% - 70%) / 2) + 2rem) 0;
+  padding: 1rem calc(((100% - 80%) / 2)) 0;
   overflow-y: auto;
   width: 100%;
   flex: 1 1 auto;
@@ -53,18 +53,6 @@
 a.btn {
   align-items: center;
   display: flex;
-}
-
-.btn.removeBtn {
-  height: 58px;
-}
-
-.btn {
-  height: 38px;
-}
-
-.btn.login {
-  height: 58px;
 }
 
 button.bi {
@@ -160,7 +148,7 @@ h6 {
 
 @media only screen and (max-width: 768px) {
   .main-container {
-    padding: 1rem 3rem 0;
+    padding: 1rem .5rem 0;
     margin: 0 auto;
   }
 
@@ -173,7 +161,7 @@ h6 {
 
 @media only screen and (min-width: 768px) and (max-width: 1200px) {
   .main-container {
-    padding: 1rem calc(((100vw - 85vw) / 2) + 2rem) 0;
+    padding: 1rem calc(((100vw - 95vw) / 2)) 0;
     margin: 0 auto;
   }
 }

@@ -45,19 +45,35 @@ const EditSpellForm = () => {
   useEffect(() => {
     if (addIsSuccess) {
       setSuccessMessage('Item added successfully!')
+      const successElement = document.getElementById('success-message')
+      if (successElement) {
+        successElement.scrollIntoView()
+      }
       handleValidation(true)
     }
     if (updateIsSuccess) {
       setSuccessMessage('Item updated successfully!')
+      const successElement = document.getElementById('success-message')
+      if (successElement) {
+        successElement.scrollIntoView()
+      }
     }
   }, [addIsSuccess, id, navigate, updateIsSuccess])
 
   useEffect(() => {
     if (addIsError) {
       setErrorMessage(addError.data.message)
+      const errorrElement = document.getElementById('error-message')
+      if (errorrElement) {
+        errorrElement.scrollIntoView()
+      }
     }
     if (updateIsError) {
       setErrorMessage(updateError.data.message)
+      const errorrElement = document.getElementById('error-message')
+      if (errorrElement) {
+        errorrElement.scrollIntoView()
+      }
     }
   }, [addIsError, id, updateIsError, addError, updateError])
 
@@ -170,6 +186,10 @@ const EditSpellForm = () => {
       await addNewSpell(state)
     } else {
       setErrorMessage('Please fill out all required fields')
+      const errorrElement = document.getElementById('error-message')
+      if (errorrElement) {
+        errorrElement.scrollIntoView()
+      }
     }
   }
 
@@ -184,6 +204,10 @@ const EditSpellForm = () => {
       }
     } else {
       setErrorMessage('Please fill out all required fields')
+      const errorrElement = document.getElementById('error-message')
+      if (errorrElement) {
+        errorrElement.scrollIntoView()
+      }
     }
   }
 
@@ -260,10 +284,10 @@ const EditSpellForm = () => {
 
     const mainTabContent = [
       {
-        value: 'Details',
+        name: 'details',
         content: (
           <>
-            <div className='row row-cols-lg-4 row-cols-md-2 row-cols-sm-1 g-2 align-items-start pb-2'>
+            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 align-items-start pb-2'>
               <Input
                 ref={addToInputRefs}
                 name='value'
@@ -331,10 +355,10 @@ const EditSpellForm = () => {
         ),
       },
       {
-        value: 'Attributes',
+        name: 'attributes',
         content: (
           <>
-            <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
+            <div className='row row-cols-lg-3 row-cols-md-3 row-cols-2 g-2 justify-content-left pb-2'>
               <Select
                 multiple={true}
                 name='attribute'
@@ -449,7 +473,7 @@ const EditSpellForm = () => {
             {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'secondaryAction'
             ) && (
-              <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 justify-content-left pb-2'>
+              <div className='row row-cols-lg-3 row-cols-md-3 row-cols-2 g-2 justify-content-left pb-2'>
                 <Select
                   ref={addToSelectRefs}
                   name='secondaryAction.actionType'
@@ -471,7 +495,7 @@ const EditSpellForm = () => {
                 />
               </div>
             )}
-            <div className='row row-cols-lg-3 row-cols-md-2 row-cols-sm-1 g-2 pb-2'>
+            <div className='row row-cols-lg-3 row-cols-md-3 row-cols-2 g-2 pb-2'>
               {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'requireSave'
               ) && (
@@ -488,72 +512,66 @@ const EditSpellForm = () => {
               {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'doesDamage'
               ) &&
-                (!state?.damage?.damageByLevel ||
-                state?.damage?.damageByLevel?.length === 0 ? (
+                (!state?.damage?.damageByLevel ? (
                   setState({
                     type: 'added',
                     payload: {
                       target: {
                         name: 'damage.damageByLevel',
-                        value: { level: state?.level },
                       },
                     },
                   })
                 ) : (
                   <>
-                    <Select
-                      multiple={true}
-                      name='damage.damageAttribute'
-                      placeholder='Damage Attribute'
-                      value={state.damage?.damageAttribute}
-                      options={builders.spell.damageAttribute}
-                      onChange={setState}
-                    />
-                    <Select
-                      ref={addToSelectRefs}
-                      name='damage.damageType'
-                      multiple={true}
-                      placeholder='Damage Type'
-                      value={state.damage?.damageType}
-                      options={builders.damage}
-                      required={true}
-                      onChange={setState}
-                    />
+                    <div className='row g-2 align-items-end pb-2'>
+                      <Select
+                        multiple={true}
+                        name='damage.damageAttribute'
+                        placeholder='Damage Attribute'
+                        value={state.damage?.damageAttribute}
+                        options={builders.spell.damageAttribute}
+                        onChange={setState}
+                      />
+                      <Select
+                        ref={addToSelectRefs}
+                        name='damage.damageType'
+                        multiple={true}
+                        placeholder='Damage Type'
+                        value={state.damage?.damageType}
+                        options={builders.damage}
+                        required={true}
+                        onChange={setState}
+                      />
+                    </div>
+                    <AccordionButton
+                      className='accordion form-details justify-content-between align-items-center'
+                      id='damageTableButton'
+                      target='damageTable'
+                    >
+                      <span className='me-3'>Damage Table</span>
+                      <hr className='flex-grow-1 me-3' />
+                    </AccordionButton>
+                    <div
+                      className='accordion-collapse collapse show pb-2'
+                      id='damageTable'
+                    >
+                      <Table
+                        inputs={damageTableInputs(
+                          state.attribute?.some(
+                            (attributeItem) =>
+                              attributeItem.name === 'secondaryDamage'
+                          )
+                        )}
+                        name='damage.damageByLevel'
+                        value={state.damage?.damageByLevel}
+                        onChange={setState}
+                        dynamic={true}
+                        scrollable={true}
+                      />
+                    </div>
                   </>
                 ))}
             </div>
-            {state.attribute?.some(
-              (attributeItem) => attributeItem.name === 'doesDamage'
-            ) && (
-              <>
-                <AccordionButton
-                  className='accordion form-details justify-content-between align-items-center'
-                  id='damageTableButton'
-                  target='damageTable'
-                >
-                  <span className='me-3'>Damage Table</span>
-                  <hr className='flex-grow-1 me-3' />
-                </AccordionButton>
-                <div
-                  className='accordion-collapse collapse show pb-2'
-                  id='damageTable'
-                >
-                  <Table
-                    inputs={damageTableInputs(
-                      state.attribute?.some(
-                        (attributeItem) =>
-                          attributeItem.name === 'secondaryDamage'
-                      )
-                    )}
-                    name='damage.damageByLevel'
-                    value={state.damage?.damageByLevel}
-                    onChange={setState}
-                    dynamic={true}
-                    scrollable={true}
-                  />
-                </div>
-              </>
-            )}
           </>
         ),
       },
@@ -563,9 +581,11 @@ const EditSpellForm = () => {
 
     content = (
       <div className='main-container'>
-        <div className='d-flex justify-content-between'>
-          <h1>Edit Spell</h1>
-          <div>
+        <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2'>
+          <div className='col-auto'>
+            <h3>Edit a Spell</h3>
+          </div>
+          <div className='col-auto d-flex justify-content-end'>
             <button
               className='btn btn-success me-2'
               type='button'
@@ -584,7 +604,7 @@ const EditSpellForm = () => {
             >
               Update
             </button>
-            <button className='btn btn-primary me-2' onClick={onReset}>
+            <button className='btn btn-secondary me-2' onClick={onReset}>
               Reset Form
             </button>
             <button className='btn btn-secondary' onClick={onBackClick}>
@@ -598,12 +618,13 @@ const EditSpellForm = () => {
         {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
         <form className='needs-validation' noValidate>
           <TabNavigation
-            id={'main'}
+            id='main'
             dynamic={false}
-            tabState={mainTabContent}
-            tabContent={[].concat(
-              mainTabContent.map((content) => content.content)
-            )}
+            tabState={mainTabContent.map((content) => ({
+              value: content.name,
+              name: content.name,
+              content: content.content,
+            }))}
           />
         </form>
       </div>

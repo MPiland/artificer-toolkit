@@ -1,6 +1,4 @@
 .tabMain {
-  border: 1px solid grey;
-  border-radius: 5px;
   justify-content: left;
 }
 
@@ -69,6 +67,16 @@
   align-items: center;
   justify-content: center;
   z-index: 2;
+}
+
+.left-scroller.hide,
+.right-scroller.hide {
+  display: none;
+}
+
+.left-scroller.show,
+.right-scroller.show {
+  display: block;
 }
 
 .tab-content {

@@ -179,20 +179,20 @@ const Register = forwardRef((props, ref) => {
       <hr className='my-4' />
       <h2 className='fs-5 fw-bold mb-3 text-center'>Or use a third-party</h2>
       <button
-        className='login w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='login w-100 py-2 mb-2 btn-lg btn-outline-primary rounded-3'
         type='button'
         onClick={onGoogleLoginClicked}
       >
         <i className='bi bi-google'></i> Sign up with Google
       </button>
       <button
-        className='login disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='login disabled w-100 py-2 mb-2 btn-lg btn-outline-primary rounded-3'
         type='button'
       >
         <i className='bi bi-facebook'></i> Sign up with Facebook
       </button>
       <button
-        className='login disabled w-100 py-2 mb-2 btn btn-outline-primary rounded-3'
+        className='login disabled w-100 py-2 mb-2 btn-lg btn-outline-primary rounded-3'
         type='button'
       >
         <i className='bi bi-twitch'></i> Sign up with Twitch

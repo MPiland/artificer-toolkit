@@ -76,36 +76,38 @@ const Input = forwardRef(
 
     const content = (
       <div
-        className={`position-relative ${size ? `${size}` : 'col-sm'} ${
-          label ? 'form-floating' : ''
+        className={`${validation ? 'position-relative' : ''} ${
+          size ? `${size}` : 'col-sm'
         }`}
       >
-        <input
-          ref={inputRef}
-          className={`form-control${readOnly ? '-plaintext' : ''} ${
-            border === false ? 'border-0' : ''
-          } ${classText} ${className ?? ''}`}
-          type={type ?? 'text'}
-          name={name}
-          id={name}
-          placeholder={placeholder}
-          required={required}
-          autoComplete={autoComplete ?? 'off'}
-          readOnly={readOnly}
-          value={inputValue ?? ''}
-          onChange={(e) => handleChange(e)}
-          onKeyUp={(e) => e.preventDefault()}
-          onClick={(e) => {
-            onClick && onClick(e)
-            handleFocus()
-          }}
-        />
-        {!!label && <label htmlFor={name}>{placeholder}</label>}
-        {invalidText && (
-          <div id={`${name}Tooltip`} className='invalid-tooltip'>
-            {invalidText}
-          </div>
-        )}
+        <div className={`${label ? 'form-floating' : ''}`}>
+          <input
+            ref={inputRef}
+            className={`form-control${readOnly ? '-plaintext' : ''} ${
+              border === false ? 'border-0' : ''
+            } ${classText} ${className ?? ''}`}
+            type={type ?? 'text'}
+            name={name}
+            id={name}
+            placeholder={placeholder}
+            required={required}
+            autoComplete={autoComplete ?? 'off'}
+            readOnly={readOnly}
+            value={inputValue ?? ''}
+            onChange={(e) => handleChange(e)}
+            onKeyUp={(e) => e.preventDefault()}
+            onClick={(e) => {
+              onClick && onClick(e)
+              handleFocus()
+            }}
+          />
+          {!!label && <label htmlFor={name}>{placeholder}</label>}
+          {invalidText && (
+            <div id={`${name}Tooltip`} className='invalid-tooltip'>
+              {invalidText}
+            </div>
+          )}
+        </div>
       </div>
     )
 
