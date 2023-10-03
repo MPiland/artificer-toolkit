@@ -1,5 +1,11 @@
 import '../css/tabNavigation.css'
-import React, { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import React, {
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { startCase } from 'lodash'
 const TabNavigation = ({
   tabState,
@@ -26,6 +32,7 @@ const TabNavigation = ({
   const rightScrollerRef = useRef(null)
   const currentTabRef = useRef(null)
   const currentPaneRef = useRef(null)
+  const touchStartXRef = useRef(null)
 
   const getActive = () => {
     if (tabContainerRef.current) {
@@ -45,6 +52,56 @@ const TabNavigation = ({
       }
     }
   }
+
+  const handleTouchStart = (e) => {
+    e.stopPropagation()
+    touchStartXRef.current = e.touches[0].clientX
+  }
+
+  const handleTouchMove = useCallback(
+    (e) => {
+      e.stopPropagation()
+      if (touchStartXRef.current !== null) {
+        const touchCurrentX = e.touches[0].clientX
+        const deltaX = touchCurrentX - touchStartXRef.current
+
+        const newLeftPosition = leftPosition + deltaX
+
+        if (newLeftPosition >= 0) {
+          setLeftPosition(0)
+        } else if (newLeftPosition <= -hiddenWidth) {
+          setLeftPosition(-hiddenWidth)
+        } else {
+          setLeftPosition(newLeftPosition)
+        }
+
+        tabContainerRef.current.style.left = `${newLeftPosition}px`
+
+        touchStartXRef.current = touchCurrentX
+      }
+    },
+    [hiddenWidth, leftPosition]
+  )
+
+  const handleTouchEnd = () => {
+    touchStartXRef.current = null
+  }
+
+  useLayoutEffect(() => {
+    const tabContainer = tabContainerRef.current
+
+    if (tabContainer) {
+      tabContainer.addEventListener('touchstart', handleTouchStart)
+      tabContainer.addEventListener('touchmove', handleTouchMove)
+      tabContainer.addEventListener('touchend', handleTouchEnd)
+
+      return () => {
+        tabContainer.removeEventListener('touchstart', handleTouchStart)
+        tabContainer.removeEventListener('touchmove', handleTouchMove)
+        tabContainer.removeEventListener('touchend', handleTouchEnd)
+      }
+    }
+  }, [handleTouchMove])
 
   useLayoutEffect(() => {
     const minHiddenWidthThreshold = 0.1
