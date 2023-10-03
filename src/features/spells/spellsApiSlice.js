@@ -1,8 +1,9 @@
 import { apiSlice } from '../../app/api/apiSlice'
+import { setSpells } from './spellsSlice'
 
-export const spellApiSlice = apiSlice.injectEndpoints({
+export const spellsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getSpell: builder.query({
+    getSpells: builder.query({
       query: (id) => ({
         url: `/spell/${id}`,
         method: 'GET',
@@ -10,6 +11,14 @@ export const spellApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(setSpells(data))
+        } catch (err) {
+          console.log(err)
+        }
+      },
       providesTags: (result, error, id) => {
         if (result?._ids) {
           return [
@@ -51,4 +60,4 @@ export const {
   useAddNewSpellMutation,
   useUpdateSpellMutation,
   useDeleteSpellMutation,
-} = spellApiSlice
+} = spellsApiSlice

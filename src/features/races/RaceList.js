@@ -1,33 +1,24 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { useGetRaceQuery, useDeleteRaceMutation } from './raceApiSlice'
+import { useDeleteRaceMutation } from './racesApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
+import { selectRaces } from './racesSlice'
 import { clearConfirm } from '../../app/deleteSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
-import useAuth from '../../hooks/useAuth'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
-import AccordionButton from '../../components/AccordionButton'
 
 const RaceList = () => {
-  const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const deleteConfirmed = useSelector((state) => state.delete.status)
-  const race = useSelector((state) => state.delete.data)
+  const loading = useSelector((state) => state.loading.status)
 
-  const {
-    data: races,
-    isLoading: raceIsLoading,
-    isSuccess: raceIsSuccess,
-    isError: raceIsError,
-    error: raceError,
-  } = useGetRaceQuery(id, {
-    refetchOnMountOrArgChange: true,
-  })
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const raceToDelete = useSelector((state) => state.delete.data)
+  const races = useSelector(selectRaces)
 
   const [deleteRace, { isError: delIsError, error: delError }] =
     useDeleteRaceMutation()
@@ -65,12 +56,12 @@ const RaceList = () => {
 
   const onDeleteSubmit = useCallback(async () => {
     try {
-      await deleteRace({ id: race._id })
+      await deleteRace({ id: raceToDelete._id })
     } catch (err) {
       console.log(err.message)
     }
     dispatch(clearConfirm())
-  }, [race, dispatch, deleteRace])
+  }, [raceToDelete, dispatch, deleteRace])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -79,19 +70,14 @@ const RaceList = () => {
   }, [deleteConfirmed, onDeleteSubmit])
 
   useEffect(() => {
-    if (raceIsError) {
-      setErrorMessage(raceError.data.message)
-    }
     if (delIsError) {
       setErrorMessage(delError.data.message)
     }
-  }, [raceError, raceIsError, delIsError, delError])
+  }, [delIsError, delError])
 
   useEffect(() => {
-    if (raceIsSuccess) {
-      setFilterItems(races)
-    }
-  }, [raceIsSuccess, races, setFilterItems])
+    setFilterItems(races)
+  }, [races, setFilterItems])
 
   useEffect(() => {
     setTableColumns({
@@ -121,41 +107,50 @@ const RaceList = () => {
 
   let content
 
-  if (raceIsLoading) content = <p>Loading items...</p>
-
-  if (raceIsSuccess) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const filter = (
-      <>
-        {!is1200 && !is1000 && (
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='filterButton'
-            target='filter'
-            expanded='false'
-          >
-            <span className='me-3'>Filters</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-        )}
-        <div className='accordion-collapse collapse show' id='filter'>
-          <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
-            <Input
-              name='value'
-              label={true}
-              placeholder='Race Name'
-              autoComplete='off'
-              value={filteredList?.value}
-              onChange={setListFilter}
-            />
+      <div className='filter-container'>
+        <div
+          className='btn btn-section-collapse justify-content-between align-items-center'
+          id='sectionCollapseButton'
+          type='button'
+          role='button'
+          data-bs-toggle='collapse'
+          data-bs-target='#sectionCollapse'
+          aria-controls='collapseExample'
+          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+        >
+          <span className='me-3'>Filters</span>
+          <i class='bi bi-arrow-down-up' />
+        </div>
+        <div
+          className={`section-content collapse ${
+            !is600 && !is1000 ? ' show' : ''
+          }`}
+          id='sectionCollapse'
+        >
+          <div className='section-content'>
+            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+              <Input
+                name='value'
+                label={true}
+                placeholder='Race Name'
+                autoComplete='off'
+                value={filteredList?.value}
+                onChange={setListFilter}
+              />
+            </div>
           </div>
         </div>
-      </>
+      </div>
     )
     content = (
-      <div className='main-container list'>
+      <>
         <div className='d-flex justify-content-between pb-2'>
           <div className='d-flex'>
-            <h3 className='me-3'>Items</h3>
+            <h3 className='me-3'>Races</h3>
             <button
               type='button'
               className='btn btn-outline-secondary btn-small me-1'
@@ -186,10 +181,10 @@ const RaceList = () => {
           deleteRow={(race) => onDelete(race)}
           empty='---'
         />
-      </div>
+      </>
     )
-
-    return content
   }
+
+  return <div className='main-container list'>{content}</div>
 }
 export default RaceList

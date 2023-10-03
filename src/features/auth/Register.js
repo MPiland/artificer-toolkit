@@ -1,4 +1,4 @@
-import { useEffect, useState, useReducer, useRef, forwardRef } from 'react'
+import { useEffect, useState, useReducer } from 'react'
 import {
   useGoogleLoginMutation,
   useRegisterMutation,
@@ -6,11 +6,11 @@ import {
 import usePersist from '../../hooks/usePersist'
 import { useNavigate } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
+import { handleValidation } from '../../helpers/form'
 import formReducer from '../../hooks/useReducer'
 import Input from '../../components/Input'
 
-const Register = forwardRef((props, ref) => {
-  // Register hook
+const Register = () => {
   const [
     register,
     {
@@ -20,7 +20,6 @@ const Register = forwardRef((props, ref) => {
     },
   ] = useRegisterMutation()
 
-  // Google register hook
   const [
     googleLogin,
     { isLoading: googleIsLoading, isError: googleIsError, error: googleError },
@@ -31,7 +30,6 @@ const Register = forwardRef((props, ref) => {
   const [state, setState] = useReducer(formReducer, {})
   const [persist, setPersist] = usePersist()
   const [errMsg, setErrMsg] = useState()
-  const inputRefs = useRef([])
 
   useEffect(() => {
     if (registerIsError) {
@@ -43,28 +41,6 @@ const Register = forwardRef((props, ref) => {
       setState()
     }
   }, [registerIsError, registerError, googleIsError, googleError])
-
-  const addToInputRefs = (ref) => {
-    if (ref && !inputRefs.current.includes(ref)) {
-      inputRefs.current.push(ref)
-    }
-  }
-
-  const handleValidation = () => {
-    let isValid = true
-    inputRefs.current.forEach((inputRef) => {
-      if (inputRef) {
-        const validStatus = inputRef.getValidation()
-        if (!validStatus) {
-          inputRef.setClass('is-invalid')
-          isValid = false
-        } else {
-          inputRef.setClass('is-valid')
-        }
-      }
-    })
-    return isValid
-  }
 
   const onRegisterClicked = async () => {
     const isValid = handleValidation()
@@ -105,7 +81,6 @@ const Register = forwardRef((props, ref) => {
       {errMsg && <p>{errMsg}</p>}
       <div className='pb-2'>
         <Input
-          ref={addToInputRefs}
           validation='user'
           type='email'
           name='username'
@@ -113,13 +88,13 @@ const Register = forwardRef((props, ref) => {
           placeholder='Email Address'
           autoComplete='username'
           invalidText='Username must be a valid email address.'
+          value={state.username}
           onChange={setState}
         />
       </div>
       <div className='pb-2'>
         <div className='input-group'>
           <Input
-            ref={addToInputRefs}
             validation='pwd'
             type={state.showPassword ? 'text' : 'password'}
             name='password'
@@ -128,6 +103,7 @@ const Register = forwardRef((props, ref) => {
             autoComplete='password'
             aria-describedby='eye-addon'
             invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
+            value={state.password}
             onChange={setState}
           />
           <span
@@ -179,7 +155,7 @@ const Register = forwardRef((props, ref) => {
       <hr className='my-4' />
       <h2 className='fs-5 fw-bold mb-3 text-center'>Or use a third-party</h2>
       <button
-        className='login w-100 py-2 mb-2 btn-lg btn-outline-primary rounded-3'
+        className='login disabled w-100 py-2 mb-2 btn-lg btn-outline-primary rounded-3'
         type='button'
         onClick={onGoogleLoginClicked}
       >
@@ -202,5 +178,5 @@ const Register = forwardRef((props, ref) => {
   )
 
   return content
-})
+}
 export default Register

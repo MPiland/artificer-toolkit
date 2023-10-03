@@ -313,9 +313,6 @@ const TextEditor = forwardRef(
       revertState() {
         editor?.commands.setContent(initialState)
       },
-      updateState(data) {
-        editor?.commands.setContent(data)
-      },
       getName() {
         return name
       },

@@ -1,5 +1,5 @@
 import { apiSlice } from '../../app/api/apiSlice'
-import { setCredentials, logOut } from './authSlice'
+import { setCredentials } from './authSlice'
 
 export const authApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -9,6 +9,14 @@ export const authApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: { ...credentials },
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(setCredentials(data))
+        } catch (err) {
+          console.log(err)
+        }
+      },
     }),
     login: builder.mutation({
       query: (credentials) => ({
@@ -16,6 +24,14 @@ export const authApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: { ...credentials },
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(setCredentials(data))
+        } catch (err) {
+          console.log(err)
+        }
+      },
     }),
     sendLogout: builder.mutation({
       query: () => ({
@@ -24,9 +40,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled
-          console.log(data)
-          dispatch(logOut())
+          await queryFulfilled
           setTimeout(() => {
             dispatch(apiSlice.util.resetApiState())
           }, 1000)
@@ -42,11 +56,8 @@ export const authApiSlice = apiSlice.injectEndpoints({
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
-          console.log('refreshing')
           const { data } = await queryFulfilled
-          const { accessToken } = data
-          console.log('received data')
-          dispatch(setCredentials({ accessToken }))
+          dispatch(setCredentials(data))
         } catch (err) {
           console.log(err)
         }

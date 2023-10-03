@@ -1,8 +1,9 @@
 import { apiSlice } from '../../app/api/apiSlice'
+import { setFeats } from './featsSlice'
 
-export const featApiSlice = apiSlice.injectEndpoints({
+export const featsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getFeat: builder.query({
+    getFeats: builder.query({
       query: (id) => ({
         url: `/feat/${id}`,
         method: 'GET',
@@ -10,6 +11,14 @@ export const featApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(setFeats(data))
+        } catch (err) {
+          console.log(err)
+        }
+      },
       providesTags: (result, error, id) => {
         if (result?._ids) {
           return [
@@ -51,4 +60,4 @@ export const {
   useAddNewFeatMutation,
   useUpdateFeatMutation,
   useDeleteFeatMutation,
-} = featApiSlice
+} = featsApiSlice

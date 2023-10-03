@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import Input from './Input'
 import { useDispatch } from 'react-redux'
 import { confirmDelete } from '../app/deleteSlice'
+import { handleValidation } from '../helpers/form'
 
 const Delete = () => {
-  const inputRef = useRef()
   const [deleteState, setDeleteState] = useState('')
 
   const dispatch = useDispatch()
@@ -13,11 +13,8 @@ const Delete = () => {
   const { data, handleClose } = useOutletContext()
 
   const onSubmit = () => {
-    const isValid = inputRef.current.getValidation()
-    if (!isValid) {
-      inputRef.current.setClass('is-invalid')
-    } else if (isValid) {
-      inputRef.current.setClass('is-valid')
+    const isValid = handleValidation()
+    if (isValid) {
       dispatch(confirmDelete({ status: true, data: data }))
       handleClose()
     }
@@ -35,13 +32,12 @@ const Delete = () => {
       </p>
       <div className='row g-1'>
         <Input
-          ref={inputRef}
           name='deleteItem'
           label={true}
           placeholder='Confirm Delete'
           onChange={handleChange}
           value={deleteState}
-          validation='delete'
+          validation='del'
           invalidText='Must type DELETE exactly'
         />
         <button

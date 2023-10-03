@@ -1,6 +1,8 @@
 import 'react-tooltip/dist/react-tooltip.css'
 import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { selectCurrentToken } from './features/auth/authSlice'
 import RequireAuth from './features/auth/RequireAuth'
 import PersistLogin from './features/auth/PersistLogin'
 import Layout from './components/Layout'
@@ -11,10 +13,10 @@ import Delete from './components/Delete'
 import Register from './features/auth/Register'
 import Login from './features/auth/Login'
 import CharacterList from './features/characters/CharacterList'
-import Class from './features/class/Class'
-import ClassList from './features/class/ClassList'
-import NewClassForm from './features/class/NewClassForm'
-import EditClassForm from './features/class/EditClassForm'
+import Class from './features/classes/Class'
+import ClassList from './features/classes/ClassList'
+import NewClassForm from './features/classes/NewClassForm'
+import EditClassForm from './features/classes/EditClassForm'
 import Race from './features/races/Race'
 import RaceList from './features/races/RaceList'
 import NewRaceForm from './features/races/NewRaceForm'
@@ -31,28 +33,24 @@ import Feat from './features/feats/Feat'
 import FeatList from './features/feats/FeatList'
 import NewFeatForm from './features/feats/NewFeatForm'
 import EditFeatForm from './features/feats/EditFeatForm'
-import { useSelector } from 'react-redux'
-import { selectCurrentToken } from './features/auth/authSlice'
 
 const App = () => {
-  const documentHeight = () => {
-    const doc = document.documentElement
-    doc.style.setProperty('--doc-height', `${window.innerHeight}px`)
-  }
-
   useEffect(() => {
-    documentHeight()
+    const documentHeight = () => {
+      const doc = document.documentElement
+      doc.style.setProperty('--doc-height', `${window.innerHeight}px`)
+    }
     window.addEventListener('resize', documentHeight)
 
     return () => {
       window.addEventListener('resize', documentHeight)
     }
-  }, [])
+  })
 
   const token = useSelector(selectCurrentToken)
   const location = useLocation()
   const background = location.state?.background
-
+  
   const content = (
     <>
       <Routes location={background || location}>

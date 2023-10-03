@@ -1,14 +1,23 @@
 import { apiSlice } from '../../app/api/apiSlice'
+import { setClasses } from './classesSlice'
 
-export const classApiSlice = apiSlice.injectEndpoints({
+export const classesApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getClass: builder.query({
+    getClasses: builder.query({
       query: (id) => ({
         url: `/class/${id}`,
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(setClasses(data))
+        } catch (err) {
+          console.log(err)
+        }
+      },
       providesTags: (result, error, id) => {
         if (result?._ids) {
           return [
@@ -50,4 +59,4 @@ export const {
   useAddNewClassMutation,
   useUpdateClassMutation,
   useDeleteClassMutation,
-} = classApiSlice
+} = classesApiSlice

@@ -42,7 +42,6 @@ const Modal = ({ children }) => {
   }, [handleEscKey])
 
   const content = (
-    // Modal background
     <div
       className='modal d-block bg-body-tertiary bg-opacity-50 py-md-3'
       tabIndex='-1'
@@ -52,7 +51,7 @@ const Modal = ({ children }) => {
     >
       <div
         className={`modal-dialog modal-dialog-scrollable ${
-          location.state.size && `modal-${location.state.size}`
+          location.state.size ? `modal-${location.state.size}` : ''
         } modal-fullscreen-sm-down modal-dialog-centered`}
         role='document'
         onClick={(e) => e.stopPropagation()}

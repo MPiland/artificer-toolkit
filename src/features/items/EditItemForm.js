@@ -1,15 +1,14 @@
 import { useState, useEffect, useReducer, useRef, Fragment } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import {
-  useAddNewItemMutation,
-  useUpdateItemMutation,
-  useGetItemQuery,
-} from './itemApiSlice'
-import { useGetBuilderQuery } from '../builders/builderApiSlice'
-import { useGetSpellQuery } from '../spells/spellApiSlice'
-import { useGetFeatQuery } from '../feats/featApiSlice'
+import { useAddNewItemMutation, useUpdateItemMutation } from './itemsApiSlice'
 import { startCase, isEqual } from 'lodash'
+import { useSelector } from 'react-redux'
+import { selectBuilders } from '../builders/buildersSlice'
+import { selectSpells } from '../spells/spellsSlice'
+import { selectItems } from '../items/itemsSlice'
+import { selectFeats } from '../feats/featsSlice'
 import formReducer from '../../hooks/useReducer'
+import { handleValidation } from '../../helpers/form'
 import AccordionButton from '../../components/AccordionButton'
 import TabNavigation from '../../components/TabNavigation'
 import TextEditor from '../../components/TextEditor'
@@ -23,29 +22,10 @@ const EditItemForm = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const {
-    data: builders,
-    isSuccess: builderIsSuccess,
-    isLoading: builderIsLoading,
-  } = useGetBuilderQuery(id)
-
-  const {
-    data: spells,
-    isSuccess: spellIsSuccess,
-    isLoading: spellIsLoading,
-  } = useGetSpellQuery(id)
-
-  const {
-    data: feats,
-    isSuccess: featIsSuccess,
-    isLoading: featIsLoading,
-  } = useGetFeatQuery(id)
-
-  const {
-    data: items,
-    isSuccess: itemIsSuccess,
-    isLoading: itemIsLoading,
-  } = useGetItemQuery(id)
+  const builders = useSelector(selectBuilders)
+  const spells = useSelector(selectSpells)
+  const feats = useSelector(selectFeats)
+  const items = useSelector(selectItems)
 
   const [
     addNewItem,
@@ -62,8 +42,6 @@ const EditItemForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const [match, setMatch] = useState()
-  const selectRefs = useRef([])
-  const inputRefs = useRef([])
   const textRefs = useRef([])
 
   useEffect(() => {
@@ -126,72 +104,10 @@ const EditItemForm = () => {
     }
   }, [state, oldState])
 
-  const addToSelectRefs = (ref) => {
-    if (ref && !selectRefs.current.includes(ref)) {
-      selectRefs.current.push(ref)
-    }
-  }
-
-  const addToInputRefs = (ref) => {
-    if (ref && !inputRefs.current.includes(ref)) {
-      inputRefs.current.push(ref)
-    }
-  }
-
   const addToTextRefs = (ref) => {
     if (ref && !textRefs.current.includes(ref)) {
       textRefs.current.push(ref)
     }
-  }
-
-  const handleValidation = (resetValidation) => {
-    let isValid = true
-    selectRefs.current.forEach((selectRef) => {
-      if (selectRef) {
-        if (resetValidation === true) {
-          selectRef.setClass('')
-        } else {
-          const selectValue = selectRef.getValue()
-          const isEmpty =
-            selectValue === null ||
-            (Array.isArray(selectValue) && selectValue.length === 0)
-          if (isEmpty) {
-            selectRef.setClass('is-invalid')
-            isValid = false
-          } else {
-            selectRef.setClass('is-valid')
-          }
-        }
-      }
-    })
-
-    // Validate other elements with the required attribute
-    const requiredElements = document.querySelectorAll('[required]')
-    requiredElements.forEach((element) => {
-      if (resetValidation) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
-      } else {
-        const value = element.value
-        const isEmpty =
-          value === null ||
-          value === undefined ||
-          (typeof value === 'string' && value.trim() === '')
-
-        if (isEmpty) {
-          element.classList.add('is-invalid')
-          element.classList.remove('is-valid')
-          isValid = false
-        } else {
-          element.classList.add('is-valid')
-          element.classList.remove('is-invalid')
-        }
-      }
-    })
-    if (resetValidation) {
-      setErrorMessage()
-    }
-    return isValid
   }
 
   const onReset = () => {
@@ -202,6 +118,9 @@ const EditItemForm = () => {
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)
+    textRefs.current.forEach((textRef) => {
+      textRef.revertState()
+    })
   }
 
   const onSubmit = async () => {
@@ -253,11 +172,11 @@ const EditItemForm = () => {
 
   let content
 
-  if (builderIsLoading || spellIsLoading || featIsLoading || itemIsLoading) {
-    content = <p>Loading...</p>
-  }
+  const loading = useSelector((state) => state.loading.status)
 
-  if ((builderIsSuccess && spellIsSuccess && featIsSuccess) || itemIsSuccess) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const damageTableInputs = (secondary) => {
       const inputArray = [
         {
@@ -318,7 +237,6 @@ const EditItemForm = () => {
               <Fragment key={index}>
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name={`feature.${featureIndex}.${this.name}.${index}.set`}
                     placeholder='Feat'
@@ -339,7 +257,6 @@ const EditItemForm = () => {
               <Fragment key={index}>
                 <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
                     value={item.modType}
@@ -349,7 +266,6 @@ const EditItemForm = () => {
                   />
                   {item.modType?.name && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
                       value={item.module}
@@ -373,7 +289,6 @@ const EditItemForm = () => {
                     <>
                       {item.module?.name === 'ability' && (
                         <Select
-                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.${this.name}.${index}.ability.set`}
                           placeholder='Ability'
@@ -385,7 +300,6 @@ const EditItemForm = () => {
                       )}
                       {item.module?.name === 'saveAbility' && (
                         <Select
-                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.${this.name}.${index}.saveAbility.set`}
                           placeholder='Save Ability'
@@ -397,7 +311,6 @@ const EditItemForm = () => {
                       )}
                       {item.module?.name === 'skill' && (
                         <Select
-                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.${this.name}.${index}.skill.set`}
                           placeholder='Skill'
@@ -409,7 +322,6 @@ const EditItemForm = () => {
                       )}
                       {item.module?.name === 'damageSave' && (
                         <Select
-                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.${this.name}.${index}.damageSave.set`}
                           placeholder='Damage'
@@ -421,7 +333,6 @@ const EditItemForm = () => {
                       )}
                       {item.module?.name === 'conditionSave' && (
                         <Select
-                          ref={addToSelectRefs}
                           multiple={true}
                           name={`feature.${featureIndex}.${this.name}.${index}.conditionSave.set`}
                           placeholder='Condition'
@@ -437,7 +348,6 @@ const EditItemForm = () => {
                     item.modType?.name === 'penalty') &&
                     item.modType?.name !== 'setValue' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${this.name}.${index}.method`}
                         placeholder='Method'
                         value={item.method}
@@ -452,7 +362,6 @@ const EditItemForm = () => {
                     )}
                   {item.module?.name === 'condition' ? (
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.${this.name}.${index}.condition.set`}
                       placeholder='Condition Type'
@@ -463,7 +372,6 @@ const EditItemForm = () => {
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.${this.name}.${index}.speed.set`}
                       placeholder='Speed Type'
@@ -474,7 +382,6 @@ const EditItemForm = () => {
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.${this.name}.${index}.speed.set`}
                       value={item.passive?.set}
@@ -486,7 +393,6 @@ const EditItemForm = () => {
                   ) : (
                     item.module?.name === 'damage' && (
                       <Select
-                        ref={addToSelectRefs}
                         multiple={true}
                         name={`feature.${featureIndex}.${this.name}.${index}.damage.set`}
                         placeholder='Damage Type'
@@ -501,7 +407,6 @@ const EditItemForm = () => {
                   item.modType?.name === 'setValue' ? (
                     <>
                       <Input
-                        ref={addToInputRefs}
                         validation={'num'}
                         name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                         placeholder='Set Value'
@@ -513,8 +418,7 @@ const EditItemForm = () => {
                         onChange={setState}
                       />
                       <Input
-                        ref={addToInputRefs}
-                        validate='num'
+                        validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                         placeholder='Multiplier'
                         label={true}
@@ -526,7 +430,6 @@ const EditItemForm = () => {
                     </>
                   ) : item.method?.name === 'ability' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                       placeholder='Method Ability'
                       value={item.method.ability}
@@ -542,7 +445,6 @@ const EditItemForm = () => {
                   ) : (
                     item.method?.name === 'skill' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                         placeholder='Method Skill'
                         value={item.method.skill}
@@ -557,7 +459,6 @@ const EditItemForm = () => {
                     item.modType?.name === 'setValue') &&
                     item.module?.name === 'ability' && (
                       <Input
-                        ref={addToInputRefs}
                         validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
                         label={true}
@@ -619,7 +520,6 @@ const EditItemForm = () => {
               <Fragment key={index}>
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
                     value={item.area}
@@ -629,7 +529,6 @@ const EditItemForm = () => {
                   />
                   {item.area?.name === 'skill' && (
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.${this.name}.${index}.skill.set`}
                       value={item.skill?.set}
@@ -641,7 +540,6 @@ const EditItemForm = () => {
                   )}
                   {item.area?.name === 'saveAbility' && (
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.${this.name}.${index}.saveAbility.set`}
                       value={item.saveAbility?.set}
@@ -653,7 +551,6 @@ const EditItemForm = () => {
                   )}
                   {item?.area?.name === 'language' && (
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name={`feature.${featureIndex}.${this.name}.${index}.language.set`}
                       placeholder='Language'
@@ -716,7 +613,6 @@ const EditItemForm = () => {
                     </>
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
                     value={item.level}
@@ -736,7 +632,6 @@ const EditItemForm = () => {
               <Fragment key={index}>
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name={`feature.${featureIndex}.${this.name}.${index}.set`}
                     placeholder='Sense'
@@ -765,7 +660,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name={`feature.${featureIndex}.${this.name}.${index}.set`}
                     placeholder='Spell'
@@ -778,7 +672,6 @@ const EditItemForm = () => {
                     (attributeItem) => attributeItem.name === 'optionalAbility'
                   ) && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                       placeholder='Ability'
                       value={item.ability}
@@ -855,7 +748,6 @@ const EditItemForm = () => {
       <Fragment key={featureIndex}>
         <div className='row justify-content-between pb-2'>
           <Input
-            ref={addToInputRefs}
             size='col-sm-3'
             name={`feature.${featureIndex}.value`}
             label={true}
@@ -927,7 +819,6 @@ const EditItemForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.limitUse.limitBy`}
                 placeholder='Limit By Option'
                 value={featureItem.limitUse?.limitBy}
@@ -937,7 +828,6 @@ const EditItemForm = () => {
               />
               {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.limitUse.ability`}
                   placeholder='Ability'
                   value={featureItem.limitUse?.ability}
@@ -947,7 +837,6 @@ const EditItemForm = () => {
                 />
               ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.limitUse.skill`}
                   placeholder='Skill'
                   value={featureItem.limitUse?.skill}
@@ -958,7 +847,6 @@ const EditItemForm = () => {
               ) : (
                 featureItem.limitUse?.limitBy?.name === 'setNumber' && (
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name={`feature.${featureIndex}.limitUse.setAmount`}
                     label={true}
@@ -971,7 +859,6 @@ const EditItemForm = () => {
                 )
               )}
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.limitUse.resetsOn`}
                 placeholder='Reset Option'
                 value={featureItem.limitUse?.resetsOn}
@@ -987,7 +874,6 @@ const EditItemForm = () => {
             <>
               <div className='col-sm'>
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.action`}
                   placeholder='Action Type'
                   value={featureItem.action}
@@ -1003,7 +889,6 @@ const EditItemForm = () => {
           ) && (
             <>
               <Input
-                ref={addToInputRefs}
                 validation={'num'}
                 name={`feature.${featureIndex}.range.minRange`}
                 autoComplete='off'
@@ -1015,7 +900,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
                 validation={'num'}
                 name={`feature.${featureIndex}.range.maxRange`}
                 label={true}
@@ -1033,7 +917,6 @@ const EditItemForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.saveAbility.attribute`}
                 multiple={true}
                 placeholder='Save Attribute'
@@ -1043,7 +926,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.saveAbility.ability`}
                 placeholder='DC Ability'
                 value={featureItem.saveAbility?.ability}
@@ -1052,8 +934,7 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
-                validate='num'
+                validation='num'
                 name={`feature.${featureIndex}.saveAbility.minValue`}
                 label={true}
                 autoComplete='off'
@@ -1067,7 +948,6 @@ const EditItemForm = () => {
                 (attributeItem) => attributeItem.name === 'addAbilityModifier'
               ) && (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.saveAbility.abilityModifier`}
                   placeholder='Modifier Ability'
                   value={featureItem.saveAbility?.abilityModifier}
@@ -1090,7 +970,6 @@ const EditItemForm = () => {
             </div>
             <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.option`}
                 placeholder='Requirement'
@@ -1106,7 +985,6 @@ const EditItemForm = () => {
                 (optionItem) => optionItem.name === 'skillProficiency'
               ) && (
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                   value={featureItem.requirement?.skillProficiency?.skill}
@@ -1121,7 +999,6 @@ const EditItemForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name={`feature.${featureIndex}.requirement.abilityScore.ability`}
                     value={featureItem.requirement?.abilityScore?.ability}
@@ -1131,7 +1008,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     name={`feature.${featureIndex}.requirement.abilityScore.score`}
                     value={featureItem.requirement?.abilityScore?.score}
                     placeholder='Ability Score'
@@ -1148,7 +1024,6 @@ const EditItemForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name={`feature.${featureIndex}.requirement.size`}
                     value={featureItem.requirement?.size}
@@ -1173,7 +1048,6 @@ const EditItemForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                 value={featureItem.requirement?.itemProficiency?.itemCategory}
@@ -1182,7 +1056,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                 multiple={true}
                 placeholder='Item Property'
@@ -1211,7 +1084,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                 multiple={true}
                 placeholder='Item type'
@@ -1240,7 +1112,6 @@ const EditItemForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                 value={featureItem.requirement?.equipped?.itemCategory}
@@ -1249,7 +1120,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                 placeholder='Item Property'
@@ -1270,7 +1140,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemType`}
                 placeholder='Item type'
@@ -1298,7 +1167,6 @@ const EditItemForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                 value={featureItem.requirement?.notEquipped?.itemCategory}
@@ -1307,7 +1175,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                 value={featureItem.requirement?.notEquipped?.itemProperty}
@@ -1328,7 +1195,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                 placeholder='Item type'
@@ -1404,7 +1270,6 @@ const EditItemForm = () => {
             <>
               <div className='row g-2 align-items-end pb-2'>
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.damage.damageAttribute`}
                   value={featureItem.damage.damageAttribute}
@@ -1414,7 +1279,6 @@ const EditItemForm = () => {
                   onChange={setState}
                 />
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.damage.damageType`}
                   placeholder='Damage Type'
                   value={featureItem.damage.damageType}
@@ -1486,7 +1350,6 @@ const EditItemForm = () => {
           <>
             <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
               <Input
-                ref={addToInputRefs}
                 name='value'
                 autoComplete='off'
                 label={true}
@@ -1496,7 +1359,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='itemCategory'
                 placeholder='Item Category'
                 value={state.itemCategory}
@@ -1505,7 +1367,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='itemProperty'
                 multiple={true}
                 placeholder='Properties'
@@ -1520,7 +1381,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='rarity'
                 placeholder='Rarity'
                 value={state.rarity}
@@ -1529,7 +1389,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
                 validation={'cur'}
                 name='cost.amount'
                 autoComplete='off'
@@ -1541,7 +1400,6 @@ const EditItemForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='cost.currency'
                 placeholder='Currency'
                 value={state.cost?.currency}
@@ -1550,16 +1408,31 @@ const EditItemForm = () => {
                 required={true}
                 onChange={setState}
               />
-              {state.itemCategory && state.itemCategory?.name !== 'item' && (
+              {state.itemCategory &&
+                (state.itemCategory?.name === 'weapon' ||
+                  state.itemCategory?.name === 'armor') && (
+                  <Input
+                    validation={'num'}
+                    name='itemRank'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Item Rank'
+                    autoComplete='off'
+                    value={state.itemRank}
+                    onChange={setState}
+                  />
+                )}
+              {state.itemProperty?.some(
+                (proprertyItem) => proprertyItem.name === 'ammunition'
+              ) && (
                 <Input
-                  ref={addToInputRefs}
                   validation={'num'}
-                  name='itemRank'
+                  name='quantity'
                   label={true}
                   invalidText='Must contain only numbers'
-                  placeholder='Item Rank'
+                  placeholder='Quantity'
                   autoComplete='off'
-                  value={state.itemRank}
+                  value={state.quantity}
                   onChange={setState}
                 />
               )}
@@ -1588,7 +1461,6 @@ const EditItemForm = () => {
             <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
               <div className='col-sm'>
                 <Select
-                  ref={addToSelectRefs}
                   name='attribute'
                   multiple={true}
                   placeholder='Attributes'
@@ -1609,7 +1481,6 @@ const EditItemForm = () => {
               ) && (
                 <>
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name='minRange'
                     label={true}
@@ -1620,7 +1491,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name='maxRange'
                     label={true}
@@ -1636,7 +1506,6 @@ const EditItemForm = () => {
                 (attributeItem) => attributeItem.name === 'weight'
               ) && (
                 <Input
-                  ref={addToInputRefs}
                   validation={'num'}
                   name='itemWeight'
                   label={true}
@@ -1652,7 +1521,6 @@ const EditItemForm = () => {
                 (attributeItem) => attributeItem.name === 'container'
               ) && (
                 <Input
-                  ref={addToInputRefs}
                   validation={'num'}
                   name='capacityWeight'
                   label={true}
@@ -1668,7 +1536,6 @@ const EditItemForm = () => {
                 (attributeItem) => attributeItem.name === 'stackable'
               ) && (
                 <Input
-                  ref={addToInputRefs}
                   validation={'num'}
                   type='text'
                   name='maxStack'
@@ -1676,7 +1543,6 @@ const EditItemForm = () => {
                   invalidText='Must contain only numbers'
                   placeholder='Max Stack Size'
                   autoComplete='off'
-                  required={true}
                   value={state.maxStack}
                   onChange={setState}
                 />
@@ -1686,7 +1552,6 @@ const EditItemForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='containsFilter'
                     placeholder='Item Category Filter'
@@ -1696,7 +1561,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='contains'
                     placeholder='Contains...'
@@ -1724,7 +1588,6 @@ const EditItemForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name='damage.diceCount'
                     label={true}
@@ -1735,7 +1598,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name='damage.diceValue'
                     label={true}
@@ -1750,7 +1612,6 @@ const EditItemForm = () => {
                   ) && (
                     <>
                       <Input
-                        ref={addToInputRefs}
                         validation={'num'}
                         name='damage.versatileDiceCount'
                         label={true}
@@ -1761,7 +1622,6 @@ const EditItemForm = () => {
                         onChange={setState}
                       />
                       <Input
-                        ref={addToInputRefs}
                         validation={'num'}
                         name='damage.versatileDiceValue'
                         label={true}
@@ -1774,7 +1634,6 @@ const EditItemForm = () => {
                     </>
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name='damage.damageType'
                     multiple={true}
                     placeholder='Damage Type'
@@ -1784,7 +1643,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name='primaryAbility'
                     placeholder='Primary Ability'
                     value={state.primaryAbility}
@@ -1801,7 +1659,6 @@ const EditItemForm = () => {
                     (attributeItem) => attributeItem.name === 'maxBonus'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name='maxBonus'
                       label={true}
@@ -1816,7 +1673,6 @@ const EditItemForm = () => {
                     (property) => property.name === 'finesse'
                   ) && (
                     <Select
-                      ref={addToSelectRefs}
                       name={'secondaryAbility'}
                       placeholder='Secondary Ability'
                       value={state.secondaryAbility}
@@ -1847,7 +1703,6 @@ const EditItemForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name='armorValue'
                     label={true}
@@ -1873,7 +1728,6 @@ const EditItemForm = () => {
                     (attributeItem) => attributeItem.name === 'maxBonus'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name='maxBonus'
                       label={true}
@@ -1898,7 +1752,6 @@ const EditItemForm = () => {
                 </div>
                 <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.option'
                     placeholder='Requirement'
@@ -1911,7 +1764,6 @@ const EditItemForm = () => {
                     (optionItem) => optionItem.name === 'skillProficiency'
                   ) && (
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name='requirement.skillProficiency.skill'
                       value={state.requirement?.skillProficiency?.skill}
@@ -1926,7 +1778,6 @@ const EditItemForm = () => {
                   ) && (
                     <>
                       <Select
-                        ref={addToSelectRefs}
                         multiple={true}
                         name='requirement.abilityScore.ability'
                         value={state.requirement?.abilityScore?.ability}
@@ -1936,7 +1787,6 @@ const EditItemForm = () => {
                         onChange={setState}
                       />
                       <Input
-                        ref={addToInputRefs}
                         name='requirement.abilityScore.score'
                         value={state.requirement?.abilityScore?.score}
                         placeholder='Ability Score'
@@ -1953,7 +1803,6 @@ const EditItemForm = () => {
                   ) && (
                     <>
                       <Select
-                        ref={addToSelectRefs}
                         multiple={true}
                         name='requirement.size'
                         value={state.requirement?.size}
@@ -1978,7 +1827,6 @@ const EditItemForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.itemProficiency.itemCategory'
                     value={state.requirement?.itemProficiency?.itemCategory}
@@ -1987,7 +1835,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name='requirement.itemProficiency.itemType'
                     multiple={true}
                     placeholder='Item type'
@@ -2004,7 +1851,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name='requirement.itemProficiency.itemProperty'
                     multiple={true}
                     placeholder='Item Property'
@@ -2046,7 +1892,6 @@ const EditItemForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.equipped.itemCategory'
                     value={state.requirement?.equipped?.itemCategory}
@@ -2055,7 +1900,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.equipped.itemType'
                     placeholder='Item type'
@@ -2071,7 +1915,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.equipped.itemProperty'
                     placeholder='Item Property'
@@ -2111,7 +1954,6 @@ const EditItemForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.notEquipped.itemCategory'
                     value={state.requirement?.notEquipped?.itemCategory}
@@ -2120,7 +1962,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.notEquipped.itemType'
                     placeholder='Item type'
@@ -2136,7 +1977,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.notEquipped.itemProperty'
                     placeholder='Item Property'
@@ -2172,7 +2012,7 @@ const EditItemForm = () => {
     ]
 
     content = (
-      <div className='main-container'>
+      <>
         <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2'>
           <div className='col-auto'>
             <h3>Edit an Item</h3>
@@ -2188,7 +2028,7 @@ const EditItemForm = () => {
               Update
             </button>
             <button
-              className='btn btn-success me-2'
+              className='btn btn-primary me-2'
               type='button'
               onClick={() => {
                 onSubmit()
@@ -2196,7 +2036,7 @@ const EditItemForm = () => {
             >
               Add
             </button>
-            <button className='btn btn-secondary me-2' onClick={onReset}>
+            <button className='btn btn-warning me-2' onClick={onReset}>
               Reset Form
             </button>
             <button className='btn btn-secondary' onClick={onBackClick}>
@@ -2208,7 +2048,7 @@ const EditItemForm = () => {
           <h5 className='success-message'>{successMessage}</h5>
         )}
         {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
-        <form className='needs-validation' noValidate>
+        <form>
           <TabNavigation
             id='main'
             dynamic={false}
@@ -2233,9 +2073,9 @@ const EditItemForm = () => {
             dynamic={true}
           />
         </form>
-      </div>
+      </>
     )
-    return content
   }
+  return <div className='main-container'>{content}</div>
 }
 export default EditItemForm

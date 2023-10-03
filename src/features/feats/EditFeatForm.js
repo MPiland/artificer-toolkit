@@ -1,12 +1,15 @@
 import { useEffect, useReducer, useState, useRef, Fragment } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useAddNewFeatMutation } from './featApiSlice'
-import { useGetBuilderQuery } from '../builders/builderApiSlice'
-import { useGetSpellQuery } from '../spells/spellApiSlice'
-import { useGetFeatQuery, useUpdateFeatMutation } from './featApiSlice'
-import { useGetItemQuery } from '../items/itemApiSlice'
+import { useAddNewFeatMutation } from './featsApiSlice'
+import { useSelector } from 'react-redux'
+import { selectBuilders } from '../builders/buildersSlice'
+import { selectSpells } from '../spells/spellsSlice'
+import { selectFeats } from '../feats/featsSlice'
+import { selectItems } from '../items/itemsSlice'
+import { useUpdateFeatMutation } from './featsApiSlice'
 import { startCase, isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
+import { handleValidation } from '../../helpers/form'
 import TextEditor from '../../components/TextEditor'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
@@ -20,29 +23,10 @@ const EditFeatForm = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const {
-    data: builders,
-    isSuccess: builderIsSuccess,
-    isLoading: builderIsLoading,
-  } = useGetBuilderQuery(id)
-
-  const {
-    data: spells,
-    isSuccess: spellIsSuccess,
-    isLoading: spellIsLoading,
-  } = useGetSpellQuery(id)
-
-  const {
-    data: feats,
-    isSuccess: featIsSuccess,
-    isLoading: featIsLoading,
-  } = useGetFeatQuery(id)
-
-  const {
-    data: items,
-    isSuccess: ItemIsSuccess,
-    isLoading: ItemIsLoading,
-  } = useGetItemQuery(id)
+  const builders = useSelector(selectBuilders)
+  const spells = useSelector(selectSpells)
+  const feats = useSelector(selectFeats)
+  const items = useSelector(selectItems)
 
   const [
     addNewFeat,
@@ -59,8 +43,6 @@ const EditFeatForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const [match, setMatch] = useState()
-  const selectRefs = useRef([])
-  const inputRefs = useRef([])
   const textRefs = useRef([])
 
   useEffect(() => {
@@ -124,72 +106,10 @@ const EditFeatForm = () => {
     }
   }, [state, oldState])
 
-  const addToSelectRefs = (ref) => {
-    if (ref && !selectRefs.current.includes(ref)) {
-      selectRefs.current.push(ref)
-    }
-  }
-
-  const addToInputRefs = (ref) => {
-    if (ref && !inputRefs.current.includes(ref)) {
-      inputRefs.current.push(ref)
-    }
-  }
-
   const addToTextRefs = (ref) => {
     if (ref && !textRefs.current.includes(ref)) {
       textRefs.current.push(ref)
     }
-  }
-
-  const handleValidation = (resetValidation) => {
-    let isValid = true
-    selectRefs.current.forEach((selectRef) => {
-      if (selectRef) {
-        if (resetValidation === true) {
-          selectRef.setClass('')
-        } else {
-          const selectValue = selectRef.getValue()
-          const isEmpty =
-            selectValue === null ||
-            (Array.isArray(selectValue) && selectValue.length === 0)
-          if (isEmpty) {
-            selectRef.setClass('is-invalid')
-            isValid = false
-          } else {
-            selectRef.setClass('is-valid')
-          }
-        }
-      }
-    })
-
-    // Validate other elements with the required attribute
-    const requiredElements = document.querySelectorAll('[required]')
-    requiredElements.forEach((element) => {
-      if (resetValidation) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
-      } else {
-        const value = element.value
-        const isEmpty =
-          value === null ||
-          value === undefined ||
-          (typeof value === 'string' && value.trim() === '')
-
-        if (isEmpty) {
-          element.classList.add('is-invalid')
-          element.classList.remove('is-valid')
-          isValid = false
-        } else {
-          element.classList.add('is-valid')
-          element.classList.remove('is-invalid')
-        }
-      }
-    })
-    if (resetValidation) {
-      setErrorMessage()
-    }
-    return isValid
   }
 
   const onReset = () => {
@@ -200,6 +120,9 @@ const EditFeatForm = () => {
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)
+    textRefs.current.forEach((textRef) => {
+      textRef.revertState()
+    })
   }
 
   const onSubmit = async () => {
@@ -251,11 +174,11 @@ const EditFeatForm = () => {
 
   let content
 
-  if (builderIsLoading || spellIsLoading || featIsLoading || ItemIsLoading) {
-    content = <p>Loading...</p>
-  }
+  const loading = useSelector((state) => state.loading.status)
 
-  if (builderIsSuccess && spellIsSuccess && featIsSuccess && ItemIsSuccess) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const damageTableInputs = (secondary) => {
       const inputArray = [
         {
@@ -322,7 +245,6 @@ const EditFeatForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
@@ -335,7 +257,6 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}${
                       multipleOptions ? '.options' : '.set'
                     }`}
@@ -348,7 +269,6 @@ const EditFeatForm = () => {
                   />
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -375,7 +295,6 @@ const EditFeatForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
@@ -389,7 +308,6 @@ const EditFeatForm = () => {
                   )}
 
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
                     value={item.modType}
@@ -399,7 +317,6 @@ const EditFeatForm = () => {
                   />
                   {item.modType?.name && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
                       value={item.module}
@@ -423,7 +340,6 @@ const EditFeatForm = () => {
                     <>
                       {item.module?.name === 'ability' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.ability${
@@ -443,7 +359,6 @@ const EditFeatForm = () => {
                       )}
                       {item.module?.name === 'saveAbility' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.saveAbility${
@@ -463,7 +378,6 @@ const EditFeatForm = () => {
                       )}
                       {item.module?.name === 'skill' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.skill${
@@ -483,7 +397,6 @@ const EditFeatForm = () => {
                       )}
                       {item.module?.name === 'damageSave' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.damageSave${
@@ -503,7 +416,6 @@ const EditFeatForm = () => {
                       )}
                       {item.module?.name === 'conditionSave' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.conditionSave${
@@ -527,7 +439,6 @@ const EditFeatForm = () => {
                     item.modType?.name === 'penalty') &&
                     item.modType?.name !== 'setValue' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${this.name}.${index}.method`}
                         placeholder='Method'
                         value={item.method}
@@ -542,7 +453,6 @@ const EditFeatForm = () => {
                     )}
                   {item.module?.name === 'condition' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.condition${
@@ -561,7 +471,6 @@ const EditFeatForm = () => {
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.speed${multipleOptions ? '.options' : '.set'}`}
@@ -576,7 +485,6 @@ const EditFeatForm = () => {
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.passive${
@@ -596,7 +504,6 @@ const EditFeatForm = () => {
                   ) : (
                     item.module?.name === 'damage' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.damage${
@@ -619,7 +526,6 @@ const EditFeatForm = () => {
                   item.modType?.name === 'setValue' ? (
                     <>
                       <Input
-                        ref={addToInputRefs}
                         validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                         placeholder='Set Value'
@@ -631,8 +537,7 @@ const EditFeatForm = () => {
                         onChange={setState}
                       />
                       <Input
-                        ref={addToInputRefs}
-                        validate='num'
+                        validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                         placeholder='Multiplier'
                         label={true}
@@ -644,7 +549,6 @@ const EditFeatForm = () => {
                     </>
                   ) : item.method?.name === 'ability' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                       placeholder='Method Ability'
                       value={item.method.ability}
@@ -655,7 +559,6 @@ const EditFeatForm = () => {
                   ) : (
                     item.method?.name === 'skill' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                         placeholder='Method Skill'
                         value={item.method.skill}
@@ -670,7 +573,6 @@ const EditFeatForm = () => {
                     item.modType?.name === 'setValue') &&
                     item.module?.name === 'ability' && (
                       <Input
-                        ref={addToInputRefs}
                         validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
                         label={true}
@@ -684,7 +586,6 @@ const EditFeatForm = () => {
                     )}
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -749,7 +650,6 @@ const EditFeatForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
@@ -762,7 +662,6 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
                     value={item.area}
@@ -772,7 +671,6 @@ const EditFeatForm = () => {
                   />
                   {item?.area?.name === 'skill' && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.skill${multipleOptions ? '.options' : '.set'}`}
@@ -788,7 +686,6 @@ const EditFeatForm = () => {
                   )}
                   {item?.area?.name === 'saveAbility' && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.saveAbility${
@@ -808,7 +705,6 @@ const EditFeatForm = () => {
                   )}
                   {item?.area?.name === 'language' && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.language${
@@ -918,7 +814,6 @@ const EditFeatForm = () => {
                     </>
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
                     value={item.level}
@@ -928,7 +823,6 @@ const EditFeatForm = () => {
                   />
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -955,7 +849,6 @@ const EditFeatForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
@@ -968,7 +861,6 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}${
                       multipleOptions ? '.options' : '.set'
                     }`}
@@ -981,7 +873,6 @@ const EditFeatForm = () => {
                   />
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -1008,7 +899,6 @@ const EditFeatForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
@@ -1021,7 +911,6 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                     options={builders.feature.spell.attribute}
@@ -1031,7 +920,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}${
                       multipleOptions ? '.options' : '.set'
                     }`}
@@ -1050,7 +938,6 @@ const EditFeatForm = () => {
                     (attributeItem) => attributeItem.name === 'optionalAbility'
                   ) && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.ability${
@@ -1070,7 +957,6 @@ const EditFeatForm = () => {
                   )}
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -1095,7 +981,6 @@ const EditFeatForm = () => {
       <Fragment key={featureIndex}>
         <div className='row justify-content-between g-2 pb-2'>
           <Input
-            ref={addToInputRefs}
             size='col-sm-4'
             name={`feature.${featureIndex}.value`}
             border={false}
@@ -1160,7 +1045,6 @@ const EditFeatForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.limitUse.limitBy`}
                 placeholder='Limit By Option'
                 value={featureItem.limitUse?.limitBy}
@@ -1170,7 +1054,6 @@ const EditFeatForm = () => {
               />
               {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.limitUse.ability`}
                   placeholder='Ability'
                   value={featureItem.limitUse?.ability}
@@ -1180,7 +1063,6 @@ const EditFeatForm = () => {
                 />
               ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.limitUse.skill`}
                   placeholder='Skill'
                   value={featureItem.limitUse?.skill}
@@ -1191,7 +1073,6 @@ const EditFeatForm = () => {
               ) : (
                 featureItem.limitUse?.limitBy?.name === 'setNumber' && (
                   <Input
-                    ref={addToInputRefs}
                     validation='num'
                     name={`feature.${featureIndex}.limitUse.setAmount`}
                     label={true}
@@ -1204,7 +1085,6 @@ const EditFeatForm = () => {
                 )
               )}
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.limitUse.resetsOn`}
                 placeholder='Reset Option'
                 value={featureItem.limitUse?.resetsOn}
@@ -1219,7 +1099,6 @@ const EditFeatForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.action`}
                 placeholder='Action Type'
                 value={featureItem.action}
@@ -1234,7 +1113,6 @@ const EditFeatForm = () => {
           ) && (
             <>
               <Input
-                ref={addToInputRefs}
                 validation='num'
                 name={`feature.${featureIndex}.range.minRange`}
                 autoComplete='off'
@@ -1246,7 +1124,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
                 validation={'num'}
                 name={`feature.${featureIndex}.range.maxRange`}
                 label={true}
@@ -1264,7 +1141,6 @@ const EditFeatForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.saveAbility.attribute`}
                 multiple={true}
                 placeholder='Save Attribute'
@@ -1274,7 +1150,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.saveAbility.ability`}
                 placeholder='DC Ability'
                 value={featureItem.saveAbility?.ability}
@@ -1283,8 +1158,7 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
-                validate='num'
+                validation='num'
                 name={`feature.${featureIndex}.saveAbility.minValue`}
                 label={true}
                 autoComplete='off'
@@ -1298,7 +1172,6 @@ const EditFeatForm = () => {
                 (attributeItem) => attributeItem.name === 'addAbilityModifier'
               ) && (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.saveAbility.abilityModifier`}
                   placeholder='Modifier Ability'
                   value={featureItem.saveAbility?.abilityModifier}
@@ -1321,7 +1194,6 @@ const EditFeatForm = () => {
             </div>
             <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.option`}
                 value={featureItem.requirement?.option}
@@ -1335,7 +1207,6 @@ const EditFeatForm = () => {
               (optionItem) => optionItem.name === 'skillProficiency'
             ) && (
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                 value={featureItem.requirement?.skillProficiency?.skill}
@@ -1350,7 +1221,6 @@ const EditFeatForm = () => {
             ) && (
               <>
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.requirement.abilityScore.ability`}
                   value={featureItem.requirement?.abilityScore?.ability}
@@ -1360,7 +1230,6 @@ const EditFeatForm = () => {
                   onChange={setState}
                 />
                 <Input
-                  ref={addToInputRefs}
                   name={`feature.${featureIndex}.requirement.abilityScore.score`}
                   value={featureItem.requirement?.abilityScore?.score}
                   placeholder='Score'
@@ -1385,7 +1254,6 @@ const EditFeatForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                 value={featureItem.requirement?.itemProficiency?.itemCategory}
@@ -1394,7 +1262,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                 multiple={true}
                 placeholder='Item Property'
@@ -1415,7 +1282,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                 multiple={true}
                 placeholder='Item type'
@@ -1444,7 +1310,6 @@ const EditFeatForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                 value={featureItem.requirement?.equipped?.itemCategory}
@@ -1453,7 +1318,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                 placeholder='Item Property'
@@ -1474,7 +1338,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemType`}
                 placeholder='Item type'
@@ -1502,7 +1365,6 @@ const EditFeatForm = () => {
             </div>
             <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-3'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                 value={featureItem.requirement?.notEquipped?.itemCategory}
@@ -1511,7 +1373,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                 value={featureItem.requirement?.notEquipped?.itemProperty}
@@ -1532,7 +1393,6 @@ const EditFeatForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                 placeholder='Item type'
@@ -1607,7 +1467,6 @@ const EditFeatForm = () => {
             <>
               <div className='row g-2 align-items-end pb-2'>
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.damage.damageAttribute`}
                   value={featureItem.damage?.damageAttribute}
@@ -1617,7 +1476,6 @@ const EditFeatForm = () => {
                   onChange={setState}
                 />
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.damage.damageType`}
                   multiple={true}
                   placeholder='Damage Type'
@@ -1691,7 +1549,6 @@ const EditFeatForm = () => {
           <Fragment>
             <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
               <Input
-                ref={addToInputRefs}
                 name='value'
                 autoComplete='off'
                 placeholder='Feat Name'
@@ -1735,7 +1592,6 @@ const EditFeatForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     name='limitUse.limitBy'
                     placeholder='Limit By Option'
                     value={state.limitUse?.limitBy}
@@ -1745,7 +1601,6 @@ const EditFeatForm = () => {
                   />
                   {state.limitUse?.limitBy?.name === 'ability' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name='limitUse.ability'
                       placeholder='Ability'
                       value={state.limitUse?.ability}
@@ -1755,7 +1610,6 @@ const EditFeatForm = () => {
                     />
                   ) : state.limitUse?.limitBy?.name === 'skill' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name='limitUse.skill'
                       placeholder='Skill'
                       value={state.limitUse?.skill}
@@ -1766,7 +1620,6 @@ const EditFeatForm = () => {
                   ) : (
                     state.limitUse?.limitBy?.name === 'setNumber' && (
                       <Input
-                        ref={addToInputRefs}
                         validation='num'
                         name='limitUse.setAmount'
                         label={true}
@@ -1779,7 +1632,6 @@ const EditFeatForm = () => {
                     )
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name='limitUse.resetsOn'
                     placeholder='Reset Option'
                     value={state.limitUse?.resetsOn}
@@ -1794,7 +1646,6 @@ const EditFeatForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     name='action'
                     placeholder='Action Type'
                     value={state.action}
@@ -1809,7 +1660,6 @@ const EditFeatForm = () => {
               ) && (
                 <>
                   <Input
-                    ref={addToInputRefs}
                     validation='num'
                     name='range.minRange'
                     autoComplete='off'
@@ -1821,7 +1671,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name='range.maxRange'
                     label={true}
@@ -1839,7 +1688,6 @@ const EditFeatForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     name='saveAbility.attribute'
                     multiple={true}
                     placeholder='Save Attribute'
@@ -1849,7 +1697,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name='saveAbility.ability'
                     placeholder='DC Ability'
                     value={state.saveAbility?.ability}
@@ -1858,8 +1705,7 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
-                    validate='num'
+                    validation='num'
                     name='saveAbility.minValue'
                     label={true}
                     autoComplete='off'
@@ -1874,7 +1720,6 @@ const EditFeatForm = () => {
                       attributeItem.name === 'addAbilityModifier'
                   ) && (
                     <Select
-                      ref={addToSelectRefs}
                       name='saveAbility.abilityModifier'
                       placeholder='Modifier Ability'
                       value={state.saveAbility?.abilityModifier}
@@ -1896,7 +1741,6 @@ const EditFeatForm = () => {
                   <hr className='flex-grow-1 ms-3' />
                 </div>
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name='requirement.option'
                   value={state.requirement?.option}
@@ -1909,7 +1753,6 @@ const EditFeatForm = () => {
                   (optionItem) => optionItem.name === 'skillProficiency'
                 ) && (
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.skillProficiency.skill'
                     value={state.requirement?.skillProficiency?.skill}
@@ -1924,7 +1767,6 @@ const EditFeatForm = () => {
                 ) && (
                   <>
                     <Select
-                      ref={addToSelectRefs}
                       multiple={true}
                       name='requirement.abilityScore.ability'
                       value={state.requirement?.abilityScore?.ability}
@@ -1934,7 +1776,6 @@ const EditFeatForm = () => {
                       onChange={setState}
                     />
                     <Input
-                      ref={addToInputRefs}
                       name='requirement.abilityScore.score'
                       value={state.requirement?.abilityScore?.score}
                       placeholder='Score'
@@ -1959,7 +1800,6 @@ const EditFeatForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.itemProficiency.itemCategory'
                     value={state.requirement?.itemProficiency?.itemCategory}
@@ -1968,7 +1808,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name='requirement.itemProficiency.itemType'
                     placeholder='Item type'
                     value={state.requirement?.itemProficiency?.itemType}
@@ -1984,7 +1823,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name='requirement.itemProficiency.itemProperty'
                     placeholder='Item Property'
                     value={state.requirement?.itemProficiency?.itemProperty}
@@ -2025,7 +1863,6 @@ const EditFeatForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.equipped.itemCategory'
                     value={state.requirement?.equipped?.itemCategory}
@@ -2034,7 +1871,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.equipped.itemType'
                     placeholder='Item type'
@@ -2050,7 +1886,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.equipped.itemProperty'
                     placeholder='Item Property'
@@ -2090,7 +1925,6 @@ const EditFeatForm = () => {
                 </div>
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.notEquipped.itemCategory'
                     value={state.requirement?.notEquipped?.itemCategory}
@@ -2099,7 +1933,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.notEquipped.itemType'
                     placeholder='Item type'
@@ -2115,7 +1948,6 @@ const EditFeatForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     multiple={true}
                     name='requirement.notEquipped.itemProperty'
                     placeholder='Item Property'
@@ -2198,7 +2030,6 @@ const EditFeatForm = () => {
             ) : (
               <div className='row g-2 align-items-end pb-2'>
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name='damage.damageAttribute'
                   value={state.damage?.damageAttribute}
@@ -2208,7 +2039,6 @@ const EditFeatForm = () => {
                   onChange={setState}
                 />
                 <Select
-                  ref={addToSelectRefs}
                   name='damage.damageType'
                   multiple={true}
                   placeholder='Damage Type'
@@ -2258,7 +2088,7 @@ const EditFeatForm = () => {
     ]
 
     content = (
-      <div className='main-container'>
+      <>
         <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2'>
           <div className='col-auto'>
             <h3>Edit a Feat</h3>
@@ -2274,7 +2104,7 @@ const EditFeatForm = () => {
               Update
             </button>
             <button
-              className='btn btn-success me-2'
+              className='btn btn-primary me-2'
               type='button'
               onClick={() => {
                 onSubmit()
@@ -2282,7 +2112,7 @@ const EditFeatForm = () => {
             >
               Add
             </button>
-            <button className='btn btn-secondary me-2' onClick={onReset}>
+            <button className='btn btn-warning me-2' onClick={onReset}>
               Reset Form
             </button>
             <button className='btn btn-secondary' onClick={onBackClick}>
@@ -2319,9 +2149,9 @@ const EditFeatForm = () => {
             dynamic={true}
           />
         </form>
-      </div>
+      </>
     )
-    return content
   }
+  return <div className='main-container'>{content}</div>
 }
 export default EditFeatForm

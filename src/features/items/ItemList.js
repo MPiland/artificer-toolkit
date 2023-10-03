@@ -1,45 +1,28 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useGetItemQuery, useDeleteItemMutation } from './itemApiSlice'
+import { useDeleteItemMutation } from './itemsApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
-import { useGetBuilderQuery } from '../builders/builderApiSlice'
+import { selectBuilders } from '../builders/buildersSlice'
+import { selectItems } from '../items/itemsSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
-import useAuth from '../../hooks/useAuth'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
 import Select from '../../components/Select'
-import AccordionButton from '../../components/AccordionButton'
 
 const ItemList = () => {
-  const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
+  const loading = useSelector((state) => state.loading.status)
+
   const deleteConfirmed = useSelector((state) => state.delete.status)
-  const item = useSelector((state) => state.delete.data)
+  const itemToDelete = useSelector((state) => state.delete.data)
 
-  const {
-    data: items,
-    isLoading: itemIsLoading,
-    isSuccess: itemIsSuccess,
-    isError: itemIsError,
-    error: itemError,
-  } = useGetItemQuery(id, {
-    refetchOnMountOrArgChange: true,
-  })
-
-  const {
-    data: builders,
-    isLoading: builderIsLoading,
-    isSuccess: builderIsSuccess,
-    isError: builderIsError,
-    error: builderError,
-  } = useGetBuilderQuery(id, {
-    refetchOnMountOrArgChange: true,
-  })
+  const builders = useSelector(selectBuilders)
+  const items = useSelector(selectItems)
 
   const [deleteItem, { isError: delIsError, error: delError }] =
     useDeleteItemMutation()
@@ -79,12 +62,12 @@ const ItemList = () => {
 
   const onDeleteSubmit = useCallback(async () => {
     try {
-      await deleteItem({ id: item._id })
+      await deleteItem({ id: itemToDelete._id })
     } catch (err) {
       console.log(err.message)
     }
     dispatch(clearConfirm())
-  }, [item, dispatch, deleteItem])
+  }, [itemToDelete, dispatch, deleteItem])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -93,26 +76,13 @@ const ItemList = () => {
   }, [deleteConfirmed, onDeleteSubmit])
 
   useEffect(() => {
-    if (itemIsError) {
-      setErrorMessage(itemError.data.message)
-    }
-    if (builderIsError) {
-      setErrorMessage(builderError.data.message)
-    }
     if (delIsError) {
       setErrorMessage(delError.data.message)
     }
-  }, [
-    itemIsError,
-    itemError,
-    builderIsError,
-    builderError,
-    delIsError,
-    delError,
-  ])
+  }, [delIsError, delError])
 
   useEffect(() => {
-    if (itemIsSuccess && builderIsSuccess) {
+    if (!loading) {
       const updatedItems = items.map((item) => {
         if (item.cost && item.cost.currency && item.cost.currency._id) {
           const currencyId = item.cost.currency._id
@@ -138,7 +108,7 @@ const ItemList = () => {
       updatedItemsRef.current = updatedItems
       setFilterItems(updatedItemsRef.current)
     }
-  }, [itemIsSuccess, builderIsSuccess, items, builders, setFilterItems])
+  }, [loading, items, builders, setFilterItems])
 
   useEffect(() => {
     setTableColumns({
@@ -256,83 +226,92 @@ const ItemList = () => {
 
   let content
 
-  if (itemIsLoading || builderIsLoading) content = <p>Loading items...</p>
-
-  if (itemIsSuccess && builderIsSuccess) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const filter = (
-      <>
-        {!is1200 && !is1000 && (
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='filterButton'
-            target='filter'
-            expanded='false'
-          >
-            <span className='me-3'>Filters</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-        )}
-        <div className='accordion-collapse collapse show' id='filter'>
-          <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
-            <Input
-              name='value'
-              label={true}
-              placeholder='Item Name'
-              autoComplete='off'
-              value={listFilter?.value}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='itemCategory'
-              placeholder='Item Category'
-              options={items?.map((item) => item.itemCategory)}
-              value={listFilter?.itemCategory}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='itemProperty'
-              placeholder='Item Property'
-              options={items?.flatMap((item) => {
-                if (item.itemProperty && Array.isArray(item.itemProperty)) {
-                  return item.itemProperty
-                } else {
-                  return []
-                }
-              })}
-              value={listFilter?.itemProperty}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='damage.damageType'
-              placeholder='Damage Type'
-              options={items?.flatMap((item) => {
-                if (item.damage && Array.isArray(item.damage.damageType)) {
-                  return item.damage.damageType
-                } else {
-                  return []
-                }
-              })}
-              value={listFilter?.damage?.damageType}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='armorValue'
-              placeholder='Item Category'
-              options={items?.map((item) => ({ value: item.armorValue }))}
-              value={listFilter.armorValue}
-              onChange={setListFilter}
-            />
+      <div className='filter-container'>
+        <div
+          className='btn btn-section-collapse justify-content-between align-items-center'
+          id='sectionCollapseButton'
+          type='button'
+          role='button'
+          data-bs-toggle='collapse'
+          data-bs-target='#sectionCollapse'
+          aria-controls='collapseExample'
+          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+        >
+          <span className='me-3'>Filters</span>
+          <i class='bi bi-arrow-down-up' />
+        </div>
+        <div
+          className={`section-content collapse ${
+            !is600 && !is1000 ? ' show' : ''
+          }`}
+          id='sectionCollapse'
+        >
+          <div className='section-content'>
+            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+              <Input
+                name='value'
+                label={true}
+                placeholder='Item Name'
+                autoComplete='off'
+                value={listFilter?.value}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='itemCategory'
+                placeholder='Item Category'
+                options={items?.map((item) => item.itemCategory)}
+                value={listFilter?.itemCategory}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='itemProperty'
+                placeholder='Item Property'
+                options={items?.flatMap((item) => {
+                  if (item.itemProperty && Array.isArray(item.itemProperty)) {
+                    return item.itemProperty
+                  } else {
+                    return []
+                  }
+                })}
+                value={listFilter?.itemProperty}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='damage.damageType'
+                placeholder='Damage Type'
+                options={items?.flatMap((item) => {
+                  if (item.damage && Array.isArray(item.damage.damageType)) {
+                    return item.damage.damageType
+                  } else {
+                    return []
+                  }
+                })}
+                value={listFilter?.damage?.damageType}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='armorValue'
+                placeholder='Item Category'
+                options={items?.map((item) => ({ value: item.armorValue }))}
+                value={listFilter.armorValue}
+                onChange={setListFilter}
+              />
+            </div>
           </div>
         </div>
-      </>
+      </div>
     )
 
     content = (
-      <div className='main-container list'>
+      <>
         <div className='d-flex justify-content-between pb-2'>
           <div className='d-flex'>
             <h3 className='me-3'>Items</h3>
@@ -367,10 +346,10 @@ const ItemList = () => {
           deleteRow={(item) => onDelete(item)}
           empty='---'
         />
-      </div>
+      </>
     )
-
-    return content
   }
+
+  return <div className='main-container list'>{content}</div>
 }
 export default ItemList

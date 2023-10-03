@@ -107,10 +107,54 @@ h6 {
   padding-right: 0;
 }
 
+/* Collapse */
+
+.btn-section-collapse {
+  background-color: transparent;
+  border-top: 1px solid lightgrey !important;
+  border-bottom: 1px solid lightgrey !important;
+  border-right: 1px solid lightgrey !important;
+  border-left: 1px solid lightgrey !important;
+  border-bottom-left-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
+  width: 100%;
+  box-shadow: none;
+}
+
+.btn-section-collapse.collapsed {
+  border-bottom: 1px solid lightgrey !important;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.section-container {
+  width: 100%;
+  border-bottom: 1px solid lightgrey;
+  border-right: 1px solid lightgrey;
+  border-left: 1px solid lightgrey;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+
+.section-content {
+  width: 100%;
+  padding: 0.5rem .5rem 0;
+}
+
+/* List Filters */
+.filter-container {
+  margin-bottom: .5rem;
+}
+
 /* Go from zero to full opacity */
 @keyframes fadeEffect {
-  from {opacity: 0;}
-  to {opacity: 1;}
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Effect Sections */
@@ -148,7 +192,7 @@ h6 {
 
 @media only screen and (max-width: 768px) {
   .main-container {
-    padding: 1rem .5rem 0;
+    padding: 1rem 0.5rem 0;
     margin: 0 auto;
   }
 

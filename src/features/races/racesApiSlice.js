@@ -1,14 +1,23 @@
 import { apiSlice } from '../../app/api/apiSlice'
+import { setRaces } from './racesSlice'
 
-export const raceApiSlice = apiSlice.injectEndpoints({
+export const racesApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getRace: builder.query({
+    getRaces: builder.query({
       query: (id) => ({
         url: `/race/${id}`,
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(setRaces(data))
+        } catch (err) {
+          console.log(err)
+        }
+      },
       providesTags: (result, error, id) => {
         if (result?._ids) {
           return [
@@ -50,4 +59,4 @@ export const {
   useAddNewRaceMutation,
   useUpdateRaceMutation,
   useDeleteRaceMutation,
-} = raceApiSlice
+} = racesApiSlice

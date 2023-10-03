@@ -1,34 +1,25 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { useGetSpellQuery, useDeleteSpellMutation } from './spellApiSlice'
+import { useDeleteSpellMutation } from './spellsApiSlice'
+import { selectSpells } from './spellsSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
-import useAuth from '../../hooks/useAuth'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
-import AccordionButton from '../../components/AccordionButton'
 
 const SpellList = () => {
-  const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const deleteConfirmed = useSelector((state) => state.delete.status)
-  const spell = useSelector((state) => state.delete.data)
+  const loading = useSelector((state) => state.loading.status)
 
-  const {
-    data: spells,
-    isSuccess: spellIsSuccess,
-    isLoading: spellIsLoading,
-    isError: spellIsError,
-    error: spellError,
-  } = useGetSpellQuery(id, {
-    refetchOnMountOrArgChange: true,
-  })
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const spellToDelete = useSelector((state) => state.delete.data)
+  const spells = useSelector(selectSpells)
 
   const [deleteSpell, { isError: delIsError, error: delError }] =
     useDeleteSpellMutation()
@@ -67,12 +58,12 @@ const SpellList = () => {
 
   const onDeleteSubmit = useCallback(async () => {
     try {
-      await deleteSpell({ id: spell._id })
+      await deleteSpell({ id: spellToDelete._id })
     } catch (err) {
       console.log(err.message)
     }
     dispatch(clearConfirm())
-  }, [spell, dispatch, deleteSpell])
+  }, [spellToDelete, dispatch, deleteSpell])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -81,19 +72,14 @@ const SpellList = () => {
   }, [deleteConfirmed, onDeleteSubmit])
 
   useEffect(() => {
-    if (spellIsError) {
-      setErrorMessage(spellError.data.message)
-    }
     if (delIsError) {
       setErrorMessage(delError.data.message)
     }
-  }, [spellIsError, spellError, delIsError, delError])
+  }, [delIsError, delError])
 
   useEffect(() => {
-    if (spellIsSuccess) {
-      setFilterItems(spells)
-    }
-  }, [spellIsSuccess, spells, setFilterItems])
+    setFilterItems(spells)
+  }, [spells, setFilterItems])
 
   useEffect(() => {
     setTableColumns({
@@ -191,93 +177,102 @@ const SpellList = () => {
 
   let content
 
-  if (spellIsLoading) content = <p>Loading spells...</p>
-
-  if (spellIsSuccess) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const filter = (
-      <>
-        {!is1200 && !is1000 && (
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='filterButton'
-            target='filter'
-            expanded='false'
-          >
-            <span className='me-3'>Filters</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-        )}
-        <div className='accordion-collapse collapse show' id='filter'>
-          <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
-            <Input
-              name='value'
-              label={true}
-              placeholder='Spell Name'
-              autoComplete='off'
-              value={listFilter?.value}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='level'
-              placeholder='Level'
-              options={spells.map((item) => ({ value: item.level }))}
-              value={listFilter?.level}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='action.actionType'
-              placeholder='Casting Time'
-              options={spells.map((item) => item.action?.actionType)}
-              value={listFilter?.action?.actionType}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='duration.durationType'
-              placeholder='Duration'
-              options={spells.map((item) => item.duration?.durationType)}
-              value={listFilter?.duration?.durationType}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='range.rangeType'
-              placeholder='Range'
-              options={spells.map((item) => item.range?.rangeType)}
-              value={listFilter?.range?.rangeType}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='damage.damageType'
-              placeholder='Damage Type'
-              options={spells.flatMap((item) => {
-                if (item.damage && Array.isArray(item.damage.damageType)) {
-                  return item.damage.damageType
-                } else {
-                  return []
-                }
-              })}
-              value={listFilter?.damage?.damageType}
-              onChange={setListFilter}
-            />
-            <Select
-              multiple={true}
-              name='school'
-              placeholder='Spell School'
-              options={spells.map((item) => item.school)}
-              value={listFilter?.school}
-              onChange={setListFilter}
-            />
+      <div className='filter-container'>
+        <div
+          className='btn btn-section-collapse justify-content-between align-items-center'
+          id='sectionCollapseButton'
+          type='button'
+          role='button'
+          data-bs-toggle='collapse'
+          data-bs-target='#sectionCollapse'
+          aria-controls='collapseExample'
+          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+        >
+          <span className='me-3'>Filters</span>
+          <i class='bi bi-arrow-down-up' />
+        </div>
+        <div
+          className={`section-container collapse ${
+            !is600 && !is1000 ? ' show' : ''
+          }`}
+          id='sectionCollapse'
+        >
+          <div className='section-content'>
+            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+              <Input
+                name='value'
+                label={true}
+                placeholder='Spell Name'
+                autoComplete='off'
+                value={listFilter?.value}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='level'
+                placeholder='Level'
+                options={spells.map((item) => ({ value: item.level }))}
+                value={listFilter?.level}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='action.actionType'
+                placeholder='Casting Time'
+                options={spells.map((item) => item.action?.actionType)}
+                value={listFilter?.action?.actionType}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='duration.durationType'
+                placeholder='Duration'
+                options={spells.map((item) => item.duration?.durationType)}
+                value={listFilter?.duration?.durationType}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='range.rangeType'
+                placeholder='Range'
+                options={spells.map((item) => item.range?.rangeType)}
+                value={listFilter?.range?.rangeType}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='damage.damageType'
+                placeholder='Damage Type'
+                options={spells.flatMap((item) => {
+                  if (item.damage && Array.isArray(item.damage.damageType)) {
+                    return item.damage.damageType
+                  } else {
+                    return []
+                  }
+                })}
+                value={listFilter?.damage?.damageType}
+                onChange={setListFilter}
+              />
+              <Select
+                multiple={true}
+                name='school'
+                placeholder='Spell School'
+                options={spells.map((item) => item.school)}
+                value={listFilter?.school}
+                onChange={setListFilter}
+              />
+            </div>
           </div>
         </div>
-      </>
+      </div>
     )
 
     content = (
-      <div className='main-container list'>
+      <>
         <div className='d-flex justify-content-between pb-2'>
           <div className='d-flex'>
             <h3 className='me-3'>Spells</h3>
@@ -312,10 +307,10 @@ const SpellList = () => {
           deleteRow={(spell) => onDelete(spell)}
           empty='---'
         />
-      </div>
+      </>
     )
-
-    return content
   }
+
+  return <div className='main-container list'>{content}</div>
 }
 export default SpellList

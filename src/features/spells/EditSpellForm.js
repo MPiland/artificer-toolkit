@@ -1,15 +1,19 @@
 import { useState, useEffect, useReducer, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useGetBuilderQuery } from '../builders/builderApiSlice'
-import { useAddNewSpellMutation, useUpdateSpellMutation } from './spellApiSlice'
+import {
+  useAddNewSpellMutation,
+  useUpdateSpellMutation,
+} from './spellsApiSlice'
+import { useSelector } from 'react-redux'
+import { selectBuilders } from '../builders/buildersSlice'
 import { isEqual } from 'lodash'
 import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
+import { handleValidation } from '../../helpers/form'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
-import AccordionButton from '../../components/AccordionButton'
 import TabNavigation from '../../components/TabNavigation'
 
 const EditSpellForm = () => {
@@ -17,11 +21,7 @@ const EditSpellForm = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const {
-    data: builders,
-    isSuccess: builderIsSuccess,
-    isLoading: builderIsLoading,
-  } = useGetBuilderQuery(id)
+  const builders = useSelector(selectBuilders)
 
   const [
     addNewSpell,
@@ -38,8 +38,6 @@ const EditSpellForm = () => {
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const [match, setMatch] = useState()
-  const selectRefs = useRef([])
-  const inputRefs = useRef([])
   const textRefs = useRef([])
 
   useEffect(() => {
@@ -102,72 +100,10 @@ const EditSpellForm = () => {
     }
   }, [state, oldState])
 
-  const addToSelectRefs = (ref) => {
-    if (ref && !selectRefs.current.includes(ref)) {
-      selectRefs.current.push(ref)
-    }
-  }
-
-  const addToInputRefs = (ref) => {
-    if (ref && !inputRefs.current.includes(ref)) {
-      inputRefs.current.push(ref)
-    }
-  }
-
   const addToTextRefs = (ref) => {
     if (ref && !textRefs.current.includes(ref)) {
       textRefs.current.push(ref)
     }
-  }
-
-  const handleValidation = (resetValidation) => {
-    let isValid = true
-    selectRefs.current.forEach((selectRef) => {
-      if (selectRef) {
-        if (resetValidation === true) {
-          selectRef.setClass('')
-        } else {
-          const selectValue = selectRef.getValue()
-          const isEmpty =
-            selectValue === null ||
-            (Array.isArray(selectValue) && selectValue.length === 0)
-          if (isEmpty) {
-            selectRef.setClass('is-invalid')
-            isValid = false
-          } else {
-            selectRef.setClass('is-valid')
-          }
-        }
-      }
-    })
-
-    // Validate other elements with the required attribute
-    const requiredElements = document.querySelectorAll('[required]')
-    requiredElements.forEach((element) => {
-      if (resetValidation) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
-      } else {
-        const value = element.value
-        const isEmpty =
-          value === null ||
-          value === undefined ||
-          (typeof value === 'string' && value.trim() === '')
-
-        if (isEmpty) {
-          element.classList.add('is-invalid')
-          element.classList.remove('is-valid')
-          isValid = false
-        } else {
-          element.classList.add('is-valid')
-          element.classList.remove('is-invalid')
-        }
-      }
-    })
-    if (resetValidation) {
-      setErrorMessage()
-    }
-    return isValid
   }
 
   const onReset = () => {
@@ -178,6 +114,9 @@ const EditSpellForm = () => {
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)
+    textRefs.current.forEach((textRef) => {
+      textRef.revertState()
+    })
   }
 
   const onSubmit = async () => {
@@ -228,9 +167,11 @@ const EditSpellForm = () => {
 
   let content
 
-  if (builderIsLoading) content = <p>Loading...</p>
+  const loading = useSelector((state) => state.loading.status)
 
-  if (builderIsSuccess) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const damageTableInputs = (secondary) => {
       const inputArray = [
         {
@@ -289,7 +230,6 @@ const EditSpellForm = () => {
           <>
             <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 align-items-start pb-2'>
               <Input
-                ref={addToInputRefs}
                 name='value'
                 label={true}
                 placeholder='Spell Name'
@@ -300,7 +240,6 @@ const EditSpellForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
                 validation={'num'}
                 name='level'
                 label={true}
@@ -311,7 +250,6 @@ const EditSpellForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='school'
                 id='school'
                 placeholder={'Spell School'}
@@ -322,7 +260,6 @@ const EditSpellForm = () => {
               />
               <Select
                 name='requirement'
-                ref={addToSelectRefs}
                 multiple={true}
                 placeholder={'Requirements'}
                 value={state.requirement}
@@ -334,7 +271,6 @@ const EditSpellForm = () => {
                 (requirementItem) => requirementItem.name === 'material'
               ) && (
                 <Input
-                  ref={addToInputRefs}
                   name='materialDesc'
                   label={true}
                   placeholder='Material Description'
@@ -374,7 +310,6 @@ const EditSpellForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='action.actionType'
                 placeholder='Casting Time'
                 value={state.action?.actionType}
@@ -383,7 +318,6 @@ const EditSpellForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
                 validation={'num'}
                 name='action.value'
                 label={true}
@@ -393,7 +327,6 @@ const EditSpellForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='duration.durationType'
                 placeholder='Duration'
                 value={state.duration?.durationType}
@@ -404,7 +337,6 @@ const EditSpellForm = () => {
               {state.duration &&
                 state.duration?.durationType.name !== 'instantaneous' && (
                   <Input
-                    ref={addToInputRefs}
                     validation={'num'}
                     name='duration.value'
                     label={true}
@@ -417,7 +349,6 @@ const EditSpellForm = () => {
                   />
                 )}
               <Select
-                ref={addToSelectRefs}
                 name='range.rangeType'
                 placeholder='Range'
                 value={state.range?.rangeType}
@@ -430,7 +361,6 @@ const EditSpellForm = () => {
                   <>
                     {state.range.rangeType.name === 'distance' && (
                       <Input
-                        ref={addToInputRefs}
                         validation={'num'}
                         name='range.distance'
                         label={true}
@@ -443,7 +373,6 @@ const EditSpellForm = () => {
                       />
                     )}
                     <Select
-                      ref={addToSelectRefs}
                       name='shape.shapeType'
                       placeholder='Shape'
                       options={builders.spell.shape}
@@ -455,7 +384,6 @@ const EditSpellForm = () => {
                       state.shape?.shapeType.name !== 'none' &&
                       state.shape?.shapeType.name !== 'weapon' && (
                         <Input
-                          ref={addToInputRefs}
                           validation={'num'}
                           name='shape.size'
                           label={true}
@@ -475,7 +403,6 @@ const EditSpellForm = () => {
             ) && (
               <div className='row row-cols-lg-3 row-cols-md-3 row-cols-2 g-2 justify-content-left pb-2'>
                 <Select
-                  ref={addToSelectRefs}
                   name='secondaryAction.actionType'
                   placeholder='Secondary Action'
                   value={state.secondaryAction?.actionType}
@@ -484,7 +411,6 @@ const EditSpellForm = () => {
                   onChange={setState}
                 />
                 <Input
-                  ref={addToInputRefs}
                   validation={'num'}
                   name='secondaryAction.value'
                   label={true}
@@ -500,7 +426,6 @@ const EditSpellForm = () => {
                 (attributeItem) => attributeItem.name === 'requireSave'
               ) && (
                 <Select
-                  ref={addToSelectRefs}
                   name='saveAbility'
                   placeholder='DC Ability'
                   value={state.saveAbility}
@@ -511,76 +436,85 @@ const EditSpellForm = () => {
               )}
               {state.attribute?.some(
                 (attributeItem) => attributeItem.name === 'doesDamage'
-              ) &&
-                (!state?.damage?.damageByLevel ? (
-                  setState({
-                    type: 'added',
-                    payload: {
-                      target: {
-                        name: 'damage.damageByLevel',
-                      },
+              ) && !state?.damage?.damageByLevel ? (
+                setState({
+                  type: 'added',
+                  payload: {
+                    target: {
+                      name: 'damage.damageByLevel',
                     },
-                  })
-                ) : (
-                  <>
-                    <div className='row g-2 align-items-end pb-2'>
-                      <Select
-                        multiple={true}
-                        name='damage.damageAttribute'
-                        placeholder='Damage Attribute'
-                        value={state.damage?.damageAttribute}
-                        options={builders.spell.damageAttribute}
-                        onChange={setState}
-                      />
-                      <Select
-                        ref={addToSelectRefs}
-                        name='damage.damageType'
-                        multiple={true}
-                        placeholder='Damage Type'
-                        value={state.damage?.damageType}
-                        options={builders.damage}
-                        required={true}
-                        onChange={setState}
-                      />
-                    </div>
-                    <AccordionButton
-                      className='accordion form-details justify-content-between align-items-center'
-                      id='damageTableButton'
-                      target='damageTable'
-                    >
-                      <span className='me-3'>Damage Table</span>
-                      <hr className='flex-grow-1 me-3' />
-                    </AccordionButton>
-                    <div
-                      className='accordion-collapse collapse show pb-2'
-                      id='damageTable'
-                    >
-                      <Table
-                        inputs={damageTableInputs(
-                          state.attribute?.some(
-                            (attributeItem) =>
-                              attributeItem.name === 'secondaryDamage'
-                          )
-                        )}
-                        name='damage.damageByLevel'
-                        value={state.damage?.damageByLevel}
-                        onChange={setState}
-                        dynamic={true}
-                        scrollable={true}
-                      />
-                    </div>
-                  </>
-                ))}
+                  },
+                })
+              ) : (
+                <>
+                  <div className='row g-2 align-items-end pb-2'>
+                    <Select
+                      multiple={true}
+                      name='damage.damageAttribute'
+                      placeholder='Damage Attribute'
+                      value={state.damage?.damageAttribute}
+                      options={builders.spell.damageAttribute}
+                      onChange={setState}
+                    />
+                    <Select
+                      name='damage.damageType'
+                      multiple={true}
+                      placeholder='Damage Type'
+                      value={state.damage?.damageType}
+                      options={builders.damage}
+                      required={true}
+                      onChange={setState}
+                    />
+                  </div>
+                </>
+              )}
             </div>
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'doesDamage'
+            ) && (
+              <>
+                <div
+                  className='btn btn-section-collapse justify-content-between align-items-center'
+                  id='sectionCollapseButton'
+                  type='button'
+                  role='button'
+                  data-bs-toggle='collapse'
+                  data-bs-target='#sectionCollapse'
+                  aria-controls='collapseExample'
+                  aria-expanded='true'
+                >
+                  <span className='me-3'>Damage Table</span>
+                  <i class='bi bi-arrow-down-up' />
+                </div>
+                <div
+                  className='section-container collapse show'
+                  id='sectionCollapse'
+                >
+                  <div className='section-content'>
+                    <Table
+                      inputs={damageTableInputs(
+                        state.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'secondaryDamage'
+                        )
+                      )}
+                      name='damage.damageByLevel'
+                      value={state.damage?.damageByLevel}
+                      onChange={setState}
+                      dynamic={true}
+                      scrollable={true}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </>
         ),
       },
     ]
 
-    console.log(state)
-
     content = (
-      <div className='main-container'>
+      <>
         <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2'>
           <div className='col-auto'>
             <h3>Edit a Spell</h3>
@@ -596,7 +530,7 @@ const EditSpellForm = () => {
               Add
             </button>
             <button
-              className='btn btn-warning me-2'
+              className='btn btn-primary me-2'
               type='button'
               onClick={() => {
                 onUpdate()
@@ -604,7 +538,7 @@ const EditSpellForm = () => {
             >
               Update
             </button>
-            <button className='btn btn-secondary me-2' onClick={onReset}>
+            <button className='btn btn-warning me-2' onClick={onReset}>
               Reset Form
             </button>
             <button className='btn btn-secondary' onClick={onBackClick}>
@@ -616,7 +550,7 @@ const EditSpellForm = () => {
           <h5 className='success-message'>{successMessage}</h5>
         )}
         {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
-        <form className='needs-validation' noValidate>
+        <form>
           <TabNavigation
             id='main'
             dynamic={false}
@@ -627,11 +561,11 @@ const EditSpellForm = () => {
             }))}
           />
         </form>
-      </div>
+      </>
     )
   }
 
-  return content
+  return <div className='main-container'>{content}</div>
 }
 
 export default EditSpellForm

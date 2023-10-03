@@ -1,46 +1,29 @@
 import { createSlice } from '@reduxjs/toolkit'
 import { authApiSlice } from './authApiSlice'
 
-const authSlice = createSlice({
+export const authSlice = createSlice({
   name: 'auth',
-  initialState: { token: null },
+  initialState: { token: null, id: null },
   reducers: {
     setCredentials: (state, { payload }) => {
       state.token = payload.accessToken
-    },
-    logOut: (state, action) => {
-      state.token = null
+      state.id = payload.id
     },
   },
   extraReducers: (builder) => {
-    builder
-      .addMatcher(
-        authApiSlice.endpoints.login.matchFulfilled,
-        (state, { payload }) => {
-          state.token = payload.accessToken
-        }
-      )
-      .addMatcher(
-        authApiSlice.endpoints.googleLogin.matchFulfilled,
-        (state, { payload }) => {
-          state.token = payload.accessToken
-        }
-      )
-      .addMatcher(
-        authApiSlice.endpoints.register.matchFulfilled,
-        (state, { payload }) => {
-          state.token = payload.accessToken
-        }
-      )
-      .addMatcher(authApiSlice.endpoints.sendLogout.matchFulfilled, (state) => {
+    builder.addMatcher(
+      authApiSlice.endpoints.sendLogout.matchFulfilled,
+      (state) => {
         state.token = null
         localStorage.removeItem('persist')
-      })
+      }
+    )
   },
 })
 
-export const { setCredentials, logOut } = authSlice.actions
+export const { setCredentials } = authSlice.actions
 
 export default authSlice.reducer
 
 export const selectCurrentToken = (state) => state.auth.token
+export const selectCurrentId = (state) => state.auth.id

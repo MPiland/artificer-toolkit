@@ -1,12 +1,15 @@
 import { useState, useEffect, useReducer, useRef, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGetClassQuery, useAddNewClassMutation } from './classApiSlice'
-import { useGetBuilderQuery } from '../builders/builderApiSlice'
-import { useGetSpellQuery } from '../spells/spellApiSlice'
-import { useGetFeatQuery } from '../feats/featApiSlice'
-import { useGetItemQuery } from '../items/itemApiSlice'
+import { useAddNewClassMutation } from './classesApiSlice'
+import { useSelector } from 'react-redux'
+import { selectBuilders } from '../builders/buildersSlice'
+import { selectSpells } from '../spells/spellsSlice'
+import { selectFeats } from '../feats/featsSlice'
+import { selectItems } from '../items/itemsSlice'
+import { selectClasses } from '../classes/classesSlice'
 import { startCase } from 'lodash'
 import formReducer from '../../hooks/useReducer'
+import { handleValidation } from '../../helpers/form'
 import AccordionButton from '../../components/AccordionButton'
 import TabNavigation from '../../components/TabNavigation'
 import TextEditor from '../../components/TextEditor'
@@ -19,35 +22,11 @@ const NewClassForm = () => {
   const { id } = useAuth()
   const navigate = useNavigate()
 
-  const {
-    data: builders,
-    isSuccess: builderIsSuccess,
-    isLoading: builderIsLoading,
-  } = useGetBuilderQuery(id)
-
-  const {
-    data: spells,
-    isSuccess: spellIsSuccess,
-    isLoading: spellIsLoading,
-  } = useGetSpellQuery(id)
-
-  const {
-    data: feats,
-    isSuccess: featIsSuccess,
-    isLoading: featIsLoading,
-  } = useGetFeatQuery(id)
-
-  const {
-    data: classes,
-    isSuccess: classIsSuccess,
-    isLoading: classIsLoading,
-  } = useGetClassQuery(id)
-
-  const {
-    data: items,
-    isSuccess: itemIsSuccess,
-    isLoading: itemIsLoading,
-  } = useGetItemQuery(id)
+  const builders = useSelector(selectBuilders)
+  const spells = useSelector(selectSpells)
+  const feats = useSelector(selectFeats)
+  const items = useSelector(selectItems)
+  const classes = useSelector(selectClasses)
 
   const [
     addNewClass,
@@ -57,8 +36,6 @@ const NewClassForm = () => {
   const [state, setState] = useReducer(formReducer, { userId: id })
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-  const selectRefs = useRef([])
-  const inputRefs = useRef([])
   const textRefs = useRef([])
 
   useEffect(() => {
@@ -75,7 +52,7 @@ const NewClassForm = () => {
       })
     }
     textRefs.current.forEach((textRef) => {
-      textRef.updateState('')
+      textRef.resetState('')
     })
   }, [addIsSuccess, id, setState])
 
@@ -106,72 +83,10 @@ const NewClassForm = () => {
     })
   })
 
-  const addToSelectRefs = (ref) => {
-    if (ref && !selectRefs.current.includes(ref)) {
-      selectRefs.current.push(ref)
-    }
-  }
-
-  const addToInputRefs = (ref) => {
-    if (ref && !inputRefs.current.includes(ref)) {
-      inputRefs.current.push(ref)
-    }
-  }
-
   const addToTextRefs = (ref) => {
     if (ref && !textRefs.current.includes(ref)) {
       textRefs.current.push(ref)
     }
-  }
-
-  const handleValidation = (resetValidation) => {
-    let isValid = true
-    selectRefs.current.forEach((selectRef) => {
-      if (selectRef) {
-        if (resetValidation === true) {
-          selectRef.setClass('')
-        } else {
-          const selectValue = selectRef.getValue()
-          const isEmpty =
-            selectValue === null ||
-            (Array.isArray(selectValue) && selectValue.length === 0)
-          if (isEmpty) {
-            selectRef.setClass('is-invalid')
-            isValid = false
-          } else {
-            selectRef.setClass('is-valid')
-          }
-        }
-      }
-    })
-
-    // Validate other elements with the required attribute
-    const requiredElements = document.querySelectorAll('[required]')
-    requiredElements.forEach((element) => {
-      if (resetValidation) {
-        element.classList.remove('is-valid')
-        element.classList.remove('is-invalid')
-      } else {
-        const value = element.value
-        const isEmpty =
-          value === null ||
-          value === undefined ||
-          (typeof value === 'string' && value.trim() === '')
-
-        if (isEmpty) {
-          element.classList.add('is-invalid')
-          element.classList.remove('is-valid')
-          isValid = false
-        } else {
-          element.classList.add('is-valid')
-          element.classList.remove('is-invalid')
-        }
-      }
-    })
-    if (resetValidation) {
-      setErrorMessage()
-    }
-    return isValid
   }
 
   const onReset = () => {
@@ -183,7 +98,7 @@ const NewClassForm = () => {
     setErrorMessage()
     handleValidation(true)
     textRefs.current.forEach((textRef) => {
-      textRef.updateState('')
+      textRef.resetState('')
     })
   }
 
@@ -202,23 +117,11 @@ const NewClassForm = () => {
 
   let content
 
-  if (
-    builderIsLoading ||
-    spellIsLoading ||
-    featIsLoading ||
-    classIsLoading ||
-    itemIsLoading
-  ) {
-    content = <p>Loading...</p>
-  }
+  const loading = useSelector((state) => state.loading.status)
 
-  if (
-    builderIsSuccess &&
-    spellIsSuccess &&
-    featIsSuccess &&
-    classIsSuccess &&
-    itemIsSuccess
-  ) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const spellCaster = state.attribute?.some(
       (attributeItem) => attributeItem.name === 'spellCaster'
     )
@@ -228,6 +131,7 @@ const NewClassForm = () => {
     }
 
     !state?.levelAttribute && addArray('levelAttribute')
+
     spellCaster &&
       state?.levelAttribute.map(
         (levelAttributeItem, levelAttributeIndex) =>
@@ -400,9 +304,8 @@ const NewClassForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
-                      validate='num'
+                      validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                       label={true}
                       placeholder='Opt. Grp. #'
@@ -413,7 +316,6 @@ const NewClassForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}${
                       multipleOptions ? '.options' : '.set'
                     }`}
@@ -426,7 +328,6 @@ const NewClassForm = () => {
                   />
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -453,9 +354,8 @@ const NewClassForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
-                      validate='num'
+                      validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                       label={true}
                       placeholder='Opt. Grp. #'
@@ -466,7 +366,6 @@ const NewClassForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.modType`}
                     placeholder='Modifier Type'
                     value={item.modType}
@@ -476,7 +375,6 @@ const NewClassForm = () => {
                   />
                   {item.modType?.name && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.module`}
                       placeholder='Modifier Category'
                       value={item.module}
@@ -500,7 +398,6 @@ const NewClassForm = () => {
                     <>
                       {item.module?.name === 'ability' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.ability${
@@ -520,7 +417,6 @@ const NewClassForm = () => {
                       )}
                       {item.module?.name === 'saveAbility' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.saveAbility${
@@ -540,7 +436,6 @@ const NewClassForm = () => {
                       )}
                       {item.module?.name === 'skill' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.skill${
@@ -560,7 +455,6 @@ const NewClassForm = () => {
                       )}
                       {item.module?.name === 'damageSave' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.damageSave${
@@ -580,7 +474,6 @@ const NewClassForm = () => {
                       )}
                       {item.module?.name === 'conditionSave' && (
                         <Select
-                          ref={addToSelectRefs}
                           name={`feature.${featureIndex}.${
                             this.name
                           }.${index}.conditionSave${
@@ -604,7 +497,6 @@ const NewClassForm = () => {
                     item.modType?.name === 'penalty') &&
                     item.modType?.name !== 'setValue' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${this.name}.${index}.method`}
                         placeholder='Method'
                         value={item.method}
@@ -619,7 +511,6 @@ const NewClassForm = () => {
                     )}
                   {item.module?.name === 'condition' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.condition${
@@ -638,7 +529,6 @@ const NewClassForm = () => {
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.speed${multipleOptions ? '.options' : '.set'}`}
@@ -653,7 +543,6 @@ const NewClassForm = () => {
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.passive${
@@ -673,7 +562,6 @@ const NewClassForm = () => {
                   ) : (
                     item.module?.name === 'damage' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${
                           this.name
                         }.${index}.damage${
@@ -696,8 +584,7 @@ const NewClassForm = () => {
                   item.modType?.name === 'setValue' ? (
                     <>
                       <Input
-                        ref={addToInputRefs}
-                        validate='num'
+                        validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                         placeholder='Set Value'
                         label={true}
@@ -708,8 +595,7 @@ const NewClassForm = () => {
                         onChange={setState}
                       />
                       <Input
-                        ref={addToInputRefs}
-                        validate='num'
+                        validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
                         placeholder='Multiplier'
                         label={true}
@@ -721,7 +607,6 @@ const NewClassForm = () => {
                     </>
                   ) : item.method?.name === 'ability' ? (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
                       placeholder='Method Ability'
                       value={item.method.ability}
@@ -732,7 +617,6 @@ const NewClassForm = () => {
                   ) : (
                     item.method?.name === 'skill' && (
                       <Select
-                        ref={addToSelectRefs}
                         name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
                         placeholder='Method Skill'
                         value={item.method.skill}
@@ -747,7 +631,6 @@ const NewClassForm = () => {
                     item.modType?.name === 'setValue') &&
                     item.module?.name === 'ability' && (
                       <Input
-                        ref={addToInputRefs}
                         validation='num'
                         name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
                         label={true}
@@ -761,7 +644,6 @@ const NewClassForm = () => {
                     )}
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -826,9 +708,8 @@ const NewClassForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
-                      validate='num'
+                      validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                       label={true}
                       placeholder='Opt. Grp. #'
@@ -839,7 +720,6 @@ const NewClassForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.area`}
                     placeholder='Proficiency Area'
                     value={item.area}
@@ -849,7 +729,6 @@ const NewClassForm = () => {
                   />
                   {item?.area?.name === 'skill' && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.skill${multipleOptions ? '.options' : '.set'}`}
@@ -865,7 +744,6 @@ const NewClassForm = () => {
                   )}
                   {item?.area?.name === 'saveAbility' && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.saveAbility${
@@ -885,7 +763,6 @@ const NewClassForm = () => {
                   )}
                   {item?.area?.name === 'language' && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.language${
@@ -994,7 +871,6 @@ const NewClassForm = () => {
                     </>
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}.level`}
                     placeholder='Proficiency Level'
                     value={item.level}
@@ -1004,7 +880,6 @@ const NewClassForm = () => {
                   />
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -1031,9 +906,8 @@ const NewClassForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
-                      validate='num'
+                      validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                       label={true}
                       placeholder='Opt. Grp. #'
@@ -1044,7 +918,6 @@ const NewClassForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}${
                       multipleOptions ? '.options' : '.set'
                     }`}
@@ -1057,7 +930,6 @@ const NewClassForm = () => {
                   />
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -1084,9 +956,8 @@ const NewClassForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
-                      validate='num'
+                      validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                       label={true}
                       placeholder='Opt. Grp. #'
@@ -1097,7 +968,6 @@ const NewClassForm = () => {
                     />
                   )}
                   <Select
-                    ref={addToSelectRefs}
                     multiple='true'
                     name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
                     options={builders.feature.spell.attribute}
@@ -1107,7 +977,6 @@ const NewClassForm = () => {
                     onChange={setState}
                   />
                   <Select
-                    ref={addToSelectRefs}
                     name={`feature.${featureIndex}.${this.name}.${index}${
                       multipleOptions ? '.options' : '.set'
                     }`}
@@ -1122,7 +991,6 @@ const NewClassForm = () => {
                     (attributeItem) => attributeItem.name === 'optionalAbility'
                   ) && (
                     <Select
-                      ref={addToSelectRefs}
                       name={`feature.${featureIndex}.${
                         this.name
                       }.${index}.ability${
@@ -1142,7 +1010,6 @@ const NewClassForm = () => {
                   )}
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -1169,9 +1036,8 @@ const NewClassForm = () => {
                     (item) => item.name === 'optionGroups'
                   ) && (
                     <Input
-                      ref={addToInputRefs}
                       size='col-sm-2'
-                      validate='num'
+                      validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
                       label={true}
                       placeholder='Opt. Grp. #'
@@ -1264,7 +1130,6 @@ const NewClassForm = () => {
                   />
                   {multipleOptions && (
                     <Input
-                      ref={addToInputRefs}
                       validation='num'
                       name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                       label={true}
@@ -1290,7 +1155,6 @@ const NewClassForm = () => {
       <Fragment key={featureIndex}>
         <div className='row justify-content-between pb-2 gy-2'>
           <Input
-            ref={addToInputRefs}
             size='col-sm-3'
             name={`feature.${featureIndex}.value`}
             label={true}
@@ -1338,7 +1202,6 @@ const NewClassForm = () => {
         />
         <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-3'>
           <Input
-            ref={addToInputRefs}
             size='col-md-2'
             name={`feature.${featureIndex}.levelAvailable`}
             autoComplete='off'
@@ -1365,7 +1228,6 @@ const NewClassForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.limitUse.limitBy`}
                 placeholder='Limit By Option'
                 value={featureItem.limitUse?.limitBy}
@@ -1375,7 +1237,6 @@ const NewClassForm = () => {
               />
               {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.limitUse.ability`}
                   placeholder='Ability'
                   value={featureItem.limitUse?.ability}
@@ -1385,7 +1246,6 @@ const NewClassForm = () => {
                 />
               ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.limitUse.skill`}
                   placeholder='Skill'
                   value={featureItem.limitUse?.skill}
@@ -1396,8 +1256,7 @@ const NewClassForm = () => {
               ) : (
                 featureItem.limitUse?.limitBy?.name === 'setNumber' && (
                   <Input
-                    ref={addToInputRefs}
-                    validate='num'
+                    validation='num'
                     type='text'
                     name={`feature.${featureIndex}.limitUse.setAmount`}
                     label={true}
@@ -1410,7 +1269,6 @@ const NewClassForm = () => {
                 )
               )}
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.limitUse.resetsOn`}
                 placeholder='Reset Option'
                 value={featureItem.limitUse?.resetsOn}
@@ -1425,7 +1283,6 @@ const NewClassForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.action`}
                 placeholder='Action Type'
                 value={featureItem.action}
@@ -1440,8 +1297,7 @@ const NewClassForm = () => {
           ) && (
             <>
               <Input
-                ref={addToInputRefs}
-                validate='num'
+                validation='num'
                 name={`feature.${featureIndex}.range.minRange`}
                 autoComplete='off'
                 label={true}
@@ -1452,8 +1308,7 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
-                validate='num'
+                validation='num'
                 name={`feature.${featureIndex}.range.maxRange`}
                 label={true}
                 autoComplete='off'
@@ -1470,7 +1325,6 @@ const NewClassForm = () => {
           ) && (
             <>
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.saveAbility.attribute`}
                 multiple={true}
                 placeholder='Save Attribute'
@@ -1480,7 +1334,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.saveAbility.ability`}
                 placeholder='DC Ability'
                 value={featureItem.saveAbility?.ability}
@@ -1489,8 +1342,7 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
-                validate='num'
+                validation='num'
                 name={`feature.${featureIndex}.saveAbility.minValue`}
                 label={true}
                 autoComplete='off'
@@ -1504,7 +1356,6 @@ const NewClassForm = () => {
                 (attributeItem) => attributeItem.name === 'addAbilityModifier'
               ) && (
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.saveAbility.abilityModifier`}
                   placeholder='Modifier Ability'
                   value={featureItem.saveAbility?.abilityModifier}
@@ -1526,7 +1377,6 @@ const NewClassForm = () => {
               <hr className='flex-grow-1 ms-3' />
             </div>
             <Select
-              ref={addToSelectRefs}
               multiple={true}
               name={`feature.${featureIndex}.requirement.option`}
               placeholder='Requirement'
@@ -1539,7 +1389,6 @@ const NewClassForm = () => {
               (optionItem) => optionItem.name === 'skillProficiency'
             ) && (
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.skillProficiency.skill`}
                 placeholder='Skill Proficiency'
@@ -1554,7 +1403,6 @@ const NewClassForm = () => {
             ) && (
               <>
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.requirement.abilityScore.ability`}
                   value={featureItem.requirement?.abilityScore?.ability}
@@ -1564,7 +1412,6 @@ const NewClassForm = () => {
                   onChange={setState}
                 />
                 <Input
-                  ref={addToInputRefs}
                   name={`feature.${featureIndex}.requirement.abilityScore.score`}
                   value={featureItem.requirement?.abilityScore?.score}
                   placeholder='Score'
@@ -1589,7 +1436,6 @@ const NewClassForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
                 value={featureItem.requirement?.itemProficiency?.itemCategory}
@@ -1598,7 +1444,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
                 multiple={true}
                 placeholder='Item Property'
@@ -1619,7 +1464,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name={`feature.${featureIndex}.requirement.itemProficiency.itemType`}
                 multiple={true}
                 placeholder='Item type'
@@ -1648,7 +1492,6 @@ const NewClassForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
                 value={featureItem.requirement?.equipped?.itemCategory}
@@ -1657,7 +1500,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
                 placeholder='Item Property'
@@ -1678,7 +1520,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.equipped.itemType`}
                 placeholder='Item type'
@@ -1706,7 +1547,6 @@ const NewClassForm = () => {
             </div>
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
                 value={featureItem.requirement?.notEquipped?.itemCategory}
@@ -1715,7 +1555,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
                 value={featureItem.requirement?.notEquipped?.itemProperty}
@@ -1736,7 +1575,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 multiple={true}
                 name={`feature.${featureIndex}.requirement.notEquipped.itemType`}
                 placeholder='Item type'
@@ -1811,7 +1649,6 @@ const NewClassForm = () => {
             <>
               <div className='row g-2 align-items-end pb-2'>
                 <Select
-                  ref={addToSelectRefs}
                   multiple={true}
                   name={`feature.${featureIndex}.damage.damageAttribute`}
                   placeholder='Damage Attribute'
@@ -1821,7 +1658,6 @@ const NewClassForm = () => {
                   onChange={setState}
                 />
                 <Select
-                  ref={addToSelectRefs}
                   name={`feature.${featureIndex}.damage.damageType`}
                   multiple={true}
                   placeholder='Damage Type'
@@ -1886,7 +1722,7 @@ const NewClassForm = () => {
         />
       </Fragment>
     )
-    
+
     const mainTabContent = [
       {
         name: 'details',
@@ -1894,7 +1730,6 @@ const NewClassForm = () => {
           <>
             <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-2'>
               <Input
-                ref={addToInputRefs}
                 name='value'
                 label={true}
                 autoComplete='off'
@@ -1904,7 +1739,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Select
-                ref={addToSelectRefs}
                 name='category'
                 placeholder='Class Category'
                 value={state?.category}
@@ -1914,7 +1748,6 @@ const NewClassForm = () => {
               />
               {state.category?.name === 'subclass' && (
                 <Select
-                  ref={addToSelectRefs}
                   name='parentClass'
                   placeholder='Parent Class'
                   value={state?.parentClass}
@@ -1926,7 +1759,6 @@ const NewClassForm = () => {
               {state.category?.name !== 'subclass' && (
                 <>
                   <Input
-                    ref={addToInputRefs}
                     name='hitPoint.diceCount'
                     label={true}
                     autoComplete='off'
@@ -1938,7 +1770,6 @@ const NewClassForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     name='hitPoint.diceValue'
                     label={true}
                     autoComplete='off'
@@ -1981,7 +1812,6 @@ const NewClassForm = () => {
                         expanded='true'
                       >
                         <Input
-                          ref={addToInputRefs}
                           size='col-sm-4'
                           name={`details.${detailIndex}.title`}
                           border={false}
@@ -2034,7 +1864,6 @@ const NewClassForm = () => {
             <div className='row g-2 pb-2 row-cols-lg-4 row-cols-md-3 row-cols-2'>
               <>
                 <Select
-                  ref={addToSelectRefs}
                   name='attribute'
                   placeholder='Attributes'
                   multiple={true}
@@ -2059,7 +1888,6 @@ const NewClassForm = () => {
                 ) && (
                   <>
                     <Select
-                      ref={addToSelectRefs}
                       name='spellcasting.attribute'
                       placeholder='Spell Casting Attributes'
                       multiple={true}
@@ -2072,7 +1900,6 @@ const NewClassForm = () => {
                       onChange={setState}
                     />
                     <Select
-                      ref={addToSelectRefs}
                       name='spellcasting.Ability'
                       placeholder='Spellcasting Ability'
                       required={true}
@@ -2081,7 +1908,6 @@ const NewClassForm = () => {
                       onChange={setState}
                     />
                     <Input
-                      ref={addToInputRefs}
                       name='spellcasting.maxSpellLevel'
                       label={true}
                       autoComplete='off'
@@ -2105,7 +1931,6 @@ const NewClassForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     name='multiclass.primaryAbility'
                     placeholder='Primary Ability'
                     value={state?.multiclass?.primaryAbility}
@@ -2124,7 +1949,6 @@ const NewClassForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     name='multiclass.primaryAbility.minValue'
                     label={true}
                     autoComplete='off'
@@ -2142,7 +1966,6 @@ const NewClassForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     name='multiclass.secondaryAbility'
                     placeholder='Secondary Ability'
                     value={state?.multiclass?.secondaryAbility}
@@ -2161,7 +1984,6 @@ const NewClassForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     name='multiclass.secondaryAbility.minValue'
                     label={true}
                     autoComplete='off'
@@ -2179,7 +2001,6 @@ const NewClassForm = () => {
               ) && (
                 <>
                   <Select
-                    ref={addToSelectRefs}
                     name='multiclass.optionalAbility'
                     placeholder='Optional Ability'
                     value={state?.multiclass?.optionalAbility}
@@ -2198,7 +2019,6 @@ const NewClassForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    ref={addToInputRefs}
                     name='multiclass.optionalAbility.minValue'
                     label={true}
                     autoComplete='off'
@@ -2244,9 +2064,8 @@ const NewClassForm = () => {
         name: 'subclassDetails',
         content: (
           <>
-            <div className='row g-2 row-cols-sm-4 pb-2'>
+            <div className='row g-2 row-cols-4 pb-2'>
               <Input
-                ref={addToInputRefs}
                 name='subclass.value'
                 label={true}
                 autoComplete='off'
@@ -2256,7 +2075,6 @@ const NewClassForm = () => {
                 onChange={setState}
               />
               <Input
-                ref={addToInputRefs}
                 name='subclass.levelAcquired'
                 label={true}
                 autoComplete='off'
@@ -2281,14 +2099,14 @@ const NewClassForm = () => {
     ]
 
     content = (
-      <div className='main-container'>
+      <>
         <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2 mx-1'>
           <div className='col-auto'>
             <h3>Create a Class</h3>
           </div>
           <div className='col-auto d-flex justify-content-end'>
             <button
-              className='btn btn-success me-2'
+              className='btn btn-primary me-2'
               type='button'
               onClick={() => {
                 onSubmit()
@@ -2296,7 +2114,7 @@ const NewClassForm = () => {
             >
               Add
             </button>
-            <button className='btn btn-secondary me-2' onClick={onReset}>
+            <button className='btn btn-warning me-2' onClick={onReset}>
               Reset Form
             </button>
             <button className='btn btn-secondary' onClick={() => navigate(-1)}>
@@ -2308,7 +2126,7 @@ const NewClassForm = () => {
           <h5 className='success-message'>{successMessage}</h5>
         )}
         {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
-        <form className='needs-validation' noValidate>
+        <form>
           <TabNavigation
             id='main'
             dynamic={false}
@@ -2339,9 +2157,9 @@ const NewClassForm = () => {
             dynamic={true}
           />
         </form>
-      </div>
+      </>
     )
-    return content
   }
+  return <div className='main-container'>{content}</div>
 }
 export default NewClassForm

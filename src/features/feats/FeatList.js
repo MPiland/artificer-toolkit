@@ -1,33 +1,24 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useGetFeatQuery, useDeleteFeatMutation } from './featApiSlice'
+import { useDeleteFeatMutation } from './featsApiSlice'
 import { clearConfirm } from '../../app/deleteSlice'
+import { selectFeats } from '../feats/featsSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
-import useAuth from '../../hooks/useAuth'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
-import AccordionButton from '../../components/AccordionButton'
 
 const FeatList = () => {
-  const { id } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const deleteConfirmed = useSelector((state) => state.delete.status)
-  const feat = useSelector((state) => state.delete.data)
+  const loading = useSelector((state) => state.loading.status)
 
-  const {
-    data: feats,
-    isLoading: featIsLoading,
-    isSuccess: featIsSuccess,
-    isError: featIsError,
-    error: featError,
-  } = useGetFeatQuery(id, {
-    refetchOnMountOrArgChange: true,
-  })
+  const deleteConfirmed = useSelector((state) => state.delete.status)
+  const featToDelete = useSelector((state) => state.delete.data)
+  const feats = useSelector(selectFeats)
 
   const [deleteFeat, { isError: delIsError, error: delError }] =
     useDeleteFeatMutation()
@@ -65,12 +56,12 @@ const FeatList = () => {
 
   const onDeleteSubmit = useCallback(async () => {
     try {
-      await deleteFeat({ id: feat._id })
+      await deleteFeat({ id: featToDelete._id })
     } catch (err) {
       console.log(err.message)
     }
     dispatch(clearConfirm())
-  }, [feat, dispatch, deleteFeat])
+  }, [featToDelete, dispatch, deleteFeat])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -79,19 +70,14 @@ const FeatList = () => {
   }, [deleteConfirmed, onDeleteSubmit])
 
   useEffect(() => {
-    if (featIsError) {
-      setErrorMessage(featError.data.message)
-    }
     if (delIsError) {
       setErrorMessage(delError.data.message)
     }
-  }, [featIsError, featError, delIsError, delError])
+  }, [delIsError, delError])
 
   useEffect(() => {
-    if (featIsSuccess) {
-      setFilterItems(feats)
-    }
-  }, [featIsSuccess, feats, setFilterItems])
+    setFilterItems(feats)
+  }, [feats, setFilterItems])
 
   useEffect(() => {
     setTableColumns({
@@ -121,39 +107,48 @@ const FeatList = () => {
 
   let content
 
-  if (featIsLoading) content = <p>Loading feats...</p>
-
-  if (featIsSuccess) {
+  if (loading) {
+    content = <p>Loading...</p>
+  } else {
     const filter = (
-      <>
-        {!is1200 && !is1000 && (
-          <AccordionButton
-            className='accordion form-details justify-content-between align-items-center'
-            id='filterButton'
-            target='filter'
-            expanded='false'
-          >
-            <span className='me-3'>Filters</span>
-            <hr className='flex-grow-1 me-3' />
-          </AccordionButton>
-        )}
-        <div className='accordion-collapse collapse show' id='filter'>
-          <div className='row row-cols-lg-4 row-cols-sm-3 align-items-center pb-2 g-2'>
-            <Input
-              name='value'
-              label={true}
-              placeholder='Feat Name'
-              autoComplete='off'
-              value={filteredList?.value}
-              onChange={setListFilter}
-            />
+      <div className='filter-container'>
+        <div
+          className='btn btn-section-collapse justify-content-between align-items-center'
+          id='sectionCollapseButton'
+          type='button'
+          role='button'
+          data-bs-toggle='collapse'
+          data-bs-target='#sectionCollapse'
+          aria-controls='collapseExample'
+          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+        >
+          <span className='me-3'>Filters</span>
+          <i class='bi bi-arrow-down-up' />
+        </div>
+        <div
+          className={`section-content collapse ${
+            !is600 && !is1000 ? ' show' : ''
+          }`}
+          id='sectionCollapse'
+        >
+          <div className='section-content'>
+            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+              <Input
+                name='value'
+                label={true}
+                placeholder='Feat Name'
+                autoComplete='off'
+                value={filteredList?.value}
+                onChange={setListFilter}
+              />
+            </div>
           </div>
         </div>
-      </>
+      </div>
     )
 
     content = (
-      <div className='main-container list'>
+      <>
         <div className='d-flex justify-content-between pb-2'>
           <div className='d-flex'>
             <h3 className='me-3'>Feats</h3>
@@ -187,10 +182,10 @@ const FeatList = () => {
           deleteRow={(feat) => onDelete(feat)}
           empty='---'
         />
-      </div>
+      </>
     )
-
-    return content
   }
+
+  return <div className='main-container list'>{content}</div>
 }
 export default FeatList

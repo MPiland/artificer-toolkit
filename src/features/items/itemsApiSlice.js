@@ -1,8 +1,9 @@
 import { apiSlice } from '../../app/api/apiSlice'
+import { setItems } from './itemsSlice'
 
-export const itemApiSlice = apiSlice.injectEndpoints({
+export const itemsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getItem: builder.query({
+    getItems: builder.query({
       query: (id) => ({
         url: `/item/${id}`,
         method: 'GET',
@@ -10,6 +11,14 @@ export const itemApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled
+          dispatch(setItems(data))
+        } catch (err) {
+          console.log(err)
+        }
+      },
       providesTags: (result, error, id) => {
         if (result?._ids) {
           return [
@@ -51,4 +60,4 @@ export const {
   useAddNewItemMutation,
   useUpdateItemMutation,
   useDeleteItemMutation,
-} = itemApiSlice
+} = itemsApiSlice
