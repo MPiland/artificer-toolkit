@@ -4,6 +4,7 @@ import { useAddNewSpellMutation } from './spellsApiSlice'
 import { useSelector } from 'react-redux'
 import { selectBuilders } from '../builders/buildersSlice'
 import { handleValidation } from '../../helpers/form'
+import Spinner from '../../components/Spinner'
 import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
 import Table from '../../components/Table'
@@ -107,7 +108,7 @@ const NewSpellForm = () => {
   const loading = useSelector((state) => state.loading.status)
 
   if (loading) {
-    content = <p>Loading...</p>
+    content = <Spinner />
   } else {
     const damageTableInputs = (secondary) => {
       const inputArray = [
@@ -421,7 +422,7 @@ const NewSpellForm = () => {
                   aria-expanded='true'
                 >
                   <span className='me-3'>Damage Table</span>
-                  <i class='bi bi-arrow-down-up' />
+                  <i className='bi bi-arrow-down-up' />
                 </div>
                 <div
                   className='section-container collapse show'

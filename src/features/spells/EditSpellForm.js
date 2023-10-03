@@ -10,6 +10,7 @@ import { isEqual } from 'lodash'
 import TextEditor from '../../components/TextEditor'
 import formReducer from '../../hooks/useReducer'
 import { handleValidation } from '../../helpers/form'
+import Spinner from '../../components/Spinner'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
@@ -170,7 +171,7 @@ const EditSpellForm = () => {
   const loading = useSelector((state) => state.loading.status)
 
   if (loading) {
-    content = <p>Loading...</p>
+    content = <Spinner />
   } else {
     const damageTableInputs = (secondary) => {
       const inputArray = [
@@ -484,7 +485,7 @@ const EditSpellForm = () => {
                   aria-expanded='true'
                 >
                   <span className='me-3'>Damage Table</span>
-                  <i class='bi bi-arrow-down-up' />
+                  <i className='bi bi-arrow-down-up' />
                 </div>
                 <div
                   className='section-container collapse show'

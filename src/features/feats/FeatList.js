@@ -6,6 +6,7 @@ import { clearConfirm } from '../../app/deleteSlice'
 import { selectFeats } from '../feats/featsSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
+import Spinner from '../../components/Spinner'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
 
@@ -108,7 +109,7 @@ const FeatList = () => {
   let content
 
   if (loading) {
-    content = <p>Loading...</p>
+    content = <Spinner />
   } else {
     const filter = (
       <div className='filter-container'>
@@ -123,10 +124,10 @@ const FeatList = () => {
           aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
         >
           <span className='me-3'>Filters</span>
-          <i class='bi bi-arrow-down-up' />
+          <i className='bi bi-arrow-down-up' />
         </div>
         <div
-          className={`section-content collapse ${
+          className={`section-container collapse ${
             !is600 && !is1000 ? ' show' : ''
           }`}
           id='sectionCollapse'

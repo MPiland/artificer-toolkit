@@ -4,6 +4,7 @@ import { useDeleteClassMutation } from './classesApiSlice'
 import { selectClasses } from '../classes/classesSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
+import Spinner from '../../components/Spinner'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import Table from '../../components/Table'
@@ -122,7 +123,7 @@ const ClassList = () => {
   let content
 
   if (loading) {
-    content = <p>Loading...</p>
+    content = <Spinner />
   } else {
     const filter = (
       <div className='filter-container'>
@@ -137,10 +138,10 @@ const ClassList = () => {
           aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
         >
           <span className='me-3'>Filters</span>
-          <i class='bi bi-arrow-down-up' />
+          <i className='bi bi-arrow-down-up' />
         </div>
         <div
-          className={`section-content collapse ${
+          className={`section-container collapse ${
             !is600 && !is1000 ? ' show' : ''
           }`}
           id='sectionCollapse'

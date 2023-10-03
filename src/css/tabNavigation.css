@@ -18,7 +18,7 @@
   min-width: 100%;
 }
 
-.section-nav-link {
+.category-nav-link {
   display: table-cell;
   position: relative;
   text-align: center;
@@ -35,11 +35,11 @@
   margin-left: 0.5rem;
 }
 
-.section-nav-link:first-of-type {
+.category-nav-link:first-of-type {
   margin-left: 1.75rem;
 }
 
-.section-nav-link:last-of-type {
+.category-nav-link:last-of-type {
   margin-right: 1.75rem;
 }
 

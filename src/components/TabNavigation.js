@@ -95,14 +95,37 @@ const TabNavigation = ({
 
     if (tabContainerRef.current && !currentTabRef.current) {
       tabContainerRef.current.firstChild.setAttribute('aria-selected', 'true')
-      tabContainerRef.current.firstChild.classList.toggle('active')
-      paneContainerRef.current.firstChild.classList.toggle('active')
-      paneContainerRef.current.firstChild.classList.toggle('show')
+      tabContainerRef.current.firstChild.classList.add('active')
+      paneContainerRef.current.firstChild.classList.add('active')
+      paneContainerRef.current.firstChild.classList.add('show')
       currentTabRef.current = tabContainerRef.current.firstChild
       currentPaneRef.current = paneContainerRef.current.firstChild
-      currentPaneRef.current.scrollIntoView()
+    }
+
+    if (id !== 'main' && id !== 'feature' && id !== 'details') {
+      console.log('id', id)
+      getActive()
+      const tabs = tabContainerRef.current.children
+      const panes = paneContainerRef.current.children
+      if (tabs && currentTabRef.current) {
+        if (tabs.item(tabState.length - 1) !== currentTabRef.current) {
+          currentTabRef.current.setAttribute('aria-selected', 'false')
+          currentTabRef.current.classList.remove('active')
+          currentPaneRef.current.classList.remove('active')
+          currentPaneRef.current.classList.remove('show')
+          tabs.item(tabState.length - 1).setAttribute('aria-selected', 'true')
+          tabs.item(tabState.length - 1).classList.add('active')
+          panes.item(tabState.length - 1).classList.add('active')
+          panes.item(tabState.length - 1).classList.add('show')
+          currentTabRef.current = tabs.item(tabState.length - 1)
+          currentPaneRef.current = panes.item(tabState.length - 1)
+        }
+      }
     }
     setTabStateLength(tabState ? tabState.length : 0)
+    if (currentPaneRef.current) {
+      currentPaneRef.current.scrollIntoView()
+    }
   }, [
     id,
     tabStateLength,
@@ -143,7 +166,6 @@ const TabNavigation = ({
     if (newLeftPosition !== undefined) {
       setLeftPosition(newLeftPosition)
 
-      // Apply the scroll
       tabContainerRef.current.style.left = `-${newLeftPosition}px`
     }
   }
@@ -178,10 +200,6 @@ const TabNavigation = ({
       currentTabRef.current = tab
       currentPaneRef.current = pane
     }
-
-    setTimeout(() => {
-      currentPaneRef.current.scrollIntoView()
-    }, 0)
   }
 
   const deleteTab = async (name, index) => {
@@ -222,6 +240,10 @@ const TabNavigation = ({
         }, 0)
       }
     }
+  }
+
+  const scrollIntoView = (paneIndex) => {
+    paneContainerRef.current.children.item(paneIndex).scrollIntoView()
   }
 
   const content = (
@@ -274,7 +296,7 @@ const TabNavigation = ({
                   tabItem && (
                     <Fragment key={`${tabIndex}`}>
                       <button
-                        className={`nav-link ${id}-nav-link section-nav-link`}
+                        className={`nav-link ${id}-nav-link category-nav-link`}
                         role='tab'
                         id={`${id}${tabIndex}Tab`}
                         data-bs-toggle='tab'
@@ -282,6 +304,7 @@ const TabNavigation = ({
                         type='button'
                         aria-selected='false'
                         aria-controls={`${id}${tabIndex}TabPane`}
+                        onClick={() => scrollIntoView(tabIndex)}
                       >
                         {startCase(tabItem?.value)}
                         {dynamic && (
@@ -308,26 +331,8 @@ const TabNavigation = ({
               (tabItem, tabIndex) =>
                 tabItem && (
                   <Fragment key={`${tabIndex}`}>
-                    {customButton && customButton.type === 'dropdown' && (
-                      <>
-                        <div className='dropdown col-auto'>
-                          <button
-                            className='btn btn-secondary dropdown-toggle'
-                            type='button'
-                            data-bs-toggle='dropdown'
-                            aria-expanded='false'
-                          >
-                            Add a...
-                          </button>
-                        </div>
-
-                        <ul className='dropdown-menu'>
-                          {customButton.content}
-                        </ul>
-                      </>
-                    )}
                     <div
-                      className={`tab-pane ${id}-tab-pane section-tab-pane fade`}
+                      className={`tab-pane ${id}-tab-pane category-tab-pane fade`}
                       id={`${id}${tabIndex}TabPane`}
                       aria-labelledby={`${id}${tabIndex}Tab`}
                       role='tabpanel'

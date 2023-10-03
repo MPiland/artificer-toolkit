@@ -18,6 +18,21 @@
   overflow: hidden;
 }
 
+.spinner-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(255, 255, 255, .5);
+}
+
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
 .layout-container {
   width: inherit;
   height: var(--doc-height);
@@ -136,15 +151,14 @@ h6 {
   border-bottom-right-radius: 6px;
 }
 
-
 .section-content {
   width: 100%;
-  padding: 0.5rem .5rem 0;
+  padding: 0.5rem 0.5rem 0;
 }
 
 /* List Filters */
 .filter-container {
-  margin-bottom: .5rem;
+  margin-bottom: 0.5rem;
 }
 
 /* Go from zero to full opacity */

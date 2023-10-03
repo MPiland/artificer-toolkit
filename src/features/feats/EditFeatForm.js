@@ -10,12 +10,12 @@ import { useUpdateFeatMutation } from './featsApiSlice'
 import { startCase, isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import { handleValidation } from '../../helpers/form'
+import Spinner from '../../components/Spinner'
 import TextEditor from '../../components/TextEditor'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
 import useAuth from '../../hooks/useAuth'
-import AccordionButton from '../../components/AccordionButton'
 import TabNavigation from '../../components/TabNavigation'
 
 const EditFeatForm = () => {
@@ -177,7 +177,7 @@ const EditFeatForm = () => {
   const loading = useSelector((state) => state.loading.status)
 
   if (loading) {
-    content = <p>Loading...</p>
+    content = <Spinner />
   } else {
     const damageTableInputs = (secondary) => {
       const inputArray = [
@@ -1469,8 +1469,8 @@ const EditFeatForm = () => {
                 <Select
                   multiple={true}
                   name={`feature.${featureIndex}.damage.damageAttribute`}
-                  value={featureItem.damage?.damageAttribute}
                   placeholder='Damage Attribute'
+                  value={featureItem.damage?.damageAttribute}
                   options={builders.feature.damageAttribute}
                   required={true}
                   onChange={setState}
@@ -1485,60 +1485,64 @@ const EditFeatForm = () => {
                   onChange={setState}
                 />
               </div>
-
-              <AccordionButton
-                className='accordion form-details justify-content-between align-items-center'
-                id='damageTableButton'
-                target='damageTable'
-                expanded='false'
+              <div
+                className='btn btn-section-collapse justify-content-between align-items-center'
+                id='sectionCollapseButton'
+                type='button'
+                role='button'
+                data-bs-toggle='collapse'
+                data-bs-target={`#section${featureIndex}Collapse`}
+                aria-controls='collapseExample'
+                aria-expanded='true'
               >
                 <span className='me-3'>Damage Table</span>
-                <hr className='flex-grow-1 me-3' />
-              </AccordionButton>
+                <i className='bi bi-arrow-down-up' />
+              </div>
               <div
-                className='accordion-collapse collapse show pb-2'
-                id='damageTable'
+                className='section-container collapse show'
+                id={`section${featureIndex}Collapse`}
               >
-                <Table
-                  inputs={damageTableInputs(
-                    featureItem.attribute?.some(
-                      (attributeItem) =>
-                        attributeItem.name === 'secondaryDamage'
-                    )
-                  )}
-                  name={`feature.${featureIndex}.damage.damageByLevel`}
-                  value={featureItem.damage?.damageByLevel}
-                  onChange={setState}
-                  dynamic={true}
-                  scrollable={true}
-                />
+                <div className='section-content'>
+                  <Table
+                    inputs={damageTableInputs(
+                      featureItem.attribute?.some(
+                        (attributeItem) =>
+                          attributeItem.name === 'secondaryDamage'
+                      )
+                    )}
+                    name={`feature.${featureIndex}.damage.damageByLevel`}
+                    value={featureItem.damage?.damageByLevel}
+                    onChange={setState}
+                    dynamic={true}
+                    scrollable={true}
+                  />
+                </div>
               </div>
             </>
           ))}
-        <TabNavigation
-          id='section'
-          tabState={
-            Object.keys(featureItem)?.length !== 0 &&
-            Object.keys(featureItem)?.some(
-              (key) => featureItem[key]?.length !== 0
-            ) &&
-            [].concat(
-              ...sectionTabContent(featureItem, featureIndex)
-                .filter(
-                  (sectionItem) => featureItem[sectionItem.name]?.length > 0
-                )
-                ?.map((sectionItem) =>
-                  sectionItem.content().map((contentItem, contentIndex) => ({
-                    value: `${sectionItem.name} ${contentIndex + 1}`,
-                    name: `feature.${featureIndex}.${sectionItem.name}.${contentIndex}`,
-                    content: contentItem,
-                  }))
-                )
-            )
-          }
-          dynamic={true}
-          onDelete={setState}
-        />
+        {Object.keys(featureItem)?.length !== 0 &&
+          Object.keys(featureItem)?.some(
+            (key) => featureItem[key]?.length !== 0
+          ) && (
+            <TabNavigation
+              id={`section${featureIndex}`}
+              tabState={[].concat(
+                ...sectionTabContent(featureItem, featureIndex)
+                  .filter(
+                    (sectionItem) => featureItem[sectionItem.name]?.length > 0
+                  )
+                  ?.map((sectionItem) =>
+                    sectionItem.content().map((contentItem, contentIndex) => ({
+                      value: `${sectionItem.name} ${contentIndex + 1}`,
+                      name: `feature.${featureIndex}.${sectionItem.name}.${contentIndex}`,
+                      content: contentItem,
+                    }))
+                  )
+              )}
+              dynamic={true}
+              onDelete={setState}
+            />
+          )}
       </Fragment>
     )
 
@@ -2018,67 +2022,74 @@ const EditFeatForm = () => {
             )}
             {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'doesDamage'
-            ) && !state.damage?.damageByLevel ? (
-              setState({
-                type: 'added',
-                payload: {
-                  target: {
-                    name: 'damage.damageByLevel',
+            ) &&
+              (!state.damage?.damageByLevel ? (
+                setState({
+                  type: 'added',
+                  payload: {
+                    target: {
+                      name: 'damage.damageByLevel',
+                    },
                   },
-                },
-              })
-            ) : (
-              <div className='row g-2 align-items-end pb-2'>
-                <Select
-                  multiple={true}
-                  name='damage.damageAttribute'
-                  value={state.damage?.damageAttribute}
-                  placeholder='Damage Attribute'
-                  options={builders.feature.damageAttribute}
-                  required={true}
-                  onChange={setState}
-                />
-                <Select
-                  name='damage.damageType'
-                  multiple={true}
-                  placeholder='Damage Type'
-                  value={state.damage?.damageType}
-                  options={builders.damage}
-                  required={true}
-                  onChange={setState}
-                />
-              </div>
-            )}
+                })
+              ) : (
+                <div className='row g-2 align-items-end pb-2'>
+                  <Select
+                    multiple={true}
+                    name='damage.damageAttribute'
+                    value={state.damage?.damageAttribute}
+                    placeholder='Damage Attribute'
+                    options={builders.feature.damageAttribute}
+                    required={true}
+                    onChange={setState}
+                  />
+                  <Select
+                    name='damage.damageType'
+                    multiple={true}
+                    placeholder='Damage Type'
+                    value={state.damage?.damageType}
+                    options={builders.damage}
+                    required={true}
+                    onChange={setState}
+                  />
+                </div>
+              ))}
             {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'doesDamage'
             ) && (
               <>
-                <AccordionButton
-                  className='accordion form-details justify-content-between align-items-center'
-                  id='damageTableButton'
-                  target='damageTable'
-                  expanded='false'
+                <div
+                  className='btn btn-section-collapse justify-content-between align-items-center'
+                  id='sectionCollapseButton'
+                  type='button'
+                  role='button'
+                  data-bs-toggle='collapse'
+                  data-bs-target='#sectionCollapse'
+                  aria-controls='collapseExample'
+                  aria-expanded='true'
                 >
                   <span className='me-3'>Damage Table</span>
-                  <hr className='flex-grow-1 me-3' />
-                </AccordionButton>
+                  <i className='bi bi-arrow-down-up' />
+                </div>
                 <div
-                  className='accordion-collapse collapse show pb-2'
-                  id='damageTable'
+                  className='section-container collapse show'
+                  id='sectionCollapse'
                 >
-                  <Table
-                    inputs={damageTableInputs(
-                      state.attribute?.some(
-                        (attributeItem) =>
-                          attributeItem.name === 'secondaryDamage'
-                      )
-                    )}
-                    name='damage.damageByLevel'
-                    value={state.damage?.damageByLevel}
-                    onChange={setState}
-                    dynamic={true}
-                    scrollable={true}
-                  />
+                  <div className='section-content'>
+                    <Table
+                      inputs={damageTableInputs(
+                        state.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'secondaryDamage'
+                        )
+                      )}
+                      name='damage.damageByLevel'
+                      value={state.damage?.damageByLevel}
+                      onChange={setState}
+                      dynamic={true}
+                      scrollable={true}
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -2139,7 +2150,10 @@ const EditFeatForm = () => {
             tabState={
               state.feature?.length > 0 &&
               state.feature?.map((featureItem, featureIndex) => ({
-                value: featureItem.name ?? `feature ${featureIndex + 1}`,
+                value:
+                  featureItem.name == null || featureItem.name === ''
+                    ? `feature ${featureIndex + 1}`
+                    : featureItem.name,
                 name: `feature.${featureIndex}`,
                 content: featureTabContent(featureItem, featureIndex),
               }))

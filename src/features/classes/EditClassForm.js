@@ -13,7 +13,7 @@ import { selectClasses } from '../classes/classesSlice'
 import { startCase, isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
 import { handleValidation } from '../../helpers/form'
-import AccordionButton from '../../components/AccordionButton'
+import Spinner from '../../components/Spinner'
 import TabNavigation from '../../components/TabNavigation'
 import TextEditor from '../../components/TextEditor'
 import Table from '../../components/Table'
@@ -180,7 +180,7 @@ const EditClassForm = () => {
   const loading = useSelector((state) => state.loading.status)
 
   if (loading) {
-    content = <p>Loading...</p>
+    content = <Spinner />
   } else {
     const spellCaster = state.attribute?.some(
       (attributeItem) => attributeItem.name === 'spellCaster'
@@ -1726,59 +1726,64 @@ const EditClassForm = () => {
                   onChange={setState}
                 />
               </div>
-              <AccordionButton
-                className='accordion form-details justify-content-between align-items-center'
-                id='damageTableButton'
-                target='damageTable'
-                expanded='true'
+              <div
+                className='btn btn-section-collapse justify-content-between align-items-center'
+                id='sectionCollapseButton'
+                type='button'
+                role='button'
+                data-bs-toggle='collapse'
+                data-bs-target={`#section${featureIndex}Collapse`}
+                aria-controls='collapseExample'
+                aria-expanded='true'
               >
                 <span className='me-3'>Damage Table</span>
-                <hr className='flex-grow-1 me-3' />
-              </AccordionButton>
+                <i className='bi bi-arrow-down-up' />
+              </div>
               <div
-                className='accordion-collapse collapse show pb-2'
-                id='damageTable'
+                className='section-container collapse show'
+                id={`section${featureIndex}Collapse`}
               >
-                <Table
-                  inputs={damageTableInputs(
-                    featureItem.attribute?.some(
-                      (attributeItem) =>
-                        attributeItem.name === 'secondaryDamage'
-                    )
-                  )}
-                  name={`feature.${featureIndex}.damage.damageByLevel`}
-                  value={featureItem.damage?.damageByLevel}
-                  onChange={setState}
-                  dynamic={true}
-                  scrollable={true}
-                />
+                <div className='section-content'>
+                  <Table
+                    inputs={damageTableInputs(
+                      featureItem.attribute?.some(
+                        (attributeItem) =>
+                          attributeItem.name === 'secondaryDamage'
+                      )
+                    )}
+                    name={`feature.${featureIndex}.damage.damageByLevel`}
+                    value={featureItem.damage?.damageByLevel}
+                    onChange={setState}
+                    dynamic={true}
+                    scrollable={true}
+                  />
+                </div>
               </div>
             </>
           ))}
-        <TabNavigation
-          id='section'
-          tabState={
-            Object.keys(featureItem)?.length !== 0 &&
-            Object.keys(featureItem)?.some(
-              (key) => featureItem[key]?.length !== 0
-            ) &&
-            [].concat(
-              ...sectionTabContent(featureItem, featureIndex)
-                .filter(
-                  (sectionItem) => featureItem[sectionItem.name]?.length > 0
-                )
-                ?.map((sectionItem) =>
-                  sectionItem.content().map((contentItem, contentIndex) => ({
-                    value: `${sectionItem.name} ${contentIndex + 1}`,
-                    name: `feature.${featureIndex}.${sectionItem.name}.${contentIndex}`,
-                    content: contentItem,
-                  }))
-                )
-            )
-          }
-          dynamic={true}
-          onDelete={setState}
-        />
+        {Object.keys(featureItem)?.length !== 0 &&
+          Object.keys(featureItem)?.some(
+            (key) => featureItem[key]?.length !== 0
+          ) && (
+            <TabNavigation
+              id={`section${featureIndex}`}
+              tabState={[].concat(
+                ...sectionTabContent(featureItem, featureIndex)
+                  .filter(
+                    (sectionItem) => featureItem[sectionItem.name]?.length > 0
+                  )
+                  ?.map((sectionItem) =>
+                    sectionItem.content().map((contentItem, contentIndex) => ({
+                      value: `${sectionItem.name} ${contentIndex + 1}`,
+                      name: `feature.${featureIndex}.${sectionItem.name}.${contentIndex}`,
+                      content: contentItem,
+                    }))
+                  )
+              )}
+              dynamic={true}
+              onDelete={setState}
+            />
+          )}
       </Fragment>
     )
 
@@ -1849,70 +1854,6 @@ const EditClassForm = () => {
               placeholder={'Description'}
               onChange={setState}
             />
-            <div className='pb-2'>
-              <button
-                className='btn btn-secondary'
-                type='button'
-                name='details'
-                onClick={(e) => setState({ type: 'added', payload: e })}
-              >
-                Add Details Section
-              </button>
-            </div>
-            <div className='accordion' id='detailsSectionAccordion'>
-              {state.details?.map((detailItem, detailIndex) => (
-                <div key={detailIndex}>
-                  <div className='accordion-item'>
-                    <div className='accordion-header'>
-                      <AccordionButton
-                        id={`details.${detailIndex}AccordionButton`}
-                        target={`details.${detailIndex}AccordionBody`}
-                        key={detailIndex}
-                        expanded='true'
-                      >
-                        <Input
-                          size='col-sm-4'
-                          name={`details.${detailIndex}.title`}
-                          border={false}
-                          autoComplete='off'
-                          placeholder='Section Title'
-                          value={detailItem.title}
-                          onChange={setState}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </AccordionButton>
-                    </div>
-                    <div
-                      className='accordion-collapse collapse show'
-                      id={`details.${detailIndex}AccordionBody`}
-                      data-bs-parent='#detailsSectionAccordion'
-                    >
-                      <div className='accordion-body'>
-                        <div className='col-auto pb-3'>
-                          <button
-                            className='btn btn-outline-primary overflow-hidden text-nowrap'
-                            type='button'
-                            name={`details.${detailIndex}`}
-                            onClick={(e) =>
-                              setState({ type: 'removed', payload: e })
-                            }
-                          >
-                            Remove Section
-                          </button>
-                        </div>
-                        <TextEditor
-                          ref={addToTextRefs}
-                          name={`details.${detailIndex}.desc`}
-                          value={detailItem.desc}
-                          placeholder={'Section Description'}
-                          onChange={setState}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </>
         ),
       },
@@ -2091,19 +2032,24 @@ const EditClassForm = () => {
                 </>
               )}
             </div>
-            <div className='row g-2 px-4'>
-              <AccordionButton
-                className='accordion form-details justify-content-between align-items-center'
-                id='attributeTableButton'
-                target='attributeTable'
-              >
-                <h6 className='me-3'>Attribute Table</h6>
-                <hr className='flex-grow-1 me-3' />
-              </AccordionButton>
-              <div
-                className='accordion-collapse collapse show'
-                id='attributeTable'
-              >
+            <div
+              className='btn btn-section-collapse justify-content-between align-items-center'
+              id='sectionCollapseButton'
+              type='button'
+              role='button'
+              data-bs-toggle='collapse'
+              data-bs-target='#sectionCollapse'
+              aria-controls='collapseExample'
+              aria-expanded='true'
+            >
+              <span className='me-3'>Attribute Table</span>
+              <i className='bi bi-arrow-down-up' />
+            </div>
+            <div
+              className='section-container collapse show'
+              id='sectionCollapse'
+            >
+              <div className='section-content'>
                 <Table
                   name='levelAttribute'
                   headers={levelAttributeHeaders()}
@@ -2217,11 +2163,50 @@ const EditClassForm = () => {
               }))}
           />
           <TabNavigation
+            id='details'
+            tabState={state.details?.map((detailItem, detailIndex) => ({
+              value:
+                detailItem.name == null || detailItem.name === ''
+                  ? `detail ${detailIndex + 1}`
+                  : detailItem.name,
+              name: `details.${detailIndex}`,
+              content: (
+                <div key={detailIndex}>
+                  <div className='col-auto pb-3'>
+                    <Input
+                      size='col-sm-3'
+                      name={`details.${detailIndex}.value`}
+                      label={true}
+                      autoComplete='off'
+                      placeholder='Feature Name'
+                      value={detailItem.value}
+                      onChange={setState}
+                      clickable={false}
+                    />
+                  </div>
+                  <TextEditor
+                    ref={addToTextRefs}
+                    name={`details.${detailIndex}.desc`}
+                    value={detailItem.desc}
+                    placeholder={'Section Description'}
+                    onChange={setState}
+                  />
+                </div>
+              ),
+            }))}
+            onDelete={setState}
+            onAdd={setState}
+            dynamic={true}
+          />
+          <TabNavigation
             id='feature'
             tabState={
               state.feature?.length > 0 &&
               state.feature?.map((featureItem, featureIndex) => ({
-                value: featureItem.name ?? `feature ${featureIndex + 1}`,
+                value:
+                  featureItem.name == null || featureItem.name === ''
+                    ? `feature ${featureIndex + 1}`
+                    : featureItem.name,
                 name: `feature.${featureIndex}`,
                 content: featureTabContent(featureItem, featureIndex),
               }))
