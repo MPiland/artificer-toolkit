@@ -922,15 +922,14 @@ const NewFeatForm = () => {
       <Fragment key={featureIndex}>
         <div className='row justify-content-between g-2 pb-2'>
           <Input
-            size='col-sm-4'
+            size='col-sm-3'
             name={`feature.${featureIndex}.value`}
-            border={false}
+            label={true}
             autoComplete='off'
             placeholder='Feature Name'
             value={featureItem.value}
-            clickable={false}
             onChange={setState}
-            onClick={(e) => e.stopPropagation()}
+            clickable={false}
           />
           <div className='dropdown col-auto'>
             <button

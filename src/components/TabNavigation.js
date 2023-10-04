@@ -1,11 +1,5 @@
 import '../css/tabNavigation.css'
-import React, {
-  Fragment,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react'
+import React, { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { startCase } from 'lodash'
 const TabNavigation = ({
   tabState,
@@ -24,6 +18,8 @@ const TabNavigation = ({
   const [tabStateLength, setTabStateLength] = useState(
     tabState ? tabState.length : 0
   )
+  const [touchStartX, setTouchStartX] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const wrapperRef = useRef(null)
   const tabContainerRef = useRef(null)
@@ -32,7 +28,6 @@ const TabNavigation = ({
   const rightScrollerRef = useRef(null)
   const currentTabRef = useRef(null)
   const currentPaneRef = useRef(null)
-  const touchStartXRef = useRef(null)
 
   const getActive = () => {
     if (tabContainerRef.current) {
@@ -53,56 +48,6 @@ const TabNavigation = ({
     }
   }
 
-  const handleTouchStart = (e) => {
-    e.stopPropagation()
-    touchStartXRef.current = e.touches[0].clientX
-  }
-
-  const handleTouchMove = useCallback(
-    (e) => {
-      e.stopPropagation()
-      if (touchStartXRef.current !== null) {
-        const touchCurrentX = e.touches[0].clientX
-        const deltaX = touchCurrentX - touchStartXRef.current
-
-        const newLeftPosition = leftPosition + deltaX
-
-        if (newLeftPosition >= 0) {
-          setLeftPosition(0)
-        } else if (newLeftPosition <= -hiddenWidth) {
-          setLeftPosition(-hiddenWidth)
-        } else {
-          setLeftPosition(newLeftPosition)
-        }
-
-        tabContainerRef.current.style.left = `${newLeftPosition}px`
-
-        touchStartXRef.current = touchCurrentX
-      }
-    },
-    [hiddenWidth, leftPosition]
-  )
-
-  const handleTouchEnd = () => {
-    touchStartXRef.current = null
-  }
-
-  useLayoutEffect(() => {
-    const tabContainer = tabContainerRef.current
-
-    if (tabContainer) {
-      tabContainer.addEventListener('touchstart', handleTouchStart)
-      tabContainer.addEventListener('touchmove', handleTouchMove)
-      tabContainer.addEventListener('touchend', handleTouchEnd)
-
-      return () => {
-        tabContainer.removeEventListener('touchstart', handleTouchStart)
-        tabContainer.removeEventListener('touchmove', handleTouchMove)
-        tabContainer.removeEventListener('touchend', handleTouchEnd)
-      }
-    }
-  }, [handleTouchMove])
-
   useLayoutEffect(() => {
     const minHiddenWidthThreshold = 0.1
     wrapperRef.current = document.getElementById(`${id}-nav-tabs-wrapper`)
@@ -120,7 +65,6 @@ const TabNavigation = ({
       setTabContWidth(tabContainer.getBoundingClientRect().width)
       setTabContLeftPos(tabContainer.getBoundingClientRect().x)
 
-      setLeftPosition(wrapperLeftPos - tabContLeftPos)
       const newHiddenWidth = tabContWidth - wrapperWidth - leftPosition
       setHiddenWidth(newHiddenWidth)
 
@@ -160,7 +104,6 @@ const TabNavigation = ({
     }
 
     if (id !== 'main' && id !== 'feature' && id !== 'details') {
-      console.log('id', id)
       getActive()
       const tabs = tabContainerRef.current.children
       const panes = paneContainerRef.current.children
@@ -195,6 +138,70 @@ const TabNavigation = ({
     wrapperLeftPos,
   ])
 
+  const handleTouchStart = (e) => {
+    setTouchStartX(e.touches[0].clientX)
+    setIsDragging(true)
+  }
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return
+
+    const currentX = e.touches[0].clientX
+    const deltaX = touchStartX - currentX
+
+    // Calculate the maximum allowed position
+    const maxLeftPosition = tabContWidth - wrapperWidth
+
+    // Calculate the new left position
+    let newLeftPosition = leftPosition + deltaX
+
+    // Ensure it doesn't exceed the maximum or go below zero
+    newLeftPosition = Math.max(0, Math.min(maxLeftPosition, newLeftPosition))
+
+    // Adjust the scrolling based on the touch movement
+    setLeftPosition(newLeftPosition)
+    tabContainerRef.current.style.left = `-${newLeftPosition}px`
+
+    // Update the touch start position for the next move event
+    setTouchStartX(currentX)
+  }
+
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+  }
+
+  const handleMouseDown = (e) => {
+    setTouchStartX(e.clientX)
+    setIsDragging(true)
+  }
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return
+
+    const currentX = e.clientX
+    const deltaX = touchStartX - currentX
+
+    // Calculate the maximum allowed position
+    const maxLeftPosition = tabContWidth - wrapperWidth
+
+    // Calculate the new left position
+    let newLeftPosition = leftPosition + deltaX
+
+    // Ensure it doesn't exceed the maximum or go below zero
+    newLeftPosition = Math.max(0, Math.min(maxLeftPosition, newLeftPosition))
+
+    // Adjust the scrolling based on the mouse movement
+    setLeftPosition(newLeftPosition)
+    tabContainerRef.current.style.left = `-${newLeftPosition}px`
+
+    // Update the touch start position for the next move event
+    setTouchStartX(currentX)
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
   const scrollRight = () => {
     let newLeftPosition
 
@@ -206,7 +213,6 @@ const TabNavigation = ({
 
     if (newLeftPosition !== undefined) {
       setLeftPosition(newLeftPosition)
-
       tabContainerRef.current.style.left = `-${newLeftPosition}px`
     }
   }
@@ -222,7 +228,6 @@ const TabNavigation = ({
 
     if (newLeftPosition !== undefined) {
       setLeftPosition(newLeftPosition)
-
       tabContainerRef.current.style.left = `-${newLeftPosition}px`
     }
   }
@@ -256,6 +261,8 @@ const TabNavigation = ({
       pane.classList.add('active')
       currentTabRef.current = tab
       currentPaneRef.current = pane
+
+      scrollTab()
     }
   }
 
@@ -296,11 +303,67 @@ const TabNavigation = ({
           currentPaneRef.current.scrollIntoView()
         }, 0)
       }
+
+      const tabContainerRight =
+        tabContainerRef.current.getBoundingClientRect().right
+      const wrapperRight = wrapperRef.current.getBoundingClientRect().right
+
+      if (tabContainerRight < wrapperRight) {
+        const newLeftPosition =
+          leftPosition -
+          (wrapperRight - tabContainerRight) +
+          rightScrollerRef.current.getBoundingClientRect().width
+        setLeftPosition(newLeftPosition)
+        tabContainerRef.current.style.left = `-${newLeftPosition}px`
+      }
     }
   }
 
-  const scrollIntoView = (paneIndex) => {
-    paneContainerRef.current.children.item(paneIndex).scrollIntoView()
+  const scrollTab = () => {
+    const activeTabIndex = Array.from(
+      tabContainerRef.current.children
+    ).findIndex((tab) => tab.classList.contains('active'))
+
+    if (activeTabIndex !== -1) {
+      const tabRight =
+        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
+          .right
+      const wrapperRight = wrapperRef.current.getBoundingClientRect().right
+      const tabLeft =
+        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
+          .left
+      const wrapperLeft = wrapperRef.current.getBoundingClientRect().left
+
+      let newLeftPosition
+
+      if (tabRight > wrapperRight) {
+        if (activeTabIndex === tabStateLength - 1) {
+          newLeftPosition = leftPosition + hiddenWidth
+        } else {
+          newLeftPosition =
+            leftPosition +
+            (tabRight - wrapperRight) +
+            rightScrollerRef.current.getBoundingClientRect().width
+        }
+        setLeftPosition(newLeftPosition)
+        tabContainerRef.current.style.left = `-${newLeftPosition}px`
+      }
+      if (
+        tabLeft - leftScrollerRef.current.getBoundingClientRect().width <
+        wrapperLeft
+      ) {
+        if (activeTabIndex === 0) {
+          newLeftPosition = 0
+        } else {
+          newLeftPosition =
+            leftPosition -
+            (wrapperLeft - tabLeft) -
+            leftScrollerRef.current.getBoundingClientRect().width
+        }
+        setLeftPosition(newLeftPosition)
+        tabContainerRef.current.style.left = `-${newLeftPosition}px`
+      }
+    }
   }
 
   const content = (
@@ -332,7 +395,9 @@ const TabNavigation = ({
               onClick={scrollLeft}
               ref={leftScrollerRef}
             >
-              <i className='bi bi-chevron-left' />
+              <span>
+                <i className='bi bi-chevron-left' />
+              </span>
             </div>
             <div
               className='right-scroller hide'
@@ -340,13 +405,21 @@ const TabNavigation = ({
               onClick={scrollRight}
               ref={rightScrollerRef}
             >
-              <i className='bi bi-chevron-right' />
+              <span>
+                <i className='bi bi-chevron-right' />
+              </span>
             </div>
             <div
               className='nav nav-tabs'
               id={`${id}-nav-tabs`}
               role='tablist'
               ref={tabContainerRef}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
             >
               {tabState.map(
                 (tabItem, tabIndex) =>
@@ -361,7 +434,7 @@ const TabNavigation = ({
                         type='button'
                         aria-selected='false'
                         aria-controls={`${id}${tabIndex}TabPane`}
-                        onClick={() => scrollIntoView(tabIndex)}
+                        onClick={() => scrollTab()}
                       >
                         {startCase(tabItem?.value)}
                         {dynamic && (

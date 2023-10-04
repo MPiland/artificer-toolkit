@@ -1841,7 +1841,7 @@ const EditRaceForm = () => {
                       name={`details.${detailIndex}.value`}
                       label={true}
                       autoComplete='off'
-                      placeholder='Feature Name'
+                      placeholder='Detail Name'
                       value={detailItem.value}
                       onChange={setState}
                       clickable={false}

@@ -4,7 +4,7 @@
 
 .nav-tabs-wrapper {
   position: relative;
-  margin: 0 auto;
+  margin: 0 .75rem 0;
   overflow: hidden;
   height: 50px;
   padding-top: 0.5rem;
@@ -44,29 +44,21 @@
 }
 
 .left-scroller {
-  position: relative;
-  cursor: pointer;
-  background-color: var(--background-color);
-  height: 100%;
-  width: 1.75rem;
   float: left;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
 }
 
 .right-scroller {
+  float: right;
+}
+
+.left-scroller > span,
+.right-scroller > span {
   position: relative;
-  cursor: pointer;
+  display: flex;
+  width: 100%;
   background-color: var(--background-color);
   height: 100%;
-  width: 1.75rem;
-  float: right;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
+  align-items: c;
 }
 
 .left-scroller.hide,
@@ -76,7 +68,16 @@
 
 .left-scroller.show,
 .right-scroller.show {
-  display: block;
+  top: 0;
+  display: flex;
+  position: relative;
+  background-color: transparent;
+  cursor: pointer;
+  height: 90%;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
 .tab-content {
