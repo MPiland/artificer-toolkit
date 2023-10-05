@@ -6,7 +6,6 @@ import {
   useRef,
 } from 'react'
 import { uniqBy } from 'lodash'
-import '../css/select.css'
 
 const Select = forwardRef(
   (
@@ -111,6 +110,7 @@ const Select = forwardRef(
           if (!multiple) {
             dropdownCurrent.classList.remove('show')
             buttonCurrent.setAttribute('aria-expanded', 'false')
+            buttonCurrent.focus()
           }
         } else if (/^[a-zA-Z0-9]$/.test(key)) {
           setCurrentLetter(key)
@@ -243,6 +243,7 @@ const Select = forwardRef(
           value: option.value,
           ...(optionalKey && { [optionalKey]: option[optionalKey] }),
         }
+        buttonRef.current.focus()
       }
       onChange({ payload: { target: { name: name, value: updatedOptions } } })
       if (!multiple) {
@@ -354,7 +355,9 @@ const Select = forwardRef(
           data-bs-toggle='dropdown'
           aria-expanded='false'
           required={required}
-          data-at-value={updatedOptions}
+          data-atp-options={
+            !selectedOptions || selectedOptions == null ? 'false' : 'true'
+          }
           type='button'
           id='selectButton'
         >

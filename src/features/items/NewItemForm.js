@@ -1320,7 +1320,6 @@ const NewItemForm = () => {
                       itemCategory._id === state.itemCategory?.id
                   )?.itemProperty
                 }
-                required={true}
                 onChange={setState}
               />
               <Select
@@ -1364,6 +1363,29 @@ const NewItemForm = () => {
                     value={state.itemRank}
                     onChange={setState}
                   />
+                )}
+              {state.itemCategory &&
+                state.itemCategory?.name === 'container' && (
+                  <>
+                    <Input
+                      validation={'num'}
+                      name='capacity.amount'
+                      label={true}
+                      invalidText='Must contain only numbers'
+                      placeholder='Capacity Weight'
+                      autoComplete='off'
+                      value={state.capacity?.amount}
+                      onChange={setState}
+                    />
+                    <Select
+                      name='capacity.unit'
+                      placeholder='UoM'
+                      value={state.capacity?.unit}
+                      options={builders.unit.imperial.weight}
+                      optionalKey='short'
+                      onChange={setState}
+                    />
+                  </>
                 )}
               {state.itemProperty?.some(
                 (proprertyItem) => proprertyItem.name === 'ammunition'
@@ -1448,32 +1470,27 @@ const NewItemForm = () => {
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'weight'
               ) && (
-                <Input
-                  validation={'num'}
-                  name='itemWeight'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Item Weight'
-                  autoComplete='off'
-                  required={true}
-                  value={state.itemWeight}
-                  onChange={setState}
-                />
-              )}
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'container'
-              ) && (
-                <Input
-                  validation={'num'}
-                  name='capacityWeight'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Capacity Weight'
-                  autoComplete='off'
-                  required={true}
-                  value={state.capacityWeight}
-                  onChange={setState}
-                />
+                <>
+                  <Input
+                    validation={'num'}
+                    name='weight.amount'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Item Weight'
+                    autoComplete='off'
+                    required={true}
+                    value={state.weight?.amount}
+                    onChange={setState}
+                  />
+                  <Select
+                    name='weight.unit'
+                    placeholder='UoM'
+                    value={state.weight?.unit}
+                    options={builders.unit.imperial.weight}
+                    optionalKey='short'
+                    onChange={setState}
+                  />
+                </>
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'stackable'

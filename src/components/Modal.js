@@ -1,8 +1,7 @@
-import '../scss/modal.scss'
 import { useEffect, useCallback } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 
-const Modal = ({ children }) => {
+const Modal = () => {
   const location = useLocation()
   const navigate = useNavigate()
 

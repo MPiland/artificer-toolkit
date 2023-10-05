@@ -19,27 +19,27 @@ export const racesApiSlice = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, id) => {
-        if (result?._ids) {
+        if (result) {
           return [
+            ...result.map(({ _id }) => ({ type: 'Race', id: _id })),
             { type: 'Race', id: 'LIST' },
-            ...result._ids.map((id) => ({ type: 'Race', id })),
           ]
         } else return [{ type: 'Race', id: 'LIST' }]
       },
     }),
     addNewRace: builder.mutation({
-      query: (initialNoteData) => ({
+      query: (data) => ({
         url: '/race',
         method: 'POST',
-        body: { ...initialNoteData },
+        body: { ...data },
       }),
-      invalidatesTags: [{ type: 'Race', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Race', id: 'LIST' }],
     }),
     updateRace: builder.mutation({
-      query: (initialSpellData) => ({
+      query: (data) => ({
         url: `/race`,
         method: 'PATCH',
-        body: { ...initialSpellData },
+        body: data,
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Race', id: arg._id }],
     }),
@@ -49,7 +49,7 @@ export const racesApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Race', id: arg._id }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Race', id: 'LIST' }],
     }),
   }),
 })

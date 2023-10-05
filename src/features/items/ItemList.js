@@ -29,7 +29,7 @@ const ItemList = () => {
     useDeleteItemMutation()
 
   const { listFilter, filteredList, setListFilter, setFilterItems } =
-    useFilteredList()
+    useFilteredList(items)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
   const updatedItemsRef = useRef([])
@@ -45,7 +45,7 @@ const ItemList = () => {
         title: item.value,
         context: 'itemCard',
         data: item,
-        size: 'xl',
+        size: 'lg',
       },
     })
   }
@@ -115,7 +115,6 @@ const ItemList = () => {
     setTableColumns({
       headers: [
         {
-          name: 'value',
           value: 'Name',
           border: false,
           className: 'fw-bold',
@@ -123,7 +122,6 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
-          name: 'itemCategory.value',
           value: 'Category',
           border: false,
           className: 'fw-bold',
@@ -131,15 +129,13 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
-          name: 'itemProperty',
-          value: 'Property',
+          value: 'Properties',
           border: false,
           className: 'fw-bold',
           size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
-          name: 'damage.damageType',
           value: 'Damage Type',
           border: false,
           className: 'fw-bold',
@@ -147,7 +143,6 @@ const ItemList = () => {
           breakpoint: is600 ? true : '',
         },
         {
-          name: 'armorValue',
           value: 'AC',
           border: false,
           className: 'fw-bold',
@@ -155,8 +150,7 @@ const ItemList = () => {
           breakpoint: is600 && true,
         },
         {
-          name: 'itemWeight',
-          value: 'Weight (lbs)',
+          value: 'Weight',
           border: false,
           className: 'fw-bold',
           size: 'col-1',
@@ -164,7 +158,6 @@ const ItemList = () => {
         },
         {
           value: 'Cost',
-          name: ['cost.amount', 'cost.currency.name'],
           border: false,
           className: 'fw-bold',
           size: 'col-1',
@@ -208,7 +201,7 @@ const ItemList = () => {
           breakpoint: is600 && true,
         },
         {
-          name: 'itemWeight',
+          name: ['weight.amount', 'weight.unit.value'],
           size: 'col-1',
           breakpoint: (is1000 || is600) && true,
         },
@@ -334,7 +327,7 @@ const ItemList = () => {
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         {filter}
         <Table
-          name='spellList.table'
+          name='itemList.table'
           dynamic={false}
           readOnly={true}
           sortable={true}
@@ -345,7 +338,6 @@ const ItemList = () => {
           clickable={true}
           onClick={(item) => showCard(item)}
           deleteRow={(item) => onDelete(item)}
-          empty='---'
         />
       </>
     )

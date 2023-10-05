@@ -1,14 +1,6 @@
-import '../css/tabNavigation.css'
-import React, { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { startCase } from 'lodash'
-const TabNavigation = ({
-  tabState,
-  id,
-  onDelete,
-  onAdd,
-  dynamic,
-  customButton,
-}) => {
+const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
   const [leftPosition, setLeftPosition] = useState(0)
   const [hiddenWidth, setHiddenWidth] = useState(0)
   const [tabContWidth, setTabContWidth] = useState()
@@ -105,6 +97,7 @@ const TabNavigation = ({
 
     if (id !== 'main' && id !== 'feature' && id !== 'details') {
       getActive()
+      console.log('id', id)
       const tabs = tabContainerRef.current.children
       const panes = paneContainerRef.current.children
       if (tabs && currentTabRef.current) {
@@ -123,9 +116,6 @@ const TabNavigation = ({
       }
     }
     setTabStateLength(tabState ? tabState.length : 0)
-    if (currentPaneRef.current) {
-      currentPaneRef.current.scrollIntoView()
-    }
   }, [
     id,
     tabStateLength,
@@ -302,19 +292,18 @@ const TabNavigation = ({
         setTimeout(() => {
           currentPaneRef.current.scrollIntoView()
         }, 0)
-      }
+        const tabContainerRight =
+          tabContainerRef.current.getBoundingClientRect().right
+        const wrapperRight = wrapperRef.current.getBoundingClientRect().right
 
-      const tabContainerRight =
-        tabContainerRef.current.getBoundingClientRect().right
-      const wrapperRight = wrapperRef.current.getBoundingClientRect().right
-
-      if (tabContainerRight < wrapperRight) {
-        const newLeftPosition =
-          leftPosition -
-          (wrapperRight - tabContainerRight) +
-          rightScrollerRef.current.getBoundingClientRect().width
-        setLeftPosition(newLeftPosition)
-        tabContainerRef.current.style.left = `-${newLeftPosition}px`
+        if (tabContainerRight < wrapperRight) {
+          const newLeftPosition =
+            leftPosition -
+            (wrapperRight - tabContainerRight) +
+            rightScrollerRef.current.getBoundingClientRect().width
+          setLeftPosition(newLeftPosition)
+          tabContainerRef.current.style.left = `-${newLeftPosition}px`
+        }
       }
     }
   }
@@ -364,6 +353,9 @@ const TabNavigation = ({
         tabContainerRef.current.style.left = `-${newLeftPosition}px`
       }
     }
+    tabContainerRef.current.children.item(activeTabIndex).scrollIntoView({
+      behavior: 'smooth',
+    })
   }
 
   const content = (

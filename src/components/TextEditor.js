@@ -1,4 +1,3 @@
-import '../scss/textEditor.scss'
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import TextAlign from '@tiptap/extension-text-align'

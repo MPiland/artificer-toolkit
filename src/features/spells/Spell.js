@@ -1,6 +1,6 @@
 import parse from 'html-react-parser'
-import { get, truncate } from 'lodash'
 import { useOutletContext } from 'react-router-dom'
+import { getValueFromState } from '../../helpers/formatting'
 
 const Spell = () => {
   const { data: spell } = useOutletContext()
@@ -11,104 +11,41 @@ const Spell = () => {
     } else return ''
   }
 
-  const getValueFromState = (inputItem, stateItem, truncateNum) => {
-    const processItem = (item, state, shouldTruncate) => {
-      if (Array.isArray(item)) {
-        const nestedValues = item.map((nestedItem) =>
-          processItem(nestedItem, state, shouldTruncate)
-        )
-        return nestedValues.join(' ')
-      } else {
-        const value = get(state, item)
-        let formattedValue
-        if (Array.isArray(value)) {
-          if (value.length > 0) {
-            formattedValue = value
-              .map((nestedValue) =>
-                shouldTruncate
-                  ? truncate(nestedValue.value, {
-                      length: truncateNum,
-                      omission: '',
-                    })
-                  : nestedValue.value
-              )
-              .join(' / ')
-            return formattedValue
-          }
-        } else {
-          formattedValue = shouldTruncate
-            ? truncate(value, { length: truncateNum })
-            : value
-        }
-        return formattedValue
-      }
-    }
-
-    if (inputItem) {
-      if (Array.isArray(inputItem[0])) {
-        const nameItems = inputItem.map((nameItem) =>
-          processItem(nameItem, stateItem, truncateNum !== undefined)
-        )
-        return nameItems.join(' / ')
-      } else {
-        const value = processItem(
-          inputItem,
-          stateItem,
-          truncateNum !== undefined
-        )
-        return value !== undefined ? value : '---'
-      }
-    }
-
-    return '---'
-  }
-
   const cols = [
-    { header: 'LEVEL', field: 'level' },
+    { header: 'LEVEL', name: 'level' },
     {
       header: 'CASTING TIME',
-      field: ['action.value', 'action.actionType.value'],
+      name: ['action.value', 'action.actionType.value'],
     },
     {
       header: 'RANGE/AREA',
-      field: [
+      name: [
         ['range.rangeType.value', 'range.distance'],
         ['shape.shapeType.value', 'shape.size'],
       ],
     },
-    { header: 'REQUIREMENTS', field: 'requirement', truncate: 1 },
+    { header: 'REQUIREMENTS', name: 'requirement', truncate: 1 },
     {
       header: 'DURATION',
-      field: ['duration.value', 'duration.durationType.value'],
+      name: ['duration.value', 'duration.durationType.value'],
     },
-    { header: 'SCHOOL', field: 'school.value' },
+    { header: 'SCHOOL', name: 'school.value' },
     {
       header: 'SAVE ABILITY',
-      field: 'saveAbility.value',
+      name: 'saveAbility.value',
       filter: ['isAttack', 'requireSave'],
     },
-    { header: 'DAMAGE', field: 'damage.damageType' },
+    { header: 'DAMAGE', name: 'damage.damageType' },
   ]
 
   const content = (
-    <>
+    <div className='detailCard-body container'>
       <div className='detailCard-detail row row-cols-lg-4 row-cols-md-3 row-cols-2 gy-3'>
         {cols.map((colItem, colIndex) => {
           return (
             <div className='col' key={colIndex}>
-              <div className='row fw-bold'>
-                <div className='col'>{colItem.header}</div>
-              </div>
-              <div className='row'>
-                <div className='col'>
-                  {getValueFromState(
-                    colItem.field,
-                    spell,
-                    colItem.truncate,
-                    colItem.filter
-                  )}
-                </div>
-              </div>
+              <div className='fw-bold'>{colItem.header}</div>
+              <div>{getValueFromState(colItem, spell, colItem.truncate)}</div>
             </div>
           )
         })}
@@ -120,7 +57,7 @@ const Spell = () => {
           <span className='detailCard-subtext'>{materialDesc()}</span>
         </div>
       </div>
-    </>
+    </div>
   )
 
   return content

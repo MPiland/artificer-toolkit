@@ -13,16 +13,15 @@ export const handleValidation = (resetValidation) => {
       element.classList.remove('is-invalid')
     } else {
       if (element) {
-        if (element.tagName === 'button') {
-          const selectValue = element.getAttribute('data-at-value')
-          const isEmpty =
-            selectValue === null ||
-            (Array.isArray(selectValue) && selectValue.length === 0)
-          if (isEmpty) {
+        if (element.tagName === 'BUTTON') {
+          const selectValue = element.getAttribute('data-atp-options')
+          if (selectValue === 'false') {
             element.classList.add('is-invalid')
+            element.classList.remove('is-valid')
             isValid = false
           } else {
             element.classList.add('is-valid')
+            element.classList.remove('is-invalid')
           }
         } else {
           if (element.hasAttribute('validation')) {

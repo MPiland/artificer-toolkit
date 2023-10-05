@@ -1,14 +1,17 @@
-import { Outlet} from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useRefreshMutation } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { selectCurrentToken } from './authSlice'
+import { setLoading } from '../../app/loadingSlice'
+import Spinner from '../../components/Spinner'
 
 const PersistLogin = () => {
   const [persist] = usePersist()
   const token = useSelector(selectCurrentToken)
   const effectRan = useRef(false)
+  const dispatch = useDispatch()
 
   const [trueSuccess, setTrueSuccess] = useState(false)
 
@@ -48,7 +51,8 @@ const PersistLogin = () => {
   } else if (isLoading) {
     //persist: yes, token: no
     console.log('loading')
-    content = <p>Loading..</p>
+    dispatch(setLoading(true))
+    content = <Spinner />
   } else if (isError) {
     //persist: yes, token: no
     console.log(`Error - ${error?.data?.message}`)

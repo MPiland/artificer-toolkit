@@ -1,3 +1,9 @@
+@use 'modal';
+@use 'select';
+@use 'table';
+@use 'tabNavigation';
+@use 'textEditor';
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -150,10 +156,12 @@ h6 {
   border-left: 1px solid lightgrey;
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
+  height: auto;
 }
 
 .section-content {
   width: 100%;
+  height: auto;
   padding: 0.5rem 0.5rem 0;
 }
 

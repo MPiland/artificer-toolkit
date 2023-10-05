@@ -20,27 +20,27 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, id) => {
-        if (result?._ids) {
+        if (result) {
           return [
+            ...result.map(({ _id }) => ({ type: 'Item', id: _id })),
             { type: 'Item', id: 'LIST' },
-            ...result._ids.map((id) => ({ type: 'Item', id })),
           ]
         } else return [{ type: 'Item', id: 'LIST' }]
       },
     }),
     addNewItem: builder.mutation({
-      query: (initialItemData) => ({
+      query: (data) => ({
         url: '/item',
         method: 'POST',
-        body: { ...initialItemData },
+        body: { ...data },
       }),
-      invalidatesTags: [{ type: 'Item', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Item', id: 'LIST' }],
     }),
     updateItem: builder.mutation({
-      query: (initialSpellData) => ({
+      query: (data) => ({
         url: `/item`,
         method: 'PATCH',
-        body: { ...initialSpellData },
+        body: data,
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Item', id: arg._id }],
     }),
@@ -50,7 +50,7 @@ export const itemsApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Item', id: arg._id }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Item', id: 'LIST' }],
     }),
   }),
 })

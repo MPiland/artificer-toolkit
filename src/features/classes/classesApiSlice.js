@@ -19,27 +19,27 @@ export const classesApiSlice = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, id) => {
-        if (result?._ids) {
+        if (result) {
           return [
+            ...result.map(({ _id }) => ({ type: 'Class', id: _id })),
             { type: 'Class', id: 'LIST' },
-            ...result._ids.map((id) => ({ type: 'Class', id })),
           ]
         } else return [{ type: 'Class', id: 'LIST' }]
       },
     }),
     addNewClass: builder.mutation({
-      query: (initialNoteData) => ({
+      query: (data) => ({
         url: '/class',
         method: 'POST',
-        body: { ...initialNoteData },
+        body: { ...data },
       }),
-      invalidatesTags: [{ type: 'Class', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Class', id: 'LIST' }],
     }),
     updateClass: builder.mutation({
-      query: (initialSpellData) => ({
+      query: (data) => ({
         url: `/class`,
         method: 'PATCH',
-        body: { ...initialSpellData },
+        body: data,
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Class', id: arg._id }],
     }),
@@ -49,7 +49,7 @@ export const classesApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Class', id: arg._id }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Class', id: 'LIST' }],
     }),
   }),
 })

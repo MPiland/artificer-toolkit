@@ -41,7 +41,7 @@ const EditItemForm = () => {
   const [state, setState] = useReducer(formReducer, location.state.data)
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
-  const [match, setMatch] = useState()
+  const [match, setMatch] = useState(false)
   const textRefs = useRef([])
 
   useEffect(() => {
@@ -1322,29 +1322,28 @@ const EditItemForm = () => {
               </div>
             </>
           ))}
-        {Object.keys(featureItem)?.length !== 0 &&
-          Object.keys(featureItem)?.some(
-            (key) => featureItem[key]?.length !== 0
-          ) && (
-            <TabNavigation
-              id={`section${featureIndex}`}
-              tabState={[].concat(
-                ...sectionTabContent(featureItem, featureIndex)
-                  .filter(
-                    (sectionItem) => featureItem[sectionItem.name]?.length > 0
-                  )
-                  ?.map((sectionItem) =>
-                    sectionItem.content().map((contentItem, contentIndex) => ({
-                      value: `${sectionItem.name} ${contentIndex + 1}`,
-                      name: `feature.${featureIndex}.${sectionItem.name}.${contentIndex}`,
-                      content: contentItem,
-                    }))
-                  )
-              )}
-              dynamic={true}
-              onDelete={setState}
-            />
-          )}
+        {sectionTabContent(featureItem, featureIndex).some(
+          (tabItem) => featureItem[tabItem.name]?.length > 0
+        ) && (
+          <TabNavigation
+            id={`section${featureIndex}`}
+            tabState={[].concat(
+              ...sectionTabContent(featureItem, featureIndex)
+                .filter(
+                  (sectionItem) => featureItem[sectionItem.name]?.length > 0
+                )
+                ?.map((sectionItem) =>
+                  sectionItem.content().map((contentItem, contentIndex) => ({
+                    value: `${sectionItem.name} ${contentIndex + 1}`,
+                    name: `feature.${featureIndex}.${sectionItem.name}.${contentIndex}`,
+                    content: contentItem,
+                  }))
+                )
+            )}
+            dynamic={true}
+            onDelete={setState}
+          />
+        )}
       </Fragment>
     )
 
@@ -1382,7 +1381,6 @@ const EditItemForm = () => {
                       itemCategory._id === state.itemCategory?.id
                   )?.itemProperty
                 }
-                required={true}
                 onChange={setState}
               />
               <Select
@@ -1426,6 +1424,29 @@ const EditItemForm = () => {
                     value={state.itemRank}
                     onChange={setState}
                   />
+                )}
+              {state.itemCategory &&
+                state.itemCategory?.name === 'container' && (
+                  <>
+                    <Input
+                      validation={'num'}
+                      name='capacity.amount'
+                      label={true}
+                      invalidText='Must contain only numbers'
+                      placeholder='Capacity Weight'
+                      autoComplete='off'
+                      value={state.capacity?.amount}
+                      onChange={setState}
+                    />
+                    <Select
+                      name='capacity.unit'
+                      placeholder='UoM'
+                      value={state.capacity?.unit}
+                      options={builders.unit.imperial.weight}
+                      optionalKey='short'
+                      onChange={setState}
+                    />
+                  </>
                 )}
               {state.itemProperty?.some(
                 (proprertyItem) => proprertyItem.name === 'ammunition'
@@ -1486,7 +1507,7 @@ const EditItemForm = () => {
               ) && (
                 <>
                   <Input
-                    validation={'num'}
+                    validation='num'
                     name='minRange'
                     label={true}
                     invalidText='Must contain only numbers'
@@ -1496,7 +1517,7 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                   <Input
-                    validation={'num'}
+                    validation='num'
                     name='maxRange'
                     label={true}
                     invalidText='Must contain only numbers'
@@ -1510,32 +1531,27 @@ const EditItemForm = () => {
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'weight'
               ) && (
-                <Input
-                  validation={'num'}
-                  name='itemWeight'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Item Weight'
-                  autoComplete='off'
-                  required={true}
-                  value={state.itemWeight}
-                  onChange={setState}
-                />
-              )}
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'container'
-              ) && (
-                <Input
-                  validation={'num'}
-                  name='capacityWeight'
-                  label={true}
-                  invalidText='Must contain only numbers'
-                  placeholder='Capacity Weight'
-                  autoComplete='off'
-                  required={true}
-                  value={state.capacityWeight}
-                  onChange={setState}
-                />
+                <>
+                  <Input
+                    validation={'num'}
+                    name='weight.amount'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Item Weight'
+                    autoComplete='off'
+                    required={true}
+                    value={state.weight?.amount}
+                    onChange={setState}
+                  />
+                  <Select
+                    name='weight.unit'
+                    placeholder='UoM'
+                    value={state.weight?.unit}
+                    options={builders.unit.imperial.weight}
+                    optionalKey='short'
+                    onChange={setState}
+                  />
+                </>
               )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'stackable'

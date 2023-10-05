@@ -26,14 +26,13 @@ const SpellList = () => {
     useDeleteSpellMutation()
 
   const { listFilter, filteredList, setListFilter, setFilterItems } =
-    useFilteredList()
+    useFilteredList(spells)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
-
   const showCard = (spell) => {
     navigate(`/spells/${spell.name}`, {
       state: {
@@ -41,7 +40,7 @@ const SpellList = () => {
         title: spell.value,
         context: 'itemCard',
         data: spell,
-        size: 'xl',
+        size: 'lg',
       },
     })
   }
@@ -79,14 +78,9 @@ const SpellList = () => {
   }, [delIsError, delError])
 
   useEffect(() => {
-    setFilterItems(spells)
-  }, [spells, setFilterItems])
-
-  useEffect(() => {
     setTableColumns({
       headers: [
         {
-          name: 'level',
           value: 'Level',
           border: false,
           className: 'fw-bold',
@@ -94,7 +88,6 @@ const SpellList = () => {
           breakpoint: '',
         },
         {
-          name: 'name',
           value: 'Name',
           border: false,
           className: 'fw-bold',
@@ -102,7 +95,6 @@ const SpellList = () => {
           breakpoint: '',
         },
         {
-          name: 'action.actionType.value',
           value: 'Casting Time',
           border: false,
           className: 'fw-bold',
@@ -110,7 +102,6 @@ const SpellList = () => {
           breakpoint: is600 && true,
         },
         {
-          name: 'duration.durationType.value',
           value: 'Duration',
           border: false,
           className: 'fw-bold',
@@ -118,7 +109,6 @@ const SpellList = () => {
           breakpoint: (is1000 || is600) && true,
         },
         {
-          name: 'range.rangeType.value',
           value: 'Range (ft)/Area (ft)',
           border: false,
           className: 'fw-bold',
@@ -126,7 +116,6 @@ const SpellList = () => {
           breakpoint: (is1000 || is600) && true,
         },
         {
-          name: 'damage.damageType',
           value: 'Damage Type',
           border: false,
           className: 'fw-bold',
@@ -172,6 +161,10 @@ const SpellList = () => {
     })
   }, [setTableColumns, is1200, is1000, is600])
 
+  useEffect(() => {
+      setFilterItems(spells)
+  }, [loading, spells, setFilterItems])
+
   const onFilterReset = () => {
     setListFilter({ type: 'reset', payload: { target: {} } })
   }
@@ -216,7 +209,7 @@ const SpellList = () => {
                 multiple={true}
                 name='level'
                 placeholder='Level'
-                options={spells.map((item) => ({ value: item.level }))}
+                options={filteredList?.map((item) => ({ value: item?.level }))}
                 value={listFilter?.level}
                 onChange={setListFilter}
               />
@@ -224,7 +217,7 @@ const SpellList = () => {
                 multiple={true}
                 name='action.actionType'
                 placeholder='Casting Time'
-                options={spells.map((item) => item.action?.actionType)}
+                options={filteredList?.map((item) => item.action?.actionType)}
                 value={listFilter?.action?.actionType}
                 onChange={setListFilter}
               />
@@ -232,7 +225,9 @@ const SpellList = () => {
                 multiple={true}
                 name='duration.durationType'
                 placeholder='Duration'
-                options={spells.map((item) => item.duration?.durationType)}
+                options={filteredList?.map(
+                  (item) => item.duration?.durationType
+                )}
                 value={listFilter?.duration?.durationType}
                 onChange={setListFilter}
               />
@@ -240,7 +235,7 @@ const SpellList = () => {
                 multiple={true}
                 name='range.rangeType'
                 placeholder='Range'
-                options={spells.map((item) => item.range?.rangeType)}
+                options={filteredList?.map((item) => item.range?.rangeType)}
                 value={listFilter?.range?.rangeType}
                 onChange={setListFilter}
               />
@@ -248,7 +243,7 @@ const SpellList = () => {
                 multiple={true}
                 name='damage.damageType'
                 placeholder='Damage Type'
-                options={spells.flatMap((item) => {
+                options={filteredList?.flatMap((item) => {
                   if (item.damage && Array.isArray(item.damage.damageType)) {
                     return item.damage.damageType
                   } else {
@@ -262,7 +257,7 @@ const SpellList = () => {
                 multiple={true}
                 name='school'
                 placeholder='Spell School'
-                options={spells.map((item) => item.school)}
+                options={filteredList?.map((item) => item.school)}
                 value={listFilter?.school}
                 onChange={setListFilter}
               />

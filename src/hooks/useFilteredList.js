@@ -28,7 +28,7 @@ const useFilteredList = (initialItems, initialFilter = {}) => {
   return { listFilter, filteredList, setListFilter, setFilterItems }
 }
 
-const filterByArray = (filteredItems, filterItem, filterValues) => {
+const filterByArray = (filteredItems, filterField, filterValues) => {
   const filteredValues = filterValues.filter((item) => item.value !== 'All')
 
   if (filteredValues.length === 0) {
@@ -37,8 +37,8 @@ const filterByArray = (filteredItems, filterItem, filterValues) => {
 
   return filteredItems.filter((item) => {
     let itemValue
-    if (typeof item[filterItem] === 'object') {
-      itemValue = item[filterItem]
+    if (typeof item[filterField] === 'object') {
+      itemValue = item[filterField]
       if (Array.isArray(itemValue)) {
         return itemValue.some((item) =>
           filteredValues.some((filterValue) => filterValue.value === item.value)
@@ -47,16 +47,16 @@ const filterByArray = (filteredItems, filterItem, filterValues) => {
         return filteredValues.some((value) => value.value === itemValue.value)
       }
     } else {
-      itemValue = item[filterItem]
-      return filteredValues.some((value) => value === itemValue)
+      itemValue = item[filterField]
+      return filteredValues.some((value) => value.value === itemValue)
     }
   })
 }
 
-const filterByString = (filteredItems, filterItem, filterValues) => {
+const filterByString = (filteredItems, filterField, filterValues) => {
   const filterWords = filterValues.toLowerCase().split(' ')
   return filteredItems.filter((item) => {
-    const itemValue = item[filterItem].toLowerCase()
+    const itemValue = item[filterField].toLowerCase()
     return filterWords.every((word) => itemValue.includes(word))
   })
 }

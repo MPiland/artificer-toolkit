@@ -20,27 +20,27 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, id) => {
-        if (result?._ids) {
+        if (result) {
           return [
+            ...result.map(({ _id }) => ({ type: 'Spell', id: _id })),
             { type: 'Spell', id: 'LIST' },
-            ...result._ids.map((id) => ({ type: 'Spell', id })),
           ]
         } else return [{ type: 'Spell', id: 'LIST' }]
       },
     }),
     addNewSpell: builder.mutation({
-      query: (initialSpellData) => ({
+      query: (data) => ({
         url: '/spell',
         method: 'POST',
-        body: { ...initialSpellData },
+        body: { ...data },
       }),
-      invalidatesTags: [{ type: 'Spell', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: 'LIST' }],
     }),
     updateSpell: builder.mutation({
-      query: (initialSpellData) => ({
+      query: (data) => ({
         url: `/spell`,
         method: 'PATCH',
-        body: { ...initialSpellData },
+        body: data,
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: arg._id }],
     }),
@@ -50,7 +50,7 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: arg._id }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: 'LIST' }],
     }),
   }),
 })

@@ -1,7 +1,6 @@
-import '../css/table.css'
 import { useEffect, useState, Fragment } from 'react'
 import useSortableData from '../hooks/useSortableData'
-import { get } from 'lodash'
+import { getValueFromState } from '../helpers/formatting'
 import Input from './Input'
 
 const Table = ({
@@ -42,58 +41,13 @@ const Table = ({
     }
   }
 
-  const getValueFromState = (inputItem, valueItem) => {
-    const processItem = (item, state) => {
-      if (Array.isArray(item)) {
-        return item
-          .map((nestedItem) => processItem(nestedItem, state))
-          .join(' ')
-      } else {
-        const value = get(state, item)
-        if (Array.isArray(value)) {
-          if (value.length > 0) {
-            if (value.length > 1) {
-              const sortedValues = [...value]
-              sortedValues.sort((a, b) =>
-                a.value.toString().localeCompare(b.value.toString())
-              )
-              return sortedValues
-                .map((nestedValue) => nestedValue.value)
-                .join(' / ')
-            } else {
-              return value[0].value
-            }
-          } else {
-            return empty ? empty : null
-          }
-        } else {
-          return value
-        }
-      }
-    }
-
-    if (inputItem && inputItem.name) {
-      const nameItems = Array.isArray(inputItem.name[0])
-        ? inputItem.name
-        : [inputItem.name]
-      return nameItems
-        .map((nameItem) => {
-          const value = processItem(nameItem, valueItem)
-          return value !== undefined ? value : empty ? empty : null
-        })
-        .join(' / ')
-    }
-
-    return empty ? empty : null
-  }
-
   const content = (
     <div className={`${scrollable ? 'table-scrollable' : ''}`}>
       {headers && (
         <div
-          className={`row pb-2 ms-0 me-0 g-2${className ? ` ${className}` : ''}${
-            scrollable ? ' scrollable' : ''
-          } align-items-end`}
+          className={`row pb-2 ms-0 me-0 g-2${
+            className ? ` ${className}` : ''
+          }${scrollable ? ' scrollable' : ''} align-items-end`}
         >
           {headers?.map((headerItem, headerIndex) => {
             return (
@@ -139,9 +93,11 @@ const Table = ({
         return (
           <div
             key={valueIndex}
-            className={`row pb-2 ms-0 me-0 g-2${className ? ` ${className}` : ''}${
-              clickable ? ' row-clickable' : ''
-            }${scrollable ? ' scrollable' : ''}`}
+            className={`row pb-2 ms-0 me-0 g-2${
+              className ? ` ${className}` : ''
+            }${clickable ? ' row-clickable' : ''}${
+              scrollable ? ' scrollable' : ''
+            }`}
             onClick={() => {
               onClick && onClick(valueItem)
             }}
@@ -179,7 +135,7 @@ const Table = ({
                       placeholder={inputItem.value}
                       invalidText={inputItem.invalid}
                       value={
-                        getValueFromState(inputItem, valueItem) !== null
+                        getValueFromState(inputItem, valueItem) !== null && getValueFromState(inputItem, valueItem) !== '---'
                           ? getValueFromState(inputItem, valueItem)
                           : ''
                       }

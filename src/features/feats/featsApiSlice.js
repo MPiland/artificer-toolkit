@@ -20,27 +20,27 @@ export const featsApiSlice = apiSlice.injectEndpoints({
         }
       },
       providesTags: (result, error, id) => {
-        if (result?._ids) {
+        if (result) {
           return [
+            ...result.map(({ _id }) => ({ type: 'Feat', id: _id })),
             { type: 'Feat', id: 'LIST' },
-            ...result._ids.map((id) => ({ type: 'Feat', id })),
           ]
         } else return [{ type: 'Feat', id: 'LIST' }]
       },
     }),
     addNewFeat: builder.mutation({
-      query: (initialFeatData) => ({
+      query: (data) => ({
         url: '/feat',
         method: 'POST',
-        body: { ...initialFeatData },
+        body: { ...data },
       }),
-      invalidatesTags: [{ type: 'Feat', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Feat', id: 'LIST' }],
     }),
     updateFeat: builder.mutation({
-      query: (initialSpellData) => ({
+      query: (data) => ({
         url: `/feat`,
         method: 'PATCH',
-        body: { ...initialSpellData },
+        body: data,
       }),
       invalidatesTags: (result, error, arg) => [{ type: 'Feat', id: arg._id }],
     }),
@@ -50,7 +50,7 @@ export const featsApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Feat', id: arg._id }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Feat', id: 'LIST' }],
     }),
   }),
 })
