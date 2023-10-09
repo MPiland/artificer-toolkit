@@ -14,7 +14,6 @@ const Table = ({
   readOnly,
   clickable,
   onClick,
-  empty,
   sortable,
   scrollable,
   deleteRow,
@@ -23,22 +22,16 @@ const Table = ({
   const { items, requestSort, sortConfig } = useSortableData(value)
 
   useEffect(() => {
-    setSortState({ valueItems: items, sortConfig: sortConfig })
+    setSortState({ valueItems: items, sortConfig })
   }, [setSortState, items, sortConfig])
 
   const getClassNames = (value) => {
     if (!sortState?.sortConfig) {
       return
     }
-    if (Array.isArray(sortState.sortConfig.key)) {
-      return sortState.sortConfig.key[0] === value
-        ? sortState.sortConfig.direction
-        : ''
-    } else {
-      return sortState.sortConfig.key === value
-        ? sortState.sortConfig.direction
-        : ''
-    }
+    return sortState.sortConfig.key.sortOn === value
+      ? sortState.sortConfig.direction
+      : ''
   }
 
   const content = (
@@ -57,14 +50,11 @@ const Table = ({
                     <div
                       className={`${headerItem.size ?? ''} ${
                         headerItem.className ?? ''
-                      }  ${getClassNames(headerItem.name)} ${
+                      }  ${getClassNames(headerItem.name.sortOn)} ${
                         sortable ? 'sortable-header' : ''
                       }`}
                       key={headerIndex}
-                      onClick={() =>
-                        sortable &&
-                        requestSort(headerItem.name, headerItem.order)
-                      }
+                      onClick={() => sortable && requestSort(headerItem.name)}
                     >
                       {headerItem.value}
                     </div>
@@ -135,7 +125,8 @@ const Table = ({
                       placeholder={inputItem.value}
                       invalidText={inputItem.invalid}
                       value={
-                        getValueFromState(inputItem, valueItem) !== null && getValueFromState(inputItem, valueItem) !== '---'
+                        getValueFromState(inputItem, valueItem) !== null &&
+                        getValueFromState(inputItem, valueItem) !== '---'
                           ? getValueFromState(inputItem, valueItem)
                           : ''
                       }

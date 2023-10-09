@@ -39,7 +39,7 @@ const FeatList = () => {
         title: feat.value,
         context: 'itemCard',
         data: feat,
-        size: 'xl',
+        size: 'lg',
       },
     })
   }
@@ -84,7 +84,7 @@ const FeatList = () => {
     setTableColumns({
       headers: [
         {
-          name: 'name',
+          name: { sortOn: 'name' },
           value: 'Name',
           border: false,
           className: 'fw-bold',

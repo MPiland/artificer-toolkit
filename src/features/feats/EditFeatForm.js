@@ -164,7 +164,7 @@ const EditFeatForm = () => {
           background: location.state.previous.state.background,
           title: match ? state.value : oldState.value,
           context: 'itemCard',
-          size: 'xl',
+          size: 'lg',
         },
       })
     } else {

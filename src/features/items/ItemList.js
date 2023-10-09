@@ -1,9 +1,8 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useDeleteItemMutation } from './itemsApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
-import { selectBuilders } from '../builders/buildersSlice'
 import { selectItems } from '../items/itemsSlice'
 import Spinner from '../../components/Spinner'
 import useMediaQuery from '../../hooks/useMediaQuery'
@@ -22,7 +21,6 @@ const ItemList = () => {
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const itemToDelete = useSelector((state) => state.delete.data)
 
-  const builders = useSelector(selectBuilders)
   const items = useSelector(selectItems)
 
   const [deleteItem, { isError: delIsError, error: delError }] =
@@ -32,7 +30,6 @@ const ItemList = () => {
     useFilteredList(items)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
-  const updatedItemsRef = useRef([])
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -83,38 +80,14 @@ const ItemList = () => {
   }, [delIsError, delError])
 
   useEffect(() => {
-    if (!loading) {
-      const updatedItems = items.map((item) => {
-        if (item.cost && item.cost.currency && item.cost.currency._id) {
-          const currencyId = item.cost.currency._id
-          const matchingCurrency = builders.currency.find(
-            (currency) => currency._id === currencyId
-          )
-          if (matchingCurrency) {
-            return {
-              ...item,
-              cost: {
-                ...item.cost,
-                currency: {
-                  ...item.cost.currency,
-                  short: matchingCurrency.short,
-                },
-              },
-            }
-          }
-        }
-        return item
-      })
-      updatedItems.sort((a, b) => (a.value > b.value ? 1 : -1))
-      updatedItemsRef.current = updatedItems
-      setFilterItems(updatedItemsRef.current)
-    }
-  }, [loading, items, builders, setFilterItems])
+    setFilterItems(items)
+  }, [items, setFilterItems])
 
   useEffect(() => {
     setTableColumns({
       headers: [
         {
+          name: { sortOn: 'value' },
           value: 'Name',
           border: false,
           className: 'fw-bold',
@@ -122,6 +95,7 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
+          name: { sortOn: 'itemCategory.value' },
           value: 'Category',
           border: false,
           className: 'fw-bold',
@@ -129,6 +103,7 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
+          name: { sortOn: 'itemProperty' },
           value: 'Properties',
           border: false,
           className: 'fw-bold',
@@ -136,6 +111,7 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
+          name: { sortOn: 'damage.damageType' },
           value: 'Damage Type',
           border: false,
           className: 'fw-bold',
@@ -143,6 +119,7 @@ const ItemList = () => {
           breakpoint: is600 ? true : '',
         },
         {
+          name: { sortOn: 'armorClass' },
           value: 'AC',
           border: false,
           className: 'fw-bold',
@@ -150,6 +127,7 @@ const ItemList = () => {
           breakpoint: is600 && true,
         },
         {
+          name: { sortOn: 'weight.amount', orderKey: 'weight.unit.short' },
           value: 'Weight',
           border: false,
           className: 'fw-bold',
@@ -157,21 +135,22 @@ const ItemList = () => {
           breakpoint: (is1000 || is600) && true,
         },
         {
-          value: 'Cost',
-          border: false,
-          className: 'fw-bold',
-          size: 'col-1',
-          breakpoint: (is1000 || is600) && true,
-          order: [
-            { value: 2 },
-            [
+          name: {
+            sortOn: 'cost.amount',
+            orderKey: 'cost.currency.name',
+            order: [
               { 1: 'copper' },
               { 2: 'silver' },
               { 3: 'etherium' },
               { 4: 'gold' },
               { 5: 'platinum' },
             ],
-          ],
+          },
+          value: 'Cost',
+          border: false,
+          className: 'fw-bold',
+          size: 'col-1',
+          breakpoint: (is1000 || is600) && true,
         },
       ],
       inputs: [
@@ -196,12 +175,12 @@ const ItemList = () => {
           breakpoint: is600 && true,
         },
         {
-          name: 'armorValue',
+          name: 'armorClass',
           size: 'col-1',
           breakpoint: is600 && true,
         },
         {
-          name: ['weight.amount', 'weight.unit.value'],
+          name: ['weight.amount', 'weight.unit.short'],
           size: 'col-1',
           breakpoint: (is1000 || is600) && true,
         },
@@ -292,10 +271,10 @@ const ItemList = () => {
               />
               <Select
                 multiple={true}
-                name='armorValue'
+                name='armorClass'
                 placeholder='Item Category'
-                options={items?.map((item) => ({ value: item.armorValue }))}
-                value={listFilter.armorValue}
+                options={items?.map((item) => ({ value: item.armorClass }))}
+                value={listFilter.armorClass}
                 onChange={setListFilter}
               />
             </div>

@@ -81,6 +81,7 @@ const SpellList = () => {
     setTableColumns({
       headers: [
         {
+          name: { sortOn: 'level' },
           value: 'Level',
           border: false,
           className: 'fw-bold',
@@ -88,6 +89,7 @@ const SpellList = () => {
           breakpoint: '',
         },
         {
+          name: { sortOn: 'name' },
           value: 'Name',
           border: false,
           className: 'fw-bold',
@@ -95,6 +97,10 @@ const SpellList = () => {
           breakpoint: '',
         },
         {
+          name: {
+            sortOn: 'action.value',
+            orderKey: 'action.actionType.value',
+          },
           value: 'Casting Time',
           border: false,
           className: 'fw-bold',
@@ -102,6 +108,10 @@ const SpellList = () => {
           breakpoint: is600 && true,
         },
         {
+          name: {
+            sortOn: 'duration.value',
+            orderKey: 'duration.durationType.value',
+          },
           value: 'Duration',
           border: false,
           className: 'fw-bold',
@@ -109,6 +119,14 @@ const SpellList = () => {
           breakpoint: (is1000 || is600) && true,
         },
         {
+          name: {
+            sortOn: 'range.distance',
+            orderKey: 'range.rangeType.name',
+            subSort: {
+              sortOn: 'shape.size',
+              orderKey: 'shape.shapeType.name',
+            },
+          },
           value: 'Range (ft)/Area (ft)',
           border: false,
           className: 'fw-bold',
@@ -116,6 +134,7 @@ const SpellList = () => {
           breakpoint: (is1000 || is600) && true,
         },
         {
+          name: {sortOn: 'damage.damagType'},
           value: 'Damage Type',
           border: false,
           className: 'fw-bold',
@@ -162,8 +181,8 @@ const SpellList = () => {
   }, [setTableColumns, is1200, is1000, is600])
 
   useEffect(() => {
-      setFilterItems(spells)
-  }, [loading, spells, setFilterItems])
+    setFilterItems(spells)
+  }, [spells, setFilterItems])
 
   const onFilterReset = () => {
     setListFilter({ type: 'reset', payload: { target: {} } })
@@ -301,7 +320,6 @@ const SpellList = () => {
           clickable={true}
           onClick={(spell) => showCard(spell)}
           deleteRow={(spell) => onDelete(spell)}
-          empty='---'
         />
       </>
     )

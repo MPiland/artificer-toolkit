@@ -162,7 +162,7 @@ const EditItemForm = () => {
           background: location.state.previous.state.background,
           title: match ? state.value : oldState.value,
           context: 'itemCard',
-          size: 'xl',
+          size: 'lg',
         },
       })
     } else {
@@ -1411,6 +1411,25 @@ const EditItemForm = () => {
                 required={true}
                 onChange={setState}
               />
+              <Input
+                validation={'num'}
+                name='weight.amount'
+                label={true}
+                invalidText='Must contain only numbers'
+                placeholder='Item Weight'
+                autoComplete='off'
+                required={true}
+                value={state.weight?.amount}
+                onChange={setState}
+              />
+              <Select
+                name='weight.unit'
+                placeholder='UoM'
+                value={state.weight?.unit}
+                options={builders.unit.imperial.weight}
+                optionalKey='short'
+                onChange={setState}
+              />
               {state.itemCategory &&
                 (state.itemCategory?.name === 'weapon' ||
                   state.itemCategory?.name === 'armor') && (
@@ -1448,6 +1467,33 @@ const EditItemForm = () => {
                     />
                   </>
                 )}
+              {state.itemProperty?.some(
+                (property) =>
+                  property.name === 'thrown' || property.name === 'ranged'
+              ) && (
+                <>
+                  <Input
+                    validation='num'
+                    name='minRange'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Min Range'
+                    value={state?.minRange}
+                    required={true}
+                    onChange={setState}
+                  />
+                  <Input
+                    validation='num'
+                    name='maxRange'
+                    label={true}
+                    invalidText='Must contain only numbers'
+                    placeholder='Max Range'
+                    value={state?.maxRange}
+                    required={true}
+                    onChange={setState}
+                  />
+                </>
+              )}
               {state.itemProperty?.some(
                 (proprertyItem) => proprertyItem.name === 'ammunition'
               ) && (
@@ -1501,58 +1547,6 @@ const EditItemForm = () => {
                   onChange={setState}
                 />
               </div>
-              {state.itemProperty?.some(
-                (property) =>
-                  property.name === 'thrown' || property.name === 'ranged'
-              ) && (
-                <>
-                  <Input
-                    validation='num'
-                    name='minRange'
-                    label={true}
-                    invalidText='Must contain only numbers'
-                    placeholder='Min Range'
-                    value={state?.minRange}
-                    required={true}
-                    onChange={setState}
-                  />
-                  <Input
-                    validation='num'
-                    name='maxRange'
-                    label={true}
-                    invalidText='Must contain only numbers'
-                    placeholder='Max Range'
-                    value={state?.maxRange}
-                    required={true}
-                    onChange={setState}
-                  />
-                </>
-              )}
-              {state?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'weight'
-              ) && (
-                <>
-                  <Input
-                    validation={'num'}
-                    name='weight.amount'
-                    label={true}
-                    invalidText='Must contain only numbers'
-                    placeholder='Item Weight'
-                    autoComplete='off'
-                    required={true}
-                    value={state.weight?.amount}
-                    onChange={setState}
-                  />
-                  <Select
-                    name='weight.unit'
-                    placeholder='UoM'
-                    value={state.weight?.unit}
-                    options={builders.unit.imperial.weight}
-                    optionalKey='short'
-                    onChange={setState}
-                  />
-                </>
-              )}
               {state?.attribute?.some(
                 (attributeItem) => attributeItem.name === 'stackable'
               ) && (
@@ -1600,121 +1594,128 @@ const EditItemForm = () => {
                 </>
               )}
             </div>
-            {state.itemCategory?.name === 'weapon' && (
-              <>
-                <div className='d-flex'>
-                  <hr className='flex-grow-1 me-3' />
-                  <span className='mx-auto'>Weapon Damage Dice</span>
-                  <hr className='flex-grow-1 ms-3' />
-                </div>
-                <div className='row g-2 pb-3 mx-5 justify-contents-center'>
-                  <Input
-                    validation={'num'}
-                    name='damage.diceCount'
-                    label={true}
-                    invalidText='Must contain only numbers'
-                    placeholder='Damage Dice Count'
-                    value={state.damage?.diceCount}
-                    required={true}
-                    onChange={setState}
-                  />
-                  <Input
-                    validation={'num'}
-                    name='damage.diceValue'
-                    label={true}
-                    invalidText='Must contain only numbers'
-                    placeholder='Damage Dice Value'
-                    value={state.damage?.diceValue}
-                    required={true}
-                    onChange={setState}
-                  />
-                  {state.itemProperty?.some(
-                    (property) => property.name === 'versatile'
-                  ) && (
-                    <>
-                      <Input
-                        validation={'num'}
-                        name='damage.versatileDiceCount'
-                        label={true}
-                        invalidText='Must contain only numbers'
-                        placeholder='Alt. Dmg. Dice Count'
-                        value={state.damage?.versatileDiceCount}
-                        required={true}
-                        onChange={setState}
-                      />
-                      <Input
-                        validation={'num'}
-                        name='damage.versatileDiceValue'
-                        label={true}
-                        invalidText='Must contain only numbers'
-                        placeholder='Alt. Dmg. Dice Value'
-                        value={state.damage?.versatileDiceValue}
-                        required={true}
-                        onChange={setState}
-                      />
-                    </>
-                  )}
-                  <Select
-                    name='damage.damageType'
-                    multiple={true}
-                    placeholder='Damage Type'
-                    value={state.damage?.damageType}
-                    options={builders.damage}
-                    required={true}
-                    onChange={setState}
-                  />
-                  <Select
-                    name='primaryAbility'
-                    placeholder='Primary Ability'
-                    value={state.primaryAbility}
-                    options={[].concat(builders.ability, [
-                      {
-                        name: 'spellAbility',
-                        value: 'Spell Ability',
-                      },
-                    ])}
-                    required={true}
-                    onChange={setState}
-                  />
-                  {state.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'maxBonus'
-                  ) && (
+            {state.itemCategory?.name === 'weapon' ||
+              (state.attribute?.some(
+                (attributeItem) => attributeItem.name === 'doesDamage'
+              ) && (
+                <>
+                  <div className='d-flex'>
+                    <hr className='flex-grow-1 me-3' />
+                    <span className='mx-auto'>{`${
+                      state.itemCategory?.name === 'weapon' ? 'Weapon ' : ''
+                    }Damage Dice`}</span>
+                    <hr className='flex-grow-1 ms-3' />
+                  </div>
+                  <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                     <Input
-                      validation='num'
-                      name='maxBonus'
+                      validation={'num'}
+                      name='damage.diceCount'
                       label={true}
                       invalidText='Must contain only numbers'
-                      placeholder='Max Bonus'
+                      placeholder='Damage Dice Count'
+                      value={state.damage?.diceCount}
                       required={true}
-                      value={state.maxBonus}
                       onChange={setState}
                     />
-                  )}
-                  {state?.itemProperty?.some(
-                    (property) => property.name === 'finesse'
-                  ) && (
-                    <Select
-                      name={'secondaryAbility'}
-                      placeholder='Secondary Ability'
-                      value={state.secondaryAbility}
+                    <Input
+                      validation={'num'}
+                      name='damage.diceValue'
+                      label={true}
+                      invalidText='Must contain only numbers'
+                      placeholder='Damage Dice Value'
+                      value={state.damage?.diceValue}
                       required={true}
-                      options={[]
-                        .concat(builders.ability, [
+                      onChange={setState}
+                    />
+                    {state.itemProperty?.some(
+                      (property) => property.name === 'versatile'
+                    ) && (
+                      <>
+                        <Input
+                          validation={'num'}
+                          name='damage.versatileDiceCount'
+                          label={true}
+                          invalidText='Must contain only numbers'
+                          placeholder='Alt. Dmg. Dice Count'
+                          value={state.damage?.versatileDiceCount}
+                          required={true}
+                          onChange={setState}
+                        />
+                        <Input
+                          validation={'num'}
+                          name='damage.versatileDiceValue'
+                          label={true}
+                          invalidText='Must contain only numbers'
+                          placeholder='Alt. Dmg. Dice Value'
+                          value={state.damage?.versatileDiceValue}
+                          required={true}
+                          onChange={setState}
+                        />
+                      </>
+                    )}
+                    <Select
+                      name='damage.damageType'
+                      multiple={true}
+                      placeholder='Damage Type'
+                      value={state.damage?.damageType}
+                      options={builders.damage}
+                      required={true}
+                      onChange={setState}
+                    />
+                    {state.itemCategory?.name === 'weapon' && (
+                      <Select
+                        name='primaryAbility'
+                        placeholder='Primary Ability'
+                        value={state.primaryAbility}
+                        options={[].concat(builders.ability, [
                           {
                             name: 'spellAbility',
                             value: 'Spell Ability',
                           },
-                        ])
-                        ?.filter(
-                          (abilityItem) =>
-                            abilityItem?.name !== state?.primaryAbility?.name
-                        )}
-                      onChange={setState}
-                    />
-                  )}
-                </div>
-              </>
-            )}
+                        ])}
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {state.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'maxBonus'
+                    ) && (
+                      <Input
+                        validation='num'
+                        name='maxBonus'
+                        label={true}
+                        invalidText='Must contain only numbers'
+                        placeholder='Max Bonus'
+                        required={true}
+                        value={state.maxBonus}
+                        onChange={setState}
+                      />
+                    )}
+                    {state?.itemProperty?.some(
+                      (property) => property.name === 'finesse'
+                    ) && (
+                      <Select
+                        name={'secondaryAbility'}
+                        placeholder='Secondary Ability'
+                        value={state.secondaryAbility}
+                        required={true}
+                        options={[]
+                          .concat(builders.ability, [
+                            {
+                              name: 'spellAbility',
+                              value: 'Spell Ability',
+                            },
+                          ])
+                          ?.filter(
+                            (abilityItem) =>
+                              abilityItem?.name !== state?.primaryAbility?.name
+                          )}
+                        onChange={setState}
+                      />
+                    )}
+                  </div>
+                </>
+              ))}
             {state.itemCategory?.name === 'armor' && (
               <>
                 <div className='d-flex'>
@@ -1725,12 +1726,12 @@ const EditItemForm = () => {
                 <div className='row g-2 pb-3 mx-5 justify-contents-center'>
                   <Input
                     validation={'num'}
-                    name='armorValue'
+                    name='armorClass'
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Armor Value'
                     required={true}
-                    value={state.armorValue}
+                    value={state.armorClass}
                     onChange={setState}
                   />
                   <Select

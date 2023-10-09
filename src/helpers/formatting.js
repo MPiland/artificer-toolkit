@@ -2,6 +2,7 @@ import { get, truncate } from 'lodash'
 
 export const getValueFromState = (inputItem, stateItem, truncateNum) => {
   const shouldTruncate = !truncateNum ? false : true
+
   const processItem = (item, state, shouldTruncate) => {
     if (!item || !state) {
       return '---'
@@ -11,7 +12,7 @@ export const getValueFromState = (inputItem, stateItem, truncateNum) => {
       const nestedValues = item.map((nestedItem) =>
         processItem(nestedItem, state, shouldTruncate)
       )
-      if (!nestedValues[0]) {
+      if (nestedValues.every((valueItem) => !valueItem || valueItem == null)) {
         return '---'
       }
       return nestedValues.join(' ')

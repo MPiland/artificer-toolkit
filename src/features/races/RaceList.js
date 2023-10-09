@@ -39,7 +39,7 @@ const RaceList = () => {
         title: race.value,
         context: 'itemCard',
         data: race,
-        size: 'xl',
+        size: 'lg',
       },
     })
   }
@@ -84,7 +84,7 @@ const RaceList = () => {
     setTableColumns({
       headers: [
         {
-          name: 'name',
+          name: { sortOn: 'name' },
           value: 'Name',
           border: false,
           className: 'fw-bold',

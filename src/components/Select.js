@@ -35,11 +35,11 @@ const Select = forwardRef(
     let updatedOptions
 
     if (options?.length) {
-      newOptions = options
-        ?.filter(
-          (option) => option.value !== null && option.value !== undefined
-        )
-        .map(({ name, value, _id, [optionalKey]: optionalValue }) => {
+      newOptions = options?.filter(
+        (option) => option.value !== null && option.value !== undefined
+      )
+      optionalKey &&
+        newOptions.map(({ name, value, _id, [optionalKey]: optionalValue }) => {
           const newObj = { name, value, _id }
           if (optionalKey && optionalValue !== undefined) {
             newObj[optionalKey] = optionalValue

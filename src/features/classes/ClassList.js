@@ -40,7 +40,7 @@ const ClassList = () => {
         title: uClass.value,
         context: 'itemCard',
         data: uClass,
-        size: 'xl',
+        size: 'lg',
       },
     })
   }
@@ -85,7 +85,7 @@ const ClassList = () => {
     setTableColumns({
       headers: [
         {
-          name: 'name',
+          name: { sortOn: 'name' },
           value: 'Name',
           border: false,
           className: 'fw-bold',
@@ -93,7 +93,7 @@ const ClassList = () => {
           breakpoint: '',
         },
         {
-          name: 'category',
+          name: { sortOn: 'category' },
           value: 'Category',
           border: false,
           className: 'fw-bold',

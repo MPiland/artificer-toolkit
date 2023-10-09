@@ -158,7 +158,7 @@ const EditSpellForm = () => {
           data: match ? state : oldState,
           background: location.state.previous.state.background,
           context: match ? state.value : oldState.value,
-          size: 'xl',
+          size: 'lg',
         },
       })
     } else {

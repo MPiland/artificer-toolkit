@@ -15,10 +15,10 @@ const Item = () => {
       header: 'DAMAGE TYPE',
       name: 'damage.damageType',
     },
-    { header: 'AC', name: 'armorValue' },
+    { header: 'AC', name: 'armorClass' },
     {
       header: 'WEIGHT',
-      name: ['weight.amount', 'weight.unit.value'],
+      name: ['weight.amount', 'weight.unit.short'],
     },
     { header: 'COST', name: ['cost.amount', 'cost.currency.short'] },
   ]
