@@ -1,9 +1,22 @@
 import parse from 'html-react-parser'
-import { useOutletContext } from 'react-router-dom'
+import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 import { getValueFromState } from '../../helpers/formatting'
 
 const Spell = () => {
-  const { data: spell } = useOutletContext()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { data: spell, handleClose } = useOutletContext()
+
+  const data = location.state.data
+
+  const onEditClicked = () => {
+    navigate(
+      `${location.state.background.pathname}/edit/${location.state.data.name}`,
+      {
+        state: { data: data, previous: location },
+      }
+    )
+  }
 
   const materialDesc = () => {
     if (spell.materialDesc) {
@@ -39,25 +52,42 @@ const Spell = () => {
   ]
 
   const content = (
-    <div className='detailCard-body container'>
-      <div className='detailCard-detail row row-cols-lg-4 row-cols-md-3 row-cols-2 gy-3'>
-        {cols.map((colItem, colIndex) => {
-          return (
-            <div className='col' key={colIndex}>
-              <div className='fw-bold'>{colItem.header}</div>
-              <div>{getValueFromState(colItem, spell, colItem.truncate)}</div>
-            </div>
-          )
-        })}
+    <>
+      <div className='modal-header'>
+        <h1 className='fw-bold mb-0 fs-2 ms-auto'>{spell.value}</h1>
+        <button
+          type='button'
+          className='btn-close'
+          aria-label='Close'
+          onClick={handleClose}
+        ></button>
       </div>
-      <hr />
-      <div className='detailCard-body'>
+      <div className='modal-body detail-card'>
+        <div className='detail-card-detail row row-cols-lg-4 row-cols-md-3 row-cols-2 gy-3'>
+          {cols.map((colItem, colIndex) => {
+            return (
+              <div className='col' key={colIndex}>
+                <div className='fw-bold'>{colItem.header}</div>
+                <div>{getValueFromState(colItem, spell, colItem.truncate)}</div>
+              </div>
+            )
+          })}
+        </div>
+        <hr />
         <div>{parse(spell.desc)}</div>
         <div className='d-flex justify-content-between'>
-          <span className='detailCard-subtext'>{materialDesc()}</span>
+          <span className='detail-card-subtext'>{materialDesc()}</span>
         </div>
       </div>
-    </div>
+      <div className='modal-footer'>
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={onEditClicked}
+        >
+          Edit
+        </button>
+      </div>
+    </>
   )
 
   return content

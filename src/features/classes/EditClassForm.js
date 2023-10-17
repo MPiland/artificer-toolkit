@@ -224,6 +224,14 @@ const EditClassForm = () => {
           label: true,
           size: 'col-3',
         },
+        {
+          name: 'bonusDamage',
+          value: 'Bonus Damage',
+          invalid: 'Must contain only numbers',
+          validation: 'num',
+          label: true,
+          size: 'damage-col',
+        },
       ]
       if (secondary) {
         inputArray.push(
@@ -349,860 +357,981 @@ const EditClassForm = () => {
     }
 
     const sectionTabContent = (feature, featureIndex) => {
-      const multipleOptions = feature.attribute?.some(
-        (attributeItem) => attributeItem.name === 'providesOptions'
-      )
       const tableContent = [
         {
           name: 'feat',
           content() {
-            return feature[this.name].map((item, index) => (
-              <Fragment key={index}>
-                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                  {feature.attribute?.some(
-                    (item) => item.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
+            return feature[this.name].map((item, index) => {
+              const multipleOptions = item.attribute?.some(
+                (attributeItem) => attributeItem.name === 'providesOptions'
+              )
+              return (
+                <Fragment key={index}>
+                  <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
+                    <Select
+                      multiple={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                      options={builders.feature.sectionAttribute}
+                      placeholder='Feature Attributes'
+                      value={item.attribute}
                       onChange={setState}
                     />
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}${
-                      multipleOptions ? '.options' : '.set'
-                    }`}
-                    multiple={true}
-                    placeholder='Feat'
-                    value={multipleOptions ? item?.options : item.set}
-                    options={feats}
-                    required={true}
-                    onChange={setState}
-                  />
-                  {multipleOptions && (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
-                      label={true}
-                      placeholder='# of Selections'
-                      autoComplete='off'
-                      value={item.selectCount}
-                      invalidText='Must contain only numbers'
+                    {item.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'optionGroups'
+                    ) && (
+                      <Input
+                        size='col-sm-2'
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                        label={true}
+                        placeholder='Opt. Grp. #'
+                        autoComplete='off'
+                        value={item.optionGroup}
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
+                    )}
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Feat'
+                      value={
+                        multipleOptions ? item?.options : item.setSelection
+                      }
+                      options={feats}
                       required={true}
                       onChange={setState}
                     />
-                  )}
-                </div>
-              </Fragment>
-            ))
+                    {multipleOptions && (
+                      <Input
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                        label={true}
+                        placeholder='# of Selections'
+                        autoComplete='off'
+                        value={item.selectCount}
+                        invalidText='Must contain only numbers'
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
+                  </div>
+                </Fragment>
+              )
+            })
           },
         },
         {
           name: 'modifier',
           content() {
-            return feature[this.name].map((item, index) => (
-              <Fragment key={index}>
-                <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
-                  {feature.attribute?.some(
-                    (item) => item.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
-                      onChange={setState}
-                    />
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.modType`}
-                    placeholder='Modifier Type'
-                    value={item.modType}
-                    options={builders.modifier.modType}
-                    required={true}
-                    onChange={setState}
-                  />
-                  {item.modType?.name && (
+            return feature[this.name].map((item, index) => {
+              const multipleOptions = item.attribute?.some(
+                (attributeItem) => attributeItem.name === 'providesOptions'
+              )
+              return (
+                <Fragment key={index}>
+                  <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.module`}
-                      placeholder='Modifier Category'
-                      value={item.module}
-                      options={builders.modifier.module?.filter((moduleItem) =>
-                        builders.modifier.modType
-                          .find(
-                            (typeItem) => typeItem.name === item.modType?.name
-                          )
-                          ?.module.map((m) => m.id)
-                          ?.some((moduleID) => moduleID === moduleItem._id)
-                      )}
-                      required={true}
+                      multiple={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                      options={builders.feature.sectionAttribute}
+                      placeholder='Feature Attributes'
+                      value={item.attribute}
                       onChange={setState}
                     />
-                  )}
-                  {(item.modType?.name === 'bonus' ||
-                    item.modType?.name === 'penalty' ||
-                    item.modType?.name === 'advantage' ||
-                    item.modType?.name === 'disadvantage' ||
-                    item.modType?.name === 'setValue') && (
-                    <>
-                      {item.module?.name === 'ability' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.ability${
-                            multipleOptions ? '.options' : '.set'
-                          }`}
-                          multiple={true}
-                          placeholder='Ability'
-                          value={
-                            multipleOptions
-                              ? item.ability?.options
-                              : item.ability?.set
-                          }
-                          options={builders.ability}
-                          required={true}
-                          onChange={setState}
-                        />
-                      )}
-                      {item.module?.name === 'saveAbility' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.saveAbility${
-                            multipleOptions ? '.options' : '.set'
-                          }`}
-                          multiple={true}
-                          placeholder='Save Ability'
-                          value={
-                            multipleOptions
-                              ? item.saveAbility?.options
-                              : item.saveAbility?.set
-                          }
-                          options={builders.ability}
-                          required={true}
-                          onChange={setState}
-                        />
-                      )}
-                      {item.module?.name === 'skill' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.skill${
-                            multipleOptions ? '.options' : '.set'
-                          }`}
-                          multiple={true}
-                          placeholder='Skill'
-                          value={
-                            multipleOptions
-                              ? item.skill?.options
-                              : item.skill?.set
-                          }
-                          options={builders.skill}
-                          require={true}
-                          onChange={setState}
-                        />
-                      )}
-                      {item.module?.name === 'damageSave' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.damageSave${
-                            multipleOptions ? '.options' : '.set'
-                          }`}
-                          multiple={true}
-                          placeholder='Damage'
-                          value={
-                            multipleOptions
-                              ? item.damageSave?.options
-                              : item.damageSave?.set
-                          }
-                          options={builders.damage}
-                          require={true}
-                          onChange={setState}
-                        />
-                      )}
-                      {item.module?.name === 'conditionSave' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.conditionSave${
-                            multipleOptions ? '.options' : '.set'
-                          }`}
-                          multiple={true}
-                          placeholder='Condition'
-                          value={
-                            multipleOptions
-                              ? item.conditionSave?.options
-                              : item.conditionSave?.set
-                          }
-                          options={builders.condition}
-                          required={true}
-                          onChange={setState}
-                        />
-                      )}
-                    </>
-                  )}
-                  {(item.modType?.name === 'bonus' ||
-                    item.modType?.name === 'penalty') &&
-                    item.modType?.name !== 'setValue' && (
-                      <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.method`}
-                        placeholder='Method'
-                        value={item.method}
-                        options={builders.modifier.method.filter((methodItem) =>
-                          methodItem.module?.some(
-                            (moduleItem) => moduleItem.id === item.module?.id
-                          )
-                        )}
-                        require={true}
+                    {item.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'optionGroups'
+                    ) && (
+                      <Input
+                        size='col-sm-2'
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                        label={true}
+                        placeholder='Opt. Grp. #'
+                        autoComplete='off'
+                        value={item.optionGroup}
+                        invalidText='Must contain only numbers'
                         onChange={setState}
                       />
                     )}
-                  {item.module?.name === 'condition' ? (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.condition${
-                        multipleOptions ? '.options' : '.set'
-                      }`}
-                      multiple={true}
-                      placeholder='Condition Type'
-                      value={
-                        multipleOptions
-                          ? item.condition?.options
-                          : item.condition?.set
-                      }
-                      options={builders.condition}
-                      require={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.modType`}
+                      placeholder='Modifier Type'
+                      value={item.modType}
+                      options={builders.modifier.modType}
+                      required={true}
                       onChange={setState}
                     />
-                  ) : item.module?.name === 'speed' ? (
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.speed${multipleOptions ? '.options' : '.set'}`}
-                      multiple={true}
-                      value={
-                        multipleOptions ? item.speed?.options : item.speed?.set
-                      }
-                      placeholder='Speed Type'
-                      options={builders.speed}
-                      require={true}
-                      onChange={setState}
-                    />
-                  ) : item.module?.name === 'passive' ? (
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.passive${
-                        multipleOptions ? '.options' : '.set'
-                      }`}
-                      multiple={true}
-                      placeholder='Passive Type'
-                      value={
-                        multipleOptions
-                          ? item.passive?.options
-                          : item.passive?.set
-                      }
-                      options={builders.passive}
-                      require={true}
-                      onChange={setState}
-                    />
-                  ) : (
-                    item.module?.name === 'damage' && (
+                    {item.modType?.name && (
+                      <Select
+                        name={`feature.${featureIndex}.${this.name}.${index}.module`}
+                        placeholder='Modifier Category'
+                        value={item.module}
+                        options={builders.modifier.module?.filter(
+                          (moduleItem) =>
+                            builders.modifier.modType
+                              .find(
+                                (typeItem) =>
+                                  typeItem.name === item.modType?.name
+                              )
+                              ?.module.map((m) => m.id)
+                              ?.some((moduleID) => moduleID === moduleItem._id)
+                        )}
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {(item.modType?.name === 'bonus' ||
+                      item.modType?.name === 'penalty' ||
+                      item.modType?.name === 'advantage' ||
+                      item.modType?.name === 'disadvantage' ||
+                      item.modType?.name === 'setValue') && (
+                      <>
+                        {item.module?.name === 'ability' && (
+                          <Select
+                            name={`feature.${featureIndex}.${
+                              this.name
+                            }.${index}.ability${
+                              multipleOptions ? '.options' : '.setSelection'
+                            }`}
+                            multiple={true}
+                            placeholder='Ability'
+                            value={
+                              multipleOptions
+                                ? item.ability?.options
+                                : item.ability?.setSelection
+                            }
+                            options={builders.ability}
+                            required={true}
+                            onChange={setState}
+                          />
+                        )}
+                        {item.module?.name === 'saveAbility' && (
+                          <Select
+                            name={`feature.${featureIndex}.${
+                              this.name
+                            }.${index}.saveAbility${
+                              multipleOptions ? '.options' : '.setSelection'
+                            }`}
+                            multiple={true}
+                            placeholder='Save Ability'
+                            value={
+                              multipleOptions
+                                ? item.saveAbility?.options
+                                : item.saveAbility?.setSelection
+                            }
+                            options={builders.ability}
+                            required={true}
+                            onChange={setState}
+                          />
+                        )}
+                        {item.module?.name === 'skill' && (
+                          <Select
+                            name={`feature.${featureIndex}.${
+                              this.name
+                            }.${index}.skill${
+                              multipleOptions ? '.options' : '.setSelection'
+                            }`}
+                            multiple={true}
+                            placeholder='Skill'
+                            value={
+                              multipleOptions
+                                ? item.skill?.options
+                                : item.skill?.setSelection
+                            }
+                            options={builders.skill}
+                            require={true}
+                            onChange={setState}
+                          />
+                        )}
+                        {item.module?.name === 'damageSave' && (
+                          <Select
+                            name={`feature.${featureIndex}.${
+                              this.name
+                            }.${index}.damageSave${
+                              multipleOptions ? '.options' : '.setSelection'
+                            }`}
+                            multiple={true}
+                            placeholder='Damage'
+                            value={
+                              multipleOptions
+                                ? item.damageSave?.options
+                                : item.damageSave?.setSelection
+                            }
+                            options={builders.damage}
+                            require={true}
+                            onChange={setState}
+                          />
+                        )}
+                        {item.module?.name === 'conditionSave' && (
+                          <Select
+                            name={`feature.${featureIndex}.${
+                              this.name
+                            }.${index}.conditionSave${
+                              multipleOptions ? '.options' : '.setSelection'
+                            }`}
+                            multiple={true}
+                            placeholder='Condition'
+                            value={
+                              multipleOptions
+                                ? item.conditionSave?.options
+                                : item.conditionSave?.setSelection
+                            }
+                            options={builders.condition}
+                            required={true}
+                            onChange={setState}
+                          />
+                        )}
+                      </>
+                    )}
+                    {(item.modType?.name === 'bonus' ||
+                      item.modType?.name === 'penalty') &&
+                      item.modType?.name !== 'setValue' && (
+                        <Select
+                          name={`feature.${featureIndex}.${this.name}.${index}.method`}
+                          placeholder='Method'
+                          value={item.method}
+                          options={builders.modifier.method.filter(
+                            (methodItem) =>
+                              methodItem.module?.some(
+                                (moduleItem) =>
+                                  moduleItem.id === item.module?.id
+                              )
+                          )}
+                          require={true}
+                          onChange={setState}
+                        />
+                      )}
+                    {item.module?.name === 'condition' ? (
                       <Select
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.damage${
-                          multipleOptions ? '.options' : '.set'
+                        }.${index}.condition${
+                          multipleOptions ? '.options' : '.setSelection'
                         }`}
                         multiple={true}
-                        placeholder='Damage Type'
+                        placeholder='Condition Type'
                         value={
                           multipleOptions
-                            ? item.damage?.options
-                            : item.damage?.set
+                            ? item.condition?.options
+                            : item.condition?.setSelection
                         }
-                        options={builders.damage}
-                        required={true}
-                        onChange={setState}
-                      />
-                    )
-                  )}
-                  {item.method?.name === 'setValue' ||
-                  item.modType?.name === 'setValue' ? (
-                    <>
-                      <Input
-                        validation='num'
-                        name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
-                        placeholder='Set Value'
-                        label={true}
-                        invalidText='Must contain only numbers'
-                        autoComplete='off'
-                        value={item.method?.setValue}
+                        options={builders.condition}
                         require={true}
                         onChange={setState}
                       />
-                      <Input
-                        validation='num'
-                        name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
-                        placeholder='Multiplier'
-                        label={true}
-                        invalidText='Must contain only whole numbers'
-                        autoComplete='off'
-                        value={item.multiplier}
-                        onChange={setState}
-                      />
-                    </>
-                  ) : item.method?.name === 'ability' ? (
-                    <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
-                      placeholder='Method Ability'
-                      value={item.method.ability}
-                      options={builders.ability}
-                      require={true}
-                      onChange={setState}
-                    />
-                  ) : (
-                    item.method?.name === 'skill' && (
+                    ) : item.module?.name === 'speed' ? (
                       <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
-                        placeholder='Method Skill'
-                        value={item.method.skill}
-                        options={builders.skill}
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.speed${
+                          multipleOptions ? '.options' : '.setSelection'
+                        }`}
+                        multiple={true}
+                        value={
+                          multipleOptions
+                            ? item.speed?.options
+                            : item.speed?.setSelection
+                        }
+                        placeholder='Speed Type'
+                        options={builders.speed}
                         require={true}
                         onChange={setState}
                       />
-                    )
-                  )}
-                  {((item.modType?.name === 'bonus' &&
-                    item.module?.name !== 'hitPoints') ||
-                    item.modType?.name === 'setValue') &&
-                    item.module?.name === 'ability' && (
+                    ) : item.module?.name === 'passive' ? (
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.passive${
+                          multipleOptions ? '.options' : '.setSelection'
+                        }`}
+                        multiple={true}
+                        placeholder='Passive Type'
+                        value={
+                          multipleOptions
+                            ? item.passive?.options
+                            : item.passive?.setSelection
+                        }
+                        options={builders.passive}
+                        require={true}
+                        onChange={setState}
+                      />
+                    ) : (
+                      item.module?.name === 'damage' && (
+                        <Select
+                          name={`feature.${featureIndex}.${
+                            this.name
+                          }.${index}.damage${
+                            multipleOptions ? '.options' : '.setSelection'
+                          }`}
+                          multiple={true}
+                          placeholder='Damage Type'
+                          value={
+                            multipleOptions
+                              ? item.damage?.options
+                              : item.damage?.setSelection
+                          }
+                          options={builders.damage}
+                          required={true}
+                          onChange={setState}
+                        />
+                      )
+                    )}
+                    {item.method?.name === 'setValue' ||
+                    item.modType?.name === 'setValue' ? (
+                      <>
+                        <Input
+                          validation='num'
+                          name={`feature.${featureIndex}.${this.name}.${index}.method.setSelectionValue`}
+                          placeholder='Set Value'
+                          label={true}
+                          invalidText='Must contain only numbers'
+                          autoComplete='off'
+                          value={item.method?.setSelectionValue}
+                          require={true}
+                          onChange={setState}
+                        />
+                      </>
+                    ) : item.method?.name === 'ability' ? (
+                      <>
+                        <Select
+                          name={`feature.${featureIndex}.${this.name}.${index}.method.ability`}
+                          placeholder='Method Ability'
+                          value={item.method.ability}
+                          options={builders.ability}
+                          require={true}
+                          onChange={setState}
+                        />
+                        <Input
+                          validation='num'
+                          name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
+                          placeholder='Multiplier'
+                          label={true}
+                          invalidText='Must contain only whole numbers'
+                          autoComplete='off'
+                          value={item.multiplier}
+                          onChange={setState}
+                        />
+                      </>
+                    ) : (
+                      item.method?.name === 'skill' && (
+                        <>
+                          <Select
+                            name={`feature.${featureIndex}.${this.name}.${index}.method.skill`}
+                            placeholder='Method Skill'
+                            value={item.method.skill}
+                            options={builders.skill}
+                            require={true}
+                            onChange={setState}
+                          />
+                          <Input
+                            validation='num'
+                            name={`feature.${featureIndex}.${this.name}.${index}.multiplier`}
+                            placeholder='Multiplier'
+                            label={true}
+                            invalidText='Must contain only whole numbers'
+                            autoComplete='off'
+                            value={item.multiplier}
+                            onChange={setState}
+                          />
+                        </>
+                      )
+                    )}
+                    {((item.modType?.name === 'bonus' &&
+                      item.module?.name !== 'hitPoints') ||
+                      item.modType?.name === 'setValue') &&
+                      item.module?.name === 'ability' && (
+                        <Input
+                          validation='num'
+                          name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
+                          label={true}
+                          placeholder='Max Value'
+                          autoComplete='off'
+                          value={item.maxValue}
+                          invalidText='Must contain only numbers'
+                          required={true}
+                          onChange={setState}
+                        />
+                      )}
+                    {multipleOptions && (
                       <Input
                         validation='num'
-                        name={`feature.${featureIndex}.${this.name}.${index}.maxValue`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
                         label={true}
-                        placeholder='Max Value'
+                        placeholder='# of Selections'
                         autoComplete='off'
-                        value={item.maxValue}
+                        value={item.selectCount}
                         invalidText='Must contain only numbers'
                         required={true}
                         onChange={setState}
                       />
                     )}
-                  {multipleOptions && (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
-                      label={true}
-                      placeholder='# of Selections'
-                      autoComplete='off'
-                      value={item.selectCount}
-                      invalidText='Must contain only numbers'
-                      required={true}
-                      onChange={setState}
-                    />
-                  )}
-                </div>
-                <div className='row'>
-                  {item.method?.name === 'addPerLevel' &&
-                    (!item?.addPerLevel ? (
-                      setState({
-                        type: 'added',
-                        payload: {
-                          target: {
-                            name: `feature.${featureIndex}.${this.name}.${index}.addPerLevel`,
+                  </div>
+                  <div className='row'>
+                    {item.method?.name === 'addPerLevel' &&
+                      (!item?.addPerLevel ? (
+                        setState({
+                          type: 'added',
+                          payload: {
+                            target: {
+                              name: `feature.${featureIndex}.${this.name}.${index}.addPerLevel`,
+                            },
                           },
-                        },
-                      })
-                    ) : (
-                      <Table
-                        name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
-                        inputs={[
-                          {
-                            name: 'level',
-                            value: 'Level',
-                            validation: 'num',
-                            invalidText: 'Must be whole numbers only',
-                            label: true,
-                            size: 'col-5',
-                          },
-                          {
-                            name: 'amount',
-                            value: 'Level',
-                            validation: 'num',
-                            invalidText: 'Must be whole numbers only',
-                            label: true,
-                            size: 'col-5',
-                          },
-                        ]}
-                        value={item.addPerLevel}
-                        dynamic={true}
-                        onChange={setState}
-                      />
-                    ))}
-                </div>
-              </Fragment>
-            ))
+                        })
+                      ) : (
+                        <Table
+                          name={`feature.${featureIndex}.${this.name}.${index}.addPerLevel`}
+                          inputs={[
+                            {
+                              name: 'level',
+                              value: 'Level',
+                              validation: 'num',
+                              invalidText: 'Must be whole numbers only',
+                              label: true,
+                              size: 'col-5',
+                            },
+                            {
+                              name: 'amount',
+                              value: 'Level',
+                              validation: 'num',
+                              invalidText: 'Must be whole numbers only',
+                              label: true,
+                              size: 'col-5',
+                            },
+                          ]}
+                          value={item.addPerLevel}
+                          dynamic={true}
+                          onChange={setState}
+                        />
+                      ))}
+                  </div>
+                </Fragment>
+              )
+            })
           },
         },
         {
           name: 'proficiency',
           content() {
-            return feature[this.name].map((item, index) => (
-              <Fragment key={index}>
-                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                  {feature.attribute?.some(
-                    (item) => item.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
+            return feature[this.name].map((item, index) => {
+              const multipleOptions = item.attribute?.some(
+                (attributeItem) => attributeItem.name === 'providesOptions'
+              )
+              return (
+                <Fragment key={index}>
+                  <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
+                    <Select
+                      multiple={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                      options={builders.feature.sectionAttribute}
+                      placeholder='Feature Attributes'
+                      value={item.attribute}
                       onChange={setState}
                     />
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.area`}
-                    placeholder='Proficiency Area'
-                    value={item.area}
-                    options={builders.proficiency.area}
-                    require={true}
-                    onChange={setState}
-                  />
-                  {item?.area?.name === 'skill' && (
+                    {item.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'optionGroups'
+                    ) && (
+                      <Input
+                        size='col-sm-2'
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                        label={true}
+                        placeholder='Opt. Grp. #'
+                        autoComplete='off'
+                        value={item.optionGroup}
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
+                    )}
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.skill${multipleOptions ? '.options' : '.set'}`}
-                      multiple={true}
-                      placeholder='Skill'
-                      value={
-                        multipleOptions ? item.skill?.options : item.skill?.set
-                      }
-                      options={builders.skill}
+                      name={`feature.${featureIndex}.${this.name}.${index}.area`}
+                      placeholder='Proficiency Area'
+                      value={item.area}
+                      options={builders.proficiency.area}
                       require={true}
                       onChange={setState}
                     />
-                  )}
-                  {item?.area?.name === 'saveAbility' && (
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.saveAbility${
-                        multipleOptions ? '.options' : '.set'
-                      }`}
-                      multiple={true}
-                      placeholder='Save Ability'
-                      value={
-                        multipleOptions
-                          ? item.saveAbility?.options
-                          : item.saveAbility?.set
-                      }
-                      options={builders.ability}
-                      require={true}
-                      onChange={setState}
-                    />
-                  )}
-                  {item?.area?.name === 'language' && (
-                    <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.language${
-                        multipleOptions ? '.options' : '.set'
-                      }`}
-                      multiple={true}
-                      placeholder='Language'
-                      value={
-                        multipleOptions
-                          ? item.language?.options
-                          : item.language?.set
-                      }
-                      options={builders.language}
-                      onChange={setState}
-                    />
-                  )}
-                  {(item.area?.name === 'itemProperty' ||
-                    item.area?.name === 'itemType') && (
-                    <>
+                    {item?.area?.name === 'skill' && (
                       <Select
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.itemCategory${
-                          multipleOptions ? '.options' : '.set'
+                        }.${index}.skill${
+                          multipleOptions ? '.options' : '.setSelection'
                         }`}
                         multiple={true}
-                        placeholder='Item Category'
+                        placeholder='Skill'
                         value={
                           multipleOptions
-                            ? item.itemCategory?.options
-                            : item.itemCategory?.set
+                            ? item.skill?.options
+                            : item.skill?.setSelection
                         }
-                        options={builders.item.itemCategory}
+                        options={builders.skill}
+                        require={true}
                         onChange={setState}
                       />
-                      {item.area?.name === 'itemProperty' && (
+                    )}
+                    {item?.area?.name === 'saveAbility' && (
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.saveAbility${
+                          multipleOptions ? '.options' : '.setSelection'
+                        }`}
+                        multiple={true}
+                        placeholder='Save Ability'
+                        value={
+                          multipleOptions
+                            ? item.saveAbility?.options
+                            : item.saveAbility?.setSelection
+                        }
+                        options={builders.ability}
+                        require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {item?.area?.name === 'language' && (
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.language${
+                          multipleOptions ? '.options' : '.setSelection'
+                        }`}
+                        multiple={true}
+                        placeholder='Language'
+                        value={
+                          multipleOptions
+                            ? item.language?.options
+                            : item.language?.setSelection
+                        }
+                        options={builders.language}
+                        onChange={setState}
+                      />
+                    )}
+                    {(item.area?.name === 'property' ||
+                      item.area?.name === 'itemType') && (
+                      <>
                         <Select
                           name={`feature.${featureIndex}.${
                             this.name
-                          }.${index}.itemProperty${
-                            multipleOptions ? '.options' : '.set'
+                          }.${index}.category${
+                            multipleOptions ? '.options' : '.setSelection'
                           }`}
                           multiple={true}
-                          placeholder='Item Property'
+                          placeholder='Item Category'
                           value={
                             multipleOptions
-                              ? item.itemProperty?.options
-                              : item.itemProperty?.set
+                              ? item.category?.options
+                              : item.category?.setSelection
                           }
-                          options={[].concat(
-                            ...builders.item.itemCategory
-                              .filter((category) =>
-                                multipleOptions
-                                  ? item.itemCategory?.options?.length > 0
-                                    ? item.itemCategory?.options?.some(
-                                        (itemCategory) =>
-                                          itemCategory.name === category.name
-                                      )
-                                    : category
-                                  : item.itemCategory?.set?.length > 0
-                                  ? item.itemCategory?.set?.some(
-                                      (itemCategory) =>
-                                        itemCategory.name === category.name
-                                    )
-                                  : category
-                              )
-                              .map((category) => category.itemProperty)
-                          )}
+                          options={builders.item.category}
                           onChange={setState}
                         />
-                      )}
-                      {item.area?.name === 'itemType' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.itemType${
-                            multipleOptions ? '.options' : '.set'
-                          }`}
-                          multiple={true}
-                          placeholder='Item Type'
-                          value={
-                            multipleOptions
-                              ? item.itemType?.options
-                              : item.itemType?.set
-                          }
-                          options={items.filter((itemType) =>
-                            multipleOptions
-                              ? item.itemCategory?.options?.length > 0
-                                ? item.itemCategory?.options?.some(
-                                    (itemCategory) =>
-                                      itemCategory.name ===
-                                      itemType.itemCategory.name
+                        {item.area?.name === 'property' && (
+                          <Select
+                            name={`feature.${featureIndex}.${
+                              this.name
+                            }.${index}.property${
+                              multipleOptions ? '.options' : '.setSelection'
+                            }`}
+                            multiple={true}
+                            placeholder='Item Property'
+                            value={
+                              multipleOptions
+                                ? item.property?.options
+                                : item.property?.setSelection
+                            }
+                            options={[].concat(
+                              ...builders.item.category
+                                .filter((bCategoryItem) =>
+                                  multipleOptions
+                                    ? item.category?.options?.length > 0
+                                      ? item.category?.options?.some(
+                                          (categoryItem) =>
+                                            categoryItem.name ===
+                                            bCategoryItem.name
+                                        )
+                                      : bCategoryItem
+                                    : item.category?.setSelection?.length > 0
+                                    ? item.category?.setSelection?.some(
+                                        (categoryItem) =>
+                                          categoryItem.name ===
+                                          bCategoryItem.name
+                                      )
+                                    : bCategoryItem
+                                )
+                                .map((category) => category.property)
+                            )}
+                            onChange={setState}
+                          />
+                        )}
+                        {item.area?.name === 'itemType' && (
+                          <Select
+                            name={`feature.${featureIndex}.${
+                              this.name
+                            }.${index}.itemType${
+                              multipleOptions ? '.options' : '.setSelection'
+                            }`}
+                            multiple={true}
+                            placeholder='Item Type'
+                            value={
+                              multipleOptions
+                                ? item.itemType?.options
+                                : item.itemType?.setSelection
+                            }
+                            options={items.filter((itemType) =>
+                              multipleOptions
+                                ? item.category?.options?.length > 0
+                                  ? item.category?.options?.some(
+                                      (category) =>
+                                        category.name === itemType.category.name
+                                    )
+                                  : itemType
+                                : item.category?.setSelection?.length > 0
+                                ? item.category?.setSelection?.some(
+                                    (category) =>
+                                      category.name === itemType.category.name
                                   )
                                 : itemType
-                              : item.itemCategory?.set?.length > 0
-                              ? item.itemCategory?.set?.some(
-                                  (itemCategory) =>
-                                    itemCategory.name ===
-                                    itemType.itemCategory.name
-                                )
-                              : itemType
-                          )}
-                          onChange={setState}
-                        />
-                      )}
-                    </>
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.level`}
-                    placeholder='Proficiency Level'
-                    value={item.level}
-                    options={builders.proficiency.level}
-                    require={true}
-                    onChange={setState}
-                  />
-                  {multipleOptions && (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
-                      label={true}
-                      placeholder='# of Selections'
-                      autoComplete='off'
-                      value={item.selectCount}
-                      invalidText='Must contain only numbers'
-                      required={true}
+                            )}
+                            onChange={setState}
+                          />
+                        )}
+                      </>
+                    )}
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}.level`}
+                      placeholder='Proficiency Level'
+                      value={item.level}
+                      options={builders.proficiency.level}
+                      require={true}
                       onChange={setState}
                     />
-                  )}
-                </div>
-              </Fragment>
-            ))
+                    {multipleOptions && (
+                      <Input
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                        label={true}
+                        placeholder='# of Selections'
+                        autoComplete='off'
+                        value={item.selectCount}
+                        invalidText='Must contain only numbers'
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
+                  </div>
+                </Fragment>
+              )
+            })
           },
         },
         {
           name: 'sense',
           content() {
-            return feature[this.name].map((item, index) => (
-              <Fragment key={index}>
-                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                  {feature.attribute?.some(
-                    (item) => item.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
+            return feature[this.name].map((item, index) => {
+              const multipleOptions = item.attribute?.some(
+                (attributeItem) => attributeItem.name === 'providesOptions'
+              )
+              return (
+                <Fragment key={index}>
+                  <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
+                    <Select
+                      multiple={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                      options={builders.feature.sectionAttribute}
+                      placeholder='Feature Attributes'
+                      value={item.attribute}
                       onChange={setState}
                     />
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}${
-                      multipleOptions ? '.options' : '.set'
-                    }`}
-                    multiple={true}
-                    placeholder='Sense'
-                    value={multipleOptions ? item?.options : item?.set}
-                    options={builders.sense}
-                    require={true}
-                    onChange={setState}
-                  />
-                  {multipleOptions && (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
-                      label={true}
-                      placeholder='# of Selections'
-                      autoComplete='off'
-                      value={item.selectCount}
-                      invalidText='Must contain only numbers'
-                      required={true}
+                    {item.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'optionGroups'
+                    ) && (
+                      <Input
+                        size='col-sm-2'
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                        label={true}
+                        placeholder='Opt. Grp. #'
+                        autoComplete='off'
+                        value={item.optionGroup}
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
+                    )}
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Sense'
+                      value={
+                        multipleOptions ? item?.options : item?.setSelection
+                      }
+                      options={builders.sense}
+                      require={true}
                       onChange={setState}
                     />
-                  )}
-                </div>
-              </Fragment>
-            ))
+                    {multipleOptions && (
+                      <Input
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                        label={true}
+                        placeholder='# of Selections'
+                        autoComplete='off'
+                        value={item.selectCount}
+                        invalidText='Must contain only numbers'
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
+                  </div>
+                </Fragment>
+              )
+            })
           },
         },
         {
           name: 'spell',
           content() {
-            return feature[this.name].map((item, index) => (
-              <Fragment key={index}>
-                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                  {feature.attribute?.some(
-                    (item) => item.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
+            return feature[this.name].map((item, index) => {
+              const multipleOptions = item.attribute?.some(
+                (attributeItem) => attributeItem.name === 'providesOptions'
+              )
+              return (
+                <Fragment key={index}>
+                  <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
+                    <Select
+                      multiple={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                      options={builders.feature.sectionAttribute}
+                      placeholder='Feature Attributes'
+                      value={item.attribute}
                       onChange={setState}
                     />
-                  )}
-                  <Select
-                    multiple='true'
-                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                    options={builders.feature.spell.attribute}
-                    placeholder='Spell Attributes'
-                    value={item.attribute}
-                    require={true}
-                    onChange={setState}
-                  />
-                  <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}${
-                      multipleOptions ? '.options' : '.set'
-                    }`}
-                    multiple={true}
-                    placeholder='Spell'
-                    value={multipleOptions ? item?.options : item?.set}
-                    options={spells}
-                    require={true}
-                    onChange={setState}
-                  />
-                  {item.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'optionalAbility'
-                  ) && (
+                    {item.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'optionGroups'
+                    ) && (
+                      <Input
+                        size='col-sm-2'
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                        label={true}
+                        placeholder='Opt. Grp. #'
+                        autoComplete='off'
+                        value={item.optionGroup}
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
+                    )}
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.ability${
-                        multipleOptions ? '.options' : '.set'
-                      }`}
-                      multiple={true}
-                      placeholder='Ability'
-                      value={
-                        multipleOptions
-                          ? item.ability?.options
-                          : item.ability?.set
-                      }
-                      options={builders.ability}
+                      multiple='true'
+                      name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                      options={builders.feature.spell.attribute}
+                      placeholder='Spell Attributes'
+                      value={item.attribute}
                       require={true}
                       onChange={setState}
                     />
-                  )}
-                  {multipleOptions && (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
-                      label={true}
-                      placeholder='# of Selections'
-                      autoComplete='off'
-                      value={item.selectCount}
-                      invalidText='Must contain only numbers'
-                      required={true}
+                    <Select
+                      name={`feature.${featureIndex}.${this.name}.${index}${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Spell'
+                      value={
+                        multipleOptions ? item?.options : item?.setSelection
+                      }
+                      options={spells}
+                      require={true}
                       onChange={setState}
                     />
-                  )}
-                </div>
-              </Fragment>
-            ))
+                    {item.attribute?.some(
+                      (attributeItem) =>
+                        attributeItem.name === 'optionalAbility'
+                    ) && (
+                      <Select
+                        name={`feature.${featureIndex}.${
+                          this.name
+                        }.${index}.ability${
+                          multipleOptions ? '.options' : '.setSelection'
+                        }`}
+                        multiple={true}
+                        placeholder='Ability'
+                        value={
+                          multipleOptions
+                            ? item.ability?.options
+                            : item.ability?.setSelection
+                        }
+                        options={builders.ability}
+                        require={true}
+                        onChange={setState}
+                      />
+                    )}
+                    {multipleOptions && (
+                      <Input
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                        label={true}
+                        placeholder='# of Selections'
+                        autoComplete='off'
+                        value={item.selectCount}
+                        invalidText='Must contain only numbers'
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
+                  </div>
+                </Fragment>
+              )
+            })
           },
         },
         {
           name: 'equipment',
           content() {
-            return feature[this.name].map((item, index) => (
-              <Fragment key={index}>
-                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                  {feature.attribute?.some(
-                    (item) => item.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label={true}
-                      placeholder='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
+            return feature[this.name].map((item, index) => {
+              const multipleOptions = item.attribute?.some(
+                (attributeItem) => attributeItem.name === 'providesOptions'
+              )
+              return (
+                <Fragment key={index}>
+                  <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
+                    <Select
+                      multiple={true}
+                      name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                      options={builders.feature.sectionAttribute}
+                      placeholder='Feature Attributes'
+                      value={item.attribute}
                       onChange={setState}
                     />
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemCategory${
-                      multipleOptions ? '.options' : '.set'
-                    }`}
-                    multiple={true}
-                    placeholder='Item Category'
-                    value={
-                      multipleOptions
-                        ? item.itemCategory?.options
-                        : item.itemCategory?.set
-                    }
-                    options={builders.item.itemCategory}
-                    onChange={setState}
-                  />
-
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemProperty${
-                      multipleOptions ? '.options' : '.set'
-                    }`}
-                    multiple={true}
-                    placeholder='Item Property'
-                    value={
-                      multipleOptions
-                        ? item.itemProperty?.options
-                        : item.itemProperty?.set
-                    }
-                    options={[].concat(
-                      ...builders.item.itemCategory
-                        .filter((category) =>
-                          multipleOptions
-                            ? item.itemCategory?.options?.length > 0
-                              ? item.itemCategory?.options?.some(
-                                  (itemCategory) =>
-                                    itemCategory.name === category.name
-                                )
-                              : category
-                            : item.itemCategory?.set?.length > 0
-                            ? item.itemCategory?.set?.some(
-                                (itemCategory) =>
-                                  itemCategory.name === category.name
-                              )
-                            : category
-                        )
-                        .map((category) => category.itemProperty)
+                    {item.attribute?.some(
+                      (attributeItem) => attributeItem.name === 'optionGroups'
+                    ) && (
+                      <Input
+                        size='col-sm-2'
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                        label={true}
+                        placeholder='Opt. Grp. #'
+                        autoComplete='off'
+                        value={item.optionGroup}
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
                     )}
-                    onChange={setState}
-                  />
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemType${
-                      multipleOptions ? '.options' : '.set'
-                    }`}
-                    multiple={true}
-                    placeholder='Item Type'
-                    value={
-                      multipleOptions
-                        ? item.itemType?.options
-                        : item.itemType?.set
-                    }
-                    options={items.filter((itemType) =>
-                      multipleOptions
-                        ? item.itemCategory?.options?.length > 0
-                          ? item.itemCategory?.options?.some(
-                              (itemCategory) =>
-                                itemCategory.name === itemType.itemCategory.name
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.category${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Category'
+                      value={
+                        multipleOptions
+                          ? item.category?.options
+                          : item.category?.setSelection
+                      }
+                      options={builders.item.category}
+                      onChange={setState}
+                    />
+
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.property${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Property'
+                      value={
+                        multipleOptions
+                          ? item.property?.options
+                          : item.property?.setSelection
+                      }
+                      options={[].concat(
+                        ...builders.item.category
+                          .filter((bCategoryItem) =>
+                            multipleOptions
+                              ? item.category?.options?.length > 0
+                                ? item.category?.options?.some(
+                                    (categoryItem) =>
+                                      categoryItem.name === bCategoryItem.name
+                                  )
+                                : bCategoryItem
+                              : item.category?.setSelection?.length > 0
+                              ? item.category?.setSelection?.some(
+                                  (categoryItem) =>
+                                    categoryItem.name === bCategoryItem.name
+                                )
+                              : bCategoryItem
+                          )
+                          .map((category) => category.property)
+                      )}
+                      onChange={setState}
+                    />
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.itemType${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Item Type'
+                      value={
+                        multipleOptions
+                          ? item.itemType?.options
+                          : item.itemType?.setSelection
+                      }
+                      options={items.filter((itemType) =>
+                        multipleOptions
+                          ? item.category?.options?.length > 0
+                            ? item.category?.options?.some(
+                                (category) =>
+                                  category.name === itemType.category.name
+                              )
+                            : itemType
+                          : item.category?.setSelection?.length > 0
+                          ? item.category?.setSelection?.some(
+                              (category) =>
+                                category.name === itemType.category.name
                             )
                           : itemType
-                        : item.itemCategory?.set?.length > 0
-                        ? item.itemCategory?.set?.some(
-                            (itemCategory) =>
-                              itemCategory.name === itemType.itemCategory.name
-                          )
-                        : itemType
-                    )}
-                    onChange={setState}
-                  />
-                  {multipleOptions && (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
-                      label={true}
-                      placeholder='# of Selections'
-                      autoComplete='off'
-                      value={item.selectCount}
-                      invalidText='Must contain only numbers'
-                      required={true}
+                      )}
                       onChange={setState}
                     />
-                  )}
-                </div>
-              </Fragment>
-            ))
+                    {multipleOptions ? (
+                      <Input
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                        label={true}
+                        placeholder='# of Selections'
+                        autoComplete='off'
+                        value={item.selectCount}
+                        invalidText='Must contain only numbers'
+                        required={true}
+                        onChange={setState}
+                      />
+                    ) : (
+                      <Input
+                        size='col-sm-2'
+                        validation='num'
+                        name={`feature.${featureIndex}.${this.name}.${index}.quantity`}
+                        label={true}
+                        placeholder='Quantity'
+                        autoComplete='off'
+                        value={item.quantity}
+                        invalidText='Must contain only numbers'
+                        required={true}
+                        onChange={setState}
+                      />
+                    )}
+                  </div>
+                </Fragment>
+              )
+            })
           },
         },
       ]
@@ -1317,11 +1446,11 @@ const EditClassForm = () => {
                   <Input
                     validation='num'
                     type='text'
-                    name={`feature.${featureIndex}.limitUse.setAmount`}
+                    name={`feature.${featureIndex}.limitUse.setSelectionAmount`}
                     label={true}
                     invalidText='Must contain only numbers'
                     placeholder='Use Amount'
-                    value={featureItem.limitUse?.setAmount}
+                    value={featureItem.limitUse?.setSelectionAmount}
                     required={true}
                     onChange={setState}
                   />
@@ -1425,16 +1554,9 @@ const EditClassForm = () => {
               )}
             </>
           )}
-        </div>
-        {featureItem.attribute?.some(
-          (attributeItem) => attributeItem.name === 'hasRequirements'
-        ) && (
-          <>
-            <div className='d-flex'>
-              <hr className='flex-grow-1 me-3' />
-              <span className='mx-auto'>Requirements</span>
-              <hr className='flex-grow-1 ms-3' />
-            </div>
+          {featureItem.attribute?.some(
+            (attributItem) => attributItem.name === 'hasRequirements'
+          ) && (
             <Select
               multiple={true}
               name={`feature.${featureIndex}.requirement.option`}
@@ -1444,6 +1566,15 @@ const EditClassForm = () => {
               required={true}
               onChange={setState}
             />
+          )}
+        </div>
+        {featureItem.requirement?.option?.length > 0 && (
+          <>
+            <div className='d-flex'>
+              <hr className='flex-grow-1 me-3' />
+              <span className='mx-auto'>Requirements</span>
+              <hr className='flex-grow-1 ms-3' />
+            </div>
             {featureItem.requirement?.option?.some(
               (optionItem) => optionItem.name === 'skillProficiency'
             ) && (
@@ -1496,29 +1627,28 @@ const EditClassForm = () => {
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
                 multiple={true}
-                name={`feature.${featureIndex}.requirement.itemProficiency.itemCategory`}
-                value={featureItem.requirement?.itemProficiency?.itemCategory}
+                name={`feature.${featureIndex}.requirement.itemProficiency.category`}
+                value={featureItem.requirement?.itemProficiency?.category}
                 placeholder='Item Category'
-                options={builders.item.itemCategory}
+                options={builders.item.category}
                 onChange={setState}
               />
               <Select
-                name={`feature.${featureIndex}.requirement.itemProficiency.itemProperty`}
+                name={`feature.${featureIndex}.requirement.itemProficiency.property`}
                 multiple={true}
                 placeholder='Item Property'
-                value={featureItem.requirement?.itemProficiency?.itemProperty}
+                value={featureItem.requirement?.itemProficiency?.property}
                 options={[].concat(
                   ...items
                     .filter((item) =>
-                      featureItem.requirement?.itemProficiency?.itemCategory
+                      featureItem.requirement?.itemProficiency?.category
                         ?.length > 0
-                        ? featureItem.requirement?.itemProficiency?.itemCategory?.some(
-                            (category) =>
-                              category.name === item.itemCategory.name
+                        ? featureItem.requirement?.itemProficiency?.category?.some(
+                            (category) => category.name === item.category.name
                           )
                         : item
                     )
-                    .map((item) => item.itemProperty)
+                    .map((item) => item.property)
                 )}
                 onChange={setState}
               />
@@ -1528,10 +1658,9 @@ const EditClassForm = () => {
                 placeholder='Item type'
                 value={featureItem.requirement?.itemProficiency?.itemType}
                 options={items.filter((item) =>
-                  featureItem.requirement.itemProficiency?.itemCategory
-                    ?.length > 0
-                    ? featureItem.requirement.itemProficiency?.itemCategory?.some(
-                        (category) => category.name === item.itemCategory.name
+                  featureItem.requirement.itemProficiency?.category?.length > 0
+                    ? featureItem.requirement.itemProficiency?.category?.some(
+                        (category) => category.name === item.category.name
                       )
                     : item
                 )}
@@ -1552,29 +1681,27 @@ const EditClassForm = () => {
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
                 multiple={true}
-                name={`feature.${featureIndex}.requirement.equipped.itemCategory`}
-                value={featureItem.requirement?.equipped?.itemCategory}
+                name={`feature.${featureIndex}.requirement.equipped.category`}
+                value={featureItem.requirement?.equipped?.category}
                 placeholder='Item Category'
-                options={builders.item.itemCategory}
+                options={builders.item.category}
                 onChange={setState}
               />
               <Select
                 multiple={true}
-                name={`feature.${featureIndex}.requirement.equipped.itemProperty`}
+                name={`feature.${featureIndex}.requirement.equipped.property`}
                 placeholder='Item Property'
-                value={featureItem.requirement?.equipped?.itemProperty}
+                value={featureItem.requirement?.equipped?.property}
                 options={[].concat(
                   ...items
                     .filter((item) =>
-                      featureItem.requirement?.equipped?.itemCategory?.length >
-                      0
-                        ? featureItem.requirement?.equipped?.itemCategory?.some(
-                            (category) =>
-                              category.name === item.itemCategory.name
+                      featureItem.requirement?.equipped?.category?.length > 0
+                        ? featureItem.requirement?.equipped?.category?.some(
+                            (category) => category.name === item.category.name
                           )
                         : item
                     )
-                    .map((item) => item.itemProperty)
+                    .map((item) => item.property)
                 )}
                 onChange={setState}
               />
@@ -1584,9 +1711,9 @@ const EditClassForm = () => {
                 placeholder='Item type'
                 value={featureItem.requirement?.equipped?.itemType}
                 options={items.filter((item) =>
-                  featureItem.requirement.equipped?.itemCategory?.length > 0
-                    ? featureItem.requirement.equipped?.itemCategory?.some(
-                        (category) => category.name === item.itemCategory.name
+                  featureItem.requirement.equipped?.category?.length > 0
+                    ? featureItem.requirement.equipped?.category?.some(
+                        (category) => category.name === item.category.name
                       )
                     : item
                 )}
@@ -1607,29 +1734,27 @@ const EditClassForm = () => {
             <div className='row g-2 pb-3 mx-5 justify-contents-center'>
               <Select
                 multiple={true}
-                name={`feature.${featureIndex}.requirement.notEquipped.itemCategory`}
-                value={featureItem.requirement?.notEquipped?.itemCategory}
+                name={`feature.${featureIndex}.requirement.notEquipped.category`}
+                value={featureItem.requirement?.notEquipped?.category}
                 placeholder='Item Category'
-                options={builders.item.itemCategory}
+                options={builders.item.category}
                 onChange={setState}
               />
               <Select
                 multiple={true}
-                name={`feature.${featureIndex}.requirement.notEquipped.itemProperty`}
-                value={featureItem.requirement?.notEquipped?.itemProperty}
+                name={`feature.${featureIndex}.requirement.notEquipped.property`}
+                value={featureItem.requirement?.notEquipped?.property}
                 placeholder='Item Property'
                 options={[].concat(
                   ...items
                     .filter((item) =>
-                      featureItem.requirement.notEquipped?.itemCategory
-                        ?.length > 0
-                        ? featureItem.requirement.notEquipped?.itemCategory?.some(
-                            (category) =>
-                              category.name === item.itemCategory.name
+                      featureItem.requirement.notEquipped?.category?.length > 0
+                        ? featureItem.requirement.notEquipped?.category?.some(
+                            (category) => category.name === item.category.name
                           )
                         : item
                     )
-                    .map((item) => item.itemProperty)
+                    .map((item) => item.property)
                 )}
                 onChange={setState}
               />
@@ -1639,9 +1764,9 @@ const EditClassForm = () => {
                 placeholder='Item type'
                 value={featureItem.requirement?.notEquipped?.itemType}
                 options={items.filter((item) =>
-                  featureItem.requirement.notEquipped?.itemCategory?.length > 0
-                    ? featureItem.requirement.notEquipped?.itemCategory?.some(
-                        (category) => category.name === item.itemCategory.name
+                  featureItem.requirement.notEquipped?.category?.length > 0
+                    ? featureItem.requirement.notEquipped?.category?.some(
+                        (category) => category.name === item.category.name
                       )
                     : item
                 )}
@@ -1664,33 +1789,52 @@ const EditClassForm = () => {
               },
             })
           ) : (
-            <div>
-              <h6>Limit Use Table</h6>
-              <Table
-                inputs={[
-                  {
-                    name: 'level',
-                    value: 'Level',
-                    invalid: 'Must contain only numbers',
-                    validation: 'num',
-                    label: true,
-                    size: 'col-5',
-                  },
-                  {
-                    name: 'uses',
-                    value: 'Uses',
-                    invalid: 'Must contain only numbers',
-                    validation: 'num',
-                    label: true,
-                    size: 'col-5',
-                  },
-                ]}
-                name={`feature.${featureIndex}.limitUse.level`}
-                value={featureItem.limitUse?.level}
-                onChange={setState}
-                dynamic={true}
-              />
-            </div>
+            <>
+              <div
+                className='btn btn-section-collapse justify-content-between align-items-center'
+                id='sectionCollapseButton'
+                type='button'
+                role='button'
+                data-bs-toggle='collapse'
+                data-bs-target={`#limitUse${featureIndex}Collapse`}
+                aria-controls='collapseExample'
+                aria-expanded='true'
+              >
+                <span className='me-3'>Limit Use Table</span>
+                <i className='bi bi-arrow-down-up' />
+              </div>
+              <div
+                className='section-container collapse show'
+                id={`limitUse${featureIndex}Collapse`}
+              >
+                <div className='section-content'>
+                  <Table
+                    inputs={[
+                      {
+                        name: 'level',
+                        value: 'Level',
+                        invalid: 'Must contain only numbers',
+                        validation: 'num',
+                        label: true,
+                        size: 'col-5',
+                      },
+                      {
+                        name: 'uses',
+                        value: 'Uses',
+                        invalid: 'Must contain only numbers',
+                        validation: 'num',
+                        label: true,
+                        size: 'col-5',
+                      },
+                    ]}
+                    name={`feature.${featureIndex}.limitUse.level`}
+                    value={featureItem.limitUse?.level}
+                    onChange={setState}
+                    dynamic={true}
+                  />
+                </div>
+              </div>
+            </>
           ))}
         {featureItem.attribute?.some(
           (attributeItem) => attributeItem.name === 'doesDamage'
@@ -2057,7 +2201,6 @@ const EditClassForm = () => {
                   value={state?.levelAttribute}
                   indentedName='spellSlots'
                   onChange={setState}
-                  scrollable={true}
                   dynamic={true}
                 />
               </div>
@@ -2094,7 +2237,7 @@ const EditClassForm = () => {
             <TextEditor
               ref={addToTextRefs}
               name={'subclass.desc'}
-              value={state?.desc}
+              value={state?.subclass?.desc}
               placeholder={'Description'}
               onChange={setState}
             />

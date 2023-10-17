@@ -1,7 +1,12 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useDeleteSpellMutation } from './spellsApiSlice'
-import { selectSpells } from './spellsSlice'
+import {
+  selectSpells,
+  selectSpellsFilter,
+  setSpellsFilter,
+  clearSpellsFilter,
+} from './spellsSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
 import Spinner from '../../components/Spinner'
@@ -20,19 +25,22 @@ const SpellList = () => {
 
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const spellToDelete = useSelector((state) => state.delete.data)
+
   const spells = useSelector(selectSpells)
+  const filtersState = useSelector(selectSpellsFilter)
 
   const [deleteSpell, { isError: delIsError, error: delError }] =
     useDeleteSpellMutation()
 
   const { listFilter, filteredList, setListFilter, setFilterItems } =
-    useFilteredList(spells)
+    useFilteredList(spells, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
+
   const showCard = (spell) => {
     navigate(`/spells/${spell.name}`, {
       state: {
@@ -77,6 +85,28 @@ const SpellList = () => {
     }
   }, [delIsError, delError])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  useEffect(() => {
+    Object.keys(listFilter).length > 0 && dispatch(setSpellsFilter(listFilter))
+  }, [dispatch, listFilter])
+
+  useEffect(() => {
+    filtersState !== null &&
+      setListFilter({ type: 'reset', payload: { target: filtersState } })
+  }, [filtersState, setListFilter])
+
+  useEffect(() => {
+    setFilterItems(spells)
+  }, [spells, setFilterItems])
+
+  const onFilterReset = () => {
+    dispatch(clearSpellsFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
+
   useEffect(() => {
     setTableColumns({
       headers: [
@@ -95,6 +125,7 @@ const SpellList = () => {
           className: 'fw-bold',
           size: 'col-lg-2 col-md-4 col-5',
           breakpoint: '',
+          defaultSort: true,
         },
         {
           name: {
@@ -134,7 +165,7 @@ const SpellList = () => {
           breakpoint: (is1000 || is600) && true,
         },
         {
-          name: {sortOn: 'damage.damagType'},
+          name: { sortOn: 'damage.damagType' },
           value: 'Damage Type',
           border: false,
           className: 'fw-bold',
@@ -180,14 +211,6 @@ const SpellList = () => {
     })
   }, [setTableColumns, is1200, is1000, is600])
 
-  useEffect(() => {
-    setFilterItems(spells)
-  }, [spells, setFilterItems])
-
-  const onFilterReset = () => {
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
-
   let content
 
   if (loading) {
@@ -222,7 +245,7 @@ const SpellList = () => {
                 placeholder='Spell Name'
                 autoComplete='off'
                 value={listFilter?.value}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -230,7 +253,7 @@ const SpellList = () => {
                 placeholder='Level'
                 options={filteredList?.map((item) => ({ value: item?.level }))}
                 value={listFilter?.level}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -238,7 +261,7 @@ const SpellList = () => {
                 placeholder='Casting Time'
                 options={filteredList?.map((item) => item.action?.actionType)}
                 value={listFilter?.action?.actionType}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -248,7 +271,7 @@ const SpellList = () => {
                   (item) => item.duration?.durationType
                 )}
                 value={listFilter?.duration?.durationType}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -256,7 +279,7 @@ const SpellList = () => {
                 placeholder='Range'
                 options={filteredList?.map((item) => item.range?.rangeType)}
                 value={listFilter?.range?.rangeType}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -270,7 +293,7 @@ const SpellList = () => {
                   }
                 })}
                 value={listFilter?.damage?.damageType}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -278,7 +301,7 @@ const SpellList = () => {
                 placeholder='Spell School'
                 options={filteredList?.map((item) => item.school)}
                 value={listFilter?.school}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
             </div>
           </div>
@@ -313,6 +336,9 @@ const SpellList = () => {
           dynamic={false}
           readOnly={true}
           sortable={true}
+          defaultSort={tableColumns.headers.find(
+            (headerItem) => headerItem.defaultSort === true
+          )}
           scrollable={true}
           value={filteredList}
           headers={tableColumns.headers}

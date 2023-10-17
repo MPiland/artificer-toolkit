@@ -1,7 +1,7 @@
 import { useState, useMemo, useReducer } from 'react'
 import formReducer from './useReducer'
 
-const useFilteredList = (initialItems, initialFilter = {}) => {
+const useFilteredList = (initialItems, initialFilter) => {
   const [listFilter, setListFilter] = useReducer(formReducer, initialFilter)
   const [filterItems, setFilterItems] = useState(initialItems)
 

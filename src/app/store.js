@@ -22,7 +22,6 @@ const tokenListenerMiddleware = createListenerMiddleware()
 tokenListenerMiddleware.startListening({
   actionCreator: setCredentials,
   effect: async (action, listenerApi) => {
-    console.log('listening')
     listenerApi.cancelActiveListeners()
     store.dispatch(setLoading(true))
     await store.dispatch(

@@ -52,9 +52,10 @@ export const handleValidation = (resetValidation) => {
             } else if (validation === 'del') {
               if (
                 DEL_REGEX.test(element.value) === false &&
-                element.value !== ''
+                element.value != null
               ) {
                 element.classList.add('is-invalid')
+                isValid = false
               } else {
                 element.classList.remove('is-invalid')
                 element.classList.add('is-valid')

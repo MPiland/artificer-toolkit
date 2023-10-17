@@ -39,6 +39,7 @@ const Delete = () => {
           value={deleteState}
           validation='del'
           invalidText='Must type DELETE exactly'
+          required={true}
         />
         <button
           className='btn btn-danger col-2 ms-2'

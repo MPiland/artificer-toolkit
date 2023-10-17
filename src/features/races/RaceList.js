@@ -2,7 +2,12 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useDeleteRaceMutation } from './racesApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
-import { selectRaces } from './racesSlice'
+import {
+  selectRaces,
+  selectRacesFilter,
+  clearRacesFilter,
+  setRacesFilter,
+} from './racesSlice'
 import { clearConfirm } from '../../app/deleteSlice'
 import Spinner from '../../components/Spinner'
 import useMediaQuery from '../../hooks/useMediaQuery'
@@ -19,12 +24,15 @@ const RaceList = () => {
 
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const raceToDelete = useSelector((state) => state.delete.data)
+
   const races = useSelector(selectRaces)
+  const filtersState = useSelector(selectRacesFilter)
 
   const [deleteRace, { isError: delIsError, error: delError }] =
     useDeleteRaceMutation()
 
-  const { filteredList, setListFilter, setFilterItems } = useFilteredList()
+  const { listFilter, filteredList, setListFilter, setFilterItems } =
+    useFilteredList(races, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
 
@@ -76,9 +84,27 @@ const RaceList = () => {
     }
   }, [delIsError, delError])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  useEffect(() => {
+    Object.keys(listFilter).length > 0 && dispatch(setRacesFilter(listFilter))
+  }, [dispatch, listFilter])
+
+  useEffect(() => {
+    filtersState !== null &&
+      setListFilter({ type: 'reset', payload: { target: filtersState } })
+  }, [filtersState, setListFilter])
+
   useEffect(() => {
     setFilterItems(races)
   }, [races, setFilterItems])
+
+  const onFilterReset = () => {
+    dispatch(clearRacesFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
 
   useEffect(() => {
     setTableColumns({
@@ -90,6 +116,7 @@ const RaceList = () => {
           className: 'fw-bold',
           size: 'col',
           breakpoint: '',
+          defaultSort: true,
         },
       ],
       inputs: [
@@ -101,10 +128,6 @@ const RaceList = () => {
       ],
     })
   }, [setTableColumns, is1200, is1000, is600])
-
-  const onFilterReset = () => {
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
 
   let content
 
@@ -139,8 +162,8 @@ const RaceList = () => {
                 label={true}
                 placeholder='Race Name'
                 autoComplete='off'
-                value={filteredList?.value}
-                onChange={setListFilter}
+                value={listFilter?.value}
+                onChange={(e) => onFilterChange(e)}
               />
             </div>
           </div>
@@ -174,6 +197,9 @@ const RaceList = () => {
           dynamic={false}
           readOnly={true}
           sortable={true}
+          defaultSort={tableColumns.headers.find(
+            (headerItem) => headerItem.defaultSort === true
+          )}
           value={filteredList}
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}

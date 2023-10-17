@@ -49,7 +49,6 @@ const useSortableData = (items, config = null) => {
       const { orderKey, order, sortOn, subSort } = key
 
       if (orderKey) {
-        console.log('order', order)
         order.forEach((orderItem) => {
           const filterKey = isObject(orderItem)
             ? Object.values(orderItem)[0]
@@ -97,7 +96,6 @@ const useSortableData = (items, config = null) => {
           return compareValues(aValue, bValue, direction)
         })
       }
-      console.log('sortableItems', sortableItems)
       return sortableItems
     },
     [compareValues]
@@ -110,7 +108,7 @@ const useSortableData = (items, config = null) => {
       if (sortConfig !== null) {
         const { key, direction } = sortConfig
 
-        if (key.orderKey) {
+        if (key?.orderKey) {
           if (!key.order) {
             key.order = uniq(
               items.map((item) => get(item, key.orderKey))
@@ -124,8 +122,7 @@ const useSortableData = (items, config = null) => {
           key.subSort?.order && hierarchyOrderSort(key.subSort.order, direction)
           hierarchyOrderSort(key.order, direction)
           sortableItems = recursiveSort(items, key, direction)
-        } else {
-          console.log('else')
+        } else if (key) {
           sortableItems = [...items]
           sortableItems.sort((a, b) => {
             const aValue = get(a, key.sortOn)

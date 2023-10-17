@@ -1,7 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useDeleteClassMutation } from './classesApiSlice'
-import { selectClasses } from '../classes/classesSlice'
+import {
+  selectClasses,
+  selectClassesFilter,
+  setClassesFilter,
+  clearClassesFilter,
+  selectSubClasses,
+} from '../classes/classesSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
 import Spinner from '../../components/Spinner'
@@ -21,11 +27,15 @@ const ClassList = () => {
   const classToDelete = useSelector((state) => state.delete.data)
 
   const classes = useSelector(selectClasses)
+  const subClasses = useSelector(selectSubClasses)
+  const filtersState = useSelector(selectClassesFilter)
 
   const [deleteClass, { isError: delIsError, error: delError }] =
     useDeleteClassMutation()
 
-  const { filteredList, setListFilter, setFilterItems } = useFilteredList()
+  const { listFilter, filteredList, setListFilter, setFilterItems } =
+    useFilteredList(classes, filtersState)
+
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
 
@@ -38,7 +48,7 @@ const ClassList = () => {
       state: {
         background: location,
         title: uClass.value,
-        context: 'itemCard',
+        context: 'classCard',
         data: uClass,
         size: 'lg',
       },
@@ -77,9 +87,27 @@ const ClassList = () => {
     }
   }, [delIsError, delError])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  useEffect(() => {
+    Object.keys(listFilter).length > 0 && dispatch(setClassesFilter(listFilter))
+  }, [dispatch, listFilter])
+
+  useEffect(() => {
+    filtersState !== null &&
+      setListFilter({ type: 'reset', payload: { target: filtersState } })
+  }, [filtersState, setListFilter])
+
   useEffect(() => {
     setFilterItems(classes)
   }, [classes, setFilterItems])
+
+  const onFilterReset = () => {
+    dispatch(clearClassesFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
 
   useEffect(() => {
     setTableColumns({
@@ -111,14 +139,13 @@ const ClassList = () => {
           name: 'category.value',
           size: 'col',
           breakpoint: '',
+          filter: ['Subclass'],
+          indentedMatch: '_id',
+          indentedName: 'parentClass.id',
         },
       ],
     })
   }, [setTableColumns, is1200, is1000, is600])
-
-  const onFilterReset = () => {
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
 
   let content
 
@@ -153,8 +180,8 @@ const ClassList = () => {
                 label={true}
                 placeholder='Class Name'
                 autoComplete='off'
-                value={filteredList?.value}
-                onChange={setListFilter}
+                value={listFilter?.value}
+                onChange={(e) => onFilterChange(e)}
               />
             </div>
           </div>
@@ -189,6 +216,7 @@ const ClassList = () => {
           readOnly={true}
           sortable={true}
           value={filteredList}
+          indentedValue={subClasses}
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}
           clickable={true}

@@ -6,7 +6,6 @@ import {
   useRef,
 } from 'react'
 import { uniqBy } from 'lodash'
-
 const Select = forwardRef(
   (
     {
@@ -36,7 +35,7 @@ const Select = forwardRef(
 
     if (options?.length) {
       newOptions = options?.filter(
-        (option) => option.value !== null && option.value !== undefined
+        (option) => option?.value != null
       )
       optionalKey &&
         newOptions.map(({ name, value, _id, [optionalKey]: optionalValue }) => {
@@ -60,6 +59,8 @@ const Select = forwardRef(
         { name: 'all', value: 'All' },
         { name: 'clear', value: 'Clear' }
       )
+    } else {
+      newOptions.unshift({ name: 'none', value: 'None' })
     }
 
     useEffect(() => {
@@ -136,6 +137,13 @@ const Select = forwardRef(
 
             setFocus(nextFocusedIndex)
           }
+        } else if (key === 'Delete' || event.keyCode === 46) {
+          event.preventDefault()
+
+          if (!multiple && selectedOptions !== null) {
+            setSelectedOptions(null)
+            onChange({ payload: { target: { name: name, value: null } } })
+          }
         }
       }
 
@@ -165,7 +173,15 @@ const Select = forwardRef(
       return () => {
         parentCurrent.removeEventListener('keyup', handleKeyUp)
       }
-    }, [newOptions, currentLetter, focusedIndex, multiple])
+    }, [
+      newOptions,
+      currentLetter,
+      focusedIndex,
+      multiple,
+      name,
+      onChange,
+      selectedOptions,
+    ])
 
     const handleOutsideClick = (event) => {
       const dropdownCurrent = dropdownRef.current
@@ -227,14 +243,19 @@ const Select = forwardRef(
             ]
           }
         } else {
-          updatedOptions = [
-            {
-              name: option.name ?? null,
-              id: option._id ?? null,
-              value: option.value,
-              ...(optionalKey && { [optionalKey]: option[optionalKey] }),
-            },
-          ]
+          if (option.name === 'none') {
+            updatedOptions = null
+            setSelectedOptions(updatedOptions)
+          } else {
+            updatedOptions = [
+              {
+                name: option.name ?? null,
+                id: option._id ?? null,
+                value: option.value,
+                ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+              },
+            ]
+          }
         }
       } else {
         updatedOptions = {

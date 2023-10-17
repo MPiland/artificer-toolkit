@@ -3,7 +3,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useDeleteItemMutation } from './itemsApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
-import { selectItems } from '../items/itemsSlice'
+import {
+  selectItems,
+  selectItemsFilter,
+  setItemsFilter,
+  clearItemsFilter,
+} from '../items/itemsSlice'
 import Spinner from '../../components/Spinner'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
@@ -22,12 +27,13 @@ const ItemList = () => {
   const itemToDelete = useSelector((state) => state.delete.data)
 
   const items = useSelector(selectItems)
+  const filtersState = useSelector(selectItemsFilter)
 
   const [deleteItem, { isError: delIsError, error: delError }] =
     useDeleteItemMutation()
 
   const { listFilter, filteredList, setListFilter, setFilterItems } =
-    useFilteredList(items)
+    useFilteredList(items, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
 
@@ -79,9 +85,27 @@ const ItemList = () => {
     }
   }, [delIsError, delError])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  useEffect(() => {
+    Object.keys(listFilter).length > 0 && dispatch(setItemsFilter(listFilter))
+  }, [dispatch, listFilter])
+
+  useEffect(() => {
+    filtersState !== null &&
+      setListFilter({ type: 'reset', payload: { target: filtersState } })
+  }, [filtersState, setListFilter])
+
   useEffect(() => {
     setFilterItems(items)
   }, [items, setFilterItems])
+
+  const onFilterReset = () => {
+    dispatch(clearItemsFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
 
   useEffect(() => {
     setTableColumns({
@@ -93,9 +117,10 @@ const ItemList = () => {
           className: 'fw-bold',
           size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
+          defaultSort: true,
         },
         {
-          name: { sortOn: 'itemCategory.value' },
+          name: { sortOn: 'category.value' },
           value: 'Category',
           border: false,
           className: 'fw-bold',
@@ -103,7 +128,7 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
-          name: { sortOn: 'itemProperty' },
+          name: { sortOn: 'property' },
           value: 'Properties',
           border: false,
           className: 'fw-bold',
@@ -123,7 +148,7 @@ const ItemList = () => {
           value: 'AC',
           border: false,
           className: 'fw-bold',
-          size: 'col-1',
+          size: 'col',
           breakpoint: is600 && true,
         },
         {
@@ -131,8 +156,16 @@ const ItemList = () => {
           value: 'Weight',
           border: false,
           className: 'fw-bold',
-          size: 'col-1',
+          size: 'col-auto',
           breakpoint: (is1000 || is600) && true,
+        },
+        {
+          name: { sortOn: 'quantity' },
+          value: 'Qty',
+          border: false,
+          className: 'fw-bold',
+          size: 'col',
+          breakpoint: is600 && true,
         },
         {
           name: {
@@ -160,12 +193,12 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
-          name: 'itemCategory.value',
+          name: 'category.value',
           size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
         {
-          name: 'itemProperty',
+          name: 'property',
           size: 'col-lg-2 col-md-3 col-4',
           breakpoint: '',
         },
@@ -176,13 +209,18 @@ const ItemList = () => {
         },
         {
           name: 'armorClass',
-          size: 'col-1',
+          size: 'col',
           breakpoint: is600 && true,
         },
         {
           name: ['weight.amount', 'weight.unit.short'],
-          size: 'col-1',
+          size: 'col',
           breakpoint: (is1000 || is600) && true,
+        },
+        {
+          name: 'quantity',
+          size: 'col',
+          breakpoint: is600 && true,
         },
         {
           name: ['cost.amount', 'cost.currency.short'],
@@ -193,10 +231,6 @@ const ItemList = () => {
     })
   }, [setTableColumns, is1200, is1000, is600])
 
-  const onFilterReset = () => {
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
-
   let content
 
   if (loading) {
@@ -204,11 +238,10 @@ const ItemList = () => {
   } else {
     const filter = (
       <div className='filter-container'>
-        <div
+        <button
           className='btn btn-section-collapse justify-content-between align-items-center'
           id='sectionCollapseButton'
           type='button'
-          role='button'
           data-bs-toggle='collapse'
           data-bs-target='#sectionCollapse'
           aria-controls='collapseExample'
@@ -216,7 +249,7 @@ const ItemList = () => {
         >
           <span className='me-3'>Filters</span>
           <i className='bi bi-arrow-down-up' />
-        </div>
+        </button>
         <div
           className={`section-container collapse ${
             !is600 && !is1000 ? ' show' : ''
@@ -231,29 +264,29 @@ const ItemList = () => {
                 placeholder='Item Name'
                 autoComplete='off'
                 value={listFilter?.value}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
-                name='itemCategory'
+                name='category'
                 placeholder='Item Category'
-                options={items?.map((item) => item.itemCategory)}
-                value={listFilter?.itemCategory}
-                onChange={setListFilter}
+                options={items?.map((item) => item.category)}
+                value={listFilter?.category}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
-                name='itemProperty'
+                name='property'
                 placeholder='Item Property'
                 options={items?.flatMap((item) => {
-                  if (item.itemProperty && Array.isArray(item.itemProperty)) {
-                    return item.itemProperty
+                  if (item.property && Array.isArray(item.property)) {
+                    return item.property
                   } else {
                     return []
                   }
                 })}
-                value={listFilter?.itemProperty}
-                onChange={setListFilter}
+                value={listFilter?.property}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -267,7 +300,7 @@ const ItemList = () => {
                   }
                 })}
                 value={listFilter?.damage?.damageType}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
               <Select
                 multiple={true}
@@ -275,7 +308,7 @@ const ItemList = () => {
                 placeholder='Item Category'
                 options={items?.map((item) => ({ value: item.armorClass }))}
                 value={listFilter.armorClass}
-                onChange={setListFilter}
+                onChange={(e) => onFilterChange(e)}
               />
             </div>
           </div>
@@ -310,6 +343,9 @@ const ItemList = () => {
           dynamic={false}
           readOnly={true}
           sortable={true}
+          defaultSort={tableColumns.headers.find(
+            (headerItem) => headerItem.defaultSort === true
+          )}
           scrollable={true}
           value={filteredList}
           headers={tableColumns.headers}

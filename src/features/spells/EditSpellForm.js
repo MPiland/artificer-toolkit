@@ -199,6 +199,14 @@ const EditSpellForm = () => {
           label: true,
           size: 'damage-col',
         },
+        {
+          name: 'bonusDamage',
+          value: 'Bonus Damage',
+          invalid: 'Must contain only numbers',
+          validation: 'num',
+          label: true,
+          size: 'damage-col',
+        },
       ]
       if (secondary) {
         inputArray.push(

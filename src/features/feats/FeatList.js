@@ -3,7 +3,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useDeleteFeatMutation } from './featsApiSlice'
 import { clearConfirm } from '../../app/deleteSlice'
-import { selectFeats } from '../feats/featsSlice'
+import {
+  selectFeats,
+  selectFeatsFilter,
+  setFeatsFilter,
+  clearFeatsFilter,
+} from '../feats/featsSlice'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import useFilteredList from '../../hooks/useFilteredList'
 import Spinner from '../../components/Spinner'
@@ -19,12 +24,15 @@ const FeatList = () => {
 
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const featToDelete = useSelector((state) => state.delete.data)
+
   const feats = useSelector(selectFeats)
+  const filtersState = useSelector(selectFeatsFilter)
 
   const [deleteFeat, { isError: delIsError, error: delError }] =
     useDeleteFeatMutation()
 
-  const { filteredList, setListFilter, setFilterItems } = useFilteredList()
+  const { listFilter, filteredList, setListFilter, setFilterItems } =
+    useFilteredList(feats, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
 
@@ -76,9 +84,27 @@ const FeatList = () => {
     }
   }, [delIsError, delError])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  useEffect(() => {
+    Object.keys(listFilter).length > 0 && dispatch(setFeatsFilter(listFilter))
+  }, [dispatch, listFilter])
+
+  useEffect(() => {
+    filtersState !== null &&
+      setListFilter({ type: 'reset', payload: { target: filtersState } })
+  }, [filtersState, setListFilter])
+
   useEffect(() => {
     setFilterItems(feats)
   }, [feats, setFilterItems])
+
+  const onFilterReset = () => {
+    dispatch(clearFeatsFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
 
   useEffect(() => {
     setTableColumns({
@@ -90,6 +116,7 @@ const FeatList = () => {
           className: 'fw-bold',
           size: 'col',
           breakpoint: '',
+          defaultSort: true,
         },
       ],
       inputs: [
@@ -101,10 +128,6 @@ const FeatList = () => {
       ],
     })
   }, [setTableColumns, is1200, is1000, is600])
-
-  const onFilterReset = () => {
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
 
   let content
 
@@ -139,8 +162,8 @@ const FeatList = () => {
                 label={true}
                 placeholder='Feat Name'
                 autoComplete='off'
-                value={filteredList?.value}
-                onChange={setListFilter}
+                value={listFilter?.value}
+                onChange={(e) => onFilterChange(e)}
               />
             </div>
           </div>
@@ -175,6 +198,9 @@ const FeatList = () => {
           dynamic={false}
           readOnly={true}
           sortable={true}
+          defaultSort={tableColumns.headers.find(
+            (headerItem) => headerItem.defaultSort === true
+          )}
           value={filteredList}
           headers={tableColumns.headers}
           inputs={tableColumns.inputs}

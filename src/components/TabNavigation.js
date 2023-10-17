@@ -1,4 +1,4 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { startCase } from 'lodash'
 const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
   const [leftPosition, setLeftPosition] = useState(0)
@@ -12,6 +12,7 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
   )
   const [touchStartX, setTouchStartX] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [sectionTabs, setSectionTabs] = useState([{}])
 
   const wrapperRef = useRef(null)
   const tabContainerRef = useRef(null)
@@ -39,6 +40,56 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
       }
     }
   }
+
+  const scrollTab = useCallback(() => {
+    const activeTabIndex = Array.from(
+      tabContainerRef.current.children
+    ).findIndex((tab) => tab.classList.contains('active'))
+
+    if (activeTabIndex !== -1) {
+      const tabRight =
+        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
+          .right
+      const wrapperRight = wrapperRef.current.getBoundingClientRect().right
+      const tabLeft =
+        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
+          .left
+      const wrapperLeft = wrapperRef.current.getBoundingClientRect().left
+
+      let newLeftPosition
+
+      if (tabRight > wrapperRight) {
+        if (activeTabIndex === tabStateLength - 1) {
+          newLeftPosition = leftPosition + hiddenWidth
+        } else {
+          newLeftPosition =
+            leftPosition +
+            (tabRight - wrapperRight) +
+            rightScrollerRef.current.getBoundingClientRect().width
+        }
+        setLeftPosition(newLeftPosition)
+        tabContainerRef.current.style.left = `-${newLeftPosition}px`
+      }
+      if (
+        tabLeft - leftScrollerRef.current.getBoundingClientRect().width <
+        wrapperLeft
+      ) {
+        if (activeTabIndex === 0) {
+          newLeftPosition = 0
+        } else {
+          newLeftPosition =
+            leftPosition -
+            (wrapperLeft - tabLeft) -
+            leftScrollerRef.current.getBoundingClientRect().width
+        }
+        setLeftPosition(newLeftPosition)
+        tabContainerRef.current.style.left = `-${newLeftPosition}px`
+      }
+    }
+    tabContainerRef.current.children.item(activeTabIndex).scrollIntoView({
+      behavior: 'smooth',
+    })
+  }, [hiddenWidth, leftPosition, tabStateLength])
 
   useLayoutEffect(() => {
     const minHiddenWidthThreshold = 0.1
@@ -97,23 +148,34 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
 
     if (id !== 'main' && id !== 'feature' && id !== 'details') {
       getActive()
-      console.log('id', id)
-      const tabs = tabContainerRef.current.children
-      const panes = paneContainerRef.current.children
+      const tabs = tabContainerRef.current?.children
+      const panes = paneContainerRef.current?.children
       if (tabs && currentTabRef.current) {
-        if (tabs.item(tabState.length - 1) !== currentTabRef.current) {
-          currentTabRef.current.setAttribute('aria-selected', 'false')
-          currentTabRef.current.classList.remove('active')
-          currentPaneRef.current.classList.remove('active')
-          currentPaneRef.current.classList.remove('show')
-          tabs.item(tabState.length - 1).setAttribute('aria-selected', 'true')
-          tabs.item(tabState.length - 1).classList.add('active')
-          panes.item(tabState.length - 1).classList.add('active')
-          panes.item(tabState.length - 1).classList.add('show')
-          currentTabRef.current = tabs.item(tabState.length - 1)
-          currentPaneRef.current = panes.item(tabState.length - 1)
+        if (tabState.length !== tabStateLength) {
+          for (let tabIndex = 0; tabIndex < tabs.length; tabIndex++) {
+            const tab = tabs[tabIndex]
+            const txt = tab.textContent || tab.innerText
+            if (!sectionTabs.includes(txt)) {
+              setSectionTabs((prev) => [...prev, txt])
+              currentTabRef.current.setAttribute('aria-selected', 'false')
+              currentTabRef.current.classList.remove('active')
+              currentPaneRef.current.classList.remove('active')
+              currentPaneRef.current.classList.remove('show')
+              tab.setAttribute('aria-selected', 'true')
+              tab.classList.add('active')
+              panes[tabIndex].classList.add('active')
+              panes[tabIndex].classList.add('show')
+              currentTabRef.current = tab
+              currentPaneRef.current = panes[tabIndex]
+
+              scrollTab()
+            }
+          }
         }
       }
+    }
+    if (paneContainerRef.current && tabStateLength < tabState.length) {
+      paneContainerRef.current.scrollIntoView()
     }
     setTabStateLength(tabState ? tabState.length : 0)
   }, [
@@ -126,6 +188,8 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
     wrapperWidth,
     tabContLeftPos,
     wrapperLeftPos,
+    sectionTabs,
+    scrollTab,
   ])
 
   const handleTouchStart = (e) => {
@@ -269,6 +333,11 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
     currentTabRef.current.setAttribute('aria-selected', 'false')
     currentPaneRef.current.classList.remove('active')
     currentPaneRef.current.classList.remove('show')
+    const txt =
+      currentTabRef.current.textContent || currentTabRef.current.innerText
+    if (sectionTabs.includes(txt)) {
+      setSectionTabs((prev) => prev.filter(txt))
+    }
 
     if (index !== 0) {
       const tabs = tabContainerRef.current.children
@@ -306,56 +375,6 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
         }
       }
     }
-  }
-
-  const scrollTab = () => {
-    const activeTabIndex = Array.from(
-      tabContainerRef.current.children
-    ).findIndex((tab) => tab.classList.contains('active'))
-
-    if (activeTabIndex !== -1) {
-      const tabRight =
-        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
-          .right
-      const wrapperRight = wrapperRef.current.getBoundingClientRect().right
-      const tabLeft =
-        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
-          .left
-      const wrapperLeft = wrapperRef.current.getBoundingClientRect().left
-
-      let newLeftPosition
-
-      if (tabRight > wrapperRight) {
-        if (activeTabIndex === tabStateLength - 1) {
-          newLeftPosition = leftPosition + hiddenWidth
-        } else {
-          newLeftPosition =
-            leftPosition +
-            (tabRight - wrapperRight) +
-            rightScrollerRef.current.getBoundingClientRect().width
-        }
-        setLeftPosition(newLeftPosition)
-        tabContainerRef.current.style.left = `-${newLeftPosition}px`
-      }
-      if (
-        tabLeft - leftScrollerRef.current.getBoundingClientRect().width <
-        wrapperLeft
-      ) {
-        if (activeTabIndex === 0) {
-          newLeftPosition = 0
-        } else {
-          newLeftPosition =
-            leftPosition -
-            (wrapperLeft - tabLeft) -
-            leftScrollerRef.current.getBoundingClientRect().width
-        }
-        setLeftPosition(newLeftPosition)
-        tabContainerRef.current.style.left = `-${newLeftPosition}px`
-      }
-    }
-    tabContainerRef.current.children.item(activeTabIndex).scrollIntoView({
-      behavior: 'smooth',
-    })
   }
 
   const content = (

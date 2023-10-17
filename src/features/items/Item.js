@@ -1,15 +1,28 @@
 import parse from 'html-react-parser'
-import { useOutletContext } from 'react-router-dom'
 import { getValueFromState } from '../../helpers/formatting'
+import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 
 const Item = () => {
-  const { data: item } = useOutletContext()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { data: item, handleClose } = useOutletContext()
+
+  const data = location.state.data
+
+  const onEditClicked = () => {
+    navigate(
+      `${location.state.background.pathname}/edit/${location.state.data.name}`,
+      {
+        state: { data: data, previous: location },
+      }
+    )
+  }
 
   const cols = [
-    { header: 'CATEGORY', name: 'itemCategory.value' },
+    { header: 'CATEGORY', name: 'category.value' },
     {
       header: 'PROPERTIES',
-      name: 'itemProperty',
+      name: 'property',
     },
     {
       header: 'DAMAGE TYPE',
@@ -24,20 +37,43 @@ const Item = () => {
   ]
 
   const content = (
-    <div className='detailCard-body container'>
-      <div className='detailCard-detail row row-cols-md-3 row-cols-2 gy-3'>
-        {cols.map((colItem, colIndex) => {
-          return (
-            <div className='col' key={colIndex}>
-              <div className='fw-bold'>{colItem.header}</div>
-              <div>{getValueFromState(colItem, item, colItem.truncate)}</div>
-            </div>
-          )
-        })}
+    <>
+      <div className='modal-header'>
+        <h1 className='fw-bold mb-0 fs-2 ms-auto'>{item.value}</h1>
+        <button
+          type='button'
+          className='btn-close'
+          aria-label='Close'
+          onClick={handleClose}
+        ></button>
       </div>
-      <hr />
-      <div>{item?.desc && parse(item.desc)}</div>
-    </div>
+      <div className='modal-body'>
+        <div className='detail-card-body container'>
+          <div className='detail-card-detail row row-cols-md-3 row-cols-2 gy-3'>
+            {cols.map((colItem, colIndex) => {
+              return (
+                <div className='col' key={colIndex}>
+                  <div className='fw-bold'>{colItem.header}</div>
+                  <div>
+                    {getValueFromState(colItem, item, colItem.truncate)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <hr />
+          <div>{item?.desc && parse(item.desc)}</div>
+        </div>
+      </div>
+      <div className='modal-footer'>
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={onEditClicked}
+        >
+          Edit
+        </button>
+      </div>
+    </>
   )
 
   return content

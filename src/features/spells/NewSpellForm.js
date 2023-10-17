@@ -136,6 +136,14 @@ const NewSpellForm = () => {
           label: true,
           size: 'damage-col',
         },
+        {
+          name: 'bonusDamage',
+          value: 'Bonus Damage',
+          invalid: 'Must contain only numbers',
+          validation: 'num',
+          label: true,
+          size: 'damage-col',
+        },
       ]
       if (secondary) {
         inputArray.push(
@@ -239,7 +247,7 @@ const NewSpellForm = () => {
                 placeholder='Spell Attributes'
                 value={state.attribute}
                 options={builders.spell.attribute.filter((attributeItem) =>
-                  !!state.attribute?.some(
+                  state.attribute?.some(
                     (stateItem) => stateItem.name === 'doesDamage'
                   )
                     ? attributeItem
