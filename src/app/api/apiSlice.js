@@ -17,13 +17,9 @@ const baseQuery = fetchBaseQuery({
 })
 
 const baseQueryWithReauth = async (args, api, extraOptions) => {
-  // console.log('base query args', args) // request url, method, body
-  // console.log('base query api', api) // signal, dispatch, getState()
-  // console.log('base query extraOptions', extraOptions) // custom like {shout: true}
 
   let result = await baseQuery(args, api, extraOptions)
 
-  // If you want, handle other status codes, too
   if (result?.error?.status === 403) {
     console.log('sending refresh token')
 
@@ -46,6 +42,5 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 
 export const apiSlice = createApi({
   baseQuery: baseQueryWithReauth,
-  tagTypes: ['Character', 'Spell', 'Builder', 'Feat', 'Race', 'Item', 'Class'],
   endpoints: (builder) => ({}),
 })

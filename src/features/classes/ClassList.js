@@ -1,12 +1,14 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { useDeleteClassMutation } from './classesApiSlice'
 import {
-  selectClasses,
+  selectAllClasses,
+  useDeleteClassMutation,
+  useGetClassesQuery,
+} from './classesApiSlice'
+import {
   selectClassesFilter,
   setClassesFilter,
   clearClassesFilter,
-  selectSubClasses,
 } from '../classes/classesSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
@@ -21,13 +23,15 @@ const ClassList = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const loading = useSelector((state) => state.loading.status)
-
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const classToDelete = useSelector((state) => state.delete.data)
 
-  const classes = useSelector(selectClasses)
-  const subClasses = useSelector(selectSubClasses)
+  const { classes, isFetching } = useGetClassesQuery('classesList', {
+    selectFromResult: ({ data }) => ({
+      classes: data && selectAllClasses(data),
+    }),
+  })
+
   const filtersState = useSelector(selectClassesFilter)
 
   const [deleteClass, { isError: delIsError, error: delError }] =
@@ -38,29 +42,30 @@ const ClassList = () => {
 
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
+  const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
 
-  const showCard = (uClass) => {
-    navigate(`/classes/${uClass.name}`, {
+  const showCard = (userClass) => {
+    navigate(`/classes/${userClass.name}`, {
       state: {
         background: location,
-        title: uClass.value,
+        title: userClass.value,
         context: 'classCard',
-        data: uClass,
-        size: 'lg',
+        data: userClass.id,
+        size: 'xl',
       },
     })
   }
 
-  const onDelete = (uClass) => {
-    navigate(`/delete/${uClass.name}`, {
+  const onDelete = (userClass) => {
+    navigate(`/delete/${userClass.name}`, {
       state: {
         background: location,
-        title: uClass.value,
-        data: uClass,
+        title: userClass.value,
+        data: userClass,
         size: 'md',
       },
     })
@@ -87,10 +92,6 @@ const ClassList = () => {
     }
   }, [delIsError, delError])
 
-  const onFilterChange = (e) => {
-    setListFilter(e)
-  }
-
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setClassesFilter(listFilter))
   }, [dispatch, listFilter])
@@ -101,13 +102,11 @@ const ClassList = () => {
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    setFilterItems(classes)
-  }, [classes, setFilterItems])
-
-  const onFilterReset = () => {
-    dispatch(clearClassesFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
+    if (classes && !filterItemsPopulated) {
+      setFilterItems(classes)
+      setFilterItemsPopulated(true) // Ensure it's called only once
+    }
+  }, [classes, setFilterItems, filterItemsPopulated])
 
   useEffect(() => {
     setTableColumns({
@@ -147,86 +146,93 @@ const ClassList = () => {
     })
   }, [setTableColumns, is1200, is1000, is600])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  const onFilterReset = () => {
+    dispatch(clearClassesFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
+
   let content
 
-  if (loading) {
+  if (isFetching || !filteredList) {
     content = <Spinner />
-  } else {
-    const filter = (
-      <div className='filter-container'>
-        <div
-          className='btn btn-section-collapse justify-content-between align-items-center'
-          id='sectionCollapseButton'
-          type='button'
-          role='button'
-          data-bs-toggle='collapse'
-          data-bs-target='#sectionCollapse'
-          aria-controls='collapseExample'
-          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
-        >
-          <span className='me-3'>Filters</span>
-          <i className='bi bi-arrow-down-up' />
-        </div>
-        <div
-          className={`section-container collapse ${
-            !is600 && !is1000 ? ' show' : ''
-          }`}
-          id='sectionCollapse'
-        >
-          <div className='section-content'>
-            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
-              <Input
-                name='value'
-                label={true}
-                placeholder='Class Name'
-                autoComplete='off'
-                value={listFilter?.value}
-                onChange={(e) => onFilterChange(e)}
-              />
-            </div>
+  }
+  const filter = (
+    <div className='filter-container'>
+      <div
+        className='btn btn-section-collapse justify-content-between align-items-center'
+        id='sectionCollapseButton'
+        type='button'
+        role='button'
+        data-bs-toggle='collapse'
+        data-bs-target='#sectionCollapse'
+        aria-controls='collapseExample'
+        aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+      >
+        <span className='me-3'>Filters</span>
+        <i className='bi bi-arrow-down-up' />
+      </div>
+      <div
+        className={`section-container collapse ${
+          !is600 && !is1000 ? ' show' : ''
+        }`}
+        id='sectionCollapse'
+      >
+        <div className='section-content'>
+          <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Class Name'
+              autoComplete='off'
+              value={listFilter?.value}
+              onChange={(e) => onFilterChange(e)}
+            />
           </div>
         </div>
       </div>
-    )
-    content = (
-      <>
-        <div className='d-flex justify-content-between pb-2'>
-          <div className='d-flex'>
-            <h3 className='me-3'>Classes</h3>
-            <button
-              type='button'
-              className='btn btn-outline-secondary btn-small me-1'
-              onClick={onFilterReset}
-            >
-              Clear Filters
-            </button>
-          </div>
+    </div>
+  )
+  content = (
+    <>
+      <div className='d-flex justify-content-between pb-2'>
+        <div className='d-flex'>
+          <h3 className='me-3'>Classes</h3>
           <button
-            className='btn btn-outline-secondary btn-small'
-            onClick={() => navigate('/classes/new')}
+            type='button'
+            className='btn btn-outline-secondary btn-small me-1'
+            onClick={onFilterReset}
           >
-            Create a Class
+            Clear Filters
           </button>
         </div>
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-        {filter}
-        <Table
-          name='classList.table'
-          dynamic={false}
-          readOnly={true}
-          sortable={true}
-          value={filteredList}
-          indentedValue={subClasses}
-          headers={tableColumns.headers}
-          inputs={tableColumns.inputs}
-          clickable={true}
-          onClick={(uClass) => showCard(uClass)}
-          deleteRow={(uClass) => onDelete(uClass)}
-          empty='---'
-        />
-      </>
-    )
-  }
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={() => navigate('/classes/new')}
+        >
+          Create a Class
+        </button>
+      </div>
+      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+      {filter}
+      <Table
+        name='classList.table'
+        dynamic={false}
+        readOnly={true}
+        sortable={true}
+        value={filteredList}
+        headers={tableColumns.headers}
+        inputs={tableColumns.inputs}
+        clickable={true}
+        onClick={(userClass) => showCard(userClass)}
+        deleteRow={(userClass) => onDelete(userClass)}
+        empty='---'
+      />
+    </>
+  )
 
   return <div className='main-container list'>{content}</div>
 }

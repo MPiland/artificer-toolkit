@@ -1,12 +1,10 @@
-import { createSelector, createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit'
+import { initialState } from './classesApiSlice'
 
 const classesSlice = createSlice({
   name: 'classes',
-  initialState: { data: null, filters: {} },
+  initialState: { data: initialState, filters: {} },
   reducers: {
-    setClasses: (state, { payload }) => {
-      state.data = payload
-    },
     setClassesFilter: (state, { payload }) => {
       state.filters = payload
     },
@@ -16,14 +14,8 @@ const classesSlice = createSlice({
   },
 })
 
-export const { setClasses, setClassesFilter, clearClassesFilter } =
-  classesSlice.actions
-
-export default classesSlice.reducer
-
-export const selectClasses = (state) => state.classes.data
 export const selectClassesFilter = (state) => state.classes.filters
 
-export const selectSubClasses = createSelector(selectClasses, (state) =>
-  state?.filter((stateItem) => stateItem.category.name === 'subclass')
-)
+export const { setClassesFilter, clearClassesFilter } = classesSlice.actions
+
+export default classesSlice.reducer

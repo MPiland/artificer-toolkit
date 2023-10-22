@@ -7,6 +7,10 @@ const formReducer = produce((draft, action) => {
     payload: { target },
   } = action
 
+  function isNumber(str) {
+    return !isNaN(parseFloat(str)) && isFinite(str)
+  }
+
   let path
 
   if (!!target.name) {
@@ -22,14 +26,24 @@ const formReducer = produce((draft, action) => {
       set(draft, path, !!target.value ? target.value : [{}])
     }
   } else if (type === 'removed') {
-    const newPath = path.filter((_, index) => index !== path.length - 1)
-    set(
-      draft,
-      newPath,
-      get(draft, newPath).filter(
-        (_, index) => index !== Number(path[path.length - 1])
-      )
-    )
+    if (path && path.length > 0) {
+      const lastKey = path[path.length - 1]
+      if (!isNumber(lastKey)) {
+        const newPath = path
+        if (get(draft, newPath)) {
+          set(draft, newPath, undefined)
+        }
+      } else {
+        const newPath = path.slice(0, -1) // Remove the last key
+        if (get(draft, newPath)) {
+          set(
+            draft,
+            newPath,
+            get(draft, newPath).filter((_, index) => index !== Number(lastKey))
+          )
+        }
+      }
+    }
   } else if (type === 'reset') {
     return target
   } else {

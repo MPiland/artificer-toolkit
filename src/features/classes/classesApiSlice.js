@@ -1,28 +1,39 @@
+import { createEntityAdapter } from '@reduxjs/toolkit'
 import { apiSlice } from '../../app/api/apiSlice'
-import { setClasses } from './classesSlice'
+
+export const classesAdapter = createEntityAdapter({})
+
+export const initialState = classesAdapter.getInitialState()
 
 export const classesApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getClasses: builder.query({
-      query: (id) => ({
-        url: `/class/${id}`,
+      query: () => ({
+        url: '/class',
+        method: 'GET',
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
       }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled
-          dispatch(setClasses(data))
+          await queryFulfilled
         } catch (err) {
           console.log(err)
         }
       },
+      transformResponse: (responseData) => {
+        const loadedclasses = responseData.map((userClass) => {
+          userClass.id = userClass._id
+          return userClass
+        })
+        return classesAdapter.setAll(initialState, loadedclasses)
+      },
       providesTags: (result, error, id) => {
-        if (result) {
+        if (result?.ids) {
           return [
-            ...result.map(({ _id }) => ({ type: 'Class', id: _id })),
             { type: 'Class', id: 'LIST' },
+            ...result.ids.map((id) => ({ type: 'Class', id })),
           ]
         } else return [{ type: 'Class', id: 'LIST' }]
       },
@@ -49,14 +60,22 @@ export const classesApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Class', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Class', id: arg.id }],
     }),
   }),
 })
 
 export const {
-  useGetClassQuery,
+  useGetClassesQuery,
   useAddNewClassMutation,
   useUpdateClassMutation,
   useDeleteClassMutation,
 } = classesApiSlice
+
+export const selectClassesResult = classesApiSlice.endpoints.getClasses.select()
+
+export const {
+  selectAll: selectAllClasses,
+  selectById: selectClassById,
+  selectIds: selectClassIds,
+} = classesAdapter.getSelectors()

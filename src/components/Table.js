@@ -5,19 +5,30 @@ import { get } from 'lodash'
 import Input from './Input'
 import Select from './Select'
 
-const TableHeader = ({ headers, sortable, requestSort, getClassNames }) => {
+const TableHeader = ({
+  headers,
+  sortable,
+  requestSort,
+  getClassNames,
+  readOnly,
+  scrollable,
+}) => {
   return (
-    <div className={`row pb-2 ms-0 me-0 g-2 align-items-end`}>
+    <div
+      className={`row pb-2 ms-0 me-0 g-2 align-items-end ${
+        scrollable ? ' scrollable' : ''
+      }`}
+    >
       {headers?.map((headerItem, headerIndex) => (
         <Fragment key={headerIndex}>
           {!headerItem.breakpoint &&
-            (headerItem.readOnly ? (
+            (readOnly || headerItem.readOnly ? (
               <div
                 className={`${headerItem.size ?? ''} ${
                   headerItem.className ?? ''
                 } ${getClassNames(headerItem.name.sortOn)} ${
-                  sortable ? 'sortable-header' : ''
-                }`}
+                  sortable ? 'sortable' : ''
+                } header`}
                 onClick={() => sortable && requestSort(headerItem.name)}
               >
                 {headerItem.value}
@@ -46,6 +57,7 @@ const TableHeader = ({ headers, sortable, requestSort, getClassNames }) => {
 
 const TableRow = ({
   valueItem,
+  valueIndex,
   inputs,
   readOnly,
   deleteRow,
@@ -59,9 +71,9 @@ const TableRow = ({
 }) => {
   return (
     <div
-      className={`row pb-2 ms-0 me-0 g-2 ${
-        className ? ` ${className}` : ''
-      } row-clickable ${scrollable ? ' scrollable' : ''}`}
+      className={`row pb-2 ms-0 me-0 g-2 ${className ? ` ${className}` : ''} ${
+        onClick ? 'clickable' : ''
+      } ${scrollable ? 'scrollable' : ''}`}
       onClick={() => {
         onClick && onClick(valueItem)
       }}
@@ -93,9 +105,9 @@ const TableRow = ({
             </Fragment>
           ) : inputItem.type === 'select' ? (
             <Select
-              name={`${name}.${inputIndex}.${inputItem.name}`}
+              name={`${name}.${valueIndex}.${inputItem.name}`}
               placeholder={inputItem.value}
-              value={valueItem[inputItem.name]}
+              value={get(valueItem, inputItem.name)}
               required={true}
               options={inputItem.options}
               onChange={onChange}
@@ -104,12 +116,12 @@ const TableRow = ({
             <Fragment key={inputIndex}>
               <Input
                 size={inputItem.size ?? null}
-                name={`${name}.${inputIndex}.${inputItem.name}`}
+                name={`${name}.${valueIndex}.${inputItem.name}`}
                 label={inputItem.label ?? false}
                 border={inputItem.border}
                 placeholder={inputItem.value}
                 invalidText={inputItem.invalid}
-                value={valueItem[inputItem.name]}
+                value={get(valueItem, inputItem.name)}
                 required={inputItem.required ?? false}
                 onChange={onChange}
                 validation={inputItem.validation}
@@ -148,7 +160,6 @@ function Table({
   inputs,
   name,
   value,
-  indentedValue,
   onChange,
   className,
   headers,
@@ -185,49 +196,53 @@ function Table({
   }
   const { valueItems } = sortState || { valueItems: [] }
 
-  const [filteredItems, remainingItems] = valueItems.reduce(
-    (result, valueItem) => {
-      const hasFilter = inputs.some((inputItem) => inputItem.filter != null)
+  const [filteredItems, remainingItems] = valueItems
+    ? valueItems.reduce(
+        (result, valueItem) => {
+          const hasFilter = inputs.some((inputItem) => inputItem.filter != null)
 
-      if (!hasFilter) {
-        // If there's no filter criteria, include the item in the remainingItems
-        result[1].push(valueItem)
-      } else if (
-        inputs.some((inputItem) => {
-          const itemValue = getValueFromState(inputItem, valueItem)
-          if (itemValue === null) {
-            return true
+          if (!hasFilter || !inputs.some((inputItem) => inputItem.filter)) {
+            result[0].push(valueItem)
+          } else if (
+            inputs.some((inputItem) => {
+              const itemValue = getValueFromState(inputItem, valueItem)
+              if (itemValue === null) {
+                return true
+              }
+              if (Array.isArray(inputItem.filter)) {
+                return inputItem.filter.includes(itemValue)
+              }
+              return true
+            })
+          ) {
+            result[0].push(valueItem)
+          } else {
+            result[1].push(valueItem)
           }
-          if (Array.isArray(inputItem.filter)) {
-            return inputItem.filter.includes(itemValue)
-          }
-          return true
-        })
-      ) {
-        result[0].push(valueItem)
-      } else {
-        result[1].push(valueItem)
-      }
 
-      return result
-    },
-    [[], []]
-  )
+          return result
+        },
+        [[], []]
+      )
+    : [[], []]
 
   return (
-    <div className={`${scrollable ? 'table-scrollable' : ''}`}>
+    <div className={`content-table ${scrollable ? 'scrollable' : ''}`}>
       {headers && (
         <TableHeader
           headers={headers}
           sortable={sortable}
           requestSort={requestSort}
           getClassNames={getClassNames}
+          readOnly={readOnly}
+          scrollable={scrollable}
         />
       )}
       {filteredItems?.map((valueItem, valueIndex) => (
         <Fragment key={valueIndex}>
           <TableRow
             valueItem={valueItem}
+            valueIndex={valueIndex}
             inputs={inputs}
             readOnly={readOnly}
             deleteRow={deleteRow}
@@ -239,7 +254,6 @@ function Table({
             deleteRowVisible={deleteRow}
             scrollable={scrollable}
           />
-          {/* Check if valueItem has parentClass.id and indentedMatch */}
           {valueItem.parentClass?.id &&
             inputs.some(
               (inputItem) =>

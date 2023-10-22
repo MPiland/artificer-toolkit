@@ -1,33 +1,39 @@
-.table {
+.content-table {
   overflow-x: hidden;
+
+  .row {
+    width: 100%;
+    flex-wrap: nowrap;
+  }
 }
 
-.table-scrollable {
+.content-table.scrollable {
   overflow-x: auto;
   flex: 1 1 auto;
   height: 100%;
 }
 
-.row.scrollable {
-  width: 100%;
-  flex-wrap: nowrap;
+.section-content {
+  .header {
+    text-align: center;
+  }
 }
 
-.row-clickable:hover,
-.row-clickable *:hover {
+.row.clickable:hover,
+.row.clickable *:hover {
   background-color: rgb(236, 236, 236);
   cursor: pointer;
 }
 
-.sortable-header {
+.header.sortable {
   cursor: pointer;
 }
 
-.sortable-header.ascending::after {
+.header.sortable.ascending::after {
   content: '  \2191';
 }
 
-.sortable-header.descending::after {
+.header.sortable.descending::after {
   content: '  \2193';
 }
 

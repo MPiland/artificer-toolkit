@@ -1,29 +1,39 @@
+import { createEntityAdapter } from '@reduxjs/toolkit'
 import { apiSlice } from '../../app/api/apiSlice'
-import { setSpells } from './spellsSlice'
+
+export const spellsAdapter = createEntityAdapter({})
+
+export const initialState = spellsAdapter.getInitialState()
 
 export const spellsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getSpells: builder.query({
-      query: (id) => ({
-        url: `/spell/${id}`,
+      query: () => ({
+        url: '/spell',
         method: 'GET',
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
       }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled
-          dispatch(setSpells(data))
+          await queryFulfilled
         } catch (err) {
           console.log(err)
         }
       },
+      transformResponse: (responseData) => {
+        const loadedspells = responseData.map((spell) => {
+          spell.id = spell._id
+          return spell
+        })
+        return spellsAdapter.setAll(initialState, loadedspells)
+      },
       providesTags: (result, error, id) => {
-        if (result) {
+        if (result?.ids) {
           return [
-            ...result.map(({ _id }) => ({ type: 'Spell', id: _id })),
             { type: 'Spell', id: 'LIST' },
+            ...result.ids.map((id) => ({ type: 'Spell', id })),
           ]
         } else return [{ type: 'Spell', id: 'LIST' }]
       },
@@ -50,14 +60,22 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Spell', id: arg.id }],
     }),
   }),
 })
 
 export const {
-  useGetSpellQuery,
+  useGetSpellsQuery,
   useAddNewSpellMutation,
   useUpdateSpellMutation,
   useDeleteSpellMutation,
 } = spellsApiSlice
+
+export const selectSpellsResult = spellsApiSlice.endpoints.getSpells.select()
+
+export const {
+  selectAll: selectAllSpells,
+  selectById: selectSpellById,
+  selectIds: selectSpellIds,
+} = spellsAdapter.getSelectors()

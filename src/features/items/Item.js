@@ -1,19 +1,25 @@
 import parse from 'html-react-parser'
 import { getValueFromState } from '../../helpers/formatting'
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
+import { selectItemById, useGetItemsQuery } from './itemsApiSlice'
+import Spinner from '../../components/Spinner'
 
 const Item = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { data: item, handleClose } = useOutletContext()
+  const { data: id, handleClose } = useOutletContext()
 
-  const data = location.state.data
+  const { item, isFetching } = useGetItemsQuery('itemsList', {
+    selectFromResult: ({ data }) => ({
+      item: data && selectItemById(data, id),
+    }),
+  })
 
   const onEditClicked = () => {
     navigate(
       `${location.state.background.pathname}/edit/${location.state.data.name}`,
       {
-        state: { data: data, previous: location },
+        state: { data: id, previous: location },
       }
     )
   }
@@ -26,7 +32,10 @@ const Item = () => {
     },
     {
       header: 'DAMAGE TYPE',
-      name: 'damage.damageType',
+      name: [
+        ['damage.dice.diceShort', 'damage.dice.versatileDiceShort'],
+        'damage.damageType',
+      ],
     },
     { header: 'AC', name: 'armorClass' },
     {
@@ -36,10 +45,16 @@ const Item = () => {
     { header: 'COST', name: ['cost.amount', 'cost.currency.short'] },
   ]
 
-  const content = (
+  let content
+
+  if (isFetching) {
+    return (content = <Spinner />)
+  }
+
+  content = (
     <>
       <div className='modal-header'>
-        <h1 className='fw-bold mb-0 fs-2 ms-auto'>{item.value}</h1>
+        <h1 className='fw-bold mb-0 fs-2 ms-auto'>{item?.value}</h1>
         <button
           type='button'
           className='btn-close'

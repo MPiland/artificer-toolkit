@@ -1,28 +1,39 @@
+import { createEntityAdapter } from '@reduxjs/toolkit'
 import { apiSlice } from '../../app/api/apiSlice'
-import { setRaces } from './racesSlice'
+
+export const racesAdapter = createEntityAdapter({})
+
+export const initialState = racesAdapter.getInitialState()
 
 export const racesApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getRaces: builder.query({
-      query: (id) => ({
-        url: `/race/${id}`,
+      query: () => ({
+        url: '/race',
+        method: 'GET',
         validateStatus: (response, result) => {
           return response.status === 200 && !result.isError
         },
       }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+      async onQueryStarted(arg, { queryFulfilled }) {
         try {
-          const { data } = await queryFulfilled
-          dispatch(setRaces(data))
+          await queryFulfilled
         } catch (err) {
           console.log(err)
         }
       },
+      transformResponse: (responseData) => {
+        const loadedraces = responseData.map((race) => {
+          race.id = race._id
+          return race
+        })
+        return racesAdapter.setAll(initialState, loadedraces)
+      },
       providesTags: (result, error, id) => {
-        if (result) {
+        if (result?.ids) {
           return [
-            ...result.map(({ _id }) => ({ type: 'Race', id: _id })),
             { type: 'Race', id: 'LIST' },
+            ...result.ids.map((id) => ({ type: 'Race', id })),
           ]
         } else return [{ type: 'Race', id: 'LIST' }]
       },
@@ -49,14 +60,22 @@ export const racesApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: 'Race', id: 'LIST' }],
+      invalidatesTags: (result, error, arg) => [{ type: 'Race', id: arg.id }],
     }),
   }),
 })
 
 export const {
-  useGetRaceQuery,
+  useGetRacesQuery,
   useAddNewRaceMutation,
   useUpdateRaceMutation,
   useDeleteRaceMutation,
 } = racesApiSlice
+
+export const selectRacesResult = racesApiSlice.endpoints.getRaces.select()
+
+export const {
+  selectAll: selectAllRaces,
+  selectById: selectRaceById,
+  selectIds: selectRaceIds,
+} = racesAdapter.getSelectors()

@@ -1,51 +1,55 @@
 import { get, truncate } from 'lodash'
 
 export const getValueFromState = (inputItem, stateItem, truncateNum) => {
-  const shouldTruncate = !truncateNum ? false : true
+  const shouldTruncate = !!truncateNum
 
   const processItem = (item, state, shouldTruncate) => {
     if (!item || !state) {
-      return '---'
+      return null
     }
 
     if (Array.isArray(item)) {
       const nestedValues = item.map((nestedItem) =>
         processItem(nestedItem, state, shouldTruncate)
       )
-      if (nestedValues.every((valueItem) => !valueItem || valueItem == null)) {
-        return '---'
+      if (nestedValues.every((valueItem) => valueItem == null)) {
+        return null
       }
-      return nestedValues.join(' ')
+      const joinedValues = nestedValues
+        .filter((valueItem) => valueItem != null)
+        .join(' ')
+      return joinedValues.length > 0 ? joinedValues : null
     } else {
       const value = get(state, item)
+      if (value == null) {
+        return null
+      }
       if (Array.isArray(value)) {
-        if (value.length > 0) {
-          if (value.length > 1) {
-            const sortedValues = [...value]
-            sortedValues.sort((a, b) =>
-              a.value.toString().localeCompare(b.value.toString())
-            )
-            return sortedValues
-              .map((nestedValue) =>
-                shouldTruncate
-                  ? truncate(nestedValue.value, {
-                      length: truncateNum,
-                      omission: '',
-                    })
-                  : nestedValue.value
-              )
-              .join(' / ')
-          } else {
-            const truncatedValue = shouldTruncate
-              ? truncate(value[0].value, {
-                  length: truncateNum,
-                  omission: '',
-                })
-              : value[0].value
-            return truncatedValue
-          }
+        if (value.length === 0) {
+          return null
+        } else if (value.length === 1) {
+          const truncatedValue = shouldTruncate
+            ? truncate(value[0].value, {
+                length: truncateNum,
+                omission: '',
+              })
+            : value[0].value
+          return truncatedValue
         } else {
-          return '---'
+          const sortedValues = [...value]
+          sortedValues.sort((a, b) =>
+            a.value.toString().localeCompare(b.value.toString())
+          )
+          return sortedValues
+            .map((nestedValue) =>
+              shouldTruncate
+                ? truncate(nestedValue.value, {
+                    length: truncateNum,
+                    omission: '',
+                  })
+                : nestedValue.value
+            )
+            .join(' / ')
         }
       } else {
         return shouldTruncate ? truncate(value, { length: truncateNum }) : value
@@ -57,12 +61,17 @@ export const getValueFromState = (inputItem, stateItem, truncateNum) => {
     const nameItems = Array.isArray(inputItem.name[0])
       ? inputItem.name
       : [inputItem.name]
-    return nameItems
-      .map((nameItem) => {
-        const value = processItem(nameItem, stateItem, shouldTruncate)
-        return value != null ? value : '---'
-      })
-      .join(' / ')
+
+    let finalValue = null
+
+    nameItems.forEach((nameItem) => {
+      const value = processItem(nameItem, stateItem, shouldTruncate)
+      if (value != null) {
+        finalValue = finalValue == null ? value : finalValue + ' / ' + value
+      }
+    })
+
+    return finalValue != null ? finalValue : '---'
   }
 
   return '---'

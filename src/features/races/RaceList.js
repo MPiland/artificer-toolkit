@@ -1,9 +1,12 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { useDeleteRaceMutation } from './racesApiSlice'
+import {
+  selectAllRaces,
+  useDeleteRaceMutation,
+  useGetRacesQuery,
+} from './racesApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import {
-  selectRaces,
   selectRacesFilter,
   clearRacesFilter,
   setRacesFilter,
@@ -20,12 +23,15 @@ const RaceList = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const loading = useSelector((state) => state.loading.status)
-
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const raceToDelete = useSelector((state) => state.delete.data)
 
-  const races = useSelector(selectRaces)
+  const { races, isFetching } = useGetRacesQuery('racesList', {
+    selectFromResult: ({ data }) => ({
+      races: data && selectAllRaces(data),
+    }),
+  })
+
   const filtersState = useSelector(selectRacesFilter)
 
   const [deleteRace, { isError: delIsError, error: delError }] =
@@ -35,6 +41,8 @@ const RaceList = () => {
     useFilteredList(races, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
+  const [isLoadingData, setIsLoadingData] = useState(true)
+  const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -46,7 +54,7 @@ const RaceList = () => {
         background: location,
         title: race.value,
         context: 'itemCard',
-        data: race,
+        data: race.id,
         size: 'lg',
       },
     })
@@ -73,6 +81,14 @@ const RaceList = () => {
   }, [raceToDelete, dispatch, deleteRace])
 
   useEffect(() => {
+    if (isFetching || !filteredList) {
+      setIsLoadingData(true)
+    } else {
+      setIsLoadingData(false)
+    }
+  }, [filteredList, isFetching])
+
+  useEffect(() => {
     if (deleteConfirmed) {
       onDeleteSubmit()
     }
@@ -84,10 +100,6 @@ const RaceList = () => {
     }
   }, [delIsError, delError])
 
-  const onFilterChange = (e) => {
-    setListFilter(e)
-  }
-
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setRacesFilter(listFilter))
   }, [dispatch, listFilter])
@@ -98,13 +110,11 @@ const RaceList = () => {
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    setFilterItems(races)
-  }, [races, setFilterItems])
-
-  const onFilterReset = () => {
-    dispatch(clearRacesFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
+    if (races && !filterItemsPopulated) {
+      setFilterItems(races)
+      setFilterItemsPopulated(true) // Ensure it's called only once
+    }
+  }, [races, setFilterItems, filterItemsPopulated])
 
   useEffect(() => {
     setTableColumns({
@@ -129,88 +139,97 @@ const RaceList = () => {
     })
   }, [setTableColumns, is1200, is1000, is600])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  const onFilterReset = () => {
+    dispatch(clearRacesFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
+
   let content
 
-  if (loading) {
-    content = <Spinner />
-  } else {
-    const filter = (
-      <div className='filter-container'>
-        <div
-          className='btn btn-section-collapse justify-content-between align-items-center'
-          id='sectionCollapseButton'
-          type='button'
-          role='button'
-          data-bs-toggle='collapse'
-          data-bs-target='#sectionCollapse'
-          aria-controls='collapseExample'
-          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
-        >
-          <span className='me-3'>Filters</span>
-          <i className='bi bi-arrow-down-up' />
-        </div>
-        <div
-          className={`section-container collapse ${
-            !is600 && !is1000 ? ' show' : ''
-          }`}
-          id='sectionCollapse'
-        >
-          <div className='section-content'>
-            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
-              <Input
-                name='value'
-                label={true}
-                placeholder='Race Name'
-                autoComplete='off'
-                value={listFilter?.value}
-                onChange={(e) => onFilterChange(e)}
-              />
-            </div>
+  if (isLoadingData || !filteredList) {
+    return (content = <Spinner />)
+  }
+
+  const filter = (
+    <div className='filter-container'>
+      <div
+        className='btn btn-section-collapse justify-content-between align-items-center'
+        id='sectionCollapseButton'
+        type='button'
+        role='button'
+        data-bs-toggle='collapse'
+        data-bs-target='#sectionCollapse'
+        aria-controls='collapseExample'
+        aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+      >
+        <span className='me-3'>Filters</span>
+        <i className='bi bi-arrow-down-up' />
+      </div>
+      <div
+        className={`section-container collapse ${
+          !is600 && !is1000 ? ' show' : ''
+        }`}
+        id='sectionCollapse'
+      >
+        <div className='section-content'>
+          <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Race Name'
+              autoComplete='off'
+              value={listFilter?.value}
+              onChange={(e) => onFilterChange(e)}
+            />
           </div>
         </div>
       </div>
-    )
-    content = (
-      <>
-        <div className='d-flex justify-content-between pb-2'>
-          <div className='d-flex'>
-            <h3 className='me-3'>Races</h3>
-            <button
-              type='button'
-              className='btn btn-outline-secondary btn-small me-1'
-              onClick={onFilterReset}
-            >
-              Clear Filters
-            </button>
-          </div>
+    </div>
+  )
+  content = (
+    <>
+      <div className='d-flex justify-content-between pb-2'>
+        <div className='d-flex'>
+          <h3 className='me-3'>Races</h3>
           <button
-            className='btn btn-outline-secondary btn-small'
-            onClick={() => navigate('/races/new')}
+            type='button'
+            className='btn btn-outline-secondary btn-small me-1'
+            onClick={onFilterReset}
           >
-            Create a Race
+            Clear Filters
           </button>
         </div>
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-        {filter}
-        <Table
-          name='raceList.table'
-          dynamic={false}
-          readOnly={true}
-          sortable={true}
-          defaultSort={tableColumns.headers.find(
-            (headerItem) => headerItem.defaultSort === true
-          )}
-          value={filteredList}
-          headers={tableColumns.headers}
-          inputs={tableColumns.inputs}
-          clickable={true}
-          onClick={(race) => showCard(race)}
-          deleteRow={(race) => onDelete(race)}
-          empty='---'
-        />
-      </>
-    )
-  }
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={() => navigate('/races/new')}
+        >
+          Create a Race
+        </button>
+      </div>
+      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+      {filter}
+      <Table
+        name='raceList.table'
+        dynamic={false}
+        readOnly={true}
+        sortable={true}
+        defaultSort={tableColumns.headers.find(
+          (headerItem) => headerItem.defaultSort === true
+        )}
+        value={filteredList}
+        headers={tableColumns.headers}
+        inputs={tableColumns.inputs}
+        clickable={true}
+        onClick={(race) => showCard(race)}
+        deleteRow={(race) => onDelete(race)}
+        empty='---'
+      />
+    </>
+  )
 
   return <div className='main-container list'>{content}</div>
 }

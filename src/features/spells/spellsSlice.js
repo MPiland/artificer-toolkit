@@ -1,12 +1,12 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice} from '@reduxjs/toolkit'
+import {
+  initialState,
+} from './spellsApiSlice'
 
 const spellsSlice = createSlice({
   name: 'spells',
-  initialState: { data: null, filters: {} },
+  initialState: { data: initialState, filters: {} },
   reducers: {
-    setSpells: (state, { payload }) => {
-      state.data = payload
-    },
     setSpellsFilter: (state, { payload }) => {
       state.filters = payload
     },
@@ -15,11 +15,8 @@ const spellsSlice = createSlice({
     },
   },
 })
+export const selectSpellsFilter = (state) => state.spells.filters
 
-export const { setSpells, setSpellsFilter, clearSpellsFilter } =
-  spellsSlice.actions
+export const { setSpellsFilter, clearSpellsFilter } = spellsSlice.actions
 
 export default spellsSlice.reducer
-
-export const selectSpells = (state) => state.spells.data
-export const selectSpellsFilter = (state) => state.spells.filters

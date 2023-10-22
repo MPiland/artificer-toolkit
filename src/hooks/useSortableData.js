@@ -25,9 +25,15 @@ const useSortableData = (items, config = null) => {
         ? -1
         : 0
     } else {
-      return direction === 'ascending'
-        ? aValue.localeCompare(bValue)
-        : bValue.localeCompare(aValue)
+      if (aValue != null && bValue == null) {
+        return direction === 'ascending' ? 1 : -1
+      } else if (aValue == null && bValue != null) {
+        return direction === 'ascending' ? -1 : 1
+      } else {
+        return direction === 'ascending'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue)
+      }
     }
   }, [])
 

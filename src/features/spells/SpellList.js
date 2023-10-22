@@ -1,8 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { useDeleteSpellMutation } from './spellsApiSlice'
 import {
-  selectSpells,
+  selectAllSpells,
+  useDeleteSpellMutation,
+  useGetSpellsQuery,
+} from './spellsApiSlice'
+import {
   selectSpellsFilter,
   setSpellsFilter,
   clearSpellsFilter,
@@ -21,12 +24,15 @@ const SpellList = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const loading = useSelector((state) => state.loading.status)
-
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const spellToDelete = useSelector((state) => state.delete.data)
 
-  const spells = useSelector(selectSpells)
+  const { spells, isFetching } = useGetSpellsQuery('spellsList', {
+    selectFromResult: ({ data }) => ({
+      spells: data && selectAllSpells(data),
+    }),
+  })
+
   const filtersState = useSelector(selectSpellsFilter)
 
   const [deleteSpell, { isError: delIsError, error: delError }] =
@@ -36,6 +42,8 @@ const SpellList = () => {
     useFilteredList(spells, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
+  const [isLoadingData, setIsLoadingData] = useState(true)
+  const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -47,7 +55,7 @@ const SpellList = () => {
         background: location,
         title: spell.value,
         context: 'itemCard',
-        data: spell,
+        data: spell.id,
         size: 'lg',
       },
     })
@@ -74,6 +82,14 @@ const SpellList = () => {
   }, [spellToDelete, dispatch, deleteSpell])
 
   useEffect(() => {
+    if (isFetching || !filteredList) {
+      setIsLoadingData(true)
+    } else {
+      setIsLoadingData(false)
+    }
+  }, [filteredList, isFetching])
+
+  useEffect(() => {
     if (deleteConfirmed) {
       onDeleteSubmit()
     }
@@ -84,11 +100,6 @@ const SpellList = () => {
       setErrorMessage(delError.data.message)
     }
   }, [delIsError, delError])
-
-  const onFilterChange = (e) => {
-    setListFilter(e)
-  }
-
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setSpellsFilter(listFilter))
   }, [dispatch, listFilter])
@@ -99,13 +110,11 @@ const SpellList = () => {
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    setFilterItems(spells)
-  }, [spells, setFilterItems])
-
-  const onFilterReset = () => {
-    dispatch(clearSpellsFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
+    if (spells && !filterItemsPopulated) {
+      setFilterItems(spells)
+      setFilterItemsPopulated(true) // Ensure it's called only once
+    }
+  }, [spells, setFilterItems, filterItemsPopulated])
 
   useEffect(() => {
     setTableColumns({
@@ -211,145 +220,152 @@ const SpellList = () => {
     })
   }, [setTableColumns, is1200, is1000, is600])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  const onFilterReset = () => {
+    dispatch(clearSpellsFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
+
   let content
 
-  if (loading) {
-    content = <Spinner />
-  } else {
-    const filter = (
-      <div className='filter-container'>
-        <div
-          className='btn btn-section-collapse justify-content-between align-items-center'
-          id='sectionCollapseButton'
-          type='button'
-          role='button'
-          data-bs-toggle='collapse'
-          data-bs-target='#sectionCollapse'
-          aria-controls='collapseExample'
-          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
-        >
-          <span className='me-3'>Filters</span>
-          <i className='bi bi-arrow-down-up' />
-        </div>
-        <div
-          className={`section-container collapse ${
-            !is600 && !is1000 ? ' show' : ''
-          }`}
-          id='sectionCollapse'
-        >
-          <div className='section-content'>
-            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
-              <Input
-                name='value'
-                label={true}
-                placeholder='Spell Name'
-                autoComplete='off'
-                value={listFilter?.value}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='level'
-                placeholder='Level'
-                options={filteredList?.map((item) => ({ value: item?.level }))}
-                value={listFilter?.level}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='action.actionType'
-                placeholder='Casting Time'
-                options={filteredList?.map((item) => item.action?.actionType)}
-                value={listFilter?.action?.actionType}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='duration.durationType'
-                placeholder='Duration'
-                options={filteredList?.map(
-                  (item) => item.duration?.durationType
-                )}
-                value={listFilter?.duration?.durationType}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='range.rangeType'
-                placeholder='Range'
-                options={filteredList?.map((item) => item.range?.rangeType)}
-                value={listFilter?.range?.rangeType}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='damage.damageType'
-                placeholder='Damage Type'
-                options={filteredList?.flatMap((item) => {
-                  if (item.damage && Array.isArray(item.damage.damageType)) {
-                    return item.damage.damageType
-                  } else {
-                    return []
-                  }
-                })}
-                value={listFilter?.damage?.damageType}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='school'
-                placeholder='Spell School'
-                options={filteredList?.map((item) => item.school)}
-                value={listFilter?.school}
-                onChange={(e) => onFilterChange(e)}
-              />
-            </div>
+  if (isLoadingData) {
+    return content = <Spinner />
+  }
+  
+  const filter = (
+    <div className='filter-container'>
+      <div
+        className='btn btn-section-collapse justify-content-between align-items-center'
+        id='sectionCollapseButton'
+        type='button'
+        role='button'
+        data-bs-toggle='collapse'
+        data-bs-target='#sectionCollapse'
+        aria-controls='collapseExample'
+        aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+      >
+        <span className='me-3'>Filters</span>
+        <i className='bi bi-arrow-down-up' />
+      </div>
+      <div
+        className={`section-container collapse ${
+          !is600 && !is1000 ? ' show' : ''
+        }`}
+        id='sectionCollapse'
+      >
+        <div className='section-content'>
+          <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Spell Name'
+              autoComplete='off'
+              value={listFilter?.value}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='level'
+              placeholder='Level'
+              options={filteredList?.map((item) => ({ value: item?.level }))}
+              value={listFilter?.level}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='action.actionType'
+              placeholder='Casting Time'
+              options={filteredList?.map((item) => item.action?.actionType)}
+              value={listFilter?.action?.actionType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='duration.durationType'
+              placeholder='Duration'
+              options={filteredList?.map((item) => item.duration?.durationType)}
+              value={listFilter?.duration?.durationType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='range.rangeType'
+              placeholder='Range'
+              options={filteredList?.map((item) => item.range?.rangeType)}
+              value={listFilter?.range?.rangeType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='damage.damageType'
+              placeholder='Damage Type'
+              options={filteredList?.flatMap((item) => {
+                if (item.damage && Array.isArray(item.damage.damageType)) {
+                  return item.damage.damageType
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.damage?.damageType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='school'
+              placeholder='Spell School'
+              options={filteredList?.map((item) => item.school)}
+              value={listFilter?.school}
+              onChange={(e) => onFilterChange(e)}
+            />
           </div>
         </div>
       </div>
-    )
+    </div>
+  )
 
-    content = (
-      <>
-        <div className='d-flex justify-content-between pb-2'>
-          <div className='d-flex'>
-            <h3 className='me-3'>Spells</h3>
-            <button
-              type='button'
-              className='btn btn-outline-secondary btn-small me-1'
-              onClick={onFilterReset}
-            >
-              Clear Filters
-            </button>
-          </div>
+  content = (
+    <>
+      <div className='d-flex justify-content-between pb-2'>
+        <div className='d-flex'>
+          <h3 className='me-3'>Spells</h3>
           <button
-            className='btn btn-outline-secondary btn-small'
-            onClick={() => navigate('/spells/new')}
+            type='button'
+            className='btn btn-outline-secondary btn-small me-1'
+            onClick={onFilterReset}
           >
-            Create a Spell
+            Clear Filters
           </button>
         </div>
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-        {filter}
-        <Table
-          name='spellList.table'
-          dynamic={false}
-          readOnly={true}
-          sortable={true}
-          defaultSort={tableColumns.headers.find(
-            (headerItem) => headerItem.defaultSort === true
-          )}
-          scrollable={true}
-          value={filteredList}
-          headers={tableColumns.headers}
-          inputs={tableColumns.inputs}
-          clickable={true}
-          onClick={(spell) => showCard(spell)}
-          deleteRow={(spell) => onDelete(spell)}
-        />
-      </>
-    )
-  }
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={() => navigate('/spells/new')}
+        >
+          Create a Spell
+        </button>
+      </div>
+      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+      {filter}
+      <Table
+        name='spellList.table'
+        dynamic={false}
+        readOnly={true}
+        sortable={true}
+        defaultSort={tableColumns.headers.find(
+          (headerItem) => headerItem.defaultSort === true
+        )}
+        scrollable={true}
+        value={filteredList}
+        headers={tableColumns.headers}
+        inputs={tableColumns.inputs}
+        clickable={true}
+        onClick={(spell) => showCard(spell)}
+        deleteRow={(spell) => onDelete(spell)}
+      />
+    </>
+  )
 
   return <div className='main-container list'>{content}</div>
 }

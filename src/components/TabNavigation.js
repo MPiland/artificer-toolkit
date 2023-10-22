@@ -335,8 +335,8 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
     currentPaneRef.current.classList.remove('show')
     const txt =
       currentTabRef.current.textContent || currentTabRef.current.innerText
-    if (sectionTabs.includes(txt)) {
-      setSectionTabs((prev) => prev.filter(txt))
+    if (txt && sectionTabs.includes(txt)) {
+      setSectionTabs((prev) => prev.filter((prevItem) => prevItem !== txt))
     }
 
     if (index !== 0) {

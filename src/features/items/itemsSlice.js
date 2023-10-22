@@ -1,12 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit'
+import { initialState } from './itemsApiSlice'
 
 const itemsSlice = createSlice({
   name: 'items',
-  initialState: { data: null, filters: {} },
+  initialState: { data: initialState, filters: {} },
   reducers: {
-    setItems: (state, { payload }) => {
-      state.data = payload
-    },
     setItemsFilter: (state, { payload }) => {
       state.filters = payload
     },
@@ -16,9 +14,8 @@ const itemsSlice = createSlice({
   },
 })
 
-export const { setItems, setItemsFilter, clearItemsFilter } = itemsSlice.actions
+export const { setItemsFilter, clearItemsFilter } = itemsSlice.actions
 
 export default itemsSlice.reducer
 
-export const selectItems = (state) => state.items.data
 export const selectItemsFilter = (state) => state.items.filters

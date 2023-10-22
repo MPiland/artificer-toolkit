@@ -1,12 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit'
+import {initialState } from './featsApiSlice'
 
 const featsSlice = createSlice({
   name: 'feats',
-  initialState: { data: null, filters: {} },
+  initialState: { data: initialState, filters: {} },
   reducers: {
-    setFeats: (state, { payload }) => {
-      state.data = payload
-    },
     setFeatsFilter: (state, { payload }) => {
       state.filters = payload
     },
@@ -16,9 +14,8 @@ const featsSlice = createSlice({
   },
 })
 
-export const { setFeats, setFeatsFilter, clearFeatsFilter } = featsSlice.actions
+export const { setFeatsFilter, clearFeatsFilter } = featsSlice.actions
 
 export default featsSlice.reducer
 
-export const selectFeats = (state) => state.feats.data
 export const selectFeatsFilter = (state) => state.feats.filters

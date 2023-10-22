@@ -1,23 +1,32 @@
 import parse from 'html-react-parser'
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
+import { selectRaceById, useGetRacesQuery } from './racesApiSlice'
+import Spinner from '../../components/Spinner'
 
 const Race = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { data: race, handleClose } = useOutletContext()
+  const { data: id, handleClose } = useOutletContext()
 
-  const data = location.state.data
+  const { race, isFetching } = useGetRacesQuery('racesList', {
+    selectFromResult: ({ data }) => ({
+      race: data && selectRaceById(data, id),
+    }),
+  })
 
   const onEditClicked = () => {
-    navigate(
-      `${location.state.background.pathname}/edit/${location.state.data.name}`,
-      {
-        state: { data: data, previous: location },
-      }
-    )
+    navigate(`${location.state.background.pathname}/edit/${race.name}`, {
+      state: { data: id, previous: location },
+    })
   }
 
-  const content = (
+  let content
+
+  if (isFetching) {
+    return content = <Spinner />
+  }
+
+  content = (
     <>
       <div className='modal-header'>
         <h1 className='fw-bold mb-0 fs-2 ms-auto'>{race.value}</h1>

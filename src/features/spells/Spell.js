@@ -1,19 +1,25 @@
 import parse from 'html-react-parser'
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 import { getValueFromState } from '../../helpers/formatting'
+import { selectSpellById, useGetSpellsQuery } from './spellsApiSlice'
+import Spinner from '../../components/Spinner'
 
 const Spell = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { data: spell, handleClose } = useOutletContext()
+  const { data: id, handleClose } = useOutletContext()
 
-  const data = location.state.data
+  const { spell, isFetching } = useGetSpellsQuery('spellsList', {
+    selectFromResult: ({ data }) => ({
+      spell: data && selectSpellById(data, id),
+    }),
+  })
 
   const onEditClicked = () => {
     navigate(
       `${location.state.background.pathname}/edit/${location.state.data.name}`,
       {
-        state: { data: data, previous: location },
+        state: { data: id, previous: location },
       }
     )
   }
@@ -51,7 +57,13 @@ const Spell = () => {
     { header: 'DAMAGE', name: 'damage.damageType' },
   ]
 
-  const content = (
+  let content
+
+  if (isFetching) {
+    return (content = <Spinner />)
+  }
+
+  content = (
     <>
       <div className='modal-header'>
         <h1 className='fw-bold mb-0 fs-2 ms-auto'>{spell.value}</h1>

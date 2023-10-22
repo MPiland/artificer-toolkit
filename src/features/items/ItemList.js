@@ -1,10 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { useDeleteItemMutation } from './itemsApiSlice'
+import {
+  selectAllItems,
+  useDeleteItemMutation,
+  useGetItemsQuery,
+} from './itemsApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
 import { clearConfirm } from '../../app/deleteSlice'
 import {
-  selectItems,
   selectItemsFilter,
   setItemsFilter,
   clearItemsFilter,
@@ -21,21 +24,24 @@ const ItemList = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const loading = useSelector((state) => state.loading.status)
+  const { items, isFetching } = useGetItemsQuery('itemsList', {
+    selectFromResult: ({ data }) => ({
+      items: data && selectAllItems(data),
+    }),
+  })
 
+  const filtersState = useSelector(selectItemsFilter)
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const itemToDelete = useSelector((state) => state.delete.data)
 
-  const items = useSelector(selectItems)
-  const filtersState = useSelector(selectItemsFilter)
-
   const [deleteItem, { isError: delIsError, error: delError }] =
     useDeleteItemMutation()
-
   const { listFilter, filteredList, setListFilter, setFilterItems } =
     useFilteredList(items, filtersState)
+
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
+  const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -47,7 +53,7 @@ const ItemList = () => {
         background: location,
         title: item.value,
         context: 'itemCard',
-        data: item,
+        data: item.id,
         size: 'lg',
       },
     })
@@ -85,10 +91,6 @@ const ItemList = () => {
     }
   }, [delIsError, delError])
 
-  const onFilterChange = (e) => {
-    setListFilter(e)
-  }
-
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setItemsFilter(listFilter))
   }, [dispatch, listFilter])
@@ -99,13 +101,11 @@ const ItemList = () => {
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    setFilterItems(items)
-  }, [items, setFilterItems])
-
-  const onFilterReset = () => {
-    dispatch(clearItemsFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
-  }
+    if (items && !filterItemsPopulated) {
+      setFilterItems(items)
+      setFilterItemsPopulated(true)
+    }
+  }, [items, setFilterItems, filterItemsPopulated])
 
   useEffect(() => {
     setTableColumns({
@@ -203,7 +203,10 @@ const ItemList = () => {
           breakpoint: '',
         },
         {
-          name: 'damage.damageType',
+          name: [
+            ['damage.dice.diceShort', 'damage.dice.versatileDiceShort'],
+            'damage.damageType',
+          ],
           size: ' col-2',
           breakpoint: is600 && true,
         },
@@ -231,113 +234,124 @@ const ItemList = () => {
     })
   }, [setTableColumns, is1200, is1000, is600])
 
+  const onFilterChange = (e) => {
+    setListFilter(e)
+  }
+
+  const onFilterReset = () => {
+    dispatch(clearItemsFilter())
+    setListFilter({ type: 'reset', payload: { target: {} } })
+  }
+
   let content
 
-  if (loading) {
-    content = <Spinner />
-  } else {
-    const filter = (
-      <div className='filter-container'>
-        <button
-          className='btn btn-section-collapse justify-content-between align-items-center'
-          id='sectionCollapseButton'
-          type='button'
-          data-bs-toggle='collapse'
-          data-bs-target='#sectionCollapse'
-          aria-controls='collapseExample'
-          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
-        >
-          <span className='me-3'>Filters</span>
-          <i className='bi bi-arrow-down-up' />
-        </button>
-        <div
-          className={`section-container collapse ${
-            !is600 && !is1000 ? ' show' : ''
-          }`}
-          id='sectionCollapse'
-        >
-          <div className='section-content'>
-            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
-              <Input
-                name='value'
-                label={true}
-                placeholder='Item Name'
-                autoComplete='off'
-                value={listFilter?.value}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='category'
-                placeholder='Item Category'
-                options={items?.map((item) => item.category)}
-                value={listFilter?.category}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='property'
-                placeholder='Item Property'
-                options={items?.flatMap((item) => {
-                  if (item.property && Array.isArray(item.property)) {
-                    return item.property
-                  } else {
-                    return []
-                  }
-                })}
-                value={listFilter?.property}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='damage.damageType'
-                placeholder='Damage Type'
-                options={items?.flatMap((item) => {
-                  if (item.damage && Array.isArray(item.damage.damageType)) {
-                    return item.damage.damageType
-                  } else {
-                    return []
-                  }
-                })}
-                value={listFilter?.damage?.damageType}
-                onChange={(e) => onFilterChange(e)}
-              />
-              <Select
-                multiple={true}
-                name='armorClass'
-                placeholder='Item Category'
-                options={items?.map((item) => ({ value: item.armorClass }))}
-                value={listFilter.armorClass}
-                onChange={(e) => onFilterChange(e)}
-              />
-            </div>
+  if (isFetching || !filteredList) {
+    return (content = <Spinner />)
+  }
+
+  const filter = (
+    <div className='filter-container'>
+      <button
+        className='btn btn-section-collapse justify-content-between align-items-center'
+        id='sectionCollapseButton'
+        type='button'
+        data-bs-toggle='collapse'
+        data-bs-target='#sectionCollapse'
+        aria-controls='collapseExample'
+        aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+      >
+        <span className='me-3'>Filters</span>
+        <i className='bi bi-arrow-down-up' />
+      </button>
+      <div
+        className={`section-container collapse ${
+          !is600 && !is1000 ? ' show' : ''
+        }`}
+        id='sectionCollapse'
+      >
+        <div className='section-content'>
+          <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Item Name'
+              autoComplete='off'
+              value={listFilter?.value}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='category'
+              placeholder='Item Category'
+              options={items?.map((item) => item.category)}
+              value={listFilter?.category}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='property'
+              placeholder='Item Property'
+              options={items?.flatMap((item) => {
+                if (item.property && Array.isArray(item.property)) {
+                  return item.property
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.property}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='damage.damageType'
+              placeholder='Damage Type'
+              options={items?.flatMap((item) => {
+                if (item.damage && Array.isArray(item.damage.damageType)) {
+                  return item.damage.damageType
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.damage?.damageType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='armorClass'
+              placeholder='Item Category'
+              options={items?.map((item) => ({ value: item.armorClass }))}
+              value={listFilter.armorClass}
+              onChange={(e) => onFilterChange(e)}
+            />
           </div>
         </div>
       </div>
-    )
+    </div>
+  )
 
-    content = (
-      <>
-        <div className='d-flex justify-content-between pb-2'>
-          <div className='d-flex'>
-            <h3 className='me-3'>Items</h3>
-            <button
-              type='button'
-              className='btn btn-outline-secondary btn-small me-1'
-              onClick={onFilterReset}
-            >
-              Clear Filters
-            </button>
-          </div>
+  content = (
+    <>
+      <div className='d-flex justify-content-between pb-2'>
+        <div className='d-flex'>
+          <h3 className='me-3'>Items</h3>
           <button
-            className='btn btn-outline-secondary btn-small'
-            onClick={() => navigate('/items/new')}
+            type='button'
+            className='btn btn-outline-secondary btn-small me-1'
+            onClick={onFilterReset}
           >
-            Create an Item
+            Clear Filters
           </button>
         </div>
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-        {filter}
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={() => navigate('/items/new')}
+        >
+          Create an Item
+        </button>
+      </div>
+      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+      {filter}
+      {items != null && (
         <Table
           name='itemList.table'
           dynamic={false}
@@ -354,9 +368,9 @@ const ItemList = () => {
           onClick={(item) => showCard(item)}
           deleteRow={(item) => onDelete(item)}
         />
-      </>
-    )
-  }
+      )}
+    </>
+  )
 
   return <div className='main-container list'>{content}</div>
 }

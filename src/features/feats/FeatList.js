@@ -1,10 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useDeleteFeatMutation } from './featsApiSlice'
+import {
+  selectAllFeats,
+  useDeleteFeatMutation,
+  useGetFeatsQuery,
+} from './featsApiSlice'
 import { clearConfirm } from '../../app/deleteSlice'
 import {
-  selectFeats,
   selectFeatsFilter,
   setFeatsFilter,
   clearFeatsFilter,
@@ -20,12 +23,15 @@ const FeatList = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const loading = useSelector((state) => state.loading.status)
-
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const featToDelete = useSelector((state) => state.delete.data)
 
-  const feats = useSelector(selectFeats)
+  const { feats, isFetching } = useGetFeatsQuery('featsList', {
+    selectFromResult: ({ data }) => ({
+      feats: data && selectAllFeats(data),
+    }),
+  })
+
   const filtersState = useSelector(selectFeatsFilter)
 
   const [deleteFeat, { isError: delIsError, error: delError }] =
@@ -35,6 +41,7 @@ const FeatList = () => {
     useFilteredList(feats, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
+  const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
@@ -46,7 +53,7 @@ const FeatList = () => {
         background: location,
         title: feat.value,
         context: 'itemCard',
-        data: feat,
+        data: feat.id,
         size: 'lg',
       },
     })
@@ -98,8 +105,11 @@ const FeatList = () => {
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    setFilterItems(feats)
-  }, [feats, setFilterItems])
+    if (feats && !filterItemsPopulated) {
+      setFilterItems(feats)
+      setFilterItemsPopulated(true) // Ensure it's called only once
+    }
+  }, [feats, setFilterItems, filterItemsPopulated])
 
   const onFilterReset = () => {
     dispatch(clearFeatsFilter())
@@ -131,87 +141,87 @@ const FeatList = () => {
 
   let content
 
-  if (loading) {
-    content = <Spinner />
-  } else {
-    const filter = (
-      <div className='filter-container'>
-        <div
-          className='btn btn-section-collapse justify-content-between align-items-center'
-          id='sectionCollapseButton'
-          type='button'
-          role='button'
-          data-bs-toggle='collapse'
-          data-bs-target='#sectionCollapse'
-          aria-controls='collapseExample'
-          aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
-        >
-          <span className='me-3'>Filters</span>
-          <i className='bi bi-arrow-down-up' />
-        </div>
-        <div
-          className={`section-container collapse ${
-            !is600 && !is1000 ? ' show' : ''
-          }`}
-          id='sectionCollapse'
-        >
-          <div className='section-content'>
-            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
-              <Input
-                name='value'
-                label={true}
-                placeholder='Feat Name'
-                autoComplete='off'
-                value={listFilter?.value}
-                onChange={(e) => onFilterChange(e)}
-              />
-            </div>
+  if (isFetching || !filteredList) {
+    return (content = <Spinner />)
+  }
+
+  const filter = (
+    <div className='filter-container'>
+      <div
+        className='btn btn-section-collapse justify-content-between align-items-center'
+        id='sectionCollapseButton'
+        type='button'
+        role='button'
+        data-bs-toggle='collapse'
+        data-bs-target='#sectionCollapse'
+        aria-controls='collapseExample'
+        aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+      >
+        <span className='me-3'>Filters</span>
+        <i className='bi bi-arrow-down-up' />
+      </div>
+      <div
+        className={`section-container collapse ${
+          !is600 && !is1000 ? ' show' : ''
+        }`}
+        id='sectionCollapse'
+      >
+        <div className='section-content'>
+          <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+            <Input
+              name='value'
+              label={true}
+              placeholder='Feat Name'
+              autoComplete='off'
+              value={listFilter?.value}
+              onChange={(e) => onFilterChange(e)}
+            />
           </div>
         </div>
       </div>
-    )
+    </div>
+  )
 
-    content = (
-      <>
-        <div className='d-flex justify-content-between pb-2'>
-          <div className='d-flex'>
-            <h3 className='me-3'>Feats</h3>
-            <button
-              type='button'
-              className='btn btn-outline-secondary btn-small me-1'
-              onClick={onFilterReset}
-            >
-              Clear Filters
-            </button>
-          </div>
+  content = (
+    <>
+      <div className='d-flex justify-content-between pb-2'>
+        <div className='d-flex'>
+          <h3 className='me-3'>Feats</h3>
           <button
-            className='btn btn-outline-secondary btn-small'
-            onClick={() => navigate('/feats/new')}
+            type='button'
+            className='btn btn-outline-secondary btn-small me-1'
+            onClick={onFilterReset}
           >
-            Create a Feat
+            Clear Filters
           </button>
         </div>
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-        {filter}
-        <Table
-          name='featList.table'
-          dynamic={false}
-          readOnly={true}
-          sortable={true}
-          defaultSort={tableColumns.headers.find(
-            (headerItem) => headerItem.defaultSort === true
-          )}
-          value={filteredList}
-          headers={tableColumns.headers}
-          inputs={tableColumns.inputs}
-          clickable={true}
-          onClick={(feat) => showCard(feat)}
-          deleteRow={(feat) => onDelete(feat)}
-          empty='---'
-        />
-      </>
-    )
-  }
+        <button
+          className='btn btn-outline-secondary btn-small'
+          onClick={() => navigate('/feats/new')}
+        >
+          Create a Feat
+        </button>
+      </div>
+      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+      {filter}
+      <Table
+        name='featList.table'
+        dynamic={false}
+        readOnly={true}
+        sortable={true}
+        defaultSort={tableColumns.headers.find(
+          (headerItem) => headerItem.defaultSort === true
+        )}
+        value={filteredList}
+        headers={tableColumns.headers}
+        inputs={tableColumns.inputs}
+        clickable={true}
+        onClick={(feat) => showCard(feat)}
+        deleteRow={(feat) => onDelete(feat)}
+        empty='---'
+      />
+    </>
+  )
 
   return <div className='main-container list'>{content}</div>
 }

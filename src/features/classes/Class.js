@@ -1,30 +1,30 @@
 import parse from 'html-react-parser'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { selectSubClasses } from './classesSlice'
-import { useSelector } from 'react-redux'
+import { selectClassById, useGetClassesQuery } from './classesApiSlice'
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
+import Spinner from '../../components/Spinner'
 
 const Class = () => {
+  const [activeSection, setActiveSection] = useState()
   const sidebarRef = useRef()
   const sidebarBtnRef = useRef()
   const sidebarListRef = useRef()
   const modalBodyRef = useRef()
 
-  const [activeSection, setActiveSection] = useState()
-
   const location = useLocation()
   const navigate = useNavigate()
-  const { data: userClass, handleClose } = useOutletContext()
+  const { data: id, handleClose } = useOutletContext()
 
-  const data = location.state.data
+  const { userClass, isFetching } = useGetClassesQuery('classesList', {
+    selectFromResult: ({ data }) => ({
+      userClass: data && selectClassById(data, id),
+    }),
+  })
 
   const onEditClicked = () => {
-    navigate(
-      `${location.state.background.pathname}/edit/${location.state.data.name}`,
-      {
-        state: { data: data, previous: location },
-      }
-    )
+    navigate(`${location.state.background.pathname}/edit/${userClass.name}`, {
+      state: { data: id, previous: location },
+    })
   }
 
   useEffect(() => {
@@ -40,12 +40,6 @@ const Class = () => {
         sidebar.classList.toggle('collapsed')
       })
   }, [])
-
-  const subClasses = useSelector(selectSubClasses)
-
-  const subclass = subClasses.filter(
-    (subClassItem) => subClassItem.parentClass.id === userClass._id
-  )
 
   const handleScroll = () => {
     const modalBody = modalBodyRef.current
@@ -77,7 +71,13 @@ const Class = () => {
       })
   }
 
-  const content = (
+  let content
+
+  if (isFetching) {
+    return (content = <Spinner />)
+  }
+
+  content = (
     <>
       <div className='modal-wrapper'>
         <aside
@@ -87,9 +87,7 @@ const Class = () => {
         >
           <div>
             <ul className='sidebar-nav' ref={sidebarListRef}>
-              <li className='sidebar-header'>
-                  NAVIGATION
-              </li>
+              <li className='sidebar-header'>NAVIGATION</li>
               {userClass?.details?.length > 0 &&
                 userClass.details.map((detailItem, detailIndex) => (
                   <li
@@ -126,7 +124,7 @@ const Class = () => {
                   </a>
                 </li>
               )}
-              {subclass.length > 0 &&
+              {/* {subclass.length > 0 &&
                 subclass.map((subclassItem, subclassIndex) => (
                   <li
                     key={subclassItem}
@@ -144,7 +142,7 @@ const Class = () => {
                       {subclassItem.value}
                     </a>
                   </li>
-                ))}
+                ))} */}
             </ul>
           </div>
         </aside>
@@ -181,7 +179,7 @@ const Class = () => {
                     <strong>{detailItem.value}</strong>
                   </h3>
                   <hr />
-                  {parse(detailItem.desc)}
+                  {detailItem.desc && parse(detailItem.desc)}
                   {detailIndex === userClass.details.length - 1 &&
                     userClass.feature?.length > 0 &&
                     userClass.feature.map(
@@ -192,7 +190,7 @@ const Class = () => {
                         ) && (
                           <Fragment key={featureIndex}>
                             <strong>{featureItem.value}</strong>
-                            {parse(featureItem.desc)}
+                            {featureItem.desc && parse(featureItem.desc)}
                           </Fragment>
                         )
                     )}
@@ -202,17 +200,17 @@ const Class = () => {
               <section id={`${userClass.subclass.name}`}>
                 <h3>{userClass.subclass.value}</h3>
                 <hr />
-                {parse(userClass.subclass.desc)}
+                {userClass.subclass.desc && parse(userClass.subclass.desc)}
               </section>
             )}
-            {subclass.length > 0 && (
+            {/* {subclass.length > 0 && (
               <>
-                {subclass.map((subClassItem, subClassIndex) => (
-                  <section id={`${subClassItem.name}`} key={subClassIndex}>
-                    <h4>{subClassItem.value}</h4>
-                    {parse(subClassItem.desc)}
-                    {subClassItem.feature?.length > 0 &&
-                      subClassItem.feature.map(
+                {subclass.map((subclassItem, subClassIndex) => (
+                  <section id={`${subclassItem.name}`} key={subClassIndex}>
+                    <h4>{subclassItem.value}</h4>
+                    {subclassItem.desc && parse(subclassItem.desc)}
+                    {subclassItem.feature?.length > 0 &&
+                      subclassItem.feature.map(
                         (featureItem, featureIndex) =>
                           featureItem.attribute?.some(
                             (attributeItem) =>
@@ -220,7 +218,7 @@ const Class = () => {
                           ) && (
                             <Fragment key={featureIndex}>
                               <strong>{featureItem.value}</strong>
-                              {parse(featureItem.desc)}
+                              {featureItem.desc && parse(featureItem.desc)}
                             </Fragment>
                           )
                       )}
@@ -228,7 +226,7 @@ const Class = () => {
                   </section>
                 ))}
               </>
-            )}
+            )} */}
           </div>
           <div className='modal-footer'>
             <button
