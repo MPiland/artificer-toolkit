@@ -41,7 +41,6 @@ const RaceList = () => {
     useFilteredList(races, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
-  const [isLoadingData, setIsLoadingData] = useState(true)
   const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
@@ -79,14 +78,6 @@ const RaceList = () => {
     }
     dispatch(clearConfirm())
   }, [raceToDelete, dispatch, deleteRace])
-
-  useEffect(() => {
-    if (isFetching || !filteredList) {
-      setIsLoadingData(true)
-    } else {
-      setIsLoadingData(false)
-    }
-  }, [filteredList, isFetching])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -150,7 +141,7 @@ const RaceList = () => {
 
   let content
 
-  if (isLoadingData || !filteredList) {
+  if (isFetching || !filteredList) {
     return (content = <Spinner />)
   }
 

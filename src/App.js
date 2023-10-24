@@ -33,8 +33,12 @@ import FeatList from './features/feats/FeatList'
 import NewFeatForm from './features/feats/NewFeatForm'
 import EditFeatForm from './features/feats/EditFeatForm'
 import Prefetch from './features/auth/Prefetch'
+import { selectLoadingStatus } from './app/loadingSlice'
+import Spinner from './components/Spinner'
 
 const App = () => {
+  const isLoading = useSelector(selectLoadingStatus)
+
   useEffect(() => {
     const documentHeight = () => {
       const doc = document.documentElement
@@ -68,31 +72,26 @@ const App = () => {
                   <Route path='classes'>
                     <Route index element={<ClassList />} />
                     <Route path='new' element={<NewClassForm />} />
-                    <Route path=':id' element={<Modal child={<Class />} />} />
                     <Route path='edit/:id' element={<EditClassForm />} />
                   </Route>
                   <Route path='races'>
                     <Route index element={<RaceList />} />
                     <Route path='new' element={<NewRaceForm />} />
-                    <Route path=':id' element={<Modal child={<Race />} />} />
                     <Route path='edit/:id' element={<EditRaceForm />} />
                   </Route>
                   <Route path='spells'>
                     <Route index element={<SpellList />} />
                     <Route path='new' element={<NewSpellForm />} />
-                    <Route path=':id' element={<Modal child={<Spell />} />} />
                     <Route path='edit/:id' element={<EditSpellForm />} />
                   </Route>
                   <Route path='items'>
                     <Route index element={<ItemList />} />
                     <Route path='new' element={<NewItemForm />} />
-                    <Route path=':id' element={<Modal child={<Item />} />} />
                     <Route path='edit/:id' element={<EditItemForm />} />
                   </Route>
                   <Route path='feats'>
                     <Route index element={<FeatList />} />
                     <Route path='new' element={<NewFeatForm />} />
-                    <Route path=':id' element={<Modal child={<Feat />} />} />
                     <Route path='edit/:id' element={<EditFeatForm />} />
                   </Route>
                 </Route>
@@ -103,18 +102,42 @@ const App = () => {
       </Routes>
       {background && (
         <Routes>
-          <Route element={<Prefetch />}>
-            <Route element={<Modal />}>
-              <Route path='/register' element={<Register />} />
-              <Route path='/login' element={<Login />} />
-              <Route path='spells/:id' element={<Spell />} />
-              <Route path='feats/:id' element={<Feat />} />
-              <Route path='items/:id' element={<Item />} />
-              <Route path='races/:id' element={<Race />} />
-              <Route path='classes/:id' element={<Class />} />
-              <Route path='/delete/:id' element={<Delete />} />
-            </Route>
+          <Route element={<Modal />}>
+            <Route
+              path='/register'
+              element={isLoading ? <Spinner /> : <Register />}
+            />
+            <Route path='/login' element={<Login />} />
+            <Route
+              path='spells/:id'
+              element={isLoading ? <Spinner /> : <Spell />}
+            />
+            <Route
+              path='feats/:id'
+              element={isLoading ? <Spinner /> : <Feat />}
+            />
+            <Route
+              path='items/:id'
+              element={isLoading ? <Spinner /> : <Item />}
+            />
+            <Route
+              path='races/:id'
+              element={isLoading ? <Spinner /> : <Race />}
+            />
+            <Route
+              path='classes/:id'
+              element={isLoading ? <Spinner /> : <Class />}
+            />
+            <Route
+              path='/delete/:id'
+              element={isLoading ? <Spinner /> : <Delete />}
+            />
           </Route>
+        </Routes>
+      )}
+      {isLoading && (
+        <Routes>
+          <Route element={<Spinner />} />
         </Routes>
       )}
     </>

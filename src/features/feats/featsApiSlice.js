@@ -72,7 +72,8 @@ export const {
   useDeleteFeatMutation,
 } = featsApiSlice
 
-export const selectFeatsResult = featsApiSlice.endpoints.getFeats.select()
+export const selectFeatsResult =
+  featsApiSlice.endpoints.getFeats.select('featsList')
 
 export const {
   selectAll: selectAllFeats,

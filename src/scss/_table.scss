@@ -1,16 +1,10 @@
 .content-table {
-  overflow-x: hidden;
+  width: 100%;
 
   .row {
-    width: 100%;
+    min-width: 100%;
     flex-wrap: nowrap;
   }
-}
-
-.content-table.scrollable {
-  overflow-x: auto;
-  flex: 1 1 auto;
-  height: 100%;
 }
 
 .section-content {
@@ -37,6 +31,14 @@
   content: '  \2193';
 }
 
-.damage-col {
-  width: 125px;
+@media only screen and (max-width: 992px) {
+  .content-table.scrollable {
+    overflow-x: auto;
+    flex: 1 1 auto;
+    height: 100%;
+
+    .row {
+      width: 100%;
+    }
+  }
 }

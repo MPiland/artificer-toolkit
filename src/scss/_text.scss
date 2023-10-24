@@ -5,3 +5,12 @@ blockquote {
   border: 1px solid lightgreen;
   border-radius: 1rem;
 }
+
+.form-floating {
+  overflow-x: hidden;
+}
+
+.form-floating:focus-within {
+  box-shadow: 0 0 0.05rem 0.3rem rgba(13, 110, 253, 0.25);
+  border-radius: 5px;
+}

@@ -219,7 +219,7 @@ const EditFeatForm = () => {
         invalid: 'Must contain only numbers',
         validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-2 col-3',
       },
       {
         name: 'diceCount',
@@ -227,7 +227,7 @@ const EditFeatForm = () => {
         invalid: 'Must contain only numbers',
         validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-3 col-4',
       },
       {
         name: 'diceValue',
@@ -235,7 +235,7 @@ const EditFeatForm = () => {
         invalid: 'Must contain only numbers',
         validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-3 col-4',
       },
       {
         name: 'bonusDamage',
@@ -243,7 +243,7 @@ const EditFeatForm = () => {
         invalid: 'Must contain only numbers',
         validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-3 col-4',
       },
     ]
     if (secondary) {
@@ -254,7 +254,7 @@ const EditFeatForm = () => {
           invalid: 'Must contain only numbers',
           validation: 'num',
           label: true,
-          size: 'damage-col',
+          size: 'col-md col-sm-3 col-4',
         },
         {
           name: 'secDiceValue',
@@ -262,11 +262,10 @@ const EditFeatForm = () => {
           invalid: 'Must contain only numbers',
           validation: 'num',
           label: true,
-          size: 'damage-col',
+          size: 'col-md col-sm-3 col-4',
         }
       )
     }
-
     return inputArray
   }
 
@@ -319,11 +318,11 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
                       label={true}
                       placeholder='# of Selections'
                       autoComplete='off'
-                      value={item.selectCount}
+                      value={item.selectionCount}
                       invalidText='Must contain only numbers'
                       required={true}
                       onChange={setState}
@@ -370,132 +369,142 @@ const EditFeatForm = () => {
                   )}
 
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.modType`}
-                    placeholder='Modifier Type'
-                    value={item.modType}
-                    options={builders.modifier.modType}
+                    name={`feature.${featureIndex}.${this.name}.${index}.module`}
+                    placeholder='Modifier Category'
+                    value={item.module}
+                    options={builders.modifier.module}
                     required={true}
                     onChange={setState}
                   />
-                  {item.modType?.name && (
+                  {item.module?.name && (
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.module`}
-                      placeholder='Modifier Category'
-                      value={item.module}
-                      options={builders.modifier.module?.filter((moduleItem) =>
-                        builders.modifier.modType
-                          .find(
-                            (typeItem) => typeItem.name === item.modType?.name
-                          )
-                          ?.module.map((m) => m.id)
-                          ?.some((moduleID) => moduleID === moduleItem._id)
+                      name={`feature.${featureIndex}.${this.name}.${index}.modType`}
+                      placeholder='Modifier Type'
+                      value={item.modType}
+                      options={builders.modifier.modType?.filter((modItem) =>
+                        modItem.module.some(
+                          (moduleItem) => moduleItem.id === item.module?.id
+                        )
                       )}
                       required={true}
                       onChange={setState}
                     />
                   )}
-                  {(item.modType?.name === 'bonus' ||
-                    item.modType?.name === 'penalty' ||
-                    item.modType?.name === 'advantage' ||
-                    item.modType?.name === 'disadvantage' ||
-                    item.modType?.name === 'setValue') && (
-                    <>
-                      {item.module?.name === 'ability' && (
+                  {item.module?.name === 'limitUse' &&
+                    item.modType?.name === 'useReset' && (
+                      <>
                         <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.ability${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
-                          multiple={true}
-                          placeholder='Ability'
-                          value={
-                            multipleOptions
-                              ? item.ability?.options
-                              : item.ability?.setSelection
-                          }
-                          options={builders.ability}
+                          name={`feature.${featureIndex}.${this.name}.${index}.limitUse.resetsOn`}
+                          placeholder='Reset Option'
+                          value={item.limitUse?.resetsOn}
+                          options={builders.feature.chargeReset}
                           required={true}
                           onChange={setState}
                         />
-                      )}
-                      {item.module?.name === 'saveAbility' && (
                         <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.saveAbility${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
-                          multiple={true}
-                          placeholder='Save Ability'
-                          value={
-                            multipleOptions
-                              ? item.saveAbility?.options
-                              : item.saveAbility?.setSelection
-                          }
-                          options={builders.ability}
+                          name={`feature.${featureIndex}.${this.name}.${index}.limitUse.feature`}
+                          placeholder='Feature'
+                          value={item.limitUse?.feature}
+                          options={state?.feature}
                           required={true}
                           onChange={setState}
                         />
-                      )}
-                      {item.module?.name === 'skill' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.skill${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
-                          multiple={true}
-                          placeholder='Skill'
-                          value={
-                            multipleOptions
-                              ? item.skill?.options
-                              : item.skill?.setSelection
-                          }
-                          options={builders.skill}
-                          required={true}
-                          onChange={setState}
-                        />
-                      )}
-                      {item.module?.name === 'damageSave' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.damageSave${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
-                          multiple={true}
-                          placeholder='Damage'
-                          value={
-                            multipleOptions
-                              ? item.damageSave?.options
-                              : item.damageSave?.setSelection
-                          }
-                          options={builders.damage}
-                          require={true}
-                          onChange={setState}
-                        />
-                      )}
-                      {item.module?.name === 'conditionSave' && (
-                        <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.conditionSave${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
-                          multiple={true}
-                          placeholder='Condition'
-                          value={
-                            multipleOptions
-                              ? item.conditionSave?.options
-                              : item.conditionSave?.setSelection
-                          }
-                          options={builders.condition}
-                          required={true}
-                          onChange={setState}
-                        />
-                      )}
-                    </>
+                      </>
+                    )}
+                  {item.module?.name === 'ability' && (
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.ability${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Ability'
+                      value={
+                        multipleOptions
+                          ? item.ability?.options
+                          : item.ability?.setSelection
+                      }
+                      options={builders.ability}
+                      required={true}
+                      onChange={setState}
+                    />
+                  )}
+                  {item.module?.name === 'saveAbility' && (
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.saveAbility${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Save Ability'
+                      value={
+                        multipleOptions
+                          ? item.saveAbility?.options
+                          : item.saveAbility?.setSelection
+                      }
+                      options={builders.ability}
+                      required={true}
+                      onChange={setState}
+                    />
+                  )}
+                  {item.module?.name === 'skill' && (
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.skill${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Skill'
+                      value={
+                        multipleOptions
+                          ? item.skill?.options
+                          : item.skill?.setSelection
+                      }
+                      options={builders.skill}
+                      required={true}
+                      onChange={setState}
+                    />
+                  )}
+                  {item.module?.name === 'damageSave' && (
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.damageSave${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Damage'
+                      value={
+                        multipleOptions
+                          ? item.damageSave?.options
+                          : item.damageSave?.setSelection
+                      }
+                      options={builders.damage}
+                      require={true}
+                      onChange={setState}
+                    />
+                  )}
+                  {item.module?.name === 'conditionSave' && (
+                    <Select
+                      name={`feature.${featureIndex}.${
+                        this.name
+                      }.${index}.conditionSave${
+                        multipleOptions ? '.options' : '.setSelection'
+                      }`}
+                      multiple={true}
+                      placeholder='Condition'
+                      value={
+                        multipleOptions
+                          ? item.conditionSave?.options
+                          : item.conditionSave?.setSelection
+                      }
+                      options={builders.condition}
+                      required={true}
+                      onChange={setState}
+                    />
                   )}
                   {(item.modType?.name === 'bonus' ||
                     item.modType?.name === 'penalty') &&
@@ -593,12 +602,12 @@ const EditFeatForm = () => {
                     <>
                       <Input
                         validation='num'
-                        name={`feature.${featureIndex}.${this.name}.${index}.method.setSelectionValue`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.method.setValue`}
                         placeholder='Set Value'
                         label={true}
                         invalidText='Must contain only numbers'
                         autoComplete='off'
-                        value={item.method?.setSelectionValue}
+                        value={item.method?.setValue}
                         required={true}
                         onChange={setState}
                       />
@@ -666,11 +675,11 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
                       label={true}
                       placeholder='# of Selections'
                       autoComplete='off'
-                      value={item.selectCount}
+                      value={item.selectionCount}
                       invalidText='Must contain only numbers'
                       required={true}
                       onChange={setState}
@@ -919,11 +928,11 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
                       label={true}
                       placeholder='# of Selections'
                       autoComplete='off'
-                      value={item.selectCount}
+                      value={item.selectionCount}
                       invalidText='Must contain only numbers'
                       required={true}
                       onChange={setState}
@@ -982,11 +991,11 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
                       label={true}
                       placeholder='# of Selections'
                       autoComplete='off'
-                      value={item.selectCount}
+                      value={item.selectionCount}
                       invalidText='Must contain only numbers'
                       required={true}
                       onChange={setState}
@@ -1009,11 +1018,15 @@ const EditFeatForm = () => {
               <Fragment key={index}>
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
-                    multiple={true}
+                    multiple='true'
                     name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                    options={builders.feature.sectionAttribute}
-                    placeholder='Feature Attributes'
+                    options={[].concat(
+                      builders.feature.spell.attribute,
+                      builders.feature.sectionAttribute
+                    )}
+                    placeholder='Spell Attributes'
                     value={item.attribute}
+                    require={true}
                     onChange={setState}
                   />
                   {item.attribute?.some(
@@ -1031,15 +1044,6 @@ const EditFeatForm = () => {
                       onChange={setState}
                     />
                   )}
-                  <Select
-                    multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                    options={builders.feature.spell.attribute}
-                    placeholder='Spell Attributes'
-                    value={item.attribute}
-                    required={true}
-                    onChange={setState}
-                  />
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}${
                       multipleOptions ? '.options' : '.setSelection'
@@ -1079,11 +1083,157 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectCount`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
                       label={true}
                       placeholder='# of Selections'
                       autoComplete='off'
-                      value={item.selectCount}
+                      value={item.selectionCount}
+                      invalidText='Must contain only numbers'
+                      required={true}
+                      onChange={setState}
+                    />
+                  )}
+                </div>
+              </Fragment>
+            )
+          })
+        },
+      },
+      {
+        name: 'equipment',
+        content() {
+          return feature[this.name].map((item, index) => {
+            const multipleOptions = item.attribute?.some(
+              (attributeItem) => attributeItem.name === 'providesOptions'
+            )
+            return (
+              <Fragment key={index}>
+                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
+                  <Select
+                    multiple={true}
+                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
+                    options={builders.feature.sectionAttribute}
+                    placeholder='Feature Attributes'
+                    value={item.attribute}
+                    onChange={setState}
+                  />
+                  {item.attribute?.some(
+                    (attributeItem) => attributeItem.name === 'optionGroups'
+                  ) && (
+                    <Input
+                      size='col-sm-2'
+                      validation='num'
+                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
+                      label={true}
+                      placeholder='Opt. Grp. #'
+                      autoComplete='off'
+                      value={item.optionGroup}
+                      invalidText='Must contain only numbers'
+                      onChange={setState}
+                    />
+                  )}
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.category${
+                      multipleOptions ? '.options' : '.setSelection'
+                    }`}
+                    multiple={true}
+                    placeholder='Item Category'
+                    value={
+                      multipleOptions
+                        ? item.category?.options
+                        : item.category?.setSelection
+                    }
+                    options={builders.item.category}
+                    onChange={setState}
+                  />
+
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.property${
+                      multipleOptions ? '.options' : '.setSelection'
+                    }`}
+                    multiple={true}
+                    placeholder='Item Property'
+                    value={
+                      multipleOptions
+                        ? item.property?.options
+                        : item.property?.setSelection
+                    }
+                    options={[].concat(
+                      ...builders.item.category
+                        .filter((bCategoryItem) =>
+                          multipleOptions
+                            ? item.category?.options?.length > 0
+                              ? item.category?.options?.some(
+                                  (categoryItem) =>
+                                    categoryItem.name === bCategoryItem.name
+                                )
+                              : bCategoryItem
+                            : item.category?.setSelection?.length > 0
+                            ? item.category?.setSelection?.some(
+                                (categoryItem) =>
+                                  categoryItem.name === bCategoryItem.name
+                              )
+                            : bCategoryItem
+                        )
+                        .map((category) => category.property)
+                    )}
+                    onChange={setState}
+                  />
+                  <Select
+                    name={`feature.${featureIndex}.${
+                      this.name
+                    }.${index}.itemType${
+                      multipleOptions ? '.options' : '.setSelection'
+                    }`}
+                    multiple={true}
+                    placeholder='Item Type'
+                    value={
+                      multipleOptions
+                        ? item.itemType?.options
+                        : item.itemType?.setSelection
+                    }
+                    options={items.filter((itemType) =>
+                      multipleOptions
+                        ? item.category?.options?.length > 0
+                          ? item.category?.options?.some(
+                              (category) =>
+                                category.name === itemType.category.name
+                            )
+                          : itemType
+                        : item.category?.setSelection?.length > 0
+                        ? item.category?.setSelection?.some(
+                            (category) =>
+                              category.name === itemType.category.name
+                          )
+                        : itemType
+                    )}
+                    onChange={setState}
+                  />
+                  {multipleOptions ? (
+                    <Input
+                      validation='num'
+                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
+                      label={true}
+                      placeholder='# of Selections'
+                      autoComplete='off'
+                      value={item.selectionCount}
+                      invalidText='Must contain only numbers'
+                      required={true}
+                      onChange={setState}
+                    />
+                  ) : (
+                    <Input
+                      size='col-sm-2'
+                      validation='num'
+                      name={`feature.${featureIndex}.${this.name}.${index}.quantity`}
+                      label={true}
+                      placeholder='Quantity'
+                      autoComplete='off'
+                      value={item.quantity}
                       invalidText='Must contain only numbers'
                       required={true}
                       onChange={setState}
@@ -1379,12 +1529,12 @@ const EditFeatForm = () => {
         (optionItem) => optionItem.name === 'itemProficiency'
       ) && (
         <>
-          <div className='d-flex mx-5'>
+          <div className='d-flex mx-3'>
             <hr className='flex-grow-1 me-3' />
             <span className='mx-auto'>Item Proficiency</span>
             <hr className='flex-grow-1 ms-3' />
           </div>
-          <div className='row g-2 pb-3 mx-5 justify-contents-center'>
+          <div className='row g-2 pb-3 mx-3 justify-contents-center'>
             <Select
               multiple={true}
               name={`feature.${featureIndex}.requirement.itemProficiency.category`}
@@ -1433,12 +1583,12 @@ const EditFeatForm = () => {
         (optionItem) => optionItem.name === 'equipped'
       ) && (
         <>
-          <div className='d-flex mx-5'>
+          <div className='d-flex mx-3'>
             <hr className='flex-grow-1 me-3' />
             <span className='mx-auto'>Equipped</span>
             <hr className='flex-grow-1 ms-3' />
           </div>
-          <div className='row g-2 pb-3 mx-5 justify-contents-center'>
+          <div className='row g-2 pb-3 mx-3 justify-contents-center'>
             <Select
               multiple={true}
               name={`feature.${featureIndex}.requirement.equipped.category`}
@@ -1486,7 +1636,7 @@ const EditFeatForm = () => {
         (optionItem) => optionItem.name === 'notEquipped'
       ) && (
         <>
-          <div className='d-flex mx-5'>
+          <div className='d-flex mx-3'>
             <hr className='flex-grow-1 me-3' />
             <span className='mx-auto'>Not Equipped</span>
             <hr className='flex-grow-1 ms-3' />
@@ -1959,12 +2109,12 @@ const EditFeatForm = () => {
             (optionItem) => optionItem.name === 'itemProficiency'
           ) && (
             <>
-              <div className='d-flex mx-5'>
+              <div className='d-flex mx-3'>
                 <hr className='flex-grow-1 me-3' />
                 <span className='mx-auto'>Item Proficiency</span>
                 <hr className='flex-grow-1 ms-3' />
               </div>
-              <div className='row g-2 pb-3 mx-5 justify-contents-center'>
+              <div className='row g-2 pb-3 mx-3 justify-contents-center'>
                 <Select
                   multiple={true}
                   name='requirement.itemProficiency.category'
@@ -2022,7 +2172,7 @@ const EditFeatForm = () => {
                 <span className='mx-auto'>Equipped</span>
                 <hr className='flex-grow-1 ms-3' />
               </div>
-              <div className='row g-2 pb-3 mx-5 justify-contents-center'>
+              <div className='row g-2 pb-3 mx-3 justify-contents-center'>
                 <Select
                   multiple={true}
                   name='requirement.equipped.category'
@@ -2077,12 +2227,12 @@ const EditFeatForm = () => {
             (optionItem) => optionItem.name === 'notEquipped'
           ) && (
             <>
-              <div className='d-flex mx-5'>
+              <div className='d-flex mx-3'>
                 <hr className='flex-grow-1 me-3' />
                 <span className='mx-auto'>Not Equipped</span>
                 <hr className='flex-grow-1 ms-3' />
               </div>
-              <div className='row g-2 pb-3 mx-5 justify-contents-center'>
+              <div className='row g-2 pb-3 mx-3 justify-contents-center'>
                 <Select
                   multiple={true}
                   name='requirement.notEquipped.category'

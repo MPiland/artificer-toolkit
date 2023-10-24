@@ -372,7 +372,7 @@ const Select = forwardRef(
       >
         <button
           ref={buttonRef}
-          className={`btn dropdown-toggle select-dropdown-toggle focus-ring align-items-center w-100 justify-content-between ${containerClass()}`}
+          className={`btn dropdown-toggle select-dropdown-toggle focus-ring align-items-center justify-content-between ${containerClass()}`}
           data-bs-toggle='dropdown'
           aria-expanded='false'
           required={required}

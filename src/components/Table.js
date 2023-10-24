@@ -129,22 +129,30 @@ const TableRow = ({
               {dynamic && inputIndex === inputs.length - 1 && (
                 <>
                   <div className='col-1'>
-                    <button
-                      className='bi bi-plus-circle mx-2'
-                      type='button'
-                      name={`${name}`}
-                      onClick={(e) => {
-                        onChange({ type: 'added', payload: e })
-                      }}
-                    />
-                  </div>
-                  <div className='col-1'>
-                    <button
-                      className='bi bi-trash3 mx-2'
-                      type='button'
-                      name={`${name}.${inputIndex}`}
-                      onClick={(e) => onChange({ type: 'removed', payload: e })}
-                    />
+                    <div className='row h-100 g-1'>
+                      <div className='col d-flex justify-content-start'>
+                        <button
+                          className='bi bi-plus-circle'
+                          type='button'
+                          name={`${name}`}
+                          onClick={(e) => {
+                            onChange({ type: 'added', payload: e })
+                          }}
+                        />
+                      </div>
+                      <div className='col d-flex justify-content-start'>
+                        {valueIndex !== 0 && (
+                          <button
+                            className='bi bi-trash3'
+                            type='button'
+                            name={`${name}.${inputIndex}`}
+                            onClick={(e) =>
+                              onChange({ type: 'removed', payload: e })
+                            }
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </>
               )}

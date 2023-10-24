@@ -9,7 +9,7 @@ const Spell = () => {
   const navigate = useNavigate()
   const { data: id, handleClose } = useOutletContext()
 
-  const { spell, isFetching } = useGetSpellsQuery('spellsList', {
+  const { spell} = useGetSpellsQuery('spellsList', {
     selectFromResult: ({ data }) => ({
       spell: data && selectSpellById(data, id),
     }),
@@ -59,7 +59,7 @@ const Spell = () => {
 
   let content
 
-  if (isFetching) {
+  if (!spell) {
     return (content = <Spinner />)
   }
 

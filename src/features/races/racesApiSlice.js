@@ -72,7 +72,8 @@ export const {
   useDeleteRaceMutation,
 } = racesApiSlice
 
-export const selectRacesResult = racesApiSlice.endpoints.getRaces.select()
+export const selectRacesResult =
+  racesApiSlice.endpoints.getRaces.select('racesList')
 
 export const {
   selectAll: selectAllRaces,

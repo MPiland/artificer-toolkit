@@ -23,19 +23,17 @@ const EditSpellForm = () => {
 
   const id = location.state.data
 
-  const {
-    data: builders,
-    isFetching: isBuildersFetching,
-  } = useGetBuildersQuery('buildersList')
+  const { data: builders, isFetching: isBuildersFetching } =
+    useGetBuildersQuery('buildersList')
 
-  const {
-    spell,
-    isFetching: isSpellsFetching,
-  } = useGetSpellsQuery('spellsList', {
-    selectFromResult: ({ data }) => ({
-      spell: data && selectSpellById(data, id),
-    }),
-  })
+  const { spell, isFetching: isSpellsFetching } = useGetSpellsQuery(
+    'spellsList',
+    {
+      selectFromResult: ({ data }) => ({
+        spell: data && selectSpellById(data, id),
+      }),
+    }
+  )
 
   const [
     addNewSpell,
@@ -187,7 +185,7 @@ const EditSpellForm = () => {
   let content
 
   if (isLoadingData) {
-    return content = <Spinner />
+    return (content = <Spinner />)
   }
 
   const damageTableInputs = (secondary) => {
@@ -196,25 +194,25 @@ const EditSpellForm = () => {
         name: 'level',
         value: 'Level',
         invalid: 'Must contain only numbers',
-        validation: true,
+        validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-2 col-3',
       },
       {
         name: 'diceCount',
         value: 'Dice Count',
         invalid: 'Must contain only numbers',
-        validation: true,
+        validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-3 col-4',
       },
       {
         name: 'diceValue',
         value: 'Dice Value',
         invalid: 'Must contain only numbers',
-        validation: true,
+        validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-3 col-4',
       },
       {
         name: 'bonusDamage',
@@ -222,7 +220,7 @@ const EditSpellForm = () => {
         invalid: 'Must contain only numbers',
         validation: 'num',
         label: true,
-        size: 'damage-col',
+        size: 'col-md col-sm-3 col-4',
       },
     ]
     if (secondary) {
@@ -231,21 +229,20 @@ const EditSpellForm = () => {
           name: 'secDiceCount',
           value: 'Sec. Dice Count',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
-          size: 'damage-col',
+          size: 'col-md col-sm-3 col-4',
         },
         {
           name: 'secDiceValue',
           value: 'Sec. Dice Value',
           invalid: 'Must contain only numbers',
-          validation: true,
+          validation: 'num',
           label: true,
-          size: 'damage-col',
+          size: 'col-md col-sm-3 col-4',
         }
       )
     }
-
     return inputArray
   }
 
@@ -524,6 +521,14 @@ const EditSpellForm = () => {
                           attributeItem.name === 'secondaryDamage'
                       )
                     )}
+                    className={`row-cols-lg-${
+                      damageTableInputs(
+                        state.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'secondaryDamage'
+                        )
+                      ).length + 1
+                    }`}
                     name='damage.diceByLevel'
                     value={state.damage?.diceByLevel}
                     onChange={setState}

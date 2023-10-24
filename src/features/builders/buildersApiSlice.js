@@ -16,3 +16,6 @@ export const buildersApiSlice = apiSlice.injectEndpoints({
 })
 
 export const { useGetBuildersQuery } = buildersApiSlice
+
+export const selectClassesResult =
+buildersApiSlice.endpoints.getClasses.select('getBuilders')

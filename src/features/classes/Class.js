@@ -1,8 +1,13 @@
 import parse from 'html-react-parser'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { selectClassById, useGetClassesQuery } from './classesApiSlice'
+import {
+  selectClassById,
+  selectSubclassById,
+  useGetClassesQuery,
+} from './classesApiSlice'
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 import Spinner from '../../components/Spinner'
+import { useSelector } from 'react-redux'
 
 const Class = () => {
   const [activeSection, setActiveSection] = useState()
@@ -20,6 +25,8 @@ const Class = () => {
       userClass: data && selectClassById(data, id),
     }),
   })
+
+  const subclass = useSelector((state) => selectSubclassById(state, id))
 
   const onEditClicked = () => {
     navigate(`${location.state.background.pathname}/edit/${userClass.name}`, {
@@ -124,7 +131,7 @@ const Class = () => {
                   </a>
                 </li>
               )}
-              {/* {subclass.length > 0 &&
+              {subclass.length > 0 &&
                 subclass.map((subclassItem, subclassIndex) => (
                   <li
                     key={subclassItem}
@@ -142,7 +149,7 @@ const Class = () => {
                       {subclassItem.value}
                     </a>
                   </li>
-                ))} */}
+                ))}
             </ul>
           </div>
         </aside>
@@ -203,7 +210,7 @@ const Class = () => {
                 {userClass.subclass.desc && parse(userClass.subclass.desc)}
               </section>
             )}
-            {/* {subclass.length > 0 && (
+            {subclass.length > 0 && (
               <>
                 {subclass.map((subclassItem, subClassIndex) => (
                   <section id={`${subclassItem.name}`} key={subClassIndex}>
@@ -226,7 +233,7 @@ const Class = () => {
                   </section>
                 ))}
               </>
-            )} */}
+            )}
           </div>
           <div className='modal-footer'>
             <button

@@ -72,7 +72,8 @@ export const {
   useDeleteItemMutation,
 } = itemsApiSlice
 
-export const selectItemsResult = itemsApiSlice.endpoints.getItems.select()
+export const selectItemsResult =
+  itemsApiSlice.endpoints.getItems.select('itemsList')
 
 export const {
   selectAll: selectAllItems,

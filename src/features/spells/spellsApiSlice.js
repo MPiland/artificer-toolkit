@@ -15,7 +15,7 @@ export const spellsApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
-      async onQueryStarted(arg, { queryFulfilled }) {
+      async onQueryStarted(arg, {  queryFulfilled }) {
         try {
           await queryFulfilled
         } catch (err) {
@@ -72,7 +72,8 @@ export const {
   useDeleteSpellMutation,
 } = spellsApiSlice
 
-export const selectSpellsResult = spellsApiSlice.endpoints.getSpells.select()
+export const selectSpellsResult =
+  spellsApiSlice.endpoints.getSpells.select()
 
 export const {
   selectAll: selectAllSpells,

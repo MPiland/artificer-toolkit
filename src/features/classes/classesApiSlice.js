@@ -1,4 +1,4 @@
-import { createEntityAdapter } from '@reduxjs/toolkit'
+import { createEntityAdapter, createSelector } from '@reduxjs/toolkit'
 import { apiSlice } from '../../app/api/apiSlice'
 
 export const classesAdapter = createEntityAdapter({})
@@ -72,10 +72,20 @@ export const {
   useDeleteClassMutation,
 } = classesApiSlice
 
-export const selectClassesResult = classesApiSlice.endpoints.getClasses.select()
+export const selectClassesResult =
+  classesApiSlice.endpoints.getClasses.select('classesList')
 
 export const {
   selectAll: selectAllClasses,
   selectById: selectClassById,
   selectIds: selectClassIds,
 } = classesAdapter.getSelectors()
+
+export const selectSubclassById = createSelector(
+  [selectClassesResult, (state, id) => id],
+  (res, id) =>
+    res?.data &&
+    selectAllClasses(res.data)
+      ?.filter((classItem) => classItem.category.name === 'subclass')
+      .filter((subclassItem) => subclassItem.parentClass.id === id)
+)

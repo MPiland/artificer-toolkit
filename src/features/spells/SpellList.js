@@ -42,7 +42,6 @@ const SpellList = () => {
     useFilteredList(spells, filtersState)
   const [tableColumns, setTableColumns] = useState({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
-  const [isLoadingData, setIsLoadingData] = useState(true)
   const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const is1200 = useMediaQuery('(min-width: 992px)')
@@ -80,14 +79,6 @@ const SpellList = () => {
     }
     dispatch(clearConfirm())
   }, [spellToDelete, dispatch, deleteSpell])
-
-  useEffect(() => {
-    if (isFetching || !filteredList) {
-      setIsLoadingData(true)
-    } else {
-      setIsLoadingData(false)
-    }
-  }, [filteredList, isFetching])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -231,10 +222,10 @@ const SpellList = () => {
 
   let content
 
-  if (isLoadingData) {
-    return content = <Spinner />
+  if (isFetching) {
+    return (content = <Spinner />)
   }
-  
+
   const filter = (
     <div className='filter-container'>
       <div

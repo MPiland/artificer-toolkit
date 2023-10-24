@@ -1,4 +1,4 @@
-import { createEntityAdapter, createSelector } from '@reduxjs/toolkit'
+import { createEntityAdapter } from '@reduxjs/toolkit'
 import { apiSlice } from '../../app/api/apiSlice'
 
 export const charactersAdapter = createEntityAdapter({})
@@ -79,19 +79,10 @@ export const {
 } = charactersApiSlice
 
 export const selectCharactersResult =
-  charactersApiSlice.endpoints.getCharacters.select()
-
-export const selectCharactersData = createSelector(
-  selectCharactersResult,
-  (state) => {
-    return state.data
-  }
-)
+  charactersApiSlice.endpoints.getCharacters.select('charactersList')
 
 export const {
   selectAll: selectAllCharacters,
   selectById: selectCharacterById,
   selectIds: selectCharacterIds,
-} = charactersAdapter.getSelectors((state) =>
-  selectCharactersData(state.characters)
-)
+} = charactersAdapter.getSelectors()
