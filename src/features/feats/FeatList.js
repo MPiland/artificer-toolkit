@@ -18,7 +18,7 @@ import Spinner from '../../components/Spinner'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
 
-const FeatList = () => {
+const FeatList = ({ scrollPosition }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -26,7 +26,7 @@ const FeatList = () => {
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const featToDelete = useSelector((state) => state.delete.data)
 
-  const { feats, isFetching } = useGetFeatsQuery('featsList', {
+  const { feats, isLoading, isFetching } = useGetFeatsQuery('featsList', {
     selectFromResult: ({ data }) => ({
       feats: data && selectAllFeats(data),
     }),
@@ -47,6 +47,8 @@ const FeatList = () => {
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
 
+  const tableWindow = document.getElementsByClassName('content-table')
+
   const showCard = (feat) => {
     navigate(`/feats/${feat.name}`, {
       state: {
@@ -55,6 +57,7 @@ const FeatList = () => {
         context: 'itemCard',
         data: feat.id,
         size: 'lg',
+        scrollPosition: tableWindow[0].scrollTop,
       },
     })
   }
@@ -66,6 +69,7 @@ const FeatList = () => {
         title: feat.value,
         data: feat,
         size: 'md',
+        context: 'delete',
       },
     })
   }
@@ -117,6 +121,12 @@ const FeatList = () => {
   }
 
   useEffect(() => {
+    if (scrollPosition && !isFetching) {
+      tableWindow[0].scroll(0, scrollPosition)
+    }
+  })
+
+  useEffect(() => {
     setTableColumns({
       headers: [
         {
@@ -141,7 +151,7 @@ const FeatList = () => {
 
   let content
 
-  if (isFetching || !filteredList) {
+  if (isLoading || isFetching || !filteredList) {
     return (content = <Spinner />)
   }
 
@@ -170,8 +180,7 @@ const FeatList = () => {
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
             <Input
               name='value'
-              label={true}
-              placeholder='Feat Name'
+              label='Feat Name'
               autoComplete='off'
               value={listFilter?.value}
               onChange={(e) => onFilterChange(e)}
@@ -213,8 +222,10 @@ const FeatList = () => {
           (headerItem) => headerItem.defaultSort === true
         )}
         value={filteredList}
-        headers={tableColumns.headers}
-        inputs={tableColumns.inputs}
+        rows={{
+          inputs: tableColumns.inputs,
+          headers: tableColumns.headers
+        }}
         clickable={true}
         onClick={(feat) => showCard(feat)}
         deleteRow={(feat) => onDelete(feat)}

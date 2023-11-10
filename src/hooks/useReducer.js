@@ -21,7 +21,11 @@ const formReducer = produce((draft, action) => {
 
   if (type === 'added') {
     if (get(draft, path)) {
-      get(draft, path).push({})
+      if (!target.value) {
+        get(draft, path).push({})
+      } else {
+        set(draft, path, target.value)
+      }
     } else {
       set(draft, path, !!target.value ? target.value : [{}])
     }

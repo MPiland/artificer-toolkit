@@ -17,39 +17,49 @@ const Input = ({
   size,
   value,
   readOnly,
-  onClick,
   validation,
   className,
+  autoFocus,
 }) => {
   const inputRef = useRef(null)
   const [inputValue, setInputValue] = useState(value)
-  const [classText, setClassText] = useState('')
 
-  const handleFocus = () => {
-    if (inputRef.current) {
+  useEffect(() => {
+    if (autoFocus === true) {
       inputRef.current.focus()
     }
-  }
+  }, [autoFocus])
 
   useEffect(() => {
     setInputValue(value)
   }, [setInputValue, value])
 
   const handleChange = (e) => {
+    if (inputRef.current.classList.contains('is-invalid')) {
+      inputRef.current.classList.remove('is-invalid')
+    }
     setInputValue(e.target.value)
 
     if (validation) {
       if (validation === 'num') {
-        if (NUM_REGEX.test(e.target.value) === false && e.target.value !== '') {
-          setClassText('is-invalid')
+        if (
+          NUM_REGEX.test(e.target.value) === false &&
+          e.target.value !== '' &&
+          !e.target.classList.contains('is-invalid')
+        ) {
+          e.target.classList.add('is-invalid')
         } else {
-          setClassText('')
+          e.target.classList.remove('is-invalid')
         }
       } else if (validation === 'cur') {
-        if (CUR_REGEX.test(e.target.value) === false && e.target.value !== '') {
-          setClassText('is-invalid')
+        if (
+          CUR_REGEX.test(e.target.value) === false &&
+          e.target.value !== '' &&
+          !e.target.classList.contains('is-invalid')
+        ) {
+          e.target.classList.add('is-invalid')
         } else {
-          setClassText('')
+          e.target.classList.remove('is-invalid')
         }
       }
     }
@@ -66,36 +76,41 @@ const Input = ({
         size ? `${size}` : 'col'
       }`}
     >
-      <div className={`${label ? 'form-floating' : ''}`}>
-        <input
-          ref={inputRef}
-          className={`form-control${readOnly ? '-plaintext' : ''} ${
-            border === false ? 'border-0' : ''
-          } ${classText} ${className ?? ''}`}
-          type={type ?? 'text'}
-          name={name}
-          id={name}
-          placeholder={placeholder}
-          required={required}
-          autoComplete={autoComplete ?? 'off'}
-          readOnly={readOnly}
-          value={inputValue ?? ''}
-          validation={validation}
-          onChange={(e) => handleChange(e)}
-          onKeyUp={(e) => e.preventDefault()}
-          onClick={(e) => {
-            onClick && onClick(e)
-            handleFocus()
-          }}
-        />
-        {!!label && <label htmlFor={name}>{placeholder}</label>}
-        {invalidText && (
-          <div id={`${name}Tooltip`} className='invalid-tooltip'>
-            {invalidText}
-          </div>
-        )}
-      </div>
+      {/* <div className={`${label ? 'form-floating' : ''}`}> */}
+
+      {label && (
+        <label
+          className={`form-input-label ${required ? 'required' : ''}`}
+          htmlFor={name}
+        >
+          {label}
+        </label>
+      )}
+      <input
+        ref={inputRef}
+        className={`form-control${readOnly ? '-plaintext' : ''} ${
+          border === false ? 'border-0' : ''
+        } ${className ? className : ''}`}
+        type={type ?? 'text'}
+        name={name}
+        id={name}
+        // placeholder={placeholder}
+        required={required}
+        autoFocus={autoFocus}
+        autoComplete={autoComplete ?? 'off'}
+        readOnly={readOnly}
+        value={inputValue ?? ''}
+        validation={validation}
+        onChange={(e) => handleChange(e)}
+        onKeyUp={(e) => e.preventDefault()}
+      />
+      {invalidText && (
+        <div id={`${name}Tooltip`} className='invalid-tooltip'>
+          {invalidText}
+        </div>
+      )}
     </div>
+    // </div>
   )
 
   return content

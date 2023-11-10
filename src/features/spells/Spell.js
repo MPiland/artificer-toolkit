@@ -9,19 +9,16 @@ const Spell = () => {
   const navigate = useNavigate()
   const { data: id, handleClose } = useOutletContext()
 
-  const { spell} = useGetSpellsQuery('spellsList', {
+  const { spell } = useGetSpellsQuery('spellsList', {
     selectFromResult: ({ data }) => ({
       spell: data && selectSpellById(data, id),
     }),
   })
 
   const onEditClicked = () => {
-    navigate(
-      `${location.state.background.pathname}/edit/${location.state.data.name}`,
-      {
-        state: { data: id, previous: location },
-      }
-    )
+    navigate(`${location.state.background.pathname}/edit/${spell.name}`, {
+      state: { data: id, previous: location },
+    })
   }
 
   const materialDesc = () => {
@@ -39,8 +36,8 @@ const Spell = () => {
     {
       header: 'RANGE/AREA',
       name: [
-        ['range.rangeType.value', 'range.distance'],
-        ['shape.shapeType.value', 'shape.size'],
+        ['range.rangeType.value', 'range.distance', 'range.unit.short'],
+        ['shape.shapeType.value', 'shape.size', 'shape.unit.short'],
       ],
     },
     { header: 'REQUIREMENTS', name: 'requirement', truncate: 1 },
@@ -51,10 +48,20 @@ const Spell = () => {
     { header: 'SCHOOL', name: 'school.value' },
     {
       header: 'SAVE ABILITY',
-      name: 'saveAbility.value',
+      name: 'saveAbility',
       filter: ['isAttack', 'requireSave'],
     },
-    { header: 'DAMAGE', name: 'damage.damageType' },
+    {
+      header: 'DAMAGE',
+      name: [
+        ['damage.baseDamage.diceShort', 'damage.secondaryDamage.diceShort'],
+        [
+          'damage.baseDamage.damageType',
+          'damage.baseDsecondaryDamageamage.damageType',
+        ],
+        'condition',
+      ],
+    },
   ]
 
   let content
@@ -72,7 +79,7 @@ const Spell = () => {
           className='btn-close'
           aria-label='Close'
           onClick={handleClose}
-        ></button>
+        />
       </div>
       <div className='modal-body detail-card'>
         <div className='detail-card-detail row row-cols-lg-4 row-cols-md-3 row-cols-2 gy-3'>
@@ -86,7 +93,7 @@ const Spell = () => {
           })}
         </div>
         <hr />
-        <div>{parse(spell.desc)}</div>
+        {spell.desc && <div>{parse(spell.desc)}</div>}
         <div className='d-flex justify-content-between'>
           <span className='detail-card-subtext'>{materialDesc()}</span>
         </div>

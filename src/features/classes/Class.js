@@ -1,5 +1,5 @@
 import parse from 'html-react-parser'
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import {
   selectClassById,
   selectSubclassById,
@@ -12,7 +12,6 @@ import { useSelector } from 'react-redux'
 const Class = () => {
   const [activeSection, setActiveSection] = useState()
   const sidebarRef = useRef()
-  const sidebarBtnRef = useRef()
   const sidebarListRef = useRef()
   const modalBodyRef = useRef()
 
@@ -34,19 +33,11 @@ const Class = () => {
     })
   }
 
-  useEffect(() => {
+  const onSideBarClicked = () => {
     const sidebar = sidebarRef.current
-    const button = sidebarBtnRef.current
 
-    button.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed')
-    })
-
-    return () =>
-      button.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed')
-      })
-  }, [])
+    sidebar.classList.toggle('collapsed')
+  }
 
   const handleScroll = () => {
     const modalBody = modalBodyRef.current
@@ -95,61 +86,87 @@ const Class = () => {
           <div>
             <ul className='sidebar-nav' ref={sidebarListRef}>
               <li className='sidebar-header'>NAVIGATION</li>
-              {userClass?.details?.length > 0 &&
-                userClass.details.map((detailItem, detailIndex) => (
-                  <li
-                    className={`sidebar-item ${
-                      activeSection === detailItem.name ? 'active' : ''
-                    }`}
-                    key={detailIndex}
-                  >
-                    <a
-                      href='/'
-                      onClick={(e) => {
-                        scrollToElement(e, detailItem.name)
-                      }}
-                      className='sidebar-link'
+              {userClass?.category?.name === 'base' ? (
+                <>
+                  {userClass?.details?.length > 0 &&
+                    userClass.details.map((detailItem, detailIndex) => (
+                      <li
+                        className={`sidebar-item ${
+                          activeSection === detailItem.name ? 'active' : ''
+                        }`}
+                        key={detailIndex}
+                      >
+                        <a
+                          href='/'
+                          onClick={(e) => {
+                            scrollToElement(e, detailItem.name)
+                          }}
+                          className='sidebar-link'
+                        >
+                          {detailItem.value}
+                        </a>
+                      </li>
+                    ))}
+                  {userClass.subclass && (
+                    <li
+                      className={`sidebar-item ${
+                        activeSection === userClass.subclass.name
+                          ? 'active'
+                          : ''
+                      }`}
                     >
-                      {detailItem.value}
-                    </a>
-                  </li>
-                ))}
-              {userClass.subclass && (
-                <li
-                  className={`sidebar-item ${
-                    activeSection === userClass.subclass.name ? 'active' : ''
-                  }`}
-                >
-                  <a
-                    href='/'
-                    className='sidebar-link'
-                    onClick={(e) => {
-                      scrollToElement(e, userClass.subclass.name)
-                    }}
-                  >
-                    {userClass.subclass.value}
-                  </a>
-                </li>
+                      <a
+                        href='/'
+                        className='sidebar-link'
+                        onClick={(e) => {
+                          scrollToElement(e, userClass.subclass.name)
+                        }}
+                      >
+                        {userClass.subclass.value}
+                      </a>
+                    </li>
+                  )}
+                  {subclass.length > 0 &&
+                    subclass.map((subclassItem, subclassIndex) => (
+                      <li
+                        key={subclassIndex}
+                        className={`sidebar-item ${
+                          activeSection === subclassItem.name ? 'active' : ''
+                        }`}
+                      >
+                        <a
+                          href='/'
+                          className='sidebar-link'
+                          onClick={(e) => {
+                            scrollToElement(e, subclassItem.name)
+                          }}
+                        >
+                          {subclassItem.value}
+                        </a>
+                      </li>
+                    ))}
+                </>
+              ) : (
+                <>
+                  {userClass?.feature?.length > 0 &&
+                    userClass?.feature?.map(
+                      (featureItem, featureIndex) =>
+                        featureItem.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name === 'explicitlyShown'
+                        ) && (
+                          <li
+                            className={`sidebar-item ${
+                              activeSection === featureItem.name ? 'active' : ''
+                            }`}
+                            key={featureIndex}
+                          >
+                            {featureItem.value}
+                          </li>
+                        )
+                    )}
+                </>
               )}
-              {subclass.length > 0 &&
-                subclass.map((subclassItem, subclassIndex) => (
-                  <li
-                    key={subclassItem}
-                    className={`sidebar-item ${
-                      activeSection === subclassItem.name ? 'active' : ''
-                    }`}
-                  >
-                    <a
-                      href='/'
-                      className='sidebar-link'
-                      onClick={(e) => {
-                        scrollToElement(e, subclassItem.name)
-                      }}
-                    >
-                      {subclassItem.value}
-                    </a>
-                  </li>
-                ))}
             </ul>
           </div>
         </aside>
@@ -160,7 +177,7 @@ const Class = () => {
                 className='btn'
                 id='className-sidebar-btn'
                 type='button'
-                ref={sidebarBtnRef}
+                onClick={onSideBarClicked}
               >
                 <span className='navbar-toggler-icon'></span>
               </button>
@@ -179,59 +196,89 @@ const Class = () => {
             ref={modalBodyRef}
           >
             <em id='title'>{userClass?.desc && parse(userClass.desc)}</em>
-            {userClass?.details?.length > 0 &&
-              userClass.details.map((detailItem, detailIndex) => (
-                <section id={`${detailItem.name}`} key={detailIndex}>
-                  <h3>
-                    <strong>{detailItem.value}</strong>
-                  </h3>
-                  <hr />
-                  {detailItem.desc && parse(detailItem.desc)}
-                  {detailIndex === userClass.details.length - 1 &&
-                    userClass.feature?.length > 0 &&
-                    userClass.feature.map(
-                      (featureItem, featureIndex) =>
-                        featureItem.attribute?.some(
-                          (attributeItem) =>
-                            attributeItem.name === 'explicitlyShown'
-                        ) && (
-                          <Fragment key={featureIndex}>
-                            <strong>{featureItem.value}</strong>
-                            {featureItem.desc && parse(featureItem.desc)}
-                          </Fragment>
-                        )
-                    )}
-                </section>
-              ))}
-            {userClass.subclass?.name && (
-              <section id={`${userClass.subclass.name}`}>
-                <h3>{userClass.subclass.value}</h3>
-                <hr />
-                {userClass.subclass.desc && parse(userClass.subclass.desc)}
-              </section>
-            )}
-            {subclass.length > 0 && (
+            {userClass?.category?.name === 'base' ? (
               <>
-                {subclass.map((subclassItem, subClassIndex) => (
-                  <section id={`${subclassItem.name}`} key={subClassIndex}>
-                    <h4>{subclassItem.value}</h4>
-                    {subclassItem.desc && parse(subclassItem.desc)}
-                    {subclassItem.feature?.length > 0 &&
-                      subclassItem.feature.map(
-                        (featureItem, featureIndex) =>
-                          featureItem.attribute?.some(
-                            (attributeItem) =>
-                              attributeItem.name === 'explicitlyShown'
-                          ) && (
-                            <Fragment key={featureIndex}>
-                              <strong>{featureItem.value}</strong>
-                              {featureItem.desc && parse(featureItem.desc)}
-                            </Fragment>
-                          )
-                      )}
-                    {subClassIndex !== subclass.length - 1 && <hr />}
+                {userClass?.details?.length > 0 &&
+                  userClass.details.map((detailItem, detailIndex) => (
+                    <section id={`${detailItem.name}`} key={detailIndex}>
+                      <h3>
+                        <strong>{detailItem.value}</strong>
+                      </h3>
+                      <hr />
+                      {detailItem.desc && parse(detailItem.desc)}
+                      {detailIndex === userClass.details.length - 1 &&
+                        userClass.feature?.length > 0 &&
+                        userClass.feature.map(
+                          (featureItem, featureIndex) =>
+                            featureItem.attribute?.some(
+                              (attributeItem) =>
+                                attributeItem.name === 'explicitlyShown'
+                            ) && (
+                              <Fragment key={featureIndex}>
+                                <h4>
+                                  <strong>{featureItem.value}</strong>
+                                </h4>
+                                {parse(featureItem?.desc)}
+                              </Fragment>
+                            )
+                        )}
+                    </section>
+                  ))}
+                {userClass.subclass?.name && (
+                  <section id={`${userClass.subclass.name}`}>
+                    <h3>
+                      <strong>{userClass.subclass.value}</strong>
+                    </h3>
+                    <hr />
+                    {userClass.subclass.desc && parse(userClass.subclass.desc)}
                   </section>
-                ))}
+                )}
+                {subclass.length > 0 && (
+                  <>
+                    {subclass.map((subclassItem, subClassIndex) => (
+                      <section id={`${subclassItem.name}`} key={subClassIndex}>
+                        <h4>
+                          <strong>{subclassItem.value}</strong>
+                        </h4>
+                        {subclassItem.desc && parse(subclassItem.desc)}
+                        {subclassItem.feature?.length > 0 &&
+                          subclassItem.feature.map(
+                            (featureItem, featureIndex) =>
+                              featureItem.attribute?.some(
+                                (attributeItem) =>
+                                  attributeItem.name === 'explicitlyShown'
+                              ) && (
+                                <Fragment key={featureIndex}>
+                                  <h4>
+                                    <strong>{featureItem.value}</strong>
+                                  </h4>
+                                  {featureItem.desc && parse(featureItem.desc)}
+                                </Fragment>
+                              )
+                          )}
+                        {subClassIndex !== subclass.length - 1 && <hr />}
+                      </section>
+                    ))}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                {userClass?.feature?.length > 0 &&
+                  userClass?.feature?.map(
+                    (featureItem, featureIndex) =>
+                      featureItem?.attribute?.some(
+                        (attributeItem) =>
+                          attributeItem.name === 'explicitlyShown'
+                      ) && (
+                        <section id={`${featureItem.name}`} key={featureIndex}>
+                          <h5>
+                            <strong>{featureItem.value}</strong>
+                          </h5>
+                          {featureItem.desc && parse(featureItem.desc)}
+                        </section>
+                      )
+                  )}
               </>
             )}
           </div>

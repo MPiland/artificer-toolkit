@@ -1,5 +1,5 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, mergeAttributes } from '@tiptap/react'
 import TextAlign from '@tiptap/extension-text-align'
 import Table from '@tiptap/extension-table'
 import TableCell from '@tiptap/extension-table-cell'
@@ -28,6 +28,120 @@ import {
   TbRowInsertTop,
 } from 'react-icons/tb'
 
+export const CustomTableHeader = TableHeader.extend({
+  addAttributes() {
+    return {
+      colspan: {
+        default: 1,
+      },
+      rowspan: {
+        default: 1,
+      },
+      colwidth: {
+        default: null,
+        parseHTML: (element) => {
+          const colwidth = element.getAttribute('colwidth')
+          const value = colwidth
+            ? colwidth.split(',').map((item) => parseInt(item, 10))
+            : null
+
+          return value
+        },
+      },
+      style: {
+        default: null,
+      },
+    }
+  },
+  renderHTML({ HTMLAttributes }) {
+    let totalWidth = 0
+    let fixedWidth = true
+
+    if (HTMLAttributes.colwidth) {
+      HTMLAttributes.colwidth.forEach((col) => {
+        if (!col) {
+          fixedWidth = false
+        } else {
+          totalWidth += col
+        }
+      })
+    } else {
+      fixedWidth = false
+    }
+
+    if (fixedWidth && totalWidth > 0) {
+      HTMLAttributes.style = `width: ${totalWidth}px;`
+    } else if (totalWidth && totalWidth > 0) {
+      HTMLAttributes.style = `min-width: ${totalWidth}px`
+    } else {
+      HTMLAttributes.style = null
+    }
+
+    return [
+      'th',
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
+      0,
+    ]
+  },
+})
+
+export const CustomTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      colspan: {
+        default: 1,
+      },
+      rowspan: {
+        default: 1,
+      },
+      colwidth: {
+        default: null,
+        parseHTML: (element) => {
+          const colwidth = element.getAttribute('colwidth')
+          const value = colwidth
+            ? colwidth.split(',').map((item) => parseInt(item, 10))
+            : null
+
+          return value
+        },
+      },
+      style: {
+        default: null,
+      },
+    }
+  },
+  renderHTML({ HTMLAttributes }) {
+    let totalWidth = 0
+    let fixedWidth = true
+
+    if (HTMLAttributes.colwidth) {
+      HTMLAttributes.colwidth.forEach((col) => {
+        if (!col) {
+          fixedWidth = false
+        } else {
+          totalWidth += col
+        }
+      })
+    } else {
+      fixedWidth = false
+    }
+
+    if (fixedWidth && totalWidth > 0) {
+      HTMLAttributes.style = `width: ${totalWidth}px;`
+    } else if (totalWidth && totalWidth > 0) {
+      HTMLAttributes.style = `min-width: ${totalWidth}px`
+    } else {
+      HTMLAttributes.style = null
+    }
+
+    return [
+      'td',
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
+      0,
+    ]
+  },
+})
+
 const MenuBar = ({ editor, noMenuBar }) => {
   if (!editor || noMenuBar) {
     return null
@@ -50,10 +164,10 @@ const MenuBar = ({ editor, noMenuBar }) => {
   }
 
   return (
-    <div className='menuBar'>
+    <div className='menuBar' tabIndex="-1">
       <div className='row g-0'>
         <div className='col-auto p-0'>
-          <select className='btn border-0' onChange={(e) => selectHandler(e)}>
+          <select className='btn border-0' onChange={(e) => selectHandler(e)} tabIndex="-1">
             <option value='0'>No Heading</option>
             <option value='1'>Header 1</option>
             <option value='2'>Header 2</option>
@@ -229,14 +343,14 @@ const MenuBar = ({ editor, noMenuBar }) => {
 
 const TextEditor = forwardRef(
   (
-    { onChange, placeholder, name, short, noMenuBar, value, size, className },
+    { onChange, label, name, short, noMenuBar, value, size, className },
     ref
   ) => {
     const [initialState] = useState(value)
     const [isChanges, setIsChanges] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
 
-    const isEmpty = () => !editor?.state?.doc?.textContent?.trim().length
+    // const isEmpty = () => !editor?.state?.doc?.textContent?.trim().length
 
     let content
 
@@ -283,8 +397,8 @@ const TextEditor = forwardRef(
           resizable: true,
         }),
         TableRow,
-        TableHeader,
-        TableCell,
+        CustomTableHeader,
+        CustomTableCell,
         TextAlign,
       ],
       editorProps: {
@@ -319,17 +433,14 @@ const TextEditor = forwardRef(
 
     return (
       <div className={`${size ? ` ${size}` : ' mb-2'}`}>
+        <label className='text-editor-label'>{label}</label>
         <div
           className={`textEditor ${short ? 'shortDesc' : ''} ${
             className ? className : ''
           }`}
+          tabIndex="-1"
         >
           <MenuBar editor={editor} noMenuBar={noMenuBar} />
-          <div className='label-container'>
-            <div className={`text-editor-label ${!isEmpty() ? 'filled' : ''}`}>
-              {placeholder}
-            </div>
-          </div>
           <EditorContent editor={editor} />
         </div>
       </div>

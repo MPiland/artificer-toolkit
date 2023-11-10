@@ -73,7 +73,7 @@ export const {
 } = spellsApiSlice
 
 export const selectSpellsResult =
-  spellsApiSlice.endpoints.getSpells.select()
+  spellsApiSlice.endpoints.getSpells.select('spellsList')
 
 export const {
   selectAll: selectAllSpells,

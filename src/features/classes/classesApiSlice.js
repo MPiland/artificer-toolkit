@@ -81,6 +81,15 @@ export const {
   selectIds: selectClassIds,
 } = classesAdapter.getSelectors()
 
+export const selectAllSubclasses = createSelector(
+  [selectClassesResult, (state) => state],
+  (state) =>
+    state?.data &&
+    selectAllClasses(state?.data)?.filter(
+      (classItem) => classItem.category.name === 'subclass'
+    )
+)
+
 export const selectSubclassById = createSelector(
   [selectClassesResult, (state, id) => id],
   (res, id) =>

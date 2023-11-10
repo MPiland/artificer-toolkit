@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react'
-import { startCase } from 'lodash'
-const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
+const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
   const [leftPosition, setLeftPosition] = useState(0)
   const [hiddenWidth, setHiddenWidth] = useState(0)
   const [tabContWidth, setTabContWidth] = useState()
@@ -146,30 +145,48 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
       currentPaneRef.current = paneContainerRef.current.firstChild
     }
 
-    if (id !== 'main' && id !== 'feature' && id !== 'details') {
+    if (id !== 'main') {
       getActive()
       const tabs = tabContainerRef.current?.children
       const panes = paneContainerRef.current?.children
       if (tabs && currentTabRef.current) {
         if (tabState.length !== tabStateLength) {
-          for (let tabIndex = 0; tabIndex < tabs.length; tabIndex++) {
-            const tab = tabs[tabIndex]
-            const txt = tab.textContent || tab.innerText
-            if (!sectionTabs.includes(txt)) {
-              setSectionTabs((prev) => [...prev, txt])
-              currentTabRef.current.setAttribute('aria-selected', 'false')
-              currentTabRef.current.classList.remove('active')
-              currentPaneRef.current.classList.remove('active')
-              currentPaneRef.current.classList.remove('show')
-              tab.setAttribute('aria-selected', 'true')
-              tab.classList.add('active')
-              panes[tabIndex].classList.add('active')
-              panes[tabIndex].classList.add('show')
-              currentTabRef.current = tab
-              currentPaneRef.current = panes[tabIndex]
+          if (id !== 'details' && id !== 'feature') {
+            for (let tabIndex = 0; tabIndex < tabs.length; tabIndex++) {
+              const tab = tabs[tabIndex]
+              const pane = panes[tabIndex]
+              const txt = tab.textContent || tab.innerText
+              if (!sectionTabs.includes(txt)) {
+                setSectionTabs((prev) => [...prev, txt])
+                currentTabRef.current.setAttribute('aria-selected', 'false')
+                currentTabRef.current.classList.remove('active')
+                currentPaneRef.current.classList.remove('active')
+                currentPaneRef.current.classList.remove('show')
+                tab.setAttribute('aria-selected', 'true')
+                tab.classList.add('active')
+                pane.classList.add('active')
+                pane.classList.add('show')
+                currentTabRef.current = tab
+                currentPaneRef.current = panes[tabIndex]
 
-              scrollTab()
+                scrollTab()
+              }
             }
+          } else {
+            const tab = tabs[tabState.length - 1]
+            const pane = panes[tabState.length - 1]
+            currentTabRef.current.setAttribute('aria-selected', 'false')
+            currentTabRef.current.classList.remove('active')
+            currentPaneRef.current.classList.remove('active')
+            currentPaneRef.current.classList.remove('show')
+            tab.setAttribute('aria-selected', 'true')
+            tab.classList.add('active')
+            pane.classList.add('active')
+            pane.classList.add('show')
+            currentTabRef.current = tab
+            currentPaneRef.current = pane
+
+            scrollTab()
           }
         }
       }
@@ -286,40 +303,6 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
     }
   }
 
-  const addTab = async () => {
-    try {
-      await onAdd({ type: 'added', payload: { target: { name: id } } })
-    } catch (err) {
-      console.log(err.message)
-    } finally {
-      getActive()
-
-      if (currentTabRef.current) {
-        currentTabRef.current.classList.remove('active')
-        currentTabRef.current.setAttribute('aria-selected', 'false')
-        currentPaneRef.current.classList.remove('active')
-        currentPaneRef.current.classList.remove('show')
-      }
-
-      let index
-      if (tabState?.length > 0) {
-        index = tabState?.length
-      } else {
-        index = 0
-      }
-      const tab = tabContainerRef.current.children.item(index)
-      const pane = paneContainerRef.current.children.item(index)
-      tab.classList.add('active')
-      tab.setAttribute('aria-selected', 'true')
-      pane.classList.add('show')
-      pane.classList.add('active')
-      currentTabRef.current = tab
-      currentPaneRef.current = pane
-
-      scrollTab()
-    }
-  }
-
   const deleteTab = async (name, index) => {
     let activeIndex
 
@@ -379,20 +362,6 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
 
   const content = (
     <>
-      {onAdd && (
-        <div className='row g-2 px-3 pb-2 justify-content-between'>
-          <button
-            className='btn btn-secondary col-auto'
-            name='feature'
-            type='button'
-            onClick={() => {
-              addTab()
-            }}
-          >
-            {`Add ${startCase(id)}`}
-          </button>
-        </div>
-      )}
       {tabState?.length > 0 && (
         <nav className='tabMain mb-2' id={`${id}TabContent`}>
           <div
@@ -447,7 +416,7 @@ const TabNavigation = ({ tabState, id, onDelete, onAdd, dynamic }) => {
                         aria-controls={`${id}${tabIndex}TabPane`}
                         onClick={() => scrollTab()}
                       >
-                        {startCase(tabItem?.value)}
+                        {tabItem?.value}
                         {dynamic && (
                           <i
                             className='bi bi-x delete-nav-link'

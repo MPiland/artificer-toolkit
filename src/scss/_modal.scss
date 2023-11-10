@@ -9,7 +9,7 @@
 }
 
 .modal-wrapper {
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   align-items: stretch;
   width: 100%;
@@ -35,13 +35,20 @@
   flex-direction: column;
   width: auto;
   transition: all 0.35s ease-in-out;
+  overflow: auto;
 }
 
 .modal-header {
   border-bottom: 1px solid #dee2e6;
 }
 
+.modal-header.delete {
+  font-size: medium;
+}
+
 .modal-body.detail-card-body {
+  overflow: auto;
+
   table {
     border-collapse: collapse;
     margin: 0;
@@ -84,7 +91,7 @@
 .sidebar-header {
   font-size: 1rem;
   font-weight: bold;
-  padding: .75rem 1.5rem 0.75rem;
+  padding: 0.75rem 1.5rem 0.75rem;
   border-bottom: 1px solid lightgrey;
 }
 

@@ -1,9 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { initialState } from './itemsApiSlice'
 
 const itemsSlice = createSlice({
   name: 'items',
-  initialState: { data: initialState, filters: {} },
+  initialState: { filters: {} },
   reducers: {
     setItemsFilter: (state, { payload }) => {
       state.filters = payload

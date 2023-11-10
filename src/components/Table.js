@@ -1,34 +1,40 @@
 import { useEffect, useState, Fragment } from 'react'
 import useSortableData from '../hooks/useSortableData'
 import { getValueFromState } from '../helpers/formatting'
+import useMediaQuery from '../hooks/useMediaQuery'
 import { get } from 'lodash'
 import Input from './Input'
 import Select from './Select'
+import Spinner from './Spinner'
 
 const TableHeader = ({
-  headers,
+  rows,
   sortable,
   requestSort,
   getClassNames,
   readOnly,
   scrollable,
+  className,
 }) => {
   return (
     <div
-      className={`row pb-2 ms-0 me-0 g-2 align-items-end ${
-        scrollable ? ' scrollable' : ''
-      }`}
+      className={`row pb-2 gx-2 justify-content-start ${
+        className ? className : ''
+      } mx-0 gx-0 align-items-end ${scrollable ? ' scrollable' : ''}`}
     >
-      {headers?.map((headerItem, headerIndex) => (
+      {rows?.collapse && <div className='col-1'></div>}
+      {rows?.headers?.map((headerItem, headerIndex) => (
         <Fragment key={headerIndex}>
           {!headerItem.breakpoint &&
             (readOnly || headerItem.readOnly ? (
               <div
                 className={`${headerItem.size ?? ''} ${
                   headerItem.className ?? ''
-                } ${getClassNames(headerItem.name.sortOn)} ${
-                  sortable ? 'sortable' : ''
-                } header`}
+                } ${
+                  sortable
+                    ? 'sortable' && getClassNames(headerItem.name.sortOn)
+                    : ''
+                } header text-start`}
                 onClick={() => sortable && requestSort(headerItem.name)}
               >
                 {headerItem.value}
@@ -42,15 +48,15 @@ const TableHeader = ({
                 border={headerItem.border}
               />
             ))}
-          {!!headerItem.dynamic && headerIndex === headers.length - 1 && (
+          {!!headerItem.dynamic && headerIndex === rows.headers.length - 1 && (
             <>
-              <div className='col-1'></div>
-              <div className='col-1'></div>
+              <div className='col-1' />
+              <div className='col-1' />
             </>
           )}
         </Fragment>
       ))}
-      {headers && <div className='col-1'></div>}
+      {rows.headers && <div className='col-1' />}
     </div>
   )
 }
@@ -58,7 +64,7 @@ const TableHeader = ({
 const TableRow = ({
   valueItem,
   valueIndex,
-  inputs,
+  rows,
   readOnly,
   deleteRow,
   onClick,
@@ -69,108 +75,190 @@ const TableRow = ({
   deleteRowVisible,
   scrollable,
 }) => {
+  const is600 = useMediaQuery('(max-width: 576px)')
+
+  const subrows = rows?.subrow?.data?.filter((subrowItem) => {
+    return get(subrowItem, rows.subrow.matchKey) === valueItem._id
+  })
+
   return (
-    <div
-      className={`row pb-2 ms-0 me-0 g-2 ${className ? ` ${className}` : ''} ${
-        onClick ? 'clickable' : ''
-      } ${scrollable ? 'scrollable' : ''}`}
-      onClick={() => {
-        onClick && onClick(valueItem)
-      }}
-    >
-      {inputs?.map((inputItem, inputIndex) => {
-        const itemValue =
-          getValueFromState(inputItem, valueItem) !== null
-            ? getValueFromState(inputItem, valueItem)
-            : ''
-        return (
-          !inputItem.breakpoint &&
-          (readOnly || inputItem.readOnly ? (
-            <Fragment key={inputIndex}>
-              <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
-                {itemValue}
-              </div>
-              {deleteRowVisible && inputIndex === inputs.length - 1 && (
-                <div className='col-1'>
-                  <button
-                    className='bi bi-trash3'
-                    type='button'
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      deleteRow(valueItem)
-                    }}
-                  />
-                </div>
-              )}
-            </Fragment>
-          ) : inputItem.type === 'select' ? (
-            <Select
-              name={`${name}.${valueIndex}.${inputItem.name}`}
-              placeholder={inputItem.value}
-              value={get(valueItem, inputItem.name)}
-              required={true}
-              options={inputItem.options}
-              onChange={onChange}
-            />
+    <div className='mb-2'>
+      <div
+        className={`row mx-0 gx-2 ${className ? className : ''} ${
+          onClick ? 'clickable' : ''
+        } ${scrollable ? 'scrollable' : ''}`}
+        onClick={() => {
+          onClick && onClick(valueItem)
+        }}
+      >
+        {rows?.collapse &&
+          (subrows?.length > 0 ? (
+            <button
+              className='btn btn-list-collapse col-1'
+              id='sectionCollapseButton'
+              type='button'
+              data-bs-toggle='collapse'
+              data-bs-target={`#${valueItem.name}${valueIndex}Collapse`}
+              aria-controls='collapseExample'
+              aria-expanded='false'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <i className='bi bi-caret-down' />
+            </button>
           ) : (
-            <Fragment key={inputIndex}>
-              <Input
-                size={inputItem.size ?? null}
-                name={`${name}.${valueIndex}.${inputItem.name}`}
-                label={inputItem.label ?? false}
-                border={inputItem.border}
-                placeholder={inputItem.value}
-                invalidText={inputItem.invalid}
-                value={get(valueItem, inputItem.name)}
-                required={inputItem.required ?? false}
-                onChange={onChange}
-                validation={inputItem.validation}
-              />
-              {dynamic && inputIndex === inputs.length - 1 && (
-                <>
+            <div className='col-1' />
+          ))}
+        {rows?.inputs?.map((inputItem, inputIndex) => {
+          const itemValue =
+            getValueFromState(inputItem, valueItem) !== null
+              ? getValueFromState(inputItem, valueItem)
+              : ''
+          return (
+            !inputItem.breakpoint &&
+            (readOnly || inputItem.readOnly ? (
+              <Fragment key={inputIndex}>
+                <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
+                  {itemValue}
+                </div>
+                {deleteRowVisible && inputIndex === rows.inputs.length - 1 && (
                   <div className='col-1'>
-                    <div className='row h-100 g-1'>
-                      <div className='col d-flex justify-content-start'>
-                        <button
-                          className='bi bi-plus-circle'
+                    <button
+                      className='bi bi-trash3'
+                      type='button'
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteRow(valueItem)
+                      }}
+                    />
+                  </div>
+                )}
+              </Fragment>
+            ) : (
+              <Fragment key={inputIndex}>
+                {inputItem.type === 'select' ? (
+                  <Select
+                    name={`${name}.${valueIndex}.${inputItem.name}`}
+                    multiple={inputItem.multiple}
+                    placeholder={inputItem.value}
+                    value={get(valueItem, inputItem.name)}
+                    required={true}
+                    options={inputItem.options}
+                    optionalKey={inputItem.optionalKey}
+                    onChange={onChange}
+                  />
+                ) : (
+                  <Input
+                    size={inputItem.size ?? null}
+                    name={`${name}.${valueIndex}.${inputItem.name}`}
+                    label={inputItem.label ?? false}
+                    border={inputItem.border}
+                    placeholder={inputItem.value}
+                    invalidText={inputItem.invalid}
+                    value={get(valueItem, inputItem.name)}
+                    required={inputItem.required ?? false}
+                    onChange={onChange}
+                    validation={inputItem.validation}
+                  />
+                )}
+                {dynamic && inputIndex === rows.inputs.length - 1 && (
+                  <>
+                    <div
+                      className={`col${
+                        is600 ? '-2' : '-1'
+                      } d-flex align-self-center justify-content-between`}
+                    >
+                      <i
+                        className='bi bi-plus-circle h-100'
+                        type='button'
+                        name={`${name}`}
+                        onClick={(e) => {
+                          onChange({
+                            type: 'added',
+                            payload: { target: { name: name } },
+                          })
+                        }}
+                      />
+                      {valueIndex !== 0 && (
+                        <i
+                          className='bi bi-trash3'
                           type='button'
-                          name={`${name}`}
-                          onClick={(e) => {
-                            onChange({ type: 'added', payload: e })
-                          }}
+                          name={`${name}.${valueIndex}`}
+                          onClick={(e) =>
+                            onChange({
+                              type: 'removed',
+                              payload: {
+                                target: { name: `${name}.${valueIndex}` },
+                              },
+                            })
+                          }
                         />
-                      </div>
-                      <div className='col d-flex justify-content-start'>
-                        {valueIndex !== 0 && (
+                      )}
+                    </div>
+                  </>
+                )}
+              </Fragment>
+            ))
+          )
+        })}
+      </div>
+      {rows?.subrow && subrows?.length > 0 && (
+        <div
+          id={`${valueItem.name}${valueIndex}Collapse`}
+          className='section-container collapse'
+        >
+          {subrows.map((subrowItem, subrowIndex) => (
+            <div
+              className={`row row-section-collapse mx-0 ${
+                className ? className : ''
+              } ${onClick ? 'clickable' : ''} ${
+                scrollable ? 'scrollable' : ''
+              } gx-2`}
+              onClick={() => {
+                onClick && onClick(subrowItem)
+              }}
+              key={subrowIndex}
+            >
+              <div className='col-1'></div>
+              {rows.inputs?.map((inputItem, inputIndex) => {
+                const itemValue =
+                  getValueFromState(inputItem, subrowItem) !== null
+                    ? getValueFromState(inputItem, subrowItem)
+                    : ''
+                return (
+                  <Fragment key={inputIndex}>
+                    <div className={`${inputItem.size ?? ''}`} key={inputIndex}>
+                      {itemValue}
+                    </div>
+                    {deleteRowVisible &&
+                      inputIndex === rows.inputs.length - 1 && (
+                        <div className='col-1'>
                           <button
                             className='bi bi-trash3'
                             type='button'
-                            name={`${name}.${inputIndex}`}
-                            onClick={(e) =>
-                              onChange({ type: 'removed', payload: e })
-                            }
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteRow(valueItem)
+                            }}
                           />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </Fragment>
-          ))
-        )
-      })}
+                        </div>
+                      )}
+                  </Fragment>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
 function Table({
-  inputs,
+  rows,
   name,
   value,
   onChange,
   className,
-  headers,
   readOnly,
   dynamic,
   onClick,
@@ -181,7 +269,11 @@ function Table({
 }) {
   const [sortState, setSortState] = useState()
   const [defaultSortRan, setDefaultSortRan] = useState(false)
+  const [isLoadingState, setIsLoadingState] = useState(true)
   const { items, requestSort, sortConfig } = useSortableData(value)
+
+  const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
+  const is600 = useMediaQuery('(max-width: 576px)')
 
   useEffect(() => {
     if (defaultSort && defaultSortRan === false) {
@@ -194,6 +286,16 @@ function Table({
     setSortState({ valueItems: items, sortConfig })
   }, [setSortState, items, sortConfig])
 
+  useEffect(() => {
+    const handleLoading = () => {
+      setIsLoadingState(false)
+    }
+
+    window.addEventListener('load', handleLoading)
+
+    return () => window.removeEventListener('load', handleLoading)
+  })
+
   const getClassNames = (value) => {
     if (!sortState?.sortConfig) {
       return ''
@@ -202,48 +304,31 @@ function Table({
       ? sortState.sortConfig.direction
       : ''
   }
-  const { valueItems } = sortState || { valueItems: [] }
 
-  const [filteredItems, remainingItems] = valueItems
-    ? valueItems.reduce(
-        (result, valueItem) => {
-          const hasFilter = inputs.some((inputItem) => inputItem.filter != null)
+  const filteredItems = rows?.filters
+    ? items?.filter((item) => {
+        return get(item, rows.filters.filterOn) !== rows.filters.filterValue
+      })
+    : items
 
-          if (!hasFilter || !inputs.some((inputItem) => inputItem.filter)) {
-            result[0].push(valueItem)
-          } else if (
-            inputs.some((inputItem) => {
-              const itemValue = getValueFromState(inputItem, valueItem)
-              if (itemValue === null) {
-                return true
-              }
-              if (Array.isArray(inputItem.filter)) {
-                return inputItem.filter.includes(itemValue)
-              }
-              return true
-            })
-          ) {
-            result[0].push(valueItem)
-          } else {
-            result[1].push(valueItem)
-          }
+  let content
 
-          return result
-        },
-        [[], []]
-      )
-    : [[], []]
+  if (isLoadingState) {
+    content = <Spinner />
+  }
 
-  return (
+  content = (
     <div className={`content-table ${scrollable ? 'scrollable' : ''}`}>
-      {headers && (
+      {rows?.headers && (
         <TableHeader
-          headers={headers}
+          rows={rows}
           sortable={sortable}
           requestSort={requestSort}
           getClassNames={getClassNames}
           readOnly={readOnly}
           scrollable={scrollable}
+          className={className}
+          breakpoint={is1000 || is600}
         />
       )}
       {filteredItems?.map((valueItem, valueIndex) => (
@@ -251,7 +336,7 @@ function Table({
           <TableRow
             valueItem={valueItem}
             valueIndex={valueIndex}
-            inputs={inputs}
+            rows={rows}
             readOnly={readOnly}
             deleteRow={deleteRow}
             onClick={onClick}
@@ -261,40 +346,14 @@ function Table({
             className={className}
             deleteRowVisible={deleteRow}
             scrollable={scrollable}
+            breakpoint={is1000 || is600}
           />
-          {valueItem.parentClass?.id &&
-            inputs.some(
-              (inputItem) =>
-                inputItem.indentedMatch === '_id' &&
-                inputItem.indentedName === 'parentClass.id'
-            ) &&
-            remainingItems
-              .filter(
-                (remainingItem) =>
-                  get(remainingItem, 'indentedName') ===
-                    valueItem.parentClass.id &&
-                  inputs.some((inputItem) => inputItem.indentedMatch === '_id')
-              )
-              .map((remainingItem, remainingIndex) => (
-                <TableRow
-                  valueItem={remainingItem}
-                  inputs={inputs}
-                  readOnly={readOnly}
-                  deleteRow={deleteRow}
-                  onClick={onClick}
-                  onChange={onChange}
-                  name={name}
-                  dynamic={dynamic}
-                  className={className}
-                  deleteRowVisible={deleteRow}
-                  scrollable={scrollable}
-                  key={remainingIndex}
-                />
-              ))}
         </Fragment>
       ))}
     </div>
   )
+
+  return content
 }
 
 export default Table

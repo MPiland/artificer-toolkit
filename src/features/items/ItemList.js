@@ -19,12 +19,12 @@ import Table from '../../components/Table'
 import Input from '../../components/Input'
 import Select from '../../components/Select'
 
-const ItemList = () => {
+const ItemList = ({ scrollPosition }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const { items, isFetching } = useGetItemsQuery('itemsList', {
+  const { items, isLoading, isFetching } = useGetItemsQuery('itemsList', {
     selectFromResult: ({ data }) => ({
       items: data && selectAllItems(data),
     }),
@@ -47,6 +47,8 @@ const ItemList = () => {
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
 
+  const tableWindow = document.getElementsByClassName('content-table')
+
   const showCard = (item) => {
     navigate(`/items/${item.name}`, {
       state: {
@@ -55,6 +57,7 @@ const ItemList = () => {
         context: 'itemCard',
         data: item.id,
         size: 'lg',
+        scrollPosition: tableWindow[0].scrollTop,
       },
     })
   }
@@ -66,6 +69,7 @@ const ItemList = () => {
         title: item.value,
         data: item,
         size: 'md',
+        context: 'delete',
       },
     })
   }
@@ -108,6 +112,12 @@ const ItemList = () => {
   }, [items, setFilterItems, filterItemsPopulated])
 
   useEffect(() => {
+    if (scrollPosition && !isFetching) {
+      tableWindow[0].scroll(0, scrollPosition)
+    }
+  })
+
+  useEffect(() => {
     setTableColumns({
       headers: [
         {
@@ -115,7 +125,7 @@ const ItemList = () => {
           value: 'Name',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3 col-4',
+          size: 'col',
           breakpoint: '',
           defaultSort: true,
         },
@@ -124,7 +134,7 @@ const ItemList = () => {
           value: 'Category',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3 col-4',
+          size: 'col',
           breakpoint: '',
         },
         {
@@ -132,7 +142,7 @@ const ItemList = () => {
           value: 'Properties',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3 col-4',
+          size: 'col',
           breakpoint: '',
         },
         {
@@ -140,7 +150,7 @@ const ItemList = () => {
           value: 'Damage Type',
           border: false,
           className: 'fw-bold',
-          size: ' col-2',
+          size: ' col',
           breakpoint: is600 ? true : '',
         },
         {
@@ -148,7 +158,7 @@ const ItemList = () => {
           value: 'AC',
           border: false,
           className: 'fw-bold',
-          size: 'col',
+          size: 'col-1',
           breakpoint: is600 && true,
         },
         {
@@ -156,7 +166,7 @@ const ItemList = () => {
           value: 'Weight',
           border: false,
           className: 'fw-bold',
-          size: 'col-auto',
+          size: 'col-1',
           breakpoint: (is1000 || is600) && true,
         },
         {
@@ -164,7 +174,7 @@ const ItemList = () => {
           value: 'Qty',
           border: false,
           className: 'fw-bold',
-          size: 'col',
+          size: 'col-1',
           breakpoint: is600 && true,
         },
         {
@@ -189,17 +199,17 @@ const ItemList = () => {
       inputs: [
         {
           name: 'value',
-          size: 'col-lg-2 col-md-3 col-4',
+          size: 'col',
           breakpoint: '',
         },
         {
           name: 'category.value',
-          size: 'col-lg-2 col-md-3 col-4',
+          size: 'col',
           breakpoint: '',
         },
         {
           name: 'property',
-          size: 'col-lg-2 col-md-3 col-4',
+          size: 'col',
           breakpoint: '',
         },
         {
@@ -207,22 +217,22 @@ const ItemList = () => {
             ['damage.dice.diceShort', 'damage.dice.versatileDiceShort'],
             'damage.damageType',
           ],
-          size: ' col-2',
+          size: ' col',
           breakpoint: is600 && true,
         },
         {
           name: 'armorClass',
-          size: 'col',
+          size: 'col-1',
           breakpoint: is600 && true,
         },
         {
           name: ['weight.amount', 'weight.unit.short'],
-          size: 'col',
+          size: 'col-1',
           breakpoint: (is1000 || is600) && true,
         },
         {
           name: 'quantity',
-          size: 'col',
+          size: 'col-1',
           breakpoint: is600 && true,
         },
         {
@@ -245,7 +255,7 @@ const ItemList = () => {
 
   let content
 
-  if (isFetching || !filteredList) {
+  if (isLoading || isFetching || !filteredList) {
     return (content = <Spinner />)
   }
 
@@ -273,8 +283,7 @@ const ItemList = () => {
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
             <Input
               name='value'
-              label={true}
-              placeholder='Item Name'
+              label='Item Name'
               autoComplete='off'
               value={listFilter?.value}
               onChange={(e) => onFilterChange(e)}
@@ -282,7 +291,7 @@ const ItemList = () => {
             <Select
               multiple={true}
               name='category'
-              placeholder='Item Category'
+              label='Item Category'
               options={items?.map((item) => item.category)}
               value={listFilter?.category}
               onChange={(e) => onFilterChange(e)}
@@ -290,7 +299,7 @@ const ItemList = () => {
             <Select
               multiple={true}
               name='property'
-              placeholder='Item Property'
+              label='Item Property'
               options={items?.flatMap((item) => {
                 if (item.property && Array.isArray(item.property)) {
                   return item.property
@@ -304,7 +313,7 @@ const ItemList = () => {
             <Select
               multiple={true}
               name='damage.damageType'
-              placeholder='Damage Type'
+              label='Damage Type'
               options={items?.flatMap((item) => {
                 if (item.damage && Array.isArray(item.damage.damageType)) {
                   return item.damage.damageType
@@ -318,7 +327,7 @@ const ItemList = () => {
             <Select
               multiple={true}
               name='armorClass'
-              placeholder='Item Category'
+              label='Item Category'
               options={items?.map((item) => ({ value: item.armorClass }))}
               value={listFilter.armorClass}
               onChange={(e) => onFilterChange(e)}
@@ -362,8 +371,11 @@ const ItemList = () => {
           )}
           scrollable={true}
           value={filteredList}
-          headers={tableColumns.headers}
-          inputs={tableColumns.inputs}
+          rows={{
+            inputs: tableColumns.inputs,
+            headers: tableColumns.headers
+          }}
+          className={tableColumns.inputs.length + 1}
           clickable={true}
           onClick={(item) => showCard(item)}
           deleteRow={(item) => onDelete(item)}

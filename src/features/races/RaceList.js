@@ -18,7 +18,7 @@ import useFilteredList from '../../hooks/useFilteredList'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
 
-const RaceList = () => {
+const RaceList = ({ scrollPosition }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -26,7 +26,7 @@ const RaceList = () => {
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const raceToDelete = useSelector((state) => state.delete.data)
 
-  const { races, isFetching } = useGetRacesQuery('racesList', {
+  const { races, isLoading, isFetching } = useGetRacesQuery('racesList', {
     selectFromResult: ({ data }) => ({
       races: data && selectAllRaces(data),
     }),
@@ -47,6 +47,8 @@ const RaceList = () => {
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
 
+  const tableWindow = document.getElementsByClassName('content-table')
+
   const showCard = (race) => {
     navigate(`/races/${race.name}`, {
       state: {
@@ -55,6 +57,7 @@ const RaceList = () => {
         context: 'itemCard',
         data: race.id,
         size: 'lg',
+        scrollPosition: tableWindow[0].scrollTop,
       },
     })
   }
@@ -66,6 +69,7 @@ const RaceList = () => {
         title: race.value,
         data: race,
         size: 'md',
+        context: 'delete',
       },
     })
   }
@@ -139,9 +143,15 @@ const RaceList = () => {
     setListFilter({ type: 'reset', payload: { target: {} } })
   }
 
+  useEffect(() => {
+    if (scrollPosition && !isFetching) {
+      tableWindow[0].scroll(0, scrollPosition)
+    }
+  })
+
   let content
 
-  if (isFetching || !filteredList) {
+  if (isLoading || isFetching || !filteredList) {
     return (content = <Spinner />)
   }
 
@@ -170,8 +180,7 @@ const RaceList = () => {
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
             <Input
               name='value'
-              label={true}
-              placeholder='Race Name'
+              label='Race Name'
               autoComplete='off'
               value={listFilter?.value}
               onChange={(e) => onFilterChange(e)}
@@ -212,8 +221,11 @@ const RaceList = () => {
           (headerItem) => headerItem.defaultSort === true
         )}
         value={filteredList}
-        headers={tableColumns.headers}
-        inputs={tableColumns.inputs}
+        rows={{
+          inputs: tableColumns.inputs,
+          headers: tableColumns.headers
+        }}
+        className={tableColumns.inputs.length + 1}
         clickable={true}
         onClick={(race) => showCard(race)}
         deleteRow={(race) => onDelete(race)}

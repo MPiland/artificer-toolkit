@@ -24,22 +24,22 @@ tokenListenerMiddleware.startListening({
     listenerApi.cancelActiveListeners()
     store.dispatch(setLoading(true))
     await store.dispatch(
-      buildersApiSlice.endpoints.getBuilders.initiate()
+      buildersApiSlice.endpoints.getBuilders.initiate('buildersList')
     )
     await store.dispatch(
-      spellsApiSlice.endpoints.getSpells.initiate()
+      spellsApiSlice.endpoints.getSpells.initiate('spellsList')
     )
     await store.dispatch(
-      racesApiSlice.endpoints.getRaces.initiate()
+      racesApiSlice.endpoints.getRaces.initiate('racesList')
     )
     await store.dispatch(
-      itemsApiSlice.endpoints.getItems.initiate()
+      itemsApiSlice.endpoints.getItems.initiate('itemsList')
     )
     await store.dispatch(
-      classesApiSlice.endpoints.getClasses.initiate()
+      classesApiSlice.endpoints.getClasses.initiate('classesList')
     )
     await store.dispatch(
-      featsApiSlice.endpoints.getFeats.initiate()
+      featsApiSlice.endpoints.getFeats.initiate('featsList')
     )
     store.dispatch(setLoading(false))
   },

@@ -98,37 +98,10 @@ button.bi {
   border-color: rgba(220, 53, 69);
 }
 
-/* Accordion */
-
-.accordion-item:has(.is-invalid) {
-  position: relative;
+.form-floating:has(.is-invalid) {
   box-shadow: 0 0 0.05rem 0.3rem rgba(220, 53, 69, 0.25);
   border-color: rgba(220, 53, 69);
-  z-index: 1;
-}
-
-.accordion-button {
-  height: 2.5rem;
-  padding: 4px 1rem;
-}
-
-.accordion-button > h5,
-h6 {
-  margin: 0;
-}
-
-.accordion-button:not(.collapsed) {
-  background-color: #eaeaea;
-}
-
-.accordion-button.form-details,
-.accordion-button.feature-attribute-divider {
-  background-color: transparent;
-  flex: 0 1 auto;
-  border-color: rgba(0, 0, 0, 0.125);
-  box-shadow: none;
-  padding-left: 0;
-  padding-right: 0;
+  border-radius: 5px;
 }
 
 /* Collapse */
@@ -158,13 +131,11 @@ h6 {
   border-left: 1px solid lightgrey;
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
-  height: auto;
 }
 
 .section-content {
   width: 100%;
-  height: auto;
-  padding: 0.5rem 0.5rem 0;
+  padding: 0.5rem 0.5rem;
 }
 
 /* List Filters */
@@ -182,29 +153,16 @@ h6 {
   }
 }
 
-/* Effect Sections */
-
-.effect-text {
-  text-align: left;
-  border-bottom: 1px solid #000;
-  line-height: 0.1em;
-  margin: 10px 0 20px;
-}
-
-.effect-text span {
-  background: white;
-  padding: 0 10px;
-}
-
-.collapse-button {
-  background: transparent;
-  border: none;
-  width: 100%;
-}
-
 /* Standard fields */
 .form-control {
   border-color: grey;
+  text-overflow: ellipsis;
+}
+
+.form-input-label.required:after {
+  content: ' *';
+  color: rgb(255, 0, 0);
+  font-weight: bold;
 }
 
 .success-message {

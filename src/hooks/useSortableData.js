@@ -11,7 +11,6 @@ const useSortableData = (items, config = null) => {
       return direction === 'ascending' ? -1 : 1
     if (bValue == null && bValue !== 0 && !!bValue)
       return direction === 'ascending' ? 1 : -1
-
     if (typeof aValue === 'number' && typeof bValue === 'number') {
       return direction === 'ascending'
         ? aValue > bValue
@@ -135,15 +134,15 @@ const useSortableData = (items, config = null) => {
             const bValue = get(b, key.sortOn)
 
             if (
-              (!aValue || aValue.length < 1) &&
-              (!bValue || bValue.length < 1)
+              ((!aValue && aValue !== 0) || aValue.length < 1) &&
+              ((!bValue && bValue !== 0) || bValue.length < 1)
             ) {
               return 0
             }
-            if ((!aValue || aValue.length < 1) && bValue) {
+            if (((!aValue && aValue !== 0) || aValue.length < 1) && bValue) {
               return 1
             }
-            if (aValue && (!bValue || bValue.length < 1)) {
+            if (aValue && ((!bValue && bValue !== 0) || bValue.length < 1)) {
               return -1
             }
 

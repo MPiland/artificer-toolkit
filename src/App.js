@@ -54,6 +54,7 @@ const App = () => {
   const token = useSelector(selectCurrentToken)
   const location = useLocation()
   const background = location.state?.background
+  const scrollPosition = location.state?.scrollPosition
 
   const content = (
     <>
@@ -70,27 +71,42 @@ const App = () => {
                     <Route index element={<CharacterList />} />
                   </Route>
                   <Route path='classes'>
-                    <Route index element={<ClassList />} />
+                    <Route
+                      index
+                      element={<ClassList scrollPosition={scrollPosition} />}
+                    />
                     <Route path='new' element={<NewClassForm />} />
                     <Route path='edit/:id' element={<EditClassForm />} />
                   </Route>
                   <Route path='races'>
-                    <Route index element={<RaceList />} />
+                    <Route
+                      index
+                      element={<RaceList scrollPosition={scrollPosition} />}
+                    />
                     <Route path='new' element={<NewRaceForm />} />
                     <Route path='edit/:id' element={<EditRaceForm />} />
                   </Route>
                   <Route path='spells'>
-                    <Route index element={<SpellList />} />
+                    <Route
+                      index
+                      element={<SpellList scrollPosition={scrollPosition} />}
+                    />
                     <Route path='new' element={<NewSpellForm />} />
                     <Route path='edit/:id' element={<EditSpellForm />} />
                   </Route>
                   <Route path='items'>
-                    <Route index element={<ItemList />} />
+                    <Route
+                      index
+                      element={<ItemList scrollPosition={scrollPosition} />}
+                    />
                     <Route path='new' element={<NewItemForm />} />
                     <Route path='edit/:id' element={<EditItemForm />} />
                   </Route>
                   <Route path='feats'>
-                    <Route index element={<FeatList />} />
+                    <Route
+                      index
+                      element={<FeatList scrollPosition={scrollPosition} />}
+                    />
                     <Route path='new' element={<NewFeatForm />} />
                     <Route path='edit/:id' element={<EditFeatForm />} />
                   </Route>
@@ -103,35 +119,14 @@ const App = () => {
       {background && (
         <Routes>
           <Route element={<Modal />}>
-            <Route
-              path='/register'
-              element={isLoading ? <Spinner /> : <Register />}
-            />
+            <Route path='/register' element={<Register />} />
             <Route path='/login' element={<Login />} />
-            <Route
-              path='spells/:id'
-              element={isLoading ? <Spinner /> : <Spell />}
-            />
-            <Route
-              path='feats/:id'
-              element={isLoading ? <Spinner /> : <Feat />}
-            />
-            <Route
-              path='items/:id'
-              element={isLoading ? <Spinner /> : <Item />}
-            />
-            <Route
-              path='races/:id'
-              element={isLoading ? <Spinner /> : <Race />}
-            />
-            <Route
-              path='classes/:id'
-              element={isLoading ? <Spinner /> : <Class />}
-            />
-            <Route
-              path='/delete/:id'
-              element={isLoading ? <Spinner /> : <Delete />}
-            />
+            <Route path='/spells/:id' element={<Spell />} />
+            <Route path='/feats/:id' element={<Feat />} />
+            <Route path='/items/:id' element={<Item />} />
+            <Route path='/races/:id' element={<Race />} />
+            <Route path='/classes/:id' element={<Class />} />
+            <Route path='/delete/:id' element={<Delete />} />
           </Route>
         </Routes>
       )}

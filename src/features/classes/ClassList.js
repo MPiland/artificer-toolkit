@@ -18,7 +18,7 @@ import useFilteredList from '../../hooks/useFilteredList'
 import Table from '../../components/Table'
 import Input from '../../components/Input'
 
-const ClassList = () => {
+const ClassList = ({ scrollPosition }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -26,7 +26,7 @@ const ClassList = () => {
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const classToDelete = useSelector((state) => state.delete.data)
 
-  const { classes, isFetching } = useGetClassesQuery('classesList', {
+  const { classes, isLoading, isFetching } = useGetClassesQuery('classesList', {
     selectFromResult: ({ data }) => ({
       classes: data && selectAllClasses(data),
     }),
@@ -48,6 +48,8 @@ const ClassList = () => {
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
 
+  const tableWindow = document.getElementsByClassName('content-table')
+
   const showCard = (userClass) => {
     navigate(`/classes/${userClass.name}`, {
       state: {
@@ -56,6 +58,7 @@ const ClassList = () => {
         context: 'classCard',
         data: userClass.id,
         size: 'xl',
+        scrollPosition: tableWindow[0].scrollTop,
       },
     })
   }
@@ -67,6 +70,7 @@ const ClassList = () => {
         title: userClass.value,
         data: userClass,
         size: 'md',
+        context: 'delete',
       },
     })
   }
@@ -138,9 +142,6 @@ const ClassList = () => {
           name: 'category.value',
           size: 'col',
           breakpoint: '',
-          filter: ['Subclass'],
-          indentedMatch: '_id',
-          indentedName: 'parentClass.id',
         },
       ],
     })
@@ -155,9 +156,15 @@ const ClassList = () => {
     setListFilter({ type: 'reset', payload: { target: {} } })
   }
 
+  useEffect(() => {
+    if (scrollPosition && !isFetching) {
+      tableWindow[0].scroll(0, scrollPosition)
+    }
+  })
+
   let content
 
-  if (isFetching || !filteredList) {
+  if (isLoading || isFetching || !filteredList) {
     content = <Spinner />
   }
   const filter = (
@@ -185,8 +192,7 @@ const ClassList = () => {
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
             <Input
               name='value'
-              label={true}
-              placeholder='Class Name'
+              label='Class Name'
               autoComplete='off'
               value={listFilter?.value}
               onChange={(e) => onFilterChange(e)}
@@ -196,6 +202,7 @@ const ClassList = () => {
       </div>
     </div>
   )
+
   content = (
     <>
       <div className='d-flex justify-content-between pb-2'>
@@ -223,9 +230,19 @@ const ClassList = () => {
         dynamic={false}
         readOnly={true}
         sortable={true}
-        value={filteredList}
-        headers={tableColumns.headers}
-        inputs={tableColumns.inputs}
+        value={classes}
+        rows={{
+          collapse: true,
+          inputs: tableColumns.inputs,
+          headers: tableColumns.headers,
+          filters: { filterOn: 'category.name', filterValue: 'subclass' },
+          subrow: {
+            data: classes?.filter(
+              (classItem) => classItem.category.name === 'subclass'
+            ),
+            matchKey: 'parentClass.id',
+          },
+        }}
         clickable={true}
         onClick={(userClass) => showCard(userClass)}
         deleteRow={(userClass) => onDelete(userClass)}

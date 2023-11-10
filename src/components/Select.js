@@ -1,211 +1,240 @@
-import {
-  useState,
-  useEffect,
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-} from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { uniqBy } from 'lodash'
-const Select = forwardRef(
-  (
-    {
-      name,
-      multiple,
-      placeholder,
-      options,
-      optionalKey,
-      value,
-      onChange,
-      size,
-      className,
-      required,
-    },
-    ref
-  ) => {
-    const [selectedOptions, setSelectedOptions] = useState(multiple ? [] : null)
-    const [currentLetter, setCurrentLetter] = useState()
-    const parentRef = useRef(null)
-    const buttonRef = useRef(null)
-    const dropdownRef = useRef(null)
-    const dropdownChildren = useRef([])
-    const focusedIndex = useRef(0)
+const Select = ({
+  name,
+  multiple,
+  placeholder,
+  options,
+  optionalKey,
+  value,
+  onChange,
+  size,
+  className,
+  required,
+  label,
+}) => {
+  const [selectedOptions, setSelectedOptions] = useState(multiple ? [] : null)
+  const [currentLetter, setCurrentLetter] = useState()
+  const parentRef = useRef(null)
+  const buttonRef = useRef(null)
+  const dropdownRef = useRef(null)
+  const dropdownChildren = useRef([])
+  const focusedIndex = useRef(0)
 
-    let newOptions
-    let updatedOptions
+  let newOptions
+  let updatedOptions
 
-    if (options?.length) {
-      newOptions = options?.filter(
-        (option) => option?.value != null
-      )
-      optionalKey &&
-        newOptions.map(({ name, value, _id, [optionalKey]: optionalValue }) => {
-          const newObj = { name, value, _id }
-          if (optionalKey && optionalValue !== undefined) {
-            newObj[optionalKey] = optionalValue
-          }
-          return newObj
-        })
-      newOptions.sort((a, b) =>
-        a.value === b.value ? 0 : a.value > b.value ? 1 : -1
-      )
-    } else {
-      newOptions = []
-    }
+  if (options?.length) {
+    newOptions = options?.filter((option) => option?.value != null)
+    optionalKey &&
+      newOptions.map(({ name, value, _id, [optionalKey]: optionalValue }) => {
+        const newObj = { name, value, _id }
+        if (optionalKey && optionalValue !== undefined) {
+          newObj[optionalKey] = optionalValue
+        }
+        return newObj
+      })
+    newOptions.sort((a, b) =>
+      a.value === b.value ? 0 : a.value > b.value ? 1 : -1
+    )
+  } else {
+    newOptions = []
+  }
 
-    newOptions = uniqBy(newOptions, (obj) => obj.value)
+  newOptions = uniqBy(newOptions, (obj) => obj.value)
 
-    if (multiple) {
-      newOptions.unshift(
-        { name: 'all', value: 'All' },
-        { name: 'clear', value: 'Clear' }
-      )
-    } else {
-      newOptions.unshift({ name: 'none', value: 'None' })
-    }
+  if (multiple) {
+    newOptions.unshift(
+      { name: 'all', value: 'All' },
+      { name: 'clear', value: 'Clear' }
+    )
+  }
 
-    useEffect(() => {
-      if (value && Array.isArray(value)) {
-        if (value.some((item) => item.name === 'all')) {
-          setSelectedOptions(
-            uniqBy(
-              options?.map(({ name, value, _id }) => ({ name, value, _id })),
-              (obj) => obj.value
-            )
+  useEffect(() => {
+    if (value && Array.isArray(value)) {
+      if (value.some((item) => item.name === 'all')) {
+        setSelectedOptions(
+          uniqBy(
+            options?.map(({ name, value, _id }) => ({ name, value, _id })),
+            (obj) => obj.value
           )
-        } else {
-          setSelectedOptions(value)
-        }
-      } else if (value && !Array.isArray(value)) {
-        setSelectedOptions(value)
-      } else {
-        setSelectedOptions(multiple ? [] : null)
-      }
-    }, [value, multiple, options])
-
-    useEffect(() => {
-      const parentCurrent = parentRef.current
-
-      document.addEventListener('click', handleOutsideClick)
-      parentCurrent.addEventListener('keydown', handleOutsideClick)
-
-      return () => {
-        document.removeEventListener('click', handleOutsideClick)
-        parentCurrent.addEventListener('keydown', handleOutsideClick)
-      }
-    }, [])
-
-    useEffect(() => {
-      const parentCurrent = parentRef.current
-      const dropdownCurrent = dropdownRef.current
-      const buttonCurrent = buttonRef.current
-
-      const handleKeyUp = (event) => {
-        const key = event.key
-        if (key === 'Enter') {
-          const focusedIndex = dropdownChildren.current.findIndex(
-            (child) => document.activeElement === child
-          )
-          if (focusedIndex >= 0) {
-            dropdownChildren.current[focusedIndex].click()
-          }
-          if (!multiple) {
-            dropdownCurrent.classList.remove('show')
-            buttonCurrent.setAttribute('aria-expanded', 'false')
-            buttonCurrent.focus()
-          }
-        } else if (/^[a-zA-Z0-9]$/.test(key)) {
-          setCurrentLetter(key)
-          dropdownCurrent.classList.add('show')
-          buttonCurrent.setAttribute('aria-expanded', 'true')
-
-          if (key !== currentLetter) {
-            setCurrentLetter(key)
-            focusedIndex.current = 0
-          } else {
-            focusedIndex.current = focusedIndex.current + 1
-          }
-
-          const optionMatches = newOptions.filter((option) => {
-            return (
-              option.value &&
-              String(option.value).toLowerCase().startsWith(key.toLowerCase())
-            )
-          })
-
-          if (optionMatches.length > 0) {
-            const nextFocusedIndex = findOptionIndex(optionMatches)
-
-            setFocus(nextFocusedIndex)
-          }
-        } else if (key === 'Delete' || event.keyCode === 46) {
-          event.preventDefault()
-
-          if (!multiple && selectedOptions !== null) {
-            setSelectedOptions(null)
-            onChange({ payload: { target: { name: name, value: null } } })
-          }
-        }
-      }
-
-      const findOptionIndex = (optionMatches) => {
-        if (focusedIndex.current > optionMatches.length - 1) {
-          focusedIndex.current = 0
-        }
-
-        const optionIndexValue = newOptions.findIndex(
-          (option) => option.value === optionMatches[focusedIndex.current].value
         )
+      } else {
+        setSelectedOptions(value)
+      }
+    } else if (value && !Array.isArray(value)) {
+      setSelectedOptions(value)
+    } else {
+      setSelectedOptions(multiple ? [] : null)
+    }
+  }, [value, multiple, options])
 
-        if (optionIndexValue === -1) {
-          return 0
+  useEffect(() => {
+    const parentCurrent = parentRef.current
+
+    document.addEventListener('click', handleOutsideClick)
+    parentCurrent.addEventListener('keydown', handleOutsideClick)
+
+    return () => {
+      document.removeEventListener('click', handleOutsideClick)
+      parentCurrent.removeEventListener('keydown', handleOutsideClick)
+    }
+  })
+
+  useEffect(() => {
+    const parentCurrent = parentRef.current
+    const dropdownCurrent = dropdownRef.current
+    const buttonCurrent = buttonRef.current
+
+    const handleKeyUp = (event) => {
+      const key = event.key
+      if (key === 'Enter') {
+        const focusedIndex = dropdownChildren.current.findIndex(
+          (child) => document.activeElement === child
+        )
+        if (focusedIndex >= 0) {
+          dropdownChildren.current[focusedIndex].click()
+        }
+        if (!multiple) {
+          dropdownCurrent.classList.remove('show')
+          buttonCurrent.setAttribute('aria-expanded', 'false')
+          buttonCurrent.focus()
+        }
+      } else if (/^[a-zA-Z0-9]$/.test(key)) {
+        setCurrentLetter(key)
+        if (!dropdownCurrent.classList.contains('show')) {
+          buttonCurrent.click()
+        }
+
+        if (key !== currentLetter) {
+          setCurrentLetter(key)
+          focusedIndex.current = 0
         } else {
-          return optionIndexValue
+          focusedIndex.current = focusedIndex.current + 1
         }
-      }
 
-      const setFocus = (index) => {
-        if (dropdownChildren.current[index]) {
-          dropdownChildren.current[index].focus()
+        const optionMatches = newOptions.filter((option) => {
+          return (
+            option.value &&
+            String(option.value).toLowerCase().startsWith(key.toLowerCase())
+          )
+        })
+
+        if (optionMatches.length > 0) {
+          const nextFocusedIndex = findOptionIndex(optionMatches)
+
+          setFocus(nextFocusedIndex)
         }
-      }
-      parentCurrent.addEventListener('keyup', handleKeyUp)
+      } else if (key === 'Delete' || event.keyCode === 46) {
+        event.preventDefault()
 
-      return () => {
-        parentCurrent.removeEventListener('keyup', handleKeyUp)
-      }
-    }, [
-      newOptions,
-      currentLetter,
-      focusedIndex,
-      multiple,
-      name,
-      onChange,
-      selectedOptions,
-    ])
-
-    const handleOutsideClick = (event) => {
-      const dropdownCurrent = dropdownRef.current
-      const buttonCurrent = buttonRef.current
-      const parentCurrent = parentRef.current
-
-      const target = event.target
-      if (!parentCurrent.contains(target)) {
-        dropdownCurrent?.classList.remove('show')
-        buttonCurrent?.setAttribute('aria-expanded', 'false')
-        setCurrentLetter()
-      }
-      if (event.key === 'Tab') {
-        dropdownCurrent?.classList.remove('show')
-        buttonCurrent?.setAttribute('aria-expanded', 'false')
-        setCurrentLetter()
+        if (selectedOptions !== null) {
+          setSelectedOptions(multiple ? [] : null)
+          onChange({ type: 'removed', payload: { target: { name: name } } })
+        }
       }
     }
 
-    const handleOptionClick = (option) => {
-      if (multiple) {
-        if (option.name === 'clear') {
-          updatedOptions = []
-        } else if (option.name === 'all') {
+    const findOptionIndex = (optionMatches) => {
+      if (focusedIndex.current > optionMatches.length - 1) {
+        focusedIndex.current = 0
+      }
+
+      const optionIndexValue = newOptions.findIndex(
+        (option) => option.value === optionMatches[focusedIndex.current].value
+      )
+
+      if (optionIndexValue === -1) {
+        return 0
+      } else {
+        return optionIndexValue
+      }
+    }
+
+    const setFocus = (index) => {
+      if (dropdownChildren.current[index]) {
+        dropdownChildren.current[index].focus()
+      }
+    }
+    parentCurrent.addEventListener('keyup', handleKeyUp)
+
+    return () => parentCurrent.removeEventListener('keyup', handleKeyUp)
+  }, [
+    newOptions,
+    currentLetter,
+    focusedIndex,
+    multiple,
+    name,
+    onChange,
+    selectedOptions,
+  ])
+
+  const handleOutsideClick = (event) => {
+    const dropdownCurrent = dropdownRef.current
+    const buttonCurrent = buttonRef.current
+    const parentCurrent = parentRef.current
+
+    const target = event.target
+    if (!parentCurrent.contains(target)) {
+      if (dropdownCurrent.classList.contains('show')) {
+        buttonCurrent.click()
+      }
+      setCurrentLetter()
+    }
+    if (event.key === 'Tab') {
+      if (dropdownCurrent.classList.contains('show')) {
+        buttonCurrent.click()
+      }
+      setCurrentLetter()
+    }
+  }
+
+  const handleOptionClick = (option) => {
+    if (multiple) {
+      if (option.name === 'clear') {
+        updatedOptions = []
+      } else if (option.name === 'all') {
+        updatedOptions = [
+          {
+            name: option.name ?? null,
+            id: option._id ?? null,
+            value: option.value,
+            ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+          },
+        ]
+      } else if (
+        Array.isArray(selectedOptions) &&
+        selectedOptions.length > 0 &&
+        selectedOptions.every((selectedOption) =>
+          newOptions.some(
+            (newOption) => newOption.value === selectedOption.value
+          )
+        )
+      ) {
+        if (
+          selectedOptions.some(
+            (selectedOption) => selectedOption.value === option.value
+          )
+        ) {
+          updatedOptions = selectedOptions.filter(
+            (selectedOption) => selectedOption.value !== option.value
+          )
+        } else {
+          updatedOptions = [
+            ...selectedOptions,
+            {
+              name: option.name ?? null,
+              id: option._id ?? null,
+              value: option.value,
+              ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+            },
+          ]
+        }
+      } else {
+        if (option.name === 'none') {
+          updatedOptions = null
+          setSelectedOptions(updatedOptions)
+        } else {
           updatedOptions = [
             {
               name: option.name ?? null,
@@ -214,178 +243,148 @@ const Select = forwardRef(
               ...(optionalKey && { [optionalKey]: option[optionalKey] }),
             },
           ]
-        } else if (
-          Array.isArray(selectedOptions) &&
-          selectedOptions.length > 0 &&
-          selectedOptions.every((selectedOption) =>
-            newOptions.some(
-              (newOption) => newOption.value === selectedOption.value
-            )
-          )
-        ) {
-          if (
-            selectedOptions.some(
-              (selectedOption) => selectedOption.value === option.value
-            )
-          ) {
-            updatedOptions = selectedOptions.filter(
-              (selectedOption) => selectedOption.value !== option.value
-            )
-          } else {
-            updatedOptions = [
-              ...selectedOptions,
-              {
-                name: option.name ?? null,
-                id: option._id ?? null,
-                value: option.value,
-                ...(optionalKey && { [optionalKey]: option[optionalKey] }),
-              },
-            ]
-          }
+        }
+      }
+    } else {
+      updatedOptions = {
+        name: option.name ?? null,
+        id: option._id ?? null,
+        value: option.value,
+        ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+      }
+      buttonRef.current.focus()
+    }
+    onChange({ payload: { target: { name: name, value: updatedOptions } } })
+    if (!multiple) {
+      setCurrentLetter()
+    }
+  }
+
+  const selectClass = (option) => {
+    if (multiple) {
+      if (selectedOptions?.length > 0) {
+        if (selectedOptions?.some((item) => item.value === option.value)) {
+          return 'rounded-pill selected'
         } else {
-          if (option.name === 'none') {
-            updatedOptions = null
-            setSelectedOptions(updatedOptions)
-          } else {
-            updatedOptions = [
-              {
-                name: option.name ?? null,
-                id: option._id ?? null,
-                value: option.value,
-                ...(optionalKey && { [optionalKey]: option[optionalKey] }),
-              },
-            ]
-          }
+          return 'rounded-pill border border-secondary-subtle'
         }
       } else {
-        updatedOptions = {
-          name: option.name ?? null,
-          id: option._id ?? null,
-          value: option.value,
-          ...(optionalKey && { [optionalKey]: option[optionalKey] }),
-        }
-        buttonRef.current.focus()
-      }
-      onChange({ payload: { target: { name: name, value: updatedOptions } } })
-      if (!multiple) {
-        setCurrentLetter()
-      }
-    }
-
-    const selectClass = (option) => {
-      if (multiple) {
-        if (selectedOptions?.length > 0) {
-          if (selectedOptions?.some((item) => item.value === option.value)) {
-            return 'rounded-pill selected'
-          } else {
-            return 'rounded-pill border border-secondary-subtle'
-          }
+        if (selectedOptions?.value === option.value) {
+          return 'rounded-pill border selected'
         } else {
-          if (selectedOptions?.value === option.value) {
-            return 'rounded-pill border selected'
-          } else {
-            return 'rounded-pill border border-secondary-subtle'
-          }
+          return 'rounded-pill border border-secondary-subtle'
         }
-      } else if (selectedOptions?.value === option.value) {
-        return 'rounded-pill border selected'
-      } else {
-        return 'rounded-pill'
       }
+    } else if (selectedOptions?.value === option.value) {
+      return 'rounded-pill border selected'
+    } else {
+      return 'rounded-pill'
     }
+  }
 
-    const containerClass = () => {
-      if (
-        (multiple &&
-          selectedOptions?.length > 0 &&
-          selectedOptions.every((option) =>
-            newOptions.some((item) => item.value === option.value)
-          )) ||
-        (selectedOptions &&
-          newOptions.some((option) => option.value === selectedOptions.value))
-      ) {
-        return 'has-value-select'
-      } else {
-        return ''
-      }
+  const containerClass = () => {
+    if (
+      (multiple &&
+        selectedOptions?.length > 0 &&
+        selectedOptions.every((option) =>
+          newOptions.some((item) => item.value === option.value)
+        )) ||
+      (selectedOptions &&
+        newOptions.some((option) => option.value === selectedOptions.value))
+    ) {
+      return 'has-value-select'
+    } else {
+      return ''
     }
+  }
 
-    const displayOption = () => {
-      if (multiple && selectedOptions?.length > 0) {
-        return selectedOptions
-          .filter((option) =>
-            newOptions.some((item) => item.value === option.value)
-          )
-          .map((option, optionIndex) => (
-            <span
-              key={optionIndex}
-              className={`select-option ${displayClass()}`}
-            >
-              {option.value}
-            </span>
-          ))
-      } else if (
-        selectedOptions &&
-        newOptions.some((option) => option.value === selectedOptions.value)
-      ) {
-        return (
-          <span className={`select-option ${displayClass()}`}>
-            {selectedOptions.value}
-          </span>
+  const displayOption = () => {
+    if (multiple && selectedOptions?.length > 0) {
+      return selectedOptions
+        .filter((option) =>
+          newOptions.some((item) => item.value === option.value)
         )
-      }
+        .map((option, optionIndex) => (
+          <span key={optionIndex} className={`select-option ${displayClass()}`}>
+            {option.value}
+          </span>
+        ))
+    } else if (
+      selectedOptions &&
+      newOptions.some((option) => option.value === selectedOptions.value)
+    ) {
+      return (
+        <span className={`select-option ${displayClass()}`}>
+          {selectedOptions.value}
+        </span>
+      )
     }
+  }
 
-    const displayClass = () => {
-      if (multiple && selectedOptions?.length > 0) {
-        return 'border border-primary rounded-pill me-1 px-1'
-      } else if (!!selectedOptions.value) {
-        return ''
-      }
+  const displayClass = () => {
+    if (multiple && selectedOptions?.length > 0) {
+      return 'border border-primary rounded-pill me-1 px-1'
+    } else if (!!selectedOptions.value) {
+      return ''
     }
+  }
 
-    const labelClass = () => {
-      if (multiple && selectedOptions?.length > 0) {
-        if (
-          selectedOptions.every((option) =>
-            newOptions.some((item) => item.value === option.value)
-          )
-        ) {
-          return 'filled'
-        }
-      } else if (
-        selectedOptions &&
-        newOptions.some((option) => option.value === selectedOptions.value)
-      ) {
-        return 'filled'
-      } else {
-        return ''
-      }
-    }
+  // const labelClass = () => {
+  //   if (multiple && selectedOptions?.length > 0) {
+  //     if (
+  //       selectedOptions.every((option) =>
+  //         newOptions.some((item) => item.value === option.value)
+  //       )
+  //     ) {
+  //       return 'filled'
+  //     }
+  //   } else if (
+  //     selectedOptions &&
+  //     newOptions.some((option) => option.value === selectedOptions.value)
+  //   ) {
+  //     return 'filled'
+  //   } else {
+  //     return ''
+  //   }
+  // }
 
-    const content = (
+  const content = (
+    <>
       <div
         className={`dropdown ${size ?? 'col'} ${
           className ? `${className}` : ''
         }`}
         ref={parentRef}
       >
+        {label && (
+          <label
+            className={`select-label form-input-label ${
+              required ? 'required' : ''
+            }`}
+          >
+            {label}
+          </label>
+        )}
         <button
           ref={buttonRef}
           className={`btn dropdown-toggle select-dropdown-toggle focus-ring align-items-center justify-content-between ${containerClass()}`}
           data-bs-toggle='dropdown'
           aria-expanded='false'
           required={required}
+          data-bs-boundary={'#main-container'}
+          data-bs-reference={'parent'}
           data-atp-options={
             !selectedOptions || selectedOptions == null ? 'false' : 'true'
           }
           type='button'
           id='selectButton'
+          onClick={() => {
+            if (buttonRef.current.classList.contains('is-invalid')) {
+              buttonRef.current.classList.remove('is-invalid')
+            }
+          }}
         >
           <div className='select-container'>{displayOption()}</div>
-          <label className={`select-label ${labelClass()}`}>
-            {placeholder || 'Select an option'}
-          </label>
         </button>
         <ul
           className='dropdown-menu select-menu my-2 px-1 pb-0'
@@ -410,22 +409,9 @@ const Select = forwardRef(
           ))}
         </ul>
       </div>
-    )
-
-    useImperativeHandle(ref, () => ({
-      getValue() {
-        return updatedOptions
-      },
-      getName() {
-        return name
-      },
-      setValue(data) {
-        setSelectedOptions(data)
-      },
-    }))
-
-    return content
-  }
-)
+    </>
+  )
+  return content
+}
 
 export default Select

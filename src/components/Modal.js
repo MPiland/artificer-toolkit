@@ -11,23 +11,25 @@ const Modal = () => {
   const handleEscKey = useCallback(
     (event) => {
       if (event.key === 'Escape') {
-        navigate(`${location.state.background.pathname}`)
+        navigate(`${location.state.background.pathname}`, {
+          state: location.state,
+        })
       }
     },
     [navigate, location]
   )
 
   const handleClose = () => {
-    navigate(`${location.state.background.pathname}`)
+    navigate(`${location.state.background.pathname}`, {
+      state: location.state,
+    })
   }
 
   // Listens for Key to close modal
   useEffect(() => {
     document.addEventListener('keyup', handleEscKey, false)
 
-    return () => {
-      document.removeEventListener('keyup', handleEscKey, false)
-    }
+    return () => document.removeEventListener('keyup', handleEscKey, false)
   }, [handleEscKey])
 
   const content = (
@@ -41,7 +43,11 @@ const Modal = () => {
       <div
         className={`modal-dialog modal-dialog-scrollable ${
           location.state.size ? `modal-${location.state.size}` : ''
-        } modal-fullscreen-sm-down modal-dialog-centered`}
+        } ${
+          location.state.context !== 'delete'
+            ? 'modal-fullscreen-sm-down'
+            : ''
+        }  modal-dialog-centered`}
         role='document'
         onClick={(e) => e.stopPropagation()}
       >

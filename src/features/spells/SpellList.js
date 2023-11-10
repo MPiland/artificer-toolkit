@@ -19,7 +19,7 @@ import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
 
-const SpellList = () => {
+const SpellList = ({ scrollPosition }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -27,10 +27,11 @@ const SpellList = () => {
   const deleteConfirmed = useSelector((state) => state.delete.status)
   const spellToDelete = useSelector((state) => state.delete.data)
 
-  const { spells, isFetching } = useGetSpellsQuery('spellsList', {
+  const { spells, isLoading, isFetching } = useGetSpellsQuery('spellsList', {
     selectFromResult: ({ data }) => ({
       spells: data && selectAllSpells(data),
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectSpellsFilter)
@@ -48,6 +49,8 @@ const SpellList = () => {
   const is1000 = useMediaQuery('(min-width: 576px) and (max-width: 992px)')
   const is600 = useMediaQuery('(max-width: 576px)')
 
+  const tableWindow = document.getElementsByClassName('content-table')
+
   const showCard = (spell) => {
     navigate(`/spells/${spell.name}`, {
       state: {
@@ -56,6 +59,7 @@ const SpellList = () => {
         context: 'itemCard',
         data: spell.id,
         size: 'lg',
+        scrollPosition: tableWindow[0].scrollTop,
       },
     })
   }
@@ -67,6 +71,7 @@ const SpellList = () => {
         title: spell.value,
         data: spell,
         size: 'md',
+        context: 'delete',
       },
     })
   }
@@ -103,7 +108,7 @@ const SpellList = () => {
   useEffect(() => {
     if (spells && !filterItemsPopulated) {
       setFilterItems(spells)
-      setFilterItemsPopulated(true) // Ensure it's called only once
+      setFilterItemsPopulated(true)
     }
   }, [spells, setFilterItems, filterItemsPopulated])
 
@@ -115,7 +120,7 @@ const SpellList = () => {
           value: 'Level',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-1 col-2',
+          size: 'col-1',
           breakpoint: '',
         },
         {
@@ -123,9 +128,25 @@ const SpellList = () => {
           value: 'Name',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-4 col-5',
+          size: 'col',
           breakpoint: '',
           defaultSort: true,
+        },
+        {
+          name: { sortOn: 'classes' },
+          value: 'Classes',
+          border: false,
+          className: 'fw-bold',
+          size: 'col',
+          breakpoint: '',
+        },
+        {
+          name: { sortOn: 'school' },
+          value: 'School',
+          border: false,
+          className: 'fw-bold',
+          size: 'col',
+          breakpoint: is600 && true,
         },
         {
           name: {
@@ -135,7 +156,7 @@ const SpellList = () => {
           value: 'Casting Time',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3 col-3',
+          size: 'col',
           breakpoint: is600 && true,
         },
         {
@@ -146,7 +167,7 @@ const SpellList = () => {
           value: 'Duration',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3',
+          size: 'col',
           breakpoint: (is1000 || is600) && true,
         },
         {
@@ -161,50 +182,70 @@ const SpellList = () => {
           value: 'Range (ft)/Area (ft)',
           border: false,
           className: 'fw-bold',
-          size: 'col-md-2',
+          size: 'col',
           breakpoint: (is1000 || is600) && true,
         },
         {
-          name: { sortOn: 'damage.damagType' },
-          value: 'Damage Type',
+          name: {
+            sortOn: 'damage.base.damagType',
+            subSort: { sortOn: 'condition' },
+          },
+          value: 'Damage/Effect',
           border: false,
           className: 'fw-bold',
-          size: 'col-lg-2 col-md-3 col-sm-4 col-4',
+          size: 'col',
           breakpoint: '',
         },
       ],
       inputs: [
         {
           name: 'level',
-          size: 'col-lg-1 col-2',
+          size: 'col-1',
           breakpoint: '',
         },
         {
           name: 'value',
-          size: 'col-lg-2 col-md-4 col-5',
+          size: 'col',
           breakpoint: '',
         },
         {
+          name: 'classes',
+          size: 'col',
+          breakpoint: '',
+        },
+        {
+          name: 'school.value',
+          size: 'col',
+          breakpoint: is600 && true,
+        },
+        {
           name: ['action.value', 'action.actionType.value'],
-          size: 'col-lg-2 col-md-3 col-3',
+          size: 'col',
           breakpoint: is600 && true,
         },
         {
           name: ['duration.value', 'duration.durationType.value'],
-          size: 'col-lg-2 col-md-3',
+          size: 'col',
           breakpoint: (is1000 || is600) && true,
         },
         {
           name: [
-            ['range.rangeType.value', 'range.distance'],
-            ['shape.shapeType.value', 'shape.size'],
+            ['range.rangeType.value', 'range.distance', 'range.unit.short'],
+            ['shape.shapeType.value', 'shape.size', 'shape.unit.short'],
           ],
-          size: 'col-md-2',
+          size: 'col',
           breakpoint: (is1000 || is600) && true,
         },
         {
-          name: 'damage.damageType',
-          size: 'col-lg-2 col-md-3 col-sm-4 col-4',
+          name: [
+            ['damage.baseDamage.diceShort', 'damage.secondaryDamage.diceShort'],
+            [
+              'damage.baseDamage.damageType',
+              'damage.secondaryDamage.damageType',
+            ],
+            'condition',
+          ],
+          size: 'col',
           breakpoint: '',
         },
       ],
@@ -220,9 +261,15 @@ const SpellList = () => {
     setListFilter({ type: 'reset', payload: { target: {} } })
   }
 
+  useEffect(() => {
+    if (scrollPosition && !isFetching) {
+      tableWindow[0].scroll(0, scrollPosition)
+    }
+  })
+
   let content
 
-  if (isFetching) {
+  if (isLoading || isFetching || !filteredList) {
     return (content = <Spinner />)
   }
 
@@ -236,64 +283,56 @@ const SpellList = () => {
         data-bs-toggle='collapse'
         data-bs-target='#sectionCollapse'
         aria-controls='collapseExample'
-        aria-expanded={!is600 && !is1000 ? 'true' : 'false'}
+        aria-expanded='false'
       >
         <span className='me-3'>Filters</span>
         <i className='bi bi-arrow-down-up' />
       </div>
-      <div
-        className={`section-container collapse ${
-          !is600 && !is1000 ? ' show' : ''
-        }`}
-        id='sectionCollapse'
-      >
+      <div className='section-container collapse' id='sectionCollapse'>
         <div className='section-content'>
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 align-items-center pb-2 g-2'>
+            <Select
+              multiple={true}
+              name='level'
+              label='Level'
+              options={spells?.map((item) => ({ value: item?.level }))}
+              value={listFilter?.level}
+              onChange={(e) => onFilterChange(e)}
+            />
             <Input
               name='value'
-              label={true}
-              placeholder='Spell Name'
+              label='Spell Name'
               autoComplete='off'
               value={listFilter?.value}
               onChange={(e) => onFilterChange(e)}
             />
             <Select
               multiple={true}
-              name='level'
-              placeholder='Level'
-              options={filteredList?.map((item) => ({ value: item?.level }))}
-              value={listFilter?.level}
+              name='classes'
+              label='Classes'
+              options={spells?.flatMap((item) => {
+                if (item.classes && Array.isArray(item.classes)) {
+                  return item.classes
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.classes}
               onChange={(e) => onFilterChange(e)}
             />
             <Select
               multiple={true}
-              name='action.actionType'
-              placeholder='Casting Time'
-              options={filteredList?.map((item) => item.action?.actionType)}
-              value={listFilter?.action?.actionType}
-              onChange={(e) => onFilterChange(e)}
-            />
-            <Select
-              multiple={true}
-              name='duration.durationType'
-              placeholder='Duration'
-              options={filteredList?.map((item) => item.duration?.durationType)}
-              value={listFilter?.duration?.durationType}
-              onChange={(e) => onFilterChange(e)}
-            />
-            <Select
-              multiple={true}
-              name='range.rangeType'
-              placeholder='Range'
-              options={filteredList?.map((item) => item.range?.rangeType)}
-              value={listFilter?.range?.rangeType}
+              name='school'
+              label='Spell School'
+              options={spells?.map((item) => item.school)}
+              value={listFilter?.school}
               onChange={(e) => onFilterChange(e)}
             />
             <Select
               multiple={true}
               name='damage.damageType'
-              placeholder='Damage Type'
-              options={filteredList?.flatMap((item) => {
+              label='Damage Type'
+              options={spells?.flatMap((item) => {
                 if (item.damage && Array.isArray(item.damage.damageType)) {
                   return item.damage.damageType
                 } else {
@@ -305,10 +344,70 @@ const SpellList = () => {
             />
             <Select
               multiple={true}
-              name='school'
-              placeholder='Spell School'
-              options={filteredList?.map((item) => item.school)}
-              value={listFilter?.school}
+              name='condition'
+              label='Condition Type'
+              options={spells?.flatMap((item) => {
+                if (item.condition && Array.isArray(item.condition)) {
+                  return item.condition
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.damage?.damageType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='saveAbility'
+              label='DC Ability'
+              options={spells?.flatMap((item) => {
+                if (item.saveAbility && Array.isArray(item.saveAbility)) {
+                  return item.saveAbility
+                } else {
+                  return []
+                }
+              })}
+              value={listFilter?.damage?.damageType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='action.actionType'
+              label='Casting Time'
+              options={spells?.map((item) => item.action?.actionType)}
+              value={listFilter?.action?.actionType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='action.actionType'
+              label='Casting Time'
+              options={spells?.map((item) => item.action?.actionType)}
+              value={listFilter?.action?.actionType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='duration.durationType'
+              label='Duration'
+              options={spells?.map((item) => item.duration?.durationType)}
+              value={listFilter?.duration?.durationType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='range.rangeType'
+              label='Range'
+              options={spells?.map((item) => item.range?.rangeType)}
+              value={listFilter?.range?.rangeType}
+              onChange={(e) => onFilterChange(e)}
+            />
+            <Select
+              multiple={true}
+              name='shape.shapeType'
+              label='Shape'
+              options={spells?.map((item) => item.shape?.shapeType)}
+              value={listFilter?.shape?.shapeType}
               onChange={(e) => onFilterChange(e)}
             />
           </div>
@@ -347,10 +446,13 @@ const SpellList = () => {
         defaultSort={tableColumns.headers.find(
           (headerItem) => headerItem.defaultSort === true
         )}
+        rows={{
+          inputs: tableColumns.inputs,
+          headers: tableColumns.headers,
+        }}
         scrollable={true}
         value={filteredList}
-        headers={tableColumns.headers}
-        inputs={tableColumns.inputs}
+        className={tableColumns.inputs.length + 1}
         clickable={true}
         onClick={(spell) => showCard(spell)}
         deleteRow={(spell) => onDelete(spell)}

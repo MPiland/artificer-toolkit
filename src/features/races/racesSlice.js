@@ -1,9 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { initialState } from './racesApiSlice'
 
 const racesSlice = createSlice({
   name: 'races',
-  initialState: { data: initialState, filters: {} },
+  initialState: { filters: {} },
   reducers: {
     setRacesFilter: (state, { payload }) => {
       state.filters = payload
