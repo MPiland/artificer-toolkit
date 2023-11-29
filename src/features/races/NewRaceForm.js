@@ -291,16 +291,10 @@ const NewRaceForm = () => {
                     />
                   )}
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.feat${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.feat`}
                     multiple={true}
                     label='Feat'
-                    value={
-                      multipleOptions
-                        ? item.feat?.options
-                        : item.feat?.setSelection
-                    }
+                    value={item.feat}
                     options={feats}
                     required={true}
                     onChange={setState}
@@ -402,16 +396,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.ability${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.ability`}
                       multiple={true}
                       label='Ability'
-                      value={
-                        multipleOptions
-                          ? item.ability?.options
-                          : item.ability?.setSelection
-                      }
+                      value={item.ability}
                       options={builders.ability}
                       required={true}
                       onChange={setState}
@@ -421,16 +409,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.saveAbility${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
-                      value={
-                        multipleOptions
-                          ? item.saveAbility?.options
-                          : item.saveAbility?.setSelection
-                      }
+                      value={item.saveAbility}
                       options={builders.ability}
                       required={true}
                       onChange={setState}
@@ -440,18 +422,12 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.skill${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.skill`}
                       multiple={true}
                       label='Skill'
-                      value={
-                        multipleOptions
-                          ? item.skill?.options
-                          : item.skill?.setSelection
-                      }
+                      value={item.skill}
                       options={builders.skill}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   )}
@@ -459,18 +435,12 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.damageSave${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.damageSave`}
                       multiple={true}
                       label='Damage'
-                      value={
-                        multipleOptions
-                          ? item.damageSave?.options
-                          : item.damageSave?.setSelection
-                      }
+                      value={item.damageSave}
                       options={builders.damage}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   )}
@@ -478,16 +448,10 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.conditionSave${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.conditionSave`}
                       multiple={true}
                       label='Condition'
-                      value={
-                        multipleOptions
-                          ? item.conditionSave?.options
-                          : item.conditionSave?.setSelection
-                      }
+                      value={item.conditionSave}
                       options={builders.condition}
                       required={true}
                       onChange={setState}
@@ -505,7 +469,7 @@ const NewRaceForm = () => {
                             (moduleItem) => moduleItem.id === item.module?.id
                           )
                         )}
-                        require={true}
+                        required={true}
                         onChange={setState}
                       />
                     )}
@@ -513,54 +477,36 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.condition${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.condition`}
                       multiple={true}
                       label='Condition Type'
-                      value={
-                        multipleOptions
-                          ? item.condition?.options
-                          : item.condition?.setSelection
-                      }
+                      value={item.condition}
                       options={builders.condition}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.speed${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.speed`}
                       multiple={true}
-                      value={
-                        multipleOptions
-                          ? item.speed?.options
-                          : item.speed?.setSelection
-                      }
+                      value={item.speed}
                       label='Speed Type'
                       options={builders.speed}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.passive${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.passive`}
                       multiple={true}
                       label='Passive Type'
-                      value={
-                        multipleOptions
-                          ? item.passive?.options
-                          : item.passive?.setSelection
-                      }
+                      value={item.passive}
                       options={builders.passive}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   ) : (
@@ -568,16 +514,10 @@ const NewRaceForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.damage${
-                          multipleOptions ? '.options' : '.setSelection'
-                        }`}
+                        }.${index}.damage`}
                         multiple={true}
                         label='Damage Type'
-                        value={
-                          multipleOptions
-                            ? item.damage?.options
-                            : item.damage?.setSelection
-                        }
+                        value={item.damage}
                         options={builders.damage}
                         required={true}
                         onChange={setState}
@@ -594,7 +534,7 @@ const NewRaceForm = () => {
                         invalidText='Must contain only numbers'
                         autoComplete='off'
                         value={item.method?.setValue}
-                        require={true}
+                        required={true}
                         onChange={setState}
                       />
                     </>
@@ -605,7 +545,7 @@ const NewRaceForm = () => {
                         label='Method Ability'
                         value={item.method.ability}
                         options={builders.ability}
-                        require={true}
+                        required={true}
                         onChange={setState}
                       />
                       <Input
@@ -626,7 +566,7 @@ const NewRaceForm = () => {
                           label='Method Skill'
                           value={item.method.skill}
                           options={builders.skill}
-                          require={true}
+                          required={true}
                           onChange={setState}
                         />
                         <Input
@@ -756,25 +696,19 @@ const NewRaceForm = () => {
                     label='Proficiency Area'
                     value={item.area}
                     options={builders.proficiency.area}
-                    require={true}
+                    required={true}
                     onChange={setState}
                   />
                   {item?.area?.name === 'skill' && (
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.skill${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.skill`}
                       multiple={true}
                       label='Skill'
-                      value={
-                        multipleOptions
-                          ? item.skill?.options
-                          : item.skill?.setSelection
-                      }
+                      value={item.skill}
                       options={builders.skill}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   )}
@@ -782,18 +716,12 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.saveAbility${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
-                      value={
-                        multipleOptions
-                          ? item.saveAbility?.options
-                          : item.saveAbility?.setSelection
-                      }
+                      value={item.saveAbility}
                       options={builders.ability}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   )}
@@ -801,18 +729,12 @@ const NewRaceForm = () => {
                     <Select
                       name={`feature.${featureIndex}.${
                         this.name
-                      }.${index}.language${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      }.${index}.language`}
                       multiple={true}
                       label='Language'
-                      value={
-                        multipleOptions
-                          ? item.language?.options
-                          : item.language?.setSelection
-                      }
+                      value={item.language}
                       options={builders.language}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   )}
@@ -822,16 +744,10 @@ const NewRaceForm = () => {
                       <Select
                         name={`feature.${featureIndex}.${
                           this.name
-                        }.${index}.category${
-                          multipleOptions ? '.options' : '.setSelection'
-                        }`}
+                        }.${index}.category`}
                         multiple={true}
                         label='Item Category'
-                        value={
-                          multipleOptions
-                            ? item.category?.options
-                            : item.category?.setSelection
-                        }
+                        value={item.category}
                         options={builders.item.category}
                         onChange={setState}
                       />
@@ -839,29 +755,15 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.${
                             this.name
-                          }.${index}.property${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
+                          }.${index}.property`}
                           multiple={true}
                           label='Item Property'
-                          value={
-                            multipleOptions
-                              ? item.property?.options
-                              : item.property?.setSelection
-                          }
+                          value={item.property}
                           options={[].concat(
                             ...builders.item.category
                               .filter((bCategoryItem) =>
-                                multipleOptions
-                                  ? item.category?.options?.length > 0
-                                    ? item.category?.options?.some(
-                                        (categoryItem) =>
-                                          categoryItem.name ===
-                                          bCategoryItem.name
-                                      )
-                                    : bCategoryItem
-                                  : item.category?.setSelection?.length > 0
-                                  ? item.category?.setSelection?.some(
+                                item.category?.length > 0
+                                  ? item.category?.some(
                                       (categoryItem) =>
                                         categoryItem.name === bCategoryItem.name
                                     )
@@ -876,28 +778,15 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.${
                             this.name
-                          }.${index}.itemType${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
+                          }.${index}.itemType`}
                           multiple={true}
                           label='Item Type'
-                          value={
-                            multipleOptions
-                              ? item.itemType?.options
-                              : item.itemType?.setSelection
-                          }
+                          value={item.itemType}
                           options={items.filter((itemType) =>
-                            multipleOptions
-                              ? item.category?.options?.length > 0
-                                ? item.category?.options?.some(
-                                    (category) =>
-                                      category.name === itemType.category.name
-                                  )
-                                : itemType
-                              : item.category?.setSelection?.length > 0
-                              ? item.category?.setSelection?.some(
-                                  (category) =>
-                                    category.name === itemType.category.name
+                            item.category?.length > 0
+                              ? item.category?.some(
+                                  (categoryItem) =>
+                                  categoryItem.name === itemType.category.name
                                 )
                               : itemType
                           )}
@@ -911,7 +800,7 @@ const NewRaceForm = () => {
                     label='Proficiency Level'
                     value={item.level}
                     options={builders.proficiency.level}
-                    require={true}
+                    required={true}
                     onChange={setState}
                   />
                   {multipleOptions && (
@@ -948,7 +837,7 @@ const NewRaceForm = () => {
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
-                    require={true}
+                    required={true}
                     onChange={setState}
                   />
                   {featureItem.attribute?.some(
@@ -966,18 +855,12 @@ const NewRaceForm = () => {
                     />
                   )}
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}.sense${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
                     multiple={true}
                     label='Sense'
-                    value={
-                      multipleOptions
-                        ? item.sense?.options
-                        : item.sense?.setSelection
-                    }
+                    value={item.sense}
                     options={builders.sense}
-                    require={true}
+                    required={true}
                     onChange={setState}
                   />
                   {multipleOptions && (
@@ -1017,7 +900,7 @@ const NewRaceForm = () => {
                     )}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
-                    require={true}
+                    required={true}
                     onChange={setState}
                   />
                   {item.attribute?.some(
@@ -1067,14 +950,10 @@ const NewRaceForm = () => {
                   ) && (
                     <>
                       <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}${
-                          multipleOptions ? '.options' : '.setSelection'
-                        }`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.spell`}
                         multiple={true}
                         label='Spell'
-                        value={
-                          multipleOptions ? item?.options : item?.setSelection
-                        }
+                        value={item.spell}
                         options={spells.filter(
                           (spellItem) =>
                             (!item?.classLimit ||
@@ -1090,7 +969,7 @@ const NewRaceForm = () => {
                                   levelItem.value === spellItem.level
                               ))
                         )}
-                        require={true}
+                        required={true}
                         onChange={setState}
                       />
                       {item.attribute?.some(
@@ -1100,18 +979,12 @@ const NewRaceForm = () => {
                         <Select
                           name={`feature.${featureIndex}.${
                             this.name
-                          }.${index}.ability${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
+                          }.${index}.ability`}
                           multiple={true}
                           label='Ability'
-                          value={
-                            multipleOptions
-                              ? item.ability?.options
-                              : item.ability?.setSelection
-                          }
+                          value={item.ability}
                           options={builders.ability}
-                          require={true}
+                          required={true}
                           onChange={setState}
                         />
                       )}
@@ -1203,153 +1076,7 @@ const NewRaceForm = () => {
             )
           })
         },
-      },
-      {
-        name: 'equipment',
-        content() {
-          return featureItem[this.name].map((item, index) => {
-            const multipleOptions = item.attribute?.some(
-              (attributeItem) => attributeItem.name === 'providesOptions'
-            )
-            return (
-              <Fragment key={index}>
-                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                  <Select
-                    multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                    options={[].concat(
-                      builders.section.attribute,
-                      builders.section.item.attribute
-                    )}
-                    label={`${startCase(this.name)} Attributes`}
-                    value={item.attribute}
-                    onChange={setState}
-                  />
-                  {item.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
-                      onChange={setState}
-                    />
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.category${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
-                    multiple={true}
-                    label='Item Category'
-                    value={
-                      multipleOptions
-                        ? item.category?.options
-                        : item.category?.setSelection
-                    }
-                    options={builders.item.category}
-                    onChange={setState}
-                  />
-
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.property${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
-                    multiple={true}
-                    label='Item Property'
-                    value={
-                      multipleOptions
-                        ? item.property?.options
-                        : item.property?.setSelection
-                    }
-                    options={[].concat(
-                      ...builders.item.category
-                        .filter((bCategoryItem) =>
-                          multipleOptions
-                            ? item.category?.options?.length > 0
-                              ? item.category?.options?.some(
-                                  (categoryItem) =>
-                                    categoryItem.name === bCategoryItem.name
-                                )
-                              : bCategoryItem
-                            : item.category?.setSelection?.length > 0
-                            ? item.category?.setSelection?.some(
-                                (categoryItem) =>
-                                  categoryItem.name === bCategoryItem.name
-                              )
-                            : bCategoryItem
-                        )
-                        .map((category) => category.property)
-                    )}
-                    onChange={setState}
-                  />
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemType${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
-                    multiple={true}
-                    label='Item Type'
-                    value={
-                      multipleOptions
-                        ? item.itemType?.options
-                        : item.itemType?.setSelection
-                    }
-                    options={items.filter((itemType) =>
-                      multipleOptions
-                        ? item.category?.options?.length > 0
-                          ? item.category?.options?.some(
-                              (category) =>
-                                category.name === itemType.category.name
-                            )
-                          : itemType
-                        : item.category?.setSelection?.length > 0
-                        ? item.category?.setSelection?.some(
-                            (category) =>
-                              category.name === itemType.category.name
-                          )
-                        : itemType
-                    )}
-                    onChange={setState}
-                  />
-                  {multipleOptions ? (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
-                      label='# of Selections'
-                      autoComplete='off'
-                      value={item.selectionCount}
-                      invalidText='Must contain only numbers'
-                      required={true}
-                      onChange={setState}
-                    />
-                  ) : (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.quantity`}
-                      label='Quantity'
-                      autoComplete='off'
-                      value={item.quantity}
-                      invalidText='Must contain only numbers'
-                      required={true}
-                      onChange={setState}
-                    />
-                  )}
-                </div>
-              </Fragment>
-            )
-          })
-        },
-      },
+      }
     ]
     return tabContent
   }
@@ -1470,10 +1197,10 @@ const NewRaceForm = () => {
                 <Input
                   validation='num'
                   type='text'
-                  name={`feature.${featureIndex}.limitUse.setSelectionAmount`}
+                  name={`feature.${featureIndex}.limitUse.setAmount`}
                   invalidText='Must contain only numbers'
                   label='Use Amount'
-                  value={featureItem.limitUse?.setSelectionAmount}
+                  value={featureItem.limitUse?.setAmount}
                   required={true}
                   onChange={setState}
                 />
@@ -1738,6 +1465,14 @@ const NewRaceForm = () => {
                   <hr className='flex-grow-1 ms-3' />
                 </div>
                 <div className='row g-2 pb-3 mx-3 justify-contents-center'>
+                  <Input
+                    name={`feature.${featureIndex}.requirement.equipped.numberEquipped`}
+                    value={featureItem.requirement?.equipped?.numberEquipped}
+                    label='Number Equipped'
+                    onChange={setState}
+                    validation='num'
+                    invalidText={'Must contain only numbers'}
+                  />
                   <Select
                     multiple={true}
                     name={`feature.${featureIndex}.requirement.equipped.category`}
@@ -2266,44 +2001,10 @@ const NewRaceForm = () => {
         </>
       ),
     },
-  ]
-
-  content = (
-    <>
-      <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2'>
-        <div className='col-auto'>
-          <h3>Create a Race</h3>
-        </div>
-        <div className='col-auto d-flex justify-content-end'>
-          <button
-            className='btn btn-primary me-2'
-            type='button'
-            onClick={() => {
-              onSubmit()
-            }}
-          >
-            Add
-          </button>
-          <button className='btn btn-warning me-2' onClick={onReset}>
-            Reset Form
-          </button>
-          <button className='btn btn-secondary' onClick={() => navigate(-1)}>
-            Back
-          </button>
-        </div>
-      </div>
-      {successMessage && <h5 className='success-message'>{successMessage}</h5>}
-      {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
-      <form>
-        <TabNavigation
-          id='main'
-          dynamic={false}
-          tabState={mainTabContent.map((content) => ({
-            value: startCase(content.name),
-            name: content.name,
-            content: content.content,
-          }))}
-        />
+    {
+      name: 'features',
+      content: (
+        <>
         <button
           className='btn btn-secondary'
           type='button'
@@ -2331,6 +2032,45 @@ const NewRaceForm = () => {
           }
           onDelete={setState}
           dynamic={true}
+        />
+        </>
+      )
+    }
+  ]
+
+  content = (
+    <>
+      <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2'>
+        <div className='col-auto'>
+          <h3>Create a Race</h3>
+        </div>
+        <div className='col-auto d-flex justify-content-end'>
+          <button
+            className='btn btn-primary me-2'
+            type='button'
+            onClick={onSubmit}
+          >
+            Add
+          </button>
+          <button className='btn btn-warning me-2' onClick={onReset}>
+            Reset Form
+          </button>
+          <button className='btn btn-secondary' onClick={() => navigate(-1)}>
+            Back
+          </button>
+        </div>
+      </div>
+      {successMessage && <h5 className='success-message'>{successMessage}</h5>}
+      {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
+      <form>
+        <TabNavigation
+          id='main'
+          dynamic={false}
+          tabState={mainTabContent.map((content) => ({
+            value: startCase(content.name),
+            name: content.name,
+            content: content.content,
+          }))}
         />
       </form>
     </>

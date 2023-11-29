@@ -8,7 +8,6 @@ const Input = ({
   label,
   type,
   name,
-  placeholder,
   autoComplete,
   required,
   onChange,
@@ -29,10 +28,6 @@ const Input = ({
       inputRef.current.focus()
     }
   }, [autoFocus])
-
-  useEffect(() => {
-    setInputValue(value)
-  }, [setInputValue, value])
 
   const handleChange = (e) => {
     if (inputRef.current.classList.contains('is-invalid')) {
@@ -94,7 +89,6 @@ const Input = ({
         type={type ?? 'text'}
         name={name}
         id={name}
-        // placeholder={placeholder}
         required={required}
         autoFocus={autoFocus}
         autoComplete={autoComplete ?? 'off'}

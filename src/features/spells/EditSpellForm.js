@@ -895,18 +895,14 @@ const EditSpellForm = () => {
           <button
             className='btn btn-success me-2'
             type='button'
-            onClick={() => {
-              onUpdate()
-            }}
+            onClick={onUpdate}
           >
             Update
           </button>
           <button
             className='btn btn-primary me-2'
             type='button'
-            onClick={() => {
-              onSubmit()
-            }}
+            onClick={onSubmit}
           >
             Add
           </button>

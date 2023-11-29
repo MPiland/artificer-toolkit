@@ -6,6 +6,7 @@
     min-width: 100%;
     text-align: start;
     flex-wrap: nowrap;
+    padding: 0.25rem 0;
   }
 }
 
@@ -15,10 +16,6 @@
   border-right: 1px solid lightgrey;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
-}
-
-.row-section-collapse {
-  padding: .5rem 0;
 }
 
 .btn-list-collapse {

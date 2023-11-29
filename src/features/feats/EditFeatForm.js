@@ -332,12 +332,10 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.feat`}
                     multiple={true}
                     label='Feat'
-                    value={multipleOptions ? item?.options : item?.setSelection}
+                    value={item.feat}
                     options={feats}
                     required={true}
                     onChange={setState}
@@ -392,7 +390,6 @@ const EditFeatForm = () => {
                       onChange={setState}
                     />
                   )}
-
                   <Select
                     name={`feature.${featureIndex}.${this.name}.${index}.module`}
                     label='Modifier Category'
@@ -438,18 +435,10 @@ const EditFeatForm = () => {
                     )}
                   {item.module?.name === 'ability' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.ability${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                       multiple={true}
                       label='Ability'
-                      value={
-                        multipleOptions
-                          ? item.ability?.options
-                          : item.ability?.setSelection
-                      }
+                      value={item.ability}
                       options={builders.ability}
                       required={true}
                       onChange={setState}
@@ -457,18 +446,10 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'saveAbility' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.saveAbility${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
-                      value={
-                        multipleOptions
-                          ? item.saveAbility?.options
-                          : item.saveAbility?.setSelection
-                      }
+                      value={item.saveAbility}
                       options={builders.ability}
                       required={true}
                       onChange={setState}
@@ -476,18 +457,10 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'skill' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.skill${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
-                      value={
-                        multipleOptions
-                          ? item.skill?.options
-                          : item.skill?.setSelection
-                      }
+                      value={item.skill}
                       options={builders.skill}
                       required={true}
                       onChange={setState}
@@ -495,37 +468,21 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'damageSave' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.damageSave${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.damageSave`}
                       multiple={true}
                       label='Damage'
-                      value={
-                        multipleOptions
-                          ? item.damageSave?.options
-                          : item.damageSave?.setSelection
-                      }
+                      value={item.damageSave}
                       options={builders.damage}
-                      require={true}
+                      required={true}
                       onChange={setState}
                     />
                   )}
                   {item.module?.name === 'conditionSave' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.conditionSave${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.conditionSave`}
                       multiple={true}
                       label='Condition'
-                      value={
-                        multipleOptions
-                          ? item.conditionSave?.options
-                          : item.conditionSave?.setSelection
-                      }
+                      value={item.conditionSave}
                       options={builders.condition}
                       required={true}
                       onChange={setState}
@@ -549,35 +506,19 @@ const EditFeatForm = () => {
                     )}
                   {item.module?.name === 'condition' ? (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.condition${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.condition`}
                       multiple={true}
                       label='Condition Type'
-                      value={
-                        multipleOptions
-                          ? item.condition?.options
-                          : item.condition?.setSelection
-                      }
+                      value={item.condition}
                       options={builders.condition}
                       required={true}
                       onChange={setState}
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.speed${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.speed`}
                       multiple={true}
-                      value={
-                        multipleOptions
-                          ? item.speed?.options
-                          : item.speed?.setSelection
-                      }
+                      value={item.speed}
                       label='Speed Type'
                       options={builders.speed}
                       required={true}
@@ -585,18 +526,10 @@ const EditFeatForm = () => {
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.passive${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.passive`}
                       multiple={true}
                       label='Passive Type'
-                      value={
-                        multipleOptions
-                          ? item.passive?.options
-                          : item.passive?.setSelection
-                      }
+                      value={item.passive}
                       options={builders.passive}
                       required={true}
                       onChange={setState}
@@ -604,18 +537,10 @@ const EditFeatForm = () => {
                   ) : (
                     item.module?.name === 'damage' && (
                       <Select
-                        name={`feature.${featureIndex}.${
-                          this.name
-                        }.${index}.damage${
-                          multipleOptions ? '.options' : '.setSelection'
-                        }`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.damage`}
                         multiple={true}
                         label='Damage Type'
-                        value={
-                          multipleOptions
-                            ? item.damage?.options
-                            : item.damage?.setSelection
-                        }
+                        value={item.damage}
                         options={builders.damage}
                         required={true}
                         onChange={setState}
@@ -801,18 +726,10 @@ const EditFeatForm = () => {
                   />
                   {item?.area?.name === 'skill' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.skill${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
-                      value={
-                        multipleOptions
-                          ? item.skill?.options
-                          : item.skill?.setSelection
-                      }
+                      value={item.skill}
                       options={builders.skill}
                       required={true}
                       onChange={setState}
@@ -820,18 +737,10 @@ const EditFeatForm = () => {
                   )}
                   {item?.area?.name === 'saveAbility' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.saveAbility${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
-                      value={
-                        multipleOptions
-                          ? item.saveAbility?.options
-                          : item.saveAbility?.setSelection
-                      }
+                      value={item.saveAbility}
                       options={builders.ability}
                       required={true}
                       onChange={setState}
@@ -839,18 +748,10 @@ const EditFeatForm = () => {
                   )}
                   {item?.area?.name === 'language' && (
                     <Select
-                      name={`feature.${featureIndex}.${
-                        this.name
-                      }.${index}.language${
-                        multipleOptions ? '.options' : '.setSelection'
-                      }`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.language`}
                       multiple={true}
                       label='Language'
-                      value={
-                        multipleOptions
-                          ? item.language?.options
-                          : item.language?.setSelection
-                      }
+                      value={item.language}
                       options={builders.language}
                       required={true}
                       onChange={setState}
@@ -860,48 +761,24 @@ const EditFeatForm = () => {
                     item.area?.name === 'itemType') && (
                     <>
                       <Select
-                        name={`feature.${featureIndex}.${
-                          this.name
-                        }.${index}.category${
-                          multipleOptions ? '.options' : '.setSelection'
-                        }`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.category`}
                         multiple={true}
                         label='Item Category'
-                        value={
-                          multipleOptions
-                            ? item.category?.options
-                            : item.category?.setSelection
-                        }
+                        value={item.category}
                         options={builders.item.category}
                         onChange={setState}
                       />
                       {item.area?.name === 'property' && (
                         <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.property${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.property`}
                           multiple={true}
                           label='Item Property'
-                          value={
-                            multipleOptions
-                              ? item.property?.options
-                              : item.property?.setSelection
-                          }
+                          value={item.property}
                           options={[].concat(
                             ...builders.item.category
                               .filter((bCategoryItem) =>
-                                multipleOptions
-                                  ? item.category?.options?.length > 0
-                                    ? item.category?.options?.some(
-                                        (categoryItem) =>
-                                          categoryItem.name ===
-                                          bCategoryItem.name
-                                      )
-                                    : bCategoryItem
-                                  : item.category?.setSelection?.length > 0
-                                  ? item.category?.setSelection?.some(
+                                item.category?.length > 0
+                                  ? item.category?.some(
                                       (categoryItem) =>
                                         categoryItem.name === bCategoryItem.name
                                     )
@@ -914,30 +791,15 @@ const EditFeatForm = () => {
                       )}
                       {item.area?.name === 'itemType' && (
                         <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.itemType${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.itemType`}
                           multiple={true}
                           label='Item Type'
-                          value={
-                            multipleOptions
-                              ? item.itemType?.options
-                              : item.itemType?.setSelection
-                          }
+                          value={item.itemTypeitem.itemType}
                           options={items.filter((itemType) =>
-                            multipleOptions
-                              ? item.category?.options?.length > 0
-                                ? item.category?.options?.some(
-                                    (category) =>
-                                      category.name === itemType.category.name
-                                  )
-                                : itemType
-                              : item.category?.setSelection?.length > 0
-                              ? item.category?.setSelection?.some(
-                                  (category) =>
-                                    category.name === itemType.category.name
+                            item.category?.length > 0
+                              ? item.category?.some(
+                                  (categoryItem) =>
+                                    categoryItem.name === itemType.category.name
                                 )
                               : itemType
                           )}
@@ -1005,12 +867,10 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`feature.${featureIndex}.${this.name}.${index}${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.sense`}
                     multiple={true}
                     label='Sense'
-                    value={multipleOptions ? item?.options : item?.setSelection}
+                    value={item.sense}
                     options={builders.sense}
                     required={true}
                     onChange={setState}
@@ -1052,7 +912,7 @@ const EditFeatForm = () => {
                     )}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
-                    require={true}
+                    required={true}
                     onChange={setState}
                   />
                   {item.attribute?.some(
@@ -1102,14 +962,10 @@ const EditFeatForm = () => {
                   ) && (
                     <>
                       <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}${
-                          multipleOptions ? '.options' : '.setSelection'
-                        }`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.spell`}
                         multiple={true}
                         label='Spell'
-                        value={
-                          multipleOptions ? item?.options : item?.setSelection
-                        }
+                        value={item.spell}
                         options={spells.filter(
                           (spellItem) =>
                             (!item?.classLimit ||
@@ -1125,7 +981,7 @@ const EditFeatForm = () => {
                                   levelItem.value === spellItem.level
                               ))
                         )}
-                        require={true}
+                        required={true}
                         onChange={setState}
                       />
                       {item.attribute?.some(
@@ -1133,20 +989,12 @@ const EditFeatForm = () => {
                           attributeItem.name === 'optionalAbility'
                       ) && (
                         <Select
-                          name={`feature.${featureIndex}.${
-                            this.name
-                          }.${index}.ability${
-                            multipleOptions ? '.options' : '.setSelection'
-                          }`}
+                          name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                           multiple={true}
                           label='Ability'
-                          value={
-                            multipleOptions
-                              ? item.ability?.options
-                              : item.ability?.setSelection
-                          }
+                          value={item.ability}
                           options={builders.ability}
-                          require={true}
+                          required={true}
                           onChange={setState}
                         />
                       )}
@@ -1232,152 +1080,6 @@ const EditFeatForm = () => {
                         },
                       },
                     })
-                  )}
-                </div>
-              </Fragment>
-            )
-          })
-        },
-      },
-      {
-        name: 'equipment',
-        content() {
-          return featureItem[this.name].map((item, index) => {
-            const multipleOptions = item.attribute?.some(
-              (attributeItem) => attributeItem.name === 'providesOptions'
-            )
-            return (
-              <Fragment key={index}>
-                <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                  <Select
-                    multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.attribute`}
-                    options={[].concat(
-                      builders.section.attribute,
-                      builders.section.item.attribute
-                    )}
-                    label={`${startCase(this.name)} Attributes`}
-                    value={item.attribute}
-                    onChange={setState}
-                  />
-                  {item.attribute?.some(
-                    (attributeItem) => attributeItem.name === 'optionGroups'
-                  ) && (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.optionGroup`}
-                      label='Opt. Grp. #'
-                      autoComplete='off'
-                      value={item.optionGroup}
-                      invalidText='Must contain only numbers'
-                      onChange={setState}
-                    />
-                  )}
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.category${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
-                    multiple={true}
-                    label='Item Category'
-                    value={
-                      multipleOptions
-                        ? item.category?.options
-                        : item.category?.setSelection
-                    }
-                    options={builders.item.category}
-                    onChange={setState}
-                  />
-
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.property${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
-                    multiple={true}
-                    label='Item Property'
-                    value={
-                      multipleOptions
-                        ? item.property?.options
-                        : item.property?.setSelection
-                    }
-                    options={[].concat(
-                      ...builders.item.category
-                        .filter((bCategoryItem) =>
-                          multipleOptions
-                            ? item.category?.options?.length > 0
-                              ? item.category?.options?.some(
-                                  (categoryItem) =>
-                                    categoryItem.name === bCategoryItem.name
-                                )
-                              : bCategoryItem
-                            : item.category?.setSelection?.length > 0
-                            ? item.category?.setSelection?.some(
-                                (categoryItem) =>
-                                  categoryItem.name === bCategoryItem.name
-                              )
-                            : bCategoryItem
-                        )
-                        .map((category) => category.property)
-                    )}
-                    onChange={setState}
-                  />
-                  <Select
-                    name={`feature.${featureIndex}.${
-                      this.name
-                    }.${index}.itemType${
-                      multipleOptions ? '.options' : '.setSelection'
-                    }`}
-                    multiple={true}
-                    label='Item Type'
-                    value={
-                      multipleOptions
-                        ? item.itemType?.options
-                        : item.itemType?.setSelection
-                    }
-                    options={items.filter((itemType) =>
-                      multipleOptions
-                        ? item.category?.options?.length > 0
-                          ? item.category?.options?.some(
-                              (category) =>
-                                category.name === itemType.category.name
-                            )
-                          : itemType
-                        : item.category?.setSelection?.length > 0
-                        ? item.category?.setSelection?.some(
-                            (category) =>
-                              category.name === itemType.category.name
-                          )
-                        : itemType
-                    )}
-                    onChange={setState}
-                  />
-                  {multipleOptions ? (
-                    <Input
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.selectionCount`}
-                      label='# of Selections'
-                      autoComplete='off'
-                      value={item.selectionCount}
-                      invalidText='Must contain only numbers'
-                      required={true}
-                      onChange={setState}
-                    />
-                  ) : (
-                    <Input
-                      size='col-sm-2'
-                      validation='num'
-                      name={`feature.${featureIndex}.${this.name}.${index}.quantity`}
-                      label='Quantity'
-                      autoComplete='off'
-                      value={item.quantity}
-                      invalidText='Must contain only numbers'
-                      required={true}
-                      onChange={setState}
-                    />
                   )}
                 </div>
               </Fragment>
@@ -1488,11 +1190,11 @@ const EditFeatForm = () => {
               featureItem.limitUse?.limitBy?.name === 'setNumber' && (
                 <Input
                   validation='num'
-                  name={`feature.${featureIndex}.limitUse.setSelectionAmount`}
+                  name={`feature.${featureIndex}.limitUse.setAmount`}
                   invalidText='Must contain only numbers'
                   label='Use Amount'
                   required={true}
-                  value={featureItem.limitUse.setSelectionAmount}
+                  value={featureItem.limitUse.setAmount}
                   onChange={setState}
                 />
               )
@@ -1726,6 +1428,14 @@ const EditFeatForm = () => {
             <hr className='flex-grow-1 ms-3' />
           </div>
           <div className='row g-2 pb-3 mx-3 justify-contents-center'>
+            <Input
+              name={`feature.${featureIndex}.requirement.equipped.numberEquipped`}
+              value={featureItem.requirement?.equipped?.numberEquipped}
+              label='Number Equipped'
+              onChange={setState}
+              validation='num'
+              invalidText={'Must contain only numbers'}
+            />
             <Select
               multiple={true}
               name={`feature.${featureIndex}.requirement.equipped.category`}
@@ -2056,10 +1766,26 @@ const EditFeatForm = () => {
               multiple={true}
               name='attribute'
               value={state.attribute}
-              options={builders.feature.attribute}
+              options={[].concat(
+                builders.feature.attribute,
+                builders.feature.feat.attribute
+              )}
               label='Feat Attributes'
               onChange={setState}
             />
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'providesOptions'
+            ) && (
+              <Input
+                name='selectionCount'
+                autoComplete='off'
+                label='# of Selections'
+                value={state.selectionCount}
+                required={true}
+                onChange={setState}
+                autoFocus={true}
+              />
+            )}
             {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'limitUse'
             ) && (
@@ -2103,11 +1829,11 @@ const EditFeatForm = () => {
                   state.limitUse?.limitBy?.name === 'setNumber' && (
                     <Input
                       validation='num'
-                      name='limitUse.setSelectionAmount'
+                      name='limitUse.setAmount'
                       invalidText='Must contain only numbers'
                       label='Use Amount'
                       required={true}
-                      value={state.limitUse.setSelectionAmount}
+                      value={state.limitUse.setAmount}
                       onChange={setState}
                     />
                   )
@@ -2345,6 +2071,14 @@ const EditFeatForm = () => {
                 <hr className='flex-grow-1 ms-3' />
               </div>
               <div className='row g-2 pb-3 mx-3 justify-contents-center'>
+                <Input
+                  name='requirement.equipped.numberEquipped'
+                  value={state.requirement?.equipped?.numberEquipped}
+                  label='Number Equipped'
+                  onChange={setState}
+                  validation='num'
+                  invalidText={'Must contain only numbers'}
+                />
                 <Select
                   multiple={true}
                   name='requirement.equipped.category'
@@ -2611,6 +2345,41 @@ const EditFeatForm = () => {
         </>
       ),
     },
+    {
+      name: 'features',
+      content: (
+        <>
+          <button
+            className='btn btn-secondary'
+            type='button'
+            onClick={() =>
+              setState({
+                type: 'added',
+                payload: { target: { name: 'feature' } },
+              })
+            }
+          >
+            Add Feature
+          </button>
+          <TabNavigation
+            id='feature'
+            tabState={
+              state.feature?.length > 0 &&
+              state.feature?.map((featureItem, featureIndex) => ({
+                value:
+                  featureItem.value == null || featureItem.value === ''
+                    ? startCase(`feature ${featureIndex + 1}`)
+                    : featureItem.value,
+                name: `feature.${featureIndex}`,
+                content: featureTabContent(featureItem, featureIndex),
+              }))
+            }
+            onDelete={setState}
+            dynamic={true}
+          />
+        </>
+      ),
+    },
   ]
 
   content = (
@@ -2623,18 +2392,14 @@ const EditFeatForm = () => {
           <button
             className='btn btn-success me-2'
             type='button'
-            onClick={() => {
-              onUpdate()
-            }}
+            onClick={onUpdate}
           >
             Update
           </button>
           <button
             className='btn btn-primary me-2'
             type='button'
-            onClick={() => {
-              onSubmit()
-            }}
+            onClick={onSubmit}
           >
             Add
           </button>
@@ -2657,34 +2422,6 @@ const EditFeatForm = () => {
             name: content.name,
             content: content.content,
           }))}
-        />
-        <button
-          className='btn btn-secondary'
-          type='button'
-          onClick={() =>
-            setState({
-              type: 'added',
-              payload: { target: { name: 'feature' } },
-            })
-          }
-        >
-          Add Feature
-        </button>
-        <TabNavigation
-          id='feature'
-          tabState={
-            state.feature?.length > 0 &&
-            state.feature?.map((featureItem, featureIndex) => ({
-              value:
-                featureItem.value == null || featureItem.value === ''
-                  ? startCase(`feature ${featureIndex + 1}`)
-                  : featureItem.value,
-              name: `feature.${featureIndex}`,
-              content: featureTabContent(featureItem, featureIndex),
-            }))
-          }
-          onDelete={setState}
-          dynamic={true}
         />
       </form>
     </>

@@ -145,6 +145,7 @@ const TableRow = ({
                     options={inputItem.options}
                     optionalKey={inputItem.optionalKey}
                     onChange={onChange}
+                    size={inputItem.size ?? null}
                   />
                 ) : (
                   <Input
@@ -208,7 +209,7 @@ const TableRow = ({
         >
           {subrows.map((subrowItem, subrowIndex) => (
             <div
-              className={`row row-section-collapse mx-0 ${
+              className={`row row-subrow mx-0 ${
                 className ? className : ''
               } ${onClick ? 'clickable' : ''} ${
                 scrollable ? 'scrollable' : ''

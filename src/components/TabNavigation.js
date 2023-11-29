@@ -1,4 +1,12 @@
-import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react'
+import {
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useEffect,
+  useRef,
+  useState,
+  memo,
+} from 'react'
 const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
   const [leftPosition, setLeftPosition] = useState(0)
   const [hiddenWidth, setHiddenWidth] = useState(0)
@@ -7,7 +15,7 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
   const [tabContLeftPos, setTabContLeftPos] = useState()
   const [wrapperLeftPos, setWrapperLeftPos] = useState()
   const [tabStateLength, setTabStateLength] = useState(
-    tabState ? tabState.length : 0
+    tabState?.length > 0 ? tabState.length : 0
   )
   const [touchStartX, setTouchStartX] = useState(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -23,8 +31,8 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
 
   const getActive = () => {
     if (tabContainerRef.current) {
-      const tabs = tabContainerRef.current.children
-      const panes = paneContainerRef.current.children
+      const tabs = tabContainerRef.current?.children
+      const panes = paneContainerRef.current?.children
 
       for (let tab of tabs) {
         if (tab.classList.contains('active')) {
@@ -41,19 +49,22 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
   }
 
   const scrollTab = useCallback(() => {
-    const activeTabIndex = Array.from(
-      tabContainerRef.current.children
-    ).findIndex((tab) => tab.classList.contains('active'))
+    let activeTabIndex
+    if (tabContainerRef.current) {
+      activeTabIndex = Array.from(tabContainerRef.current?.children).findIndex(
+        (tab) => tab.classList.contains('active')
+      )
+    }
 
     if (activeTabIndex !== -1) {
       const tabRight =
-        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
+        tabContainerRef.current?.children[activeTabIndex].getBoundingClientRect()
           .right
-      const wrapperRight = wrapperRef.current.getBoundingClientRect().right
+      const wrapperRight = wrapperRef.current?.getBoundingClientRect().right
       const tabLeft =
-        tabContainerRef.current.children[activeTabIndex].getBoundingClientRect()
+        tabContainerRef.current?.children[activeTabIndex].getBoundingClientRect()
           .left
-      const wrapperLeft = wrapperRef.current.getBoundingClientRect().left
+      const wrapperLeft = wrapperRef.current?.getBoundingClientRect().left
 
       let newLeftPosition
 
@@ -64,13 +75,13 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
           newLeftPosition =
             leftPosition +
             (tabRight - wrapperRight) +
-            rightScrollerRef.current.getBoundingClientRect().width
+            rightScrollerRef.current?.getBoundingClientRect().width
         }
         setLeftPosition(newLeftPosition)
         tabContainerRef.current.style.left = `-${newLeftPosition}px`
       }
       if (
-        tabLeft - leftScrollerRef.current.getBoundingClientRect().width <
+        tabLeft - leftScrollerRef.current?.getBoundingClientRect().width <
         wrapperLeft
       ) {
         if (activeTabIndex === 0) {
@@ -79,13 +90,13 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
           newLeftPosition =
             leftPosition -
             (wrapperLeft - tabLeft) -
-            leftScrollerRef.current.getBoundingClientRect().width
+            leftScrollerRef.current?.getBoundingClientRect().width
         }
         setLeftPosition(newLeftPosition)
         tabContainerRef.current.style.left = `-${newLeftPosition}px`
       }
     }
-    tabContainerRef.current.children.item(activeTabIndex).scrollIntoView({
+    tabContainerRef.current?.children.item(activeTabIndex).scrollIntoView({
       behavior: 'smooth',
     })
   }, [hiddenWidth, leftPosition, tabStateLength])
@@ -112,87 +123,94 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
 
       if (leftScrollerRef.current) {
         if (leftPosition > 0) {
-          leftScrollerRef.current.classList.add('show')
-          leftScrollerRef.current.classList.remove('hide')
+          leftScrollerRef.current?.classList.add('show')
+          leftScrollerRef.current?.classList.remove('hide')
         } else {
-          leftScrollerRef.current.classList.add('hide')
-          leftScrollerRef.current.classList.remove('show')
+          leftScrollerRef.current?.classList.add('hide')
+          leftScrollerRef.current?.classList.remove('show')
         }
       }
 
       if (rightScrollerRef.current) {
         if (hiddenWidth > 0) {
           if (hiddenWidth < minHiddenWidthThreshold) {
-            rightScrollerRef.current.classList.remove('show')
-            rightScrollerRef.current.classList.add('hide')
+            rightScrollerRef.current?.classList.remove('show')
+            rightScrollerRef.current?.classList.add('hide')
           } else {
-            rightScrollerRef.current.classList.add('show')
-            rightScrollerRef.current.classList.remove('hide')
+            rightScrollerRef.current?.classList.add('show')
+            rightScrollerRef.current?.classList.remove('hide')
           }
         } else {
-          rightScrollerRef.current.classList.add('hide')
-          rightScrollerRef.current.classList.remove('show')
+          rightScrollerRef.current?.classList.add('hide')
+          rightScrollerRef.current?.classList.remove('show')
         }
       }
     }
 
     if (tabContainerRef.current && !currentTabRef.current) {
-      tabContainerRef.current.firstChild.setAttribute('aria-selected', 'true')
-      tabContainerRef.current.firstChild.classList.add('active')
-      paneContainerRef.current.firstChild.classList.add('active')
-      paneContainerRef.current.firstChild.classList.add('show')
-      currentTabRef.current = tabContainerRef.current.firstChild
-      currentPaneRef.current = paneContainerRef.current.firstChild
+      tabContainerRef.current?.firstChild.setAttribute('aria-selected', 'true')
+      tabContainerRef.current?.firstChild.classList.add('active')
+      paneContainerRef.current?.firstChild.classList.add('active')
+      paneContainerRef.current?.firstChild.classList.add('show')
+      currentTabRef.current = tabContainerRef.current?.firstChild
+      currentPaneRef.current = paneContainerRef.current?.firstChild
     }
 
     if (id !== 'main') {
       getActive()
       const tabs = tabContainerRef.current?.children
       const panes = paneContainerRef.current?.children
-      if (tabs && currentTabRef.current) {
-        if (tabState.length !== tabStateLength) {
-          if (id !== 'details' && id !== 'feature') {
+      if (
+        tabState?.length !== tabStateLength ||
+        (tabState?.length === 1 && !currentTabRef.current)
+      ) {
+        if (id !== 'details' && id !== 'feature' && id !== 'specialization') {
+          if (tabs) {
             for (let tabIndex = 0; tabIndex < tabs.length; tabIndex++) {
               const tab = tabs[tabIndex]
               const pane = panes[tabIndex]
               const txt = tab.textContent || tab.innerText
               if (!sectionTabs.includes(txt)) {
                 setSectionTabs((prev) => [...prev, txt])
-                currentTabRef.current.setAttribute('aria-selected', 'false')
-                currentTabRef.current.classList.remove('active')
-                currentPaneRef.current.classList.remove('active')
-                currentPaneRef.current.classList.remove('show')
+                if (currentTabRef.current) {
+                  currentTabRef.current?.setAttribute('aria-selected', 'false')
+                  currentTabRef.current?.classList.remove('active')
+                  currentPaneRef.current?.classList.remove('active')
+                  currentPaneRef.current?.classList.remove('show')
+                }
                 tab.setAttribute('aria-selected', 'true')
                 tab.classList.add('active')
                 pane.classList.add('active')
                 pane.classList.add('show')
                 currentTabRef.current = tab
-                currentPaneRef.current = panes[tabIndex]
-
-                scrollTab()
+                currentPaneRef.current = pane
               }
             }
-          } else {
+          }
+        } else {
+          if (tabs) {
             const tab = tabs[tabState.length - 1]
             const pane = panes[tabState.length - 1]
-            currentTabRef.current.setAttribute('aria-selected', 'false')
-            currentTabRef.current.classList.remove('active')
-            currentPaneRef.current.classList.remove('active')
-            currentPaneRef.current.classList.remove('show')
+            if (currentTabRef.current) {
+              currentTabRef.current?.setAttribute('aria-selected', 'false')
+              currentTabRef.current?.classList.remove('active')
+              currentPaneRef.current?.classList.remove('active')
+              currentPaneRef.current?.classList.remove('show')
+            }
             tab.setAttribute('aria-selected', 'true')
             tab.classList.add('active')
             pane.classList.add('active')
             pane.classList.add('show')
             currentTabRef.current = tab
             currentPaneRef.current = pane
-
-            scrollTab()
           }
         }
+
+        scrollTab()
       }
     }
     if (paneContainerRef.current && tabStateLength < tabState.length) {
-      paneContainerRef.current.scrollIntoView()
+      paneContainerRef.current?.scrollIntoView()
     }
     setTabStateLength(tabState ? tabState.length : 0)
   }, [
@@ -269,9 +287,19 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
     setTouchStartX(currentX)
   }
 
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isDragging) {
+        setIsDragging(false)
+      }
+    }
+
+    document.addEventListener('mouseup', handleGlobalMouseUp)
+
+    return () => {
+      document.removeEventListener('mouseup', handleGlobalMouseUp)
+    }
+  }, [isDragging])
 
   const scrollRight = () => {
     let newLeftPosition
@@ -312,19 +340,19 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
       activeIndex = index
     }
 
-    currentTabRef.current.classList.remove('active')
-    currentTabRef.current.setAttribute('aria-selected', 'false')
-    currentPaneRef.current.classList.remove('active')
-    currentPaneRef.current.classList.remove('show')
+    currentTabRef.current?.classList.remove('active')
+    currentTabRef.current?.setAttribute('aria-selected', 'false')
+    currentPaneRef.current?.classList.remove('active')
+    currentPaneRef.current?.classList.remove('show')
     const txt =
-      currentTabRef.current.textContent || currentTabRef.current.innerText
+      currentTabRef.current?.textContent || currentTabRef.current?.innerText
     if (txt && sectionTabs.includes(txt)) {
       setSectionTabs((prev) => prev.filter((prevItem) => prevItem !== txt))
     }
 
     if (index !== 0) {
-      const tabs = tabContainerRef.current.children
-      const panes = paneContainerRef.current.children
+      const tabs = tabContainerRef.current?.children
+      const panes = paneContainerRef.current?.children
       const tab = tabs.item(activeIndex)
       const pane = panes.item(activeIndex)
       tab.classList.add('active')
@@ -342,17 +370,17 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
     } finally {
       if (index !== 0) {
         setTimeout(() => {
-          currentPaneRef.current.scrollIntoView()
+          currentPaneRef.current?.scrollIntoView()
         }, 0)
         const tabContainerRight =
-          tabContainerRef.current.getBoundingClientRect().right
-        const wrapperRight = wrapperRef.current.getBoundingClientRect().right
+          tabContainerRef.current?.getBoundingClientRect().right
+        const wrapperRight = wrapperRef.current?.getBoundingClientRect().right
 
         if (tabContainerRight < wrapperRight) {
           const newLeftPosition =
             leftPosition -
             (wrapperRight - tabContainerRight) +
-            rightScrollerRef.current.getBoundingClientRect().width
+            rightScrollerRef.current?.getBoundingClientRect().width
           setLeftPosition(newLeftPosition)
           tabContainerRef.current.style.left = `-${newLeftPosition}px`
         }
@@ -399,7 +427,6 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
               onTouchEnd={handleTouchEnd}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
             >
               {tabState.map(
                 (tabItem, tabIndex) =>
@@ -462,4 +489,6 @@ const TabNavigation = ({ tabState, id, onDelete, dynamic }) => {
   return content
 }
 
-export default TabNavigation
+const memoizedTabNavigation = memo(TabNavigation)
+
+export default memoizedTabNavigation

@@ -13,7 +13,7 @@ const formReducer = produce((draft, action) => {
 
   let path
 
-  if (!!target.name) {
+  if (!!target?.name) {
     path = target.name.split('.')
   } else {
     path = null

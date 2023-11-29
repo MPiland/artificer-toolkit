@@ -9,3 +9,22 @@ blockquote {
 .form-input-label {
   width: 100%;
 }
+
+.form-control {
+  border-color: grey;
+  text-overflow: ellipsis;
+}
+
+.form-input-label.required:after {
+  content: ' *';
+  color: rgb(255, 0, 0);
+  font-weight: bold;
+}
+
+.success-message {
+  color: green;
+}
+
+.error-message {
+  color: red;
+}

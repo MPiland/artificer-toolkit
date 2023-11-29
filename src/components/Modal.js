@@ -27,9 +27,9 @@ const Modal = () => {
 
   // Listens for Key to close modal
   useEffect(() => {
-    document.addEventListener('keyup', handleEscKey, false)
+    document.addEventListener('keyup', handleEscKey)
 
-    return () => document.removeEventListener('keyup', handleEscKey, false)
+    return () => document.removeEventListener('keyup', handleEscKey)
   }, [handleEscKey])
 
   const content = (

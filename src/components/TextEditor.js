@@ -164,10 +164,14 @@ const MenuBar = ({ editor, noMenuBar }) => {
   }
 
   return (
-    <div className='menuBar' tabIndex="-1">
+    <div className='menuBar' tabIndex='-1'>
       <div className='row g-0'>
         <div className='col-auto p-0'>
-          <select className='btn border-0' onChange={(e) => selectHandler(e)} tabIndex="-1">
+          <select
+            className='btn border-0'
+            onChange={(e) => selectHandler(e)}
+            tabIndex='-1'
+          >
             <option value='0'>No Heading</option>
             <option value='1'>Header 1</option>
             <option value='2'>Header 2</option>
@@ -346,11 +350,9 @@ const TextEditor = forwardRef(
     { onChange, label, name, short, noMenuBar, value, size, className },
     ref
   ) => {
-    const [initialState] = useState(value)
+    const [initialState, setInitialState] = useState()
     const [isChanges, setIsChanges] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
-
-    // const isEmpty = () => !editor?.state?.doc?.textContent?.trim().length
 
     let content
 
@@ -414,6 +416,10 @@ const TextEditor = forwardRef(
     })
 
     useEffect(() => {
+      setInitialState(value)
+    }, [value])
+
+    useEffect(() => {
       if (!content) {
         editor?.commands.setContent(initialState)
       }
@@ -432,13 +438,13 @@ const TextEditor = forwardRef(
     }))
 
     return (
-      <div className={`${size ? ` ${size}` : ' mb-2'}`}>
+      <div className={`${size ? ` ${size}` : ' mb-2'}`} name={name}>
         <label className='text-editor-label'>{label}</label>
         <div
           className={`textEditor ${short ? 'shortDesc' : ''} ${
             className ? className : ''
           }`}
-          tabIndex="-1"
+          tabIndex='-1'
         >
           <MenuBar editor={editor} noMenuBar={noMenuBar} />
           <EditorContent editor={editor} />

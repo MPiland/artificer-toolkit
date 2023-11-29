@@ -3,7 +3,6 @@ import { uniqBy } from 'lodash'
 const Select = ({
   name,
   multiple,
-  placeholder,
   options,
   optionalKey,
   value,
@@ -26,14 +25,24 @@ const Select = ({
 
   if (options?.length) {
     newOptions = options?.filter((option) => option?.value != null)
-    optionalKey &&
-      newOptions.map(({ name, value, _id, [optionalKey]: optionalValue }) => {
-        const newObj = { name, value, _id }
-        if (optionalKey && optionalValue !== undefined) {
-          newObj[optionalKey] = optionalValue
+    newOptions = newOptions.map(({ name, value, _id, ...rest }) => {
+      const newObj = { name, value, _id }
+
+      if (optionalKey) {
+        if (Array.isArray(optionalKey)) {
+          optionalKey.forEach((key) => {
+            newObj[key] = rest[key]
+          })
+        } else {
+          const optionalValue = rest[optionalKey]
+          if (optionalValue !== undefined) {
+            newObj[optionalKey] = optionalValue
+          }
         }
-        return newObj
-      })
+      }
+
+      return newObj
+    })
     newOptions.sort((a, b) =>
       a.value === b.value ? 0 : a.value > b.value ? 1 : -1
     )
@@ -199,7 +208,12 @@ const Select = ({
             name: option.name ?? null,
             id: option._id ?? null,
             value: option.value,
-            ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+            ...(optionalKey && Array.isArray(optionalKey)
+              ? optionalKey.reduce((acc, key) => {
+                  acc[key] = option[key]
+                  return acc
+                }, {})
+              : { [optionalKey]: option[optionalKey] }),
           },
         ]
       } else if (
@@ -226,7 +240,12 @@ const Select = ({
               name: option.name ?? null,
               id: option._id ?? null,
               value: option.value,
-              ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+              ...(optionalKey && Array.isArray(optionalKey)
+                ? optionalKey.reduce((acc, key) => {
+                    acc[key] = option[key]
+                    return acc
+                  }, {})
+                : { [optionalKey]: option[optionalKey] }),
             },
           ]
         }
@@ -240,7 +259,12 @@ const Select = ({
               name: option.name ?? null,
               id: option._id ?? null,
               value: option.value,
-              ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+              ...(optionalKey && Array.isArray(optionalKey)
+                ? optionalKey.reduce((acc, key) => {
+                    acc[key] = option[key]
+                    return acc
+                  }, {})
+                : { [optionalKey]: option[optionalKey] }),
             },
           ]
         }
@@ -250,7 +274,12 @@ const Select = ({
         name: option.name ?? null,
         id: option._id ?? null,
         value: option.value,
-        ...(optionalKey && { [optionalKey]: option[optionalKey] }),
+        ...(optionalKey && Array.isArray(optionalKey)
+          ? optionalKey.reduce((acc, key) => {
+              acc[key] = option[key]
+              return acc
+            }, {})
+          : { [optionalKey]: option[optionalKey] }),
       }
       buttonRef.current.focus()
     }
@@ -351,7 +380,7 @@ const Select = ({
   const content = (
     <>
       <div
-        className={`dropdown ${size ?? 'col'} ${
+        className={`dropdown position-static ${size ?? 'col'} ${
           className ? `${className}` : ''
         }`}
         ref={parentRef}
@@ -371,15 +400,17 @@ const Select = ({
           data-bs-toggle='dropdown'
           aria-expanded='false'
           required={required}
-          data-bs-boundary={'#main-container'}
-          data-bs-reference={'parent'}
+          data-bs-boundary='main-container'
           data-atp-options={
             !selectedOptions || selectedOptions == null ? 'false' : 'true'
           }
           type='button'
           id='selectButton'
-          onClick={() => {
-            if (buttonRef.current.classList.contains('is-invalid')) {
+          onClick={(e) => {
+            if (
+              e.target === buttonRef.current &&
+              buttonRef.current.classList.contains('is-invalid')
+            ) {
               buttonRef.current.classList.remove('is-invalid')
             }
           }}

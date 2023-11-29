@@ -829,9 +829,7 @@ const NewSpellForm = () => {
           <button
             className='btn btn-primary me-2'
             type='button'
-            onClick={() => {
-              onSubmit()
-            }}
+            onClick={onSubmit}
           >
             Add
           </button>

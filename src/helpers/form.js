@@ -3,81 +3,97 @@ const PWD_REGEX =
 const USER_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DEL_REGEX = /^DELETE$/
 
-export const handleValidation = (resetValidation) => {
-  let isValid = true
+const isValidUser = (value) => USER_REGEX.test(value)
+const isValidPassword = (value) => PWD_REGEX.test(value)
+const isValidDeletion = (value) => DEL_REGEX.test(value)
 
-  const requiredElements = document.querySelectorAll('[required]')
-  requiredElements.forEach((element) => {
-    if (resetValidation) {
-      element.classList.remove('is-valid')
-      element.classList.remove('is-invalid')
-    } else {
-      if (element) {
-        if (element.tagName === 'BUTTON') {
-          const selectValue = element.getAttribute('data-atp-options')
-          if (selectValue === 'false') {
-            element.classList.add('is-invalid')
-            element.classList.remove('is-valid')
-            isValid = false
-          } else {
-            element.classList.add('is-valid')
-            element.classList.remove('is-invalid')
-          }
+const addClassToTab = (validTabs) => {
+  let validParentTabs = {}
+  Object.keys(validTabs).forEach((tabId) => {
+    const tab = document.getElementById(`${tabId}Tab`)
+    if (tab) {
+      if (validTabs[tabId] === false && !tab.classList.contains('is-invalid')) {
+        tab.classList.add('is-invalid')
+      } else if (
+        validTabs[tabId] === true &&
+        tab.classList.contains('is-invalid')
+      ) {
+        tab.classList.remove('is-invalid')
+      }
+    }
+
+    let parentTab = tab.closest('.tab-pane')
+    const parentId = parentTab?.id?.replace('TabPane', '')
+    if (parentId) {
+      if (validParentTabs[parentId] == null) {
+        if (validTabs[parentId] != null) {
+          validParentTabs[parentId] = validTabs[tabId] && validTabs[parentId]
         } else {
-          if (element.hasAttribute('validation')) {
-            const validation = element.getAttribute('validation')
-            if (validation === 'user') {
-              if (
-                USER_REGEX.test(element.value) === false &&
-                element.value !== ''
-              ) {
-                console.log('user failed', validation)
-                element.classList.add('is-invalid')
-                isValid = false
-              } else {
-                element.classList.remove('is-invalid')
-                element.classList.add('is-valid')
-              }
-            } else if (validation === 'pwd') {
-              if (
-                PWD_REGEX.test(element.value) === false &&
-                element.value !== ''
-              ) {
-                element.classList.add('is-invalid')
-                isValid = false
-              } else {
-                element.classList.remove('is-invalid')
-                element.classList.add('is-valid')
-              }
-            } else if (validation === 'del') {
-              if (
-                DEL_REGEX.test(element.value) === false &&
-                element.value != null
-              ) {
-                element.classList.add('is-invalid')
-                isValid = false
-              } else {
-                element.classList.remove('is-invalid')
-                element.classList.add('is-valid')
-              }
-            }
-          } else {
-            const value = element.value
-            const isEmpty =
-              value === null ||
-              value === undefined ||
-              (typeof value === 'string' && value.trim() === '')
-
-            if (isEmpty) {
-              element.classList.add('is-invalid')
-              isValid = false
-            } else {
-              element.classList.add('is-valid')
-            }
-          }
+          validParentTabs[parentId] = validTabs[tabId]
+        }
+      } else {
+        if (validTabs[parentId] != null) {
+          validParentTabs[parentId] =
+            validTabs[tabId] && validTabs[parentId] && validParentTabs[parentId]
+        } else {
+          validParentTabs[parentId] = validTabs[tabId] && validParentTabs[parentId]
         }
       }
     }
   })
+
+  if (Object.keys(validParentTabs)?.length > 0) {
+    addClassToTab(validParentTabs)
+  }
+}
+
+export const handleValidation = (resetValidation = false) => {
+  let isValid = true
+  let validTabs = {}
+
+  const requiredElements = document.querySelectorAll('[required]')
+  requiredElements.forEach((element) => {
+    if (resetValidation) {
+      element.classList.remove('is-valid', 'is-invalid')
+    } else {
+      if (element) {
+        let isValidInput
+        if (element.tagName === 'BUTTON') {
+          const selectValue = element.getAttribute('data-atp-options')
+          isValidInput = selectValue === 'false' ? false : true
+        } else {
+          if (element.hasAttribute('validation')) {
+            const validation = element.getAttribute('validation')
+            const value = element.value.trim()
+            const isEmptyAndRequired =
+              value === '' && element.hasAttribute('required')
+
+            isValidInput =
+              !isEmptyAndRequired &&
+              ((validation === 'user' && isValidUser(value)) ||
+                (validation === 'pwd' && isValidPassword(value)) ||
+                (validation === 'del' && isValidDeletion(value)) ||
+                validation === 'num' ||
+                validation === 'cur')
+          } else {
+            const value = element.value
+            isValidInput =
+              value !== null && typeof value === 'string' && value.trim() !== ''
+          }
+        }
+
+        element.classList.toggle('is-invalid', !isValidInput)
+        element.classList.toggle('is-valid', isValidInput)
+        isValid = isValidInput && isValid
+
+        let tabPane = element.closest('.tab-pane')
+        const tabId = tabPane.id.replace('TabPane', '')
+        validTabs[tabId] = isValidInput
+      }
+    }
+  })
+
+  addClassToTab(validTabs)
+
   return isValid
 }

@@ -227,7 +227,7 @@ const EditItemForm = () => {
     return (content = <Spinner />)
   }
 
-  const damageTableInputs = (state) => {
+  const damageTableColumns = (state) => {
     const secondary = state?.damageAttribute?.some(
       (attributeItem) => attributeItem.name === 'secondaryDamage'
     )
@@ -287,16 +287,14 @@ const EditItemForm = () => {
         size: 'col',
       })
     }
-    return inputArray
-  }
 
-  const damageTableHeaders = (state) => {
-    const headerArray = damageTableInputs(state).map((inputItem) => ({
+    const headerArray = inputArray.map((inputItem) => ({
       value: inputItem.value,
       readOnly: true,
-      size: 'col',
+      size: inputItem.value.size,
     }))
-    return headerArray
+
+    return { inputs: inputArray, headers: headerArray }
   }
 
   const sectionTabContent = (featureItem, featureIndex) => {
@@ -309,9 +307,9 @@ const EditItemForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                 <Select
                   multiple={true}
-                  name={`feature.${featureIndex}.${this.name}.${index}.setSelection`}
+                  name={`feature.${featureIndex}.${this.name}.${index}.feat`}
                   label='Feat'
-                  value={item?.setSelection}
+                  value={item?.feat}
                   options={feats}
                   required={true}
                   onChange={setState}
@@ -373,9 +371,9 @@ const EditItemForm = () => {
                 {item.module?.name === 'ability' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.ability.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                     label='Ability'
-                    value={item.ability?.setSelection}
+                    value={item.ability}
                     options={builders.ability}
                     required={true}
                     onChange={setState}
@@ -384,9 +382,9 @@ const EditItemForm = () => {
                 {item.module?.name === 'saveAbility' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.saveAbility.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
                     label='Save Ability'
-                    value={item.saveAbility?.setSelection}
+                    value={item.saveAbility}
                     options={builders.ability}
                     required={true}
                     onChange={setState}
@@ -395,9 +393,9 @@ const EditItemForm = () => {
                 {item.module?.name === 'skill' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.skill.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.skill`}
                     label='Skill'
-                    value={item.skill?.setSelection}
+                    value={item.skill}
                     options={builders.skill}
                     required={true}
                     onChange={setState}
@@ -406,9 +404,9 @@ const EditItemForm = () => {
                 {item.module?.name === 'damageSave' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.damageSave.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.damageSave`}
                     label='Damage'
-                    value={item.damageSave?.setSelection}
+                    value={item.damageSave}
                     options={builders.damage}
                     require={true}
                     onChange={setState}
@@ -417,9 +415,9 @@ const EditItemForm = () => {
                 {item.module?.name === 'conditionSave' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.conditionSave.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.conditionSave`}
                     label='Condition'
-                    value={item.conditionSave?.setSelection}
+                    value={item.conditionSave}
                     options={builders.condition}
                     required={true}
                     onChange={setState}
@@ -444,9 +442,9 @@ const EditItemForm = () => {
                 {item.module?.name === 'condition' ? (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.condition.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.condition`}
                     label='Condition Type'
-                    value={item.condition?.setSelection}
+                    value={item.condition}
                     options={builders.condition}
                     required={true}
                     onChange={setState}
@@ -454,9 +452,9 @@ const EditItemForm = () => {
                 ) : item.module?.name === 'speed' ? (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.speed.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.speed`}
                     label='Speed Type'
-                    value={item.speed?.setSelection}
+                    value={item.speed}
                     options={builders.speed}
                     required={true}
                     onChange={setState}
@@ -464,8 +462,8 @@ const EditItemForm = () => {
                 ) : item.module?.name === 'passive' ? (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.speed.setSelection`}
-                    value={item.passive?.setSelection}
+                    name={`feature.${featureIndex}.${this.name}.${index}.speed`}
+                    value={item.passive}
                     label='Passive Type'
                     options={builders.passive}
                     required={true}
@@ -475,10 +473,10 @@ const EditItemForm = () => {
                   item.module?.name === 'damage' && (
                     <Select
                       multiple={true}
-                      name={`feature.${featureIndex}.${this.name}.${index}.damage.setSelection`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.damage`}
                       label='Damage Type'
                       options={builders.damage}
-                      value={item.damage?.setSelection}
+                      value={item.damage}
                       required={true}
                       onChange={setState}
                     />
@@ -630,8 +628,8 @@ const EditItemForm = () => {
                 {item.area?.name === 'skill' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.skill.setSelection`}
-                    value={item.skill?.setSelection}
+                    name={`feature.${featureIndex}.${this.name}.${index}.skill`}
+                    value={item.skill}
                     label='Skill'
                     options={builders.skill}
                     required={true}
@@ -641,8 +639,8 @@ const EditItemForm = () => {
                 {item.area?.name === 'saveAbility' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.saveAbility.setSelection`}
-                    value={item.saveAbility?.setSelection}
+                    name={`feature.${featureIndex}.${this.name}.${index}.saveAbility`}
+                    value={item.saveAbility}
                     label='Save Ability'
                     options={builders.ability}
                     required={true}
@@ -652,9 +650,9 @@ const EditItemForm = () => {
                 {item?.area?.name === 'language' && (
                   <Select
                     multiple={true}
-                    name={`feature.${featureIndex}.${this.name}.${index}.language.setSelection`}
+                    name={`feature.${featureIndex}.${this.name}.${index}.language`}
                     label='Language'
-                    value={item.language?.setSelection}
+                    value={item.language}
                     options={builders.language}
                     required={true}
                     onChange={setState}
@@ -664,10 +662,10 @@ const EditItemForm = () => {
                   item.area?.name === 'itemType') && (
                   <>
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.category.setSelection`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.category`}
                       multiple={true}
                       label='Item Category'
-                      value={item.category?.setSelection}
+                      value={item.category}
                       options={builders.item.category}
                       onChange={setState}
                     />
@@ -676,12 +674,12 @@ const EditItemForm = () => {
                         name={`feature.${featureIndex}.${this.name}.${index}.property`}
                         multiple={true}
                         label='Item Property'
-                        value={item.property?.setSelection}
+                        value={item.property}
                         options={[].concat(
                           ...builders.item.category
                             .filter((bCategoryItem) =>
-                              item.category?.setSelection?.length > 0
-                                ? item.category?.setSelection?.some(
+                              item.category?.length > 0
+                                ? item.category?.some(
                                     (categoryItem) =>
                                       bCategoryItem.name === categoryItem.name
                                   )
@@ -694,13 +692,13 @@ const EditItemForm = () => {
                     )}
                     {item.area?.name === 'itemType' && (
                       <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.itemType.setSelection`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.itemType`}
                         multiple={true}
                         label='Item Type'
-                        value={item.itemType?.setSelection}
+                        value={item.itemType}
                         options={items.filter((itemType) =>
-                          item.category?.setSelection?.length > 0
-                            ? item.category?.setSelection?.some(
+                          item.category?.length > 0
+                            ? item.category?.some(
                                 (category) =>
                                   category.name === itemType.category.name
                               )
@@ -732,9 +730,9 @@ const EditItemForm = () => {
               <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                 <Select
                   multiple={true}
-                  name={`feature.${featureIndex}.${this.name}.${index}.setSelection`}
+                  name={`feature.${featureIndex}.${this.name}.${index}.sense`}
                   label='Sense'
-                  value={item?.setSelection}
+                  value={item?.sense}
                   options={builders.sense}
                   required={true}
                   onChange={setState}
@@ -795,10 +793,10 @@ const EditItemForm = () => {
                 ) && (
                   <>
                     <Select
-                      name={`feature.${featureIndex}.${this.name}.${index}.setSelection`}
+                      name={`feature.${featureIndex}.${this.name}.${index}.spell`}
                       multiple={true}
                       label='Spell'
-                      value={item?.setSelection}
+                      value={item?.spell}
                       options={spells.filter(
                         (spellItem) =>
                           (!item?.classLimit ||
@@ -820,10 +818,10 @@ const EditItemForm = () => {
                         attributeItem.name === 'optionalAbility'
                     ) && (
                       <Select
-                        name={`feature.${featureIndex}.${this.name}.${index}.ability.setSelection`}
+                        name={`feature.${featureIndex}.${this.name}.${index}.ability`}
                         multiple={true}
                         label='Ability'
-                        value={item.ability?.setSelection}
+                        value={item.ability}
                         options={builders.ability}
                         require={true}
                         onChange={setState}
@@ -902,9 +900,9 @@ const EditItemForm = () => {
                 )}
                 <Select
                   multiple={true}
-                  name={`feature.${featureIndex}.${this.name}.${index}.setSelection`}
+                  name={`feature.${featureIndex}.${this.name}.${index}`}
                   label='Spell'
-                  value={item?.setSelection}
+                  value={item}
                   options={spells}
                   required={true}
                   onChange={setState}
@@ -921,59 +919,6 @@ const EditItemForm = () => {
                     onChange={setState}
                   />
                 )}
-              </div>
-            </Fragment>
-          ))
-        },
-      },
-      {
-        name: 'equipment',
-        content() {
-          return featureItem[this.name].map((item, index) => (
-            <Fragment key={index}>
-              <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
-                <Select
-                  name={`feature.${featureIndex}.${this.name}.${index}.category.setSelection`}
-                  multiple={true}
-                  label='Item Category'
-                  value={item.category?.setSelection}
-                  options={builders.item.category}
-                  onChange={setState}
-                />
-
-                <Select
-                  name={`feature.${featureIndex}.${this.name}.${index}.property.setSelection`}
-                  multiple={true}
-                  label='Item Property'
-                  value={item.property?.setSelection}
-                  options={[].concat(
-                    ...builders.item.category
-                      .filter((bCategoryItem) =>
-                        item.category?.setSelection?.length > 0
-                          ? item.category?.setSelection?.some(
-                              (categoryItem) =>
-                                bCategoryItem.name === categoryItem.name
-                            )
-                          : bCategoryItem
-                      )
-                      .map((category) => category.property)
-                  )}
-                  onChange={setState}
-                />
-                <Select
-                  name={`feature.${featureIndex}.${this.name}.${index}.itemType.setSelection`}
-                  multiple={true}
-                  label='Item Type'
-                  value={item.itemType?.setSelection}
-                  options={items.filter((itemType) =>
-                    item.category?.setSelection?.length > 0
-                      ? item.category?.setSelection?.some(
-                          (category) => category.name === itemType.category.name
-                        )
-                      : itemType
-                  )}
-                  onChange={setState}
-                />
               </div>
             </Fragment>
           ))
@@ -1035,11 +980,13 @@ const EditItemForm = () => {
         <Select
           multiple={true}
           name={`feature.${featureIndex}.attribute`}
-          options={builders.feature.attribute.filter(
-            (attributeItem) =>
-              attributeItem.name !== 'providesOptions' &&
-              attributeItem.name !== 'optionGroups'
-          )}
+          options={[]
+            .concat(builders.feature.attribute, builders.feature.item.attribute)
+            .filter(
+              (attributeItem) =>
+                attributeItem.name !== 'providesOptions' &&
+                attributeItem.name !== 'optionGroups'
+            )}
           label='Feature Attributes'
           value={featureItem.attribute}
           onChange={setState}
@@ -1087,11 +1034,11 @@ const EditItemForm = () => {
               featureItem.limitUse?.limitBy?.name === 'setNumber' && (
                 <Input
                   validation={'num'}
-                  name={`feature.${featureIndex}.limitUse.setSelectionAmount`}
+                  name={`feature.${featureIndex}.limitUse.setAmount`}
                   invalidText='Must contain only numbers'
                   label='Use Amount'
                   required={true}
-                  value={featureItem.limitUse?.setSelectionAmount}
+                  value={featureItem.limitUse?.setAmount}
                   onChange={setState}
                 />
               )
@@ -1359,6 +1306,14 @@ const EditItemForm = () => {
                   <hr className='flex-grow-1 ms-3' />
                 </div>
                 <div className='row g-2 pb-3 mx-3 justify-contents-center'>
+                  <Input
+                    name={`feature.${featureIndex}.requirement.equipped.numberEquipped`}
+                    value={featureItem.requirement?.equipped?.numberEquipped}
+                    label='Number Equipped'
+                    onChange={setState}
+                    validation='num'
+                    invalidText={'Must contain only numbers'}
+                  />
                   <Select
                     multiple={true}
                     name={`feature.${featureIndex}.requirement.equipped.category`}
@@ -1607,11 +1562,11 @@ const EditItemForm = () => {
               <div className='section-content'>
                 <Table
                   rows={{
-                    inputs: damageTableInputs(featureItem.damage),
-                    headers: damageTableHeaders(featureItem.damage),
+                    inputs: damageTableColumns(featureItem.damage).inputs,
+                    headers: damageTableColumns(featureItem.damage).headers,
                   }}
                   className={`row-cols-lg-${
-                    damageTableInputs(featureItem.damage).length + 1
+                    damageTableColumns(featureItem.damage).inputs.length + 1
                   }`}
                   name={`feature.${featureIndex}.damage.damageByLevel`}
                   value={featureItem.damage?.damageByLevel}
@@ -2137,83 +2092,6 @@ const EditItemForm = () => {
               payload: { target: { name: 'damage' } },
             })
           )}
-          {state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'containsItems'
-          ) &&
-            (!state?.contains ? (
-              setState({
-                type: 'added',
-                payload: {
-                  target: {
-                    name: 'contains',
-                  },
-                },
-              })
-            ) : (
-              <>
-                <div
-                  className='btn btn-section-collapse justify-content-between align-items-center'
-                  id='sectionCollapseButton'
-                  type='button'
-                  role='button'
-                  data-bs-toggle='collapse'
-                  data-bs-target={`#containsCollapse`}
-                  aria-controls='collapseExample'
-                  aria-expanded='true'
-                >
-                  <span className='me-3'>Container's Items</span>
-                  <i className='bi bi-arrow-down-up' />
-                </div>
-                <div
-                  className='section-container collapse show'
-                  id='containsCollapse'
-                >
-                  <div className='section-content'>
-                    <Table
-                      name='contains'
-                      rows={{
-                        inputs: [
-                          {
-                            name: 'item',
-                            size: 'col-5',
-                            type: 'select',
-                            options: items.filter((item) =>
-                              state.containsFilter?.length > 0
-                                ? state.containsFilter?.some(
-                                    (category) =>
-                                      category.name === item.category.name
-                                  )
-                                : item
-                            ),
-                          },
-                          {
-                            name: 'quantity',
-                            validation: 'num',
-                            invalidText: 'Must be whole numbers only',
-                            size: 'col-5',
-                          },
-                        ],
-                        headers: [
-                          {
-                            value: 'Item',
-                            readOnly: true,
-                            size: 'col-5',
-                          },
-                          {
-                            value: 'Quantity',
-                            readOnly: true,
-                            size: 'col-5',
-                          },
-                        ],
-                      }}
-                      value={state.contains}
-                      dynamic={true}
-                      onChange={setState}
-                    />
-                  </div>
-                </div>
-              </>
-            ))}
           {state.category?.name === 'armor' && (
             <>
               <div className='d-flex'>
@@ -2413,6 +2291,14 @@ const EditItemForm = () => {
                       <hr className='flex-grow-1 ms-3' />
                     </div>
                     <div className='row g-2 pb-3 mx-3 justify-contents-center'>
+                      <Input
+                        name='requirement.equipped.numberEquipped'
+                        value={state.requirement?.equipped?.numberEquipped}
+                        label='Number Equipped'
+                        onChange={setState}
+                        validation='num'
+                        invalidText={'Must contain only numbers'}
+                      />
                       <Select
                         multiple={true}
                         name='requirement.equipped.category'
@@ -2534,6 +2420,114 @@ const EditItemForm = () => {
         </>
       ),
     },
+    {
+      name: 'features',
+      content: (
+        <>
+          <button
+            className='btn btn-secondary'
+            type='button'
+            onClick={() =>
+              setState({
+                type: 'added',
+                payload: { target: { name: 'feature' } },
+              })
+            }
+          >
+            Add Feature
+          </button>
+          <TabNavigation
+            id='feature'
+            tabState={
+              state.feature?.length > 0 &&
+              state.feature?.map((featureItem, featureIndex) => ({
+                value:
+                  featureItem.name == null || featureItem.name === ''
+                    ? startCase(`feature ${featureIndex + 1}`)
+                    : featureItem.name,
+                name: `feature.${featureIndex}`,
+                content: featureTabContent(featureItem, featureIndex),
+              }))
+            }
+            onDelete={setState}
+            dynamic={true}
+          />
+        </>
+      ),
+    },
+    {
+      name: 'contains',
+      content: (
+        <>
+          {state.attribute?.some(
+            (attributeItem) => attributeItem.name === 'containsItems'
+          ) ? (
+            !state?.contains ? (
+              setState({
+                type: 'added',
+                payload: {
+                  target: {
+                    name: 'contains',
+                  },
+                },
+              })
+            ) : (
+              <>
+                <div className='section-content'>
+                  <Table
+                    name='contains'
+                    rows={{
+                      inputs: [
+                        {
+                          name: 'item',
+                          size: 'col-5',
+                          type: 'select',
+                          options: items.filter((item) =>
+                            state.containsFilter?.length > 0
+                              ? state.containsFilter?.some(
+                                  (category) =>
+                                    category.name === item.category.name
+                                )
+                              : item
+                          ),
+                        },
+                        {
+                          name: 'quantity',
+                          validation: 'num',
+                          invalidText: 'Must be whole numbers only',
+                          size: 'col-5',
+                        },
+                      ],
+                      headers: [
+                        {
+                          value: 'Item',
+                          readOnly: true,
+                          size: 'col-5',
+                        },
+                        {
+                          value: 'Quantity',
+                          readOnly: true,
+                          size: 'col-5',
+                        },
+                      ],
+                    }}
+                    value={state.contains}
+                    dynamic={true}
+                    onChange={setState}
+                  />
+                </div>
+              </>
+            )
+          ) : (
+            !!state.contains &&
+            setState({
+              type: 'removed',
+              payload: { target: { name: 'contains' } },
+            })
+          )}
+        </>
+      ),
+    },
   ]
 
   content = (
@@ -2546,18 +2540,14 @@ const EditItemForm = () => {
           <button
             className='btn btn-success me-2'
             type='button'
-            onClick={() => {
-              onUpdate()
-            }}
+            onClick={onUpdate}
           >
             Update
           </button>
           <button
             className='btn btn-primary me-2'
             type='button'
-            onClick={() => {
-              onSubmit()
-            }}
+            onClick={onSubmit}
           >
             Add
           </button>
@@ -2580,34 +2570,6 @@ const EditItemForm = () => {
             name: content.name,
             content: content.content,
           }))}
-        />
-        <button
-          className='btn btn-secondary'
-          type='button'
-          onClick={() =>
-            setState({
-              type: 'added',
-              payload: { target: { name: 'feature' } },
-            })
-          }
-        >
-          Add Feature
-        </button>
-        <TabNavigation
-          id='feature'
-          tabState={
-            state.feature?.length > 0 &&
-            state.feature?.map((featureItem, featureIndex) => ({
-              value:
-                featureItem.name == null || featureItem.name === ''
-                  ? startCase(`feature ${featureIndex + 1}`)
-                  : featureItem.name,
-              name: `feature.${featureIndex}`,
-              content: featureTabContent(featureItem, featureIndex),
-            }))
-          }
-          onDelete={setState}
-          dynamic={true}
         />
       </form>
     </>

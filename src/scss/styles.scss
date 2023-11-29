@@ -4,6 +4,7 @@
 @use 'tabNavigation';
 @use 'textEditor';
 @use 'text';
+@use 'classes';
 
 * {
   box-sizing: border-box;
@@ -105,7 +106,6 @@ button.bi {
 }
 
 /* Collapse */
-
 .btn-section-collapse {
   background-color: transparent;
   border-top: 1px solid lightgrey !important;
@@ -151,26 +151,6 @@ button.bi {
   to {
     opacity: 1;
   }
-}
-
-/* Standard fields */
-.form-control {
-  border-color: grey;
-  text-overflow: ellipsis;
-}
-
-.form-input-label.required:after {
-  content: ' *';
-  color: rgb(255, 0, 0);
-  font-weight: bold;
-}
-
-.success-message {
-  color: green;
-}
-
-.error-message {
-  color: red;
 }
 
 @media only screen and (max-width: 768px) {

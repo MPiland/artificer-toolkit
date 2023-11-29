@@ -153,7 +153,7 @@ const Class = () => {
                       (featureItem, featureIndex) =>
                         featureItem.attribute?.some(
                           (attributeItem) =>
-                            attributeItem.name === 'explicitlyShown'
+                            attributeItem.name !== 'hideInBuilder'
                         ) && (
                           <li
                             className={`sidebar-item ${
@@ -161,7 +161,15 @@ const Class = () => {
                             }`}
                             key={featureIndex}
                           >
-                            {featureItem.value}
+                            <a
+                              href='/'
+                              className='sidebar-link'
+                              onClick={(e) => {
+                                scrollToElement(e, featureItem.name)
+                              }}
+                            >
+                              {featureItem.value}
+                            </a>
                           </li>
                         )
                     )}
@@ -210,10 +218,11 @@ const Class = () => {
                         userClass.feature?.length > 0 &&
                         userClass.feature.map(
                           (featureItem, featureIndex) =>
-                            featureItem.attribute?.some(
-                              (attributeItem) =>
-                                attributeItem.name === 'explicitlyShown'
-                            ) && (
+                            (!featureItem?.attribute ||
+                              featureItem?.attribute?.some(
+                                (attributeItem) =>
+                                  attributeItem.name !== 'hideInBuilder'
+                              )) && (
                               <Fragment key={featureIndex}>
                                 <h4>
                                   <strong>{featureItem.value}</strong>
@@ -244,10 +253,11 @@ const Class = () => {
                         {subclassItem.feature?.length > 0 &&
                           subclassItem.feature.map(
                             (featureItem, featureIndex) =>
-                              featureItem.attribute?.some(
-                                (attributeItem) =>
-                                  attributeItem.name === 'explicitlyShown'
-                              ) && (
+                              (!featureItem?.attribute ||
+                                featureItem?.attribute?.some(
+                                  (attributeItem) =>
+                                    attributeItem.name !== 'hideInBuilder'
+                                )) && (
                                 <Fragment key={featureIndex}>
                                   <h4>
                                     <strong>{featureItem.value}</strong>
@@ -267,14 +277,20 @@ const Class = () => {
                 {userClass?.feature?.length > 0 &&
                   userClass?.feature?.map(
                     (featureItem, featureIndex) =>
-                      featureItem?.attribute?.some(
-                        (attributeItem) =>
-                          attributeItem.name === 'explicitlyShown'
-                      ) && (
-                        <section id={`${featureItem.name}`} key={featureIndex}>
+                      (!featureItem?.attribute ||
+                        featureItem?.attribute?.some(
+                          (attributeItem) =>
+                            attributeItem.name !== 'hideInBuilder'
+                        )) && (
+                        <section
+                          id={`${featureItem.name}`}
+                          key={featureIndex}
+                          className='pb-4'
+                        >
                           <h5>
                             <strong>{featureItem.value}</strong>
                           </h5>
+                          <hr />
                           {featureItem.desc && parse(featureItem.desc)}
                         </section>
                       )
