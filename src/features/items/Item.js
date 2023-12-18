@@ -33,7 +33,7 @@ const Item = () => {
     {
       header: 'DAMAGE TYPE',
       name: [
-        ['damage.dice.diceShort', 'damage.dice.versatileDiceShort'],
+        ['damageprimaryDice.diceShort', 'damageprimaryDice.versatileDiceShort'],
         'damage.damageType',
       ],
     },

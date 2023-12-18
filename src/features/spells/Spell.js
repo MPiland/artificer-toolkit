@@ -54,10 +54,10 @@ const Spell = () => {
     {
       header: 'DAMAGE',
       name: [
-        ['damage.baseDamage.diceShort', 'damage.secondaryDamage.diceShort'],
+        ['damage.dice.diceShort', 'damage.dice.secDiceShort'],
         [
-          'damage.baseDamage.damageType',
-          'damage.baseDsecondaryDamageamage.damageType',
+          'damage.damageType',
+          'damage.secondaryDamageType',
         ],
         'condition',
       ],

@@ -116,7 +116,7 @@ const SpellList = ({ scrollPosition }) => {
     setTableColumns({
       headers: [
         {
-          name: { sortOn: 'level' },
+          name: { sortOn: 'evel' },
           value: 'Level',
           border: false,
           className: 'fw-bold',
@@ -187,7 +187,7 @@ const SpellList = ({ scrollPosition }) => {
         },
         {
           name: {
-            sortOn: 'damage.base.damagType',
+            sortOn: 'damage.damagType',
             subSort: { sortOn: 'condition' },
           },
           value: 'Damage/Effect',
@@ -238,10 +238,10 @@ const SpellList = ({ scrollPosition }) => {
         },
         {
           name: [
-            ['damage.baseDamage.diceShort', 'damage.secondaryDamage.diceShort'],
+            ['damage.dice.diceShort', 'damage.dice.secDiceShort'],
             [
-              'damage.baseDamage.damageType',
-              'damage.secondaryDamage.damageType',
+              'damage.damageType',
+              'damage.secondaryDamageType',
             ],
             'condition',
           ],

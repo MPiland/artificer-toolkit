@@ -214,7 +214,7 @@ const ItemList = ({ scrollPosition }) => {
         },
         {
           name: [
-            ['damage.dice.diceShort', 'damage.dice.versatileDiceShort'],
+            ['damageprimaryDice.diceShort', 'damageprimaryDice.versatileDiceShort'],
             'damage.damageType',
           ],
           size: ' col',

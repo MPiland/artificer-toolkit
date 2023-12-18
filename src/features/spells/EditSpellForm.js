@@ -19,7 +19,7 @@ import Spinner from '../../components/Spinner'
 import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
-import TabNavigation from '../../components/TabNavigation'
+import TabNavigation from '../../components/TabNavigation/TabNavigation'
 import { useSelector } from 'react-redux'
 import { selectLoadingStatus } from '../../app/loadingSlice'
 
@@ -161,7 +161,7 @@ const EditSpellForm = () => {
       )
     const secondary =
       upcastState?.upcastAttribute?.some(
-        (attributeItem) => attributeItem.name === 'secondaryDamage'
+        (attributeItem) => attributeItem.name === 'secondaryDice'
       ) ||
       upcastState?.upcastAttribute?.some(
         (attributeItem) => attributeItem.name === 'all'
@@ -205,14 +205,14 @@ const EditSpellForm = () => {
     if (damage) {
       inputArray.push(
         {
-          name: 'baseDamage.diceCount',
+          name: 'dice.diceCount',
           value: 'Dice Count',
           invalid: 'Must contain only numbers',
           validation: 'num',
           size: 'col',
         },
         {
-          name: 'baseDamage.diceValue',
+          name: 'dice.diceValue',
           value: 'Dice Value',
           invalid: 'Must contain only numbers',
           validation: 'num',
@@ -225,14 +225,14 @@ const EditSpellForm = () => {
         3,
         0,
         {
-          name: 'secondaryDamage.diceCount',
+          name: 'dice.secDiceCount',
           value: 'Secondary Dice Count',
           invalid: 'Must contain only numbers',
           validation: 'num',
           size: 'col',
         },
         {
-          name: 'secondaryDamage.diceValue',
+          name: 'dice.secDiceValue',
           value: 'Secondary Dice Value',
           invalid: 'Must contain only numbers',
           validation: 'num',
@@ -493,9 +493,9 @@ const EditSpellForm = () => {
                   .filter((upcastItem) =>
                     !state.damage?.damageAttribute?.some(
                       (attributeItem) =>
-                        attributeItem.name === 'secondaryDamage'
+                        attributeItem.name === 'secondaryDice'
                     )
-                      ? upcastItem.name !== 'secondaryDamage'
+                      ? upcastItem.name !== 'secondaryDice'
                       : upcastItem
                   )}
                 multiple={true}
@@ -698,7 +698,7 @@ const EditSpellForm = () => {
             <>
               <div className='d-flex'>
                 <hr className='flex-grow-1 me-3' />
-                <span className='mx-auto'>Base Damage</span>
+                <span className='mx-auto'>Damage</span>
                 <hr className='flex-grow-1 ms-3' />
               </div>
               <div
@@ -724,17 +724,17 @@ const EditSpellForm = () => {
                   onChange={setState}
                 />
                 <Select
-                  name='damage.baseDamage.damageType'
+                  name='damage.damageType'
                   multiple={true}
                   label='Damage Type'
-                  value={state.damage?.baseDamage?.damageType}
+                  value={state.damage?.damageType}
                   options={builders.damage}
                   required={true}
                   onChange={setState}
                 />
                 <Input
-                  name='damage.baseDamage.diceCount'
-                  value={state.damage?.baseDamage?.diceCount}
+                  name='damage.dice.diceCount'
+                  value={state.damage?.dice.diceCount}
                   label='Dice Count'
                   required={true}
                   validation='num'
@@ -742,8 +742,8 @@ const EditSpellForm = () => {
                   onChange={setState}
                 />
                 <Input
-                  name='damage.baseDamage.diceValue'
-                  value={state.damage?.baseDamage?.diceValue}
+                  name='damage.dice.diceValue'
+                  value={state.damage?.dice.diceValue}
                   label='Dice Value'
                   required={true}
                   validation='num'
@@ -751,21 +751,21 @@ const EditSpellForm = () => {
                   onChange={setState}
                 />
                 {state.damage?.damageAttribute?.some(
-                  (attributeItem) => attributeItem.name === 'secondaryDamage'
+                  (attributeItem) => attributeItem.name === 'secondaryDice'
                 ) && (
                   <>
                     <Select
-                      name='damage.secondaryDamage.damageType'
+                      name='damage.secondaryDamageType'
                       multiple={true}
                       label='Secondary Damage Type'
-                      value={state.damage?.secondaryDamage?.damageType}
+                      value={state.damage?.secondaryDamageType}
                       options={builders.damage}
                       required={true}
                       onChange={setState}
                     />
                     <Input
-                      name='damage.secondaryDamage.diceCount'
-                      value={state.damage?.secondaryDamage?.diceCount}
+                      name='damage.dice.secDiceCount'
+                      value={state.damage?.dice?.secDiceCount}
                       label='Secondary Dice Count'
                       required={true}
                       validation='num'
@@ -773,8 +773,8 @@ const EditSpellForm = () => {
                       onChange={setState}
                     />
                     <Input
-                      name='damage.secondaryDamage.diceValue'
-                      value={state.damage?.secondaryDamage?.diceValue}
+                      name='damage.dice.secDiceValue'
+                      value={state.damage?.dice?.secDiceValue}
                       label='Secondary Dice Value'
                       required={true}
                       validation='num'
@@ -798,8 +798,8 @@ const EditSpellForm = () => {
                     {state.damage?.bonus?.bonusAttribute?.name ===
                       'setValue' && (
                       <Input
-                        name='damage.baseDamage.bonusDamage'
-                        value={state.damage?.baseDamage?.bonusDamage}
+                        name='damage.damage.bonusDamage'
+                        value={state.damage?.damage?.bonusDamage}
                         label='Bonus Damage'
                         required={true}
                         validation='num'

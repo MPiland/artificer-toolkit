@@ -8,6 +8,7 @@ import {
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 import Spinner from '../../components/Spinner'
 import { useSelector } from 'react-redux'
+import { selectLoadingStatus } from '../../app/loadingSlice'
 
 const Class = () => {
   const [activeSection, setActiveSection] = useState()
@@ -26,6 +27,8 @@ const Class = () => {
   })
 
   const subclass = useSelector((state) => selectSubclassById(state, id))
+
+  const isLoading = useSelector(selectLoadingStatus)
 
   const onEditClicked = () => {
     navigate(`${location.state.background.pathname}/edit/${userClass.name}`, {
@@ -71,7 +74,7 @@ const Class = () => {
 
   let content
 
-  if (isFetching) {
+  if (isFetching || isLoading) {
     return (content = <Spinner />)
   }
 
@@ -103,7 +106,7 @@ const Class = () => {
                           }}
                           className='sidebar-link'
                         >
-                          {detailItem.value}
+                          {detailItem?.value}
                         </a>
                       </li>
                     ))}
@@ -148,12 +151,12 @@ const Class = () => {
                 </>
               ) : (
                 <>
-                  {userClass?.feature?.length > 0 &&
-                    userClass?.feature?.map(
+                  {userClass.feature?.length > 0 &&
+                    userClass.feature.map(
                       (featureItem, featureIndex) =>
-                        featureItem.attribute?.some(
+                        !featureItem.attribute?.some(
                           (attributeItem) =>
-                            attributeItem.name !== 'hideInBuilder'
+                            attributeItem.name === 'hideInBuilder'
                         ) && (
                           <li
                             className={`sidebar-item ${
@@ -203,10 +206,11 @@ const Class = () => {
             onScroll={(e) => handleScroll(e)}
             ref={modalBodyRef}
           >
-            <em id='title'>{userClass?.desc && parse(userClass.desc)}</em>
-            {userClass?.category?.name === 'base' ? (
+            <em id='title'>{userClass.desc && parse(userClass.desc)}</em>
+            {userClass.category?.name === 'base' ? (
               <>
-                {userClass?.details?.length > 0 &&
+                {userClass.details &&
+                  userClass.details?.length > 0 &&
                   userClass.details.map((detailItem, detailIndex) => (
                     <section id={`${detailItem.name}`} key={detailIndex}>
                       <h3>
@@ -219,27 +223,27 @@ const Class = () => {
                         userClass.feature.map(
                           (featureItem, featureIndex) =>
                             (!featureItem?.attribute ||
-                              featureItem?.attribute?.some(
+                              !featureItem?.attribute?.some(
                                 (attributeItem) =>
-                                  attributeItem.name !== 'hideInBuilder'
+                                  attributeItem.name === 'hideInBuilder'
                               )) && (
                               <Fragment key={featureIndex}>
                                 <h4>
                                   <strong>{featureItem.value}</strong>
                                 </h4>
-                                {parse(featureItem?.desc)}
+                                {featureItem.desc && parse(featureItem.desc)}
                               </Fragment>
                             )
                         )}
                     </section>
                   ))}
-                {userClass.subclass?.name && (
+                {userClass.subclass && userClass.subclass?.name && (
                   <section id={`${userClass.subclass.name}`}>
                     <h3>
                       <strong>{userClass.subclass.value}</strong>
                     </h3>
                     <hr />
-                    {userClass.subclass.desc && parse(userClass.subclass.desc)}
+                    {userClass.subclass?.desc && parse(userClass.subclass.desc)}
                   </section>
                 )}
                 {subclass.length > 0 && (
@@ -250,8 +254,8 @@ const Class = () => {
                           <strong>{subclassItem.value}</strong>
                         </h4>
                         {subclassItem.desc && parse(subclassItem.desc)}
-                        {subclassItem.feature?.length > 0 &&
-                          subclassItem.feature.map(
+                        {userClass.feature?.length > 0 &&
+                          userClass.feature.map(
                             (featureItem, featureIndex) =>
                               (!featureItem?.attribute ||
                                 featureItem?.attribute?.some(
@@ -274,8 +278,8 @@ const Class = () => {
               </>
             ) : (
               <>
-                {userClass?.feature?.length > 0 &&
-                  userClass?.feature?.map(
+                {userClass.feature.length > 0 &&
+                  userClass.feature.map(
                     (featureItem, featureIndex) =>
                       (!featureItem?.attribute ||
                         featureItem?.attribute?.some(

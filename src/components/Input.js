@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import useDebounce from '../hooks/useDebounce'
 
-const NUM_REGEX = /^[0-9]+$/
+const NUM_REGEX = /^[0-9]+(, [0-9]+)*$/
 const CUR_REGEX = /^\d*\.?\d*$/
 
 const Input = ({
@@ -19,6 +19,7 @@ const Input = ({
   validation,
   className,
   autoFocus,
+  password,
 }) => {
   const inputRef = useRef(null)
   const [inputValue, setInputValue] = useState(value)
@@ -71,8 +72,6 @@ const Input = ({
         size ? `${size}` : 'col'
       }`}
     >
-      {/* <div className={`${label ? 'form-floating' : ''}`}> */}
-
       {label && (
         <label
           className={`form-input-label ${required ? 'required' : ''}`}
@@ -96,7 +95,6 @@ const Input = ({
         value={inputValue ?? ''}
         validation={validation}
         onChange={(e) => handleChange(e)}
-        onKeyUp={(e) => e.preventDefault()}
       />
       {invalidText && (
         <div id={`${name}Tooltip`} className='invalid-tooltip'>
@@ -104,7 +102,6 @@ const Input = ({
         </div>
       )}
     </div>
-    // </div>
   )
 
   return content

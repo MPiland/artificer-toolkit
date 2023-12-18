@@ -20,13 +20,13 @@ const Character = ({ character }) => {
   } else {
     for (let i = 0; i < numClass; i++) {
       totalLevel += character.class[i].level
-      const classLevel = character.class[i].level
+      const level = character.class[i].level
       const className = character.class[i].name
       if (character.class[i].subclass.name !== '') {
         if (character.class[0].subclass.name !== '') {
-          charClass += `(${classLevel}) ${className} ${character.class[i].subclass.name}`
+          charClass += `(${level}) ${className} ${character.class[i].subclass.name}`
         } else {
-          charClass += `(${classLevel}) ${className}`
+          charClass += `(${level}) ${className}`
         }
       }
       if (i !== numClass - 1) {

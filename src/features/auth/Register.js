@@ -8,8 +8,6 @@ import { useNavigate, useLocation, useOutletContext } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 import { handleValidation } from '../../helpers/form'
 import formReducer from '../../hooks/useReducer'
-import Input from '../../components/Input'
-import Spinner from '../../components/Spinner'
 
 const Register = () => {
   const [
@@ -81,7 +79,6 @@ const Register = () => {
 
   const content = (
     <>
-      {state.submitting && <Spinner />}
       <div className='modal-header'>
         <h1 className='fw-bold mb-0 fs-2 ms-auto'>{location.state.title}</h1>
         <button
@@ -95,52 +92,82 @@ const Register = () => {
         <form className='needs-validation' noValidate>
           {errMsg && <p>{errMsg}</p>}
           <div className='pb-2'>
-            <Input
-              validation='user'
-              type='email'
-              name='username'
-              label={true}
-              placeholder='Email Address'
-              autoComplete='username'
-              invalidText='Username must be a valid email address.'
-              value={state.username}
-              onChange={setState}
-            />
-          </div>
-          <div className='pb-2'>
-            <div className='input-group'>
-              <Input
-                validation='pwd'
-                type={state.showPassword ? 'text' : 'password'}
-                name='password'
-                placeholder='Password'
+            <div className='position-relative'>
+              <label className='form-input-label required' htmlFor='password'>
+                Email Address
+              </label>
+              <input
+                className='form-control'
+                validation='user'
+                type='email'
+                name='username'
                 label={true}
-                autoComplete='password'
-                aria-describedby='eye-addon'
-                invalidText='Password must be 8-20 characters long and contain 1 uppercase, lowercase, numeric, and special character.'
-                value={state.password}
-                onChange={setState}
-              />
-              <span
-                className='input-group-text bi bi-eye>'
-                id='eye-addon'
-                onClick={() =>
+                autoComplete='username'
+                required={true}
+                onChange={(e) =>
                   setState({
                     payload: {
-                      target: {
-                        name: 'showPassword',
-                        value: !state.showPassword,
-                      },
+                      target: { name: 'username', value: e.target.value },
                     },
                   })
                 }
-              >
-                <i
-                  className={
-                    state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'
+                value={state.username}
+                invalidText='Username must be a valid email address.'
+              />
+            </div>
+            <div id='passwordTooltip' className='invalid-tooltip'>
+              Password must be 8-20 characters long and contain 1 uppercase,
+              lowercase, numeric, and special character.
+            </div>
+          </div>
+          <div className='pb-2'>
+            <div className='position-relative'>
+              <label className='form-input-label required' htmlFor='password'>
+                Password
+              </label>
+              <div className='input-group'>
+                <input
+                  validation='pwd'
+                  className='form-control'
+                  type={state.showPassword ? 'text' : 'password'}
+                  name='password'
+                  autoComplete='password'
+                  required={true}
+                  value={state.password}
+                  aria-describedby='eye-addon'
+                  onChange={(e) =>
+                    setState({
+                      payload: {
+                        target: { name: 'password', value: e.target.value },
+                      },
+                    })
                   }
-                ></i>
-              </span>
+                />
+                <span
+                  className='input-group-text bi bi-eye>'
+                  id='eye-addon'
+                  onClick={() =>
+                    setState({
+                      payload: {
+                        target: {
+                          name: 'showPassword',
+                          value: !state.showPassword,
+                        },
+                      },
+                    })
+                  }
+                >
+                  <i
+                    className={
+                      state.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'
+                    }
+                  ></i>
+                </span>
+              </div>
+              <div id='passwordTooltip' className='invalid-tooltip'>
+                Password must be 8-20 characters long and contain 1 uppercase,
+                lowercase, numeric, and special character.
+              </div>
             </div>
           </div>
           <div className='pb-2'>
@@ -157,20 +184,24 @@ const Register = () => {
           </div>
           <button
             className='login w-100 mb-2 btn btn-lg rounded-3 btn-primary'
-            type='submit'
+            type='button'
             disabled={state?.submitting}
             onClick={(e) => {
               e.preventDefault()
               onRegisterClicked()
             }}
           >
-            {(!registerIsLoading || !googleIsLoading) && !state.submitting
-              ? 'Submit'
-              : 'Submitting'}
+            {(!registerIsLoading || !googleIsLoading) && !state.submitting ? (
+              'Submit'
+            ) : (
+              <div className='spinner-border text-primary' role='status'>
+                <span className='visually-hidden'>Loading...</span>
+              </div>
+            )}
           </button>
           {errMsg && <div className='register-error'>{errMsg}</div>}
           <div className='text-body-secondary text-center'>
-            By clicking Sign up, you agree to the terms of use.
+            By clicking Submit, you agree to the terms of use.
           </div>
           <hr className='my-4' />
           <h2 className='fs-5 fw-bold mb-3 text-center'>

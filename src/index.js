@@ -11,6 +11,8 @@ import { store } from './app/store'
 import { Provider } from 'react-redux'
 import { disableReactDevTools } from '@fvilers/disable-react-devtools'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { DndProvider } from 'react-dnd-multi-backend'
+import { HTML5toTouch } from 'rdndmb-html5-to-touch'
 
 if (process.env.NODE_ENV === 'production') disableReactDevTools()
 
@@ -19,11 +21,13 @@ root.render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
       <Provider store={store}>
-        <BrowserRouter>
-          <Routes>
-            <Route path='/*' element={<App />} />
-          </Routes>
-        </BrowserRouter>
+        <DndProvider options={HTML5toTouch}>
+          <BrowserRouter>
+            <Routes>
+              <Route path='/*' element={<App />} />
+            </Routes>
+          </BrowserRouter>
+        </DndProvider>
       </Provider>
     </GoogleOAuthProvider>
   </React.StrictMode>
