@@ -62,7 +62,6 @@ const Tab = ({
         isMouseDownRef.current &&
         reorder === true
       ) {
-        console.log('drag')
         setIsDragging(true)
         setIsTabDragging(true)
         setIsMouseDown(true)

@@ -35,8 +35,6 @@ const Login = () => {
     }
   }, [loadingIsError, loginError, googleIsError, googleError])
 
-  console.log('state', state)
-
   const onLoginClicked = async () => {
     const isValid = handleValidation()
     if (isValid) {

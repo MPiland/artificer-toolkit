@@ -13,12 +13,10 @@ const Delete = () => {
   const { data, handleClose } = useOutletContext()
 
   const onSubmit = () => {
-    console.log('deleteState', deleteState)
     if (deleteState === 'DELETE') {
       dispatch(confirmDelete({ status: true, data: data }))
       handleClose()
     } else {
-      console.log('setClassname')
       setClassName('is-invalid')
     }
   }

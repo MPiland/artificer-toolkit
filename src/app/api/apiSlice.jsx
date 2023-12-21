@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
 const baseQuery = fetchBaseQuery({
   baseUrl:
-    process.env.NODE_ENV === 'production'
+    import.meta.env.MODE === 'production'
       ? 'https://api.artificertoolkit.app'
       : 'http://localhost:3500',
   credentials: 'include',
