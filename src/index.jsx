@@ -3,7 +3,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import '@fortawesome/react-fontawesome'
 import '@fortawesome/fontawesome-svg-core'
 import './scss/styles.scss'
-import React from 'react'
+import {StrictMode} from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
@@ -18,7 +18,7 @@ if (import.meta.env.MODE === 'production') disableReactDevTools()
 
 const root = ReactDOM.createRoot(document.getElementById('root'))
 root.render(
-  <React.StrictMode>
+  <StrictMode>
     <GoogleOAuthProvider clientId={import.meta.env.VITE_REACT_APP_GOOGLE_CLIENT_ID}>
       <Provider store={store}>
         <DndProvider options={HTML5toTouch}>
@@ -30,5 +30,5 @@ root.render(
         </DndProvider>
       </Provider>
     </GoogleOAuthProvider>
-  </React.StrictMode>
+  </StrictMode>
 )

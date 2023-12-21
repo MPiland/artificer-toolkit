@@ -6,6 +6,21 @@ export default defineConfig(() => {
   return {
     build: {
       outDir: 'build',
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if(id.includes('locash')) {
+              return 'lodash'
+            }
+            if(id.includes('bootstrap')) {
+              return 'bootstrap'
+            }
+            if(id.includes('@fortawesome')) {
+              return 'fortawesome'
+            }
+          }
+        }
+      }
     },
     plugins: [react(), eslint()],
     server: {
