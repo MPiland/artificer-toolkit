@@ -1,6 +1,7 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption, splitVendorChunkPlugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import eslint from 'vite-plugin-eslint'
+import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig(() => {
   return {
@@ -8,27 +9,28 @@ export default defineConfig(() => {
       outDir: 'build',
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            if(id.includes('locash')) {
-              return 'lodash'
-            }
-            if(id.includes('bootstrap')) {
+          manualChunks: (id: string) => {
+            if (id.includes('bootstrap')) {
               return 'bootstrap'
             }
-            if(id.includes('@fortawesome')) {
-              return 'fortawesome'
+            if(id.includes('lodash')) {
+              return 'lodash'
             }
-          }
-        }
-      }
+          },
+        },
+      },
     },
-    plugins: [react(), eslint()],
+    plugins: [
+      react(),
+      eslint(),
+      splitVendorChunkPlugin(),
+      visualizer() as PluginOption],
     server: {
-        port: 3000,
-        open: true
+      port: 3000,
+      open: true,
     },
     preview: {
-      port: 3000
-    }
+      port: 3000,
+    },
   }
 })
