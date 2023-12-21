@@ -30,6 +30,7 @@ const RaceList = ({ scrollPosition }) => {
     selectFromResult: ({ data }) => ({
       races: data && selectAllRaces(data),
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectRacesFilter)
@@ -151,7 +152,7 @@ const RaceList = ({ scrollPosition }) => {
 
   let content
 
-  if (isLoading || isFetching || !filteredList) {
+  if (isLoading || isFetching || !filterItemsPopulated) {
     return (content = <Spinner />)
   }
 

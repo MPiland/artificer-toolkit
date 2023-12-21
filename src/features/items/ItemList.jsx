@@ -28,6 +28,7 @@ const ItemList = ({ scrollPosition }) => {
     selectFromResult: ({ data }) => ({
       items: data && selectAllItems(data),
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectItemsFilter)
@@ -36,6 +37,7 @@ const ItemList = ({ scrollPosition }) => {
 
   const [deleteItem, { isError: delIsError, error: delError }] =
     useDeleteItemMutation()
+
   const { listFilter, filteredList, setListFilter, setFilterItems } =
     useFilteredList(items, filtersState)
 
@@ -255,7 +257,7 @@ const ItemList = ({ scrollPosition }) => {
 
   let content
 
-  if (isLoading || isFetching || !filteredList) {
+  if (isLoading || isFetching || !filterItemsPopulated) {
     return (content = <Spinner />)
   }
 

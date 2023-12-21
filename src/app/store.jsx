@@ -61,7 +61,7 @@ export const store = configureStore({
     getDefaultMiddleware()
       .concat(apiSlice.middleware)
       .prepend(tokenListenerMiddleware.middleware),
-  devTools: process.env.NODE_ENV === 'production' ? false : true,
+  devTools: import.meta.env.MODE === 'production' ? false : true,
 })
 
 setupListeners(store.dispatch)

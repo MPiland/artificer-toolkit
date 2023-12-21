@@ -30,6 +30,7 @@ const ClassList = ({ scrollPosition }) => {
     selectFromResult: ({ data }) => ({
       classes: data && selectAllClasses(data),
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectClassesFilter)
@@ -108,7 +109,7 @@ const ClassList = ({ scrollPosition }) => {
   useEffect(() => {
     if (classes && !filterItemsPopulated) {
       setFilterItems(classes)
-      setFilterItemsPopulated(true) // Ensure it's called only once
+      setFilterItemsPopulated(true)
     }
   }, [classes, setFilterItems, filterItemsPopulated])
 
@@ -164,9 +165,10 @@ const ClassList = ({ scrollPosition }) => {
 
   let content
 
-  if (isLoading || isFetching || !filteredList) {
+  if (isLoading || isFetching || !filterItemsPopulated) {
     content = <Spinner />
   }
+
   const filter = (
     <div className='filter-container'>
       <div
@@ -230,7 +232,7 @@ const ClassList = ({ scrollPosition }) => {
         dynamic={false}
         readOnly={true}
         sortable={true}
-        value={classes}
+        value={filteredList}
         rows={{
           collapse: true,
           inputs: tableColumns.inputs,

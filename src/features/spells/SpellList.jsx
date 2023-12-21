@@ -96,6 +96,7 @@ const SpellList = ({ scrollPosition }) => {
       setErrorMessage(delError.data.message)
     }
   }, [delIsError, delError])
+
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setSpellsFilter(listFilter))
   }, [dispatch, listFilter])
@@ -269,7 +270,7 @@ const SpellList = ({ scrollPosition }) => {
 
   let content
 
-  if (isLoading || isFetching || !filteredList) {
+  if (isLoading || isFetching || !filterItemsPopulated) {
     return (content = <Spinner />)
   }
 

@@ -30,6 +30,7 @@ const FeatList = ({ scrollPosition }) => {
     selectFromResult: ({ data }) => ({
       feats: data && selectAllFeats(data),
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectFeatsFilter)
@@ -151,7 +152,7 @@ const FeatList = ({ scrollPosition }) => {
 
   let content
 
-  if (isLoading || isFetching || !filteredList) {
+  if (isLoading || isFetching || !filterItemsPopulated) {
     return (content = <Spinner />)
   }
 
