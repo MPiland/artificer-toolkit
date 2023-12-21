@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, memo } from 'react'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 
 const Modal = () => {
@@ -60,4 +60,7 @@ const Modal = () => {
 
   return content
 }
-export default Modal
+
+const memoizedModal = memo(Modal)
+
+export default memoizedModal

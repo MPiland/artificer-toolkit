@@ -252,7 +252,7 @@ const NewFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${stateName}.${this.name}.${index}.attribute`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -264,7 +264,7 @@ const NewFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -273,7 +273,7 @@ const NewFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${stateName}.${this.name}.${index}.feat`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.feat`}
                     multiple={true}
                     label='Feat'
                     value={item.feat}
@@ -284,7 +284,7 @@ const NewFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -311,7 +311,7 @@ const NewFeatForm = () => {
                 <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${stateName}.${this.name}.${index}.attribute`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -323,7 +323,7 @@ const NewFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -332,7 +332,7 @@ const NewFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${stateName}.${this.name}.${index}.module`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.module`}
                     label='Modifier Category'
                     value={item.module}
                     options={builders.modifier.module}
@@ -341,7 +341,7 @@ const NewFeatForm = () => {
                   />
                   {item.module?.name && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.modType`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.modType`}
                       label='Modifier Type'
                       value={item.modType}
                       options={builders.modifier.modType?.filter((modItem) =>
@@ -357,7 +357,7 @@ const NewFeatForm = () => {
                     item.modType?.name === 'useReset' && (
                       <>
                         <Select
-                          name={`${stateName}.${this.name}.${index}.limitUse.resetOption`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.limitUse.resetOption`}
                           label='Reset Option'
                           value={item.limitUse?.resetOption}
                           options={builders.feature.chargeReset}
@@ -365,7 +365,7 @@ const NewFeatForm = () => {
                           onChange={setState}
                         />
                         <Select
-                          name={`${stateName}.${this.name}.${index}.limitUse.feature`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.limitUse.feature`}
                           label='Feature'
                           value={item.limitUse?.feature}
                           options={state?.feature}
@@ -376,7 +376,7 @@ const NewFeatForm = () => {
                     )}
                   {item.module?.name === 'ability' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.ability`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.ability`}
                       multiple={true}
                       label='Ability'
                       value={item.ability}
@@ -387,7 +387,7 @@ const NewFeatForm = () => {
                   )}
                   {item.module?.name === 'saveAbility' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.saveAbility`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
                       value={item.saveAbility}
@@ -398,7 +398,7 @@ const NewFeatForm = () => {
                   )}
                   {item.module?.name === 'skill' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.skill`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
                       value={item.skill}
@@ -409,7 +409,7 @@ const NewFeatForm = () => {
                   )}
                   {item.module?.name === 'damageSave' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.damageSave`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.damageSave`}
                       multiple={true}
                       label='Damage'
                       value={item.damageSave}
@@ -420,7 +420,7 @@ const NewFeatForm = () => {
                   )}
                   {item.module?.name === 'conditionSave' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.conditionSave`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.conditionSave`}
                       multiple={true}
                       label='Condition'
                       value={item.conditionSave}
@@ -434,7 +434,7 @@ const NewFeatForm = () => {
                     item.modType?.name === 'setDieValue' ||
                     item.modType?.name === 'setBonus') && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.method`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.method`}
                       label='Method'
                       value={item.method}
                       options={builders.modifier.method.filter((methodItem) =>
@@ -448,7 +448,7 @@ const NewFeatForm = () => {
                   )}
                   {item.module?.name === 'condition' ? (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.condition`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.condition`}
                       multiple={true}
                       label='Condition Type'
                       value={item.condition}
@@ -458,7 +458,7 @@ const NewFeatForm = () => {
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.speed`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.speed`}
                       multiple={true}
                       value={item.speed}
                       label='Speed Type'
@@ -468,7 +468,7 @@ const NewFeatForm = () => {
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.passive`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.passive`}
                       multiple={true}
                       label='Passive Type'
                       value={item.passive}
@@ -479,7 +479,7 @@ const NewFeatForm = () => {
                   ) : (
                     item.module?.name === 'damage' && (
                       <Select
-                        name={`${stateName}.${this.name}.${index}.damage`}
+                        name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.damage`}
                         multiple={true}
                         label='Damage Type'
                         value={item.damage}
@@ -495,7 +495,7 @@ const NewFeatForm = () => {
                     <>
                       <Input
                         validation='num'
-                        name={`${stateName}.${this.name}.${index}.method.setValue`}
+                        name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.method.setValue`}
                         label='Set Value'
                         invalidText='Must contain only numbers'
                         autoComplete='off'
@@ -507,7 +507,7 @@ const NewFeatForm = () => {
                   ) : item.method?.name === 'ability' ? (
                     <>
                       <Select
-                        name={`${stateName}.${this.name}.${index}.method.ability`}
+                        name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.method.ability`}
                         label='Method Ability'
                         value={item.method.ability}
                         options={builders.ability}
@@ -516,7 +516,7 @@ const NewFeatForm = () => {
                       />
                       <Input
                         validation='num'
-                        name={`${stateName}.${this.name}.${index}.multiplier`}
+                        name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.multiplier`}
                         label='Multiplier'
                         invalidText='Must contain only whole numbers'
                         autoComplete='off'
@@ -528,7 +528,7 @@ const NewFeatForm = () => {
                     item.method?.name === 'skill' && (
                       <>
                         <Select
-                          name={`${stateName}.${this.name}.${index}.method.skill`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.method.skill`}
                           label='Method Skill'
                           value={item.method.skill}
                           options={builders.skill}
@@ -537,7 +537,7 @@ const NewFeatForm = () => {
                         />
                         <Input
                           validation='num'
-                          name={`${stateName}.${this.name}.${index}.multiplier`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.multiplier`}
                           label='Multiplier'
                           invalidText='Must contain only whole numbers'
                           autoComplete='off'
@@ -552,7 +552,7 @@ const NewFeatForm = () => {
                     item.module?.name === 'ability' && (
                       <Input
                         validation='num'
-                        name={`${stateName}.${this.name}.${index}.maxValue`}
+                        name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.maxValue`}
                         label='Max Value'
                         autoComplete='off'
                         value={item.maxValue}
@@ -564,7 +564,7 @@ const NewFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -581,13 +581,13 @@ const NewFeatForm = () => {
                       type: 'added',
                       payload: {
                         target: {
-                          name: `${stateName}.${this.name}.${index}.diePerLevel`,
+                          name: `${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.diePerLevel`,
                         },
                       },
                     })
                   ) : (
                     <Table
-                      name={`${stateName}.${this.name}.${index}.diePerLevel`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.diePerLevel`}
                       rows={{
                         inputs: [
                           {
@@ -638,7 +638,7 @@ const NewFeatForm = () => {
                     type: 'removed',
                     payload: {
                       target: {
-                        name: `${stateName}.${this.name}.${index}.diePerLevel`,
+                        name: `${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.diePerLevel`,
                       },
                     },
                   })
@@ -649,13 +649,13 @@ const NewFeatForm = () => {
                       type: 'added',
                       payload: {
                         target: {
-                          name: `${stateName}.${this.name}.${index}.addPerLevel`,
+                          name: `${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.addPerLevel`,
                         },
                       },
                     })
                   ) : (
                     <Table
-                      name={`${stateName}.${this.name}.${index}.addPerLevel`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.addPerLevel`}
                       inputs={[
                         {
                           name: 'level',
@@ -693,7 +693,7 @@ const NewFeatForm = () => {
                     type: 'removed',
                     payload: {
                       target: {
-                        name: `${stateName}.${this.name}.${index}.addPerLevel`,
+                        name: `${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.addPerLevel`,
                       },
                     },
                   })
@@ -715,7 +715,7 @@ const NewFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${stateName}.${this.name}.${index}.attribute`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -727,7 +727,7 @@ const NewFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -736,7 +736,7 @@ const NewFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${stateName}.${this.name}.${index}.area`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.area`}
                     label='Proficiency Area'
                     value={item.area}
                     options={builders.proficiency.area}
@@ -745,7 +745,7 @@ const NewFeatForm = () => {
                   />
                   {item?.area?.name === 'skill' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.skill`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
                       value={item.skill}
@@ -756,7 +756,7 @@ const NewFeatForm = () => {
                   )}
                   {item?.area?.name === 'saveAbility' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.saveAbility`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
                       value={item.saveAbility}
@@ -767,7 +767,7 @@ const NewFeatForm = () => {
                   )}
                   {item?.area?.name === 'language' && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.language`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.language`}
                       multiple={true}
                       label='Language'
                       value={item.language}
@@ -780,7 +780,7 @@ const NewFeatForm = () => {
                     item.area?.name === 'itemType') && (
                     <>
                       <Select
-                        name={`${stateName}.${this.name}.${index}.category`}
+                        name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.category`}
                         multiple={true}
                         label='Item Category'
                         value={item.category}
@@ -789,7 +789,7 @@ const NewFeatForm = () => {
                       />
                       {item.area?.name === 'property' && (
                         <Select
-                          name={`${stateName}.${this.name}.${index}.property`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.property`}
                           multiple={true}
                           label='Item Property'
                           value={item.property}
@@ -810,7 +810,7 @@ const NewFeatForm = () => {
                       )}
                       {item.area?.name === 'itemType' && (
                         <Select
-                          name={`${stateName}.${this.name}.${index}.itemType`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.itemType`}
                           multiple={true}
                           label='Item Type'
                           value={item.itemTypeitem.itemType}
@@ -828,7 +828,7 @@ const NewFeatForm = () => {
                     </>
                   )}
                   <Select
-                    name={`${stateName}.${this.name}.${index}.level`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.level`}
                     label='Proficiency Level'
                     value={item.level}
                     options={builders.proficiency.level}
@@ -838,7 +838,7 @@ const NewFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -865,7 +865,7 @@ const NewFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${stateName}.${this.name}.${index}.attribute`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -877,7 +877,7 @@ const NewFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -886,7 +886,7 @@ const NewFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${stateName}.${this.name}.${index}.sense`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.sense`}
                     multiple={true}
                     label='Sense'
                     value={item.sense}
@@ -897,7 +897,7 @@ const NewFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -924,7 +924,7 @@ const NewFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple='true'
-                    name={`${stateName}.${this.name}.${index}.attribute`}
+                    name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.attribute`}
                     options={[].concat(
                       builders.section.spell.attribute,
                       builders.section.attribute
@@ -938,7 +938,7 @@ const NewFeatForm = () => {
                     (attributeItem) => attributeItem.name === 'classLimit'
                   ) && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.classLimit`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.classLimit`}
                       multiple={true}
                       label='Class Limit'
                       value={item.classLimit}
@@ -951,7 +951,7 @@ const NewFeatForm = () => {
                     (attributeItem) => attributeItem.name === 'levelLimit'
                   ) && (
                     <Select
-                      name={`${stateName}.${this.name}.${index}.levelLimit`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.levelLimit`}
                       multiple={true}
                       label='Level Limit'
                       value={item.levelLimit}
@@ -968,7 +968,7 @@ const NewFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${stateName}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -981,7 +981,7 @@ const NewFeatForm = () => {
                   ) && (
                     <>
                       <Select
-                        name={`${stateName}.${this.name}.${index}.spell`}
+                        name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.spell`}
                         multiple={true}
                         label='Spell'
                         value={item.spell}
@@ -1008,7 +1008,7 @@ const NewFeatForm = () => {
                           attributeItem.name === 'optionalAbility'
                       ) && (
                         <Select
-                          name={`${stateName}.${this.name}.${index}.ability`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.ability`}
                           multiple={true}
                           label='Ability'
                           value={item.ability}
@@ -1020,7 +1020,7 @@ const NewFeatForm = () => {
                       {multipleOptions && (
                         <Input
                           validation='num'
-                          name={`${stateName}.${this.name}.${index}.selectionCount`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.selectionCount`}
                           label='# of Selections'
                           autoComplete='off'
                           value={item.selectionCount}
@@ -1043,7 +1043,7 @@ const NewFeatForm = () => {
                         type: 'added',
                         payload: {
                           target: {
-                            name: `${stateName}.${this.name}.${index}.spellsByLevel`,
+                            name: `${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.spellsByLevel`,
                             value: sectionItem?.levelAvailable
                               ?.split(', ')
                               .map((levelItem) => ({
@@ -1083,7 +1083,7 @@ const NewFeatForm = () => {
                               },
                             ],
                           }}
-                          name={`${stateName}.${this.name}.${index}.spellsByLevel`}
+                          name={`${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.spellsByLevel`}
                           value={item.spellsByLevel}
                           onChange={setState}
                         />
@@ -1095,7 +1095,7 @@ const NewFeatForm = () => {
                       type: 'removed',
                       payload: {
                         target: {
-                          name: `${stateName}.${this.name}.${index}.spellsByLevel`,
+                          name: `${stateName !== null ? `${stateName}.` : ''}${this.name}.${index}.spellsByLevel`,
                         },
                       },
                     })
@@ -1112,7 +1112,7 @@ const NewFeatForm = () => {
           return sectionItem[this.name].option.map(
             (optionItem, optionIndex) => {
               const style = false
-              const sectionStateName = `${stateName}.${this.name}.option.${optionIndex}`
+              const sectionStateName = `${stateName !== null ? `${stateName}.` : ''}${this.name}.option.${optionIndex}`
               return featureTabContent(
                 sectionStateName,
                 optionItem,
@@ -1148,7 +1148,7 @@ const NewFeatForm = () => {
             Add...
           </button>
           <ul className='dropdown-menu'>
-          {sectionTabContent(featureItem)
+            {sectionTabContent(featureItem)
               .filter(
                 (sectionItem) =>
                   (style === false
@@ -1607,10 +1607,7 @@ const NewFeatForm = () => {
               type='button'
               role='button'
               data-bs-toggle='collapse'
-              data-bs-target={`#${stateName.replace(
-                  '.',
-                  ''
-                )}LimitUseCollapse`}
+              data-bs-target={`#${stateName.replace('.', '')}LimitUseCollapse`}
               aria-controls='collapseExample'
               aria-expanded='true'
             >
@@ -1619,10 +1616,7 @@ const NewFeatForm = () => {
             </div>
             <div
               className='section-container collapse show'
-              id={`${stateName.replace(
-                  '.',
-                  ''
-                )}LimitUseCollapse`}
+              id={`${stateName.replace('.', '')}LimitUseCollapse`}
             >
               <div className='section-content'>
                 <Table
@@ -1725,10 +1719,7 @@ const NewFeatForm = () => {
               type='button'
               role='button'
               data-bs-toggle='collapse'
-              data-bs-target={`#${stateName.replace(
-                  '.',
-                  ''
-                )}SectionCollapse`}
+              data-bs-target={`#${stateName.replace('.', '')}SectionCollapse`}
               aria-controls='collapseExample'
               aria-expanded='true'
             >
@@ -1737,10 +1728,7 @@ const NewFeatForm = () => {
             </div>
             <div
               className='section-container collapse show'
-              id={`${stateName.replace(
-                  '.',
-                  ''
-                )}SectionCollapse`}
+              id={`${stateName.replace('.', '')}SectionCollapse`}
             >
               <div className='section-content'>
                 <Table
@@ -1769,139 +1757,141 @@ const NewFeatForm = () => {
           payload: { target: { name: `${stateName}.damage` } },
         })
       )}
-        {featureItem['style']?.option?.length > 0 && (
-          <>
-            <div className='d-flex'>
-              <hr className='flex-grow-1 me-3' />
-              <span className='mx-auto'>
-                <strong>Style</strong>
-              </span>
-              <hr className='flex-grow-1 ms-3' />
-            </div>
-            <div className='row row-cols-lg-4 row-cols-sm-3 gx-2'>
-              <Select
-                name={`${stateName}.style.attribute`}
-                label='Style Attribute'
-                value={featureItem.style?.attribute}
-                options={builders.feature.style.attribute}
-                multiple={true}
-                onChange={setState}
-              />
-              {featureItem.style?.attribute?.some(
-                (attributeItem) => attributeItem.name === 'replaceAtLevel'
-              ) && (
-                <Input
-                  name={`${stateName}.style.replaceCount`}
-                  value={featureItem.style?.replaceCount}
-                  label='Replacement at Level Count'
-                  onChange={setState}
-                  validation='num'
-                  required={true}
-                  invalidText={'Must contain only numbers'}
-                />
-              )}
-            </div>
+      {featureItem['style']?.option?.length > 0 && (
+        <>
+          <div className='d-flex'>
+            <hr className='flex-grow-1 me-3' />
+            <span className='mx-auto'>
+              <strong>Style</strong>
+            </span>
+            <hr className='flex-grow-1 ms-3' />
+          </div>
+          <div className='row row-cols-lg-4 row-cols-sm-3 gx-2'>
+            <Select
+              name={`${stateName}.style.attribute`}
+              label='Style Attribute'
+              value={featureItem.style?.attribute}
+              options={builders.feature.style.attribute}
+              multiple={true}
+              onChange={setState}
+            />
             {featureItem.style?.attribute?.some(
-              (attributeItem) => attributeItem.name === 'providesOptions'
-            ) ? (
-              !featureItem.style?.selectCountByLevel?.length > 0 ||
-              featureItem.levelAvailable?.split(', ')?.length !==
-                featureItem.style?.selectCountByLevel?.length ? (
-                setState({
-                  type: 'added',
-                  payload: {
-                    target: {
-                      name: `${stateName}.style.selectCountByLevel`,
-                      value: featureItem?.levelAvailable
-                        ?.split(', ')
-                        .map((levelItem) => ({
-                          level: Number(levelItem),
-                        })),
-                    },
-                  },
-                })
-              ) : (
-                <>
-                  <Table
-                    rows={{
-                      inputs: [
-                        {
-                          name: 'level',
-                          readOnly: true,
-                          size: 'col',
-                        },
-                        {
-                          name: 'selectionCount',
-                          validation: 'num',
-                          invalidText: 'Must enter whole numbers',
-                          size: 'col',
-                        },
-                      ],
-                      headers: [
-                        {
-                          value: 'Level',
-                          size: 'col',
-                          readOnly: true,
-                        },
-                        {
-                          value: 'Selection Count',
-                          size: 'col',
-                          readOnly: true,
-                        },
-                      ],
-                    }}
-                    name={`${stateName}.style.selectCountByLevel`}
-                    value={featureItem.style?.selectCountByLevel}
-                    onChange={setState}
-                    dynamic={true}
-                    scrollable={true}
-                  />
-                </>
-              )
-            ) : (
-              featureItem.style?.selectCountByLevel?.length > 0 &&
+              (attributeItem) => attributeItem.name === 'replaceAtLevel'
+            ) && (
+              <Input
+                name={`${stateName}.style.replaceCount`}
+                value={featureItem.style?.replaceCount}
+                label='Replacement at Level Count'
+                onChange={setState}
+                validation='num'
+                required={true}
+                invalidText={'Must contain only numbers'}
+              />
+            )}
+          </div>
+          {featureItem.style?.attribute?.some(
+            (attributeItem) => attributeItem.name === 'providesOptions'
+          ) ? (
+            !featureItem.style?.selectCountByLevel?.length > 0 ||
+            featureItem.levelAvailable?.split(', ')?.length !==
+              featureItem.style?.selectCountByLevel?.length ? (
               setState({
-                type: 'removed',
+                type: 'added',
                 payload: {
-                  target: { name: `${stateName}.style.selectCountByLevel` },
+                  target: {
+                    name: `${stateName}.style.selectCountByLevel`,
+                    value: featureItem?.levelAvailable
+                      ?.split(', ')
+                      .map((levelItem) => ({
+                        level: Number(levelItem),
+                      })),
+                  },
                 },
               })
-            )}
-          </>
-        )}
-        {Object.keys(featureItem)?.length !== 0 &&
-          Object.keys(featureItem)?.some(
-            (key) => featureItem[key]?.length !== 0
-          ) && (
-            <TabNavigation
-              id={`${stateName}section`}
-              tabState={[].concat(
-                ...sectionTabContent(stateName, featureItem)
-                  .filter(
-                    (sectionGroupItem) => !!featureItem[sectionGroupItem.name]
-                  )
-                  ?.map((sectionGroupItem) => {
-                    return sectionGroupItem
-                      .content()
-                      .map((sectionItem, sectionIndex) => {
-                        return {
-                          value:
-                            featureItem[sectionGroupItem.name]?.option?.[
-                              sectionIndex
-                            ]?.value ??
-                            startCase(
-                              `${sectionGroupItem.name} ${sectionIndex + 1}`
-                            ),
-                          name: `${stateName}.${sectionGroupItem.name}.${sectionIndex}`,
-                          content: sectionItem,
-                        }
-                      })
-                  })
-              )}
-              dynamic={true}
-              setState={setState}
-            />
+            ) : (
+              <>
+                <Table
+                  rows={{
+                    inputs: [
+                      {
+                        name: 'level',
+                        readOnly: true,
+                        size: 'col',
+                      },
+                      {
+                        name: 'selectionCount',
+                        validation: 'num',
+                        invalidText: 'Must enter whole numbers',
+                        size: 'col',
+                      },
+                    ],
+                    headers: [
+                      {
+                        value: 'Level',
+                        size: 'col',
+                        readOnly: true,
+                      },
+                      {
+                        value: 'Selection Count',
+                        size: 'col',
+                        readOnly: true,
+                      },
+                    ],
+                  }}
+                  name={`${stateName}.style.selectCountByLevel`}
+                  value={featureItem.style?.selectCountByLevel}
+                  onChange={setState}
+                  dynamic={true}
+                  scrollable={true}
+                />
+              </>
+            )
+          ) : (
+            featureItem.style?.selectCountByLevel?.length > 0 &&
+            setState({
+              type: 'removed',
+              payload: {
+                target: { name: `${stateName}.style.selectCountByLevel` },
+              },
+            })
           )}
+        </>
+      )}
+      {Object.keys(featureItem)?.length !== 0 &&
+        Object.keys(featureItem)?.some(
+          (key) => featureItem[key]?.length !== 0
+        ) && (
+          <TabNavigation
+            id={`${stateName}section`}
+            tabState={[].concat(
+              ...sectionTabContent(stateName, featureItem)
+                .filter(
+                  (sectionGroupItem) => !!featureItem[sectionGroupItem.name]
+                )
+                ?.map((sectionGroupItem) => {
+                  return sectionGroupItem
+                    .content()
+                    .map((sectionItem, sectionIndex) => {
+                      return {
+                        value:
+                          featureItem[sectionGroupItem.name]?.option?.[
+                            sectionIndex
+                          ]?.value ??
+                          startCase(
+                            `${sectionGroupItem.name} ${sectionIndex + 1}`
+                          ),
+                        name: `${stateName}.${sectionGroupItem.name}${
+                          sectionGroupItem.name === 'style' ? '.option' : ''
+                        }.${sectionIndex}`,
+                        content: sectionItem,
+                      }
+                    })
+                })
+            )}
+            dynamic={true}
+            setState={setState}
+          />
+        )}
     </>
   )
 
@@ -1909,7 +1899,7 @@ const NewFeatForm = () => {
     {
       name: 'details',
       content: (
-        <Fragment>
+        <>
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
             <Input
               name='value'
@@ -1930,13 +1920,6 @@ const NewFeatForm = () => {
               onChange={setState}
             />
           </div>
-        </Fragment>
-      ),
-    },
-    {
-      name: 'attributes',
-      content: (
-        <>
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-3'>
             <Select
               multiple={true}
@@ -1950,24 +1933,11 @@ const NewFeatForm = () => {
               onChange={setState}
             />
             {state.attribute?.some(
-              (attributeItem) => attributeItem.name === 'providesOptions'
-            ) && (
-              <Input
-                name='selectionCount'
-                autoComplete='off'
-                label='# of Selections'
-                value={state.selectionCount}
-                required={true}
-                onChange={setState}
-                autoFocus={true}
-              />
-            )}
-            {state.attribute?.some(
               (attributeItem) => attributeItem.name === 'limitUse'
             ) && (
               <>
                 <Select
-                  name='limitUse.limitBy'
+                  name={`limitUse.limitBy`}
                   label='Limit By Option'
                   value={state.limitUse?.limitBy}
                   options={builders.feature.chargeLimit}
@@ -1977,24 +1947,17 @@ const NewFeatForm = () => {
                 {state.limitUse?.limitBy?.name === 'ability' ? (
                   <>
                     <Select
-                      name='limitUse.ability'
+                      name={`limitUse.ability`}
                       label='Ability'
                       value={state.limitUse?.ability}
                       options={builders.ability}
                       required={true}
                       onChange={setState}
                     />
-                    <Input
-                      name='limitUse.minValue'
-                      autoComplete='off'
-                      label='Min. Value'
-                      value={state.limitUse?.minValue}
-                      onChange={setState}
-                    />
                   </>
                 ) : state.limitUse?.limitBy?.name === 'skill' ? (
                   <Select
-                    name='limitUse.skill'
+                    name={`limitUse.skill`}
                     label='Skill'
                     value={state.limitUse?.skill}
                     options={builders.skill}
@@ -2005,17 +1968,48 @@ const NewFeatForm = () => {
                   state.limitUse?.limitBy?.name === 'setValue' && (
                     <Input
                       validation='num'
-                      name='limitUse.setValue'
+                      type='text'
+                      name={`limitUse.setValue`}
                       invalidText='Must contain only numbers'
                       label='Use Amount'
+                      value={state.limitUse?.setValue}
                       required={true}
-                      value={state.limitUse.setValue}
                       onChange={setState}
                     />
                   )
                 )}
+                {state.limitUse?.limitBy?.name !== 'level' &&
+                  state.limitUse?.limitBy?.name !== 'setValue' && (
+                    <>
+                      <Input
+                        name={`limitUse.addValue`}
+                        autoComplete='off'
+                        label='Additional Amount'
+                        value={state?.limitUse?.addValue}
+                        onChange={setState}
+                      />
+                      <Input
+                        name={`limitUse.minValue`}
+                        autoComplete='off'
+                        label='Minimal Value'
+                        value={state?.limitUse?.minValue}
+                        onChange={setState}
+                      />
+                    </>
+                  )}
+                {state.limitUse?.limitBy?.name !== 'setValue' && (
+                  <Input
+                    name={`limitUse.multiplier`}
+                    autoComplete='off'
+                    validation='num'
+                    invalidText='Must contain whole numbers only'
+                    label='Multiplier'
+                    value={state?.limitUse?.multiplier}
+                    onChange={setState}
+                  />
+                )}
                 <Select
-                  name='limitUse.resetOption'
+                  name={`limitUse.resetOption`}
                   label='Reset Option'
                   value={state.limitUse?.resetOption}
                   options={builders.feature.chargeReset}
@@ -2029,7 +2023,7 @@ const NewFeatForm = () => {
             ) && (
               <>
                 <Select
-                  name='action'
+                  name={`action`}
                   label='Action Type'
                   value={state.action}
                   options={builders.feature.action}
@@ -2044,26 +2038,26 @@ const NewFeatForm = () => {
               <>
                 <Input
                   validation='num'
-                  name='range.minRange'
+                  name={`range.minRange`}
                   autoComplete='off'
-                  label='Min Range'
+                  label='Minimum Range'
                   required={true}
-                  value={state.range.minRange}
+                  value={state.range?.minRange}
                   invalidText='Must contain only numbers'
                   onChange={setState}
                 />
                 <Input
-                  validation={'num'}
-                  name='range.maxRange'
+                  validation='num'
+                  name={`range.maxRange`}
                   autoComplete='off'
                   label='Max Range'
-                  invalidText='Must contain only numbers'
                   required={true}
-                  value={state.range.maxRange}
+                  invalidText='Must contain only numbers'
+                  value={state.range?.maxRange}
                   onChange={setState}
                 />
                 <Select
-                  name='range.unit'
+                  name={`range.unit`}
                   label='UoM'
                   value={state.range?.unit}
                   options={[].concat(
@@ -2081,7 +2075,7 @@ const NewFeatForm = () => {
             ) && (
               <>
                 <Select
-                  name='saveAbility.attribute'
+                  name={`saveAbility.attribute`}
                   multiple={true}
                   label='Save Attribute'
                   value={state.saveAbility?.attribute}
@@ -2089,7 +2083,7 @@ const NewFeatForm = () => {
                   onChange={setState}
                 />
                 <Select
-                  name='saveAbility.ability'
+                  name={`saveAbility.ability`}
                   label='DC Ability'
                   value={state.saveAbility?.ability}
                   options={builders.ability}
@@ -2098,9 +2092,9 @@ const NewFeatForm = () => {
                 />
                 <Input
                   validation='num'
-                  name='saveAbility.minValue'
+                  name={`saveAbility.minValue`}
                   autoComplete='off'
-                  label='Min. Value'
+                  label='Minimum Value'
                   required={true}
                   invalidText='Must contain only numbers'
                   value={state.saveAbility?.minValue}
@@ -2110,7 +2104,7 @@ const NewFeatForm = () => {
                   (attributeItem) => attributeItem.name === 'addAbilityModifier'
                 ) && (
                   <Select
-                    name='saveAbility.abilityModifier'
+                    name={`saveAbility.abilityModifier`}
                     label='Modifier Ability'
                     value={state.saveAbility?.abilityModifier}
                     options={builders.ability}
@@ -2120,445 +2114,418 @@ const NewFeatForm = () => {
                 )}
               </>
             )}
-          </div>
-          {state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'hasRequirements'
-          ) && (
-            <>
-              <div className='d-flex'>
-                <hr className='flex-grow-1 me-3' />
-                <span className='mx-auto'>Requirements</span>
-                <hr className='flex-grow-1 ms-3' />
-              </div>
+            {state.attribute?.some(
+              (attributeItem) => attributeItem.name === 'hasRequirements'
+            ) && (
               <Select
                 multiple={true}
-                name='requirement.option'
-                value={state.requirement?.option}
+                name={`requirement.option`}
                 label='Requirement'
                 options={builders.feature.requirement}
+                value={state.requirement?.option}
                 required={true}
                 onChange={setState}
               />
-              {state.requirement?.option?.some(
-                (optionItem) => optionItem.name === 'skillProficiency'
-              ) && (
-                <Select
-                  multiple={true}
-                  name='requirement.skillProficiency.skill'
-                  value={state.requirement?.skillProficiency?.skill}
-                  label='Skill Proficiency'
-                  options={builders.skill}
-                  required={true}
-                  onChange={setState}
-                />
-              )}
-              {state.requirement?.option?.some(
-                (optionItem) => optionItem.name === 'abilityScore'
-              ) && (
-                <>
-                  <Select
-                    multiple={true}
-                    name='requirement.abilityScore.ability'
-                    value={state.requirement?.abilityScore?.ability}
-                    label='Ability'
-                    options={builders.ability}
-                    required={true}
-                    onChange={setState}
-                  />
-                  <Input
-                    name='requirement.abilityScore.score'
-                    value={state.requirement?.abilityScore?.score}
-                    label='Score'
-                    required={true}
-                    validation='num'
-                    invalidText='Must contain only numbers'
-                    onChange={setState}
-                  />
-                </>
-              )}
-            </>
-          )}
-          {state.requirement?.option?.some(
-            (optionItem) => optionItem.name === 'itemProficiency'
-          ) && (
-            <>
-              <div className='d-flex mx-3'>
-                <hr className='flex-grow-1 me-3' />
-                <span className='mx-auto'>Item Proficiency</span>
-                <hr className='flex-grow-1 ms-3' />
-              </div>
-              <div className='row g-2 pb-3 mx-3 justify-contents-center'>
-                <Select
-                  multiple={true}
-                  name='requirement.itemProficiency.category'
-                  value={state.requirement?.itemProficiency?.category}
-                  label='Item Category'
-                  options={builders.item.category}
-                  onChange={setState}
-                />
-                <Select
-                  name='requirement.itemProficiency.itemType'
-                  label='Item type'
-                  value={state.requirement?.itemProficiency?.itemType}
-                  options={items.filter((item) =>
-                    state.requirement.itemProficiency?.category?.length > 0
-                      ? state.requirement.itemProficiency?.category?.some(
-                          (category) => category.name === item.category.name
-                        )
-                      : item
+            )}
+          </div>
+        {state.attribute?.some(
+          (attributeItem) => attributeItem.name === 'hasRequirements'
+        )
+          ? !state.requirement?.option?.every(
+              (state) => state.name === 'notProficient'
+            ) && (
+              <>
+                <div className='d-flex'>
+                  <hr className='flex-grow-1 me-3' />
+                  <span className='mx-auto'>Requirements</span>
+                  <hr className='flex-grow-1 ms-3' />
+                </div>
+                <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
+                  {state.requirement?.option?.some(
+                    (state) => state.name === 'skillProficiency'
+                  ) && (
+                    <Select
+                      multiple={true}
+                      name={`requirement.skillProficiency.skill`}
+                      label='Skill Proficiency'
+                      value={state.requirement?.skillProficiency?.skill}
+                      options={builders.skill}
+                      required={true}
+                      onChange={setState}
+                    />
                   )}
-                  onChange={setState}
-                />
-                <Select
-                  name='requirement.itemProficiency.property'
-                  label='Item Property'
-                  value={state.requirement?.itemProficiency?.property}
-                  options={[].concat(
-                    ...items
-                      .filter((item) =>
-                        state.requirement.itemProficiency?.category?.length > 0
-                          ? state.requirement.itemProficiency?.category?.some(
-                              (category) => category.name === item.category.name
-                            )
-                          : item
-                      )
-                      .filter((item) =>
-                        state.requirement.itemProficiency?.itemType?.length > 0
-                          ? state.requirement.itemProficiency?.itemType?.some(
-                              (type) => type.name === item.name
-                            )
-                          : item
-                      )
-                      .map((item) => item.property)
+                  {state.requirement?.option?.some(
+                    (state) => state.name === 'abilityScore'
+                  ) && (
+                    <>
+                      <Select
+                        multiple={true}
+                        name={`requirement.abilityScore.ability`}
+                        value={state.requirement?.abilityScore?.ability}
+                        label='Ability'
+                        options={builders.ability}
+                        required={true}
+                        onChange={setState}
+                      />
+                      <Input
+                        name={`requirement.abilityScore.score`}
+                        value={state.requirement?.abilityScore?.score}
+                        label='Score'
+                        required={true}
+                        validation='num'
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
+                    </>
                   )}
-                  onChange={setState}
-                />
-              </div>
-            </>
-          )}
-          {state.requirement?.option?.some(
-            (optionItem) => optionItem.name === 'equipped'
-          ) && (
-            <>
-              <div className='d-flex'>
-                <hr className='flex-grow-1 me-3' />
-                <span className='mx-auto'>Equipped</span>
-                <hr className='flex-grow-1 ms-3' />
-              </div>
-              <div className='row g-2 pb-3 mx-3 justify-contents-center'>
-                <Input
-                  name='requirement.equipped.numberEquipped'
-                  value={state.requirement?.equipped?.numberEquipped}
-                  label='Number Equipped'
-                  onChange={setState}
-                  validation='num'
-                  invalidText={'Must contain only numbers'}
-                />
-                <Select
-                  multiple={true}
-                  name='requirement.equipped.category'
-                  value={state.requirement?.equipped?.category}
-                  label='Item Category'
-                  options={builders.item.category}
-                  onChange={setState}
-                />
-                <Select
-                  multiple={true}
-                  name='requirement.equipped.itemType'
-                  label='Item type'
-                  value={state.requirement?.equipped?.itemType}
-                  options={items.filter((item) =>
-                    state.requirement.equipped?.category?.length > 0
-                      ? state.requirement.equipped?.category?.some(
-                          (category) => category.name === item.category.name
-                        )
-                      : item
-                  )}
-                  onChange={setState}
-                />
-                <Select
-                  multiple={true}
-                  name='requirement.equipped.property'
-                  label='Item Property'
-                  value={state.requirement?.equipped?.property}
-                  options={[].concat(
-                    ...items
-                      .filter((item) =>
-                        state.requirement.equipped?.category?.length > 0
-                          ? state.requirement.equipped?.category?.some(
-                              (category) => category.name === item.category.name
-                            )
-                          : item
-                      )
-                      .filter((item) =>
-                        state.requirement.equipped?.itemType?.length > 0
-                          ? state.requirement.equipped?.itemType?.some(
-                              (type) => type.name === item.name
-                            )
-                          : item
-                      )
-                      .map((item) => item.property)
-                  )}
-                  onChange={setState}
-                />
-              </div>
-            </>
-          )}
-          {state.requirement?.option?.some(
-            (optionItem) => optionItem.name === 'notEquipped'
-          ) && (
-            <>
-              <div className='d-flex mx-3'>
-                <hr className='flex-grow-1 me-3' />
-                <span className='mx-auto'>Not Equipped</span>
-                <hr className='flex-grow-1 ms-3' />
-              </div>
-              <div className='row g-2 pb-3 mx-3 justify-contents-center'>
-                <Select
-                  multiple={true}
-                  name='requirement.notEquipped.category'
-                  value={state.requirement?.notEquipped?.category}
-                  label='Item Category'
-                  options={builders.item.category}
-                  onChange={setState}
-                />
-                <Select
-                  multiple={true}
-                  name='requirement.notEquipped.itemType'
-                  label='Item type'
-                  value={state.requirement?.notEquipped?.itemType}
-                  options={items.filter((item) =>
-                    state.requirement.notEquipped?.category?.length > 0
-                      ? state.requirement.notEquipped?.category?.some(
-                          (category) => category.name === item.category.name
-                        )
-                      : item
-                  )}
-                  onChange={setState}
-                />
-                <Select
-                  multiple={true}
-                  name='requirement.notEquipped.property'
-                  label='Item Property'
-                  value={state.requirement?.notEquipped?.property}
-                  options={[].concat(
-                    ...items
-                      .filter((item) =>
-                        state.requirement.notEquipped?.category?.length > 0
-                          ? state.requirement.notEquipped?.category?.some(
-                              (category) => category.name === item.category.name
-                            )
-                          : item
-                      )
-                      .filter((item) =>
-                        state.requirement.notEquipped?.itemType?.length > 0
-                          ? state.requirement.notEquipped?.itemType?.some(
-                              (type) => type.name === item.name
-                            )
-                          : item
-                      )
-                      .map((item) => item.property)
-                  )}
-                  onChange={setState}
-                />
-              </div>
-            </>
-          )}
-          {state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'limitUse'
-          ) &&
-            state.limitUse?.limitBy?.name === 'level' &&
-            (!state.limitUse.level?.length > 0 ? (
-              setState({
-                type: 'added',
-                payload: {
-                  target: {
-                    name: 'limitUse.level',
-                  },
-                },
-              })
-            ) : (
-              <div>
-                <Table
-                  rows={{
-                    inputs: [
-                      {
-                        name: 'value',
-                        invalid: 'Must contain only numbers',
-                        validation: 'num',
-                      },
-                      {
-                        name: 'useNum',
-                        invalid: 'Must contain only numbers',
-                        validation: 'num',
-                      },
-                    ],
-                    headers: [
-                      {
-                        value: 'Level',
-                        readOnly: true,
-                      },
-                      {
-                        value: 'Uses',
-                        readOnly: true,
-                      },
-                    ],
-                  }}
-                  name='limitUse.level'
-                  value={state.limitUse?.level}
-                  onChange={setState}
-                  dynamic={true}
-                />
-              </div>
-            ))}
-          {state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'doesDamage'
-          ) ? (
-            !state.damage?.damageByLevel ? (
-              setState({
-                type: 'added',
-                payload: {
-                  target: {
-                    name: 'damage.damageByLevel',
-                  },
-                },
-              })
-            ) : (
-              <div className='row g-2 align-items-end pb-2'>
-                <Select
-                  multiple={true}
-                  name='damage.damageAttribute'
-                  value={state.damage?.damageAttribute}
-                  label='Damage Attribute'
-                  options={builders.feature.damageAttribute}
-                  required={true}
-                  onChange={setState}
-                />
-                <Select
-                  name='damage.damageType'
-                  multiple={true}
-                  label='Damage Type'
-                  value={state.damage?.damageType}
-                  options={builders.damage}
-                  required={true}
-                  onChange={setState}
-                />
-                {state.damage?.damageAttribute?.some(
-                  (attributeItem) => attributeItem.name === 'bonusDamage'
+                </div>
+                {state.requirement?.option?.some(
+                  (state) => state.name === 'itemProficiency'
                 ) && (
-                  <Select
-                    name='damage.bonus.bonusAttribute'
-                    label='Bonus Type'
-                    value={state.bonus?.bonusAttribute}
-                    options={builders.feature.bonusAttribute}
-                    required={true}
-                    onChange={setState}
-                  />
+                  <>
+                    <div className='d-flex mx-3'>
+                      <hr className='flex-grow-1 me-3' />
+                      <span className='mx-auto'>Item Proficiency</span>
+                      <hr className='flex-grow-1 ms-3' />
+                    </div>
+                    <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
+                      <Select
+                        multiple={true}
+                        name={`requirement.itemProficiency.category`}
+                        value={
+                          state.requirement?.itemProficiency?.category
+                        }
+                        label='Item Category'
+                        options={builders.item.category}
+                        onChange={setState}
+                      />
+                      <Select
+                        name={`requirement.itemProficiency.property`}
+                        multiple={true}
+                        label='Item Property'
+                        value={
+                          state.requirement?.itemProficiency?.property
+                        }
+                        options={[].concat(
+                          ...items
+                            .filter((item) =>
+                              state.requirement?.itemProficiency?.category
+                                ?.length > 0
+                                ? state.requirement?.itemProficiency?.category?.some(
+                                    (category) =>
+                                      category.name === item.category.name
+                                  )
+                                : item
+                            )
+                            .map((item) => item.property)
+                        )}
+                        onChange={setState}
+                      />
+                      <Select
+                        name={`requirement.itemProficiency.itemType`}
+                        multiple={true}
+                        label='Item type'
+                        value={
+                          state.requirement?.itemProficiency?.itemType
+                        }
+                        options={items.filter((item) =>
+                          state.requirement.itemProficiency?.category
+                            ?.length > 0
+                            ? state.requirement.itemProficiency?.category?.some(
+                                (category) =>
+                                  category.name === item.category.name
+                              )
+                            : item
+                        )}
+                        onChange={setState}
+                      />
+                    </div>
+                  </>
                 )}
-                {state.damage?.bonus?.bonusAttribute?.name ===
-                  'abilityBonus' && (
-                  <Select
-                    name='damage.bonus.ability'
-                    label='Abilty'
-                    value={state.damage?.bonus?.ability}
-                    options={builders.ability}
-                    required={true}
-                    onChange={setState}
-                  />
+                {state.requirement?.option?.some(
+                  (state) => state.name === 'equipped'
+                ) && (
+                  <>
+                    <div className='d-flex mx-3'>
+                      <hr className='flex-grow-1 me-3' />
+                      <span className='mx-auto'>Equipped</span>
+                      <hr className='flex-grow-1 ms-3' />
+                    </div>
+                    <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
+                      <Input
+                        name={`requirement.equipped.numberEquipped`}
+                        value={
+                          state.requirement?.equipped?.numberEquipped
+                        }
+                        label='Number Equipped'
+                        onChange={setState}
+                        validation='num'
+                        invalidText={'Must contain only numbers'}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`requirement.equipped.category`}
+                        value={state.requirement?.equipped?.category}
+                        label='Item Category'
+                        options={builders.item.category}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`requirement.equipped.property`}
+                        label='Item Property'
+                        value={state.requirement?.equipped?.property}
+                        options={[].concat(
+                          ...items
+                            .filter((item) =>
+                              state.requirement?.equipped?.category
+                                ?.length > 0
+                                ? state.requirement?.equipped?.category?.some(
+                                    (category) =>
+                                      category.name === item.category.name
+                                  )
+                                : item
+                            )
+                            .map((item) => item.property)
+                        )}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`requirement.equipped.itemType`}
+                        label='Item type'
+                        value={state.requirement?.equipped?.itemType}
+                        options={items.filter((item) =>
+                          state.requirement.equipped?.category?.length > 0
+                            ? state.requirement.equipped?.category?.some(
+                                (category) =>
+                                  category.name === item.category.name
+                              )
+                            : item
+                        )}
+                        onChange={setState}
+                      />
+                    </div>
+                  </>
                 )}
-              </div>
+                {state.requirement?.option?.some(
+                  (state) => state.name === 'notEquipped'
+                ) && (
+                  <>
+                    <div className='d-flex mx-3'>
+                      <hr className='flex-grow-1 me-3' />
+                      <span className='mx-auto'>Not Equipped</span>
+                      <hr className='flex-grow-1 ms-3' />
+                    </div>
+                    <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
+                      <Select
+                        multiple={true}
+                        name={`requirement.notEquipped.category`}
+                        value={state.requirement?.notEquipped?.category}
+                        label='Item Category'
+                        options={builders.item.category}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`requirement.notEquipped.property`}
+                        value={state.requirement?.notEquipped?.property}
+                        label='Item Property'
+                        options={[].concat(
+                          ...items
+                            .filter((item) =>
+                              state.requirement.notEquipped?.category
+                                ?.length > 0
+                                ? state.requirement.notEquipped?.category?.some(
+                                    (category) =>
+                                      category.name === item.category.name
+                                  )
+                                : item
+                            )
+                            .map((item) => item.property)
+                        )}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`requirement.notEquipped.itemType`}
+                        label='Item type'
+                        value={state.requirement?.notEquipped?.itemType}
+                        options={items.filter((item) =>
+                          state.requirement.notEquipped?.category
+                            ?.length > 0
+                            ? state.requirement.notEquipped?.category?.some(
+                                (category) =>
+                                  category.name === item.category.name
+                              )
+                            : item
+                        )}
+                        onChange={setState}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
             )
-          ) : (
-            state.damage != null &&
-            Object.keys(state.damage).length !== 0 &&
+          : !!state.requirement &&
             setState({
               type: 'removed',
-              payload: { target: { name: 'damage' } },
+              payload: {
+                target: { name: `requirement` },
+              },
+            })}
+        {state.limitUse?.limitBy?.name === 'level' &&
+        state.attribute?.some(
+          (attributeItem) => attributeItem.name === 'limitUse'
+        ) ? (
+          !state.limitUse.level ? (
+            setState({
+              type: 'added',
+              payload: {
+                target: {
+                  name: `limitUse.level`,
+                },
+              },
             })
-          )}
-          {state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'doesDamage'
-          ) &&
-            Object.keys(state.damage).length !== 0 && (
-              <>
-                <div
-                  className='btn btn-section-collapse justify-content-between align-items-center'
-                  id='sectionCollapseButton'
-                  type='button'
-                  role='button'
-                  data-bs-toggle='collapse'
-                  data-bs-target='#sectionCollapse'
-                  aria-controls='collapseExample'
-                  aria-expanded='true'
-                >
-                  <span className='me-3'>Damage Table</span>
-                  <i className='bi bi-arrow-down-up' />
+          ) : (
+            <>
+              <div
+                className='btn btn-section-collapse justify-content-between align-items-center'
+                id='limitCollapseButton'
+                type='button'
+                role='button'
+                data-bs-toggle='collapse'
+                data-bs-target={`#$limitUseCollapse`}
+                aria-controls='collapseExample'
+                aria-expanded='true'
+              >
+                <span className='me-3'>Limit Use Table</span>
+                <i className='bi bi-arrow-down-up' />
+              </div>
+              <div
+                className='section-container collapse show'
+                id={`limitUseCollapse`}
+              >
+                <div className='section-content'>
+                  <Table
+                    rows={{
+                      inputs: [
+                        {
+                          name: 'value',
+                          invalid: 'Must contain only numbers',
+                          validation: 'num',
+                          size: 'col-5',
+                        },
+                        {
+                          name: 'useNum',
+                          invalid: 'Must contain only numbers',
+                          validation: 'num',
+                          size: 'col-5',
+                        },
+                      ],
+                      headers: [
+                        {
+                          value: 'Level',
+                          readOnly: true,
+                          size: 'col-5',
+                        },
+                        {
+                          value: 'Uses',
+                          readOnly: true,
+                          size: 'col-5',
+                        },
+                      ],
+                    }}
+                    name={`limitUse.level`}
+                    value={state.limitUse?.level}
+                    onChange={setState}
+                    dynamic={true}
+                  />
                 </div>
-                <div
-                  className='section-container collapse show'
-                  id='sectionCollapse'
-                >
-                  <div className='section-content'>
-                    <Table
-                      rows={{
-                        inputs: damageTableColumns(state.damage).inputs,
-                        headers: damageTableColumns(state.damage).headers,
-                      }}
-                      className={`row-cols-lg-${
-                        damageTableColumns(state.damage).inputs.length + 1
-                      }`}
-                      name='damage.damageByLevel'
-                      value={state.damage?.damageByLevel}
-                      onChange={setState}
-                      dynamic={true}
-                      scrollable={true}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-        </>
-      ),
-    },
-    {
-      name: 'features',
-      content: (
-        <>
+              </div>
+            </>
+          )
+        ) : (
+          state.limitUse?.level?.length > 0 &&
+          setState({
+            type: 'removed',
+            payload: {
+              target: { name: `limitUse.level` },
+            },
+          })
+        )}
+        <div className='dropdown col-auto'>
           <button
-            className='btn btn-secondary'
+            className='btn btn-secondary dropdown-toggle btn'
             type='button'
-            onClick={() =>
-              setState({
-                type: 'added',
-                payload: { target: { name: 'feature' } },
-              })
-            }
+            data-bs-toggle='dropdown'
+            aria-expanded='false'
           >
-            Add Feature
+            Add...
           </button>
-          {state.feature?.length > 0 && (
-            <TabNavigation
-              id='feature'
-              tabState={state.feature?.map((featureItem, featureIndex) => {
-                const stateName = `feature.${featureIndex}`
-                return {
-                  value:
-                    featureItem.value == null || featureItem.value === ''
-                      ? startCase(`feature ${featureIndex + 1}`)
-                      : featureItem.value,
-                  name: stateName,
-                  content: featureTabContent(stateName, featureItem),
-                }
-              })}
-              reorder={true}
-              contentState={state.feature}
-              setState={setState}
-              dynamic={true}
-            />
-          )}
+          <ul className='dropdown-menu'>
+            {sectionTabContent(state)
+              .filter(
+                (sectionItem) =>
+                  (state['style']?.option?.length > 0
+                    ? sectionItem.name === 'style'
+                    : sectionItem)
+              )
+              .map((sectionItem, sectionIndex) => (
+                <li key={sectionIndex} className='dropdown-item'>
+                  <button
+                    key={sectionIndex}
+                    className='dropdown-item'
+                    type='button'
+                    name={`${sectionItem.name}${
+                      sectionItem.name === 'style' ? '.option' : ''
+                    }`}
+                    onClick={(e) => setState({ type: 'added', payload: e })}
+                  >
+                    {`${startCase(sectionItem.name)}`}
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </div>
+        {Object.keys(state)?.length !== 0 &&
+        Object.keys(state)?.some(
+          (key) => state[key]?.length !== 0
+        ) && (
+          <TabNavigation
+            id={`section`}
+            tabState={[].concat(
+              ...sectionTabContent(null, state)
+                .filter(
+                  (sectionGroupItem) => !!state[sectionGroupItem.name]
+                )
+                ?.map((sectionGroupItem) => {
+                  return sectionGroupItem
+                    .content()
+                    .map((sectionItem, sectionIndex) => {
+                      return {
+                        value:
+                          state[sectionGroupItem.name]?.option?.[
+                            sectionIndex
+                          ]?.value ??
+                          startCase(
+                            `${sectionGroupItem.name} ${sectionIndex + 1}`
+                          ),
+                        name: `${sectionGroupItem.name}${
+                          sectionGroupItem.name === 'style' ? '.option' : ''
+                        }.${sectionIndex}`,
+                        content: sectionItem,
+                      }
+                    })
+                })
+            )}
+            dynamic={true}
+            setState={setState}
+          />
+        )}
         </>
       ),
-    },
+    }
   ]
 
   content = (

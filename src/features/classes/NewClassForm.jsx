@@ -232,6 +232,7 @@ const NewClassForm = () => {
       value: inputItem.value,
       readOnly: true,
       size: inputItem.size,
+      required: true
     }))
 
     setLevelTableColumns({ inputs: inputArray, headers: headerArray })
@@ -340,6 +341,7 @@ const NewClassForm = () => {
       value: inputItem.value,
       readOnly: true,
       size: inputItem.size,
+      required: true,
     }))
 
     return { inputs: inputArray, headers: headerArray }
@@ -1345,7 +1347,6 @@ const NewClassForm = () => {
               return featureTabContent(
                 sectionStateName,
                 optionItem,
-                optionIndex,
                 level,
                 style
               )
@@ -2318,7 +2319,7 @@ const NewClassForm = () => {
                             startCase(
                               `${sectionGroupItem.name} ${sectionIndex + 1}`
                             ),
-                          name: `${stateName}.${sectionGroupItem.name}.${sectionIndex}`,
+                          name: `${stateName}.${sectionGroupItem.name}${sectionGroupItem.name === 'style' ? '.option' : ''}.${sectionIndex}`,
                           content: sectionItem,
                         }
                       })
@@ -3060,7 +3061,16 @@ const NewClassForm = () => {
                               Remove Option
                             </button>
                           </div>
-                          {optionItem.equipment?.length > 0 && (
+                          {!optionItem.equipment?.length > 0 ? (
+                            setState({
+                              type: 'added',
+                              payload: {
+                                target: {
+                                  name: `startingEquipment.${groupIndex}.option.${optionIndex}.equipment`,
+                                },
+                              },
+                            })
+                          ) : (
                             <Fragment key={optionIndex}>
                               <TabNavigation
                                 id={`startingEquipment${groupIndex}Option${optionIndex}Equipment`}

@@ -280,11 +280,11 @@ const Class = () => {
                       key={featureIndex}
                       className='pb-4'
                     >
-                      <h5>
+                      <h4>
                         <strong>
                           <u>{featureItem.value}</u>
                         </strong>
-                      </h5>
+                      </h4>
                       {featureItem.desc && parse(featureItem.desc)}
                     </section>
                   ))}

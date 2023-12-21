@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 import { uniqBy } from 'lodash'
 const Select = ({
   name,
@@ -445,4 +445,6 @@ const Select = ({
   return content
 }
 
-export default Select
+const memoizedSelect = memo(Select)
+
+export default memoizedSelect

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, memo } from 'react'
 import useDebounce from '../hooks/useDebounce'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
@@ -106,4 +106,6 @@ const Input = ({
   return content
 }
 
-export default Input
+const memoizedInput = memo(Input)
+
+export default memoizedInput

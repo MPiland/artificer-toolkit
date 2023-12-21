@@ -11,11 +11,17 @@ blockquote {
 }
 
 .form-control {
-  border-color: grey;
+  border-color: grey !important;
   text-overflow: ellipsis;
 }
 
-.form-input-label.required:after {
+.form-input-label.required::after {
+  content: ' *';
+  color: rgb(255, 0, 0);
+  font-weight: bold;
+}
+
+.header.required::after {
   content: ' *';
   color: rgb(255, 0, 0);
   font-weight: bold;

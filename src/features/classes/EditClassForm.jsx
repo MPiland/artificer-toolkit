@@ -275,6 +275,7 @@ const EditClassForm = () => {
         value: inputItem.value,
         readOnly: true,
         size: inputItem.size,
+        required: true,
       }))
 
       setLevelTableColumns({ inputs: inputArray, headers: headerArray })
@@ -424,6 +425,7 @@ const EditClassForm = () => {
       value: inputItem.value,
       readOnly: true,
       size: inputItem.size,
+      required: true,
     }))
 
     return { inputs: inputArray, headers: headerArray }
@@ -1429,7 +1431,6 @@ const EditClassForm = () => {
               return featureTabContent(
                 sectionStateName,
                 optionItem,
-                optionIndex,
                 level,
                 style
               )
@@ -2344,6 +2345,7 @@ const EditClassForm = () => {
                           name: 'selectionCount',
                           validation: 'num',
                           invalidText: 'Must enter whole numbers',
+                          required: true,
                           size: 'col',
                         },
                       ],
@@ -2356,6 +2358,7 @@ const EditClassForm = () => {
                         {
                           value: 'Selection Count',
                           size: 'col',
+                          required: true,
                           readOnly: true,
                         },
                       ],
@@ -2402,7 +2405,9 @@ const EditClassForm = () => {
                             startCase(
                               `${sectionGroupItem.name} ${sectionIndex + 1}`
                             ),
-                          name: `${stateName}.${sectionGroupItem.name}.${sectionIndex}`,
+                          name: `${stateName}.${sectionGroupItem.name}${
+                            sectionGroupItem.name === 'style' ? '.option' : ''
+                          }.${sectionIndex}`,
                           content: sectionItem,
                         }
                       })
@@ -3144,7 +3149,16 @@ const EditClassForm = () => {
                               Remove Option
                             </button>
                           </div>
-                          {optionItem.equipment?.length > 0 && (
+                          {!optionItem.equipment?.length > 0 ? (
+                            setState({
+                              type: 'added',
+                              payload: {
+                                target: {
+                                  name: `startingEquipment.${groupIndex}.option.${optionIndex}.equipment`,
+                                },
+                              },
+                            })
+                          ) : (
                             <Fragment key={optionIndex}>
                               <TabNavigation
                                 id={`startingEquipment${groupIndex}Option${optionIndex}Equipment`}
@@ -3329,11 +3343,7 @@ const EditClassForm = () => {
                       ? startCase(`Feature ${featureIndex + 1}`)
                       : featureItem.value,
                   name: stateName,
-                  content: featureTabContent(
-                    stateName,
-                    featureItem,
-                    level
-                  ),
+                  content: featureTabContent(stateName, featureItem, level),
                 }
               })}
               contentState={state.feature}

@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState, Fragment, memo } from 'react'
 import useSortableData from '../hooks/useSortableData'
 import { getValueFromState } from '../helpers/formatting'
 import useMediaQuery from '../hooks/useMediaQuery'
@@ -32,7 +32,7 @@ const TableHeader = ({
                   headerItem.className ?? ''
                 } ${sortable ? 'sortable' : ''} ${getClassNames(
                   headerItem.name?.sortOn ?? headerItem.name
-                )} header text-start`}
+                )} ${headerItem.required ? 'required' : ''} header text-start`}
                 onClick={() => sortable && requestSort(headerItem.name)}
               >
                 {headerItem.value}
@@ -139,7 +139,7 @@ const TableRow = ({
                     multiple={inputItem.multiple}
                     placeholder={inputItem.value}
                     value={get(valueItem, inputItem.name)}
-                    required={true}
+                    required={inputItem.required}
                     options={inputItem.options}
                     optionalKey={inputItem.optionalKey}
                     onChange={onChange}
@@ -353,4 +353,6 @@ function Table({
   return content
 }
 
-export default Table
+const memoizedTable = memo(Table)
+
+export default memoizedTable
