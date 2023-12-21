@@ -124,7 +124,7 @@ const ClassList = ({ scrollPosition }) => {
           breakpoint: '',
         },
         {
-          name: { sortOn: 'category' },
+          name: { sortOn: 'category.value' },
           value: 'Category',
           border: false,
           className: 'fw-bold',

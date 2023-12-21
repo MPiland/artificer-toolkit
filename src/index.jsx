@@ -14,12 +14,12 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { DndProvider } from 'react-dnd-multi-backend'
 import { HTML5toTouch } from 'rdndmb-html5-to-touch'
 
-if (process.env.NODE_ENV === 'production') disableReactDevTools()
+if (import.meta.env.MODE === 'production') disableReactDevTools()
 
 const root = ReactDOM.createRoot(document.getElementById('root'))
 root.render(
   <React.StrictMode>
-    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_REACT_APP_GOOGLE_CLIENT_ID}>
       <Provider store={store}>
         <DndProvider options={HTML5toTouch}>
           <BrowserRouter>

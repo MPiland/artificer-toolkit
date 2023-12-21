@@ -27,7 +27,7 @@ const TabNavigation = ({
   const [tabContWidth, setTabContWidth] = useState()
   const [wrapperWidth, setWrapperWidth] = useState()
   const [tabStateLength, setTabStateLength] = useState({
-    [id]: tabState.length,
+    [id]: tabState?.length,
   })
   const [isDragging, setIsDragging] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
@@ -271,7 +271,7 @@ const TabNavigation = ({
     leftPosition,
     id,
     hiddenWidth,
-    tabState.length,
+    tabState?.length,
   ])
 
   const scrollRight = () => {

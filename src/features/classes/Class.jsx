@@ -152,30 +152,24 @@ const Class = () => {
               ) : (
                 <>
                   {userClass.feature?.length > 0 &&
-                    userClass.feature.map(
-                      (featureItem, featureIndex) =>
-                        !featureItem.attribute?.some(
-                          (attributeItem) =>
-                            attributeItem.name === 'hideInBuilder'
-                        ) && (
-                          <li
-                            className={`sidebar-item ${
-                              activeSection === featureItem.name ? 'active' : ''
-                            }`}
-                            key={featureIndex}
-                          >
-                            <a
-                              href='/'
-                              className='sidebar-link'
-                              onClick={(e) => {
-                                scrollToElement(e, featureItem.name)
-                              }}
-                            >
-                              {featureItem.value}
-                            </a>
-                          </li>
-                        )
-                    )}
+                    userClass.feature.map((featureItem, featureIndex) => (
+                      <li
+                        className={`sidebar-item ${
+                          activeSection === featureItem.name ? 'active' : ''
+                        }`}
+                        key={featureIndex}
+                      >
+                        <a
+                          href='/'
+                          className='sidebar-link'
+                          onClick={(e) => {
+                            scrollToElement(e, featureItem.name)
+                          }}
+                        >
+                          {featureItem.value}
+                        </a>
+                      </li>
+                    ))}
                 </>
               )}
             </ul>
@@ -220,21 +214,16 @@ const Class = () => {
                       {detailItem.desc && parse(detailItem.desc)}
                       {detailIndex === userClass.details.length - 1 &&
                         userClass.feature?.length > 0 &&
-                        userClass.feature.map(
-                          (featureItem, featureIndex) =>
-                            (!featureItem?.attribute ||
-                              !featureItem?.attribute?.some(
-                                (attributeItem) =>
-                                  attributeItem.name === 'hideInBuilder'
-                              )) && (
-                              <Fragment key={featureIndex}>
-                                <h4>
-                                  <strong>{featureItem.value}</strong>
-                                </h4>
-                                {featureItem.desc && parse(featureItem.desc)}
-                              </Fragment>
-                            )
-                        )}
+                        userClass.feature.map((featureItem, featureIndex) => (
+                          <Fragment key={featureIndex}>
+                            <h4>
+                              <strong>
+                                <u>{featureItem.value}</u>
+                              </strong>
+                            </h4>
+                            {featureItem.desc && parse(featureItem.desc)}
+                          </Fragment>
+                        ))}
                     </section>
                   ))}
                 {userClass.subclass && userClass.subclass?.name && (
@@ -248,57 +237,57 @@ const Class = () => {
                 )}
                 {subclass.length > 0 && (
                   <>
-                    {subclass.map((subclassItem, subClassIndex) => (
-                      <section id={`${subclassItem.name}`} key={subClassIndex}>
-                        <h4>
-                          <strong>{subclassItem.value}</strong>
-                        </h4>
-                        {subclassItem.desc && parse(subclassItem.desc)}
-                        {userClass.feature?.length > 0 &&
-                          userClass.feature.map(
-                            (featureItem, featureIndex) =>
-                              (!featureItem?.attribute ||
-                                featureItem?.attribute?.some(
-                                  (attributeItem) =>
-                                    attributeItem.name !== 'hideInBuilder'
-                                )) && (
-                                <Fragment key={featureIndex}>
-                                  <h4>
-                                    <strong>{featureItem.value}</strong>
-                                  </h4>
-                                  {featureItem.desc && parse(featureItem.desc)}
-                                </Fragment>
-                              )
-                          )}
-                        {subClassIndex !== subclass.length - 1 && <hr />}
-                      </section>
-                    ))}
+                    {subclass.map((subclassItem, subClassIndex) => {
+                      return (
+                        <section
+                          id={`${subclassItem.name}`}
+                          key={subClassIndex}
+                        >
+                          <h3>
+                            <strong>{subclassItem.value}</strong>
+                          </h3>
+                          <hr />
+                          {subclassItem.desc && parse(subclassItem.desc)}
+                          {subclassItem.feature?.length > 0 &&
+                            subclassItem.feature.map(
+                              (featureItem, featureIndex) => {
+                                return (
+                                  <Fragment key={featureIndex}>
+                                    <h4>
+                                      <strong>
+                                        <u>{featureItem.value}</u>
+                                      </strong>
+                                    </h4>
+                                    {featureItem.desc &&
+                                      parse(featureItem.desc)}
+                                  </Fragment>
+                                )
+                              }
+                            )}
+                          {subClassIndex !== subclass.length - 1 && <hr />}
+                        </section>
+                      )
+                    })}
                   </>
                 )}
               </>
             ) : (
               <>
                 {userClass.feature.length > 0 &&
-                  userClass.feature.map(
-                    (featureItem, featureIndex) =>
-                      (!featureItem?.attribute ||
-                        featureItem?.attribute?.some(
-                          (attributeItem) =>
-                            attributeItem.name !== 'hideInBuilder'
-                        )) && (
-                        <section
-                          id={`${featureItem.name}`}
-                          key={featureIndex}
-                          className='pb-4'
-                        >
-                          <h5>
-                            <strong>{featureItem.value}</strong>
-                          </h5>
-                          <hr />
-                          {featureItem.desc && parse(featureItem.desc)}
-                        </section>
-                      )
-                  )}
+                  userClass.feature.map((featureItem, featureIndex) => (
+                    <section
+                      id={`${featureItem.name}`}
+                      key={featureIndex}
+                      className='pb-4'
+                    >
+                      <h5>
+                        <strong>
+                          <u>{featureItem.value}</u>
+                        </strong>
+                      </h5>
+                      {featureItem.desc && parse(featureItem.desc)}
+                    </section>
+                  ))}
               </>
             )}
           </div>

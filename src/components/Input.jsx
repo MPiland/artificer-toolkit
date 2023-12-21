@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import useDebounce from '../hooks/useDebounce'
 
-const NUM_REGEX = /^[0-9]+(, [0-9]+)*$/
+const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
 
 const Input = ({
@@ -19,7 +19,6 @@ const Input = ({
   validation,
   className,
   autoFocus,
-  password,
 }) => {
   const inputRef = useRef(null)
   const [inputValue, setInputValue] = useState(value)

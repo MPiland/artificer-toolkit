@@ -1,20 +1,18 @@
 import { useState, useEffect, useReducer, useRef, Fragment } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   useAddNewClassMutation,
-  useUpdateClassMutation,
   useGetClassesQuery,
-  selectClassById,
   selectAllClasses,
 } from './classesApiSlice'
 import { useGetBuildersQuery } from '../builders/buildersApiSlice'
 import { selectAllSpells, useGetSpellsQuery } from '../spells/spellsApiSlice'
 import { selectAllFeats, useGetFeatsQuery } from '../feats/featsApiSlice'
 import { selectAllItems, useGetItemsQuery } from '../items/itemsApiSlice'
-import { startCase, isEqual } from 'lodash'
+import { startCase } from 'lodash'
+import { handleValidation } from '../../helpers/form'
 import { useSelector } from 'react-redux'
 import { selectLoadingStatus } from '../../app/loadingSlice'
-import { handleValidation } from '../../helpers/form'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import formReducer from '../../hooks/useReducer'
 import Spinner from '../../components/Spinner'
@@ -24,11 +22,8 @@ import Table from '../../components/Table'
 import Select from '../../components/Select'
 import Input from '../../components/Input'
 
-const EditClassForm = () => {
-  const location = useLocation()
+const NewClassForm = () => {
   const navigate = useNavigate()
-
-  const id = location.state.data
 
   const isLoading = useSelector(selectLoadingStatus)
 
@@ -37,14 +32,13 @@ const EditClassForm = () => {
 
   const { data: builders } = useGetBuildersQuery('buildersList')
 
-  const { classes, userClass } = useGetClassesQuery('classesList', {
+  const { classes } = useGetClassesQuery('classesList', {
     selectFromResult: ({ data }) => ({
       classes: data && selectAllClasses(data),
-      userClass: data && selectClassById(data, id),
     }),
   })
 
-  const { spells } = useGetSpellsQuery('spellsList', {
+  const { spells } = useGetSpellsQuery('spellList', {
     selectFromResult: ({ data }) => ({
       spells: data && selectAllSpells(data),
     }),
@@ -63,53 +57,43 @@ const EditClassForm = () => {
     { isSuccess: addIsSuccess, isError: addIsError, error: addError },
   ] = useAddNewClassMutation()
 
-  const [
-    updateClass,
-    { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
-  ] = useUpdateClassMutation()
-
-  const [oldState, setOldState] = useState(userClass)
-  const [state, setState] = useReducer(formReducer, userClass)
+  const [state, setState] = useReducer(formReducer, {})
   const [successMessage, setSuccessMessage] = useState()
   const [errorMessage, setErrorMessage] = useState()
   const [levelTableColumns, setLevelTableColumns] = useState()
-  const [match, setMatch] = useState()
   const textRefs = useRef([])
 
   useEffect(() => {
-    if (!state && userClass) {
-      setState({
-        type: 'reset',
-        payload: { target: userClass },
-      })
-    }
-  })
-
-  useEffect(() => {
-    if (addIsSuccess || updateIsSuccess) {
+    if (addIsSuccess) {
       setSuccessMessage('Class added successfully!')
-      setErrorMessage()
-      const successElement = document.getElementById('error-message')
+      const successElement = document.getElementById('success-message')
       if (successElement) {
         successElement.scrollIntoView()
       }
       handleValidation(true)
+      setState({
+        type: 'reset',
+        payload: { target: {} },
+      })
     }
-  }, [addIsSuccess, id, navigate, updateIsSuccess])
+    textRefs.current.forEach((textRef) => {
+      textRef.resetState('')
+    })
+  }, [addIsSuccess, setState])
 
   useEffect(() => {
-    if (addIsError || updateIsError) {
-      setErrorMessage(addError.data.message)
+    if (addIsError) {
+      setErrorMessage(addError.message)
       const errorrElement = document.getElementById('error-message')
       if (errorrElement) {
         errorrElement.scrollIntoView()
       }
     }
-  }, [addIsError, id, updateIsError, addError, updateError])
+  }, [addIsError, addError])
 
   useEffect(() => {
     document.addEventListener('keypress', () => {
-      if (successMessage != null && !match) {
+      if (successMessage != null) {
         setSuccessMessage()
         handleValidation(true)
       }
@@ -119,7 +103,7 @@ const EditClassForm = () => {
     })
     return () =>
       document.removeEventListener('keypress', () => {
-        if (successMessage != null && !match) {
+        if (successMessage != null) {
           setSuccessMessage()
           handleValidation(true)
         }
@@ -131,7 +115,7 @@ const EditClassForm = () => {
 
   useEffect(() => {
     document.addEventListener('mouseup', () => {
-      if (successMessage != null && !match) {
+      if (successMessage != null) {
         setSuccessMessage()
         handleValidation(true)
       }
@@ -141,7 +125,7 @@ const EditClassForm = () => {
     })
     return () =>
       document.removeEventListener('mouseup', () => {
-        if (successMessage != null && !match) {
+        if (successMessage != null) {
           setSuccessMessage()
           handleValidation(true)
         }
@@ -152,60 +136,68 @@ const EditClassForm = () => {
   })
 
   useEffect(() => {
-    if (isEqual(oldState, state)) {
-      setMatch(true)
-    } else {
-      setMatch(false)
-    }
-  }, [state, oldState])
-
-  useEffect(() => {
-    if (!isLoading && state) {
-      const spellCaster = state.attribute?.some(
-        (attributeItem) => attributeItem.name === 'spellCaster'
-      )
-      const resource = state.attribute?.some(
-        (attributeItem) => attributeItem.name === 'resourceFeature'
-      )
-      !state.levelAttribute &&
-        setState({
-          type: 'added',
-          payload: { target: { name: 'levelAttribute' } },
-        })
-      spellCaster &&
-        state.levelAttribute?.map(
-          (levelAttributeItem, levelAttributeIndex) =>
-            !levelAttributeItem?.spellSlots &&
-            setState({
-              type: 'added',
-              payload: {
-                target: {
-                  name: `levelAttribute.${levelAttributeIndex}.spellSlots`,
-                },
+    const spellCaster = state.attribute?.some(
+      (attributeItem) => attributeItem.name === 'spellCaster'
+    )
+    !state.levelAttribute &&
+      setState({
+        type: 'added',
+        payload: { target: { name: 'levelAttribute' } },
+      })
+    spellCaster &&
+      state.levelAttribute?.map(
+        (levelAttributeItem, levelAttributeIndex) =>
+          !levelAttributeItem?.spellSlots &&
+          setState({
+            type: 'added',
+            payload: {
+              target: {
+                name: `levelAttribute.${levelAttributeIndex}.spellSlots`,
               },
-            })
-        )
+            },
+          })
+      )
 
-      const inputArray = [
-        {
-          name: 'level',
-          value: 'Level',
-          invalid: 'Must contain only numbers',
-          validation: 'num',
-          size: spellCaster
-            ? is1000
-              ? 'col-1'
-              : is600
-              ? 'col-2'
-              : 'col'
-            : 'col',
-          required: true,
-        },
-      ]
-      if (state.category?.name === 'base') {
+    const inputArray = [
+      {
+        name: 'level',
+        value: 'Level',
+        invalid: 'Must contain only numbers',
+        validation: 'num',
+        size: spellCaster
+          ? is1000
+            ? 'col-1'
+            : is600
+            ? 'col-2'
+            : 'col'
+          : 'col',
+        required: true,
+      },
+    ]
+    if (state.category?.name === 'base') {
+      inputArray.push({
+        name: 'proficiencyBonus',
+        value: 'Prof. Bonus',
+        invalid: 'Must contain only numbers',
+        validation: 'num',
+        size: spellCaster
+          ? is1000
+            ? 'col-1'
+            : is600
+            ? 'col-2'
+            : 'col'
+          : 'col',
+      })
+    }
+    if (spellCaster) {
+      if (
+        state.spellcasting?.attribute?.some(
+          (attributeItem) => attributeItem.name === 'limitKnownSpells'
+        )
+      ) {
         inputArray.push({
-          name: 'proficiencyBonus',
-          value: 'Prof. Bonus',
+          name: 'spellsKnown',
+          value: 'Spells Known',
           invalid: 'Must contain only numbers',
           validation: 'num',
           size: spellCaster
@@ -217,30 +209,11 @@ const EditClassForm = () => {
             : 'col',
         })
       }
-      if (resource) {
-        inputArray.push({
-          name: 'resourcePoints',
-          value: 'Resource Points',
-          validation: 'num',
-          invalid: 'Must contain only numbers',
-          size: spellCaster
-            ? is1000
-              ? 'col-1'
-              : is600
-              ? 'col-2'
-              : 'col'
-            : 'col',
-        })
-      }
-      if (spellCaster) {
-        if (
-          state.spellcasting?.attribute?.some(
-            (attributeItem) => attributeItem.name === 'limitKnownSpells'
-          )
-        ) {
+      if (state.spellcasting?.maxSpellLevel) {
+        for (let i = 0; i <= state.spellcasting?.maxSpellLevel; i++) {
           inputArray.push({
-            name: 'spellsKnown',
-            value: 'Spells Known',
+            name: `spellSlots.${i}.slotCount`,
+            value: `${i}`,
             invalid: 'Must contain only numbers',
             validation: 'num',
             size: spellCaster
@@ -252,34 +225,17 @@ const EditClassForm = () => {
               : 'col',
           })
         }
-        if (state.spellcasting?.maxSpellLevel) {
-          for (let i = 0; i <= state.spellcasting?.maxSpellLevel; i++) {
-            inputArray.push({
-              name: `spellSlots.${i}.slotCount`,
-              value: `${i}`,
-              invalid: 'Must contain only numbers',
-              validation: 'num',
-              size: spellCaster
-                ? is1000
-                  ? 'col-1'
-                  : is600
-                  ? 'col-2'
-                  : 'col'
-                : 'col',
-            })
-          }
-        }
       }
-
-      const headerArray = inputArray.map((inputItem) => ({
-        value: inputItem.value,
-        readOnly: true,
-        size: inputItem.size,
-      }))
-
-      setLevelTableColumns({ inputs: inputArray, headers: headerArray })
     }
-  }, [is1000, is600, state, isLoading])
+
+    const headerArray = inputArray.map((inputItem) => ({
+      value: inputItem.value,
+      readOnly: true,
+      size: inputItem.size,
+    }))
+
+    setLevelTableColumns({ inputs: inputArray, headers: headerArray })
+  }, [is1000, is600, state])
 
   const addToTextRefs = (ref) => {
     if (ref && !textRefs.current.includes(ref)) {
@@ -290,13 +246,13 @@ const EditClassForm = () => {
   const onReset = () => {
     setState({
       type: 'reset',
-      payload: { target: oldState },
+      payload: { target: {} },
     })
     setSuccessMessage()
     setErrorMessage()
     handleValidation(true)
     textRefs.current.forEach((textRef) => {
-      textRef.revertState()
+      textRef.resetState('')
     })
   }
 
@@ -313,60 +269,20 @@ const EditClassForm = () => {
     }
   }
 
-  const onUpdate = async () => {
-    setErrorMessage()
-    setSuccessMessage()
-    const isValid = handleValidation()
-    if (isValid) {
-      if (match) {
-        setErrorMessage('No changes made')
-        const errorrElement = document.getElementById('error-message')
-        if (errorrElement) {
-          errorrElement.scrollIntoView()
-        }
-      } else {
-        await updateClass(state)
-        setOldState(state)
-      }
-    } else {
-      setErrorMessage('Please fill out all required fields')
-      const errorrElement = document.getElementById('error-message')
-      if (errorrElement) {
-        errorrElement.scrollIntoView()
-      }
-    }
-  }
-
-  const onBackClick = () => {
-    if (location.state.previous.state.background.pathname === '/classes') {
-      navigate(`/classes/${state.name}`, {
-        state: {
-          data: id,
-          background: location.state.previous.state.background,
-          title: match ? state.value : oldState?.value,
-          context: 'itemCard',
-          size: 'xl',
-        },
-      })
-    } else {
-      navigate(-1)
-    }
-  }
-
   let content
 
-  if (isLoading || !state) {
+  if (isLoading) {
     return (content = <Spinner />)
   }
 
-  const damageTableColumns = (featureItem) => {
-    const secondary = featureItem?.damageAttribute?.some(
+  const damageTableColumns = (state) => {
+    const secondary = state.damageAttribute?.some(
       (attributeItem) => attributeItem.name === 'secondaryDamage'
     )
     const bonus =
-      featureItem?.damageAttribute?.some(
+      state.damageAttribute?.some(
         (attributeItem) => attributeItem.name === 'bonusDamage'
-      ) && featureItem?.bonus?.bonusAttribute?.name === 'setValue'
+      ) && state.bonus?.bonusAttribute?.name === 'setValue'
     const inputArray = [
       {
         name: 'level',
@@ -429,7 +345,7 @@ const EditClassForm = () => {
     return { inputs: inputArray, headers: headerArray }
   }
 
-  const sectionTabContent = (name, sectionItem, sectionIndex) => {
+  const sectionTabContent = (stateName, sectionItem) => {
     const tableContent = [
       {
         name: 'feat',
@@ -443,7 +359,7 @@ const EditClassForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={[].concat(
                       builders.section.attribute,
                       state.category?.name === 'subclass' &&
@@ -457,7 +373,7 @@ const EditClassForm = () => {
                     (attributeItem) => attributeItem.name === 'subtypeSpecific'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.subtype`}
+                      name={`${stateName}.${this.name}.${index}.subtype`}
                       label='Subtype'
                       value={item.subtype}
                       options={state.subtype}
@@ -471,7 +387,7 @@ const EditClassForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -480,7 +396,7 @@ const EditClassForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.feat`}
+                    name={`${stateName}.${this.name}.${index}.feat`}
                     multiple={true}
                     label='Feat'
                     value={item.feat}
@@ -491,7 +407,7 @@ const EditClassForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -518,7 +434,7 @@ const EditClassForm = () => {
                 <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={[].concat(
                       builders.section.attribute,
                       state.category?.name === 'subclass' &&
@@ -532,7 +448,7 @@ const EditClassForm = () => {
                     (attributeItem) => attributeItem.name === 'subtypeSpecific'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.subtype`}
+                      name={`${stateName}.${this.name}.${index}.subtype`}
                       label='Subtype'
                       value={item.subtype}
                       options={state.subtype}
@@ -546,7 +462,7 @@ const EditClassForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -555,7 +471,7 @@ const EditClassForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.module`}
+                    name={`${stateName}.${this.name}.${index}.module`}
                     label='Modifier Category'
                     value={item.module}
                     options={builders.modifier.module}
@@ -564,7 +480,7 @@ const EditClassForm = () => {
                   />
                   {item.module?.name && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.modType`}
+                      name={`${stateName}.${this.name}.${index}.modType`}
                       label='Modifier Type'
                       value={item.modType}
                       options={builders.modifier.modType?.filter((modItem) =>
@@ -580,7 +496,7 @@ const EditClassForm = () => {
                     item.modType?.name === 'useReset' && (
                       <>
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.limitUse.resetOption`}
+                          name={`${stateName}.${this.name}.${index}.limitUse.resetOption`}
                           label='Reset Option'
                           value={item.limitUse?.resetOption}
                           options={builders.feature.chargeReset}
@@ -588,7 +504,7 @@ const EditClassForm = () => {
                           onChange={setState}
                         />
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.limitUse.feature`}
+                          name={`${stateName}.${this.name}.${index}.limitUse.feature`}
                           label='Feature'
                           value={item.limitUse?.feature}
                           options={state.feature}
@@ -599,7 +515,7 @@ const EditClassForm = () => {
                     )}
                   {item.module?.name === 'ability' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.ability`}
+                      name={`${stateName}.${this.name}.${index}.ability`}
                       multiple={true}
                       label='Ability'
                       value={item.ability}
@@ -610,7 +526,7 @@ const EditClassForm = () => {
                   )}
                   {item.module?.name === 'saveAbility' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.saveAbility`}
+                      name={`${stateName}.${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
                       value={item.saveAbility}
@@ -621,7 +537,7 @@ const EditClassForm = () => {
                   )}
                   {item.module?.name === 'skill' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.skill`}
+                      name={`${stateName}.${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
                       value={item.skill}
@@ -632,7 +548,7 @@ const EditClassForm = () => {
                   )}
                   {item.module?.name === 'damageSave' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.damageSave`}
+                      name={`${stateName}.${this.name}.${index}.damageSave`}
                       multiple={true}
                       label='Damage'
                       value={item.damageSave}
@@ -643,7 +559,7 @@ const EditClassForm = () => {
                   )}
                   {item.module?.name === 'conditionSave' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.conditionSave`}
+                      name={`${stateName}.${this.name}.${index}.conditionSave`}
                       multiple={true}
                       label='Condition'
                       value={item.conditionSave}
@@ -656,22 +572,48 @@ const EditClassForm = () => {
                     item.modType?.name === 'penalty' ||
                     item.modType?.name === 'setDieValue' ||
                     item.modType?.name === 'setBonus') && (
-                    <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.method.methodType`}
-                      label='Method'
-                      value={item.method?.methodType}
-                      options={builders.modifier.method.filter((methodItem) =>
-                        methodItem.module?.some(
-                          (moduleItem) => moduleItem.id === item.module?.id
-                        )
-                      )}
-                      required={true}
-                      onChange={setState}
-                    />
+                    <>
+                      <Select
+                        name={`${stateName}.${this.name}.${index}.method.methodType`}
+                        label='Method'
+                        value={item.method?.methodType}
+                        options={builders.modifier.method.filter((methodItem) =>
+                          methodItem.module?.some(
+                            (moduleItem) => moduleItem.id === item.module?.id
+                          )
+                        )}
+                        required={true}
+                        onChange={setState}
+                      />
+
+                      {item.method?.methodType?.name !== 'addPerLevel' &&
+                        item.method?.methodType?.name !== 'diePerLevel' && (
+                          <>
+                            <Input
+                              validation='num'
+                              name={`${stateName}.${this.name}.${index}.minValue`}
+                              label='Minimum Value'
+                              invalidText='Must contain only whole numbers'
+                              autoComplete='off'
+                              value={item.multiplier}
+                              onChange={setState}
+                            />
+                            <Input
+                              validation='num'
+                              name={`${stateName}.${this.name}.${index}.multiplier`}
+                              label='Multiplier'
+                              invalidText='Must contain only whole numbers'
+                              autoComplete='off'
+                              value={item.multiplier}
+                              onChange={setState}
+                            />
+                          </>
+                        )}
+                    </>
                   )}
                   {item.module?.name === 'condition' ? (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.condition`}
+                      name={`${stateName}.${this.name}.${index}.condition`}
                       multiple={true}
                       label='Condition Type'
                       value={item.condition}
@@ -681,7 +623,7 @@ const EditClassForm = () => {
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.speed`}
+                      name={`${stateName}.${this.name}.${index}.speed`}
                       multiple={true}
                       value={item.speed}
                       label='Speed Type'
@@ -691,7 +633,7 @@ const EditClassForm = () => {
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.passive`}
+                      name={`${stateName}.${this.name}.${index}.passive`}
                       multiple={true}
                       label='Passive Type'
                       value={item.passive?.options}
@@ -703,7 +645,7 @@ const EditClassForm = () => {
                     (item.module?.name === 'damage' ||
                       item.module?.name === 'spellDamage') && (
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.damage`}
+                        name={`${stateName}.${this.name}.${index}.damage`}
                         multiple={true}
                         label='Damage Type'
                         value={item.damage}
@@ -719,7 +661,7 @@ const EditClassForm = () => {
                     <>
                       <Input
                         validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.method.setValue`}
+                        name={`${stateName}.${this.name}.${index}.method.setValue`}
                         label='Set Value'
                         invalidText='Must contain only numbers'
                         autoComplete='off'
@@ -731,20 +673,11 @@ const EditClassForm = () => {
                   ) : item.method?.methodType?.name === 'ability' ? (
                     <>
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.method.ability`}
+                        name={`${stateName}.${this.name}.${index}.method.ability`}
                         label='Method Ability'
                         value={item.method.ability}
                         options={builders.ability}
                         required={true}
-                        onChange={setState}
-                      />
-                      <Input
-                        validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.multiplier`}
-                        label='Multiplier'
-                        invalidText='Must contain only whole numbers'
-                        autoComplete='off'
-                        value={item.multiplier}
                         onChange={setState}
                       />
                     </>
@@ -753,7 +686,7 @@ const EditClassForm = () => {
                     <>
                       <Input
                         validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.dieCount`}
+                        name={`${stateName}.${this.name}.${index}.dieCount`}
                         label='Die Count'
                         invalidText='Must contain only whole numbers'
                         autoComplete='off'
@@ -762,7 +695,7 @@ const EditClassForm = () => {
                       />
                       <Input
                         validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.dieValue`}
+                        name={`${stateName}.${this.name}.${index}.dieValue`}
                         label='Die Value'
                         invalidText='Must contain only whole numbers'
                         autoComplete='off'
@@ -774,20 +707,11 @@ const EditClassForm = () => {
                     item.method?.methodType?.name === 'skill' && (
                       <>
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.method.skill`}
+                          name={`${stateName}.${this.name}.${index}.method.skill`}
                           label='Method Skill'
                           value={item.method.skill}
                           options={builders.skill}
                           required={true}
-                          onChange={setState}
-                        />
-                        <Input
-                          validation='num'
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.multiplier`}
-                          label='Multiplier'
-                          invalidText='Must contain only whole numbers'
-                          autoComplete='off'
-                          value={item.multiplier}
                           onChange={setState}
                         />
                       </>
@@ -798,7 +722,7 @@ const EditClassForm = () => {
                     item.module?.name === 'ability' && (
                       <Input
                         validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.maxValue`}
+                        name={`${stateName}.${this.name}.${index}.maxValue`}
                         label='Max Value'
                         autoComplete='off'
                         value={item.maxValue}
@@ -810,7 +734,7 @@ const EditClassForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -827,13 +751,13 @@ const EditClassForm = () => {
                       type: 'added',
                       payload: {
                         target: {
-                          name: `${name}.${sectionIndex}.${this.name}.${index}.diePerLevel`,
+                          name: `${stateName}.${this.name}.${index}.diePerLevel`,
                         },
                       },
                     })
                   ) : (
                     <Table
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.diePerLevel`}
+                      name={`${stateName}.${this.name}.${index}.diePerLevel`}
                       rows={{
                         inputs: [
                           {
@@ -884,7 +808,7 @@ const EditClassForm = () => {
                     type: 'removed',
                     payload: {
                       target: {
-                        name: `${name}.${sectionIndex}.${this.name}.${index}.diePerLevel`,
+                        name: `${stateName}.${this.name}.${index}.diePerLevel`,
                       },
                     },
                   })
@@ -895,13 +819,13 @@ const EditClassForm = () => {
                       type: 'added',
                       payload: {
                         target: {
-                          name: `${name}.${sectionIndex}.${this.name}.${index}.addPerLevel`,
+                          name: `${stateName}.${this.name}.${index}.addPerLevel`,
                         },
                       },
                     })
                   ) : (
                     <Table
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.addPerLevel`}
+                      name={`${stateName}.${this.name}.${index}.addPerLevel`}
                       rows={{
                         inputs: [
                           {
@@ -942,7 +866,7 @@ const EditClassForm = () => {
                     type: 'removed',
                     payload: {
                       target: {
-                        name: `${name}.${sectionIndex}.${this.name}.${index}.addPerLevel`,
+                        name: `${stateName}.${this.name}.${index}.addPerLevel`,
                       },
                     },
                   })
@@ -964,7 +888,7 @@ const EditClassForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={[].concat(
                       builders.section.attribute,
                       state.category?.name === 'subclass' &&
@@ -978,7 +902,7 @@ const EditClassForm = () => {
                     (attributeItem) => attributeItem.name === 'subtypeSpecific'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.subtype`}
+                      name={`${stateName}.${this.name}.${index}.subtype`}
                       label='Subtype'
                       value={item.subtype}
                       options={state.subtype}
@@ -992,7 +916,7 @@ const EditClassForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -1001,7 +925,7 @@ const EditClassForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.area`}
+                    name={`${stateName}.${this.name}.${index}.area`}
                     label='Proficiency Area'
                     value={item.area}
                     options={builders.proficiency.area}
@@ -1010,7 +934,7 @@ const EditClassForm = () => {
                   />
                   {item?.area?.name === 'ability' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.ability`}
+                      name={`${stateName}.${this.name}.${index}.ability`}
                       multiple={true}
                       label='Ability'
                       value={item.ability}
@@ -1021,7 +945,7 @@ const EditClassForm = () => {
                   )}
                   {item?.area?.name === 'skill' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.skill`}
+                      name={`${stateName}.${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
                       value={item.skill}
@@ -1032,7 +956,7 @@ const EditClassForm = () => {
                   )}
                   {item?.area?.name === 'saveAbility' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.saveAbility`}
+                      name={`${stateName}.${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
                       value={item.saveAbility}
@@ -1043,7 +967,7 @@ const EditClassForm = () => {
                   )}
                   {item?.area?.name === 'language' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.language`}
+                      name={`${stateName}.${this.name}.${index}.language`}
                       multiple={true}
                       label='Language'
                       value={item.language}
@@ -1055,7 +979,7 @@ const EditClassForm = () => {
                     item.area?.name === 'itemType') && (
                     <>
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.category`}
+                        name={`${stateName}.${this.name}.${index}.category`}
                         multiple={true}
                         label='Item Category'
                         value={item.category}
@@ -1064,7 +988,7 @@ const EditClassForm = () => {
                       />
                       {item.area?.name === 'property' && (
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.property`}
+                          name={`${stateName}.${this.name}.${index}.property`}
                           multiple={true}
                           label='Item Property'
                           value={item.property}
@@ -1085,7 +1009,7 @@ const EditClassForm = () => {
                       )}
                       {item.area?.name === 'itemType' && (
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.itemType`}
+                          name={`${stateName}.${this.name}.${index}.itemType`}
                           multiple={true}
                           label='Item Type'
                           value={item.itemType}
@@ -1103,7 +1027,7 @@ const EditClassForm = () => {
                     </>
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.level`}
+                    name={`${stateName}.${this.name}.${index}.level`}
                     label='Proficiency Level'
                     value={item.level}
                     options={builders.proficiency.level}
@@ -1113,7 +1037,7 @@ const EditClassForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -1140,7 +1064,7 @@ const EditClassForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={[].concat(
                       builders.section.attribute,
                       state.category?.name === 'subclass' &&
@@ -1154,7 +1078,7 @@ const EditClassForm = () => {
                     (attributeItem) => attributeItem.name === 'subtypeSpecific'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.subtype`}
+                      name={`${stateName}.${this.name}.${index}.subtype`}
                       label='Subtype'
                       value={item.subtype}
                       options={state.subtype}
@@ -1168,7 +1092,7 @@ const EditClassForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -1177,7 +1101,7 @@ const EditClassForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.sense`}
+                    name={`${stateName}.${this.name}.${index}.sense`}
                     multiple={true}
                     label='Sense'
                     value={item.sense}
@@ -1188,7 +1112,7 @@ const EditClassForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -1215,7 +1139,7 @@ const EditClassForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple='true'
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={[].concat(
                       builders.section.spell.attribute,
                       builders.section.attribute,
@@ -1230,7 +1154,7 @@ const EditClassForm = () => {
                     (attributeItem) => attributeItem.name === 'classLimit'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.classLimit`}
+                      name={`${stateName}.${this.name}.${index}.classLimit`}
                       multiple={true}
                       label='Class Limit'
                       value={item.classLimit}
@@ -1245,7 +1169,7 @@ const EditClassForm = () => {
                     (attributeItem) => attributeItem.name === 'levelLimit'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.levelLimit`}
+                      name={`${stateName}.${this.name}.${index}.levelLimit`}
                       multiple={true}
                       label='Level Limit'
                       value={item.levelLimit}
@@ -1260,7 +1184,7 @@ const EditClassForm = () => {
                     (attributeItem) => attributeItem.name === 'subtypeSpecific'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.subtype`}
+                      name={`${stateName}.${this.name}.${index}.subtype`}
                       label='Subtype'
                       value={item.subtype}
                       options={state.subtype}
@@ -1274,7 +1198,7 @@ const EditClassForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -1294,7 +1218,7 @@ const EditClassForm = () => {
                         type: 'added',
                         payload: {
                           target: {
-                            name: `${name}.${sectionIndex}.${this.name}.${index}.spellsByLevel`,
+                            name: `${stateName}.${this.name}.${index}.spellsByLevel`,
                             value: sectionItem?.levelAvailable
                               ?.split(', ')
                               .map((levelItem) => ({
@@ -1334,7 +1258,7 @@ const EditClassForm = () => {
                               },
                             ],
                           }}
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.spellsByLevel`}
+                          name={`${stateName}.${this.name}.${index}.spellsByLevel`}
                           value={item.spellsByLevel}
                           onChange={setState}
                         />
@@ -1347,12 +1271,12 @@ const EditClassForm = () => {
                           type: 'removed',
                           payload: {
                             target: {
-                              name: `${name}.${sectionIndex}.${this.name}.${index}.spellsByLevel`,
+                              name: `${stateName}.${this.name}.${index}.spellsByLevel`,
                             },
                           },
                         })}
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.spell`}
+                        name={`${stateName}.${this.name}.${index}.spell`}
                         multiple={true}
                         label='Spell'
                         value={item.spell}
@@ -1381,7 +1305,7 @@ const EditClassForm = () => {
                           attributeItem.name === 'optionalAbility'
                       ) && (
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.ability`}
+                          name={`${stateName}.${this.name}.${index}.ability`}
                           multiple={true}
                           label='Ability'
                           value={item.ability}
@@ -1393,7 +1317,7 @@ const EditClassForm = () => {
                       {multipleOptions && (
                         <Input
                           validation='num'
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                          name={`${stateName}.${this.name}.${index}.selectionCount`}
                           label='# of Selections'
                           autoComplete='off'
                           value={item.selectionCount}
@@ -1410,813 +1334,1003 @@ const EditClassForm = () => {
           })
         },
       },
+      {
+        name: 'style',
+        content() {
+          return sectionItem[this.name].option.map(
+            (optionItem, optionIndex) => {
+              const level = false
+              const style = false
+              const sectionStateName = `${stateName}.${this.name}.option.${optionIndex}`
+              return featureTabContent(
+                sectionStateName,
+                optionItem,
+                optionIndex,
+                level,
+                style
+              )
+            }
+          )
+        },
+      },
     ]
     return tableContent
   }
 
-  const featureTabContent = (name, optionItem, optionIndex, level) => (
-    <Fragment key={optionIndex}>
-      <div className='row justify-content-between pb-2 gy-2'>
-        <Input
-          size='col-sm-3'
-          name={`${name}.${optionIndex}.value`}
-          autoComplete='off'
-          label='Feature Name'
-          value={optionItem.value}
-          onChange={setState}
-        />
-        <div className='dropdown col-auto'>
-          <button
-            className='btn btn-secondary dropdown-toggle btn'
-            type='button'
-            data-bs-toggle='dropdown'
-            aria-expanded='false'
-          >
-            Add...
-          </button>
-          <ul className='dropdown-menu'>
-            {sectionTabContent(optionItem, optionIndex).map(
-              (sectionItem, sectionIndex) => (
-                <li key={sectionIndex} className='dropdown-item'>
-                  <button
-                    key={sectionIndex}
-                    className='dropdown-item'
-                    type='button'
-                    name={`${name}.${optionIndex}.${sectionItem.name}`}
-                    onClick={(e) => setState({ type: 'added', payload: e })}
-                  >
-                    {`${startCase(sectionItem.name)}`}
-                  </button>
-                </li>
-              )
-            )}
-          </ul>
-        </div>
-      </div>
-      <TextEditor
-        ref={addToTextRefs}
-        className='pb-2'
-        label='Feature description'
-        value={optionItem.desc}
-        name={`${name}.${optionIndex}.desc`}
-        onChange={setState}
-      />
-      <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-3'>
-        {level !== false && (
+  const featureTabContent = (stateName, featureItem, level, style) => {
+    return (
+      <>
+        <div className='row justify-content-between pb-2 gy-2'>
           <Input
-            name={`${name}.${optionIndex}.levelAvailable`}
+            size='col-sm-3'
+            name={`${stateName}.value`}
             autoComplete='off'
-            label='Level(s) Available'
-            required={true}
-            value={optionItem?.levelAvailable}
-            validation={'num'}
-            invalidText='Must contain whole numbers and commas only'
+            label='Feature Name'
+            value={featureItem.value}
             onChange={setState}
           />
-        )}
-        <Select
-          multiple={true}
-          name={`${name}.${optionIndex}.attribute`}
-          options={[].concat(
-            builders.feature.attribute,
-            builders.feature.class.attribute
-          )}
-          label='Feature Attributes'
-          value={optionItem.attribute}
+          <div className='dropdown col-auto'>
+            <button
+              className='btn btn-secondary dropdown-toggle btn'
+              type='button'
+              data-bs-toggle='dropdown'
+              aria-expanded='false'
+            >
+              Add...
+            </button>
+            <ul className='dropdown-menu'>
+              {sectionTabContent(featureItem)
+                .filter(
+                  (sectionItem) =>
+                    (style === false
+                      ? sectionItem.name !== 'style'
+                      : sectionItem) &&
+                    (featureItem['style']?.option?.length > 0
+                      ? sectionItem.name === 'style'
+                      : sectionItem)
+                )
+                .map((sectionItem, sectionIndex) => (
+                  <li key={sectionIndex} className='dropdown-item'>
+                    <button
+                      key={sectionIndex}
+                      className='dropdown-item'
+                      type='button'
+                      name={`${stateName}.${sectionItem.name}${
+                        sectionItem.name === 'style' ? '.option' : ''
+                      }`}
+                      onClick={(e) => setState({ type: 'added', payload: e })}
+                    >
+                      {`${startCase(sectionItem.name)}`}
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        </div>
+        <TextEditor
+          ref={addToTextRefs}
+          className='pb-2'
+          label='Feature description'
+          value={featureItem.desc}
+          name={`${stateName}.desc`}
           onChange={setState}
         />
-        {optionItem.attribute?.some(
-          (attributeItem) => attributeItem.name === 'limitUse'
-        ) && (
-          <>
-            <Select
-              name={`${name}.${optionIndex}.limitUse.limitBy`}
-              label='Limit By Option'
-              value={optionItem.limitUse?.limitBy}
-              options={builders.feature.chargeLimit}
-              required={true}
-              onChange={setState}
-            />
-            {optionItem.limitUse?.limitBy?.name === 'ability' ? (
-              <>
-                <Select
-                  name={`${name}.${optionIndex}.limitUse.ability`}
-                  label='Ability'
-                  value={optionItem.limitUse?.ability}
-                  options={builders.ability}
-                  required={true}
-                  onChange={setState}
-                />
-                <Input
-                  name={`${name}.${optionIndex}.limitUse.minValue`}
-                  autoComplete='off'
-                  label='Minimal Value'
-                  value={optionItem?.limitUse?.minValue}
-                  onChange={setState}
-                />
-              </>
-            ) : optionItem.limitUse?.limitBy?.name === 'skill' ? (
-              <Select
-                name={`${name}.${optionIndex}.limitUse.skill`}
-                label='Skill'
-                value={optionItem.limitUse?.skill}
-                options={builders.skill}
-                required={true}
-                onChange={setState}
-              />
-            ) : (
-              optionItem.limitUse?.limitBy?.name === 'setValue' && (
-                <Input
-                  validation='num'
-                  type='text'
-                  name={`${name}.${optionIndex}.limitUse.setValue`}
-                  invalidText='Must contain only numbers'
-                  label='Use Amount'
-                  value={optionItem.limitUse?.setValue}
-                  required={true}
-                  onChange={setState}
-                />
-              )
-            )}
-            {optionItem.limitUse?.limitBy?.name !== 'level' && (
-              <Input
-                name={`${name}.${optionIndex}.limitUse.addValue`}
-                autoComplete='off'
-                label='Additional Amount'
-                value={optionItem?.limitUse?.addValue}
-                onChange={setState}
-              />
-            )}
-            <Select
-              name={`${name}.${optionIndex}.limitUse.resetOption`}
-              label='Reset Option'
-              value={optionItem.limitUse?.resetOption}
-              options={builders.feature.chargeReset}
-              required={true}
-              onChange={setState}
-            />
-          </>
-        )}
-        {optionItem.attribute?.some(
-          (attributeItem) => attributeItem.name === 'isAction'
-        ) && (
-          <>
-            <Select
-              name={`${name}.${optionIndex}.action`}
-              label='Action Type'
-              value={optionItem.action}
-              options={builders.feature.action}
-              required={true}
-              onChange={setState}
-            />
-          </>
-        )}
-        {optionItem.attribute?.some(
-          (attributeItem) => attributeItem.name === 'hasRange'
-        ) && (
-          <>
+        <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-3'>
+          {level !== false && (
             <Input
-              validation='num'
-              name={`${name}.${optionIndex}.range.minRange`}
+              name={`${stateName}.levelAvailable`}
               autoComplete='off'
-              label='Min Range'
+              label='Level(s) Available'
               required={true}
-              value={optionItem.range?.minRange}
-              invalidText='Must contain only numbers'
-              onChange={setState}
-            />
-            <Input
+              value={featureItem?.levelAvailable}
               validation='num'
-              name={`${name}.${optionIndex}.range.maxRange`}
-              autoComplete='off'
-              label='Max Range'
-              required={true}
-              invalidText='Must contain only numbers'
-              value={optionItem.range?.maxRange}
+              invalidText='Must contain whole numbers and commas only'
               onChange={setState}
             />
-            <Select
-              name={`${name}.${optionIndex}.range.unit`}
-              label='UoM'
-              value={optionItem.range?.unit}
-              options={[].concat(
-                Object.values(builders.unit.imperial).flatMap((item) => item)
-              )}
-              optionalKey='short'
-              onChange={setState}
-            />
-          </>
-        )}
-        {optionItem.attribute?.some(
-          (attributeItem) => attributeItem.name === 'requireSave'
-        ) && (
-          <>
-            <Select
-              name={`${name}.${optionIndex}.saveAbility.attribute`}
-              multiple={true}
-              label='Save Attribute'
-              value={optionItem.saveAbility?.attribute}
-              options={builders.feature.saveAttribute}
-              onChange={setState}
-            />
-            <Select
-              name={`${name}.${optionIndex}.saveAbility.ability`}
-              label='DC Ability'
-              value={optionItem.saveAbility?.ability}
-              options={builders.ability}
-              required={true}
-              onChange={setState}
-            />
-            <Input
-              validation='num'
-              name={`${name}.${optionIndex}.saveAbility.minValue`}
-              autoComplete='off'
-              label='Min. Value'
-              required={true}
-              invalidText='Must contain only numbers'
-              value={optionItem.saveAbility?.minValue}
-              onChange={setState}
-            />
-            {optionItem.saveAbility?.attribute?.some(
-              (attributeItem) => attributeItem.name === 'addAbilityModifier'
-            ) && (
-              <Select
-                name={`${name}.${optionIndex}.saveAbility.abilityModifier`}
-                label='Modifier Ability'
-                value={optionItem.saveAbility?.abilityModifier}
-                options={builders.ability}
-                required={true}
-                onChange={setState}
-              />
-            )}
-          </>
-        )}
-        {optionItem.attribute?.some(
-          (attributeItem) => attributeItem.name === 'hasRequirements'
-        ) && (
+          )}
           <Select
             multiple={true}
-            name={`${name}.${optionIndex}.requirement.option`}
-            label='Requirement'
-            options={builders.feature.requirement}
-            value={optionItem.requirement?.option}
-            required={true}
+            name={`${stateName}.attribute`}
+            options={[].concat(
+              builders.feature.attribute,
+              builders.feature.class.attribute
+            )}
+            label='Feature Attributes'
+            value={featureItem.attribute}
             onChange={setState}
           />
-        )}
-      </div>
-      {optionItem.attribute?.some(
-        (attributeItem) => attributeItem.name === 'hasRequirements'
-      ) &&
-        !optionItem.requirement?.option?.every(
-          (optionItem) => optionItem.name === 'notProficient'
-        ) && (
-          <>
-            <div className='d-flex'>
-              <hr className='flex-grow-1 me-3' />
-              <span className='mx-auto'>Requirements</span>
-              <hr className='flex-grow-1 ms-3' />
-            </div>
-            <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
-              {optionItem.requirement?.option?.some(
-                (optionItem) => optionItem.name === 'skillProficiency'
-              ) && (
-                <Select
-                  multiple={true}
-                  name={`${name}.${optionIndex}.requirement.skillProficiency.skill`}
-                  label='Skill Proficiency'
-                  value={optionItem.requirement?.skillProficiency?.skill}
-                  options={builders.skill}
-                  required={true}
-                  onChange={setState}
-                />
-              )}
-              {optionItem.requirement?.option?.some(
-                (optionItem) => optionItem.name === 'abilityScore'
-              ) && (
+          {featureItem.attribute?.some(
+            (attributeItem) => attributeItem.name === 'limitUse'
+          ) && (
+            <>
+              <Select
+                name={`${stateName}.limitUse.limitBy`}
+                label='Limit By Option'
+                value={featureItem.limitUse?.limitBy}
+                options={builders.feature.chargeLimit}
+                required={true}
+                onChange={setState}
+              />
+              {featureItem.limitUse?.limitBy?.name === 'ability' ? (
                 <>
                   <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.abilityScore.ability`}
-                    value={optionItem.requirement?.abilityScore?.ability}
+                    name={`${stateName}.limitUse.ability`}
                     label='Ability'
+                    value={featureItem.limitUse?.ability}
                     options={builders.ability}
                     required={true}
                     onChange={setState}
                   />
-                  <Input
-                    name={`${name}.${optionIndex}.requirement.abilityScore.score`}
-                    value={optionItem.requirement?.abilityScore?.score}
-                    label='Score'
-                    required={true}
-                    validation='num'
-                    invalidText='Must contain only numbers'
-                    onChange={setState}
-                  />
                 </>
-              )}
-            </div>
-            {optionItem.requirement?.option?.some(
-              (optionItem) => optionItem.name === 'itemProficiency'
-            ) && (
-              <>
-                <div className='d-flex mx-3'>
-                  <hr className='flex-grow-1 me-3' />
-                  <span className='mx-auto'>Item Proficiency</span>
-                  <hr className='flex-grow-1 ms-3' />
-                </div>
-                <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
-                  <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.itemProficiency.category`}
-                    value={optionItem.requirement?.itemProficiency?.category}
-                    label='Item Category'
-                    options={builders.item.category}
-                    onChange={setState}
-                  />
-                  <Select
-                    name={`${name}.${optionIndex}.requirement.itemProficiency.property`}
-                    multiple={true}
-                    label='Item Property'
-                    value={optionItem.requirement?.itemProficiency?.property}
-                    options={[].concat(
-                      ...items
-                        .filter((item) =>
-                          optionItem.requirement?.itemProficiency?.category
-                            ?.length > 0
-                            ? optionItem.requirement?.itemProficiency?.category?.some(
-                                (category) =>
-                                  category.name === item.category.name
-                              )
-                            : item
-                        )
-                        .map((item) => item.property)
-                    )}
-                    onChange={setState}
-                  />
-                  <Select
-                    name={`${name}.${optionIndex}.requirement.itemProficiency.itemType`}
-                    multiple={true}
-                    label='Item type'
-                    value={optionItem.requirement?.itemProficiency?.itemType}
-                    options={items.filter((item) =>
-                      optionItem.requirement.itemProficiency?.category?.length >
-                      0
-                        ? optionItem.requirement.itemProficiency?.category?.some(
-                            (category) => category.name === item.category.name
-                          )
-                        : item
-                    )}
-                    onChange={setState}
-                  />
-                </div>
-              </>
-            )}
-            {optionItem.requirement?.option?.some(
-              (optionItem) => optionItem.name === 'equipped'
-            ) && (
-              <>
-                <div className='d-flex mx-3'>
-                  <hr className='flex-grow-1 me-3' />
-                  <span className='mx-auto'>Equipped</span>
-                  <hr className='flex-grow-1 ms-3' />
-                </div>
-                <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
-                  <Input
-                    name={`${name}.${optionIndex}.requirement.equipped.numberEquipped`}
-                    value={optionItem.requirement?.equipped?.numberEquipped}
-                    label='Number Equipped'
-                    onChange={setState}
-                    validation='num'
-                    invalidText={'Must contain only numbers'}
-                  />
-                  <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.equipped.category`}
-                    value={optionItem.requirement?.equipped?.category}
-                    label='Item Category'
-                    options={builders.item.category}
-                    onChange={setState}
-                  />
-                  <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.equipped.property`}
-                    label='Item Property'
-                    value={optionItem.requirement?.equipped?.property}
-                    options={[].concat(
-                      ...items
-                        .filter((item) =>
-                          optionItem.requirement?.equipped?.category?.length > 0
-                            ? optionItem.requirement?.equipped?.category?.some(
-                                (category) =>
-                                  category.name === item.category.name
-                              )
-                            : item
-                        )
-                        .map((item) => item.property)
-                    )}
-                    onChange={setState}
-                  />
-                  <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.equipped.itemType`}
-                    label='Item type'
-                    value={optionItem.requirement?.equipped?.itemType}
-                    options={items.filter((item) =>
-                      optionItem.requirement.equipped?.category?.length > 0
-                        ? optionItem.requirement.equipped?.category?.some(
-                            (category) => category.name === item.category.name
-                          )
-                        : item
-                    )}
-                    onChange={setState}
-                  />
-                </div>
-              </>
-            )}
-            {optionItem.requirement?.option?.some(
-              (optionItem) => optionItem.name === 'notEquipped'
-            ) && (
-              <>
-                <div className='d-flex mx-3'>
-                  <hr className='flex-grow-1 me-3' />
-                  <span className='mx-auto'>Not Equipped</span>
-                  <hr className='flex-grow-1 ms-3' />
-                </div>
-                <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
-                  <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.notEquipped.category`}
-                    value={optionItem.requirement?.notEquipped?.category}
-                    label='Item Category'
-                    options={builders.item.category}
-                    onChange={setState}
-                  />
-                  <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.notEquipped.property`}
-                    value={optionItem.requirement?.notEquipped?.property}
-                    label='Item Property'
-                    options={[].concat(
-                      ...items
-                        .filter((item) =>
-                          optionItem.requirement.notEquipped?.category?.length >
-                          0
-                            ? optionItem.requirement.notEquipped?.category?.some(
-                                (category) =>
-                                  category.name === item.category.name
-                              )
-                            : item
-                        )
-                        .map((item) => item.property)
-                    )}
-                    onChange={setState}
-                  />
-                  <Select
-                    multiple={true}
-                    name={`${name}.${optionIndex}.requirement.notEquipped.itemType`}
-                    label='Item type'
-                    value={optionItem.requirement?.notEquipped?.itemType}
-                    options={items.filter((item) =>
-                      optionItem.requirement.notEquipped?.category?.length > 0
-                        ? optionItem.requirement.notEquipped?.category?.some(
-                            (category) => category.name === item.category.name
-                          )
-                        : item
-                    )}
-                    onChange={setState}
-                  />
-                </div>
-              </>
-            )}
-          </>
-        )}
-      {optionItem.limitUse?.limitBy?.name === 'level' &&
-      optionItem.attribute?.some(
-        (attributeItem) => attributeItem.name === 'limitUse'
-      ) ? (
-        !optionItem.limitUse.level ? (
-          setState({
-            type: 'added',
-            payload: {
-              target: {
-                name: `${name}.${optionIndex}.limitUse.level`,
-              },
-            },
-          })
-        ) : (
-          <>
-            <div
-              className='btn btn-section-collapse justify-content-between align-items-center'
-              id='sectionCollapseButton'
-              type='button'
-              role='button'
-              data-bs-toggle='collapse'
-              data-bs-target={`#limitUse${optionIndex}Collapse`}
-              aria-controls='collapseExample'
-              aria-expanded='true'
-            >
-              <span className='me-3'>Limit Use Table</span>
-              <i className='bi bi-arrow-down-up' />
-            </div>
-            <div
-              className='section-container collapse show'
-              id={`limitUse${optionIndex}Collapse`}
-            >
-              <div className='section-content'>
-                <Table
-                  rows={{
-                    inputs: [
-                      {
-                        name: 'value',
-                        invalid: 'Must contain only numbers',
-                        validation: 'num',
-                        size: 'col-5',
-                      },
-                      {
-                        name: 'useNum',
-                        invalid: 'Must contain only numbers',
-                        validation: 'num',
-                        size: 'col-5',
-                      },
-                    ],
-                    headers: [
-                      {
-                        value: 'Level',
-                        readOnly: true,
-                        size: 'col-5',
-                      },
-                      {
-                        value: 'Uses',
-                        readOnly: true,
-                        size: 'col-5',
-                      },
-                    ],
-                  }}
-                  name={`${name}.${optionIndex}.limitUse.level`}
-                  value={optionItem.limitUse?.level}
-                  onChange={setState}
-                  dynamic={true}
-                />
-              </div>
-            </div>
-          </>
-        )
-      ) : (
-        optionItem.limitUse?.level?.length > 0 &&
-        setState({
-          type: 'removed',
-          payload: {
-            target: { name: `${name}.${optionIndex}.limitUse.level` },
-          },
-        })
-      )}
-      {optionItem.attribute?.some(
-        (attributeItem) => attributeItem.name === 'doesDamage'
-      ) ? (
-        !optionItem.damage?.damageByLevel ? (
-          setState({
-            type: 'added',
-            payload: {
-              target: {
-                name: `${name}.${optionIndex}.damage.damageByLevel`,
-              },
-            },
-          })
-        ) : (
-          <>
-            <div className='row row-cols-4 g-2 align-items-end pb-2'>
-              <Select
-                multiple={true}
-                name={`${name}.${optionIndex}.damage.damageAttribute`}
-                label='Damage Attribute'
-                value={optionItem.damage?.damageAttribute}
-                options={builders.feature.damageAttribute}
-                onChange={setState}
-              />
-              <Select
-                name={`${name}.${optionIndex}.damage.damageType`}
-                multiple={true}
-                label='Damage Type'
-                value={optionItem.damage?.damageType}
-                options={builders.damage}
-                required={true}
-                onChange={setState}
-              />
-              {optionItem.damage?.damageAttribute?.some(
-                (attributeItem) => attributeItem.name === 'bonusDamage'
-              ) && (
+              ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
                 <Select
-                  name={`${name}.${optionIndex}.damage.bonus.bonusAttribute`}
-                  label='Bonus Type'
-                  value={optionItem.damage?.bonus?.bonusAttribute}
-                  options={builders.feature.bonusAttribute}
+                  name={`${stateName}.limitUse.skill`}
+                  label='Skill'
+                  value={featureItem.limitUse?.skill}
+                  options={builders.skill}
                   required={true}
                   onChange={setState}
                 />
+              ) : (
+                featureItem.limitUse?.limitBy?.name === 'setValue' && (
+                  <Input
+                    validation='num'
+                    type='text'
+                    name={`${stateName}.limitUse.setValue`}
+                    invalidText='Must contain only numbers'
+                    label='Use Amount'
+                    value={featureItem.limitUse?.setValue}
+                    required={true}
+                    onChange={setState}
+                  />
+                )
               )}
-              {optionItem.damage?.bonus?.bonusAttribute?.name ===
-                'abilityBonus' && (
+              {featureItem.limitUse?.limitBy?.name !== 'level' &&
+                featureItem.limitUse?.limitBy?.name !== 'setValue' && (
+                  <>
+                    <Input
+                      name={`${stateName}.limitUse.addValue`}
+                      autoComplete='off'
+                      label='Additional Amount'
+                      value={featureItem?.limitUse?.addValue}
+                      onChange={setState}
+                    />
+                    <Input
+                      name={`${stateName}.limitUse.minValue`}
+                      autoComplete='off'
+                      label='Minimal Value'
+                      value={featureItem?.limitUse?.minValue}
+                      onChange={setState}
+                    />
+                  </>
+                )}
+              {featureItem.limitUse?.limitBy?.name !== 'setValue' && (
+                <Input
+                  name={`${stateName}.limitUse.multiplier`}
+                  autoComplete='off'
+                  validation='num'
+                  invalidText='Must contain whole numbers only'
+                  label='Multiplier'
+                  value={featureItem?.limitUse?.multiplier}
+                  onChange={setState}
+                />
+              )}
+              <Select
+                name={`${stateName}.limitUse.resetOption`}
+                label='Reset Option'
+                value={featureItem.limitUse?.resetOption}
+                options={builders.feature.chargeReset}
+                required={true}
+                onChange={setState}
+              />
+            </>
+          )}
+          {featureItem.attribute?.some(
+            (attributeItem) => attributeItem.name === 'isAction'
+          ) && (
+            <>
+              <Select
+                name={`${stateName}.action`}
+                label='Action Type'
+                value={featureItem.action}
+                options={builders.feature.action}
+                required={true}
+                onChange={setState}
+              />
+            </>
+          )}
+          {featureItem.attribute?.some(
+            (attributeItem) => attributeItem.name === 'hasRange'
+          ) && (
+            <>
+              <Input
+                validation='num'
+                name={`${stateName}.range.minRange`}
+                autoComplete='off'
+                label='Minimum Range'
+                required={true}
+                value={featureItem.range?.minRange}
+                invalidText='Must contain only numbers'
+                onChange={setState}
+              />
+              <Input
+                validation='num'
+                name={`${stateName}.range.maxRange`}
+                autoComplete='off'
+                label='Max Range'
+                required={true}
+                invalidText='Must contain only numbers'
+                value={featureItem.range?.maxRange}
+                onChange={setState}
+              />
+              <Select
+                name={`${stateName}.range.unit`}
+                label='UoM'
+                value={featureItem.range?.unit}
+                options={[].concat(
+                  Object.values(builders.unit.imperial).flatMap((item) => item)
+                )}
+                optionalKey='short'
+                onChange={setState}
+              />
+            </>
+          )}
+          {featureItem.attribute?.some(
+            (attributeItem) => attributeItem.name === 'requireSave'
+          ) && (
+            <>
+              <Select
+                name={`${stateName}.saveAbility.attribute`}
+                multiple={true}
+                label='Save Attribute'
+                value={featureItem.saveAbility?.attribute}
+                options={builders.feature.saveAttribute}
+                onChange={setState}
+              />
+              <Select
+                name={`${stateName}.saveAbility.ability`}
+                label='DC Ability'
+                value={featureItem.saveAbility?.ability}
+                options={builders.ability}
+                required={true}
+                onChange={setState}
+              />
+              <Input
+                validation='num'
+                name={`${stateName}.saveAbility.minValue`}
+                autoComplete='off'
+                label='Minimum Value'
+                required={true}
+                invalidText='Must contain only numbers'
+                value={featureItem.saveAbility?.minValue}
+                onChange={setState}
+              />
+              {featureItem.saveAbility?.attribute?.some(
+                (attributeItem) => attributeItem.name === 'addAbilityModifier'
+              ) && (
                 <Select
-                  name={`${name}.${optionIndex}.damage.bonus.ability`}
-                  label='Abilty'
-                  value={optionItem.damage?.bonus?.ability}
+                  name={`${stateName}.saveAbility.abilityModifier`}
+                  label='Modifier Ability'
+                  value={featureItem.saveAbility?.abilityModifier}
                   options={builders.ability}
                   required={true}
                   onChange={setState}
                 />
               )}
-              {optionItem.damage?.damageAttribute?.some(
-                (attributeItem) => attributeItem.name === 'damagePool'
-              ) && (
-                <>
-                  <Select
-                    name={`${name}.${optionIndex}.damage.pool.option`}
-                    label='Pool Option'
-                    value={optionItem.damage?.pool?.option}
-                    options={builders.feature.poolOptions}
-                    required={true}
-                    onChange={setState}
-                  />
-                  {optionItem.damage?.pool?.option.name === 'level' ? (
-                    <>
-                      <Input
-                        name={`${name}.${optionIndex}.damage.pool.multiplier`}
-                        value={optionItem.damage?.pool?.multiplier}
-                        label='Multiplier'
-                        onChange={setState}
-                        validation='num'
-                        invalidText={'Must contain only numbers'}
-                      />
-                      <Input
-                        name={`${name}.${optionIndex}.damage.pool.minValue`}
-                        value={optionItem.damage?.pool?.minValue}
-                        label='Minimum Value'
-                        onChange={setState}
-                        validation='num'
-                        invalidText={'Must contain only numbers'}
-                      />
-                    </>
-                  ) : optionItem.damage?.pool?.option?.name === 'ability' ? (
+            </>
+          )}
+          {featureItem.attribute?.some(
+            (attributeItem) => attributeItem.name === 'hasRequirements'
+          ) && (
+            <Select
+              multiple={true}
+              name={`${stateName}.requirement.option`}
+              label='Requirement'
+              options={builders.feature.requirement}
+              value={featureItem.requirement?.option}
+              required={true}
+              onChange={setState}
+            />
+          )}
+        </div>
+        {featureItem.attribute?.some(
+          (attributeItem) => attributeItem.name === 'hasRequirements'
+        )
+          ? !featureItem.requirement?.option?.every(
+              (featureItem) => featureItem.name === 'notProficient'
+            ) && (
+              <>
+                <div className='d-flex'>
+                  <hr className='flex-grow-1 me-3' />
+                  <span className='mx-auto'>Requirements</span>
+                  <hr className='flex-grow-1 ms-3' />
+                </div>
+                <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
+                  {featureItem.requirement?.option?.some(
+                    (featureItem) => featureItem.name === 'skillProficiency'
+                  ) && (
                     <Select
-                      name={`${name}.${optionIndex}.damage.pool.ability`}
-                      label='Pool Abilty'
-                      value={optionItem.damage?.pool?.ability}
-                      options={builders.ability}
+                      multiple={true}
+                      name={`${stateName}.requirement.skillProficiency.skill`}
+                      label='Skill Proficiency'
+                      value={featureItem.requirement?.skillProficiency?.skill}
+                      options={builders.skill}
                       required={true}
                       onChange={setState}
                     />
-                  ) : (
-                    optionItem.damage?.pool?.option?.name === 'setValue' && (
-                      <Input
-                        name={`${name}.${optionIndex}.damage.pool.setValue`}
-                        value={optionItem.damage?.pool?.setValue}
-                        label='Pool Total'
-                        onChange={setState}
-                        validation='num'
-                        required={true}
-                        invalidText={'Must contain only numbers'}
-                      />
-                    )
                   )}
-                  {optionItem.damage?.damageAttribute.some(
-                    (attributeItem) => attributeItem.name === 'secondaryDamage'
+                  {featureItem.requirement?.option?.some(
+                    (featureItem) => featureItem.name === 'abilityScore'
                   ) && (
                     <>
                       <Select
-                        name={`${name}.${optionIndex}.damage.secondaryPool.option`}
-                        label='Secondary Pool Option'
-                        value={optionItem.damage?.secondaryPool?.option}
-                        options={builders.feature.poolOptions}
+                        multiple={true}
+                        name={`${stateName}.requirement.abilityScore.ability`}
+                        value={featureItem.requirement?.abilityScore?.ability}
+                        label='Ability'
+                        options={builders.ability}
                         required={true}
                         onChange={setState}
                       />
-                      {optionItem.damage?.secondaryPool?.option.name ===
-                      'classLevel' ? (
-                        <>
-                          <Input
-                            name={`${name}.${optionIndex}.damage.secondaryPool.multiplier`}
-                            value={optionItem.damage?.secondaryPool?.multiplier}
-                            label='Multiplier'
-                            onChange={setState}
-                            validation='num'
-                            invalidText={'Must contain only numbers'}
-                          />
-                          <Input
-                            name={`${name}.${optionIndex}.damage.secondaryPool.minValue`}
-                            value={optionItem.damage?.secondaryPool?.minValue}
-                            label='Minimum Value'
-                            onChange={setState}
-                            validation='num'
-                            invalidText={'Must contain only numbers'}
-                          />
-                        </>
-                      ) : optionItem.damage?.secondaryPool?.option?.name ===
-                        'ability' ? (
+                      <Input
+                        name={`${stateName}.requirement.abilityScore.score`}
+                        value={featureItem.requirement?.abilityScore?.score}
+                        label='Score'
+                        required={true}
+                        validation='num'
+                        invalidText='Must contain only numbers'
+                        onChange={setState}
+                      />
+                    </>
+                  )}
+                </div>
+                {featureItem.requirement?.option?.some(
+                  (featureItem) => featureItem.name === 'itemProficiency'
+                ) && (
+                  <>
+                    <div className='d-flex mx-3'>
+                      <hr className='flex-grow-1 me-3' />
+                      <span className='mx-auto'>Item Proficiency</span>
+                      <hr className='flex-grow-1 ms-3' />
+                    </div>
+                    <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
+                      <Select
+                        multiple={true}
+                        name={`${stateName}.requirement.itemProficiency.category`}
+                        value={
+                          featureItem.requirement?.itemProficiency?.category
+                        }
+                        label='Item Category'
+                        options={builders.item.category}
+                        onChange={setState}
+                      />
+                      <Select
+                        name={`${stateName}.requirement.itemProficiency.property`}
+                        multiple={true}
+                        label='Item Property'
+                        value={
+                          featureItem.requirement?.itemProficiency?.property
+                        }
+                        options={[].concat(
+                          ...items
+                            .filter((item) =>
+                              featureItem.requirement?.itemProficiency?.category
+                                ?.length > 0
+                                ? featureItem.requirement?.itemProficiency?.category?.some(
+                                    (category) =>
+                                      category.name === item.category.name
+                                  )
+                                : item
+                            )
+                            .map((item) => item.property)
+                        )}
+                        onChange={setState}
+                      />
+                      <Select
+                        name={`${stateName}.requirement.itemProficiency.itemType`}
+                        multiple={true}
+                        label='Item type'
+                        value={
+                          featureItem.requirement?.itemProficiency?.itemType
+                        }
+                        options={items.filter((item) =>
+                          featureItem.requirement.itemProficiency?.category
+                            ?.length > 0
+                            ? featureItem.requirement.itemProficiency?.category?.some(
+                                (category) =>
+                                  category.name === item.category.name
+                              )
+                            : item
+                        )}
+                        onChange={setState}
+                      />
+                    </div>
+                  </>
+                )}
+                {featureItem.requirement?.option?.some(
+                  (featureItem) => featureItem.name === 'equipped'
+                ) && (
+                  <>
+                    <div className='d-flex mx-3'>
+                      <hr className='flex-grow-1 me-3' />
+                      <span className='mx-auto'>Equipped</span>
+                      <hr className='flex-grow-1 ms-3' />
+                    </div>
+                    <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
+                      <Input
+                        name={`${stateName}.requirement.equipped.numberEquipped`}
+                        value={
+                          featureItem.requirement?.equipped?.numberEquipped
+                        }
+                        label='Number Equipped'
+                        onChange={setState}
+                        validation='num'
+                        invalidText={'Must contain only numbers'}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`${stateName}.requirement.equipped.category`}
+                        value={featureItem.requirement?.equipped?.category}
+                        label='Item Category'
+                        options={builders.item.category}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`${stateName}.requirement.equipped.property`}
+                        label='Item Property'
+                        value={featureItem.requirement?.equipped?.property}
+                        options={[].concat(
+                          ...items
+                            .filter((item) =>
+                              featureItem.requirement?.equipped?.category
+                                ?.length > 0
+                                ? featureItem.requirement?.equipped?.category?.some(
+                                    (category) =>
+                                      category.name === item.category.name
+                                  )
+                                : item
+                            )
+                            .map((item) => item.property)
+                        )}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`${stateName}.requirement.equipped.itemType`}
+                        label='Item type'
+                        value={featureItem.requirement?.equipped?.itemType}
+                        options={items.filter((item) =>
+                          featureItem.requirement.equipped?.category?.length > 0
+                            ? featureItem.requirement.equipped?.category?.some(
+                                (category) =>
+                                  category.name === item.category.name
+                              )
+                            : item
+                        )}
+                        onChange={setState}
+                      />
+                    </div>
+                  </>
+                )}
+                {featureItem.requirement?.option?.some(
+                  (featureItem) => featureItem.name === 'notEquipped'
+                ) && (
+                  <>
+                    <div className='d-flex mx-3'>
+                      <hr className='flex-grow-1 me-3' />
+                      <span className='mx-auto'>Not Equipped</span>
+                      <hr className='flex-grow-1 ms-3' />
+                    </div>
+                    <div className='row row-cols-3 g-2 pb-3 mx-3 justify-contents-center'>
+                      <Select
+                        multiple={true}
+                        name={`${stateName}.requirement.notEquipped.category`}
+                        value={featureItem.requirement?.notEquipped?.category}
+                        label='Item Category'
+                        options={builders.item.category}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`${stateName}.requirement.notEquipped.property`}
+                        value={featureItem.requirement?.notEquipped?.property}
+                        label='Item Property'
+                        options={[].concat(
+                          ...items
+                            .filter((item) =>
+                              featureItem.requirement.notEquipped?.category
+                                ?.length > 0
+                                ? featureItem.requirement.notEquipped?.category?.some(
+                                    (category) =>
+                                      category.name === item.category.name
+                                  )
+                                : item
+                            )
+                            .map((item) => item.property)
+                        )}
+                        onChange={setState}
+                      />
+                      <Select
+                        multiple={true}
+                        name={`${stateName}.requirement.notEquipped.itemType`}
+                        label='Item type'
+                        value={featureItem.requirement?.notEquipped?.itemType}
+                        options={items.filter((item) =>
+                          featureItem.requirement.notEquipped?.category
+                            ?.length > 0
+                            ? featureItem.requirement.notEquipped?.category?.some(
+                                (category) =>
+                                  category.name === item.category.name
+                              )
+                            : item
+                        )}
+                        onChange={setState}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            )
+          : !!featureItem.requirement &&
+            setState({
+              type: 'removed',
+              payload: {
+                target: { name: `${stateName}.requirement` },
+              },
+            })}
+        {featureItem.limitUse?.limitBy?.name === 'level' &&
+        featureItem.attribute?.some(
+          (attributeItem) => attributeItem.name === 'limitUse'
+        ) ? (
+          !featureItem.limitUse.level ? (
+            setState({
+              type: 'added',
+              payload: {
+                target: {
+                  name: `${stateName}.limitUse.level`,
+                },
+              },
+            })
+          ) : (
+            <>
+              <div
+                className='btn btn-section-collapse justify-content-between align-items-center'
+                id='limitCollapseButton'
+                type='button'
+                role='button'
+                data-bs-toggle='collapse'
+                data-bs-target={`#${stateName.replace(
+                  '.',
+                  ''
+                )}LimitUseCollapse`}
+                aria-controls='collapseExample'
+                aria-expanded='true'
+              >
+                <span className='me-3'>Limit Use Table</span>
+                <i className='bi bi-arrow-down-up' />
+              </div>
+              <div
+                className='section-container collapse show'
+                id={`${stateName.replace('.', '')}LimitUseCollapse`}
+              >
+                <div className='section-content'>
+                  <Table
+                    rows={{
+                      inputs: [
+                        {
+                          name: 'value',
+                          invalid: 'Must contain only numbers',
+                          validation: 'num',
+                          size: 'col-5',
+                        },
+                        {
+                          name: 'useNum',
+                          invalid: 'Must contain only numbers',
+                          validation: 'num',
+                          size: 'col-5',
+                        },
+                      ],
+                      headers: [
+                        {
+                          value: 'Level',
+                          readOnly: true,
+                          size: 'col-5',
+                        },
+                        {
+                          value: 'Uses',
+                          readOnly: true,
+                          size: 'col-5',
+                        },
+                      ],
+                    }}
+                    name={`${stateName}.limitUse.level`}
+                    value={featureItem.limitUse?.level}
+                    onChange={setState}
+                    dynamic={true}
+                  />
+                </div>
+              </div>
+            </>
+          )
+        ) : (
+          featureItem.limitUse?.level?.length > 0 &&
+          setState({
+            type: 'removed',
+            payload: {
+              target: { name: `${stateName}.limitUse.level` },
+            },
+          })
+        )}
+        {featureItem.attribute?.some(
+          (attributeItem) => attributeItem.name === 'doesDamage'
+        ) ? (
+          !featureItem.damage?.damageByLevel ? (
+            setState({
+              type: 'added',
+              payload: {
+                target: {
+                  name: `${stateName}.damage.damageByLevel`,
+                },
+              },
+            })
+          ) : (
+            <>
+              <div className='row row-cols-4 g-2 align-items-end pb-2'>
+                <Select
+                  multiple={true}
+                  name={`${stateName}.damage.damageAttribute`}
+                  label='Damage Attribute'
+                  value={featureItem.damage?.damageAttribute}
+                  options={builders.feature.damageAttribute}
+                  onChange={setState}
+                />
+                <Select
+                  name={`${stateName}.damage.damageType`}
+                  multiple={true}
+                  label='Damage Type'
+                  value={featureItem.damage?.damageType}
+                  options={builders.damage}
+                  required={true}
+                  onChange={setState}
+                />
+                {featureItem.damage?.damageAttribute?.some(
+                  (attributeItem) => attributeItem.name === 'bonusDamage'
+                ) && (
+                  <Select
+                    name={`${stateName}.damage.bonus.bonusAttribute`}
+                    label='Bonus Type'
+                    value={featureItem.damage?.bonus?.bonusAttribute}
+                    options={builders.feature.bonusAttribute}
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
+                {featureItem.damage?.bonus?.bonusAttribute?.name ===
+                  'abilityBonus' && (
+                  <Select
+                    name={`${stateName}.damage.bonus.ability`}
+                    label='Abilty'
+                    value={featureItem.damage?.bonus?.ability}
+                    options={builders.ability}
+                    required={true}
+                    onChange={setState}
+                  />
+                )}
+                {featureItem.damage?.damageAttribute?.some(
+                  (attributeItem) => attributeItem.name === 'damagePool'
+                ) && (
+                  <>
+                    <Select
+                      name={`${stateName}.damage.pool.option`}
+                      label='Pool Option'
+                      value={featureItem.damage?.pool?.option}
+                      options={builders.feature.poolOptions}
+                      required={true}
+                      onChange={setState}
+                    />
+                    {featureItem.damage?.pool?.option.name === 'level' ? (
+                      <>
+                        <Input
+                          name={`${stateName}.damage.pool.multiplier`}
+                          value={featureItem.damage?.pool?.multiplier}
+                          label='Multiplier'
+                          onChange={setState}
+                          validation='num'
+                          invalidText={'Must contain only numbers'}
+                        />
+                        <Input
+                          name={`${stateName}.damage.pool.minValue`}
+                          value={featureItem.damage?.pool?.minValue}
+                          label='Minimum Value'
+                          onChange={setState}
+                          validation='num'
+                          invalidText={'Must contain only numbers'}
+                        />
+                      </>
+                    ) : featureItem.damage?.pool?.option?.name === 'ability' ? (
+                      <Select
+                        name={`${stateName}.damage.pool.ability`}
+                        label='Pool Abilty'
+                        value={featureItem.damage?.pool?.ability}
+                        options={builders.ability}
+                        required={true}
+                        onChange={setState}
+                      />
+                    ) : (
+                      featureItem.damage?.pool?.option?.name === 'setValue' && (
+                        <Input
+                          name={`${stateName}.damage.pool.setValue`}
+                          value={featureItem.damage?.pool?.setValue}
+                          label='Pool Total'
+                          onChange={setState}
+                          validation='num'
+                          required={true}
+                          invalidText={'Must contain only numbers'}
+                        />
+                      )
+                    )}
+                    {featureItem.damage?.damageAttribute.some(
+                      (attributeItem) =>
+                        attributeItem.name === 'secondaryDamage'
+                    ) && (
+                      <>
                         <Select
-                          name={`${name}.${optionIndex}.damage.secondaryPool.ability`}
-                          label='Pool Abilty'
-                          value={optionItem.damage?.secondaryPool?.ability}
-                          options={builders.ability}
+                          name={`${stateName}.damage.secondaryPool.option`}
+                          label='Secondary Pool Option'
+                          value={featureItem.damage?.secondaryPool?.option}
+                          options={builders.feature.poolOptions}
                           required={true}
                           onChange={setState}
                         />
-                      ) : (
-                        optionItem.damage?.secondaryPool?.option?.name ===
-                          'setValue' && (
-                          <Input
-                            name={`${name}.${optionIndex}.damage.secondaryPool.setValue`}
-                            value={optionItem.damage?.secondaryPool?.setValue}
-                            label='Pool Total'
-                            onChange={setState}
-                            validation='num'
+                        {featureItem.damage?.secondaryPool?.option.name ===
+                        'classLevel' ? (
+                          <>
+                            <Input
+                              name={`${stateName}.damage.secondaryPool.multiplier`}
+                              value={
+                                featureItem.damage?.secondaryPool?.multiplier
+                              }
+                              label='Multiplier'
+                              onChange={setState}
+                              validation='num'
+                              invalidText={'Must contain only numbers'}
+                            />
+                            <Input
+                              name={`${stateName}.damage.secondaryPool.minValue`}
+                              value={
+                                featureItem.damage?.secondaryPool?.minValue
+                              }
+                              label='Minimum Value'
+                              onChange={setState}
+                              validation='num'
+                              invalidText={'Must contain only numbers'}
+                            />
+                          </>
+                        ) : featureItem.damage?.secondaryPool?.option?.name ===
+                          'ability' ? (
+                          <Select
+                            name={`${stateName}.damage.secondaryPool.ability`}
+                            label='Pool Abilty'
+                            value={featureItem.damage?.secondaryPool?.ability}
+                            options={builders.ability}
                             required={true}
-                            invalidText={'Must contain only numbers'}
+                            onChange={setState}
                           />
-                        )
-                      )}
-                    </>
-                  )}
+                        ) : (
+                          featureItem.damage?.secondaryPool?.option?.name ===
+                            'setValue' && (
+                            <Input
+                              name={`${stateName}.damage.secondaryPool.setValue`}
+                              value={
+                                featureItem.damage?.secondaryPool?.setValue
+                              }
+                              label='Pool Total'
+                              onChange={setState}
+                              validation='num'
+                              required={true}
+                              invalidText={'Must contain only numbers'}
+                            />
+                          )
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+              {!featureItem.damage?.damageAttribute?.some(
+                (attributeItem) => attributeItem.name === 'damagePool'
+              ) && (
+                <>
+                  <div
+                    className='btn btn-section-collapse justify-content-between align-items-center'
+                    id='sectionCollapseButton'
+                    type='button'
+                    role='button'
+                    data-bs-toggle='collapse'
+                    data-bs-target={`#${stateName.replace(
+                      '.',
+                      ''
+                    )}SectionCollapse`}
+                    aria-controls='collapseExample'
+                    aria-expanded='true'
+                  >
+                    <span className='me-3'>Damage Table</span>
+                    <i className='bi bi-arrow-down-up' />
+                  </div>
+                  <div
+                    className='section-container collapse show'
+                    id={`${stateName.replace('.', '')}SectionCollapse`}
+                  >
+                    <div className='section-content'>
+                      <Table
+                        rows={{
+                          inputs: damageTableColumns(featureItem.damage).inputs,
+                          headers: damageTableColumns(featureItem.damage)
+                            .headers,
+                        }}
+                        className={`row-cols-lg-${
+                          damageTableColumns(featureItem.damage).inputs.length +
+                          1
+                        }`}
+                        name={`${stateName}.damage.damageByLevel`}
+                        value={featureItem.damage?.damageByLevel}
+                        onChange={setState}
+                        dynamic={true}
+                        scrollable={true}
+                      />
+                    </div>
+                  </div>
                 </>
               )}
+            </>
+          )
+        ) : (
+          featureItem.damage?.damageAttribute?.some(
+            (attributeItem) => attributeItem.name === 'damagePool'
+          ) &&
+          featureItem.damage?.damageByLevel?.length > 0 &&
+          setState({
+            type: 'removed',
+            payload: { target: { name: `${stateName}.damage` } },
+          })
+        )}
+        {featureItem['style']?.option?.length > 0 && (
+          <>
+            <div className='d-flex'>
+              <hr className='flex-grow-1 me-3' />
+              <span className='mx-auto'>
+                <strong>Style</strong>
+              </span>
+              <hr className='flex-grow-1 ms-3' />
             </div>
-            {!optionItem.damage?.damageAttribute?.some(
-              (attributeItem) => attributeItem.name === 'damagePool'
-            ) && (
-              <>
-                <div
-                  className='btn btn-section-collapse justify-content-between align-items-center'
-                  id='sectionCollapseButton'
-                  type='button'
-                  role='button'
-                  data-bs-toggle='collapse'
-                  data-bs-target={`#section${optionIndex}Collapse`}
-                  aria-controls='collapseExample'
-                  aria-expanded='true'
-                >
-                  <span className='me-3'>Damage Table</span>
-                  <i className='bi bi-arrow-down-up' />
-                </div>
-                <div
-                  className='section-container collapse show'
-                  id={`section${optionIndex}Collapse`}
-                >
-                  <div className='section-content'>
-                    <Table
-                      rows={{
-                        inputs: damageTableColumns(optionItem.damage).inputs,
-                        headers: damageTableColumns(optionItem.damage).headers,
-                      }}
-                      className={`row-cols-lg-${
-                        damageTableColumns(optionItem.damage).inputs.length + 1
-                      }`}
-                      name={`${name}.${optionIndex}.damage.damageByLevel`}
-                      value={optionItem.damage?.damageByLevel}
-                      onChange={setState}
-                      dynamic={true}
-                      scrollable={true}
-                    />
-                  </div>
-                </div>
-              </>
+            <div className='row row-cols-lg-4 row-cols-sm-3 gx-2'>
+              <Select
+                name={`${stateName}.style.attribute`}
+                label='Style Attribute'
+                value={featureItem.style?.attribute}
+                options={builders.feature.style.attribute}
+                multiple={true}
+                onChange={setState}
+              />
+              {featureItem.style?.attribute?.some(
+                (attributeItem) => attributeItem.name === 'replaceAtLevel'
+              ) && (
+                <Input
+                  name={`${stateName}.style.replaceCount`}
+                  value={featureItem.style?.replaceCount}
+                  label='Replacement at Level Count'
+                  onChange={setState}
+                  validation='num'
+                  required={true}
+                  invalidText={'Must contain only numbers'}
+                />
+              )}
+            </div>
+            {featureItem.style?.attribute?.some(
+              (attributeItem) => attributeItem.name === 'providesOptions'
+            ) ? (
+              !featureItem.style?.selectCountByLevel?.length > 0 ||
+              featureItem.levelAvailable?.split(', ')?.length !==
+                featureItem.style?.selectCountByLevel?.length ? (
+                setState({
+                  type: 'added',
+                  payload: {
+                    target: {
+                      name: `${stateName}.style.selectCountByLevel`,
+                      value: featureItem?.levelAvailable
+                        ?.split(', ')
+                        .map((levelItem) => ({
+                          level: Number(levelItem),
+                        })),
+                    },
+                  },
+                })
+              ) : (
+                <>
+                  <Table
+                    rows={{
+                      inputs: [
+                        {
+                          name: 'level',
+                          readOnly: true,
+                          size: 'col',
+                        },
+                        {
+                          name: 'selectionCount',
+                          validation: 'num',
+                          invalidText: 'Must enter whole numbers',
+                          size: 'col',
+                        },
+                      ],
+                      headers: [
+                        {
+                          value: 'Level',
+                          size: 'col',
+                          readOnly: true,
+                        },
+                        {
+                          value: 'Selection Count',
+                          size: 'col',
+                          readOnly: true,
+                        },
+                      ],
+                    }}
+                    name={`${stateName}.style.selectCountByLevel`}
+                    value={featureItem.style?.selectCountByLevel}
+                    onChange={setState}
+                    dynamic={true}
+                    scrollable={true}
+                  />
+                </>
+              )
+            ) : (
+              featureItem.style?.selectCountByLevel?.length > 0 &&
+              setState({
+                type: 'removed',
+                payload: {
+                  target: { name: `${stateName}.style.selectCountByLevel` },
+                },
+              })
             )}
           </>
-        )
-      ) : (
-        optionItem.damage?.damageAttribute?.some(
-          (attributeItem) => attributeItem.name === 'damagePool'
-        ) &&
-        optionItem.damage?.damageByLevel?.length > 0 &&
-        setState({
-          type: 'removed',
-          payload: { target: { name: `${name}.${optionIndex}.damage` } },
-        })
-      )}
-      {Object.keys(optionItem)?.length !== 0 &&
-        Object.keys(optionItem)?.some(
-          (key) => optionItem[key]?.length !== 0
-        ) && (
-          <TabNavigation
-            id={`${name}${optionIndex}section`}
-            tabState={[].concat(
-              ...sectionTabContent(name, optionItem, optionIndex)
-                .filter(
-                  (sectionItem) => optionItem[sectionItem.name]?.length > 0
-                )
-                ?.map((sectionItem) =>
-                  sectionItem.content().map((contentItem, contentIndex) => ({
-                    value: startCase(`${sectionItem.name} ${contentIndex + 1}`),
-                    name: `${name}.${optionIndex}.${sectionItem.name}.${contentIndex}`,
-                    content: contentItem,
-                  }))
-                )
-            )}
-            dynamic={true}
-            setState={setState}
-          />
         )}
-    </Fragment>
-  )
+        {Object.keys(featureItem)?.length !== 0 &&
+          Object.keys(featureItem)?.some(
+            (key) => featureItem[key]?.length !== 0
+          ) && (
+            <TabNavigation
+              id={`${stateName}section`}
+              tabState={[].concat(
+                ...sectionTabContent(stateName, featureItem)
+                  .filter(
+                    (sectionGroupItem) => !!featureItem[sectionGroupItem.name]
+                  )
+                  ?.map((sectionGroupItem) => {
+                    return sectionGroupItem
+                      .content()
+                      .map((sectionItem, sectionIndex) => {
+                        return {
+                          value:
+                            featureItem[sectionGroupItem.name]?.option?.[
+                              sectionIndex
+                            ]?.value ??
+                            startCase(
+                              `${sectionGroupItem.name} ${sectionIndex + 1}`
+                            ),
+                          name: `${stateName}.${sectionGroupItem.name}.${sectionIndex}`,
+                          content: sectionItem,
+                        }
+                      })
+                  })
+              )}
+              dynamic={true}
+              setState={setState}
+            />
+          )}
+      </>
+    )
+  }
 
   const mainTabContent = [
     {
@@ -2396,7 +2510,7 @@ const EditClassForm = () => {
                   ) && (
                     <Select
                       name='spellcasting.prepareLimit.method'
-                      label='Limit Prepared Method'
+                      label='Prepare Limit Method'
                       multiple={true}
                       value={state.spellcasting?.prepareLimit?.method}
                       options={builders.class.spell.prepareLimitAttribute}
@@ -2404,15 +2518,31 @@ const EditClassForm = () => {
                     />
                   )}
                   {state.spellcasting?.prepareLimit?.method?.some(
-                    (methodItem) => methodItem.name === 'ability'
+                    (methodItem) => methodItem.name === 'classLevel'
                   ) && (
-                    <Select
-                      name='spellcasting.prepareLimit.ability'
-                      label='Limit Prepared Method'
-                      value={state.spellcasting?.prepareLimit?.ability}
-                      options={builders.ability}
-                      onChange={setState}
-                    />
+                    <>
+                      <Select
+                        name='spellcasting.prepareLimit.level.measurement'
+                        label='Level Measurement'
+                        value={
+                          state.spellcasting?.prepareLimit?.level?.measurement
+                        }
+                        options={builders.system.rules.measurement}
+                        onChange={setState}
+                      />
+                      {state.spellcasting?.prepareLimit?.level?.measurement
+                        ?.name === 'half' && (
+                        <Select
+                          name='spellcasting.prepareLimit.level.rounding'
+                          label='Level Rounding'
+                          value={
+                            state.spellcasting?.prepareLimit?.level?.rounding
+                          }
+                          options={builders.system.rules.rounding}
+                          onChange={setState}
+                        />
+                      )}
+                    </>
                   )}
                   <Input
                     name='spellcasting.maxSpellLevel'
@@ -2874,28 +3004,62 @@ const EditClassForm = () => {
                 name: `startingEquipment.${groupIndex}`,
                 content: (
                   <>
+                    <button
+                      className='btn btn-primary'
+                      type='button'
+                      onClick={() =>
+                        setState({
+                          type: 'added',
+                          payload: {
+                            target: {
+                              name: `startingEquipment.${groupIndex}.option`,
+                            },
+                          },
+                        })
+                      }
+                    >
+                      Add Option
+                    </button>
                     {groupItem.option?.length > 0 &&
                       groupItem.option?.map((optionItem, optionIndex) => (
                         <div
                           className='equipment-option mt-2'
                           key={optionIndex}
                         >
-                          <button
-                            className='btn btn-primary'
-                            type='button'
-                            onClick={() =>
-                              setState({
-                                type: 'added',
-                                payload: {
-                                  target: {
-                                    name: `startingEquipment.${groupIndex}.option.${optionIndex}.equipment`,
+                          <div className='d-flex justify-content-between'>
+                            <button
+                              className='btn btn-primary'
+                              type='button'
+                              onClick={() =>
+                                setState({
+                                  type: 'added',
+                                  payload: {
+                                    target: {
+                                      name: `startingEquipment.${groupIndex}.option.${optionIndex}.equipment`,
+                                    },
                                   },
-                                },
-                              })
-                            }
-                          >
-                            Add Equipment
-                          </button>
+                                })
+                              }
+                            >
+                              Add Equipment
+                            </button>
+                            <button
+                              className='btn btn-danger'
+                              type='button'
+                              onClick={() =>
+                                setState({
+                                  type: 'removed',
+                                  payload: {
+                                    target: {
+                                      name: `startingEquipment.${groupIndex}.option.${optionIndex}`,
+                                    },
+                                  },
+                                })
+                              }
+                            >
+                              Remove Option
+                            </button>
+                          </div>
                           {optionItem.equipment?.length > 0 && (
                             <Fragment key={optionIndex}>
                               <TabNavigation
@@ -3074,17 +3238,16 @@ const EditClassForm = () => {
               id='feature'
               tabState={state.feature?.map((featureItem, featureIndex) => {
                 const level = true
-                const name = 'feature'
+                const stateName = `feature.${featureIndex}`
                 return {
                   value:
                     featureItem.value == null || featureItem.value === ''
-                      ? startCase(`${name} ${featureIndex + 1}`)
+                      ? startCase(`Feature ${featureIndex + 1}`)
                       : featureItem.value,
-                  name: `${name}.${featureIndex}`,
+                  name: stateName,
                   content: featureTabContent(
-                    name,
+                    stateName,
                     featureItem,
-                    featureIndex,
                     level
                   ),
                 }
@@ -3095,117 +3258,6 @@ const EditClassForm = () => {
               dynamic={true}
             />
           )}
-        </>
-      ),
-    },
-    {
-      name: 'style',
-      content: (
-        <>
-          <div className='row gx-2'>
-            <Select
-              name='style'
-              className={'col-2 mb-2'}
-              options={builders.class.style}
-              value={state.style}
-              optionalKey={['option', 'desc']}
-              onChange={setState}
-            />
-          </div>
-          {state.style?.option?.length > 0 && (
-            <>
-              {!state.style?.choicesByLevel?.length > 0 &&
-                setState({
-                  type: 'added',
-                  payload: { target: { name: 'style.choicesByLevel' } },
-                })}
-              <Table
-                rows={{
-                  inputs: [
-                    {
-                      name: 'level',
-                      validation: 'num',
-                      invalidText: 'Must contain whole numbers only',
-                      size: 'col-2',
-                    },
-                    {
-                      name: 'count',
-                      validation: 'num',
-                      invalidText: 'Must contain whole numbers only',
-                      size: 'col-2',
-                    },
-                  ],
-                  headers: [
-                    {
-                      value: 'Level',
-                      size: 'col-2',
-                      readOnly: true,
-                    },
-                    {
-                      value: 'Choices Per Level',
-                      size: 'col-4',
-                      readOnly: true,
-                    },
-                  ],
-                }}
-                name='style.choicesByLevel'
-                dynamic={true}
-                value={state.style?.choicesByLevel}
-                onChange={setState}
-              />
-              <TextEditor
-                ref={addToTextRefs}
-                name={'style.desc'}
-                value={state.style?.desc}
-                label={'Description'}
-                onChange={setState}
-              />
-              <button
-                className='btn btn-secondary my-1'
-                type='button'
-                onClick={() =>
-                  setState({
-                    type: 'added',
-                    payload: { target: { name: 'style.option' } },
-                  })
-                }
-              >
-                Add Option
-              </button>
-              <TabNavigation
-                id='style'
-                tabState={state.style?.option?.map(
-                  (optionItem, optionIndex) => {
-                    const level = false
-                    const name = 'style.option'
-                    return {
-                      value:
-                        optionItem.value == null || optionItem.value === ''
-                          ? startCase(`Style ${optionIndex + 1}`)
-                          : optionItem.value,
-                      name: `${name}.${optionIndex}`,
-                      content: featureTabContent(
-                        name,
-                        optionItem,
-                        optionIndex,
-                        level
-                      ),
-                    }
-                  }
-                )}
-                setState={setState}
-                dynamic={true}
-              />
-            </>
-          )}
-          {!state.attribute?.some(
-            (attributeItem) => attributeItem.name === 'classStyle'
-          ) &&
-            !!state.style &&
-            setState({
-              type: 'removed',
-              payload: { target: { name: 'style' } },
-            })}
         </>
       ),
     },
@@ -3256,18 +3308,18 @@ const EditClassForm = () => {
             <TabNavigation
               id='resourceFeature'
               tabState={state.resourceFeature?.feature?.map(
-                (optionItem, optionIndex) => {
+                (featureItem, optionIndex) => {
                   const level = true
                   const name = 'resourceFeature.feature'
                   return {
                     value:
-                      optionItem.value == null || optionItem.value === ''
+                      featureItem.value == null || featureItem.value === ''
                         ? startCase(`Feature ${optionIndex + 1}`)
-                        : optionItem.value,
+                        : featureItem.value,
                     name: `${name}.${optionIndex}`,
                     content: featureTabContent(
                       name,
-                      optionItem,
+                      featureItem,
                       optionIndex,
                       level
                     ),
@@ -3327,18 +3379,11 @@ const EditClassForm = () => {
 
   content = (
     <>
-      <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2'>
+      <div className='row row-cols-1 row-cols-md-3 justify-content-between pb-2 mx-1'>
         <div className='col-auto'>
-          <h3>Edit a Class</h3>
+          <h3>Create a Class</h3>
         </div>
         <div className='col-auto d-flex justify-content-end'>
-          <button
-            className='btn btn-success me-2'
-            type='button'
-            onClick={onUpdate}
-          >
-            Update
-          </button>
           <button
             className='btn btn-primary me-2'
             type='button'
@@ -3349,21 +3394,13 @@ const EditClassForm = () => {
           <button className='btn btn-warning me-2' onClick={onReset}>
             Reset Form
           </button>
-          <button className='btn btn-secondary' onClick={onBackClick}>
+          <button className='btn btn-secondary' onClick={() => navigate(-1)}>
             Back
           </button>
         </div>
       </div>
-      {successMessage && (
-        <h5 className='success-message' id='success-message'>
-          {successMessage}
-        </h5>
-      )}
-      {errorMessage && (
-        <h5 className='error-message' id='error-message'>
-          {errorMessage}
-        </h5>
-      )}
+      {successMessage && <h5 className='success-message'>{successMessage}</h5>}
+      {errorMessage && <h5 className='error-message'>{errorMessage}</h5>}
       <form>
         <TabNavigation
           id='main'
@@ -3375,11 +3412,6 @@ const EditClassForm = () => {
                   ? tabItem.name !== 'subclassDetails' &&
                     tabItem.name !== 'startingEquipment'
                   : tabItem) &&
-                (state.attribute?.some(
-                  (attributeItem) => attributeItem.name === 'classStyle'
-                )
-                  ? tabItem
-                  : tabItem.name !== 'style') &&
                 (state.attribute?.some(
                   (attributeItem) => attributeItem.name === 'resourceFeature'
                 )
@@ -3395,11 +3427,10 @@ const EditClassForm = () => {
       </form>
     </>
   )
-
   return (
     <div className='main-container' id='main-container'>
       {content}
     </div>
   )
 }
-export default EditClassForm
+export default NewClassForm

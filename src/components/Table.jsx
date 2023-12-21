@@ -30,11 +30,9 @@ const TableHeader = ({
               <div
                 className={`${headerItem.size ?? ''} ${
                   headerItem.className ?? ''
-                } ${
-                  sortable
-                    ? 'sortable' && getClassNames(headerItem.name.sortOn)
-                    : ''
-                } header text-start`}
+                } ${sortable ? 'sortable' : ''} ${getClassNames(
+                  headerItem.name?.sortOn ?? headerItem.name
+                )} header text-start`}
                 onClick={() => sortable && requestSort(headerItem.name)}
               >
                 {headerItem.value}
@@ -209,11 +207,9 @@ const TableRow = ({
         >
           {subrows.map((subrowItem, subrowIndex) => (
             <div
-              className={`row row-subrow mx-0 ${
-                className ? className : ''
-              } ${onClick ? 'clickable' : ''} ${
-                scrollable ? 'scrollable' : ''
-              } gx-2`}
+              className={`row row-subrow mx-0 ${className ? className : ''} ${
+                onClick ? 'clickable' : ''
+              } ${scrollable ? 'scrollable' : ''} gx-2`}
               onClick={() => {
                 onClick && onClick(subrowItem)
               }}

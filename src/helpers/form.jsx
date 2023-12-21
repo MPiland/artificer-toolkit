@@ -12,9 +12,6 @@ const addClassToTab = (validTabs) => {
   Object.keys(validTabs).forEach((tabId) => {
     const tab = document.getElementById(`${tabId}Tab`)
     if (tab) {
-      if (tabId === 'main1') {
-        console.log('validTab', validTabs[tabId])
-      }
       if (validTabs[tabId] === false && !tab.classList.contains('is-invalid')) {
         tab.classList.add('is-invalid')
       } else if (
@@ -25,7 +22,7 @@ const addClassToTab = (validTabs) => {
       }
 
       let parentTab = tab.closest('.tab-pane')
-      const parentId = parentTab?.id?.replace('TabPane', '')
+      const parentId = parentTab?.id?.replace('Pane', '')
       if (parentId) {
         if (validParentTabs[parentId] == null) {
           if (validTabs[parentId] != null) {
@@ -94,17 +91,13 @@ export const handleValidation = (resetValidation = false) => {
 
         let tabPane = element.closest('.tab-pane')
         if (tabPane) {
-          const tabId = tabPane.id.replace('TabPane', '')
+          const tabId = tabPane.id.replace('Pane', '')
           if (tabId) {
             if (validTabs[tabId] != null) {
               validTabs[tabId] = validTabs[tabId] && isValidInput
             } else {
               validTabs[tabId] = isValidInput
             }
-          }
-
-          if (!isValidInput) {
-            console.log('tabId', tabId, 'element', element)
           }
         }
       }

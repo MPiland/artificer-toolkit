@@ -297,7 +297,7 @@ const EditFeatForm = () => {
     return { inputs: inputArray, headers: headerArray }
   }
 
-  const sectionTabContent = (name, sectionItem, sectionIndex) => {
+  const sectionTabContent = (stateName, sectionItem) => {
     const tabContent = [
       {
         name: 'feat',
@@ -311,7 +311,7 @@ const EditFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -323,7 +323,7 @@ const EditFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -332,7 +332,7 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.feat`}
+                    name={`${stateName}.${this.name}.${index}.feat`}
                     multiple={true}
                     label='Feat'
                     value={item.feat}
@@ -343,7 +343,7 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -370,7 +370,7 @@ const EditFeatForm = () => {
                 <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -382,7 +382,7 @@ const EditFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -391,7 +391,7 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.module`}
+                    name={`${stateName}.${this.name}.${index}.module`}
                     label='Modifier Category'
                     value={item.module}
                     options={builders.modifier.module}
@@ -400,7 +400,7 @@ const EditFeatForm = () => {
                   />
                   {item.module?.name && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.modType`}
+                      name={`${stateName}.${this.name}.${index}.modType`}
                       label='Modifier Type'
                       value={item.modType}
                       options={builders.modifier.modType?.filter((modItem) =>
@@ -416,7 +416,7 @@ const EditFeatForm = () => {
                     item.modType?.name === 'useReset' && (
                       <>
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.limitUse.resetOption`}
+                          name={`${stateName}.${this.name}.${index}.limitUse.resetOption`}
                           label='Reset Option'
                           value={item.limitUse?.resetOption}
                           options={builders.feature.chargeReset}
@@ -424,7 +424,7 @@ const EditFeatForm = () => {
                           onChange={setState}
                         />
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.limitUse.feature`}
+                          name={`${stateName}.${this.name}.${index}.limitUse.feature`}
                           label='Feature'
                           value={item.limitUse?.feature}
                           options={state?.feature}
@@ -435,7 +435,7 @@ const EditFeatForm = () => {
                     )}
                   {item.module?.name === 'ability' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.ability`}
+                      name={`${stateName}.${this.name}.${index}.ability`}
                       multiple={true}
                       label='Ability'
                       value={item.ability}
@@ -446,7 +446,7 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'saveAbility' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.saveAbility`}
+                      name={`${stateName}.${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
                       value={item.saveAbility}
@@ -457,7 +457,7 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'skill' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.skill`}
+                      name={`${stateName}.${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
                       value={item.skill}
@@ -468,7 +468,7 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'damageSave' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.damageSave`}
+                      name={`${stateName}.${this.name}.${index}.damageSave`}
                       multiple={true}
                       label='Damage'
                       value={item.damageSave}
@@ -479,7 +479,7 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'conditionSave' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.conditionSave`}
+                      name={`${stateName}.${this.name}.${index}.conditionSave`}
                       multiple={true}
                       label='Condition'
                       value={item.conditionSave}
@@ -493,7 +493,7 @@ const EditFeatForm = () => {
                     item.modType?.name === 'setDieValue' ||
                     item.modType?.name === 'setBonus') && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.method`}
+                      name={`${stateName}.${this.name}.${index}.method`}
                       label='Method'
                       value={item.method}
                       options={builders.modifier.method.filter((methodItem) =>
@@ -507,7 +507,7 @@ const EditFeatForm = () => {
                   )}
                   {item.module?.name === 'condition' ? (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.condition`}
+                      name={`${stateName}.${this.name}.${index}.condition`}
                       multiple={true}
                       label='Condition Type'
                       value={item.condition}
@@ -517,7 +517,7 @@ const EditFeatForm = () => {
                     />
                   ) : item.module?.name === 'speed' ? (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.speed`}
+                      name={`${stateName}.${this.name}.${index}.speed`}
                       multiple={true}
                       value={item.speed}
                       label='Speed Type'
@@ -527,7 +527,7 @@ const EditFeatForm = () => {
                     />
                   ) : item.module?.name === 'passive' ? (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.passive`}
+                      name={`${stateName}.${this.name}.${index}.passive`}
                       multiple={true}
                       label='Passive Type'
                       value={item.passive}
@@ -538,7 +538,7 @@ const EditFeatForm = () => {
                   ) : (
                     item.module?.name === 'damage' && (
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.damage`}
+                        name={`${stateName}.${this.name}.${index}.damage`}
                         multiple={true}
                         label='Damage Type'
                         value={item.damage}
@@ -554,7 +554,7 @@ const EditFeatForm = () => {
                     <>
                       <Input
                         validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.method.setValue`}
+                        name={`${stateName}.${this.name}.${index}.method.setValue`}
                         label='Set Value'
                         invalidText='Must contain only numbers'
                         autoComplete='off'
@@ -566,7 +566,7 @@ const EditFeatForm = () => {
                   ) : item.method?.name === 'ability' ? (
                     <>
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.method.ability`}
+                        name={`${stateName}.${this.name}.${index}.method.ability`}
                         label='Method Ability'
                         value={item.method.ability}
                         options={builders.ability}
@@ -575,7 +575,7 @@ const EditFeatForm = () => {
                       />
                       <Input
                         validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.multiplier`}
+                        name={`${stateName}.${this.name}.${index}.multiplier`}
                         label='Multiplier'
                         invalidText='Must contain only whole numbers'
                         autoComplete='off'
@@ -587,7 +587,7 @@ const EditFeatForm = () => {
                     item.method?.name === 'skill' && (
                       <>
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.method.skill`}
+                          name={`${stateName}.${this.name}.${index}.method.skill`}
                           label='Method Skill'
                           value={item.method.skill}
                           options={builders.skill}
@@ -596,7 +596,7 @@ const EditFeatForm = () => {
                         />
                         <Input
                           validation='num'
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.multiplier`}
+                          name={`${stateName}.${this.name}.${index}.multiplier`}
                           label='Multiplier'
                           invalidText='Must contain only whole numbers'
                           autoComplete='off'
@@ -611,7 +611,7 @@ const EditFeatForm = () => {
                     item.module?.name === 'ability' && (
                       <Input
                         validation='num'
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.maxValue`}
+                        name={`${stateName}.${this.name}.${index}.maxValue`}
                         label='Max Value'
                         autoComplete='off'
                         value={item.maxValue}
@@ -623,7 +623,7 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -640,13 +640,13 @@ const EditFeatForm = () => {
                       type: 'added',
                       payload: {
                         target: {
-                          name: `${name}.${sectionIndex}.${this.name}.${index}.diePerLevel`,
+                          name: `${stateName}.${this.name}.${index}.diePerLevel`,
                         },
                       },
                     })
                   ) : (
                     <Table
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.diePerLevel`}
+                      name={`${stateName}.${this.name}.${index}.diePerLevel`}
                       rows={{
                         inputs: [
                           {
@@ -697,7 +697,7 @@ const EditFeatForm = () => {
                     type: 'removed',
                     payload: {
                       target: {
-                        name: `${name}.${sectionIndex}.${this.name}.${index}.diePerLevel`,
+                        name: `${stateName}.${this.name}.${index}.diePerLevel`,
                       },
                     },
                   })
@@ -708,13 +708,13 @@ const EditFeatForm = () => {
                       type: 'added',
                       payload: {
                         target: {
-                          name: `${name}.${sectionIndex}.${this.name}.${index}.addPerLevel`,
+                          name: `${stateName}.${this.name}.${index}.addPerLevel`,
                         },
                       },
                     })
                   ) : (
                     <Table
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.addPerLevel`}
+                      name={`${stateName}.${this.name}.${index}.addPerLevel`}
                       inputs={[
                         {
                           name: 'level',
@@ -752,7 +752,7 @@ const EditFeatForm = () => {
                     type: 'removed',
                     payload: {
                       target: {
-                        name: `${name}.${sectionIndex}.${this.name}.${index}.addPerLevel`,
+                        name: `${stateName}.${this.name}.${index}.addPerLevel`,
                       },
                     },
                   })
@@ -774,7 +774,7 @@ const EditFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -786,7 +786,7 @@ const EditFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -795,7 +795,7 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.area`}
+                    name={`${stateName}.${this.name}.${index}.area`}
                     label='Proficiency Area'
                     value={item.area}
                     options={builders.proficiency.area}
@@ -804,7 +804,7 @@ const EditFeatForm = () => {
                   />
                   {item?.area?.name === 'skill' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.skill`}
+                      name={`${stateName}.${this.name}.${index}.skill`}
                       multiple={true}
                       label='Skill'
                       value={item.skill}
@@ -815,7 +815,7 @@ const EditFeatForm = () => {
                   )}
                   {item?.area?.name === 'saveAbility' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.saveAbility`}
+                      name={`${stateName}.${this.name}.${index}.saveAbility`}
                       multiple={true}
                       label='Save Ability'
                       value={item.saveAbility}
@@ -826,7 +826,7 @@ const EditFeatForm = () => {
                   )}
                   {item?.area?.name === 'language' && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.language`}
+                      name={`${stateName}.${this.name}.${index}.language`}
                       multiple={true}
                       label='Language'
                       value={item.language}
@@ -839,7 +839,7 @@ const EditFeatForm = () => {
                     item.area?.name === 'itemType') && (
                     <>
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.category`}
+                        name={`${stateName}.${this.name}.${index}.category`}
                         multiple={true}
                         label='Item Category'
                         value={item.category}
@@ -848,7 +848,7 @@ const EditFeatForm = () => {
                       />
                       {item.area?.name === 'property' && (
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.property`}
+                          name={`${stateName}.${this.name}.${index}.property`}
                           multiple={true}
                           label='Item Property'
                           value={item.property}
@@ -869,7 +869,7 @@ const EditFeatForm = () => {
                       )}
                       {item.area?.name === 'itemType' && (
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.itemType`}
+                          name={`${stateName}.${this.name}.${index}.itemType`}
                           multiple={true}
                           label='Item Type'
                           value={item.itemTypeitem.itemType}
@@ -887,7 +887,7 @@ const EditFeatForm = () => {
                     </>
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.level`}
+                    name={`${stateName}.${this.name}.${index}.level`}
                     label='Proficiency Level'
                     value={item.level}
                     options={builders.proficiency.level}
@@ -897,7 +897,7 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -924,7 +924,7 @@ const EditFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple={true}
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={builders.section.attribute}
                     label={`${startCase(this.name)} Attributes`}
                     value={item.attribute}
@@ -936,7 +936,7 @@ const EditFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -945,7 +945,7 @@ const EditFeatForm = () => {
                     />
                   )}
                   <Select
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.sense`}
+                    name={`${stateName}.${this.name}.${index}.sense`}
                     multiple={true}
                     label='Sense'
                     value={item.sense}
@@ -956,7 +956,7 @@ const EditFeatForm = () => {
                   {multipleOptions && (
                     <Input
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                      name={`${stateName}.${this.name}.${index}.selectionCount`}
                       label='# of Selections'
                       autoComplete='off'
                       value={item.selectionCount}
@@ -983,7 +983,7 @@ const EditFeatForm = () => {
                 <div className='row g-2 row-cols-lg-4 row-cols-md-3 row-cols-2 pb-2'>
                   <Select
                     multiple='true'
-                    name={`${name}.${sectionIndex}.${this.name}.${index}.attribute`}
+                    name={`${stateName}.${this.name}.${index}.attribute`}
                     options={[].concat(
                       builders.section.spell.attribute,
                       builders.section.attribute
@@ -997,7 +997,7 @@ const EditFeatForm = () => {
                     (attributeItem) => attributeItem.name === 'classLimit'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.classLimit`}
+                      name={`${stateName}.${this.name}.${index}.classLimit`}
                       multiple={true}
                       label='Class Limit'
                       value={item.classLimit}
@@ -1010,7 +1010,7 @@ const EditFeatForm = () => {
                     (attributeItem) => attributeItem.name === 'levelLimit'
                   ) && (
                     <Select
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.levelLimit`}
+                      name={`${stateName}.${this.name}.${index}.levelLimit`}
                       multiple={true}
                       label='Level Limit'
                       value={item.levelLimit}
@@ -1027,7 +1027,7 @@ const EditFeatForm = () => {
                     <Input
                       size='col-sm-2'
                       validation='num'
-                      name={`${name}.${sectionIndex}.${this.name}.${index}.optionGroup`}
+                      name={`${stateName}.${this.name}.${index}.optionGroup`}
                       label='Opt. Grp. #'
                       autoComplete='off'
                       value={item.optionGroup}
@@ -1040,7 +1040,7 @@ const EditFeatForm = () => {
                   ) && (
                     <>
                       <Select
-                        name={`${name}.${sectionIndex}.${this.name}.${index}.spell`}
+                        name={`${stateName}.${this.name}.${index}.spell`}
                         multiple={true}
                         label='Spell'
                         value={item.spell}
@@ -1067,7 +1067,7 @@ const EditFeatForm = () => {
                           attributeItem.name === 'optionalAbility'
                       ) && (
                         <Select
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.ability`}
+                          name={`${stateName}.${this.name}.${index}.ability`}
                           multiple={true}
                           label='Ability'
                           value={item.ability}
@@ -1079,7 +1079,7 @@ const EditFeatForm = () => {
                       {multipleOptions && (
                         <Input
                           validation='num'
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.selectionCount`}
+                          name={`${stateName}.${this.name}.${index}.selectionCount`}
                           label='# of Selections'
                           autoComplete='off'
                           value={item.selectionCount}
@@ -1102,7 +1102,7 @@ const EditFeatForm = () => {
                         type: 'added',
                         payload: {
                           target: {
-                            name: `${name}.${sectionIndex}.${this.name}.${index}.spellsByLevel`,
+                            name: `${stateName}.${this.name}.${index}.spellsByLevel`,
                             value: sectionItem?.levelAvailable
                               ?.split(', ')
                               .map((levelItem) => ({
@@ -1142,7 +1142,7 @@ const EditFeatForm = () => {
                               },
                             ],
                           }}
-                          name={`${name}.${sectionIndex}.${this.name}.${index}.spellsByLevel`}
+                          name={`${stateName}.${this.name}.${index}.spellsByLevel`}
                           value={item.spellsByLevel}
                           onChange={setState}
                         />
@@ -1154,7 +1154,7 @@ const EditFeatForm = () => {
                       type: 'removed',
                       payload: {
                         target: {
-                          name: `${name}.${sectionIndex}.${this.name}.${index}.spellsByLevel`,
+                          name: `${stateName}.${this.name}.${index}.spellsByLevel`,
                         },
                       },
                     })
@@ -1165,19 +1165,36 @@ const EditFeatForm = () => {
           })
         },
       },
+      {
+        name: 'style',
+        content() {
+          return sectionItem[this.name].option.map(
+            (optionItem, optionIndex) => {
+              const style = false
+              const sectionStateName = `${stateName}.${this.name}.option.${optionIndex}`
+              return featureTabContent(
+                sectionStateName,
+                optionItem,
+                optionIndex,
+                style
+              )
+            }
+          )
+        },
+      },
     ]
     return tabContent
   }
 
-  const featureTabContent = (name, optionItem, optionIndex) => (
-    <Fragment key={optionIndex}>
+  const featureTabContent = (stateName, featureItem, style) => (
+    <>
       <div className='row justify-content-between g-2 pb-2'>
         <Input
           size='col-sm-3'
-          name={`${name}.${optionIndex}.value`}
+          name={`${stateName}.value`}
           autoComplete='off'
           label='Feature Name'
-          value={optionItem.value}
+          value={featureItem.value}
           onChange={setState}
         />
         <div className='dropdown col-auto'>
@@ -1190,21 +1207,31 @@ const EditFeatForm = () => {
             Add...
           </button>
           <ul className='dropdown-menu'>
-            {sectionTabContent(optionItem, optionIndex).map(
-              (sectionItem, sectionIndex) => (
+          {sectionTabContent(featureItem)
+              .filter(
+                (sectionItem) =>
+                  (style === false
+                    ? sectionItem.name !== 'style'
+                    : sectionItem) &&
+                  (featureItem['style']?.option?.length > 0
+                    ? sectionItem.name === 'style'
+                    : sectionItem)
+              )
+              .map((sectionItem, sectionIndex) => (
                 <li key={sectionIndex} className='dropdown-item'>
                   <button
                     key={sectionIndex}
                     className='dropdown-item'
                     type='button'
-                    name={`${name}.${optionIndex}.${sectionItem.name}`}
+                    name={`${stateName}.${sectionItem.name}${
+                      sectionItem.name === 'style' ? '.option' : ''
+                    }`}
                     onClick={(e) => setState({ type: 'added', payload: e })}
                   >
                     {`${startCase(sectionItem.name)}`}
                   </button>
                 </li>
-              )
-            )}
+              ))}
           </ul>
         </div>
       </div>
@@ -1212,132 +1239,132 @@ const EditFeatForm = () => {
         ref={addToTextRefs}
         className='pb-2'
         label='Feature description'
-        value={optionItem.desc}
-        name={`${name}.${optionIndex}.desc`}
+        value={featureItem.desc}
+        name={`${stateName}.desc`}
         onChange={setState}
       />
       <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-3'>
         <Select
           multiple={true}
-          name={`${name}.${optionIndex}.attribute`}
-          value={optionItem.attribute}
+          name={`${stateName}.attribute`}
+          value={featureItem.attribute}
           options={builders.feature.attribute}
           label='Feature Attributes'
           onChange={setState}
         />
-        {optionItem.attribute?.some(
+        {featureItem.attribute?.some(
           (attributeItem) => attributeItem.name === 'limitUse'
         ) && (
           <>
             <Select
-              name={`${name}.${optionIndex}.limitUse.limitBy`}
+              name={`${stateName}.limitUse.limitBy`}
               label='Limit By Option'
-              value={optionItem.limitUse?.limitBy}
+              value={featureItem.limitUse?.limitBy}
               options={builders.feature.chargeLimit}
               required={true}
               onChange={setState}
             />
-            {optionItem.limitUse?.limitBy?.name === 'ability' ? (
+            {featureItem.limitUse?.limitBy?.name === 'ability' ? (
               <>
                 <Select
-                  name={`${name}.${optionIndex}.limitUse.ability`}
+                  name={`${stateName}.limitUse.ability`}
                   label='Ability'
-                  value={optionItem.limitUse?.ability}
+                  value={featureItem.limitUse?.ability}
                   options={builders.ability}
                   required={true}
                   onChange={setState}
                 />
                 <Input
-                  name={`${name}.${optionIndex}.limitUse.minValue`}
+                  name={`${stateName}.limitUse.minValue`}
                   autoComplete='off'
                   label='Min. Value'
-                  value={optionItem?.limitUse?.minValue}
+                  value={featureItem?.limitUse?.minValue}
                   onChange={setState}
                 />
               </>
-            ) : optionItem.limitUse?.limitBy?.name === 'skill' ? (
+            ) : featureItem.limitUse?.limitBy?.name === 'skill' ? (
               <Select
-                name={`${name}.${optionIndex}.limitUse.skill`}
+                name={`${stateName}.limitUse.skill`}
                 label='Skill'
-                value={optionItem.limitUse?.skill}
+                value={featureItem.limitUse?.skill}
                 options={builders.skill}
                 required={true}
                 onChange={setState}
               />
             ) : (
-              optionItem.limitUse?.limitBy?.name === 'setValue' && (
+              featureItem.limitUse?.limitBy?.name === 'setValue' && (
                 <Input
                   validation='num'
-                  name={`${name}.${optionIndex}.limitUse.setValue`}
+                  name={`${stateName}.limitUse.setValue`}
                   invalidText='Must contain only numbers'
                   label='Use Amount'
                   required={true}
-                  value={optionItem.limitUse.setValue}
+                  value={featureItem.limitUse.setValue}
                   onChange={setState}
                 />
               )
             )}
-            {optionItem.limitUse?.limitBy?.name !== 'level' && (
+            {featureItem.limitUse?.limitBy?.name !== 'level' && (
               <Input
-                name={`${name}.${optionIndex}.limitUse.addValue`}
+                name={`${stateName}.limitUse.addValue`}
                 autoComplete='off'
                 label='Additional Amount'
-                value={optionItem?.limitUse?.addValue}
+                value={featureItem?.limitUse?.addValue}
                 onChange={setState}
               />
             )}
             <Select
-              name={`${name}.${optionIndex}.limitUse.resetOption`}
+              name={`${stateName}.limitUse.resetOption`}
               label='Reset Option'
-              value={optionItem.limitUse?.resetOption}
+              value={featureItem.limitUse?.resetOption}
               options={builders.feature.chargeReset}
               required={true}
               onChange={setState}
             />
           </>
         )}
-        {optionItem.attribute?.some(
+        {featureItem.attribute?.some(
           (attributeItem) => attributeItem.name === 'isAction'
         ) && (
           <>
             <Select
-              name={`${name}.${optionIndex}.action`}
+              name={`${stateName}.action`}
               label='Action Type'
-              value={optionItem.action}
+              value={featureItem.action}
               options={builders.feature.action}
               required={true}
               onChange={setState}
             />
           </>
         )}
-        {optionItem.attribute?.some(
+        {featureItem.attribute?.some(
           (attributeItem) => attributeItem.name === 'hasRange'
         ) && (
           <>
             <Input
               validation='num'
-              name={`${name}.${optionIndex}.range.minRange`}
+              name={`${stateName}.range.minRange`}
               autoComplete='off'
               label='Min Range'
               required={true}
-              value={optionItem.range.minRange}
+              value={featureItem.range.minRange}
               invalidText='Must contain only numbers'
               onChange={setState}
             />
             <Input
               validation={'num'}
-              name={`${name}.${optionIndex}.range.maxRange`}
+              name={`${stateName}.range.maxRange`}
               autoComplete='off'
               label='Max Range'
               invalidText='Must contain only numbers'
               required={true}
-              value={optionItem.range.maxRange}
+              value={featureItem.range.maxRange}
               onChange={setState}
             />
             <Select
-              name={`${name}.${optionIndex}.range.unit`}
+              name={`${stateName}.range.unit`}
               label='UoM'
-              value={optionItem.range?.unit}
+              value={featureItem.range?.unit}
               options={[].concat(
                 Object.values(builders.unit.imperial).flatMap((item) => item)
               )}
@@ -1346,43 +1373,43 @@ const EditFeatForm = () => {
             />
           </>
         )}
-        {optionItem.attribute?.some(
+        {featureItem.attribute?.some(
           (attributeItem) => attributeItem.name === 'requireSave'
         ) && (
           <>
             <Select
-              name={`${name}.${optionIndex}.saveAbility.attribute`}
+              name={`${stateName}.saveAbility.attribute`}
               multiple={true}
               label='Save Attribute'
-              value={optionItem.saveAbility?.attribute}
+              value={featureItem.saveAbility?.attribute}
               options={builders.feature.saveAttribute}
               onChange={setState}
             />
             <Select
-              name={`${name}.${optionIndex}.saveAbility.ability`}
+              name={`${stateName}.saveAbility.ability`}
               label='DC Ability'
-              value={optionItem.saveAbility?.ability}
+              value={featureItem.saveAbility?.ability}
               options={builders.ability}
               required={true}
               onChange={setState}
             />
             <Input
               validation='num'
-              name={`${name}.${optionIndex}.saveAbility.minValue`}
+              name={`${stateName}.saveAbility.minValue`}
               autoComplete='off'
               label='Min. Value'
               required={true}
               invalidText='Must contain only numbers'
-              value={optionItem.saveAbility?.minValue}
+              value={featureItem.saveAbility?.minValue}
               onChange={setState}
             />
-            {optionItem.saveAbility?.attribute?.some(
+            {featureItem.saveAbility?.attribute?.some(
               (attributeItem) => attributeItem.name === 'addAbilityModifier'
             ) && (
               <Select
-                name={`${name}.${optionIndex}.saveAbility.abilityModifier`}
+                name={`${stateName}.saveAbility.abilityModifier`}
                 label='Modifier Ability'
-                value={optionItem.saveAbility?.abilityModifier}
+                value={featureItem.saveAbility?.abilityModifier}
                 options={builders.ability}
                 required={true}
                 onChange={setState}
@@ -1391,7 +1418,7 @@ const EditFeatForm = () => {
           </>
         )}
       </div>
-      {optionItem.attribute?.some(
+      {featureItem.attribute?.some(
         (attributeItem) => attributeItem.name === 'hasRequirements'
       ) && (
         <>
@@ -1403,43 +1430,43 @@ const EditFeatForm = () => {
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-2'>
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.option`}
-              value={optionItem.requirement?.option}
+              name={`${stateName}.requirement.option`}
+              value={featureItem.requirement?.option}
               label='Requirement'
               options={builders.feature.requirement}
               required={true}
               onChange={setState}
             />
           </div>
-          {optionItem.requirement?.option?.some(
-            (optionItem) => optionItem.name === 'skillProficiency'
+          {featureItem.requirement?.option?.some(
+            (featureItem) => featureItem.name === 'skillProficiency'
           ) && (
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.skillProficiency.skill`}
-              value={optionItem.requirement?.skillProficiency?.skill}
+              name={`${stateName}.requirement.skillProficiency.skill`}
+              value={featureItem.requirement?.skillProficiency?.skill}
               label='Skill Proficiency'
               options={builders.skill}
               required={true}
               onChange={setState}
             />
           )}
-          {optionItem.requirement?.option?.some(
-            (optionItem) => optionItem.name === 'abilityScore'
+          {featureItem.requirement?.option?.some(
+            (featureItem) => featureItem.name === 'abilityScore'
           ) && (
             <>
               <Select
                 multiple={true}
-                name={`${name}.${optionIndex}.requirement.abilityScore.ability`}
-                value={optionItem.requirement?.abilityScore?.ability}
+                name={`${stateName}.requirement.abilityScore.ability`}
+                value={featureItem.requirement?.abilityScore?.ability}
                 label='Ability'
                 options={builders.ability}
                 required={true}
                 onChange={setState}
               />
               <Input
-                name={`${name}.${optionIndex}.requirement.abilityScore.score`}
-                value={optionItem.requirement?.abilityScore?.score}
+                name={`${stateName}.requirement.abilityScore.score`}
+                value={featureItem.requirement?.abilityScore?.score}
                 label='Score'
                 required={true}
                 validation='num'
@@ -1450,8 +1477,8 @@ const EditFeatForm = () => {
           )}
         </>
       )}
-      {optionItem.requirement?.option?.some(
-        (optionItem) => optionItem.name === 'itemProficiency'
+      {featureItem.requirement?.option?.some(
+        (featureItem) => featureItem.name === 'itemProficiency'
       ) && (
         <>
           <div className='d-flex mx-3'>
@@ -1462,23 +1489,23 @@ const EditFeatForm = () => {
           <div className='row g-2 pb-3 mx-3 justify-contents-center'>
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.itemProficiency.category`}
-              value={optionItem.requirement?.itemProficiency?.category}
+              name={`${stateName}.requirement.itemProficiency.category`}
+              value={featureItem.requirement?.itemProficiency?.category}
               label='Item Category'
               options={builders.item.category}
               onChange={setState}
             />
             <Select
-              name={`${name}.${optionIndex}.requirement.itemProficiency.property`}
+              name={`${stateName}.requirement.itemProficiency.property`}
               multiple={true}
               label='Item Property'
-              value={optionItem.requirement?.itemProficiency?.property}
+              value={featureItem.requirement?.itemProficiency?.property}
               options={[].concat(
                 ...items
                   .filter((item) =>
-                    optionItem.requirement?.itemProficiency?.category?.length >
+                    featureItem.requirement?.itemProficiency?.category?.length >
                     0
-                      ? optionItem.requirement?.itemProficiency?.category?.some(
+                      ? featureItem.requirement?.itemProficiency?.category?.some(
                           (category) => category.name === item.category.name
                         )
                       : item
@@ -1488,13 +1515,13 @@ const EditFeatForm = () => {
               onChange={setState}
             />
             <Select
-              name={`${name}.${optionIndex}.requirement.itemProficiency.itemType`}
+              name={`${stateName}.requirement.itemProficiency.itemType`}
               multiple={true}
               label='Item type'
-              value={optionItem.requirement?.itemProficiency?.itemType}
+              value={featureItem.requirement?.itemProficiency?.itemType}
               options={items.filter((item) =>
-                optionItem.requirement.itemProficiency?.category?.length > 0
-                  ? optionItem.requirement.itemProficiency?.category?.some(
+                featureItem.requirement.itemProficiency?.category?.length > 0
+                  ? featureItem.requirement.itemProficiency?.category?.some(
                       (category) => category.name === item.category.name
                     )
                   : item
@@ -1504,8 +1531,8 @@ const EditFeatForm = () => {
           </div>
         </>
       )}
-      {optionItem.requirement?.option?.some(
-        (optionItem) => optionItem.name === 'equipped'
+      {featureItem.requirement?.option?.some(
+        (featureItem) => featureItem.name === 'equipped'
       ) && (
         <>
           <div className='d-flex mx-3'>
@@ -1515,8 +1542,8 @@ const EditFeatForm = () => {
           </div>
           <div className='row g-2 pb-3 mx-3 justify-contents-center'>
             <Input
-              name={`${name}.${optionIndex}.requirement.equipped.numberEquipped`}
-              value={optionItem.requirement?.equipped?.numberEquipped}
+              name={`${stateName}.requirement.equipped.numberEquipped`}
+              value={featureItem.requirement?.equipped?.numberEquipped}
               label='Number Equipped'
               onChange={setState}
               validation='num'
@@ -1524,22 +1551,22 @@ const EditFeatForm = () => {
             />
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.equipped.category`}
-              value={optionItem.requirement?.equipped?.category}
+              name={`${stateName}.requirement.equipped.category`}
+              value={featureItem.requirement?.equipped?.category}
               label='Item Category'
               options={builders.item.category}
               onChange={setState}
             />
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.equipped.property`}
+              name={`${stateName}.requirement.equipped.property`}
               label='Item Property'
-              value={optionItem.requirement?.equipped?.property}
+              value={featureItem.requirement?.equipped?.property}
               options={[].concat(
                 ...items
                   .filter((item) =>
-                    optionItem.requirement?.equipped?.category?.length > 0
-                      ? optionItem.requirement?.equipped?.category?.some(
+                    featureItem.requirement?.equipped?.category?.length > 0
+                      ? featureItem.requirement?.equipped?.category?.some(
                           (category) => category.name === item.category.name
                         )
                       : item
@@ -1550,12 +1577,12 @@ const EditFeatForm = () => {
             />
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.equipped.itemType`}
+              name={`${stateName}.requirement.equipped.itemType`}
               label='Item type'
-              value={optionItem.requirement?.equipped?.itemType}
+              value={featureItem.requirement?.equipped?.itemType}
               options={items.filter((item) =>
-                optionItem.requirement.equipped?.category?.length > 0
-                  ? optionItem.requirement.equipped?.category?.some(
+                featureItem.requirement.equipped?.category?.length > 0
+                  ? featureItem.requirement.equipped?.category?.some(
                       (category) => category.name === item.category.name
                     )
                   : item
@@ -1565,8 +1592,8 @@ const EditFeatForm = () => {
           </div>
         </>
       )}
-      {optionItem.requirement?.option?.some(
-        (optionItem) => optionItem.name === 'notEquipped'
+      {featureItem.requirement?.option?.some(
+        (featureItem) => featureItem.name === 'notEquipped'
       ) && (
         <>
           <div className='d-flex mx-3'>
@@ -1577,22 +1604,22 @@ const EditFeatForm = () => {
           <div className='row row-cols-lg-4 row-cols-md-3 row-cols-2 g-2 pb-3'>
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.notEquipped.category`}
-              value={optionItem.requirement?.notEquipped?.category}
+              name={`${stateName}.requirement.notEquipped.category`}
+              value={featureItem.requirement?.notEquipped?.category}
               label='Item Category'
               options={builders.item.category}
               onChange={setState}
             />
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.notEquipped.property`}
-              value={optionItem.requirement?.notEquipped?.property}
+              name={`${stateName}.requirement.notEquipped.property`}
+              value={featureItem.requirement?.notEquipped?.property}
               label='Item Property'
               options={[].concat(
                 ...items
                   .filter((item) =>
-                    optionItem.requirement.notEquipped?.category?.length > 0
-                      ? optionItem.requirement.notEquipped?.category?.some(
+                    featureItem.requirement.notEquipped?.category?.length > 0
+                      ? featureItem.requirement.notEquipped?.category?.some(
                           (category) => category.name === item.category.name
                         )
                       : item
@@ -1603,12 +1630,12 @@ const EditFeatForm = () => {
             />
             <Select
               multiple={true}
-              name={`${name}.${optionIndex}.requirement.notEquipped.itemType`}
+              name={`${stateName}.requirement.notEquipped.itemType`}
               label='Item type'
-              value={optionItem.requirement?.notEquipped?.itemType}
+              value={featureItem.requirement?.notEquipped?.itemType}
               options={items.filter((item) =>
-                optionItem.requirement.notEquipped?.category?.length > 0
-                  ? optionItem.requirement.notEquipped?.category?.some(
+                featureItem.requirement.notEquipped?.category?.length > 0
+                  ? featureItem.requirement.notEquipped?.category?.some(
                       (category) => category.name === item.category.name
                     )
                   : item
@@ -1618,16 +1645,16 @@ const EditFeatForm = () => {
           </div>
         </>
       )}
-      {optionItem.attribute?.some(
+      {featureItem.attribute?.some(
         (attributeItem) => attributeItem.name === 'limitUse'
       ) &&
-        optionItem.limitUse?.limitBy?.name === 'level' &&
-        (!optionItem.limitUse.level?.lenght > 0 ? (
+        featureItem.limitUse?.limitBy?.name === 'level' &&
+        (!featureItem.limitUse.level?.lenght > 0 ? (
           setState({
             type: 'added',
             payload: {
               target: {
-                name: `${name}.${optionIndex}.limitUse.level`,
+                name: `${stateName}.limitUse.level`,
               },
             },
           })
@@ -1635,11 +1662,14 @@ const EditFeatForm = () => {
           <>
             <div
               className='btn btn-section-collapse justify-content-between align-items-center'
-              id='sectionCollapseButton'
+              id='limitCollapseButton'
               type='button'
               role='button'
               data-bs-toggle='collapse'
-              data-bs-target={`#limitUse${optionIndex}Collapse`}
+              data-bs-target={`#${stateName.replace(
+                  '.',
+                  ''
+                )}LimitUseCollapse`}
               aria-controls='collapseExample'
               aria-expanded='true'
             >
@@ -1648,7 +1678,10 @@ const EditFeatForm = () => {
             </div>
             <div
               className='section-container collapse show'
-              id={`limitUse${optionIndex}Collapse`}
+              id={`${stateName.replace(
+                  '.',
+                  ''
+                )}LimitUseCollapse`}
             >
               <div className='section-content'>
                 <Table
@@ -1680,8 +1713,8 @@ const EditFeatForm = () => {
                       },
                     ],
                   }}
-                  name={`${name}.${optionIndex}.limitUse.level`}
-                  value={optionItem.limitUse?.level}
+                  name={`${stateName}.limitUse.level`}
+                  value={featureItem.limitUse?.level}
                   onChange={setState}
                   dynamic={true}
                 />
@@ -1689,15 +1722,15 @@ const EditFeatForm = () => {
             </div>
           </>
         ))}
-      {optionItem.attribute?.some(
+      {featureItem.attribute?.some(
         (attributeItem) => attributeItem.name === 'doesDamage'
       ) ? (
-        !optionItem.damage?.damageByLevel ? (
+        !featureItem.damage?.damageByLevel ? (
           setState({
             type: 'added',
             payload: {
               target: {
-                name: `${name}.${optionIndex}.damage.damageByLevel`,
+                name: `${stateName}.damage.damageByLevel`,
               },
             },
           })
@@ -1706,39 +1739,39 @@ const EditFeatForm = () => {
             <div className='row g-2 align-items-end pb-2'>
               <Select
                 multiple={true}
-                name={`${name}.${optionIndex}.damage.damageAttribute`}
+                name={`${stateName}.damage.damageAttribute`}
                 label='Damage Attribute'
-                value={optionItem.damage?.damageAttribute}
+                value={featureItem.damage?.damageAttribute}
                 options={builders.feature.damageAttribute}
                 onChange={setState}
               />
               <Select
-                name={`${name}.${optionIndex}.damage.damageType`}
+                name={`${stateName}.damage.damageType`}
                 multiple={true}
                 label='Damage Type'
-                value={optionItem.damage?.damageType}
+                value={featureItem.damage?.damageType}
                 options={builders.damage}
                 required={true}
                 onChange={setState}
               />
-              {optionItem.damage?.damageAttribute?.some(
+              {featureItem.damage?.damageAttribute?.some(
                 (attributeItem) => attributeItem.name === 'bonusDamage'
               ) && (
                 <Select
-                  name={`${name}.${optionIndex}.damage.bonus.bonusAttribute`}
+                  name={`${stateName}.damage.bonus.bonusAttribute`}
                   label='Bonus Type'
-                  value={optionItem.damage?.bonus?.bonusAttribute}
+                  value={featureItem.damage?.bonus?.bonusAttribute}
                   options={builders.feature.bonusAttribute}
                   required={true}
                   onChange={setState}
                 />
               )}
-              {optionItem.damage?.bonus?.bonusAttribute?.name ===
+              {featureItem.damage?.bonus?.bonusAttribute?.name ===
                 'abilityBonus' && (
                 <Select
-                  name={`${name}.${optionIndex}.damage.bonus.ability`}
+                  name={`${stateName}.damage.bonus.ability`}
                   label='Abilty'
-                  value={optionItem.damage?.bonus?.ability}
+                  value={featureItem.damage?.bonus?.ability}
                   options={builders.ability}
                   required={true}
                   onChange={setState}
@@ -1751,7 +1784,10 @@ const EditFeatForm = () => {
               type='button'
               role='button'
               data-bs-toggle='collapse'
-              data-bs-target={`#section${optionIndex}Collapse`}
+              data-bs-target={`#${stateName.replace(
+                  '.',
+                  ''
+                )}SectionCollapse`}
               aria-controls='collapseExample'
               aria-expanded='true'
             >
@@ -1760,19 +1796,22 @@ const EditFeatForm = () => {
             </div>
             <div
               className='section-container collapse show'
-              id={`section${optionIndex}Collapse`}
+              id={`${stateName.replace(
+                  '.',
+                  ''
+                )}SectionCollapse`}
             >
               <div className='section-content'>
                 <Table
                   rows={{
-                    inputs: damageTableColumns(optionItem.damage).inputs,
-                    headers: damageTableColumns(optionItem.damage).headers,
+                    inputs: damageTableColumns(featureItem.damage).inputs,
+                    headers: damageTableColumns(featureItem.damage).headers,
                   }}
                   className={`row-cols-lg-${
-                    damageTableColumns(optionItem.damage).inputs.length + 1
+                    damageTableColumns(featureItem.damage).inputs.length + 1
                   }`}
-                  name={`${name}.${optionIndex}.damage.damageByLevel`}
-                  value={optionItem.damage?.damageByLevel}
+                  name={`${stateName}.damage.damageByLevel`}
+                  value={featureItem.damage?.damageByLevel}
                   onChange={setState}
                   dynamic={true}
                   scrollable={true}
@@ -1782,37 +1821,147 @@ const EditFeatForm = () => {
           </>
         )
       ) : (
-        optionItem.damage != null &&
-        Object.keys(optionItem.damage).length !== 0 &&
+        featureItem.damage != null &&
+        Object.keys(featureItem.damage).length !== 0 &&
         setState({
           type: 'removed',
-          payload: { target: { name: `${name}.${optionIndex}.damage` } },
+          payload: { target: { name: `${stateName}.damage` } },
         })
       )}
-      {Object.keys(optionItem)?.length !== 0 &&
-        Object.keys(optionItem)?.some(
-          (key) => optionItem[key]?.length !== 0
-        ) && (
-          <TabNavigation
-            id={`section${optionIndex}`}
-            tabState={[].concat(
-              ...sectionTabContent(optionItem, optionIndex)
-                .filter(
-                  (sectionItem) => optionItem[sectionItem.name]?.length > 0
-                )
-                ?.map((sectionItem) =>
-                  sectionItem.content().map((contentItem, contentIndex) => ({
-                    value: startCase(`${sectionItem.name} ${contentIndex + 1}`),
-                    name: `${name}.${optionIndex}.${sectionItem.name}.${contentIndex}`,
-                    content: contentItem,
-                  }))
-                )
+        {featureItem['style']?.option?.length > 0 && (
+          <>
+            <div className='d-flex'>
+              <hr className='flex-grow-1 me-3' />
+              <span className='mx-auto'>
+                <strong>Style</strong>
+              </span>
+              <hr className='flex-grow-1 ms-3' />
+            </div>
+            <div className='row row-cols-lg-4 row-cols-sm-3 gx-2'>
+              <Select
+                name={`${stateName}.style.attribute`}
+                label='Style Attribute'
+                value={featureItem.style?.attribute}
+                options={builders.feature.style.attribute}
+                multiple={true}
+                onChange={setState}
+              />
+              {featureItem.style?.attribute?.some(
+                (attributeItem) => attributeItem.name === 'replaceAtLevel'
+              ) && (
+                <Input
+                  name={`${stateName}.style.replaceCount`}
+                  value={featureItem.style?.replaceCount}
+                  label='Replacement at Level Count'
+                  onChange={setState}
+                  validation='num'
+                  required={true}
+                  invalidText={'Must contain only numbers'}
+                />
+              )}
+            </div>
+            {featureItem.style?.attribute?.some(
+              (attributeItem) => attributeItem.name === 'providesOptions'
+            ) ? (
+              !featureItem.style?.selectCountByLevel?.length > 0 ||
+              featureItem.levelAvailable?.split(', ')?.length !==
+                featureItem.style?.selectCountByLevel?.length ? (
+                setState({
+                  type: 'added',
+                  payload: {
+                    target: {
+                      name: `${stateName}.style.selectCountByLevel`,
+                      value: featureItem?.levelAvailable
+                        ?.split(', ')
+                        .map((levelItem) => ({
+                          level: Number(levelItem),
+                        })),
+                    },
+                  },
+                })
+              ) : (
+                <>
+                  <Table
+                    rows={{
+                      inputs: [
+                        {
+                          name: 'level',
+                          readOnly: true,
+                          size: 'col',
+                        },
+                        {
+                          name: 'selectionCount',
+                          validation: 'num',
+                          invalidText: 'Must enter whole numbers',
+                          size: 'col',
+                        },
+                      ],
+                      headers: [
+                        {
+                          value: 'Level',
+                          size: 'col',
+                          readOnly: true,
+                        },
+                        {
+                          value: 'Selection Count',
+                          size: 'col',
+                          readOnly: true,
+                        },
+                      ],
+                    }}
+                    name={`${stateName}.style.selectCountByLevel`}
+                    value={featureItem.style?.selectCountByLevel}
+                    onChange={setState}
+                    dynamic={true}
+                    scrollable={true}
+                  />
+                </>
+              )
+            ) : (
+              featureItem.style?.selectCountByLevel?.length > 0 &&
+              setState({
+                type: 'removed',
+                payload: {
+                  target: { name: `${stateName}.style.selectCountByLevel` },
+                },
+              })
             )}
-            dynamic={true}
-            setState={setState}
-          />
+          </>
         )}
-    </Fragment>
+        {Object.keys(featureItem)?.length !== 0 &&
+          Object.keys(featureItem)?.some(
+            (key) => featureItem[key]?.length !== 0
+          ) && (
+            <TabNavigation
+              id={`${stateName}section`}
+              tabState={[].concat(
+                ...sectionTabContent(stateName, featureItem)
+                  .filter(
+                    (sectionGroupItem) => !!featureItem[sectionGroupItem.name]
+                  )
+                  ?.map((sectionGroupItem) => {
+                    return sectionGroupItem
+                      .content()
+                      .map((sectionItem, sectionIndex) => {
+                        return {
+                          value:
+                            featureItem[sectionGroupItem.name]?.option?.[
+                              sectionIndex
+                            ]?.value ??
+                            startCase(
+                              `${sectionGroupItem.name} ${sectionIndex + 1}`
+                            ),
+                          name: `${stateName}.${sectionGroupItem.name}.${sectionIndex}`,
+                          content: sectionItem,
+                        }
+                      })
+                  })
+              )}
+              dynamic={true}
+              setState={setState}
+            />
+          )}
+    </>
   )
 
   const mainTabContent = [
@@ -2276,8 +2425,9 @@ const EditFeatForm = () => {
           )}
           {state.attribute?.some(
             (attributeItem) => attributeItem.name === 'limitUse'
-          ) && state.limitUse?.limitBy?.name === 'level' ? (
-            !state.limitUse.level?.length > 0 ? (
+          ) &&
+            state.limitUse?.limitBy?.name === 'level' &&
+            (!state.limitUse.level?.length > 0 ? (
               setState({
                 type: 'added',
                 payload: {
@@ -2319,19 +2469,7 @@ const EditFeatForm = () => {
                   dynamic={true}
                 />
               </div>
-            )
-          ) : (
-            !state.limitUse?.limitBy?.name === 'level' &&
-            !!state.limitUse.level &&
-            setState({
-              type: 'removed',
-              payload: {
-                target: {
-                  name: 'limitUse.level',
-                },
-              },
-            })
-          )}
+            ))}
           {state.attribute?.some(
             (attributeItem) => attributeItem.name === 'doesDamage'
           ) ? (
@@ -2397,6 +2535,47 @@ const EditFeatForm = () => {
               payload: { target: { name: 'damage' } },
             })
           )}
+          {state.attribute?.some(
+            (attributeItem) => attributeItem.name === 'doesDamage'
+          ) &&
+            Object.keys(state.damage).length !== 0 && (
+              <>
+                <div
+                  className='btn btn-section-collapse justify-content-between align-items-center'
+                  id='sectionCollapseButton'
+                  type='button'
+                  role='button'
+                  data-bs-toggle='collapse'
+                  data-bs-target='#sectionCollapse'
+                  aria-controls='collapseExample'
+                  aria-expanded='true'
+                >
+                  <span className='me-3'>Damage Table</span>
+                  <i className='bi bi-arrow-down-up' />
+                </div>
+                <div
+                  className='section-container collapse show'
+                  id='sectionCollapse'
+                >
+                  <div className='section-content'>
+                    <Table
+                      rows={{
+                        inputs: damageTableColumns(state.damage).inputs,
+                        headers: damageTableColumns(state.damage).headers,
+                      }}
+                      className={`row-cols-lg-${
+                        damageTableColumns(state.damage).inputs.length + 1
+                      }`}
+                      name='damage.damageByLevel'
+                      value={state.damage?.damageByLevel}
+                      onChange={setState}
+                      dynamic={true}
+                      scrollable={true}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
         </>
       ),
     },
@@ -2420,16 +2599,18 @@ const EditFeatForm = () => {
             <TabNavigation
               id='feature'
               tabState={state.feature?.map((featureItem, featureIndex) => {
-                const name = 'feature'
+                const stateName = `feature.${featureIndex}`
                 return {
                   value:
                     featureItem.value == null || featureItem.value === ''
-                      ? startCase(`${name} ${featureIndex + 1}`)
+                      ? startCase(`feature ${featureIndex + 1}`)
                       : featureItem.value,
-                  name: `${name}.${featureIndex}`,
-                  content: featureTabContent(name, featureItem, featureIndex),
+                  name: stateName,
+                  content: featureTabContent(stateName, featureItem),
                 }
               })}
+              reorder={true}
+              contentState={state.feature}
               setState={setState}
               dynamic={true}
             />
