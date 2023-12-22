@@ -1,5 +1,5 @@
 import { useDrop } from 'react-dnd'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, memo } from 'react'
 
 const DRAG_THRESHOLD = 5
 
@@ -198,4 +198,6 @@ const TabContainer = ({
   return content
 }
 
-export default TabContainer
+const memoizedTabContainer = memo(TabContainer)
+
+export default memoizedTabContainer

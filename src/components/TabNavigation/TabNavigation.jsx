@@ -33,73 +33,61 @@ const TabNavigation = ({
   const [isScrolling, setIsScrolling] = useState(false)
   const [isMouseDown, setIsMouseDown] = useState(false)
   const [sectionTabs, setSectionTabs] = useState([{}])
+  const [activeTabIndex, setActiveTabIndex] = useState()
 
   const wrapperRef = useRef()
   const tabContainerRef = useRef()
   const paneContainerRef = useRef()
   const leftScrollerRef = useRef()
   const rightScrollerRef = useRef()
-  const activeTabRef = useRef()
-  const activePaneRef = useRef()
+  
+  const tabs = tabContainerRef.current && Array.from(tabContainerRef.current?.children)
+  const panes = paneContainerRef.current && Array.from(paneContainerRef.current?.children)
 
-  const getActive = () => {
-    if (tabContainerRef.current) {
-      const tabs = tabContainerRef.current?.children
-      const panes = paneContainerRef.current?.children
-
-      for (let tab of tabs) {
-        if (tab.classList.contains('active')) {
-          activeTabRef.current = tab
-        }
-      }
-
-      for (let pane of panes) {
-        if (pane.classList.contains('active')) {
-          activePaneRef.current = pane
-        }
+  const getActive = useCallback(() => {
+    if (tabs) {
+      const activeIndex = tabs.findIndex((tab) => tab.classList.contains('active'));
+  
+      if (activeIndex !== -1) {
+        setActiveTabIndex(activeIndex);
       }
     }
-  }
+  }, [tabs])
 
-  const handleClick = (id, tabIndex) => {
+  const handleClick = useCallback((id, tabIndex) => {
     getActive()
 
-    const tab = document.getElementById(`${id}${tabIndex}Tab`)
-    const pane = document.getElementById(`${id}${tabIndex}Pane`)
+    const tab = tabs[tabIndex]
+    const pane = panes[tabIndex]
 
-    if (activeTabRef.current !== tab) {
-      activeTabRef.current.classList.remove('active')
-      activeTabRef.current.setAttribute('aria-expanded', 'false')
-      activePaneRef.current.classList.remove('active')
-      activePaneRef.current.classList.remove('show')
+    if (activeTabIndex !== tabIndex) {
+
+      console.log('active tab', tabs[activeTabIndex])
+      console.log('active pane', panes[activeTabIndex])
+
+      tabs[activeTabIndex]?.classList.remove('active')
+      tabs[activeTabIndex]?.setAttribute('aria-expanded', 'false')
+      panes[activeTabIndex]?.classList.remove('active')
+      panes[activeTabIndex]?.classList.remove('show')
       tab.classList.add('active')
       tab.setAttribute('aria-expanded', 'true')
       pane.classList.add('active')
       pane.classList.add('show')
-      activeTabRef.current = tab
-      activePaneRef.current = pane
+
+      setActiveTabIndex(tabIndex)
+
       tab.focus()
     }
-  }
+
+  }, [activeTabIndex, panes, tabs, getActive])
 
   const scrollTab = useCallback(() => {
-    let activeTabIndex
-    if (tabContainerRef.current) {
-      activeTabIndex = Array.from(tabContainerRef.current?.children).findIndex(
-        (tab) => tab.classList.contains('active')
-      )
-    }
-
-    if (activeTabIndex !== -1) {
+    if (activeTabIndex && activeTabIndex !== -1) {
       const tabRight =
-        tabContainerRef.current?.children[
-          activeTabIndex
-        ].getBoundingClientRect().right
+      tabs[activeTabIndex]?.getBoundingClientRect().right
       const wrapperRight = wrapperRef.current?.getBoundingClientRect().right
       const tabLeft =
-        tabContainerRef.current?.children[
-          activeTabIndex
-        ].getBoundingClientRect().left
+      tabs[activeTabIndex]?.getBoundingClientRect().left
       const wrapperLeft = wrapperRef.current?.getBoundingClientRect().left
 
       let newLeftPosition
@@ -133,72 +121,63 @@ const TabNavigation = ({
       }
     }
     if (tabContainerRef.current && activeTabIndex) {
-      tabContainerRef.current?.children?.item(activeTabIndex)?.scrollIntoView({
+      tabs[activeTabIndex]?.scrollIntoView({
         behavior: 'smooth',
       })
     }
-  }, [id, hiddenWidth, leftPosition, tabStateLength])
+  }, [id, hiddenWidth, leftPosition, tabStateLength, activeTabIndex, tabs])
 
   useLayoutEffect(() => {
-    if (tabContainerRef.current && !activeTabRef.current) {
-      tabContainerRef.current?.firstChild.setAttribute('aria-selected', 'true')
-      tabContainerRef.current?.firstChild.classList.add('active')
-      paneContainerRef.current?.firstChild.classList.add('active')
-      paneContainerRef.current?.firstChild.classList.add('show')
-      activeTabRef.current = tabContainerRef.current?.firstChild
-      activePaneRef.current = paneContainerRef.current?.firstChild
+    if (tabs && !activeTabIndex) {
+      tabs[0].setAttribute('aria-selected', 'true')
+      tabs[0].classList.add('active')
+      panes[0].classList.add('active')
+      panes[0].classList.add('show')
+      setActiveTabIndex(0)
     }
 
     if (id !== 'main') {
       getActive()
-      const tabs = tabContainerRef.current?.children
-      const panes = paneContainerRef.current?.children
       if (
         tabState?.length !== tabStateLength ||
-        (tabState?.length === 1 && !activeTabRef.current)
+        (tabState?.length === 1 && !activeTabIndex)
       ) {
         if (id !== 'details' && id !== 'feature' && id !== 'specialization') {
           if (tabs) {
             for (let tabIndex = 0; tabIndex < tabs.length; tabIndex++) {
-              const tab = tabs[tabIndex]
-              const pane = panes[tabIndex]
-              const txt = tab.textContent || tab.innerText
+              const txt = tabs[tabIndex].textContent || tabs[tabIndex].innerText
               if (!sectionTabs.includes(txt)) {
                 setSectionTabs((prev) => [...prev, txt])
-                if (activeTabRef.current) {
-                  activeTabRef.current?.setAttribute('aria-selected', 'false')
-                  activeTabRef.current?.classList.remove('active')
-                  activePaneRef.current?.classList.remove('active')
-                  activePaneRef.current?.classList.remove('show')
+                if (activeTabIndex) {
+                  tabs[activeTabIndex]?.setAttribute('aria-selected', 'false')
+                  tabs[activeTabIndex]?.classList.remove('active')
+                  panes[activeTabIndex]?.classList.remove('active')
+                  panes[activeTabIndex]?.classList.remove('show')
                 }
-                tab.setAttribute('aria-selected', 'true')
-                tab.classList.add('active')
-                activeTabRef.current = tab
-                if (pane) {
-                  pane.classList.add('active')
-                  pane.classList.add('show')
-                  activePaneRef.current = pane
+                tabs[tabIndex].setAttribute('aria-selected', 'true')
+                tabs[tabIndex].classList.add('active')
+                if (panes[tabIndex]) {
+                  panes[tabIndex].classList.add('active')
+                  panes[tabIndex].classList.add('show')
                 }
+                setActiveTabIndex(tabIndex)
               }
             }
           }
         } else {
           if (tabs) {
-            const tab = tabs[tabState.length - 1]
-            const pane = panes[tabState.length - 1]
-            if (activeTabRef.current) {
-              activeTabRef.current?.setAttribute('aria-selected', 'false')
-              activeTabRef.current?.classList.remove('active')
-              activePaneRef.current?.classList.remove('active')
-              activePaneRef.current?.classList.remove('show')
+            if (activeTabIndex) {
+              tabs[activeTabIndex]?.setAttribute('aria-selected', 'false')
+              tabs[activeTabIndex]?.classList.remove('active')
+              panes[activeTabIndex]?.classList.remove('active')
+              panes[activeTabIndex]?.classList.remove('show')
             }
-            tab.setAttribute('aria-selected', 'true')
-            tab.classList.add('active')
-            activeTabRef.current = tab
-            if (pane) {
-              pane.classList.add('active')
-              pane.classList.add('show')
-              activePaneRef.current = pane
+            tabs[tabState.length - 1].setAttribute('aria-selected', 'true')
+            tabs[tabState.length - 1].classList.add('active')
+            setActiveTabIndex(tabState.length - 1)
+            if (panes[tabState.length - 1]) {
+              panes[tabState.length - 1].classList.add('active')
+              panes[tabState.length - 1].classList.add('show')
             }
           }
         }
@@ -220,6 +199,10 @@ const TabNavigation = ({
     wrapperWidth,
     sectionTabs,
     scrollTab,
+    activeTabIndex,
+    panes,
+    tabs,
+    getActive
   ])
 
   useEffect(() => {
@@ -274,7 +257,7 @@ const TabNavigation = ({
     tabState?.length,
   ])
 
-  const scrollRight = () => {
+  const scrollRight = useCallback(() => {
     let newLeftPosition
 
     if (hiddenWidth[id] > 90) {
@@ -287,9 +270,9 @@ const TabNavigation = ({
       setLeftPosition(newLeftPosition)
       tabContainerRef.current.style.left = `-${newLeftPosition}px`
     }
-  }
+  }, [hiddenWidth, leftPosition, id])
 
-  const scrollLeft = () => {
+  const scrollLeft = useCallback(() => {
     let newLeftPosition
 
     if (leftPosition > 90) {
@@ -302,9 +285,9 @@ const TabNavigation = ({
       setLeftPosition(newLeftPosition)
       tabContainerRef.current.style.left = `-${newLeftPosition}px`
     }
-  }
+  },[leftPosition])
 
-  const deleteTab = async (name, index) => {
+  const deleteTab = useCallback(async (name, index) => {
     let activeIndex
 
     if (index === tabState.length - 1) {
@@ -313,29 +296,26 @@ const TabNavigation = ({
       activeIndex = index
     }
 
-    activeTabRef.current?.classList.remove('active')
-    activeTabRef.current?.setAttribute('aria-selected', 'false')
-    activePaneRef.current?.classList.remove('active')
-    activePaneRef.current?.classList.remove('show')
+    tabs[activeIndex].classList.remove('active')
+    tabs[activeIndex].setAttribute('aria-selected', 'false')
+    panes[activeIndex].classList.remove('active')
+    panes[activeIndex].classList.remove('show')
     const txt =
-      activeTabRef.current?.textContent || activeTabRef.current?.innerText
+    tabs[activeIndex].textContent || tabs[activeIndex].innerText
     if (txt && sectionTabs.includes(txt)) {
       setSectionTabs((prev) => prev.filter((prevItem) => prevItem !== txt))
     }
 
     if (index !== 0) {
-      const tabs = tabContainerRef.current?.children
-      const panes = paneContainerRef.current?.children
-      const tab = tabs.item(activeIndex)
-      const pane = panes.item(activeIndex)
+      const tab = tabs[activeIndex]
+      const pane = panes[activeIndex]
       tab.classList.add('active')
       tab.setAttribute('aria-selected', 'true')
       if (pane) {
         pane.classList.add('show')
         pane.classList.add('active')
-        activeTabRef.current = tab
-        activePaneRef.current = pane
       }
+      setActiveTabIndex(activeIndex)
     }
     try {
       await setState({
@@ -345,7 +325,7 @@ const TabNavigation = ({
     } finally {
       if (index !== 0) {
         setTimeout(() => {
-          activePaneRef.current?.scrollIntoView()
+          panes[activeTabIndex]?.scrollIntoView()
         }, 0)
         const tabContainerRight =
           tabContainerRef.current?.getBoundingClientRect().right
@@ -361,12 +341,12 @@ const TabNavigation = ({
         }
       }
     }
-  }
+  }, [leftPosition, sectionTabs, setState, tabState?.length, activeTabIndex, tabs, panes])
 
   let content
 
   if (!tabState) {
-    content = <Spinner />
+    return (content = <Spinner />)
   }
 
   content = (

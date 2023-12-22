@@ -166,7 +166,7 @@ const ClassList = ({ scrollPosition }) => {
   let content
 
   if (isLoading || isFetching || !filterItemsPopulated) {
-    content = <Spinner />
+    return (content = <Spinner />)
   }
 
   const filter = (

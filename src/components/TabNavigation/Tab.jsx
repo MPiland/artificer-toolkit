@@ -1,6 +1,5 @@
 import { useDrag } from 'react-dnd'
-import { useRef } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, memo } from 'react'
 const Tab = ({
   id,
   tabIndex,
@@ -113,4 +112,6 @@ const Tab = ({
   return content
 }
 
-export default Tab
+const memoizedTab = memo(Tab)
+
+export default memoizedTab
