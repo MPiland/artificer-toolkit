@@ -1,7 +1,7 @@
 import { createEntityAdapter } from '@reduxjs/toolkit'
 import { apiSlice } from '../../app/api/apiSlice'
 
-export const charactersAdapter = createEntityAdapter({})
+export const charactersAdapter = createEntityAdapter()
 
 export const initialState = charactersAdapter.getInitialState()
 
@@ -15,27 +15,20 @@ export const charactersApiSlice = apiSlice.injectEndpoints({
           return response.status === 200 && !result.isError
         },
       }),
-      async onQueryStarted(arg, { queryFulfilled }) {
-        try {
-          await queryFulfilled
-        } catch (err) {
-          console.log(err)
-        }
-      },
-      transformResponse: (responseData) => {
+      transformResponse: (responseData: any[]) => {
         const loadedcharacters = responseData.map((characters) => {
           characters.id = characters._id
           return characters
         })
         return charactersAdapter.setAll(initialState, loadedcharacters)
       },
-      providesTags: (result, error, id) => {
+      providesTags: (result) => {
         if (result?.ids) {
           return [
-            { type: 'Character', id: 'LIST' },
-            ...result.ids.map((id) => ({ type: 'Character', id })),
+            { type: 'Character' as const, id: 'LIST' },
+            ...result.ids.map((id) => ({ type: 'Character' as const, id })),
           ]
-        } else return [{ type: 'Character', id: 'LIST' }]
+        } else return [{ type: 'Character' as const, id: 'LIST' }]
       },
     }),
     addNewCharacter: builder.mutation({
@@ -44,9 +37,7 @@ export const charactersApiSlice = apiSlice.injectEndpoints({
         method: 'POST',
         body: { ...data },
       }),
-      invalidatesTags: (result, error, arg) => [
-        { type: 'Character', id: 'LIST' },
-      ],
+      invalidatesTags: () => [{ type: 'Character', id: 'LIST' }],
     }),
     updateCharacter: builder.mutation({
       query: (data) => ({
@@ -54,7 +45,8 @@ export const charactersApiSlice = apiSlice.injectEndpoints({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_, __, arg) => [
+        { type: 'Character', id: 'LIST' },
         { type: 'Character', id: arg._id },
       ],
     }),
@@ -64,7 +56,8 @@ export const charactersApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (result, error, arg) => [
+      invalidatesTags: (_, __, arg) => [
+        { type: 'Character', id: 'LIST' },
         { type: 'Character', id: arg.id },
       ],
     }),
