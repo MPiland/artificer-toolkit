@@ -29,7 +29,7 @@ export type RowHeader = {
   defaultSort?: boolean
 }
 
-export interface SortConfig {
+export type SortConfig = {
   key: {
     orderKey?: string | PropertyPath
     order?: any[]
@@ -43,21 +43,12 @@ export interface SortConfig {
   direction?: 'ascending' | 'descending'
 }
 
-export interface Action {
+export type ReducerActionType = {
   type?: string
-  payload: {
-    target: {
-      name?: string | string[]
-      value?: any
-    }
+  target: {
+    name?: string | string[]
+    value?: any
   }
-}
-
-export interface Option {
-  name: string | null
-  value: string
-  _id: number | string | null
-  [key: string]: any
 }
 
 export type Context = {
@@ -68,3 +59,34 @@ export type Context = {
         value?: any
       }
 }
+
+export type FormContext = 'OptionContent' | ''
+
+export type StepName = 'FeatureContent' | 'SectionContent' | ''
+
+export type SectionName =
+  | 'option'
+  | 'modifier'
+  | 'spell'
+  | 'proficiency'
+  | 'sense'
+  | ''
+
+export type SelectOption = string | undefined
+
+export type DropdownOption = {
+  name: string | null
+  value: string
+  _id: number | string | null
+  [key: string]: any
+}
+
+export type Steps = (
+  | 'Details'
+  | 'Traits'
+  | 'Attributes'
+  | 'Features'
+  | 'Contains'
+  | 'Proficiencies'
+  | 'Equipment'
+)[]

@@ -40,18 +40,14 @@ let dataSet = db[`${collection}`].find({}).toArray()
 
 const cleanData = async (dataSet) => {
   dataSet = transformArray(dataSet)
-  try {
-    const bulkUpdate = dataSet.map((data) => ({
-      replaceOne: {
-        filter: { _id: data._id },
-        replacement: data,
-        upsert: true,
-      },
-    }))
-    await db[`${collection}`].bulkWrite(bulkUpdate)
-  } catch (err) {
-    console.log(err.message)
-  }
+  const bulkUpdate = dataSet.map((data) => ({
+    replaceOne: {
+      filter: { _id: data._id },
+      replacement: data,
+      upsert: true,
+    },
+  }))
+  await db[`${collection}`].bulkWrite(bulkUpdate)
 }
 
 if (dataSet) {

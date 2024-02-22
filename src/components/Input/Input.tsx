@@ -1,5 +1,4 @@
-import { useState, useEffect, memo, FC } from 'react'
-import useDebounce, { UseDebounceCallback } from '../../hooks/useDebounce'
+import { useState, useEffect, FC, useCallback } from 'react'
 import {
   input_wrapper,
   input_label,
@@ -11,8 +10,9 @@ import {
   input_right_section,
   input,
 } from './Input.css'
-import { Action } from '../../utils/types'
+import { ReducerActionType } from '../../utils/types'
 import clsx from 'clsx'
+import { useDebounceCallback } from 'usehooks-ts'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
@@ -23,7 +23,7 @@ interface InputProps {
   autoComplete?: string
   required?: boolean
   errorMsg?: string
-  onChange: (arg: Action) => void
+  onChange: (arg: ReducerActionType) => void
   value: any | null
   readOnly?: boolean
   validation?: string
@@ -36,69 +36,68 @@ interface InputProps {
   error?: boolean
 }
 
-const Input: FC<InputProps> = memo(
-  ({
-    label,
-    placeholder,
-    name,
-    autoComplete,
-    required,
-    onChange,
-    error,
-    errorMsg,
-    value,
-    readOnly,
-    validation,
-    autoFocus,
-    className,
-    type,
-    leftSection,
-    rightSection,
-  }) => {
-    const [inputValue, setInputValue] = useState<string>(value)
-    const [debouncing, setDebouncing] = useState(false)
-    const [errorState, setErrorState] = useState<boolean>(error || false)
+const Input: FC<InputProps> = ({
+  label,
+  placeholder,
+  name,
+  autoComplete,
+  required,
+  onChange,
+  error,
+  errorMsg,
+  value,
+  readOnly,
+  validation,
+  autoFocus,
+  className,
+  type,
+  leftSection,
+  rightSection,
+}) => {
+  const [inputValue, setInputValue] = useState<string>('')
+  const [debouncing, setDebouncing] = useState(false)
+  const [errorState, setErrorState] = useState<boolean>(error || false)
 
-    useEffect(() => {
-      if (error && error !== errorState) {
-        setErrorState(error)
-      }
-    }, [error, errorState])
+  useEffect(() => {
+    if (error && error !== errorState) {
+      setErrorState(error)
+    }
+  }, [error, errorState])
 
-    const debounceSave = useDebounce(
-      ((target: React.ChangeEvent<HTMLInputElement>['target']) => {
-        onChange({ payload: { target: target } })
-        setDebouncing(false)
-      }) as UseDebounceCallback,
-      0.3 * 1000
-    ) // every 3 seconds max
-
-    useEffect(() => {
-      if (value !== inputValue && !debouncing) {
-        setInputValue(value)
-        setErrorState(false)
-      }
-    }, [debouncing, debounceSave, inputValue, value, name])
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (value !== inputValue && !debouncing) {
+      setInputValue(value)
       setErrorState(false)
-      setInputValue(e.target.value)
+    }
+  }, [inputValue, value, debouncing])
+
+  const debounceSave = useDebounceCallback(
+    useCallback(
+      (target: React.ChangeEvent<HTMLInputElement>['target']) => {
+        onChange({ target: { name: target.name, value: target.value } })
+        setDebouncing(false)
+      },
+      [onChange]
+    ),
+    0.3 * 1000
+  ) // every 3 seconds max
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      debounceSave.cancel()
+      const target = e.target
+      setErrorState(false)
+      setInputValue(target.value)
 
       if (validation) {
         if (validation === 'num') {
-          if (
-            NUM_REGEX.test(e.target.value) === false &&
-            e.target.value !== ''
-          ) {
+          if (NUM_REGEX.test(target.value) === false && target.value !== '') {
             setErrorState(true)
           } else {
             setErrorState(false)
           }
         } else if (validation === 'cur') {
-          if (
-            CUR_REGEX.test(e.target.value) === false &&
-            e.target.value !== ''
-          ) {
+          if (CUR_REGEX.test(target.value) === false && target.value !== '') {
             setErrorState(true)
           } else {
             setErrorState(false)
@@ -106,52 +105,49 @@ const Input: FC<InputProps> = memo(
         }
       }
       setDebouncing(true)
-      debounceSave(e.target)
-    }
+      debounceSave(target)
+    },
+    [debounceSave, validation]
+  )
 
-    const content = (
+  const content = (
+    <div
+      className={clsx(input_wrapper, {
+        [`${className}`]: className,
+      })}
+    >
+      {label && (
+        <label className={input_label}>
+          {label}
+          {required && <span className={input_label_required}>*</span>}
+        </label>
+      )}
       <div
-        className={clsx(input_wrapper, {
-          [`${className}`]: className,
-        })}
+        className={clsx(input_container, { [invalid]: errorState === true })}
       >
-        {label && (
-          <label className={input_label}>
-            {label}
-            {required && <span className={input_label_required}>*</span>}
-          </label>
+        {leftSection && <div className={input_left_section}>{leftSection}</div>}
+        <input
+          placeholder={placeholder}
+          name={name}
+          type={type}
+          className={input}
+          required={required}
+          autoFocus={autoFocus}
+          autoComplete={autoComplete ?? 'off'}
+          readOnly={readOnly}
+          value={inputValue ?? ''}
+          onChange={(e: any) => handleChange(e)}
+          tabIndex={0}
+        />
+        {rightSection && (
+          <div className={input_right_section}>{rightSection}</div>
         )}
-        <div
-          className={clsx(input_container, { [invalid]: errorState === true })}
-        >
-          {leftSection && (
-            <div className={input_left_section}>{leftSection}</div>
-          )}
-          <input
-            placeholder={placeholder}
-            name={name}
-            type={type}
-            className={input}
-            required={required}
-            autoFocus={autoFocus}
-            autoComplete={autoComplete ?? 'off'}
-            readOnly={readOnly}
-            value={inputValue ?? ''}
-            onChange={(e: any) => handleChange(e)}
-            tabIndex={0}
-          />
-          {rightSection && (
-            <div className={input_right_section}>{rightSection}</div>
-          )}
-        </div>
-        {errorState && <p className={input_error_message}>{errorMsg}</p>}
       </div>
-    )
+      {errorState && <p className={input_error_message}>{errorMsg}</p>}
+    </div>
+  )
 
-    return content
-  }
-)
-
-Input.displayName = 'Input'
+  return content
+}
 
 export default Input

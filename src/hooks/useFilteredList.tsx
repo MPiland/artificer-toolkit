@@ -31,16 +31,16 @@ const useFilteredList = (
   initialFilter: UseFilteredListProps['initialFilter']
 ) => {
   const [listFilter, setListFilter] = useReducer(formReducer, initialFilter)
-  const [filterItems, setFilterItems] = useState<
+  const [filteredList, setFilteredItems] = useState<
     FilteredItem[] | null | undefined
   >(initialItems)
 
-  const filteredList = useMemo(() => {
+  const filteredItems = useMemo(() => {
     if (!listFilter) {
-      return filterItems
+      return filteredList
     }
 
-    let filteredItems = filterItems
+    let filteredItems = filteredList
 
     Object.entries(listFilter).forEach(([filterField, filterValues]) => {
       if (Array.isArray(filterValues)) {
@@ -57,9 +57,9 @@ const useFilteredList = (
     })
 
     return filteredItems
-  }, [filterItems, listFilter])
+  }, [filteredList, listFilter])
 
-  return { listFilter, filteredList, setListFilter, setFilterItems }
+  return { listFilter, filteredItems, setListFilter, setFilteredItems }
 }
 
 const filterByArray = (
@@ -122,11 +122,17 @@ const filterByObject = (
           return true
         }
 
-        const itemValue = Array.isArray(item[filterField][valueField])
-          ? item[filterField][valueField].map(
-              (subItem: SubItem) => subItem.value
-            )
-          : item[filterField][valueField].value
+        if (!item[filterField] || !item[filterField][valueField]) {
+          return false
+        }
+
+        const itemValue =
+          item[filterField][valueField] &&
+          Array.isArray(item[filterField][valueField])
+            ? item[filterField][valueField].map(
+                (subItem: SubItem) => subItem.value
+              )
+            : item[filterField][valueField].value
 
         return filteredFieldValues.some((field) => {
           const fieldValue = Array.isArray(field.value)

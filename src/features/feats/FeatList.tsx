@@ -12,19 +12,20 @@ import {
   setFeatsFilter,
   clearFeatsFilter,
 } from '../feats/featsSlice'
-import useMediaQuery from '../../hooks/useMediaQuery'
+import { useMediaQuery } from 'usehooks-ts'
 import useFilteredList from '../../hooks/useFilteredList'
 import Spinner from '../../components/Spinner/Spinner'
 import Table from '../../components/Table/Table'
 import Input from '../../components/Input/Input'
 import { RootState } from '../../app/store'
-import { Action } from '../../utils/types'
+import { ReducerActionType } from '../../utils/types'
 import Collapse from '../../components/Collapse/Collapse'
 import Grid from '../../components/Grid/Grid'
 import Group from '../../components/Group/Group'
 import Button from '../../components/Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
 import Container from '../../components/Container/Container'
+import useIsLoading from '../../hooks/useIsLoading'
 
 interface FeatListProps {
   scrollPosition: number
@@ -34,30 +35,29 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const isLoading = useIsLoading()
 
   const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
   const featToDelete = useSelector((state: RootState) => state.delete.data)
 
-  const { feats, isLoading, isFetching } = useGetFeatsQuery(undefined, {
-    selectFromResult: ({ data, isLoading, isFetching }) => ({
+  const { feats } = useGetFeatsQuery(undefined, {
+    selectFromResult: ({ data }) => ({
       feats: data && selectAllFeats(data),
-      isLoading,
-      isFetching,
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectFeatsFilter)
 
   const [deleteFeat] = useDeleteFeatMutation()
 
-  const { listFilter, filteredList, setListFilter, setFilterItems } =
+  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
     useFilteredList(feats, filtersState)
   const [tableColumns, setTableColumns] = useState<{
     headers: any[]
     inputs: any[]
   }>({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState()
-  const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
   const sm = useMediaQuery('(max-width: 567px)')
@@ -92,11 +92,12 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
   const onDeleteSubmit = useCallback(async () => {
     try {
       await deleteFeat({ id: featToDelete._id })
+      setListFilter({ type: 'reset', target: { value: {} } })
     } catch (err: any) {
       setErrorMessage(err.data.message)
     }
     dispatch(clearConfirm())
-  }, [featToDelete, dispatch, deleteFeat])
+  }, [featToDelete, dispatch, deleteFeat, setListFilter])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -104,7 +105,7 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
     }
   }, [deleteConfirmed, onDeleteSubmit])
 
-  const onFilterChange = (e: Action) => {
+  const onFilterChange = (e: ReducerActionType) => {
     setListFilter(e)
   }
 
@@ -114,23 +115,27 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
 
   useEffect(() => {
     filtersState !== null &&
-      setListFilter({ type: 'reset', payload: { target: filtersState } })
+      setListFilter({ type: 'reset', target: filtersState })
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    if (feats && !filterItemsPopulated) {
-      setFilterItems(feats)
-      setFilterItemsPopulated(true) // Ensure it's called only once
+    const featsJSON = JSON.stringify(feats)
+    const filteredItemsJSON = JSON.stringify(filteredItems)
+    if (
+      featsJSON !== filteredItemsJSON &&
+      Object.keys(filtersState).length === 0
+    ) {
+      setFilteredItems(feats)
     }
-  }, [feats, setFilterItems, filterItemsPopulated])
+  }, [feats, setFilteredItems, filteredItems, filtersState])
 
   const onFilterReset = () => {
     dispatch(clearFeatsFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
+    setListFilter({ type: 'reset', target: {} })
   }
 
   useEffect(() => {
-    if (scrollPosition && !isFetching) {
+    if (scrollPosition && !isLoading) {
       tableWindow?.scroll(0, scrollPosition)
     }
   })
@@ -156,10 +161,7 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
 
   const filter = (
     <Collapse title={'Filters'} startOpened={!sm}>
-      <Grid
-        mediaSize={md ? 'md' : sm ? 'sm' : 'lg'}
-        className={sprinkles({ py: 'size-2' })}
-      >
+      <Grid className={sprinkles({ py: 'size-2' })}>
         <Input
           name='value'
           label='Feat Name'
@@ -171,10 +173,10 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
     </Collapse>
   )
 
-  return isLoading || isFetching || !filterItemsPopulated ? (
+  return isLoading || !filteredItems ? (
     <Spinner />
   ) : (
-    <Container>
+    <Container className={sprinkles({ pt: 'size-3' })}>
       <Group className={sprinkles({ mb: 'size-3' })}>
         <h3 className='me-3'>Feats</h3>
         <Group>
@@ -200,7 +202,7 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
         defaultSort={tableColumns.headers.find(
           (headerItem) => headerItem.defaultSort === true
         )}
-        value={filteredList as any[]}
+        value={filteredItems as any[]}
         rows={{
           inputs: tableColumns.inputs,
           headers: tableColumns.headers,

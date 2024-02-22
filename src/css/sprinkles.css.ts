@@ -46,6 +46,9 @@ const responsiveProperties = defineProperties({
     right: position,
     objectFit: ['contain', 'cover', 'fill', 'none', 'scale-down'],
     backgroundColor: palette,
+    overflow: ['auto', 'hidden'],
+    overflowX: ['auto', 'hidden'],
+    overflowY: ['auto', 'hidden'],
   },
   shorthands: {
     p: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],

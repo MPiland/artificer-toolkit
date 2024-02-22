@@ -126,7 +126,7 @@ export const dropdown_menu = style({
       color: theme.vars['app-color'],
       boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
       listStyle: 'none',
-      padding: '0 .25rem',
+      padding: '.25rem',
       border: theme.vars['app-border-line-style'],
     },
   },

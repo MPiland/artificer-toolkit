@@ -27,6 +27,8 @@ export const accordion_container = style({
       border: theme.vars['app-border-line-style'],
       marginBottom: size['size-2'],
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
+      backgroundColor: theme.vars['app-background-color'],
+      zIndex: 0,
     },
   },
 })
@@ -34,33 +36,8 @@ export const accordion_container = style({
 export const accordion_header = style({
   display: 'flex',
   flexDirection: 'row',
-  borderBottom: theme.vars['app-border-line-style'],
-  padding: '.5rem 1rem',
   cursor: 'pointer',
-
-  selectors: {
-    '&.collapsed': {
-      borderBottom: 'none',
-    },
-  },
-})
-
-export const accordion_content = style({
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      padding: '.5rem 1rem',
-
-      selectors: {
-        '&.collapsed': {
-          padding: '0 1rem',
-        },
-      },
-    },
-  },
+  padding: `${size['size-1']} ${size['size-2']}`,
 })
 
 export const accordion_header_button = style({
@@ -74,19 +51,61 @@ export const accordion_header_button = style({
   },
 })
 
-export const accordion_close_button = style({
+export const accordion_remove_button = style({
   '@layer': {
     [app]: {
       width: '1.5rem',
       height: '1.5rem',
       border: theme.vars['app-border-line-style'],
       borderRadius: '.5rem',
+      alignItems: 'center',
+      justifyContent: 'center',
 
       selectors: {
         '&:hover': {
           backgroundColor: palette['gray-3'],
         },
       },
+    },
+  },
+})
+
+export const accordion_body = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      borderSpacing: 0,
+      gridTemplateRows: '1fr',
+      transition:
+        'grid-template-rows 0.3s ease-in-out, margin 0.3s ease-in-out, padding .3s ease-in-out',
+      padding: `${size['size-1']} ${size['size-2']}`,
+
+      selectors: {
+        '&.collapsed': {
+          gridTemplateRows: '0fr',
+          padding: `0 ${size['size-2']}`,
+        },
+      },
+    },
+  },
+})
+
+export const accordion_content = style({
+  '@layer': {
+    [app]: {
+      width: '100%',
+      height: 'auto',
+      overflow: 'hidden',
+    },
+  },
+})
+
+export const accordion_footer = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'column',
+      padding: `${size['size-1']} ${size['size-2']}`,
     },
   },
 })

@@ -73,7 +73,7 @@ const Layout: FC<LayoutProps> = ({ token }) => {
             <li className={header_item}>
               <NavLink
                 className={header_nav_item}
-                to='/register'
+                to='register'
                 state={{ background: location, title: 'Register' }}
               >
                 Register

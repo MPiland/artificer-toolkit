@@ -1,5 +1,5 @@
 import { defineConfig, splitVendorChunkPlugin } from 'vite'
-import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
+import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/

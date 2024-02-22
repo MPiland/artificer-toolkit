@@ -4,7 +4,6 @@ import clsx from 'clsx'
 
 interface ContainerProps {
   children: ReactNode
-
   className?: string | number | symbol | any
 }
 

@@ -1,6 +1,73 @@
 import { theme } from '../../css/global.css'
 import { globalStyle, style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
+import { size } from '../../css/size.css'
+
+export const editor_container = style({
+  '@layer': {
+    [app]: {
+      'borderRadius': theme['default-border-radius'],
+      'border': theme.vars['app-border-line-style'],
+      'overflow': 'hidden',
+      'resize': 'vertical',
+      'backgroundColor': 'transparent',
+      'display': 'flex',
+      'flexDirection': 'column',
+
+      'selectors': {
+        '&:focus-within': {
+          outline: theme.vars['focus-border'],
+        },
+      },
+
+      '@media': {
+        'screen and (max-width: 1023px)': {
+          resize: 'none',
+        },
+      },
+    },
+  },
+})
+
+export const editor_label = style({
+  '@layer': {
+    [app]: {
+      fontWeight: theme['input-label-font-weight'],
+    },
+  },
+})
+
+export const editor_menu_bar = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      borderBottom: theme.vars['app-border-line-style'],
+      width: '100%',
+      minHeight: '3rem',
+      flexWrap: 'wrap',
+      height: 'fit-content',
+    },
+  },
+})
+
+export const editor_content_container = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      padding: '.5rem',
+      maxHeight: '12rem',
+    },
+  },
+})
+
+export const editor_content = style({
+  '@layer': {
+    [app]: {
+      outline: 'none',
+      height: '100%',
+    },
+  },
+})
 
 export const editor_button_group = style({
   '@layer': {
@@ -38,71 +105,6 @@ export const editor_button = style({
           filter: 'invert(1)',
         },
       },
-    },
-  },
-})
-
-export const editor_menu_bar = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      borderBottom: theme.vars['app-border-line-style'],
-      width: '100%',
-      minHeight: '3rem',
-      overflow: 'auto',
-      flexWrap: 'wrap',
-    },
-  },
-})
-
-export const editor_container = style({
-  '@layer': {
-    [app]: {
-      borderRadius: theme['default-border-radius'],
-      border: theme.vars['app-border-line-style'],
-      display: 'flex',
-      flexDirection: 'column',
-
-      overflow: 'hidden',
-      resize: 'vertical',
-      height: '12rem',
-      backgroundColor: 'transparent',
-
-      selectors: {
-        '&:focus-within': {
-          outline: theme.vars['focus-border'],
-        },
-      },
-    },
-  },
-})
-
-export const editor_content_container = style({
-  '@layer': {
-    [app]: {
-      padding: '.5rem',
-      display: 'flex',
-      flex: '1 1 auto',
-      flexDirection: 'column',
-      overflowY: 'auto',
-      overflowX: 'hidden',
-    },
-  },
-})
-
-export const editor_content = style({
-  '@layer': {
-    [app]: {
-      outline: 'none',
-      height: '100%',
-    },
-  },
-})
-
-export const editor_label = style({
-  '@layer': {
-    [app]: {
-      fontWeight: theme['input-label-font-weight'],
     },
   },
 })
@@ -204,6 +206,18 @@ globalStyle('.resize-cursor', {
     [app]: {
       cursor: ['ew-resize', 'col-resize'],
       zIndex: '10',
+    },
+  },
+})
+
+globalStyle(`${editor_content} blockquote`, {
+  '@layer': {
+    [app]: {
+      borderRadius: theme['default-border-radius'],
+      border: theme.vars['app-border-line-style'],
+      marginLeft: size['size-3'],
+      marginTop: size['size-2'],
+      padding: size['size-1'],
     },
   },
 })

@@ -7,6 +7,8 @@ export type ButtonVariants =
   | 'warning'
   | 'default'
   | 'danger'
+  | 'update'
+  | 'update_outline'
   | 'danger_outline'
   | 'primary_outline'
   | 'warning_outline'
@@ -35,7 +37,7 @@ const Button: FC<ButtonProps> = ({
   const variantType = disabled || !variant ? 'default' : variant
   return (
     <button
-      className={clsx({ [className]: className }, button[`${variantType}`])}
+      className={clsx({ [className]: className }, button[variantType])}
       type={type ?? 'button'}
       onClick={onClick}
       disabled={disabled}

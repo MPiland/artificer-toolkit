@@ -14,7 +14,7 @@ import {
 } from './Dropdown.css'
 import { uniqBy } from 'lodash'
 import clsx from 'clsx'
-import { Action, Option as OptionType } from '../../utils/types'
+import { DropdownOption, ReducerActionType } from '../../utils/types'
 import { TbX, TbChevronDown, TbCheck } from 'react-icons/tb'
 import {
   autoUpdate,
@@ -37,10 +37,10 @@ interface DropdownProps {
   value: any[] | null
   className?: string | number | symbol | any
   placeholder?: string
-  options: OptionType[] | undefined
+  options: DropdownOption[] | undefined
   multiSelect?: boolean
   optionalKey?: string | any[]
-  onChange: (arg: Action) => void
+  onChange: (arg: ReducerActionType) => void
 }
 
 const Dropdown: FC<DropdownProps> = ({
@@ -55,12 +55,12 @@ const Dropdown: FC<DropdownProps> = ({
   placeholder,
 }) => {
   const [selectedOptions, setSelectedOptions] = useState<
-    OptionType[] | OptionType | null
+    DropdownOption[] | DropdownOption | null
   >(null)
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
-  const updatedOptions = useRef<OptionType[] | OptionType | null>(null)
+  const updatedOptions = useRef<DropdownOption[] | DropdownOption | null>(null)
 
   const appMain = document.getElementById('app-main')
 
@@ -96,12 +96,12 @@ const Dropdown: FC<DropdownProps> = ({
     [click, listNavigation, typeahead, dismiss]
   )
 
-  let newOptions: OptionType[]
+  let newOptions: DropdownOption[]
 
   if (options?.length) {
     newOptions = options?.filter((option) => option?.value != null)
     newOptions = newOptions.map(({ name, value, _id, ...rest }) => {
-      const newObj: OptionType = { name, value, _id }
+      const newObj: DropdownOption = { name, value, _id }
 
       if (optionalKey) {
         if (Array.isArray(optionalKey)) {
@@ -135,46 +135,43 @@ const Dropdown: FC<DropdownProps> = ({
   }
 
   useEffect(() => {
-    //If value exists
-    if (value) {
-      //If value is array and selected options are empty
-      if (!selectedOptions && Array.isArray(value)) {
-        if (value.some((item) => item.name === 'all')) {
-          setSelectedOptions(uniqBy(options, (obj) => obj.value))
-        } else if (
-          !value.every((option) =>
-            newOptions.some((newOption) => newOption._id === option._id)
+    if (Array.isArray(value)) {
+      if (
+        value.some((item) => item.name === 'all') &&
+        !selectedOptions?.every((option: DropdownOption) =>
+          newOptions.map((newOption) => newOption.value === option.value)
+        )
+      ) {
+        setSelectedOptions(
+          uniqBy(newOptions, (obj) => obj.value).filter(
+            (option) => option.name !== 'all' && option.name !== 'clear'
           )
-        ) {
-          setSelectedOptions(
-            value.filter((valueItem) =>
-              newOptions.some((newOption) => newOption._id === valueItem._id)
-            )
-          )
-          updatedOptions.current = value.filter((valueItem) =>
+        )
+      } else if (
+        !value.every((option) =>
+          newOptions.some((newOption) => newOption._id === option._id)
+        )
+      ) {
+        updatedOptions.current = value.filter((valueItem) =>
+          newOptions.some((newOption) => newOption._id === valueItem._id)
+        )
+        setSelectedOptions(
+          value.filter((valueItem) =>
             newOptions.some((newOption) => newOption._id === valueItem._id)
           )
-        } else {
-          setSelectedOptions(value)
-          updatedOptions.current = value
-        }
-        //If value is not array and selected options are empty
-      } else if (!selectedOptions && !Array.isArray(value)) {
-        setSelectedOptions(value)
+        )
+      } else {
         updatedOptions.current = value
+        setSelectedOptions(value)
       }
     }
-  }, [value, options, newOptions, selectedOptions])
-
-  useEffect(() => {
-    if (updatedOptions.current && value) {
-      if (updatedOptions.current !== value) {
-        setSelectedOptions(null)
-      }
+    if (value !== updatedOptions.current) {
+      updatedOptions.current = value
+      setSelectedOptions(value)
     }
-  }, [value])
+  }, [value, newOptions, selectedOptions])
 
-  const handleValueSelect = (option: OptionType) => {
+  const handleValueSelect = (option: DropdownOption) => {
     if (multiSelect) {
       if (option.name === 'clear') {
         setSelectedOptions([])
@@ -184,14 +181,14 @@ const Dropdown: FC<DropdownProps> = ({
         setSelectedOptions(allOptions)
         updatedOptions.current = [option]
       } else {
-        let updated: OptionType[] | null = null
+        let updated: DropdownOption[] | null = null
         setSelectedOptions((current) => {
           if (current != null) {
             updated = current.some(
-              (item: OptionType) => item._id === option._id
+              (item: DropdownOption) => item._id === option._id
             )
               ? current.filter((v: any) => v._id !== option._id)
-              : [...(current as OptionType[]), option]
+              : [...(current as DropdownOption[]), option]
           } else {
             updated = [option]
           }
@@ -206,25 +203,25 @@ const Dropdown: FC<DropdownProps> = ({
       updatedOptions.current = option
     }
     onChange({
-      payload: { target: { name: name, value: updatedOptions.current } },
+      target: { name: name, value: updatedOptions.current },
     })
   }
 
-  const handleValueRemove = (option: OptionType) => {
+  const handleValueRemove = (option: DropdownOption) => {
     if (multiSelect) {
       setSelectedOptions((current) =>
-        current?.filter((v: OptionType) => v !== option)
+        current?.filter((v: DropdownOption) => v !== option)
       )
     } else {
-      setSelectedOptions(null)
       updatedOptions.current = null
-      onChange({ payload: { target: { name: name, value: null } } })
+      onChange({ target: { name: name, value: null } })
+      setSelectedOptions(null)
     }
   }
 
   const values = multiSelect
     ? selectedOptions?.slice(0, 1).map(
-        (item: OptionType) =>
+        (item: DropdownOption) =>
           item.name !== 'clear' &&
           item.name !== 'all' && (
             <span className={dropdown_active_option} key={item._id}>
@@ -264,20 +261,17 @@ const Dropdown: FC<DropdownProps> = ({
                 placeholder
               )
             ) : (
-              (selectedOptions as OptionType)?.value || placeholder
+              (selectedOptions as DropdownOption)?.value ?? placeholder
             )}
           </span>
-          <span className={dropdown_right_section}>
-            {selectedOptions && !multiSelect ? (
-              <TbX
-                onClick={(e: any) => {
-                  e.stopPropagation()
-                  handleValueRemove(selectedOptions as OptionType)
-                }}
-              />
-            ) : (
-              <TbChevronDown />
-            )}
+          <span
+            className={dropdown_right_section}
+            onClick={(e: any) => {
+              selectedOptions && !multiSelect && e.stopPropagation()
+              handleValueRemove(selectedOptions as DropdownOption)
+            }}
+          >
+            {selectedOptions && !multiSelect ? <TbX /> : <TbChevronDown />}
           </span>
         </div>
       </div>
@@ -294,39 +288,45 @@ const Dropdown: FC<DropdownProps> = ({
               style={floatingStyles}
               {...getFloatingProps()}
             >
-              {newOptions.map((optionItem: OptionType, optionIndex: number) => {
-                const active = multiSelect
-                  ? selectedOptions?.some(
-                      (selectedOption: OptionType) =>
-                        selectedOption._id === optionItem._id
-                    )
-                  : (selectedOptions as OptionType)?._id === optionItem._id
-                return (
-                  <div
-                    className={dropdown_option}
-                    key={optionIndex}
-                    onClick={() => handleValueSelect(optionItem)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === 'Space') {
-                        handleValueSelect(optionItem)
-                      }
-                    }}
-                    {...getItemProps}
-                    tabIndex={activeIndex === optionIndex ? 0 : -1}
-                    ref={(node) => {
-                      listItemsRef.current[optionIndex] = node
-                      listContentRef.current[optionIndex] =
-                        node?.textContent ?? null
-                    }}
-                  >
-                    <span>{optionItem.value}</span>
+              {newOptions.map(
+                (optionItem: DropdownOption, optionIndex: number) => {
+                  const active = multiSelect
+                    ? selectedOptions?.some(
+                        (selectedOption: DropdownOption) =>
+                          selectedOption._id === optionItem._id
+                      )
+                    : (selectedOptions as DropdownOption)?._id ===
+                      optionItem._id
+                  return (
+                    <div
+                      className={dropdown_option}
+                      key={optionIndex}
+                      {...getItemProps({
+                        onClick() {
+                          handleValueSelect(optionItem)
+                        },
+                        onKeyDown(e) {
+                          if (e.key === 'Enter' || e.key === 'Space') {
+                            handleValueSelect(optionItem)
+                          }
+                        },
+                      })}
+                      tabIndex={activeIndex === optionIndex ? 0 : -1}
+                      ref={(node) => {
+                        listItemsRef.current[optionIndex] = node
+                        listContentRef.current[optionIndex] =
+                          node?.textContent ?? null
+                      }}
+                    >
+                      <span>{optionItem.value}</span>
 
-                    <span className={dropdown_option_right_side}>
-                      {active && <TbCheck />}
-                    </span>
-                  </div>
-                )
-              })}
+                      <span className={dropdown_option_right_side}>
+                        {active && <TbCheck />}
+                      </span>
+                    </div>
+                  )
+                }
+              )}
             </div>
           </FloatingFocusManager>
         </FloatingPortal>

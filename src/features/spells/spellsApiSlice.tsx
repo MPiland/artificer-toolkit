@@ -5,65 +5,65 @@ export const spellsAdapter = createEntityAdapter()
 
 export const initialState = spellsAdapter.getInitialState()
 
-export const spellsApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getSpells: builder.query({
-      query: () => ({
-        url: '/spell',
-        method: 'GET',
-        validateStatus: (response, result) => {
-          return response.status === 200 && !result.isError
+export const spellsApiSlice = apiSlice
+  .injectEndpoints({
+    endpoints: (builder) => ({
+      getSpells: builder.query({
+        query: () => ({
+          url: '/spell',
+          method: 'GET',
+          validateStatus: (response, result) => {
+            return response.status === 200 && !result.isError
+          },
+        }),
+        transformResponse: (responseData: any[]) => {
+          const loadedspells = responseData.map((spell) => {
+            spell.id = spell._id
+            return spell
+          })
+          return spellsAdapter.setAll(initialState, loadedspells)
+        },
+        providesTags: (result) => {
+          if (result?.ids) {
+            return [
+              { type: 'Spell' as const, id: 'LIST' },
+              ...result.ids.map((id) => ({ type: 'Spell' as const, id })),
+            ]
+          } else return [{ type: 'Spell' as const, id: 'LIST' }]
         },
       }),
-      async onQueryStarted(_, { queryFulfilled }) {
-        try {
-          await queryFulfilled
-        } catch (err) {
-          console.log(err)
-        }
-      },
-      transformResponse: (responseData: any[]) => {
-        const loadedspells = responseData.map((spell) => {
-          spell.id = spell._id
-          return spell
-        })
-        return spellsAdapter.setAll(initialState, loadedspells)
-      },
-      providesTags: (result) => {
-        if (result?.ids) {
-          return [
-            { type: 'Spell' as const, id: 'LIST' },
-            ...result.ids.map((id) => ({ type: 'Spell' as const, id })),
-          ]
-        } else return [{ type: 'Spell' as const, id: 'LIST' }]
-      },
-    }),
-    addNewSpell: builder.mutation({
-      query: (data) => ({
-        url: '/spell',
-        method: 'POST',
-        body: { ...data },
+      addNewSpell: builder.mutation({
+        query: (data) => ({
+          url: '/spell',
+          method: 'POST',
+          body: { ...data },
+        }),
+        invalidatesTags: () => [{ type: 'Spell', id: 'LIST' }],
       }),
-      invalidatesTags: () => [{ type: 'Spell', id: 'LIST' }],
-    }),
-    updateSpell: builder.mutation({
-      query: (data) => ({
-        url: `/spell`,
-        method: 'PATCH',
-        body: data,
+      updateSpell: builder.mutation({
+        query: (data) => ({
+          url: `/spell`,
+          method: 'PATCH',
+          body: data,
+        }),
+        invalidatesTags: (_, __, arg) => [
+          { type: 'Spell', id: arg._id },
+          { type: 'Spell', id: 'LIST' },
+        ],
       }),
-      invalidatesTags: (_, __, arg) => [{ type: 'Spell', id: arg._id }],
-    }),
-    deleteSpell: builder.mutation({
-      query: ({ id }) => ({
-        url: `/spell`,
-        method: 'DELETE',
-        body: { id },
+      deleteSpell: builder.mutation({
+        query: ({ id }) => ({
+          url: `/spell`,
+          method: 'DELETE',
+          body: { id },
+        }),
+        invalidatesTags: (_, __, arg) => [
+          { type: 'Spell', id: arg.id },
+          { type: 'Spell', id: 'LIST' },
+        ],
       }),
-      invalidatesTags: (_, __, arg) => [{ type: 'Spell', id: arg.id }],
     }),
-  }),
-})
+  })
 
 export const {
   useGetSpellsQuery,

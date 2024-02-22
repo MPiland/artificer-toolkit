@@ -7,31 +7,28 @@ export const table = style({
     [app]: {
       position: 'relative',
       overflow: 'hidden',
-      flex: 1,
-      borderTop: '0 solid transparent',
-      zIndex: 1,
-    },
-  },
-})
-
-export const table_wrapper = style({
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      backgroundColor: theme.vars['app-background-color'],
-      overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
-      zIndex: 0,
-      backgroundClip: 'border-box',
       borderTop: '0 solid transparent',
+      zIndex: 1,
       selectors: {
         '&.scrollable': {
           overflowX: 'auto',
           width: '100%',
         },
       },
+    },
+  },
+})
+
+export const table_body = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      backgroundColor: theme.vars['app-background-color'],
+      zIndex: 0,
+      backgroundClip: 'border-box',
+      borderTop: '0 solid transparent',
     },
   },
 })
@@ -47,6 +44,12 @@ export const table_header_row = style({
       borderBottom: theme.vars['app-border-line-style'],
       backgroundColor: theme.vars['app-background-color'],
       zIndex: 2,
+
+      selectors: {
+        '&.borderless': {
+          borderBottom: 'none',
+        },
+      },
     },
   },
 })
@@ -73,6 +76,9 @@ export const table_row = style({
         '&:hover': {
           backgroundImage: 'linear-gradient(rgb(0 0 0/5%) 0 0)',
         },
+        '&.borderless': {
+          borderBottom: 'none',
+        },
       },
     },
   },
@@ -98,8 +104,6 @@ export const table_subrow = style({
           border: 'none',
           maxHeight: '0',
           transform: 'scaleY(0)',
-          transition:
-            'max-height .3s ease-in-out, transform .3s ease-in-out, padding .3s ease-in-out',
         },
       },
     },
@@ -113,7 +117,6 @@ export const table_header = style({
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      height: '2rem',
       paddingTop: '.25rem',
       paddingBottom: '.25rem',
 
@@ -154,9 +157,8 @@ export const table_collapse_button = style({
       maxWidth: '4rem',
       maxHeight: '2rem',
       width: '1.25rem',
-      alignItems: 'start',
-      display: 'flex',
       height: 'fit-content',
+      justifyContent: 'center',
 
       selectors: {
         '&.collapsed': {
@@ -176,9 +178,9 @@ export const table_dynamic_button = style({
     [app]: {
       border: 'none',
       backgroundColor: 'inherit',
-      maxWidth: '4rem',
-      maxHeight: '2rem',
-      width: '1.25rem',
+      padding: '0 .5rem',
+      height: '100%',
+      width: '2.25rem',
       alignItems: 'center',
       display: 'flex',
 
@@ -204,9 +206,8 @@ export const table_button_cell = style({
     [app]: {
       display: 'flex',
       flexDirection: 'row',
-      flexWrap: 'wrap',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
       borderRadius: theme['default-border-radius'],
 
       selectors: {

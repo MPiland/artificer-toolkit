@@ -3,7 +3,7 @@ import { app } from '../../css/layers.css'
 import { style } from '@vanilla-extract/css'
 import { size } from '../../css/size.css'
 
-export const collapse_container = style({
+export const collapse_wrapper = style({
   '@layer': {
     [app]: {
       position: 'relative',
@@ -15,20 +15,18 @@ export const collapse_container = style({
   },
 })
 
-export const collapse_wrapper = style({
+export const collapse_body = style({
   '@layer': {
     [app]: {
       display: 'grid',
       borderSpacing: 0,
       gridTemplateRows: '1fr',
       transition:
-        'grid-template-rows 0.3s ease-in-out, margin 0.3s ease-in-out',
-      padding: size['size-1'],
+        'grid-template-rows 0.3s ease-in-out',
 
       selectors: {
         '&.collapsed': {
           gridTemplateRows: '0fr',
-          margin: `-${size['size-1']} 0`,
         },
       },
     },
@@ -41,6 +39,14 @@ export const collapse_content = style({
       width: '100%',
       height: 'auto',
       overflow: 'hidden',
+      padding: `${size['size-1']} ${size['size-1']}`,
+      transition: 'padding 0.3s ease-in-out',
+
+      selectors: {
+        '&.collapsed': {
+          padding: `0 ${size['size-1']}`,
+        },
+      },
     },
   },
 })

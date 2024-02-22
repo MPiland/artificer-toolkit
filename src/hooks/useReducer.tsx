@@ -1,40 +1,39 @@
 import { set, get, camelCase, PropertyPath } from 'lodash'
-import { Action } from '../utils/types'
 import { produce } from 'immer'
+import { ReducerActionType } from '../utils/types'
 
 function isNumber(str: string): boolean {
   return !isNaN(parseFloat(str)) && isFinite(Number(str))
 }
 
-const formReducer = produce((draft: any, action: Action) => {
-  const {
-    type,
-    payload: { target },
-  } = action
-
+const formReducer = produce((draft: any, action: ReducerActionType) => {
   let path: string[] | null
 
-  if (!!target?.name) {
-    if (!Array.isArray(target.name)) {
-      path = target.name.split('.')
+  if (action?.target?.name) {
+    if (!Array.isArray(action.target.name)) {
+      path = action.target.name.split('.')
     } else {
-      path = target.name
+      path = action.target.name
     }
   } else {
     path = null
   }
 
-  if (type === 'added') {
+  if (action?.type === 'added') {
     if (get(draft, path as PropertyPath)) {
-      if (!target.value) {
+      if (!action.target.value) {
         get(draft, path as PropertyPath).push({})
       } else {
-        set(draft, path as PropertyPath, target.value)
+        set(draft, path as PropertyPath, action.target.value)
       }
     } else {
-      set(draft, path as PropertyPath, !!target.value ? target.value : [{}])
+      set(
+        draft,
+        path as PropertyPath,
+        action.target.value ? action.target.value : [{}]
+      )
     }
-  } else if (type === 'removed') {
+  } else if (action?.type === 'removed') {
     if (path && path.length > 0) {
       const lastKey = path[path.length - 1]
       if (!isNumber(lastKey)) {
@@ -55,17 +54,17 @@ const formReducer = produce((draft: any, action: Action) => {
         }
       }
     }
-  } else if (type === 'reset') {
-    return target
+  } else if (action?.type === 'reset') {
+    return action?.target?.value
   } else {
-    set(draft, path as PropertyPath, target.value)
+    set(draft, path as PropertyPath, action?.target?.value)
     if (path && path[path.length - 1] === 'value') {
       if (path.length === 1) {
-        set(draft, 'name', camelCase(target.value))
+        set(draft, 'name', camelCase(action?.target?.value))
       } else {
         path.pop()
         path.push('name')
-        set(draft, path, camelCase(target.value))
+        set(draft, path, camelCase(action?.target?.value))
       }
     }
   }

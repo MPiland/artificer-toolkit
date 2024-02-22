@@ -42,7 +42,7 @@ const Spell = () => {
     { header: 'SCHOOL', name: 'school.value' },
     {
       header: 'SAVE ABILITY',
-      name: 'saveAbility',
+      name: 'saveAbility.ability',
       filter: ['isAttack', 'requireSave'],
     },
     {

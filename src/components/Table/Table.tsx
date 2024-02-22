@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment, memo, FC, RefObject } from 'react'
+import { useEffect, useState, Fragment, memo, FC } from 'react'
 import useSortableData from '../../hooks/useSortableData'
 import { getValueFromState } from '../../utils/formatting'
 import { PropertyPath, get } from 'lodash'
@@ -8,11 +8,11 @@ import Spinner from '../Spinner/Spinner'
 import Grid from '../Grid/Grid'
 import Button from '../Button/Button'
 import {
-  Action,
   SortConfig,
   RowInput,
   RowHeader,
-  Option,
+  DropdownOption,
+  ReducerActionType,
 } from '../../utils/types'
 import {
   table,
@@ -24,10 +24,11 @@ import {
   table_dynamic_button,
   table_cell,
   table_button_cell,
-  table_wrapper,
+  table_body,
 } from './Table.css'
 import { TbCaretUpFilled, TbTrash, TbCirclePlus } from 'react-icons/tb'
 import clsx from 'clsx'
+import ScrollArea from '../ScrollArea/ScrollArea'
 
 type RowData = {
   inputs: RowInput[]
@@ -55,6 +56,7 @@ interface TableHeaderProps {
   getClassNames: (arg: string) => void
   deleteRow?: (arg: any) => void
   addRow?: boolean
+  border?: boolean
 }
 
 interface TableRowProps {
@@ -66,8 +68,9 @@ interface TableRowProps {
   addRow?: boolean
   onClick?: (arg: any) => void
   name: string | undefined
-  onChange?: (arg: Action) => void
+  onChange?: (arg: ReducerActionType) => void
   collapse?: boolean
+  border?: boolean
 }
 
 interface TableProps {
@@ -81,12 +84,12 @@ interface TableProps {
   defaultSort?: any
   clickable?: boolean
   deleteRow?: (arg: any) => void
-  onChange?: (arg: Action) => void
+  onChange?: (arg: ReducerActionType) => void
   collapse?: boolean
   empty?: string
   id?: string | undefined
   scrollable?: boolean
-  ref?: RefObject<HTMLDivElement>
+  border?: boolean
 }
 
 const TableHeader: FC<TableHeaderProps> = ({
@@ -97,6 +100,7 @@ const TableHeader: FC<TableHeaderProps> = ({
   getClassNames,
   addRow,
   deleteRow,
+  border,
 }) => {
   return (
     <Grid
@@ -104,7 +108,7 @@ const TableHeader: FC<TableHeaderProps> = ({
         start: collapse ? 1 : 0,
         end: addRow ? 2 : deleteRow ? 1 : 0,
       }}
-      className={table_header_row}
+      className={clsx(table_header_row, { ['borderless']: border === false })}
     >
       {collapse && <div className={table_header} />}
       {headers?.map((headerItem: RowHeader, headerIndex: number) => {
@@ -156,6 +160,7 @@ const TableRow: FC<TableRowProps> = ({
   name,
   addRow,
   collapse,
+  border,
 }) => {
   const [collapsed, setCollapsed] = useState(true)
   const subrows = rows.subrow?.data?.filter((subrowItem: any) => {
@@ -174,7 +179,8 @@ const TableRow: FC<TableRowProps> = ({
         className={clsx(
           table_row,
           { ['clickable']: onClick },
-          { ['collapsed']: collapsed }
+          { ['collapsed']: collapsed },
+          { ['borderless']: border === false }
         )}
         onClick={() => {
           onClick && onClick(valueItem)
@@ -220,7 +226,7 @@ const TableRow: FC<TableRowProps> = ({
                         placeholder={inputItem.value}
                         value={get(valueItem, inputItem?.name as PropertyPath)}
                         required={inputItem.required}
-                        options={inputItem.options as Option[]}
+                        options={inputItem.options as DropdownOption[]}
                         optionalKey={inputItem.optionalKey}
                         onChange={(e) => onChange && onChange(e)}
                       />
@@ -249,7 +255,7 @@ const TableRow: FC<TableRowProps> = ({
               onChange &&
                 onChange({
                   type: 'added',
-                  payload: { target: { name: name } },
+                  target: { name: name },
                 })
             }}
           >
@@ -261,29 +267,27 @@ const TableRow: FC<TableRowProps> = ({
             >
               <TbCirclePlus />
             </Button>
-          </div>
-        )}
-        {addRow && valueIndex !== 0 && (
-          <div
-            className={table_button_cell}
-            onClick={() =>
-              onChange &&
-              onChange({
-                type: 'removed',
-                payload: {
-                  target: { name: `${name}.${valueIndex}` },
-                },
-              })
-            }
-          >
-            <Button
-              className={table_dynamic_button}
-              variant='unstyled'
-              type='button'
-              name={`${name}.${valueIndex}`}
-            >
-              <TbTrash />
-            </Button>
+            {valueIndex !== 0 && (
+              <div
+                className={table_button_cell}
+                onClick={() =>
+                  onChange &&
+                  onChange({
+                    type: 'removed',
+                    target: { name: `${name}.${valueIndex}` },
+                  })
+                }
+              >
+                <Button
+                  className={table_dynamic_button}
+                  variant='unstyled'
+                  type='button'
+                  name={`${name}.${valueIndex}`}
+                >
+                  <TbTrash />
+                </Button>
+              </div>
+            )}
           </div>
         )}
         {deleteRow && (
@@ -374,7 +378,8 @@ const Table: FC<TableProps> = memo(
     addRow,
     collapse,
     scrollable,
-    ref,
+    id,
+    border,
   }) => {
     const [sortState, setSortState] = useState<SortState>()
     const [defaultSortRan, setDefaultSortRan] = useState(false)
@@ -427,18 +432,20 @@ const Table: FC<TableProps> = memo(
     }
 
     content = (
-      <div className={table} ref={ref}>
-        <div className={clsx(table_wrapper, { ['scrollable']: scrollable })}>
-          {rows?.headers && (
-            <TableHeader
-              headers={rows.headers}
-              sortable={sortable}
-              requestSort={requestSort}
-              getClassNames={getClassNames}
-              collapse={collapse}
-              deleteRow={deleteRow}
-            />
-          )}
+      <div className={clsx(table, { ['scrollable']: scrollable })} id={id}>
+        {rows?.headers && (
+          <TableHeader
+            headers={rows.headers}
+            sortable={sortable}
+            requestSort={requestSort}
+            getClassNames={getClassNames}
+            collapse={collapse}
+            deleteRow={deleteRow}
+            addRow={addRow}
+            border={border}
+          />
+        )}
+        <ScrollArea scrollDirection='vertical' className={clsx(table_body)}>
           {filteredItems?.map((valueItem: any, valueIndex: number) => (
             <Fragment key={valueIndex}>
               <TableRow
@@ -452,10 +459,11 @@ const Table: FC<TableProps> = memo(
                 name={name}
                 addRow={addRow}
                 collapse={collapse}
+                border={border}
               />
             </Fragment>
           ))}
-        </div>
+        </ScrollArea>
       </div>
     )
 

@@ -1,9 +1,14 @@
-import { FC, Fragment, useRef } from 'react'
-import { progress_bar, progress, progress_step } from './ProgressBar.css'
+import { FC, Fragment, useLayoutEffect, useRef, useState } from 'react'
+import {
+  progress_bar,
+  progress_empty,
+  progress_fill,
+  progress_step,
+  progress_width,
+  progress_step_wrapper,
+} from './ProgressBar.css'
 import clsx from 'clsx'
-import gsap from 'gsap'
-import { useGSAP } from '@gsap/react'
-import palette from '../../css/colors.css'
+import { assignInlineVars } from '@vanilla-extract/dynamic'
 
 interface ProgressBarProps {
   steps: any[]
@@ -11,27 +16,38 @@ interface ProgressBarProps {
 }
 
 const ProgressBar: FC<ProgressBarProps> = ({ steps, currentStepIndex }) => {
+  const [progressWidth, setProgressWidth] = useState<string>('0')
   const progressBarRef = useRef<HTMLDivElement | null>(null)
 
-  useGSAP(() => {
-    const progressBar = progressBarRef.current
-    if (progressBar) {
-      gsap.to(progressBar, {
-        width:
-          currentStepIndex === 0
-            ? '2rem'
-            : `calc((100% / ${steps.length}) * ${currentStepIndex + 1})`,
-        backgroundColor: palette['blue-7'],
-        duration: 0.3,
-        ease: 'power1.inOut',
-      })
+  useLayoutEffect(() => {
+    if (currentStepIndex === 0) {
+      setProgressWidth('0')
+    } else if (currentStepIndex === steps.length - 1) {
+      setProgressWidth(`calc(100% - 2rem)`)
+    } else {
+      setProgressWidth(
+        `calc((((100% - 2rem) / ${steps.length - 1}) * ${currentStepIndex}))`
+      )
     }
-  }, [currentStepIndex])
+  }, [currentStepIndex, steps])
 
   return (
     <section className={progress_bar}>
-      <div className={progress} ref={progressBarRef} />
-      <>
+      <div
+        className={progress_empty}
+        style={assignInlineVars({
+          [progress_width]: `calc(100% - 6rem)`,
+        })}
+        ref={progressBarRef}
+      />
+      <div
+        className={progress_fill}
+        style={assignInlineVars({
+          [progress_width]: progressWidth,
+        })}
+        ref={progressBarRef}
+      />
+      <div className={progress_step_wrapper}>
         {steps.map((stepItem, stepIndex: number) => {
           return (
             <Fragment key={stepIndex}>
@@ -39,12 +55,12 @@ const ProgressBar: FC<ProgressBarProps> = ({ steps, currentStepIndex }) => {
                 className={clsx(progress_step, {
                   ['active']: currentStepIndex >= stepIndex,
                 })}
-                data-atapp-step={stepItem.name}
+                data-atapp-step={stepItem}
               />
             </Fragment>
           )
         })}
-      </>
+      </div>
     </section>
   )
 }

@@ -6,9 +6,9 @@ import RequireAuth from './features/auth/RequireAuth'
 import PersistLogin from './features/auth/PersistLogin'
 import Layout from './components/Layout/Layout'
 import Modal from './components/Modal/Modal'
-import Prefetch from './components/Prefetch'
+import Prefetch from './components/Prefetch/Prefetch'
 import SignIn from './features/auth/SignIn'
-import Delete from './components/Delete'
+import Delete from './components/Delete/Delete'
 import CharacterList from './features/characters/CharacterList'
 import Class from './features/classes/Class'
 import ClassList from './features/classes/ClassList'
@@ -27,7 +27,7 @@ import FeatList from './features/feats/FeatList'
 import FeatForm from './features/feats/FeatForm'
 
 const App = () => {
-  const [theme, setTheme] = useState('light')
+  const [theme] = useState('light')
 
   useEffect(() => {
     document.body.dataset.theme = theme

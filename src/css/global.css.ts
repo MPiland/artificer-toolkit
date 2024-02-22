@@ -40,15 +40,6 @@ export const vars = createThemeContract({
   'input': {
     'input-error-color': null,
   },
-
-  'button': {
-    color: {
-      default: null,
-      primary: null,
-      warning: null,
-      danger: null,
-    },
-  },
 })
 
 export const light = createTheme(vars, {
@@ -59,15 +50,6 @@ export const light = createTheme(vars, {
 
   'input': {
     'input-error-color': 'red',
-  },
-
-  'button': {
-    color: {
-      default: palette['gray-6'],
-      primary: palette['blue-6'],
-      warning: palette['yellow-6'],
-      danger: palette['red-6'],
-    },
   },
 })
 

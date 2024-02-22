@@ -1,6 +1,5 @@
 import { FC, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import useMediaQuery from '../../hooks/useMediaQuery'
 import Grid from '../Grid/Grid'
 import { getValueFromState } from '../../utils/formatting'
 import Button from '../Button/Button'
@@ -16,6 +15,7 @@ import {
 import { Hamburger } from '../../components/AppShell/AppShell'
 import Modal from '../Modal/Modal'
 import clsx from 'clsx'
+import { sprinkles } from '../../css/sprinkles.css'
 
 type colType = {
   header: string
@@ -53,9 +53,6 @@ const Detail: FC<DetailProps> = ({
   const sidebarListRef = useRef<HTMLUListElement>(null)
   const hamburgerRef = useRef<HTMLDivElement>(null)
   const scrollBodyRef = useRef<HTMLDivElement>(null)
-
-  const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
-  const sm = useMediaQuery('(max-width: 567px)')
 
   const onEditClicked = () => {
     navigate(
@@ -141,8 +138,8 @@ const Detail: FC<DetailProps> = ({
         {colsData && cols && (
           <>
             <Grid
-              cols={{ lg: 4, md: 3, sm: 2 }}
-              mediaSize={md ? 'md' : sm ? 'sm' : 'lg'}
+              cols={{ lg: 4, md: 3, base: 2 }}
+              className={sprinkles({ mb: 'size-2' })}
             >
               {cols?.map((colItem, colIndex) => {
                 return (
@@ -181,7 +178,7 @@ const Detail: FC<DetailProps> = ({
       </Modal.Body>
       <Modal.Footer>
         <Group
-          spaceVariant={footerSpacing}
+          justifyContentVariant={footerSpacing}
           directionVariant='row'
           alignItemsVariant='end'
         >

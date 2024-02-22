@@ -1,56 +1,64 @@
-import { style } from '@vanilla-extract/css'
+import { style, createVar } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import palette from '../../css/colors.css'
 import { theme } from '../../css/global.css'
 
+export const progress_width = createVar()
+
 export const progress_bar = style({
   '@layer': {
     [app]: {
-      'position': 'relative',
-      'display': 'flex',
-      'justifyContent': 'space-between',
-      'counterReset': 'step',
-      'margin': '2rem 4rem 1rem',
-      'alignItems': 'center',
-
-      '@media': {
-        'screen and (min-width: 568px) and (max-width: 1024px)': {
-          margin: '2rem 3rem  1rem',
-        },
-        'screen and (max-width: 567px)': {
-          margin: '2rem 2rem  1rem',
-        },
-      },
-
-      'selectors': {
-        '&:before': {
-          content: '',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          height: '2rem',
-          borderRadius: '1rem',
-          width: '100%',
-          backgroundColor: palette['gray-5'],
-          zIndex: 1,
-        },
-      },
+      display: 'flex',
+      alignItems: 'center',
+      position: 'relative',
+      counterReset: 'step',
+      padding: '2.5rem 2rem 2rem',
+      width: 'auto',
+      borderBottom: theme.vars['app-border-line-style'],
     },
   },
 })
 
-export const progress = style({
+export const progress_empty = style({
   '@layer': {
     [app]: {
       content: '',
       position: 'absolute',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      height: '2rem',
-      borderRadius: '1rem',
-      width: '0',
-      backgroundColor: palette['gray-5'],
+      left: '3rem',
+      height: '1rem',
+      backgroundColor: palette['gray-3'],
       zIndex: 2,
+      width: progress_width,
+      transition: 'width .3s ease-in-out',
+    },
+  },
+})
+
+export const progress_fill = style({
+  '@layer': {
+    [app]: {
+      content: '',
+      position: 'relative',
+      left: '1rem',
+      height: '1rem',
+      backgroundColor: palette['blue-7'],
+      zIndex: 2,
+      width: progress_width,
+      transition: 'width .3s ease-in-out',
+    },
+  },
+})
+
+export const progress_step_wrapper = style({
+  '@layer': {
+    [app]: {
+      padding: '0 2rem',
+      position: 'absolute',
+      left: '0',
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
     },
   },
 })
@@ -68,6 +76,7 @@ export const progress_step = style({
       zIndex: 2,
       color: 'white',
       fontWeight: 'bold',
+      transition: 'background-color .3s ease-in-out',
 
       selectors: {
         '&:before': {
@@ -85,7 +94,6 @@ export const progress_step = style({
           border: 'none',
         },
         '&.active:before': {
-          backgroundColor: palette['blue-7'],
           border: 'none',
         },
       },

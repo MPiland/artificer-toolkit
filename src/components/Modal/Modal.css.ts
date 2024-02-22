@@ -1,6 +1,7 @@
 import { theme } from '../../css/global.css'
 import { style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
+import { size } from '../../css/size.css'
 
 export const modal = style({
   '@layer': {
@@ -80,7 +81,7 @@ export const modal_content = style({
       'width': '100%',
       'overflow': 'hidden',
       'zIndex': '10',
-      'padding': '3rem',
+      'padding': size['size-5'],
       'color': theme.vars['app-color'],
 
       '@media': {
@@ -106,8 +107,6 @@ export const modal_header = style({
     [app]: {
       height: 'fit-content',
       paddingBottom: '.5rem',
-      paddingLeft: '.25rem',
-      paddingRight: '.25rem',
     },
   },
 })
@@ -120,7 +119,7 @@ export const modal_body = style({
       position: 'relative',
       overflow: 'hidden',
       height: '100%',
-      padding: '.5rem .25rem',
+      padding: '.5rem 0',
     },
   },
 })
@@ -139,9 +138,7 @@ export const modal_footer = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      paddingTop: '.5rem',
-      paddingLeft: '.25rem',
-      paddingRight: '.25rem',
+      paddingTop: size['size-3'],
     },
   },
 })

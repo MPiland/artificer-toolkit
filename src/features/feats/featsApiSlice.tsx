@@ -6,7 +6,6 @@ export const featsAdapter = createEntityAdapter()
 export const initialState = featsAdapter.getInitialState()
 
 export const featsApiSlice = apiSlice
-  .enhanceEndpoints({ addTagTypes: ['Feat'] })
   .injectEndpoints({
     endpoints: (builder) => ({
       getFeats: builder.query({
@@ -17,13 +16,6 @@ export const featsApiSlice = apiSlice
             return response.status === 200 && !result.isError
           },
         }),
-        async onQueryStarted(_, { queryFulfilled }) {
-          try {
-            await queryFulfilled
-          } catch (err) {
-            console.log(err)
-          }
-        },
         transformResponse: (responseData: any[]) => {
           const loadedfeats = responseData.map((feat) => {
             feat.id = feat._id
@@ -35,7 +27,7 @@ export const featsApiSlice = apiSlice
           if (result?.ids) {
             return [
               { type: 'Feat' as const, id: 'LIST' },
-              ...result.ids.map((id) => ({ type: 'Feat' as const, id })),
+              ...result.ids.map((id) => ({ type: 'Feat' as const, id: id })),
             ]
           } else return [{ type: 'Feat' as const, id: 'LIST' }]
         },
@@ -46,7 +38,7 @@ export const featsApiSlice = apiSlice
           method: 'POST',
           body: { ...data },
         }),
-        invalidatesTags: () => [{ type: 'Feat', id: 'LIST' }],
+        invalidatesTags: [{ type: 'Feat', id: 'LIST' }],
       }),
       updateFeat: builder.mutation({
         query: (data) => ({
@@ -54,7 +46,10 @@ export const featsApiSlice = apiSlice
           method: 'PATCH',
           body: data,
         }),
-        invalidatesTags: (_, __, arg) => [{ type: 'Feat', id: arg._id }],
+        invalidatesTags: (_, __, arg) => [
+          { type: 'Feat', id: arg._id },
+          { type: 'Feat', id: 'LIST' },
+        ],
       }),
       deleteFeat: builder.mutation({
         query: ({ id }) => ({
@@ -62,7 +57,12 @@ export const featsApiSlice = apiSlice
           method: 'DELETE',
           body: { id },
         }),
-        invalidatesTags: (_, __, arg) => [{ type: 'Feat', id: arg.id }],
+        invalidatesTags: (_, __, arg) => {
+          return [
+            { type: 'Feat', id: arg.id },
+            { type: 'Feat', id: 'LIST' },
+          ]
+        },
       }),
     }),
   })

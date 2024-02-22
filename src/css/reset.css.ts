@@ -45,17 +45,6 @@ globalStyle('a, button', {
 })
 
 /**
- * Remove list styles (bullets/numbers)
- */
-globalStyle('ol, ul, menu, summary', {
-  '@layer': {
-    [reset]: {
-      listStyle: 'none',
-    },
-  },
-})
-
-/**
  * For images to not be able to exceed their container
  */
 globalStyle('img', {

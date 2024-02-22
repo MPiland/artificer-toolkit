@@ -4,7 +4,7 @@ export type DebounceFunction = { (...args: any[]): void; cancel: () => void }
 
 const debounce = (
   func: DebounceFunction,
-  wait: number = 200
+  delay: number = 200
 ): DebounceFunction => {
   let timeout: NodeJS.Timeout | undefined
 
@@ -15,7 +15,7 @@ const debounce = (
     }
 
     clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
+    timeout = setTimeout(later, delay)
   }
 
   executedFunction.cancel = () => {
@@ -25,20 +25,18 @@ const debounce = (
   return executedFunction
 }
 
-export type UseDebounceCallback = { (...args: any[]): void; cancel: () => void }
-
 const useDebounce = (
-  callback: UseDebounceCallback,
-  delay: number = 1000,
-  dep?: any
+  func: DebounceFunction,
+  delay: number = 200,
+  deps: any[] = []
 ): DebounceFunction => {
-  const debouncedCallback = useCallback(debounce(callback, delay), [delay, dep])
+  const debouncedCallback = useCallback(debounce(func, delay), [delay, ...deps])
 
   useEffect(() => {
     return () => {
       debouncedCallback.cancel()
     }
-  }, [delay, dep])
+  }, [delay, ...deps])
 
   return debouncedCallback
 }

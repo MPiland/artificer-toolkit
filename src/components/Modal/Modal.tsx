@@ -49,7 +49,7 @@ export const Header: FC<HeaderProps> = ({ title, children, buttonVariant }) => {
   return (
     <>
       <div className={modal_header}>
-        <Group spaceVariant='spaceBetween'>
+        <Group justifyContentVariant='spaceBetween'>
           <Group>
             {children && <div>{children}</div>}
             <h1 className={modal_title}>{title}</h1>

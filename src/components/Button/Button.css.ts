@@ -1,6 +1,7 @@
 import { theme } from '../../css/global.css'
 import { styleVariants, style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
+import palette from '../../css/colors.css'
 
 export const button_content = style({
   '@layer': {
@@ -34,11 +35,11 @@ const base = style({
   },
 })
 
-const palette = {
+const buttonPalette = {
   primary: {
     '@layer': {
       [app]: {
-        backgroundColor: theme.vars.button.color.primary,
+        backgroundColor: palette['blue-7'],
         borderColor: 'unset',
         color: 'white',
         border: '1px solid',
@@ -49,8 +50,8 @@ const palette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: theme.vars.button.color.primary,
-        color: theme.vars.button.color.primary,
+        borderColor: palette['blue-7'],
+        color: palette['blue-7'],
         border: '1px solid',
       },
     },
@@ -58,7 +59,7 @@ const palette = {
   warning: {
     '@layer': {
       [app]: {
-        backgroundColor: theme.vars.button.color.warning,
+        backgroundColor: palette['yellow-7'],
         borderColor: 'unset',
         color: 'white',
         border: '1px solid',
@@ -69,8 +70,8 @@ const palette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: theme.vars.button.color.warning,
-        color: theme.vars.button.color.warning,
+        borderColor: palette['yellow-7'],
+        color: palette['yellow-7'],
         border: '1px solid',
       },
     },
@@ -78,7 +79,7 @@ const palette = {
   default: {
     '@layer': {
       [app]: {
-        backgroundColor: theme.vars.button.color.default,
+        backgroundColor: palette['gray-6'],
         borderColor: 'unset',
         color: 'white',
         border: '1px solid',
@@ -89,8 +90,8 @@ const palette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: theme.vars.button.color.default,
-        color: theme.vars.button.color.default,
+        borderColor: palette['gray-6'],
+        color: palette['gray-6'],
         border: '1px solid',
       },
     },
@@ -98,7 +99,7 @@ const palette = {
   danger: {
     '@layer': {
       [app]: {
-        backgroundColor: theme.vars.button.color.danger,
+        backgroundColor: palette['red-7'],
         borderColor: 'unset',
         color: 'white',
         border: '1px solid',
@@ -109,8 +110,28 @@ const palette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: theme.vars.button.color.danger,
-        color: theme.vars.button.color.danger,
+        borderColor: palette['red-7'],
+        color: palette['red-7'],
+        border: '1px solid',
+      },
+    },
+  },
+  update: {
+    '@layer': {
+      [app]: {
+        backgroundColor: palette['teal-7'],
+        borderColor: 'unset',
+        color: 'white',
+        border: '1px solid',
+      },
+    },
+  },
+  update_outline: {
+    '@layer': {
+      [app]: {
+        backgroundColor: 'transparent',
+        borderColor: palette['teal-7'],
+        color: palette['teal-7'],
         border: '1px solid',
       },
     },
@@ -128,7 +149,7 @@ const palette = {
   },
 }
 
-export const button = styleVariants(palette, (paletteColor) => [
+export const button = styleVariants(buttonPalette, (paletteColor) => [
   base,
   paletteColor,
 ])

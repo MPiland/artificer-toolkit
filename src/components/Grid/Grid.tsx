@@ -9,6 +9,7 @@ import {
 import { grid, grid_size } from './Grid.css'
 import clsx from 'clsx'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
+import { useMediaQuery } from 'usehooks-ts'
 
 type colsAuto = {
   start: number
@@ -26,31 +27,27 @@ interface GridProps {
   children: ReactNode
   className?: string | number | symbol | any
   onClick?: () => void
-  mediaSize?: string
 }
 
-const Grid: FC<GridProps> = ({
-  children,
-  className,
-  cols,
-  onClick,
-  mediaSize,
-}) => {
+const Grid: FC<GridProps> = ({ children, className, cols, onClick }) => {
   const [gridSize, setGridSize] = useState<string>('')
+
+  const lg = useMediaQuery('(min-width: 1024px)')
+  const md = useMediaQuery('(min-width: 568px) and (max-width: 1023px)')
 
   useLayoutEffect(() => {
     if (cols) {
       if ('start' in cols) {
         let childCount = 0
-        const start = `repeat(${cols.start}, minmax(0, 1rem))`
-        const end = `repeat(${cols.end}, minmax(0, 1rem)`
+        const start = `repeat(${cols.start}, minmax(0, calc(1.25rem * ${cols.start})))`
+        const end = `repeat(1, minmax(0, calc(${cols.end} * 2.25rem))`
         Children.forEach(children, (child) => {
           if (isValidElement(child)) {
             childCount += 1
           }
         })
         childCount -= cols.start
-        childCount -= cols.end
+        childCount -= cols.end ? 1 : 0
         setGridSize(
           clsx(
             {
@@ -62,13 +59,13 @@ const Grid: FC<GridProps> = ({
         )
       } else {
         // Handle colsSet
-        if (mediaSize === 'lg') {
+        if (lg) {
           if (cols && cols.lg) {
             setGridSize(`repeat(${cols.lg}, minmax(0, 1fr))`)
           } else {
-            setGridSize(`repeat(6, minmax(0, 1fr))`)
+            setGridSize(`repeat(5, minmax(0, 1fr))`)
           }
-        } else if (mediaSize === 'md') {
+        } else if (md) {
           if (cols && cols.md) {
             setGridSize(`repeat(${cols.md}, minmax(0, 1fr))`)
           } else {
@@ -83,15 +80,15 @@ const Grid: FC<GridProps> = ({
         }
       }
     } else {
-      if (mediaSize === 'lg') {
-        setGridSize(`repeat(6, minmax(0, 1fr))`)
-      } else if (mediaSize === 'md') {
+      if (lg) {
+        setGridSize(`repeat(5, minmax(0, 1fr))`)
+      } else if (md) {
         setGridSize(`repeat(4, minmax(0, 1fr))`)
       } else {
         setGridSize(`repeat(2, minmax(0, 1fr))`)
       }
     }
-  }, [cols, mediaSize, children])
+  }, [cols, lg, md, children])
 
   return (
     <div

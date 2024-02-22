@@ -2,7 +2,7 @@ import { TbCaretUpFilled } from 'react-icons/tb'
 import { useEffect, useState, ReactNode, FC } from 'react'
 import {
   collapse_button,
-  collapse_container,
+  collapse_body,
   collapse_wrapper,
   collapse_button_caret,
   collapse_content,
@@ -19,13 +19,13 @@ interface CollapseProps {
 }
 
 const Collapse: FC<CollapseProps> = ({
-  startOpened,
+  startOpened = false,
   title,
   children,
   buttonDisabled,
   className,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(true)
 
   useEffect(() => {
     if (startOpened) {
@@ -44,7 +44,7 @@ const Collapse: FC<CollapseProps> = ({
   }
 
   return (
-    <div className={clsx(collapse_container, { [className]: className })}>
+    <div className={clsx(collapse_wrapper, { [className]: className })}>
       {!buttonDisabled && (
         <Button
           variant='unstyled'
@@ -60,17 +60,11 @@ const Collapse: FC<CollapseProps> = ({
         </Button>
       )}
       <div
-        className={clsx(collapse_wrapper, {
+        className={clsx(collapse_body, {
           ['collapsed']: isCollapsed,
         })}
       >
-        <div
-          className={clsx(collapse_content, {
-            ['collapsed']: isCollapsed,
-          })}
-        >
-          {children}
-        </div>
+        <div className={clsx(collapse_content, { ['collapsed']: isCollapsed })}>{children}</div>
       </div>
     </div>
   )

@@ -1,8 +1,8 @@
-import { FC, useState, useRef, useEffect, useCallback } from 'react'
+import { FC, useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import Spinner from '../../components/Spinner/Spinner'
-import useMediaQuery from '../../hooks/useMediaQuery'
+import { useMediaQuery } from 'usehooks-ts'
 import useFilteredList from '../../hooks/useFilteredList'
 import Table from '../../components/Table/Table'
 import Dropdown from '../../components/Dropdown/Dropdown'
@@ -20,13 +20,13 @@ import {
 import { clearConfirm } from '../../app/deleteSlice'
 import { RootState } from '../../app/store'
 import Collapse from '../../components/Collapse/Collapse'
-import { Option } from '../../utils/types'
-import { Action } from '../../utils/types'
+import { ReducerActionType, DropdownOption } from '../../utils/types'
 import Group from '../../components/Group/Group'
 import Button from '../../components/Button/Button'
 import Grid from '../../components/Grid/Grid'
 import { sprinkles } from '../../css/sprinkles.css'
 import Container from '../../components/Container/Container'
+import useIsLoading from '../../hooks/useIsLoading'
 
 interface SpellListProps {
   scrollPosition: number
@@ -36,36 +36,34 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const isLoading = useIsLoading()
 
   const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
   const spellToDelete = useSelector((state: RootState) => state.delete.data)
 
-  const { spells, isLoading, isFetching } = useGetSpellsQuery(undefined, {
-    selectFromResult: ({ data, isLoading, isFetching }) => ({
+  const { spells } = useGetSpellsQuery(undefined, {
+    selectFromResult: ({ data }) => ({
       spells: data && selectAllSpells(data),
-      isLoading,
-      isFetching,
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectSpellsFilter)
 
   const [deleteSpell] = useDeleteSpellMutation()
 
-  const { listFilter, filteredList, setListFilter, setFilterItems } =
+  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
     useFilteredList(spells, filtersState)
   const [tableColumns, setTableColumns] = useState<{
     headers: any[]
     inputs: any[]
   }>({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState<string>()
-  const [filterItemsPopulated, setFilterItemsPopulated] =
-    useState<boolean>(false)
 
   const md = useMediaQuery('(min-width: 568px) and (max-width: 1023px)')
   const sm = useMediaQuery('(max-width: 567px)')
 
-  const tableRef = useRef<HTMLDivElement | null>(null)
+  const table = document.getElementById('list-table')
 
   const showCard = (spell: any) => {
     navigate(`/spells/${spell.name}`, {
@@ -75,7 +73,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
         context: 'itemCard',
         data: spell,
         size: 'lg',
-        scrollPosition: tableRef.current?.scrollTop,
+        scrollPosition: table?.scrollTop,
       },
     })
   }
@@ -95,11 +93,12 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
   const onDeleteSubmit = useCallback(async () => {
     try {
       await deleteSpell({ id: spellToDelete.id })
+      setListFilter({ type: 'reset', target: { value: {} } })
     } catch (err: any) {
       setErrorMessage(err.data.message)
     }
     dispatch(clearConfirm())
-  }, [spellToDelete, dispatch, deleteSpell])
+  }, [spellToDelete, dispatch, deleteSpell, setListFilter])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -113,15 +112,19 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
 
   useEffect(() => {
     filtersState !== null &&
-      setListFilter({ type: 'reset', payload: { target: filtersState } })
+      setListFilter({ type: 'reset', target: filtersState })
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    if (spells && !filterItemsPopulated) {
-      setFilterItems(spells)
-      setFilterItemsPopulated(true)
+    const spellsJSON = JSON.stringify(spells)
+    const filteredItemsJSON = JSON.stringify(filteredItems)
+    if (
+      spellsJSON !== filteredItemsJSON &&
+      Object.keys(filtersState).length === 0
+    ) {
+      setFilteredItems(spells)
     }
-  }, [spells, setFilterItems, filterItemsPopulated])
+  }, [spells, setFilteredItems, filteredItems, filtersState])
 
   useEffect(() => {
     setTableColumns({
@@ -228,32 +231,29 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
     })
   }, [setTableColumns, md, sm])
 
-  const onFilterChange = (e: Action) => {
+  const onFilterChange = (e: ReducerActionType) => {
     setListFilter(e)
   }
 
   const onFilterReset = () => {
     dispatch(clearSpellsFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
+    setListFilter({ type: 'reset', target: {} })
   }
 
   useEffect(() => {
-    if (scrollPosition && !isFetching) {
-      tableRef.current?.scroll(0, scrollPosition)
+    if (scrollPosition && !isLoading) {
+      table?.scroll(0, scrollPosition)
     }
   })
 
   const filter = (
-    <Collapse
-      title={'Filters'}
-      startOpened={!sm}
-    >
-      <Grid mediaSize={md ? 'md' : sm ? 'sm' : 'lg'}>
+    <Collapse title={'Filters'} startOpened={!sm}>
+      <Grid>
         <Dropdown
           multiSelect={true}
           name='level'
           label='Level'
-          options={spells?.map<Option>((item: any) => ({
+          options={spells?.map<DropdownOption>((item: any) => ({
             value: item?.level,
             name: null,
             _id: null,
@@ -272,7 +272,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='classes'
           label='Classes'
-          options={spells?.flatMap<Option>((item: any) => {
+          options={spells?.flatMap<DropdownOption>((item: any) => {
             if (item.classes && Array.isArray(item.classes)) {
               return item.classes
             } else {
@@ -286,7 +286,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='school'
           label='Spell School'
-          options={spells?.map<Option>((item: any) => item.school)}
+          options={spells?.map<DropdownOption>((item: any) => item.school)}
           value={listFilter?.school}
           onChange={(e) => onFilterChange(e)}
         />
@@ -294,7 +294,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='damage.damageType'
           label='Damage Type'
-          options={spells?.flatMap<Option>((item: any) => {
+          options={spells?.flatMap<DropdownOption>((item: any) => {
             if (item.damage && Array.isArray(item.damage.damageType)) {
               return item.damage.damageType
             } else {
@@ -308,7 +308,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='condition'
           label='Condition Type'
-          options={spells?.flatMap<Option>((item: any) => {
+          options={spells?.flatMap<DropdownOption>((item: any) => {
             if (item.condition && Array.isArray(item.condition)) {
               return item.condition
             } else {
@@ -320,11 +320,14 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
         />
         <Dropdown
           multiSelect={true}
-          name='saveAbility'
+          name='saveAbility.ability'
           label='DC Ability'
-          options={spells?.flatMap<Option>((item: any) => {
-            if (item.saveAbility && Array.isArray(item.saveAbility)) {
-              return item.saveAbility
+          options={spells?.flatMap<DropdownOption>((item: any) => {
+            if (
+              item.saveAbility?.ability &&
+              Array.isArray(item.saveAbility?.ability)
+            ) {
+              return item.saveAbility?.ability
             } else {
               return []
             }
@@ -336,7 +339,9 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='action.actionType'
           label='Casting Time'
-          options={spells?.map<Option>((item: any) => item.action?.actionType)}
+          options={spells?.map<DropdownOption>(
+            (item: any) => item.action?.actionType
+          )}
           value={listFilter?.action?.actionType}
           onChange={(e) => onFilterChange(e)}
         />
@@ -344,7 +349,9 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='action.actionType'
           label='Casting Time'
-          options={spells?.map<Option>((item: any) => item.action?.actionType)}
+          options={spells?.map<DropdownOption>(
+            (item: any) => item.action?.actionType
+          )}
           value={listFilter?.action?.actionType}
           onChange={(e) => onFilterChange(e)}
         />
@@ -352,7 +359,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='duration.durationType'
           label='Duration'
-          options={spells?.map<Option>(
+          options={spells?.map<DropdownOption>(
             (item: any) => item.duration?.durationType
           )}
           value={listFilter?.duration?.durationType}
@@ -362,7 +369,9 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='range.rangeType'
           label='Range'
-          options={spells?.map<Option>((item: any) => item.range?.rangeType)}
+          options={spells?.map<DropdownOption>(
+            (item: any) => item.range?.rangeType
+          )}
           value={listFilter?.range?.rangeType}
           onChange={(e) => onFilterChange(e)}
         />
@@ -370,7 +379,9 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           multiSelect={true}
           name='shape.shapeType'
           label='Shape'
-          options={spells?.map<Option>((item: any) => item.shape?.shapeType)}
+          options={spells?.map<DropdownOption>(
+            (item: any) => item.shape?.shapeType
+          )}
           value={listFilter?.shape?.shapeType}
           onChange={(e) => onFilterChange(e)}
         />
@@ -378,10 +389,10 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
     </Collapse>
   )
 
-  return isLoading || isFetching || !filterItemsPopulated ? (
+  return isLoading || !filteredItems ? (
     <Spinner />
   ) : (
-    <Container>
+    <Container className={sprinkles({ pt: 'size-3' })}>
       <Group className={sprinkles({ mb: 'size-3' })}>
         <h1>Spells</h1>
         <Group>
@@ -400,7 +411,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
       {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
       {filter}
       <Table
-        ref={tableRef}
+        id={'list-table'}
         addRow={false}
         readOnly={true}
         sortable={true}
@@ -411,7 +422,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           inputs: tableColumns.inputs,
           headers: tableColumns.headers,
         }}
-        value={filteredList as any[]}
+        value={filteredItems as any[]}
         clickable={true}
         onClick={(spell) => showCard(spell)}
         deleteRow={(spell) => onDelete(spell)}

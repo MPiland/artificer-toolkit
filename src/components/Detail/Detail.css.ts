@@ -2,6 +2,7 @@ import { globalStyle, style } from '@vanilla-extract/css'
 import { fontSize, fontWeight } from '../../css/typography.css'
 import { theme } from '../../css/global.css'
 import { app } from '../../css/layers.css'
+import { size } from '../../css/size.css'
 
 export const detail_title = style({
   '@layer': {
@@ -119,11 +120,31 @@ globalStyle(`${detail_aside_list} > li > a`, {
 })
 
 globalStyle(`${detail_body} td`, {
-  verticalAlign: 'top',
-  padding: '0 .125rem',
+  '@layer': {
+    [app]: {
+      verticalAlign: 'top',
+      padding: '0 .125rem',
+    },
+  },
 })
 
 globalStyle(`${detail_body} th`, {
-  textAlign: 'start',
-  padding: '0 .125rem',
+  '@layer': {
+    [app]: {
+      textAlign: 'start',
+      padding: '0 .125rem',
+    },
+  },
+})
+
+globalStyle(`${detail_body} blockquote`, {
+  '@layer': {
+    [app]: {
+      borderRadius: theme['default-border-radius'],
+      border: theme.vars['app-border-line-style'],
+      marginLeft: size['size-3'],
+      marginTop: size['size-2'],
+      padding: size['size-1'],
+    },
+  },
 })

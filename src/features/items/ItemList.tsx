@@ -20,33 +20,40 @@ import Grid from '../../components/Grid/Grid'
 import Button from '../../components/Button/Button'
 import Collapse from '../../components/Collapse/Collapse'
 import { RootState } from '../../app/store'
-import { RowHeader, RowInput, Action, Option } from '../../utils/types'
+import {
+  RowHeader,
+  RowInput,
+  ReducerActionType,
+  DropdownOption,
+} from '../../utils/types'
 import Group from '../../components/Group/Group'
 import Dropdown from '../../components/Dropdown/Dropdown'
-import useMediaQuery from '../../hooks/useMediaQuery'
+import { useMediaQuery } from 'usehooks-ts'
 import { sprinkles } from '../../css/sprinkles.css'
 import Container from '../../components/Container/Container'
+import useIsLoading from '../../hooks/useIsLoading'
 
 const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const isLoading = useIsLoading()
 
-  const { items, isLoading, isFetching } = useGetItemsQuery('itemsList', {
-    selectFromResult: ({ data, isLoading, isFetching }) => ({
+  const { items } = useGetItemsQuery(undefined, {
+    selectFromResult: ({ data }) => ({
       items: data && selectAllItems(data),
-      isLoading,
-      isFetching,
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectItemsFilter)
+
   const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
   const itemToDelete = useSelector((state: RootState) => state.delete.data)
 
   const [deleteItem] = useDeleteItemMutation()
 
-  const { listFilter, filteredList, setListFilter, setFilterItems } =
+  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
     useFilteredList(items as any[], filtersState)
 
   const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
@@ -57,7 +64,6 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
     inputs: RowInput[]
   }>({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState<string>()
-  const [filterItemsPopulated, setFilterItemsPopulated] = useState(false)
 
   const tableWindow = document.getElementById('list_table')
 
@@ -89,11 +95,12 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
   const onDeleteSubmit = useCallback(async () => {
     try {
       await deleteItem({ id: itemToDelete._id })
+      setListFilter({ type: 'reset', target: { value: {} } })
     } catch (err: any) {
       setErrorMessage(err.data.message)
     }
     dispatch(clearConfirm())
-  }, [itemToDelete, dispatch, deleteItem])
+  }, [itemToDelete, dispatch, deleteItem, setListFilter])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -107,18 +114,22 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
 
   useEffect(() => {
     filtersState !== null &&
-      setListFilter({ type: 'reset', payload: { target: filtersState } })
+      setListFilter({ type: 'reset', target: filtersState })
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    if (items && !filterItemsPopulated) {
-      setFilterItems(items)
-      setFilterItemsPopulated(true)
+    const itemsJSON = JSON.stringify(items)
+    const filteredItemsJSON = JSON.stringify(filteredItems)
+    if (
+      itemsJSON !== filteredItemsJSON &&
+      Object.keys(filtersState).length === 0
+    ) {
+      setFilteredItems(items)
     }
-  }, [items, setFilterItems, filterItemsPopulated])
+  }, [items, setFilteredItems, filteredItems, filtersState])
 
   useEffect(() => {
-    if (scrollPosition && !isFetching) {
+    if (scrollPosition && !isLoading) {
       tableWindow?.scroll(0, scrollPosition)
     }
   })
@@ -221,21 +232,18 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
     })
   }, [setTableColumns, sm, md])
 
-  const onFilterChange = (e: Action) => {
+  const onFilterChange = (e: ReducerActionType) => {
     setListFilter(e)
   }
 
   const onFilterReset = () => {
     dispatch(clearItemsFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
+    setListFilter({ type: 'reset', target: {} })
   }
 
   const filter = (
     <Collapse title='Filters' startOpened={!sm}>
-      <Grid
-        mediaSize={md ? 'md' : sm ? 'sm' : 'lg'}
-        className={sprinkles({ py: 'size-2' })}
-      >
+      <Grid className={sprinkles({ py: 'size-2' })}>
         <Input
           name='value'
           label='Item Name'
@@ -248,7 +256,7 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
           name='category'
           label='Item Category'
           placeholder='Select...'
-          options={items?.map((item: any) => item.category) as Option[]}
+          options={items?.map((item: any) => item.category) as DropdownOption[]}
           value={listFilter?.category}
           onChange={(e) => onFilterChange(e)}
         />
@@ -263,7 +271,7 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
               } else {
                 return []
               }
-            }) as Option[]
+            }) as DropdownOption[]
           }
           value={listFilter?.property}
           onChange={(e) => onFilterChange(e)}
@@ -279,7 +287,7 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
               } else {
                 return []
               }
-            }) as Option[]
+            }) as DropdownOption[]
           }
           value={listFilter?.damage?.damageType}
           onChange={(e) => onFilterChange(e)}
@@ -289,7 +297,9 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
           name='armorClass'
           label='AC'
           options={
-            items?.map((item: any) => ({ value: item.armorClass })) as Option[]
+            items?.map((item: any) => ({
+              value: item.armorClass,
+            })) as DropdownOption[]
           }
           value={listFilter.armorClass}
           onChange={(e) => onFilterChange(e)}
@@ -298,10 +308,10 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
     </Collapse>
   )
 
-  return isLoading || isFetching || !filterItemsPopulated ? (
+  return isLoading || !filteredItems ? (
     <Spinner />
   ) : (
-    <Container>
+    <Container className={sprinkles({ pt: 'size-3' })}>
       <Group className={sprinkles({ mb: 'size-3' })}>
         <h1>Items</h1>
         <Group>
@@ -326,7 +336,7 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
         defaultSort={tableColumns.headers.find(
           (headerItem) => headerItem.defaultSort === true
         )}
-        value={filteredList as any[]}
+        value={filteredItems as any[]}
         rows={{
           inputs: tableColumns.inputs,
           headers: tableColumns.headers,

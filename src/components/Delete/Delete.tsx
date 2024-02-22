@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import Input from './Input/Input'
+import Input from '../Input/Input'
 import { useDispatch } from 'react-redux'
-import { confirmDelete } from '../app/deleteSlice'
+import { confirmDelete } from '../../app/deleteSlice'
 import { useLocation } from 'react-router-dom'
-import Modal from './Modal/Modal'
-import Button from './Button/Button'
-import { sprinkles } from '../css/sprinkles.css'
+import Modal from '../Modal/Modal'
+import Button from '../Button/Button'
+import { sprinkles } from '../../css/sprinkles.css'
 import { useNavigate } from 'react-router-dom'
 
 const Delete = () => {
@@ -25,9 +25,9 @@ const Delete = () => {
     }
   }
 
-  const handleChange = ({ payload }: any) => {
+  const handleChange = ({ target }: any) => {
     setErrorState(false)
-    setDeleteState(payload.target.value)
+    setDeleteState(target.value)
   }
 
   const content = (

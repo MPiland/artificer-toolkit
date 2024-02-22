@@ -25,13 +25,8 @@ function clean(object) {
 const data = db.items.findOne({ name: 'paddedArmor' })
 
 const clearData = async (data) => {
-  console.log('running')
   data = clean(data)
-  try {
     await db.tests.insert(data)
-  } catch (err) {
-    console.log(err.message)
-  }
 }
 
 if (data) {

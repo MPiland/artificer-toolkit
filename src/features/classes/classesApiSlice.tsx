@@ -6,7 +6,6 @@ export const classesAdapter = createEntityAdapter()
 export const initialState = classesAdapter.getInitialState()
 
 export const classesApiSlice = apiSlice
-  .enhanceEndpoints({ addTagTypes: ['Class'] })
   .injectEndpoints({
     endpoints: (builder) => ({
       getClasses: builder.query({
@@ -17,13 +16,6 @@ export const classesApiSlice = apiSlice
             return response.status === 200 && !result.isError
           },
         }),
-        async onQueryStarted(_, { queryFulfilled }) {
-          try {
-            await queryFulfilled
-          } catch (err) {
-            console.log(err)
-          }
-        },
         transformResponse: (responseData: any[]) => {
           const loadedclasses = responseData.map((userClass) => {
             userClass.id = userClass._id
@@ -54,7 +46,10 @@ export const classesApiSlice = apiSlice
           method: 'PATCH',
           body: data,
         }),
-        invalidatesTags: (_, __, arg) => [{ type: 'Class', id: arg._id }],
+        invalidatesTags: (_, __, arg) => [
+          { type: 'Class', id: arg._id },
+          { type: 'Class', id: 'LIST' },
+        ],
       }),
       deleteClass: builder.mutation({
         query: ({ id }) => ({
@@ -62,7 +57,10 @@ export const classesApiSlice = apiSlice
           method: 'DELETE',
           body: { id },
         }),
-        invalidatesTags: (_, __, arg) => [{ type: 'Class', id: arg.id }],
+        invalidatesTags: (_, __, arg) => [
+          { type: 'Class', id: arg.id },
+          { type: 'Class', id: 'LIST' },
+        ],
       }),
     }),
   })

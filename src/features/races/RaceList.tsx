@@ -14,17 +14,18 @@ import {
 import { clearConfirm } from '../../app/deleteSlice'
 import { RootState } from '../../app/store'
 import Spinner from '../../components/Spinner/Spinner'
-import useMediaQuery from '../../hooks/useMediaQuery'
+import { useMediaQuery } from 'usehooks-ts'
 import useFilteredList from '../../hooks/useFilteredList'
 import Table from '../../components/Table/Table'
 import Input from '../../components/Input/Input'
-import { Action } from '../../utils/types'
+import { ReducerActionType } from '../../utils/types'
 import Collapse from '../../components/Collapse/Collapse'
 import Grid from '../../components/Grid/Grid'
 import Group from '../../components/Group/Group'
 import Button from '../../components/Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
 import Container from '../../components/Container/Container'
+import useIsLoading from '../../hooks/useIsLoading'
 
 interface RaceListProps {
   scrollPosition: number
@@ -38,31 +39,29 @@ const RaceList: FC<RaceListProps> = ({
   const location = useLocation()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const isLoading = useIsLoading()
 
   const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
   const raceToDelete = useSelector((state: RootState) => state.delete.data)
 
-  const { races, isLoading, isFetching } = useGetRacesQuery(undefined, {
-    selectFromResult: ({ data, isLoading, isFetching }) => ({
+  const { races } = useGetRacesQuery(undefined, {
+    selectFromResult: ({ data }) => ({
       races: data && selectAllRaces(data),
-      isLoading,
-      isFetching,
     }),
+    refetchOnMountOrArgChange: true,
   })
 
   const filtersState = useSelector(selectRacesFilter)
 
   const [deleteRace] = useDeleteRaceMutation()
 
-  const { listFilter, filteredList, setListFilter, setFilterItems } =
+  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
     useFilteredList(races, filtersState)
   const [tableColumns, setTableColumns] = useState<{
     headers: any[]
     inputs: any[]
   }>({ headers: [], inputs: [] })
   const [errorMessage, setErrorMessage] = useState<string>()
-  const [filterItemsPopulated, setFilterItemsPopulated] =
-    useState<boolean>(false)
 
   const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
   const sm = useMediaQuery('(max-width: 567px)')
@@ -97,11 +96,12 @@ const RaceList: FC<RaceListProps> = ({
   const onDeleteSubmit = useCallback(async () => {
     try {
       await deleteRace({ id: raceToDelete._id })
+      setListFilter({ type: 'reset', target: { value: {} } })
     } catch (err: any) {
       setErrorMessage(err.data.message)
     }
     dispatch(clearConfirm())
-  }, [raceToDelete, dispatch, deleteRace])
+  }, [raceToDelete, dispatch, deleteRace, setListFilter])
 
   useEffect(() => {
     if (deleteConfirmed) {
@@ -115,15 +115,19 @@ const RaceList: FC<RaceListProps> = ({
 
   useEffect(() => {
     filtersState !== null &&
-      setListFilter({ type: 'reset', payload: { target: filtersState } })
+      setListFilter({ type: 'reset', target: filtersState })
   }, [filtersState, setListFilter])
 
   useEffect(() => {
-    if (races && !filterItemsPopulated) {
-      setFilterItems(races)
-      setFilterItemsPopulated(true) // Ensure it's called only once
+    const racesJSON = JSON.stringify(races)
+    const filteredItemsJSON = JSON.stringify(filteredItems)
+    if (
+      racesJSON !== filteredItemsJSON &&
+      Object.keys(filtersState).length === 0
+    ) {
+      setFilteredItems(races)
     }
-  }, [races, setFilterItems, filterItemsPopulated])
+  }, [races, setFilteredItems, filteredItems, filtersState])
 
   useEffect(() => {
     setTableColumns({
@@ -144,27 +148,24 @@ const RaceList: FC<RaceListProps> = ({
     })
   }, [setTableColumns, md, sm])
 
-  const onFilterChange = (e: Action) => {
+  const onFilterChange = (e: ReducerActionType) => {
     setListFilter(e)
   }
 
   const onFilterReset = () => {
     dispatch(clearRacesFilter())
-    setListFilter({ type: 'reset', payload: { target: {} } })
+    setListFilter({ type: 'reset', target: {} })
   }
 
   useEffect(() => {
-    if (scrollPosition && !isFetching) {
+    if (scrollPosition && !isLoading) {
       tableWindow?.scroll(0, scrollPosition)
     }
   })
 
   const filter = (
     <Collapse title={'Filters'} startOpened={!sm}>
-      <Grid
-        mediaSize={md ? 'md' : sm ? 'sm' : 'lg'}
-        className={sprinkles({ py: 'size-2' })}
-      >
+      <Grid className={sprinkles({ py: 'size-2' })}>
         <Input
           name='value'
           label='Race Name'
@@ -176,10 +177,10 @@ const RaceList: FC<RaceListProps> = ({
     </Collapse>
   )
 
-  return isLoading || isFetching || !filterItemsPopulated ? (
+  return isLoading || !filteredItems ? (
     <Spinner />
   ) : (
-    <Container>
+    <Container className={sprinkles({ pt: 'size-3' })}>
       <Group className={sprinkles({ mb: 'size-3' })}>
         <h1>Races</h1>
         <Group>
@@ -205,7 +206,7 @@ const RaceList: FC<RaceListProps> = ({
         defaultSort={tableColumns.headers.find(
           (headerItem) => headerItem.defaultSort === true
         )}
-        value={filteredList as any[]}
+        value={filteredItems as any[]}
         rows={{
           inputs: tableColumns.inputs,
           headers: tableColumns.headers,

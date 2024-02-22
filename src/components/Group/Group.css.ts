@@ -7,7 +7,6 @@ export const base = style({
       display: 'flex',
       alignItems: 'center',
       gap: '.5rem',
-      flexWrap: 'wrap',
       height: 'fit-content',
     },
   },
@@ -106,6 +105,29 @@ export const alignItems = styleVariants({
       '@layer': {
         [app]: {
           alignItems: 'center',
+        },
+      },
+    },
+  ],
+})
+
+export const flexWrap = styleVariants({
+  wrap: [
+    base,
+    {
+      '@layer': {
+        [app]: {
+          flexWrap: 'wrap',
+        },
+      },
+    },
+  ],
+  nowrap: [
+    base,
+    {
+      '@layer': {
+        [app]: {
+          flexWrap: 'nowrap',
         },
       },
     },
