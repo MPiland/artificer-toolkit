@@ -40,7 +40,7 @@ const SignIn: FC<SignInProps> = ({ context }) => {
   const onLoginClicked = async () => {
     const isValid = handleValidation()
     if (isValid) {
-      setState({ payload: { target: { name: 'submitting', value: true } } })
+      setState({ target: { name: 'submitting', value: true } })
       try {
         await login({ username: state.username, password: state.password })
         navigate('/')
@@ -59,7 +59,7 @@ const SignIn: FC<SignInProps> = ({ context }) => {
   const onRegisterClicked = async () => {
     const isValid = handleValidation()
     if (isValid) {
-      setState({ payload: { target: { name: 'submitting', value: true } } })
+      setState({ target: { name: 'submitting', value: true } })
       try {
         await register({
           username: state.username,

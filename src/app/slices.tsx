@@ -8,6 +8,7 @@ import { racesSlice } from '../features/races/racesSlice'
 import { itemsSlice } from '../features/items/itemsSlice'
 import { classesSlice } from '../features/classes/classesSlice'
 import { featsSlice } from '../features/feats/featsSlice'
+import { charactersSlice } from '../features/characters/charactersSlice'
 
 export const rootReducer = combineSlices(
   apiSlice,
@@ -19,4 +20,5 @@ export const rootReducer = combineSlices(
   itemsSlice,
   classesSlice,
   featsSlice,
+  charactersSlice
 )

@@ -1,7 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit'
-import {  initialState } from './charactersApiSlice'
+import { initialState } from './charactersApiSlice'
+import { RootState } from '../../app/store'
 
-const charactersSlice = createSlice({
+export const charactersSlice = createSlice({
   name: 'characters',
   initialState: { data: initialState, filters: {} },
   reducers: {
@@ -9,13 +10,13 @@ const charactersSlice = createSlice({
       state.filters = payload
     },
     clearCharactersFilter: (state) => {
-      state.filters = null
+      state.filters = {}
     },
   },
 })
 
-export const selectCharactersFilter = (state) => state.characters.filters
+export const selectCharactersFilter = (state: RootState) =>
+  state.characters.filters
 
-export const { setCharactersFilter, clearCharactersFilter } = charactersSlice.actions
-
-export default charactersSlice.reducer
+export const { setCharactersFilter, clearCharactersFilter } =
+  charactersSlice.actions
