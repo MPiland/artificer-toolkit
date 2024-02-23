@@ -8,6 +8,7 @@ import {
   memo,
   useLayoutEffect,
   useEffect,
+  ComponentPropsWithoutRef,
 } from 'react'
 import clsx from 'clsx'
 import {
@@ -17,18 +18,26 @@ import {
   scroll_thumb,
 } from './ScrollArea.css'
 
-interface ScrollAreaProps {
+interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
   children: ReactNode
   className?: string | number | symbol | any
   scrollDirection: 'horizontal' | 'vertical' | 'all'
   visibility?: 'hidden' | 'visible'
+  [key: string]: any
 }
+
 import { useEventListener, useMediaQuery } from 'usehooks-ts'
 
 const SCROLL_BOX_MIN_HEIGHT = 20
 
 const ScrollArea: FC<ScrollAreaProps> = memo(
-  ({ children, className, scrollDirection = 'all', visibility = 'hidden' }) => {
+  ({
+    children,
+    className,
+    scrollDirection,
+    visibility = 'hidden',
+    ...props
+  }) => {
     const md = useMediaQuery('(max-width: 1023px)')
 
     const [scrollThumbHeight, setScrollThumbHeight] = useState<number>(
@@ -192,13 +201,14 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
     useEventListener('mouseleave', handleMouseLeave, scrollWrapperRef)
 
     return (
-      <div className={scroll_area_wrapper} ref={scrollWrapperRef}>
+      <div
+        className={clsx({ [className]: className }, scroll_area_wrapper)}
+        ref={scrollWrapperRef}
+      >
         <div
           ref={scrollAreaRef}
-          className={clsx(
-            { [className]: className },
-            scroll_area[scrollDirection]
-          )}
+          className={clsx(scroll_area[scrollDirection])}
+          {...props}
         >
           {children}
         </div>

@@ -133,7 +133,7 @@ const Input: FC<InputProps> = ({
           className={input}
           required={required}
           autoFocus={autoFocus}
-          autoComplete={autoComplete ?? 'off'}
+          autoComplete={autoComplete}
           readOnly={readOnly}
           value={inputValue ?? ''}
           onChange={(e: any) => handleChange(e)}

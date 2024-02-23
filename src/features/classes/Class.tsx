@@ -53,16 +53,16 @@ const Class = () => {
       </div>
       {userClass.category?.name === 'base' ? (
         <>
-          {userClass.details &&
-            userClass.details?.length > 0 &&
-            userClass.details.map((detailItem: any, detailIndex: number) => (
+          {userClass.detail &&
+            userClass.detail?.length > 0 &&
+            userClass.detail.map((detailItem: any, detailIndex: number) => (
               <section id={`${detailItem.name}`} key={detailIndex}>
                 <h3>
                   <strong>{detailItem.value}</strong>
                 </h3>
                 <hr />
                 {detailItem.desc && parse(detailItem.desc)}
-                {detailIndex === userClass.details.length - 1 &&
+                {detailIndex === userClass.detail.length - 1 &&
                   userClass.feature?.length > 0 &&
                   userClass.feature.map(
                     (featureItem: any, featureIndex: number) => (
@@ -144,8 +144,8 @@ const Class = () => {
   const sidebarList =
     userClass?.category?.name === 'base' ? (
       <>
-        {userClass?.details?.length > 0 &&
-          userClass.details.map((detailItem: any, detailIndex: number) => (
+        {userClass?.detail?.length > 0 &&
+          userClass.detail.map((detailItem: any, detailIndex: number) => (
             <li
               key={detailIndex}
               onClick={(e: any) => {

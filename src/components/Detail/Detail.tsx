@@ -16,6 +16,7 @@ import { Hamburger } from '../../components/AppShell/AppShell'
 import Modal from '../Modal/Modal'
 import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
+import ScrollArea from '../ScrollArea/ScrollArea'
 
 type colType = {
   header: string
@@ -52,7 +53,6 @@ const Detail: FC<DetailProps> = ({
   const sidebarRef = useRef<HTMLDivElement>(null)
   const sidebarListRef = useRef<HTMLUListElement>(null)
   const hamburgerRef = useRef<HTMLDivElement>(null)
-  const scrollBodyRef = useRef<HTMLDivElement>(null)
 
   const onEditClicked = () => {
     navigate(
@@ -64,61 +64,62 @@ const Detail: FC<DetailProps> = ({
   }
 
   const handleScroll = () => {
-    const scrollBody = scrollBodyRef.current
+    const scrollBody = document.getElementById('detailBody')
     const sections = document.querySelectorAll('section')
     const listItems = sidebarListRef.current?.children
     const filteredListItems = listItems && Array.from(listItems).slice(1)
 
-    sections.forEach((section, sectionIndex) => {
-      const sectionRect = section.getBoundingClientRect()
-      const scrollTop = scrollBody?.getBoundingClientRect()
+    if (scrollBody)
+      sections.forEach((section, sectionIndex) => {
+        const sectionRect = section.getBoundingClientRect()
+        const scrollTop = scrollBody?.getBoundingClientRect()
 
-      let closestSection: HTMLElement | null = null
+        let closestSection: HTMLElement | null = null
 
-      // Adjust the range to determine if the section is active
-      const isActive =
-        scrollTop &&
-        scrollTop.top >= sectionRect.top - 50 &&
-        scrollTop.top <= sectionRect.bottom - 50
+        // Adjust the range to determine if the section is active
+        const isActive =
+          scrollTop &&
+          scrollTop.top >= sectionRect.top - 50 &&
+          scrollTop.top <= sectionRect.bottom - 50
 
-      if (isActive) {
-        // Update the closest section if the current one is closer to the top
-        if (
-          closestSection === null ||
-          (closestSection &&
-            Math.abs(sectionRect.top - scrollTop.top) <
-              Math.abs(
-                (closestSection as HTMLElement).getBoundingClientRect().top -
-                  scrollTop.top
-              ))
-        ) {
-          closestSection = section
+        if (isActive) {
+          // Update the closest section if the current one is closer to the top
+          if (
+            closestSection === null ||
+            (closestSection &&
+              Math.abs(sectionRect.top - scrollTop.top) <
+                Math.abs(
+                  (closestSection as HTMLElement).getBoundingClientRect().top -
+                    scrollTop.top
+                ))
+          ) {
+            closestSection = section
+          }
         }
-      }
 
-      if (isActive) {
-        if (!section.classList.contains('active')) {
-          section.classList.add('active')
+        if (isActive) {
+          if (!section.classList.contains('active')) {
+            section.classList.add('active')
+          }
+          if (
+            filteredListItems &&
+            !filteredListItems[sectionIndex].classList.contains('active')
+          ) {
+            filteredListItems[sectionIndex].classList.add('active')
+          }
         }
-        if (
-          filteredListItems &&
-          !filteredListItems[sectionIndex].classList.contains('active')
-        ) {
-          filteredListItems[sectionIndex].classList.add('active')
+        if (!isActive) {
+          if (section.classList.contains('active')) {
+            section.classList.remove('active')
+          }
+          if (
+            filteredListItems &&
+            filteredListItems[sectionIndex].classList.contains('active')
+          ) {
+            filteredListItems[sectionIndex].classList.remove('active')
+          }
         }
-      }
-      if (!isActive) {
-        if (section.classList.contains('active')) {
-          section.classList.remove('active')
-        }
-        if (
-          filteredListItems &&
-          filteredListItems[sectionIndex].classList.contains('active')
-        ) {
-          filteredListItems[sectionIndex].classList.remove('active')
-        }
-      }
-    })
+      })
   }
 
   return (
@@ -167,13 +168,14 @@ const Detail: FC<DetailProps> = ({
               </ul>
             </aside>
           )}
-          <div
+          <ScrollArea
+            scrollDirection='vertical'
             className={detail_body}
             onScroll={() => sidebar && handleScroll()}
-            ref={scrollBodyRef}
+            id='detailBody'
           >
             {detail}
-          </div>
+          </ScrollArea>
         </div>
       </Modal.Body>
       <Modal.Footer>

@@ -57,8 +57,6 @@ const DetailForm: FC<DetailFormProps> = memo(
       context.type === 'edit' ? null : 0
     )
 
-    console.log('formState', formState)
-
     const navigate = useNavigate()
     const isLoading = useIsLoading()
 

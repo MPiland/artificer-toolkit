@@ -38,6 +38,7 @@ export const scroll_area = styleVariants({
       '@layer': {
         [app]: {
           overflowY: 'auto',
+          zIndex: 0,
         },
       },
     },
@@ -76,6 +77,7 @@ export const scroll_bar_vertical = style({
       backgroundColor: 'rgba(0, 0, 0, .35)',
       opacity: 0,
       transition: 'opacity .2s ease-in-out',
+      zIndex: 10,
 
       selectors: {
         '&.active': {
@@ -94,6 +96,7 @@ export const scroll_thumb = style({
       borderRadius: '.5rem',
       opacity: '1',
       backgroundColor: 'rgba(0,0,0,.55)',
+      zIndex: 11,
     },
   },
 })

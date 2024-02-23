@@ -486,8 +486,6 @@ const AttributeForm: FC<AttributeFormProps> = memo(
       }
     }
 
-    console.log('formState', formState)
-
     return isLoading || !builders ? (
       <Spinner />
     ) : (

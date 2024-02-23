@@ -19,13 +19,13 @@ interface CollapseProps {
 }
 
 const Collapse: FC<CollapseProps> = ({
-  startOpened = false,
+  startOpened,
   title,
   children,
   buttonDisabled,
   className,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(true)
+  const [isCollapsed, setIsCollapsed] = useState<boolean>()
 
   useEffect(() => {
     if (startOpened) {

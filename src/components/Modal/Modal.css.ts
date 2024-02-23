@@ -65,16 +65,13 @@ export const modal_content = style({
       'width': '100%',
       'overflow': 'hidden',
       'zIndex': '10',
-      'padding': size['size-7'],
+      'padding': `${size['size-7']} 0`,
       'color': theme.vars['app-color'],
       'justifyContent': 'center',
 
       '@media': {
         'screen and (max-width: 567px)': {
-          padding: size['size-9'],
-        },
-        'screen and (min-width: 568px) and (max-width: 768px)': {
-          padding: '2rem',
+          padding: `${size['size-9']} ${size['size-8']}`,
         },
       },
 
@@ -91,7 +88,7 @@ export const modal_header = style({
   '@layer': {
     [app]: {
       height: 'fit-content',
-      paddingBottom: size['size-3'],
+      padding: `0 ${size['size-9']} ${size['size-3']}`,
     },
   },
 })
@@ -103,7 +100,7 @@ export const modal_body = style({
       flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden',
-      padding: `${size['size-3']} 0`,
+      padding: `${size['size-3']} ${size['size-9']}`,
     },
   },
 })
@@ -123,8 +120,16 @@ export const modal_footer = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      paddingTop: size['size-3'],
+      padding: ` ${size['size-3']} ${size['size-9']} 0`,
       textAlign: 'center',
+    },
+  },
+})
+
+export const modal_divider = style({
+  '@layer': {
+    [app]: {
+      margin: `0 ${size['size-9']}`,
     },
   },
 })

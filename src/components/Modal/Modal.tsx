@@ -8,6 +8,7 @@ import {
   modal_title,
   modal_body,
   modal_footer,
+  modal_divider,
 } from './Modal.css'
 import { light } from '../../css/global.css'
 import { TbX } from 'react-icons/tb'
@@ -67,7 +68,7 @@ export const Header: FC<HeaderProps> = ({ title, children, buttonVariant }) => {
           )}
         </Group>
       </div>
-      <hr />
+      <hr className={modal_divider} />
     </>
   )
 }
@@ -79,7 +80,7 @@ export const Body: FC<BodyProps> = ({ children }) => {
 export const Footer: FC<FooterProps> = ({ children }) => {
   return (
     <>
-      <hr />
+      <hr className={modal_divider} />
       <div className={modal_footer}>{children}</div>
     </>
   )
