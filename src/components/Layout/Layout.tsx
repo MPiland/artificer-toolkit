@@ -11,6 +11,7 @@ import {
 } from './Layout.css'
 import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
+import { useMediaQuery } from 'usehooks-ts'
 
 interface LayoutProps {
   token?: string | null
@@ -20,6 +21,8 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
 
   const location = useLocation()
+
+  const sm = useMediaQuery('(max-width: 567px)')
 
   const sidebarRef = useRef<HTMLDivElement>(null)
   const hamburgerRef = useRef<HTMLDivElement>(null)
@@ -50,45 +53,124 @@ const Layout: FC<LayoutProps> = ({ token }) => {
     // navigate('/')
   }
 
+  const noTokenNavigation = (
+    <ul className={sm ? sidebar_item_group : header_item_group}>
+      <li className={header_item}>
+        <NavLink to='' className={header_nav_item}>
+          Media
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink to='' className={header_nav_item}>
+          Pricing
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink to='' className={header_nav_item}>
+          About
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink
+          className={header_nav_item}
+          to='register'
+          state={{ background: location, title: 'Register' }}
+          onClick={() => sm && setSidebarOpen((prev) => !prev)}
+        >
+          Register
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink
+          className={header_nav_item}
+          to='login'
+          state={{ background: location, title: 'Login' }}
+          onClick={() => sm && setSidebarOpen((prev) => !prev)}
+        >
+          Login
+        </NavLink>
+      </li>
+    </ul>
+  )
+
+  const tokenNavigation = (
+    <ul className={sidebar_item_group}>
+      <NavLink className={header_nav_item} to='characters'>
+        <li className={header_item}>Characters</li>
+      </NavLink>
+      <NavLink
+        className={header_nav_item}
+        to='classes'
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Classes</li>
+      </NavLink>
+      <NavLink
+        className={header_nav_item}
+        to='races'
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Races</li>
+      </NavLink>
+      <NavLink
+        className={header_nav_item}
+        to='spells'
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Spells</li>
+      </NavLink>
+      <NavLink
+        className={header_nav_item}
+        to='items'
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Items</li>
+      </NavLink>
+      <NavLink
+        to=''
+        className={header_nav_item}
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Backgrounds</li>
+      </NavLink>
+      <NavLink
+        className={header_nav_item}
+        to='feats'
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Feats</li>
+      </NavLink>
+      <NavLink
+        to=''
+        className={header_nav_item}
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Monsters</li>
+      </NavLink>
+      <NavLink
+        to=''
+        className={header_nav_item}
+        onClick={() => setSidebarOpen((prev) => !prev)}
+      >
+        <li className={header_item}>Campaigns</li>
+      </NavLink>
+      <li
+        className={clsx(header_item, sprinkles({ bc: 'red-4' }))}
+        onClick={() => {
+          setSidebarOpen((prev) => !prev)
+          onLogoutClick()
+        }}
+      >
+        Logout
+      </li>
+    </ul>
+  )
+
   return (
     <AppShell>
       <AppShell.Header>
-        {!token ? (
-          <ul className={header_item_group}>
-            <li className={header_item}>
-              <NavLink to='' className={header_nav_item}>
-                Media
-              </NavLink>
-            </li>
-            <li className={header_item}>
-              <NavLink to='' className={header_nav_item}>
-                Pricing
-              </NavLink>
-            </li>
-            <li className={header_item}>
-              <NavLink to='' className={header_nav_item}>
-                About
-              </NavLink>
-            </li>
-            <li className={header_item}>
-              <NavLink
-                className={header_nav_item}
-                to='register'
-                state={{ background: location, title: 'Register' }}
-              >
-                Register
-              </NavLink>
-            </li>
-            <li className={header_item}>
-              <NavLink
-                className={header_nav_item}
-                to='login'
-                state={{ background: location, title: 'Login' }}
-              >
-                Login
-              </NavLink>
-            </li>
-          </ul>
+        {!token && !sm ? (
+          noTokenNavigation
         ) : (
           <AppShell.Hamburger
             onClick={() => {
@@ -101,76 +183,8 @@ const Layout: FC<LayoutProps> = ({ token }) => {
         <span className={header_title}>Artificer Toolkit</span>
       </AppShell.Header>
       <AppShell.Sidebar isActive={sidebarOpen} sidebarRef={sidebarRef}>
-        <ul className={sidebar_item_group}>
-          <NavLink className={header_nav_item} to='characters'>
-            <li className={header_item}>Characters</li>
-          </NavLink>
-          <NavLink
-            className={header_nav_item}
-            to='classes'
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Classes</li>
-          </NavLink>
-          <NavLink
-            className={header_nav_item}
-            to='races'
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Races</li>
-          </NavLink>
-          <NavLink
-            className={header_nav_item}
-            to='spells'
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Spells</li>
-          </NavLink>
-          <NavLink
-            className={header_nav_item}
-            to='items'
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Items</li>
-          </NavLink>
-          <NavLink
-            to=''
-            className={header_nav_item}
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Backgrounds</li>
-          </NavLink>
-          <NavLink
-            className={header_nav_item}
-            to='feats'
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Feats</li>
-          </NavLink>
-          <NavLink
-            to=''
-            className={header_nav_item}
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Monsters</li>
-          </NavLink>
-          <NavLink
-            to=''
-            className={header_nav_item}
-            onClick={() => setSidebarOpen((prev) => !prev)}
-          >
-            <li className={header_item}>Campaigns</li>
-          </NavLink>
-          <li
-            className={clsx(header_item, sprinkles({ bc: 'red-4' }))}
-            onClick={() => {
-              setSidebarOpen((prev) => !prev)
-              onLogoutClick()
-            }}
-          >
-            Logout
-          </li>
-        </ul>
+        {token && tokenNavigation}
+        {!token && sm && noTokenNavigation}
       </AppShell.Sidebar>
       <AppShell.Main sidebarActive={sidebarOpen}>
         <Outlet />

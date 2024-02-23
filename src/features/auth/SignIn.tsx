@@ -182,7 +182,7 @@ const SignIn: FC<SignInProps> = ({ context }) => {
         </div>
       </Modal.Body>
       <Modal.Footer>
-        <h2>Or use a third-party</h2>
+        <h2 className={sprinkles({ pb: 'size-3' })}>Or use a third-party</h2>
         <Group directionVariant='column'>
           <Button
             variant='primary'

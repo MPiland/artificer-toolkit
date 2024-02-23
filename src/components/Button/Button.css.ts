@@ -25,6 +25,7 @@ const base = style({
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'center',
 
       selectors: {
         '&:active': {
