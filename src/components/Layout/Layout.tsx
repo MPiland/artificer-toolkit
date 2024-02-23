@@ -17,12 +17,15 @@ interface LayoutProps {
 
 const Layout: FC<LayoutProps> = ({ token }) => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
+  const [showHamburger, setShowHamburger] = useState<boolean>()
 
   const location = useLocation()
   const navigate = useNavigate()
 
-  const sm = useMediaQuery('(max-width: 567px)')
-  const md = useMediaQuery('(min-width: 568px) and (max-width: 1023px)')
+  const sm = useMediaQuery('screen and (max-width: 567px)')
+  const md = useMediaQuery(
+    'screen and (min-width: 568px) and (max-width: 1023px)'
+  )
 
   const sidebarRef = useRef<HTMLDivElement>(null)
   const hamburgerRef = useRef<HTMLDivElement>(null)
@@ -48,10 +51,16 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   useEventListener('keyup', handleKeyUp)
 
   useEffect(() => {
-    if (!sm && !md) {
-      setSidebarOpen(false)
+    if (sm && !token) {
+      setShowHamburger(true)
+    } else if ((sm || md) && token) {
+      setShowHamburger(true)
+    } else {
+      setShowHamburger(false)
     }
-  }, [md, sm])
+  }, [md, sm, token])
+
+  console.log('showHamburger', showHamburger)
 
   const [sendLogout] = useSendLogoutMutation()
 
@@ -73,7 +82,11 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   }
 
   const noTokenNavigation = (
-    <ul className={sm ? sidebar_item_group : header_item_group}>
+    <ul
+      className={
+        !token && showHamburger ? sidebar_item_group : header_item_group
+      }
+    >
       <li className={header_item}>
         <NavLink to='' className={header_nav_item}>
           Media
@@ -113,7 +126,11 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   )
 
   const tokenNavigation = (
-    <ul className={sm || md ? sidebar_item_group : header_item_group}>
+    <ul
+      className={
+        token && showHamburger ? sidebar_item_group : header_item_group
+      }
+    >
       <li className={header_item}>
         <NavLink className={header_nav_item} to='characters'>
           Characters
@@ -168,25 +185,25 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   return (
     <AppShell>
       <AppShell.Header>
-        {!token ? (
-          !sm && noTokenNavigation
-        ) : !sm && !md ? (
-          tokenNavigation
-        ) : (
-          <AppShell.Hamburger
-            onClick={handleClick}
-            isActive={sidebarOpen}
-            hamburgerRef={hamburgerRef}
-          />
-        )}
+        {!token && !showHamburger
+          ? noTokenNavigation
+          : token && !showHamburger
+          ? tokenNavigation
+          : showHamburger && (
+              <AppShell.Hamburger
+                onClick={handleClick}
+                isActive={sidebarOpen}
+                hamburgerRef={hamburgerRef}
+              />
+            )}
         <span className={header_title}>Artificer Toolkit</span>
       </AppShell.Header>
       <AppShell.Sidebar
         isActive={!token && !sm ? false : sidebarOpen}
         sidebarRef={sidebarRef}
       >
-        {token && (sm || md) && tokenNavigation}
-        {!token && (sm || md) && noTokenNavigation}
+        {!token && showHamburger && noTokenNavigation}
+        {token && showHamburger && tokenNavigation}
       </AppShell.Sidebar>
       <AppShell.Main sidebarActive={!token && !sm ? false : sidebarOpen}>
         <Outlet />

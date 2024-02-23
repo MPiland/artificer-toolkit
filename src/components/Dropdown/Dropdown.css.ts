@@ -17,6 +17,9 @@ export const dropdown_wrapper = style({
     [app]: {
       position: 'relative',
       width: 'inherit',
+      overflow: 'hidden',
+      textWrap: 'nowrap',
+      textOverflow: 'ellipsis',
     },
   },
 })
@@ -25,15 +28,14 @@ export const dropdown_label = style({
   '@layer': {
     [app]: {
       fontWeight: theme['input-label-font-weight'],
-    },
-  },
-})
 
-export const dropdown_label_required = style({
-  '@layer': {
-    [app]: {
-      color: 'red',
-      margin: '.25rem',
+      selectors: {
+        '&.required:after': {
+          content: '*',
+          color: 'red',
+          right: 0,
+        },
+      },
     },
   },
 })
@@ -51,6 +53,12 @@ export const dropdown_container = style({
       paddingLeft: '.75rem',
       overflow: 'hidden',
       cursor: 'pointer',
+
+      selectors: {
+        '&:has(:focus)': {
+          outline: 'none',
+        },
+      },
     },
   },
 })
@@ -99,9 +107,6 @@ export const dropdown_input = style({
       whiteSpace: 'nowrap',
 
       selectors: {
-        '&:focus': {
-          outline: 'none',
-        },
         [`${invalid} &`]: {
           color: theme.vars.input['input-error-color'],
         },

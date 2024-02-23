@@ -9,6 +9,7 @@ import {
 } from './ProgressBar.css'
 import clsx from 'clsx'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
+import { useMediaQuery } from 'usehooks-ts'
 
 interface ProgressBarProps {
   steps: any[]
@@ -19,24 +20,28 @@ const ProgressBar: FC<ProgressBarProps> = ({ steps, currentStepIndex }) => {
   const [progressWidth, setProgressWidth] = useState<string>('0')
   const progressBarRef = useRef<HTMLDivElement | null>(null)
 
+  const sm = useMediaQuery('screen and (max-width: 567px)')
+
   useLayoutEffect(() => {
     if (currentStepIndex === 0) {
       setProgressWidth('0')
     } else if (currentStepIndex === steps.length - 1) {
-      setProgressWidth(`calc(100% - 2rem)`)
+      setProgressWidth(`calc(100% - ${sm ? 0 : 2}rem)`)
     } else {
       setProgressWidth(
-        `calc((((100% - 2rem) / ${steps.length - 1}) * ${currentStepIndex}))`
+        `calc((((100% - ${sm ? 0 : 2}rem) / ${
+          steps.length - 1
+        }) * ${currentStepIndex}))`
       )
     }
-  }, [currentStepIndex, steps])
+  }, [currentStepIndex, steps, sm])
 
   return (
     <section className={progress_bar}>
       <div
         className={progress_empty}
         style={assignInlineVars({
-          [progress_width]: `calc(100% - 6rem)`,
+          [progress_width]: `calc(100% - ${sm ? 4 : 6}rem)`,
         })}
         ref={progressBarRef}
       />

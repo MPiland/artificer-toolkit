@@ -62,7 +62,7 @@ export const app_header = style({
       top: '0',
       left: '0',
       width: '100%',
-      height: '4rem',
+      height: theme['header-height'],
       display: 'flex',
       flexDirection: 'row',
       border: 'none',
@@ -145,8 +145,8 @@ export const app_sidebar = style({
 
       '@media': {
         'screen and (max-width: 567px)': {
-          width: '75%',
-          left: 'calc(-1 * 75%)',
+          width: '50%',
+          left: 'calc(-1 * 50%)',
         },
         'screen and (min-width: 568px) and (max-width: 1023px)': {
           width: '35%',

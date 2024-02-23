@@ -170,7 +170,7 @@ const Detail: FC<DetailProps> = ({
           )}
           <ScrollArea
             scrollDirection='vertical'
-            className={detail_body}
+            wrapperClassName={detail_body}
             onScroll={() => sidebar && handleScroll()}
             id='detailBody'
           >

@@ -3,7 +3,6 @@ import {
   dropdown_container,
   dropdown_input,
   dropdown_label,
-  dropdown_label_required,
   dropdown_active_option,
   dropdown_right_section,
   dropdown_wrapper,
@@ -237,7 +236,6 @@ const Dropdown: FC<DropdownProps> = ({
         {label && (
           <label className={clsx(dropdown_label, { ['required']: required })}>
             {label}
-            {required && <span className={dropdown_label_required}>*</span>}
           </label>
         )}
         <div

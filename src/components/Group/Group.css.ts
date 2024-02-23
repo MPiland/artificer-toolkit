@@ -6,7 +6,6 @@ export const base = style({
     [app]: {
       display: 'flex',
       alignItems: 'center',
-      gap: '.5rem',
       height: 'fit-content',
     },
   },

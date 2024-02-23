@@ -2,6 +2,7 @@ import { style, createVar } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import palette from '../../css/colors.css'
 import { theme } from '../../css/global.css'
+import { fontSize } from '../../css/typography.css'
 
 export const progress_width = createVar()
 
@@ -22,14 +23,20 @@ export const progress_bar = style({
 export const progress_empty = style({
   '@layer': {
     [app]: {
-      content: '',
-      position: 'absolute',
-      left: '3rem',
-      height: '1rem',
-      backgroundColor: palette['gray-3'],
-      zIndex: 2,
-      width: progress_width,
-      transition: 'width .3s ease-in-out',
+      'content': '',
+      'position': 'absolute',
+      'left': '3rem',
+      'height': '1rem',
+      'backgroundColor': palette['gray-3'],
+      'zIndex': 2,
+      'width': progress_width,
+      'transition': 'width .3s ease-in-out',
+
+      '@media': {
+        'screen and (max-width: 567px)': {
+          left: '2rem',
+        },
+      },
     },
   },
 })
@@ -37,14 +44,20 @@ export const progress_empty = style({
 export const progress_fill = style({
   '@layer': {
     [app]: {
-      content: '',
-      position: 'relative',
-      left: '1rem',
-      height: '1rem',
-      backgroundColor: palette['blue-7'],
-      zIndex: 2,
-      width: progress_width,
-      transition: 'width .3s ease-in-out',
+      'content': '',
+      'position': 'relative',
+      'left': '1rem',
+      'height': '1rem',
+      'backgroundColor': palette['blue-7'],
+      'zIndex': 2,
+      'width': progress_width,
+      'transition': 'width .3s ease-in-out',
+
+      '@media': {
+        'screen and (max-width: 567px)': {
+          left: '0',
+        },
+      },
     },
   },
 })
@@ -52,13 +65,19 @@ export const progress_fill = style({
 export const progress_step_wrapper = style({
   '@layer': {
     [app]: {
-      padding: '0 2rem',
-      position: 'absolute',
-      left: '0',
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      width: '100%',
+      'padding': '0 2rem',
+      'position': 'absolute',
+      'left': '0',
+      'display': 'flex',
+      'flexDirection': 'row',
+      'justifyContent': 'space-between',
+      'width': '100%',
+
+      '@media': {
+        'screen and (max-width: 567px)': {
+          padding: '0 1rem',
+        },
+      },
     },
   },
 })
@@ -88,6 +107,7 @@ export const progress_step = style({
           position: 'absolute',
           bottom: 'calc(100% + 0.125rem)',
           color: theme.vars['app-color'],
+          fontSize: fontSize['font-size-00'],
         },
         '&.active': {
           backgroundColor: palette['blue-7'],

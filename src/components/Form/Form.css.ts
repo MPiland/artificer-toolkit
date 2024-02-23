@@ -3,6 +3,7 @@ import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
 import { theme } from '../../css/global.css'
 import palette from '../../css/colors.css'
+import { fontSize } from '../../css/typography.css'
 
 export const form_wrapper = style({
   '@layer': {
@@ -32,6 +33,7 @@ export const form_header = style({
       marginBottom: size['size-1'],
       paddingLeft: '1rem',
       paddingRight: '1rem',
+      fontSize: fontSize['font-size-0'],
     },
   },
 })
@@ -96,8 +98,8 @@ export const feature_description = style({
 export const form_remove_button = style({
   '@layer': {
     [app]: {
-      width: '1.5rem',
-      height: '1.5rem',
+      width: '2rem',
+      height: '1.75rem',
       border: theme.vars['app-border-line-style'],
       borderColor: palette['red-5'],
       color: palette['red-5'],
@@ -105,6 +107,8 @@ export const form_remove_button = style({
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: palette['red-2'],
+      marginLeft: '.5rem',
+      marginRight: '.25rem',
 
       selectors: {
         '&:hover': {
@@ -120,8 +124,8 @@ export const form_remove_button = style({
 export const form_add_button = style({
   '@layer': {
     [app]: {
-      width: '1.5rem',
-      height: '1.5rem',
+      width: '2rem',
+      height: '1.75rem',
       border: theme.vars['app-border-line-style'],
       borderColor: palette['blue-5'],
       color: palette['blue-5'],
@@ -129,6 +133,7 @@ export const form_add_button = style({
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: palette['blue-2'],
+      marginLeft: '.25rem',
 
       selectors: {
         '&:hover': {
@@ -153,6 +158,25 @@ export const success_message = style({
   '@layer': {
     [app]: {
       color: palette['green-6'],
+    },
+  },
+})
+
+export const equipment_form_sub_group = style({
+  '@layer': {
+    [app]: {
+      flexDirection: 'row',
+      justifyContent: 'end',
+      alignItems: 'start',
+      flexWrap: 'nowrap',
+    },
+  },
+})
+
+export const equipment_sub_group_button = style({
+  '@layer': {
+    [app]: {
+      marginTop: '19px',
     },
   },
 })

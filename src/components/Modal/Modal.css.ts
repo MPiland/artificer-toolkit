@@ -32,13 +32,31 @@ export const modal_dialogue = style({
       'overflow': 'hidden',
       'selectors': {
         '&.md': {
-          width: '75dvw',
-          maxHeight: '60dvh',
+          'width': '75dvw',
+          'maxHeight': '60dvh',
+
+          '@media': {
+            'screen and (max-width: 567px)': {
+              borderRadius: '0',
+              width: '100dvw',
+              height: '100dvh',
+              maxHeight: '100dvh',
+            },
+          },
         },
         '&.lg': {
-          width: '90dvw',
-          height: 'fit-content',
-          maxHeight: '80dvh',
+          'width': '90dvw',
+          'height': 'fit-content',
+          'maxHeight': '80dvh',
+
+          '@media': {
+            'screen and (max-width: 567px)': {
+              borderRadius: '0',
+              width: '100dvw',
+              height: '100dvh',
+              maxHeight: '100dvh',
+            },
+          },
         },
         '&.fullscreen': {
           width: '100dvw',
@@ -59,18 +77,23 @@ export const modal_dialogue = style({
 export const modal_content = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%',
-      overflow: 'hidden',
-      zIndex: '10',
-      padding: `${size['size-7']} 0`,
-      color: theme.vars['app-color'],
-      justifyContent: 'center',
+      'display': 'flex',
+      'flexDirection': 'column',
+      'width': '100%',
+      'overflow': 'hidden',
+      'zIndex': '10',
+      'padding': `${size['size-7']} 0`,
+      'color': theme.vars['app-color'],
+      'justifyContent': 'center',
 
-      selectors: {
+      'selectors': {
         '&.scrollable': {
           overflowY: 'auto',
+        },
+      },
+      '@media': {
+        'screen and (max-width: 567px)': {
+          justifyContent: 'start',
         },
       },
     },

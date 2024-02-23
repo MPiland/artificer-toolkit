@@ -11,7 +11,7 @@ import './app.css'
 export const root = createGlobalTheme(':root', {
   //App
   'doc-height': '100vh',
-  'header-height': '5rem',
+  'header-height': '4rem',
   'footer-height': '3rem',
   'default-border-radius': '.25rem',
 

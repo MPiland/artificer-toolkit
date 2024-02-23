@@ -8,6 +8,9 @@ export const input_wrapper = style({
       width: theme['input-width'],
       color: theme.vars['app-color'],
       height: 'fit-content',
+      overflow: 'hidden',
+      textWrap: 'nowrap',
+      textOverflow: 'ellipsis',
     },
   },
 })
@@ -16,15 +19,14 @@ export const input_label = style({
   '@layer': {
     [app]: {
       fontWeight: theme['input-label-font-weight'],
-    },
-  },
-})
 
-export const input_label_required = style({
-  '@layer': {
-    [app]: {
-      color: 'red',
-      margin: '.25rem',
+      selectors: {
+        '&.required:after': {
+          content: '*',
+          color: 'red',
+          right: 0,
+        },
+      },
     },
   },
 })
@@ -39,6 +41,7 @@ export const input_container = style({
       selectors: {
         '&:has(:focus)': {
           outline: theme.vars['focus-border'],
+          outlineOffset: '-2px'
         },
       },
     },

@@ -1,5 +1,5 @@
 import { TbCaretUpFilled } from 'react-icons/tb'
-import { useEffect, useState, ReactNode, FC } from 'react'
+import { useLayoutEffect, useState, ReactNode, FC } from 'react'
 import {
   collapse_button,
   collapse_body,
@@ -27,7 +27,7 @@ const Collapse: FC<CollapseProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (startOpened) {
       setIsCollapsed(false)
     } else {

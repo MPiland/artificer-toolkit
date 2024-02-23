@@ -2,7 +2,6 @@ import { useState, useEffect, FC, useCallback } from 'react'
 import {
   input_wrapper,
   input_label,
-  input_label_required,
   input_error_message,
   input_container,
   invalid,
@@ -117,9 +116,8 @@ const Input: FC<InputProps> = ({
       })}
     >
       {label && (
-        <label className={input_label}>
+        <label className={clsx(input_label, { ['required']: required })}>
           {label}
-          {required && <span className={input_label_required}>*</span>}
         </label>
       )}
       <div

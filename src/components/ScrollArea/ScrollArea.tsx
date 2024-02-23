@@ -21,6 +21,7 @@ import {
 interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
   children: ReactNode
   className?: string | number | symbol | any
+  wrapperClassName?: string | number | symbol | any
   scrollDirection: 'horizontal' | 'vertical' | 'all'
   visibility?: 'hidden' | 'visible'
   [key: string]: any
@@ -34,6 +35,7 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
   ({
     children,
     className,
+    wrapperClassName,
     scrollDirection,
     visibility = 'hidden',
     ...props
@@ -93,7 +95,7 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
 
     useEffect(() => {
       if (
-        (isScrolling || visibility === 'visible' || mouseOver || md) &&
+        (isScrolling || visibility === 'visible' || mouseOver) &&
         noOverflow === false
       ) {
         setActive(true)
@@ -202,12 +204,17 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
 
     return (
       <div
-        className={clsx({ [className]: className }, scroll_area_wrapper)}
+        className={clsx(scroll_area_wrapper, {
+          [wrapperClassName]: wrapperClassName,
+        })}
         ref={scrollWrapperRef}
       >
         <div
           ref={scrollAreaRef}
-          className={clsx(scroll_area[scrollDirection])}
+          className={clsx(
+            { [className]: className },
+            scroll_area[scrollDirection]
+          )}
           {...props}
         >
           {children}

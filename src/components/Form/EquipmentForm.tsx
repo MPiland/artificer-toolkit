@@ -11,6 +11,8 @@ import Input from '../Input/Input'
 import useIsLoading from '../../hooks/useIsLoading'
 import { DropdownOption, ReducerActionType } from '../../utils/types'
 import {
+  equipment_form_sub_group,
+  equipment_sub_group_button,
   form_add_button,
   form_content,
   form_remove_button,
@@ -181,10 +183,7 @@ const EquipmentForm: FC<EquipmentProps> = ({
                                 return (
                                   <Group
                                     key={equipmentIndex}
-                                    directionVariant='row'
-                                    justifyContentVariant='end'
-                                    alignItemsVariant='center'
-                                    flexWrapVariant='nowrap'
+                                    className={equipment_form_sub_group}
                                   >
                                     <Grid
                                       className={clsx({
@@ -296,7 +295,10 @@ const EquipmentForm: FC<EquipmentProps> = ({
                                     </Grid>
                                     <Button
                                       variant='unstyled'
-                                      className={form_remove_button}
+                                      className={clsx(
+                                        form_remove_button,
+                                        equipment_sub_group_button
+                                      )}
                                       onClick={() => {
                                         if (optionItem.equipment.length === 1) {
                                           if (groupItem.option.length === 1) {
@@ -319,7 +321,10 @@ const EquipmentForm: FC<EquipmentProps> = ({
                                     </Button>
                                     <Button
                                       variant='unstyled'
-                                      className={form_add_button}
+                                      className={clsx(
+                                        form_add_button,
+                                        equipment_sub_group_button
+                                      )}
                                       onClick={() =>
                                         handleAdd(
                                           `startingEquipment.${groupIndex}.option.${optionIndex}.equipment`

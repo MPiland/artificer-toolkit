@@ -20,7 +20,13 @@ globalStyle(
   {
     '@layer': {
       [app]: {
-        fontSize: fontSize['font-size-0'],
+        'fontSize': fontSize['font-size-0'],
+
+        '@media': {
+          'screen and (max-width: 567px)': {
+            fontSize: fontSize['font-size-1'],
+          },
+        },
       },
     },
   }

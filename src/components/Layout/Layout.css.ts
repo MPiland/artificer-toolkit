@@ -55,7 +55,7 @@ export const header_item = style({
       height: '100%',
       justifyContent: 'center',
       textDecoration: 'none',
-      background: `linear-gradient(to right, transparent 0%, transparent 50%, ${palette['blue-6']} 50%, ${palette['blue-6']} 100%)`,
+      background: `linear-gradient(to right, ${theme.vars['app-background-color']} 0%, ${theme.vars['app-background-color']} 50%, ${palette['blue-6']} 50%, ${palette['blue-6']} 100%)`,
       backgroundSize: '200% 100%',
 
       selectors: {
