@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useState, FC } from 'react'
+import { useReducer, useEffect, useState } from 'react'
 import formReducer from '../../hooks/useReducer'
 import Form from '../../components/Form/Form'
 import { isEqual } from 'lodash'
@@ -15,7 +15,7 @@ interface ClassFormProps {
   context: 'create' | 'edit'
 }
 
-const ClassForm: FC<ClassFormProps> = ({ context }) => {
+const ClassForm = ({ context }: ClassFormProps) => {
   const location = useLocation()
 
   const id = location.state?.data

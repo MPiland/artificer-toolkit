@@ -4,7 +4,7 @@ import {
   form_wrapper,
   success_message,
 } from './Form.css'
-import { FC, useEffect, useState } from 'react'
+import {useEffect, useState } from 'react'
 import { startCase } from 'lodash'
 import ProgressBar from '../ProgressBar/ProgressBar'
 import useIsLoading from '../../hooks/useIsLoading'
@@ -44,7 +44,7 @@ interface FormProps {
  * @prop {string} successMessage - String noting if update or submit was successful.
  */
 
-const Form: FC<FormProps> = ({
+const Form = ({
   context,
   handleSubmit,
   handleUpdate,
@@ -53,7 +53,7 @@ const Form: FC<FormProps> = ({
   setState,
   errorMessage,
   successMessage,
-}) => {
+}: FormProps) => {
   const [stepIndex, setStepIndex] = useState<number>(0)
   const [isFirstStep, setIsFirstStep] = useState<boolean>(false)
   const [isLastStep, setIsLastStep] = useState<boolean>(false)
