@@ -29,8 +29,8 @@ globalStyle(
 globalStyle('html, body, #root', {
   '@layer': {
     [app]: {
-      height: '100lvh',
-      width: '100lvw',
+      height: '100dvh',
+      width: '100dvw',
       padding: 0,
       margin: 0,
       boxSizing: 'border-box',

@@ -1,6 +1,6 @@
 import AppShell from '../AppShell/AppShell'
 import { FC, useState, useEffect, useRef } from 'react'
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useSendLogoutMutation } from '../../features/auth/authApiSlice'
 import {
   header_title,
@@ -21,6 +21,7 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
 
   const location = useLocation()
+  const navigate = useNavigate()
 
   const sm = useMediaQuery('(max-width: 567px)')
 
@@ -47,10 +48,21 @@ const Layout: FC<LayoutProps> = ({ token }) => {
 
   const [sendLogout] = useSendLogoutMutation()
 
-  const onLogoutClick = async () => {
-    await sendLogout()
-    setSidebarOpen(false)
-    // navigate('/')
+  const handleLogout = async () => {
+    try {
+      sendLogout()
+      setSidebarOpen(false)
+    } catch (err: any) {
+      console.log(err.data.message)
+    } finally {
+      navigate('/')
+    }
+  }
+
+  const handleClick = () => {
+    if (sm) {
+      setSidebarOpen((prev) => !prev)
+    }
   }
 
   const noTokenNavigation = (
@@ -75,7 +87,7 @@ const Layout: FC<LayoutProps> = ({ token }) => {
           className={header_nav_item}
           to='register'
           state={{ background: location, title: 'Register' }}
-          onClick={() => sm && setSidebarOpen((prev) => !prev)}
+          onClick={handleClick}
         >
           Register
         </NavLink>
@@ -85,7 +97,7 @@ const Layout: FC<LayoutProps> = ({ token }) => {
           className={header_nav_item}
           to='login'
           state={{ background: location, title: 'Login' }}
-          onClick={() => sm && setSidebarOpen((prev) => !prev)}
+          onClick={handleClick}
         >
           Login
         </NavLink>
@@ -94,71 +106,39 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   )
 
   const tokenNavigation = (
-    <ul className={sidebar_item_group}>
+    <ul className={sm ? sidebar_item_group : header_item_group}>
       <NavLink className={header_nav_item} to='characters'>
         <li className={header_item}>Characters</li>
       </NavLink>
-      <NavLink
-        className={header_nav_item}
-        to='classes'
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink className={header_nav_item} to='classes' onClick={handleClick}>
         <li className={header_item}>Classes</li>
       </NavLink>
-      <NavLink
-        className={header_nav_item}
-        to='races'
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink className={header_nav_item} to='races' onClick={handleClick}>
         <li className={header_item}>Races</li>
       </NavLink>
-      <NavLink
-        className={header_nav_item}
-        to='spells'
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink className={header_nav_item} to='spells' onClick={handleClick}>
         <li className={header_item}>Spells</li>
       </NavLink>
-      <NavLink
-        className={header_nav_item}
-        to='items'
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink className={header_nav_item} to='items' onClick={handleClick}>
         <li className={header_item}>Items</li>
       </NavLink>
-      <NavLink
-        to=''
-        className={header_nav_item}
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink to='' className={header_nav_item} onClick={handleClick}>
         <li className={header_item}>Backgrounds</li>
       </NavLink>
-      <NavLink
-        className={header_nav_item}
-        to='feats'
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink className={header_nav_item} to='feats' onClick={handleClick}>
         <li className={header_item}>Feats</li>
       </NavLink>
-      <NavLink
-        to=''
-        className={header_nav_item}
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink to='' className={header_nav_item} onClick={handleClick}>
         <li className={header_item}>Monsters</li>
       </NavLink>
-      <NavLink
-        to=''
-        className={header_nav_item}
-        onClick={() => setSidebarOpen((prev) => !prev)}
-      >
+      <NavLink to='' className={header_nav_item} onClick={handleClick}>
         <li className={header_item}>Campaigns</li>
       </NavLink>
       <li
         className={clsx(header_item, sprinkles({ bc: 'red-4' }))}
         onClick={() => {
-          setSidebarOpen((prev) => !prev)
-          onLogoutClick()
+          handleClick()
+          handleLogout()
         }}
       >
         Logout
@@ -169,8 +149,12 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   return (
     <AppShell>
       <AppShell.Header>
-        {!token && !sm ? (
-          noTokenNavigation
+        {!sm ? (
+          !token ? (
+            noTokenNavigation
+          ) : (
+            tokenNavigation
+          )
         ) : (
           <AppShell.Hamburger
             onClick={() => {
@@ -182,11 +166,14 @@ const Layout: FC<LayoutProps> = ({ token }) => {
         )}
         <span className={header_title}>Artificer Toolkit</span>
       </AppShell.Header>
-      <AppShell.Sidebar isActive={sidebarOpen} sidebarRef={sidebarRef}>
-        {token && tokenNavigation}
+      <AppShell.Sidebar
+        isActive={!token && !sm ? false : sidebarOpen}
+        sidebarRef={sidebarRef}
+      >
+        {token && sm && tokenNavigation}
         {!token && sm && noTokenNavigation}
       </AppShell.Sidebar>
-      <AppShell.Main sidebarActive={sidebarOpen}>
+      <AppShell.Main sidebarActive={!token && !sm ? false : sidebarOpen}>
         <Outlet />
       </AppShell.Main>
     </AppShell>

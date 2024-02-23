@@ -32,6 +32,18 @@ interface FormProps {
   successMessage: string | null
 }
 
+/**
+ * Form wrapper component for other form sections.
+ * @prop {object} context - Context for form type and builder.
+ * @prop {Array} steps - String array listing form steps in order.
+ * @prop {Object} state - Current state if editing an object.
+ * @prop {(arg: ReducerActionType) => void} setState - Reducer function to set the object state.
+ * @prop {() => void} handleSubmit - Function to submit the state back to server.
+ * @prop {() => void} handleUpdate - Function to update the state when editing an existing object.
+ * @prop {string} errorMessage - String noting any error for submiting or updating.
+ * @prop {string} successMessage - String noting if update or submit was successful.
+ */
+
 const Form: FC<FormProps> = ({
   context,
   handleSubmit,
