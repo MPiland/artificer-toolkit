@@ -2,6 +2,8 @@ import { style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import { fontSize } from '../../css/typography.css'
 import { theme } from '../../css/global.css'
+import { size } from '../../css/size.css'
+import palette from '../../css/colors.css'
 
 export const header_title = style({
   '@layer': {
@@ -11,6 +13,16 @@ export const header_title = style({
       fontWeight: '600',
       order: 2,
       cursor: 'pointer',
+      textWrap: 'nowrap',
+    },
+  },
+})
+
+export const sidebar_item_group = style({
+  '@layer': {
+    [app]: {
+      listStyleType: 'none',
+      padding: '0',
     },
   },
 })
@@ -18,14 +30,15 @@ export const header_title = style({
 export const header_item_group = style({
   '@layer': {
     [app]: {
-      margin: 'auto 0',
       marginLeft: 'auto',
       listStyleType: 'none',
       display: 'flex',
       flexDirection: 'row',
       justifyContent: 'space-between',
+      alignItems: 'center',
       order: 3,
       padding: '0',
+      height: '100%',
     },
   },
 })
@@ -33,17 +46,25 @@ export const header_item_group = style({
 export const header_item = style({
   '@layer': {
     [app]: {
-      margin: '0 .5rem',
       display: 'flex',
       flexDirection: 'column',
       textAlign: 'start',
-      padding: '.5rem .5rem',
+      padding: `${size['size-1']} ${size['size-2']}`,
       cursor: 'pointer',
       fontSize: fontSize['font-size-1'],
+      height: '100%',
+      justifyContent: 'center',
+      textDecoration: 'none',
+      background: `linear-gradient(to right, transparent 0%, transparent 50%, ${palette['blue-6']} 50%, ${palette['blue-6']} 100%)`,
+      backgroundSize: '200% 100%',
 
       selectors: {
         '&:hover': {
-          backgroundColor: 'rgb(200, 200, 200)',
+          transition: 'background-position 1s',
+          backgroundPosition: '-100% 0',
+        },
+        [`${sidebar_item_group} &`]: {
+          height: 'auto',
         },
       },
     },
@@ -55,21 +76,12 @@ export const header_nav_item = style({
     [app]: {
       textDecoration: 'none',
       fontSize: 'inherit',
-      
+
       selectors: {
         '&:visited': {
           color: theme.vars['app-color'],
         },
       },
-    },
-  },
-})
-
-export const sidebar_item_group = style({
-  '@layer': {
-    [app]: {
-      listStyleType: 'none',
-      padding: '0',
     },
   },
 })

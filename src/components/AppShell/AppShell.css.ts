@@ -1,6 +1,7 @@
 import { theme } from '../../css/global.css'
 import { style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
+import { size } from '../../css/size.css'
 
 export const app_shell = style({
   '@layer': {
@@ -61,11 +62,12 @@ export const app_header = style({
       top: '0',
       left: '0',
       width: '100%',
-      height: '5rem',
+      height: '4rem',
       display: 'flex',
       flexDirection: 'row',
+      border: 'none',
       borderBottom: theme.vars['app-border-line-style'],
-      padding: '0 1.25rem',
+      paddingLeft: size['size-5'],
     },
   },
 })
@@ -145,7 +147,8 @@ export const app_sidebar = style({
         'screen and (max-width: 567px)': {
           width: '75%',
           left: 'calc(-1 * 75%)',
-        }, 'screen and (min-width: 568px) and (max-width: 1023px)': {
+        },
+        'screen and (min-width: 568px) and (max-width: 1023px)': {
           width: '35%',
           left: 'calc(-1 * 35%)',
         },

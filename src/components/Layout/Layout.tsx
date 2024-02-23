@@ -9,9 +9,7 @@ import {
   header_nav_item,
   sidebar_item_group,
 } from './Layout.css'
-import clsx from 'clsx'
-import { sprinkles } from '../../css/sprinkles.css'
-import { useMediaQuery } from 'usehooks-ts'
+import { useMediaQuery, useEventListener } from 'usehooks-ts'
 
 interface LayoutProps {
   token?: string | null
@@ -24,27 +22,36 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   const navigate = useNavigate()
 
   const sm = useMediaQuery('(max-width: 567px)')
+  const md = useMediaQuery('(min-width: 568px) and (max-width: 1023px)')
 
   const sidebarRef = useRef<HTMLDivElement>(null)
   const hamburgerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  const handleOutsideClick = (event: MouseEvent) => {
     const sidebarCurrent = sidebarRef.current
     const hamburgerCurrent = hamburgerRef.current
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        !sidebarCurrent?.contains(event.target as Node) &&
-        !hamburgerCurrent?.contains(event.target as Node)
-      ) {
-        setSidebarOpen(false)
-      }
+    if (
+      !sidebarCurrent?.contains(event.target as Node) &&
+      !hamburgerCurrent?.contains(event.target as Node)
+    ) {
+      setSidebarOpen(false)
     }
+  }
 
-    document?.addEventListener('mousedown', handleOutsideClick)
+  const handleKeyUp = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      setSidebarOpen(false)
+    }
+  }
 
-    return () => document?.removeEventListener('mousedown', handleOutsideClick)
-  }, [])
+  useEventListener('click', handleOutsideClick)
+  useEventListener('keyup', handleKeyUp)
+
+  useEffect(() => {
+    if (!sm && !md) {
+      setSidebarOpen(false)
+    }
+  }, [md, sm])
 
   const [sendLogout] = useSendLogoutMutation()
 
@@ -60,7 +67,7 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   }
 
   const handleClick = () => {
-    if (sm) {
+    if (sm || md) {
       setSidebarOpen((prev) => !prev)
     }
   }
@@ -106,41 +113,53 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   )
 
   const tokenNavigation = (
-    <ul className={sm ? sidebar_item_group : header_item_group}>
-      <NavLink className={header_nav_item} to='characters'>
-        <li className={header_item}>Characters</li>
-      </NavLink>
-      <NavLink className={header_nav_item} to='classes' onClick={handleClick}>
-        <li className={header_item}>Classes</li>
-      </NavLink>
-      <NavLink className={header_nav_item} to='races' onClick={handleClick}>
-        <li className={header_item}>Races</li>
-      </NavLink>
-      <NavLink className={header_nav_item} to='spells' onClick={handleClick}>
-        <li className={header_item}>Spells</li>
-      </NavLink>
-      <NavLink className={header_nav_item} to='items' onClick={handleClick}>
-        <li className={header_item}>Items</li>
-      </NavLink>
-      <NavLink to='' className={header_nav_item} onClick={handleClick}>
-        <li className={header_item}>Backgrounds</li>
-      </NavLink>
-      <NavLink className={header_nav_item} to='feats' onClick={handleClick}>
-        <li className={header_item}>Feats</li>
-      </NavLink>
-      <NavLink to='' className={header_nav_item} onClick={handleClick}>
-        <li className={header_item}>Monsters</li>
-      </NavLink>
-      <NavLink to='' className={header_nav_item} onClick={handleClick}>
-        <li className={header_item}>Campaigns</li>
-      </NavLink>
-      <li
-        className={clsx(header_item, sprinkles({ bc: 'red-4' }))}
-        onClick={() => {
-          handleClick()
-          handleLogout()
-        }}
-      >
+    <ul className={sm || md ? sidebar_item_group : header_item_group}>
+      <li className={header_item}>
+        <NavLink className={header_nav_item} to='characters'>
+          Characters
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink className={header_nav_item} to='classes' onClick={handleClick}>
+          Classes
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink className={header_nav_item} to='races' onClick={handleClick}>
+          Races
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink className={header_nav_item} to='spells' onClick={handleClick}>
+          Spells
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink className={header_nav_item} to='items' onClick={handleClick}>
+          Items
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink to='' className={header_nav_item} onClick={handleClick}>
+          Backgrounds
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink className={header_nav_item} to='feats' onClick={handleClick}>
+          Feats
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink to='' className={header_nav_item} onClick={handleClick}>
+          Monsters
+        </NavLink>
+      </li>
+      <li className={header_item}>
+        <NavLink to='' className={header_nav_item} onClick={handleClick}>
+          Campaigns
+        </NavLink>
+      </li>
+      <li className={header_item} onClick={handleLogout}>
         Logout
       </li>
     </ul>
@@ -149,17 +168,13 @@ const Layout: FC<LayoutProps> = ({ token }) => {
   return (
     <AppShell>
       <AppShell.Header>
-        {!sm ? (
-          !token ? (
-            noTokenNavigation
-          ) : (
-            tokenNavigation
-          )
+        {!token ? (
+          !sm && noTokenNavigation
+        ) : !sm && !md ? (
+          tokenNavigation
         ) : (
           <AppShell.Hamburger
-            onClick={() => {
-              setSidebarOpen((prev) => !prev)
-            }}
+            onClick={handleClick}
             isActive={sidebarOpen}
             hamburgerRef={hamburgerRef}
           />
@@ -170,8 +185,8 @@ const Layout: FC<LayoutProps> = ({ token }) => {
         isActive={!token && !sm ? false : sidebarOpen}
         sidebarRef={sidebarRef}
       >
-        {token && sm && tokenNavigation}
-        {!token && sm && noTokenNavigation}
+        {token && (sm || md) && tokenNavigation}
+        {!token && (sm || md) && noTokenNavigation}
       </AppShell.Sidebar>
       <AppShell.Main sidebarActive={!token && !sm ? false : sidebarOpen}>
         <Outlet />
