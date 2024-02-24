@@ -154,48 +154,32 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
       setIsDragging(true)
     }, [])
 
-    const handleScroll = useCallback(() => {
-      if (!scrollAreaRef) {
-        return
-      }
+    const handleScroll = () => {
       const scrollArea = scrollAreaRef.current
       if (scrollArea) {
+        setIsScrolling(true)
+        clearTimeout(scrollTimer)
+        if (!scrollAreaRef) {
+          return
+        }
         let newTop =
           (parseInt(String(scrollArea.scrollTop), 10) /
             parseInt(String(scrollArea.scrollHeight), 10)) *
           scrollArea.offsetHeight
-        // newTop = newTop + parseInt(scrollTop, 10);
         newTop = Math.min(newTop, scrollArea.offsetHeight - scrollThumbHeight)
         setScrollThumbTop(newTop)
       }
-    }, [scrollThumbHeight])
-
-    const handleScrollStart = () => {
-      const scrollArea = scrollAreaRef.current
-      if (
-        scrollArea &&
-        (scrollArea.scrollTop === 0 ||
-          scrollArea.scrollTop + scrollArea.clientHeight >=
-            scrollArea.scrollHeight)
-      ) {
-        return setIsScrolling(false)
-      }
-      setIsScrolling(true)
-      clearTimeout(scrollTimer)
     }
 
     const handleScrollEnd = () => {
-      clearTimeout(scrollTimer)
       scrollTimer = setTimeout(() => {
         setIsScrolling(false)
-      }, 100) // Adjust the delay as needed
+      }, 750)
     }
 
     useEventListener('scroll', handleScroll, scrollAreaRef)
-    useEventListener('scroll', handleScrollStart, scrollAreaRef)
-    useEventListener('wheel', handleScrollStart, scrollAreaRef)
     useEventListener('scrollend', handleScrollEnd, scrollAreaRef)
-    useEventListener('scroll', handleScrollEnd, scrollAreaRef)
+    useEventListener('wheel', handleScroll, scrollAreaRef)
     useEventListener('mousemove', handleMouseMove, documentRef)
     useEventListener('mouseup', handleMouseUp, documentRef)
     useEventListener('mouseleave', handleMouseUp, documentRef)
