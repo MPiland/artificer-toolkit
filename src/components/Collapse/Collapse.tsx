@@ -1,5 +1,5 @@
 import { TbCaretUpFilled } from 'react-icons/tb'
-import { useLayoutEffect, useState, ReactNode, FC } from 'react'
+import { useLayoutEffect, useState, ReactNode, memo } from 'react'
 import {
   collapse_button,
   collapse_body,
@@ -18,56 +18,64 @@ interface CollapseProps {
   className?: string | number | symbol | any
 }
 
-const Collapse: FC<CollapseProps> = ({
-  startOpened,
-  title,
-  children,
-  buttonDisabled,
-  className,
-}) => {
-  const [isCollapsed, setIsCollapsed] = useState<boolean>()
+const Collapse = memo(
+  ({
+    startOpened,
+    title,
+    children,
+    buttonDisabled,
+    className,
+  }: CollapseProps) => {
+    const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
 
-  useLayoutEffect(() => {
-    if (startOpened) {
-      setIsCollapsed(false)
-    } else {
-      setIsCollapsed(true)
+    useLayoutEffect(() => {
+      if (startOpened) {
+        setIsCollapsed(false)
+      } else {
+        setIsCollapsed(true)
+      }
+    }, [startOpened])
+
+    const handleButtonClick = () => {
+      if (isCollapsed) {
+        setIsCollapsed(false)
+      } else {
+        setIsCollapsed(true)
+      }
     }
-  }, [startOpened])
 
-  const handleButtonClick = () => {
-    if (isCollapsed) {
-      setIsCollapsed(false)
-    } else {
-      setIsCollapsed(true)
-    }
-  }
-
-  return (
-    <div className={clsx(collapse_wrapper, { [className]: className })}>
-      {!buttonDisabled && (
-        <Button
-          variant='unstyled'
-          className={clsx(collapse_button, { ['collapsed']: isCollapsed })}
-          onClick={handleButtonClick}
+    return (
+      <div className={clsx(collapse_wrapper, { [className]: className })}>
+        {!buttonDisabled && (
+          <Button
+            variant='unstyled'
+            className={clsx(collapse_button, { ['collapsed']: isCollapsed })}
+            onClick={handleButtonClick}
+          >
+            <span>{title}</span>
+            <TbCaretUpFilled
+              className={clsx(collapse_button_caret, {
+                ['collapsed']: isCollapsed,
+              })}
+            />
+          </Button>
+        )}
+        <div
+          className={clsx(collapse_body, {
+            ['collapsed']: isCollapsed,
+          })}
         >
-          <span>{title}</span>
-          <TbCaretUpFilled
-            className={clsx(collapse_button_caret, {
-              ['collapsed']: isCollapsed,
-            })}
-          />
-        </Button>
-      )}
-      <div
-        className={clsx(collapse_body, {
-          ['collapsed']: isCollapsed,
-        })}
-      >
-        <div className={clsx(collapse_content, { ['collapsed']: isCollapsed })}>{children}</div>
+          <div
+            className={clsx(collapse_content, { ['collapsed']: isCollapsed })}
+          >
+            {children}
+          </div>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
+)
+
+Collapse.displayName = 'Collapse'
 
 export default Collapse

@@ -110,15 +110,6 @@ const ClassForm = ({ context }: ClassFormProps) => {
     await addNewClass(state)
   }
 
-  const handleUpdate = async () => {
-    if (match) {
-      setErrorMessage('No changes made')
-    } else {
-      await updateClass(state)
-      setOldState(state)
-    }
-  }
-
   const steps: Steps = [
     'Details',
     'Attributes',
@@ -131,12 +122,13 @@ const ClassForm = ({ context }: ClassFormProps) => {
     <Form
       context={{ type: context, title: 'class' }}
       handleSubmit={handleSubmit}
-      handleUpdate={handleUpdate}
       steps={steps}
       state={state}
       setState={setState}
+      update={updateClass}
       errorMessage={errorMessage}
       successMessage={successMessage}
+      setErrorMessage={setErrorMessage}
     />
   )
 }

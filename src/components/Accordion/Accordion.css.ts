@@ -60,6 +60,7 @@ export const accordion_remove_button = style({
       borderRadius: '.5rem',
       alignItems: 'center',
       justifyContent: 'center',
+      marginRight: size['size-1'],
 
       selectors: {
         '&:hover': {

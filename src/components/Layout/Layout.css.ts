@@ -55,16 +55,17 @@ export const header_item = style({
       height: '100%',
       justifyContent: 'center',
       textDecoration: 'none',
-      background: `linear-gradient(to right, ${theme.vars['app-background-color']} 0%, ${theme.vars['app-background-color']} 50%, ${palette['blue-6']} 50%, ${palette['blue-6']} 100%)`,
       backgroundSize: '200% 100%',
 
       selectors: {
         '&:hover': {
-          transition: 'background-position 1s',
-          backgroundPosition: '-100% 0',
+          backgroundColor: palette['gray-3'],
         },
         [`${sidebar_item_group} &`]: {
           height: 'auto',
+        },
+        '&:last-of-type': {
+          paddingRight: size['size-5'],
         },
       },
     },

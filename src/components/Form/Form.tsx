@@ -4,7 +4,9 @@ import {
   form_wrapper,
   success_message,
 } from './Form.css'
-import {useEffect, useState } from 'react'
+import { SerializedError } from '@reduxjs/toolkit'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import { useEffect, useState } from 'react'
 import { startCase } from 'lodash'
 import ProgressBar from '../ProgressBar/ProgressBar'
 import useIsLoading from '../../hooks/useIsLoading'
@@ -24,12 +26,15 @@ interface FormProps {
     title: string
   }
   handleSubmit: () => Promise<void>
-  handleUpdate: () => Promise<void>
+  update: (
+    arg: any
+  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
   steps: Steps
   state: any
   setState: (arg: ReducerActionType) => void
   errorMessage: string | null
   successMessage: string | null
+  setErrorMessage: (arg: string) => void
 }
 
 /**
@@ -39,20 +44,22 @@ interface FormProps {
  * @prop {Object} state - Current state if editing an object.
  * @prop {(arg: ReducerActionType) => void} setState - Reducer function to set the object state.
  * @prop {() => void} handleSubmit - Function to submit the state back to server.
- * @prop {() => void} handleUpdate - Function to update the state when editing an existing object.
+ * @prop {(arg: any) => { data: any } | { error: FetchBaseQueryError | SerializedError }} update - Function to update the state when editing an existing object.
  * @prop {string} errorMessage - String noting any error for submiting or updating.
  * @prop {string} successMessage - String noting if update or submit was successful.
+ * @prop {arg: string} setErrorMessage - Sets the error message for the form header if any.
  */
 
 const Form = ({
   context,
   handleSubmit,
-  handleUpdate,
+  update,
   steps,
   state,
   setState,
   errorMessage,
   successMessage,
+  setErrorMessage,
 }: FormProps) => {
   const [stepIndex, setStepIndex] = useState<number>(0)
   const [isFirstStep, setIsFirstStep] = useState<boolean>(false)
@@ -83,8 +90,9 @@ const Form = ({
           isLastStep={isLastStep}
           isFirstStep={isFirstStep}
           setStepIndex={setStepIndex}
-          handleUpdate={handleUpdate}
+          update={update}
           handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
         />
       ),
     },
@@ -98,8 +106,9 @@ const Form = ({
           isLastStep={isLastStep}
           isFirstStep={isFirstStep}
           setStepIndex={setStepIndex}
-          handleUpdate={handleUpdate}
+          update={update}
           handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
         />
       ),
     },
@@ -113,8 +122,9 @@ const Form = ({
           isLastStep={isLastStep}
           isFirstStep={isFirstStep}
           setStepIndex={setStepIndex}
-          handleUpdate={handleUpdate}
+          update={update}
           handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
         />
       ),
     },
@@ -128,8 +138,9 @@ const Form = ({
           setStepIndex={setStepIndex}
           context={context}
           setState={setState}
-          handleUpdate={handleUpdate}
+          update={update}
           handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
         />
       ),
     },
@@ -143,8 +154,9 @@ const Form = ({
           setStepIndex={setStepIndex}
           context={context}
           setState={setState}
-          handleUpdate={handleUpdate}
+          update={update}
           handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
         />
       ),
     },
@@ -158,8 +170,9 @@ const Form = ({
           setStepIndex={setStepIndex}
           context={context}
           setState={setState}
-          handleUpdate={handleUpdate}
+          update={update}
           handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
         />
       ),
     },
@@ -173,8 +186,9 @@ const Form = ({
           setStepIndex={setStepIndex}
           context={context}
           setState={setState}
-          handleUpdate={handleUpdate}
+          update={update}
           handleSubmit={handleSubmit}
+          setErrorMessage={setErrorMessage}
         />
       ),
     },

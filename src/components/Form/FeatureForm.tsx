@@ -1,4 +1,6 @@
 import { FC, useState, useReducer, useEffect, useCallback } from 'react'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import { SerializedError } from '@reduxjs/toolkit'
 import parse from 'html-react-parser'
 import Button from '../Button/Button'
 import FormFooter from './FormFooter'
@@ -35,7 +37,10 @@ interface FeatureFormProps {
   }
   setState: (arg: ReducerActionType) => void
   handleSubmit: () => Promise<void>
-  handleUpdate: () => Promise<void>
+  update: (
+    arg: any
+  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
+  setErrorMessage: (arg: string) => void
 }
 
 const FeatureForm: FC<FeatureFormProps> = ({
@@ -46,12 +51,13 @@ const FeatureForm: FC<FeatureFormProps> = ({
   context,
   setState,
   handleSubmit,
-  handleUpdate,
+  update,
+  setErrorMessage,
 }) => {
   const navigate = useNavigate()
 
   const [formState, setFormState] = useReducer(formReducer, state)
-  const [oldFormState] = useState<any>(state)
+  const [oldFormState, setOldFormState] = useState<any>(state)
   const [matches, setMatches] = useState<boolean>(false)
   const [featureState, setFeatureState] = useReducer(
     formReducer,
@@ -248,7 +254,10 @@ const FeatureForm: FC<FeatureFormProps> = ({
     })
   }
 
-  const handleFeatureUpdate = useCallback(() => {
+  const handleUpdate = useCallback(() => {
+    if (matches) {
+      return setErrorMessage('No changes made')
+    }
     if (stepName === 'SectionContent') {
       if (formContext === 'OptionContent') {
         setOptionState({
@@ -314,7 +323,8 @@ const FeatureForm: FC<FeatureFormProps> = ({
       type: 'reset',
       target: { value: formState },
     })
-    handleUpdate()
+    update(formState)
+    setOldFormState(formState)
   }, [
     context.title,
     featureState,
@@ -328,7 +338,9 @@ const FeatureForm: FC<FeatureFormProps> = ({
     sectionName,
     stepName,
     setState,
-    handleUpdate,
+    update,
+    matches,
+    setErrorMessage,
   ])
 
   const sectionNames = getSectionNames()
@@ -350,9 +362,7 @@ const FeatureForm: FC<FeatureFormProps> = ({
             setSectionState={setSectionState}
             setOptionState={setOptionState}
             handleForward={handleForward}
-            handleUpdate={
-              context.type === 'edit' ? handleFeatureUpdate : undefined
-            }
+            handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
           />
         )
       }
@@ -371,9 +381,7 @@ const FeatureForm: FC<FeatureFormProps> = ({
             setSectionState={setSectionState}
             setOptionState={setOptionState}
             handleForward={handleForward}
-            handleUpdate={
-              context.type === 'edit' ? handleFeatureUpdate : undefined
-            }
+            handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
           />
         )
       }
@@ -389,9 +397,7 @@ const FeatureForm: FC<FeatureFormProps> = ({
           setFeatureState={setOptionState}
           setSectionState={setSectionState}
           handleForward={handleForward}
-          handleUpdate={
-            context.type === 'edit' ? handleFeatureUpdate : undefined
-          }
+          handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
         />
       )
     }
@@ -408,9 +414,7 @@ const FeatureForm: FC<FeatureFormProps> = ({
           sectionState={sectionState}
           sectionIndex={sectionIndex}
           handleForward={handleForward}
-          handleUpdate={
-            context.type === 'edit' ? handleFeatureUpdate : undefined
-          }
+          handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
           setStepName={setStepName}
         />
       )
@@ -512,9 +516,7 @@ const FeatureForm: FC<FeatureFormProps> = ({
             handleReset={handleReset}
             handleForward={handleForward}
             backLabel={'Back'}
-            handleUpdate={
-              context.type === 'edit' ? handleFeatureUpdate : undefined
-            }
+            handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
           />
         </>
       )}

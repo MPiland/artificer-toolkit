@@ -4,6 +4,8 @@ import {
   useGetItemsQuery,
   selectAllItems,
 } from '../../features/items/itemsApiSlice'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import { SerializedError } from '@reduxjs/toolkit'
 import { ReducerActionType } from '../../utils/types'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
@@ -23,7 +25,10 @@ interface ContainsFormProps {
   isLastStep: boolean
   isFirstStep: boolean
   handleSubmit: () => Promise<void>
-  handleUpdate: () => Promise<void>
+  update: (
+    arg: any
+  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
+  setErrorMessage: (arg: string) => void
 }
 
 const ContainsForm: FC<ContainsFormProps> = memo(
@@ -35,10 +40,11 @@ const ContainsForm: FC<ContainsFormProps> = memo(
     context,
     setStepIndex,
     handleSubmit,
-    handleUpdate,
+    update,
+    setErrorMessage,
   }) => {
     const [formState, setFormState] = useReducer(formReducer, state)
-    const [oldFormState] = useState<any>(state)
+    const [oldFormState, setOldFormState] = useState<any>(state)
     const [matches, setMatches] = useState<boolean>(false)
 
     const navigate = useNavigate()
@@ -106,6 +112,19 @@ const ContainsForm: FC<ContainsFormProps> = memo(
             return i - 1
           }
         })
+      }
+    }
+
+    const handleUpdate = async () => {
+      if (matches) {
+        setErrorMessage('No changes made')
+      } else {
+        setState({
+          type: 'reset',
+          target: { value: formState },
+        })
+        await update(formState)
+        setOldFormState(formState)
       }
     }
 

@@ -5,6 +5,8 @@ import {
   RowHeader,
   RowInput,
 } from '../../utils/types'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import { SerializedError } from '@reduxjs/toolkit'
 import Grid from '../Grid/Grid'
 import { sprinkles } from '../../css/sprinkles.css'
 import Dropdown from '../Dropdown/Dropdown'
@@ -38,7 +40,10 @@ interface AttributeFormProps {
   isFirstStep?: boolean
   setStepIndex: (arg: (i: number) => number) => void
   handleSubmit: () => Promise<void>
-  handleUpdate: () => Promise<void>
+  update: (
+    arg: any
+  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
+  setErrorMessage: (arg: string) => void
 }
 
 const AttributeForm: FC<AttributeFormProps> = memo(
@@ -50,10 +55,11 @@ const AttributeForm: FC<AttributeFormProps> = memo(
     isFirstStep,
     setStepIndex,
     handleSubmit,
-    handleUpdate,
+    update,
+    setErrorMessage,
   }) => {
     const [formState, setFormState] = useReducer(formReducer, state)
-    const [oldFormState] = useState<any>(state)
+    const [oldFormState, setOldFormState] = useState<any>(state)
     const [matches, setMatches] = useState<boolean>(false)
 
     const navigate = useNavigate()
@@ -451,6 +457,19 @@ const AttributeForm: FC<AttributeFormProps> = memo(
         type: 'reset',
         target: { value: oldFormState },
       })
+    }
+
+    const handleUpdate = async () => {
+      if (matches) {
+        setErrorMessage('No changes made')
+      } else {
+        setState({
+          type: 'reset',
+          target: { value: formState },
+        })
+        await update(formState)
+        setOldFormState(formState)
+      }
     }
 
     const handleForward = () => {

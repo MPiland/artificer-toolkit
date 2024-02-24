@@ -1,4 +1,6 @@
 import { FC, useReducer, useState, useEffect } from 'react'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import { SerializedError } from '@reduxjs/toolkit'
 import formReducer from '../../hooks/useReducer'
 import { useNavigate } from 'react-router-dom'
 import useIsLoading from '../../hooks/useIsLoading'
@@ -29,7 +31,10 @@ interface ProficiencyFormProps {
   isFirstStep?: boolean
   setStepIndex: (arg: (i: number) => number) => void
   handleSubmit: () => Promise<void>
-  handleUpdate: () => Promise<void>
+  update: (
+    arg: any
+  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
+  setErrorMessage: (arg: string) => void
 }
 
 const ProficiencyForm: FC<ProficiencyFormProps> = ({
@@ -40,10 +45,11 @@ const ProficiencyForm: FC<ProficiencyFormProps> = ({
   isFirstStep,
   setStepIndex,
   handleSubmit,
-  handleUpdate,
+  update,
+  setErrorMessage,
 }) => {
   const [formState, setFormState] = useReducer(formReducer, state)
-  const [oldFormState] = useState<any>(state)
+  const [oldFormState, setOldFormState] = useState<any>(state)
   const [matches, setMatches] = useState<boolean>(false)
   const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(
     context.type === 'edit' ? null : 0
@@ -112,6 +118,19 @@ const ProficiencyForm: FC<ProficiencyFormProps> = ({
           return i - 1
         }
       })
+    }
+  }
+
+  const handleUpdate = async () => {
+    if (matches) {
+      setErrorMessage('No changes made')
+    } else {
+      setState({
+        type: 'reset',
+        target: { value: formState },
+      })
+      await update(formState)
+      setOldFormState(formState)
     }
   }
 

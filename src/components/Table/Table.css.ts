@@ -79,6 +79,9 @@ export const table_row = style({
         '&.borderless': {
           borderBottom: 'none',
         },
+        '&.clickable': {
+          cursor: 'pointer',
+        },
       },
     },
   },

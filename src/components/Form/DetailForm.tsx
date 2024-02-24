@@ -1,5 +1,7 @@
 import { FC, useEffect, useState, memo, useReducer } from 'react'
 import { ReducerActionType, DropdownOption } from '../../utils/types'
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
+import { SerializedError } from '@reduxjs/toolkit'
 import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import Grid from '../Grid/Grid'
@@ -36,7 +38,10 @@ interface DetailFormProps {
   isFirstStep?: boolean
   setStepIndex: (arg: (i: number) => number) => void
   handleSubmit: () => Promise<void>
-  handleUpdate: () => Promise<void>
+  update: (
+    arg: any
+  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
+  setErrorMessage: (arg: string) => void
 }
 
 const DetailForm: FC<DetailFormProps> = memo(
@@ -48,10 +53,11 @@ const DetailForm: FC<DetailFormProps> = memo(
     isFirstStep,
     setStepIndex,
     handleSubmit,
-    handleUpdate,
+    update,
+    setErrorMessage,
   }) => {
     const [formState, setFormState] = useReducer(formReducer, state)
-    const [oldFormState] = useState<any>(state)
+    const [oldFormState, setOldFormState] = useState<any>(state)
     const [matches, setMatches] = useState<boolean>(false)
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(
       context.type === 'edit' ? null : 0
@@ -132,6 +138,19 @@ const DetailForm: FC<DetailFormProps> = memo(
 
     const handleRemove = (index: number) => {
       setFormState({ type: 'removed', target: { name: `detail.${index}` } })
+    }
+
+    const handleUpdate = async () => {
+      if (matches) {
+        setErrorMessage('No changes made')
+      } else {
+        setState({
+          type: 'reset',
+          target: { value: formState },
+        })
+        await update(formState)
+        setOldFormState(formState)
+      }
     }
 
     return isLoading || !builders ? (

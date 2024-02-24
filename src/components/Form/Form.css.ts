@@ -14,8 +14,6 @@ export const form_wrapper = style({
       'height': '100%',
       'width': 'inherit',
       'overflow': 'hidden',
-      'borderLeft': theme.vars['app-border-line-style'],
-      'borderRight': theme.vars['app-border-line-style'],
 
       '@media': {
         'screen and (max-width: 567px)': {

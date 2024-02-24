@@ -8,6 +8,12 @@ export const dropdown = style({
       position: 'relative',
       width: theme['input-width'],
       color: theme.vars['app-color'],
+
+      selectors: {
+        '&:has(:focus-within)': {
+          outline: 'none',
+        },
+      },
     },
   },
 })
@@ -20,6 +26,12 @@ export const dropdown_wrapper = style({
       overflow: 'hidden',
       textWrap: 'nowrap',
       textOverflow: 'ellipsis',
+
+      selectors: {
+        '&:has(:focus-within)': {
+          outline: 'none',
+        },
+      },
     },
   },
 })
@@ -53,12 +65,6 @@ export const dropdown_container = style({
       paddingLeft: '.75rem',
       overflow: 'hidden',
       cursor: 'pointer',
-
-      selectors: {
-        '&:has(:focus)': {
-          outline: 'none',
-        },
-      },
     },
   },
 })

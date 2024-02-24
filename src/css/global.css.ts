@@ -46,7 +46,7 @@ export const light = createTheme(vars, {
   'app-background-color': 'white',
   'app-color': 'black',
   'app-border-line-style': `1px solid ${palette['gray-6']}`,
-  'focus-border': '2px solid rgb(99, 162, 235)',
+  'focus-border': '2px solid black',
 
   'input': {
     'input-error-color': 'red',
