@@ -112,9 +112,9 @@ const ClassForm = ({ context }: ClassFormProps) => {
 
   const steps: Steps = [
     'Details',
-    'Attributes',
     'Equipment',
     'Proficiencies',
+    'Attributes',
     'Features',
   ]
 
