@@ -64,7 +64,7 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
 
   const tableWindow = document.getElementById('list_table')
 
-  const showCard = (feat: any) => {
+  const handleShowDetail = (feat: any) => {
     navigate(`/feats/${feat.name}`, {
       state: {
         background: location,
@@ -77,7 +77,7 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
     })
   }
 
-  const onDelete = (feat: any) => {
+  const handleDelete = (feat: any) => {
     navigate(`/delete/${feat.name}`, {
       state: {
         background: location,
@@ -89,7 +89,7 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
     })
   }
 
-  const onDeleteSubmit = useCallback(async () => {
+  const handleDeleteSubmit = useCallback(async () => {
     try {
       await deleteFeat({ id: featToDelete._id })
       setListFilter({ type: 'reset', target: { value: {} } })
@@ -101,9 +101,9 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
 
   useEffect(() => {
     if (deleteConfirmed) {
-      onDeleteSubmit()
+      handleDeleteSubmit()
     }
-  }, [deleteConfirmed, onDeleteSubmit])
+  }, [deleteConfirmed, handleDeleteSubmit])
 
   const onFilterChange = (e: ReducerActionType) => {
     setListFilter(e)
@@ -208,8 +208,8 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
           headers: tableColumns.headers,
         }}
         clickable={true}
-        onClick={(feat) => showCard(feat)}
-        deleteRow={(feat) => onDelete(feat)}
+        onClick={(feat) => handleShowDetail(feat)}
+        deleteRow={(feat) => handleDelete(feat)}
         empty='---'
       />
     </Container>

@@ -67,7 +67,7 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
 
   const tableWindow = document.getElementById('list_table')
 
-  const showCard = (item: any) => {
+  const handleShowDetail = (item: any) => {
     navigate(`/items/${item.name}`, {
       state: {
         background: location,
@@ -80,7 +80,7 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
     })
   }
 
-  const onDelete = (item: any) => {
+  const handleDelete = (item: any) => {
     navigate(`/delete/${item.name}`, {
       state: {
         background: location,
@@ -92,7 +92,7 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
     })
   }
 
-  const onDeleteSubmit = useCallback(async () => {
+  const handleDeleteSubmit = useCallback(async () => {
     try {
       await deleteItem({ id: itemToDelete._id })
       setListFilter({ type: 'reset', target: { value: {} } })
@@ -104,9 +104,9 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
 
   useEffect(() => {
     if (deleteConfirmed) {
-      onDeleteSubmit()
+      handleDeleteSubmit()
     }
-  }, [deleteConfirmed, onDeleteSubmit])
+  }, [deleteConfirmed, handleDeleteSubmit])
 
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setItemsFilter(listFilter))
@@ -342,8 +342,8 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
           headers: tableColumns.headers,
         }}
         clickable={true}
-        onClick={(item) => showCard(item)}
-        deleteRow={(item) => onDelete(item)}
+        onClick={(item) => handleShowDetail(item)}
+        deleteRow={(item) => handleDelete(item)}
       />
     </Container>
   )

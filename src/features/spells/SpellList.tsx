@@ -65,7 +65,11 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
 
   const table = document.getElementById('list-table')
 
-  const showCard = (spell: any) => {
+  const handleCreate = () => {
+    navigate('/spells/create')
+  }
+
+  const handleShowDetail = (spell: any) => {
     navigate(`/spells/${spell.name}`, {
       state: {
         background: location,
@@ -78,7 +82,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
     })
   }
 
-  const onDelete = (spell: any) => {
+  const handleDelete = (spell: any) => {
     navigate(`/delete/${spell.name}`, {
       state: {
         background: location,
@@ -90,7 +94,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
     })
   }
 
-  const onDeleteSubmit = useCallback(async () => {
+  const handleDeleteSubmit = useCallback(async () => {
     try {
       await deleteSpell({ id: spellToDelete.id })
       setListFilter({ type: 'reset', target: { value: {} } })
@@ -102,9 +106,9 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
 
   useEffect(() => {
     if (deleteConfirmed) {
-      onDeleteSubmit()
+      handleDeleteSubmit()
     }
-  }, [deleteConfirmed, onDeleteSubmit])
+  }, [deleteConfirmed, handleDeleteSubmit])
 
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setSpellsFilter(listFilter))
@@ -399,11 +403,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           <Button type='button' variant='default' onClick={onFilterReset}>
             Clear Filters
           </Button>
-          <Button
-            type='button'
-            variant='default'
-            onClick={() => navigate('/spells/new')}
-          >
+          <Button type='button' variant='default' onClick={handleCreate}>
             Create a Spell
           </Button>
         </Group>
@@ -424,8 +424,8 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
         }}
         value={filteredItems as any[]}
         clickable={true}
-        onClick={(spell) => showCard(spell)}
-        deleteRow={(spell) => onDelete(spell)}
+        onClick={(spell) => handleShowDetail(spell)}
+        deleteRow={(spell) => handleDelete(spell)}
       />
     </Container>
   )

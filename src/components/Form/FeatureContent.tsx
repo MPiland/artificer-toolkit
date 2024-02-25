@@ -1040,7 +1040,9 @@ const FeatureContent: FC<FeatureContentProps> = ({
             </>
           )}
         </div>
-        {Object.keys(featureState).length > 0 && (
+        {Object.keys(featureState).some((key) =>
+          sectionNames.includes(key as SectionName)
+        ) && (
           <div className={feature_list}>
             {sectionNames.map(
               (sectionName: SectionName, sectionNameIndex: number) => {

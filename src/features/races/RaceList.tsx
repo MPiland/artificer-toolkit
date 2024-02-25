@@ -68,7 +68,7 @@ const RaceList: FC<RaceListProps> = ({
 
   const tableWindow = document.getElementById('list_table')
 
-  const showCard = (race: any) => {
+  const handleShowDetail = (race: any) => {
     navigate(`/races/${race.name}`, {
       state: {
         background: location,
@@ -81,7 +81,7 @@ const RaceList: FC<RaceListProps> = ({
     })
   }
 
-  const onDelete = (race: any) => {
+  const handleDelete = (race: any) => {
     navigate(`/delete/${race.name}`, {
       state: {
         background: location,
@@ -93,7 +93,7 @@ const RaceList: FC<RaceListProps> = ({
     })
   }
 
-  const onDeleteSubmit = useCallback(async () => {
+  const handleDeleteSubmit = useCallback(async () => {
     try {
       await deleteRace({ id: raceToDelete._id })
       setListFilter({ type: 'reset', target: { value: {} } })
@@ -105,9 +105,9 @@ const RaceList: FC<RaceListProps> = ({
 
   useEffect(() => {
     if (deleteConfirmed) {
-      onDeleteSubmit()
+      handleDeleteSubmit()
     }
-  }, [deleteConfirmed, onDeleteSubmit])
+  }, [deleteConfirmed, handleDeleteSubmit])
 
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setRacesFilter(listFilter))
@@ -212,8 +212,8 @@ const RaceList: FC<RaceListProps> = ({
           headers: tableColumns.headers,
         }}
         clickable={true}
-        onClick={(race) => showCard(race)}
-        deleteRow={(race) => onDelete(race)}
+        onClick={(race) => handleShowDetail(race)}
+        deleteRow={(race) => handleDelete(race)}
         empty='---'
       />
     </Container>

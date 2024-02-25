@@ -25,6 +25,7 @@ import ItemForm from './features/items/ItemForm'
 import Feat from './features/feats/Feat'
 import FeatList from './features/feats/FeatList'
 import FeatForm from './features/feats/FeatForm'
+import Create from './components/Create/Create'
 
 const App = () => {
   const [theme] = useState('light')
@@ -124,14 +125,14 @@ const App = () => {
       {background && (
         <Routes>
           <Route element={<Modal />}>
-            <Route path='/register' element={<SignIn context={'register'} />} />
-            <Route path='/login' element={<SignIn context={'login'} />} />
+            <Route path='/:context' element={<SignIn />} />
             <Route path='/spells/:id' element={<Spell />} />
             <Route path='/feats/:id' element={<Feat />} />
             <Route path='/items/:id' element={<Item />} />
             <Route path='/races/:id' element={<Race />} />
             <Route path='/classes/:id' element={<Class />} />
             <Route path='/delete/:id' element={<Delete />} />
+            <Route path='/:context/create' element={<Create />} />
           </Route>
         </Routes>
       )}

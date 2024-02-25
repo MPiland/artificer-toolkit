@@ -60,7 +60,7 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
 
   const tableWindow = document.getElementById('list_table')
 
-  const showCard = (userClass: any) => {
+  const handleShowDetail = (userClass: any) => {
     navigate(`/classes/${userClass.name}`, {
       state: {
         background: location,
@@ -73,7 +73,7 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
     })
   }
 
-  const onDelete = (userClass: any) => {
+  const handleDelete = (userClass: any) => {
     navigate(`/delete/${userClass.name}`, {
       state: {
         background: location,
@@ -85,7 +85,7 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
     })
   }
 
-  const onDeleteSubmit = useCallback(async () => {
+  const handleDeleteSubmit = useCallback(async () => {
     try {
       await deleteClass({ id: classToDelete._id })
       setListFilter({ type: 'reset', target: { value: {} } })
@@ -98,9 +98,9 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
 
   useEffect(() => {
     if (deleteConfirmed) {
-      onDeleteSubmit()
+      handleDeleteSubmit()
     }
-  }, [deleteConfirmed, onDeleteSubmit])
+  }, [deleteConfirmed, handleDeleteSubmit])
 
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setClassesFilter(listFilter))
@@ -214,8 +214,8 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
           },
         }}
         clickable={true}
-        onClick={(userClass: any) => showCard(userClass)}
-        deleteRow={(userClass: any) => onDelete(userClass)}
+        onClick={(userClass: any) => handleShowDetail(userClass)}
+        deleteRow={(userClass: any) => handleDelete(userClass)}
         empty='---'
       />
     </Container>

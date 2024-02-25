@@ -1,11 +1,11 @@
-import { useState, useReducer, FC } from 'react'
+import { useState, useReducer } from 'react'
 import {
   useLoginMutation,
   useGoogleLoginMutation,
   useRegisterMutation,
 } from './authApiSlice'
 import usePersist from '../../hooks/usePersist'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
 import { handleValidation } from '../../utils/form'
 import Input from '../../components/Input/Input'
@@ -18,19 +18,18 @@ import Group from '../../components/Group/Group'
 import { submit_button } from '../../css/Form.css'
 import { sprinkles } from '../../css/sprinkles.css'
 import Modal from '../../components/Modal/Modal'
+import { startCase } from 'lodash'
 
-interface SignInProps {
-  context: string
-}
+const SignIn = () => {
+  const { context } = useParams()
+  const navigate = useNavigate()
 
-const SignIn: FC<SignInProps> = ({ context }) => {
-  const formContext = context === 'login' ? 'Login' : 'Register'
+  const formContext = startCase(context)
+
   const [login, { isLoading: loginIsLoading }] = useLoginMutation()
   const [register, { isLoading: registerIsLoading }] = useRegisterMutation()
 
   const [googleLogin, { isLoading: googleIsLoading }] = useGoogleLoginMutation()
-
-  const navigate = useNavigate()
 
   const [state, setState] = useReducer(formReducer, {})
   const [showPassword, setShowPassword] = useState(false)
@@ -191,7 +190,7 @@ const SignIn: FC<SignInProps> = ({ context }) => {
             disabled={true}
             onClick={onGoogleLoginClicked}
           >
-            <FaGoogle />{' '}
+            <FaGoogle />
             <span className={sprinkles({ ms: 'size-1' })}>
               {formContext} with Google
             </span>
@@ -202,7 +201,7 @@ const SignIn: FC<SignInProps> = ({ context }) => {
             className={submit_button}
             disabled={true}
           >
-            <FaFacebook />{' '}
+            <FaFacebook />
             <span className={sprinkles({ ms: 'size-1' })}>
               {formContext} with Facebook
             </span>
@@ -213,7 +212,7 @@ const SignIn: FC<SignInProps> = ({ context }) => {
             className={submit_button}
             disabled={true}
           >
-            <FaTwitch />{' '}
+            <FaTwitch />
             <span className={sprinkles({ ms: 'size-1' })}>
               {formContext} with Twitch
             </span>

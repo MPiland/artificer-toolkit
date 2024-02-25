@@ -25,6 +25,7 @@ import ScrollArea from '../ScrollArea/ScrollArea'
 import { getSectionNames } from './FormUtils'
 import Group from '../Group/Group'
 import { startCase, isEqual } from 'lodash'
+import { sprinkles } from '../../css/sprinkles.css'
 
 interface FeatureFormProps {
   state: any
@@ -480,7 +481,10 @@ const FeatureForm: FC<FeatureFormProps> = ({
                             {sectionNames.map(
                               (sectionName: string, sectionIndex: number) => {
                                 return (
-                                  <span key={sectionIndex}>
+                                  <span
+                                    key={sectionIndex}
+                                    className={sprinkles({ me: 'size-2' })}
+                                  >
                                     {featureItem[sectionName]?.length > 0 ? (
                                       <strong>
                                         {startCase(sectionName.charAt(0))}:{' '}
