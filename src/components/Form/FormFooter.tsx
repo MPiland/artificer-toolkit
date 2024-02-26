@@ -1,4 +1,3 @@
-import { FC } from 'react'
 import { form_footer } from './Form.css'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
@@ -12,14 +11,14 @@ interface FormFooterProps {
   handleUpdate?: () => void
 }
 
-const FormFooter: FC<FormFooterProps> = ({
+const FormFooter = ({
   handleBack,
   backLabel,
   handleForward,
   forwardLabel,
   handleReset,
   handleUpdate,
-}) => {
+}: FormFooterProps) => {
   return (
     <Group className={form_footer} justifyContentVariant={'spaceBetween'}>
       <Group>
@@ -38,7 +37,11 @@ const FormFooter: FC<FormFooterProps> = ({
             Update
           </Button>
         )}
-        <Button variant='primary' type='button' onClick={handleForward}>
+        <Button
+          variant={forwardLabel === 'Update' ? 'update' : 'primary'}
+          type='button'
+          onClick={handleForward}
+        >
           {forwardLabel}
         </Button>
       </Group>

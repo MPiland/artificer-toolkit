@@ -17,7 +17,7 @@ import {
   setSpellsFilter,
   clearSpellsFilter,
 } from './spellsSlice'
-import { clearConfirm } from '../../app/deleteSlice'
+import { clearConfirm } from '../../app/modalSlice'
 import { RootState } from '../../app/store'
 import Collapse from '../../components/Collapse/Collapse'
 import { ReducerActionType, DropdownOption } from '../../utils/types'
@@ -38,8 +38,12 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
   const dispatch = useDispatch()
   const isLoading = useIsLoading()
 
-  const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
-  const spellToDelete = useSelector((state: RootState) => state.delete.data)
+  const deleteConfirmed = useSelector(
+    (state: RootState) => state.modal.delete.status
+  )
+  const spellToDelete = useSelector(
+    (state: RootState) => state.modal.delete.data
+  )
 
   const { spells } = useGetSpellsQuery(undefined, {
     selectFromResult: ({ data }) => ({
@@ -66,7 +70,14 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
   const table = document.getElementById('list-table')
 
   const handleCreate = () => {
-    navigate('/spells/create')
+    navigate('/create/spell', {
+      state: {
+        background: location,
+        context: 'spell',
+        form: 'spells',
+        data: spells,
+      },
+    })
   }
 
   const handleShowDetail = (spell: any) => {
@@ -88,7 +99,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
         background: location,
         title: spell.value,
         data: spell,
-        size: 'md',
+        size: 'sm',
         context: 'delete',
       },
     })
@@ -260,7 +271,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           options={spells?.map<DropdownOption>((item: any) => ({
             value: item?.level,
             name: null,
-            _id: null,
+            id: null,
           }))}
           value={listFilter?.level}
           onChange={(e) => onFilterChange(e)}

@@ -46,26 +46,16 @@ export const header_item_group = style({
 export const header_item = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      flexDirection: 'column',
       textAlign: 'start',
-      padding: `${size['size-1']} ${size['size-2']}`,
-      cursor: 'pointer',
       fontSize: fontSize['font-size-1'],
-      height: '100%',
-      justifyContent: 'center',
       textDecoration: 'none',
-      backgroundSize: '200% 100%',
 
       selectors: {
-        '&:hover': {
-          backgroundColor: palette['gray-3'],
-        },
         [`${sidebar_item_group} &`]: {
           height: 'auto',
         },
-        '&:last-of-type': {
-          paddingRight: size['size-5'],
+        '&:visited': {
+          color: theme.vars['app-color'],
         },
       },
     },
@@ -77,10 +67,22 @@ export const header_nav_item = style({
     [app]: {
       textDecoration: 'none',
       fontSize: 'inherit',
+      padding: `${size['size-1']} ${size['size-2']}`,
+      cursor: 'pointer',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
 
       selectors: {
         '&:visited': {
           color: theme.vars['app-color'],
+        },
+        '&:last-of-type': {
+          paddingRight: size['size-5'],
+        },
+        '&:hover': {
+          backgroundColor: palette['gray-3'],
         },
       },
     },

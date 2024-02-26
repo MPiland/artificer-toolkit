@@ -6,7 +6,7 @@ import {
   useGetItemsQuery,
 } from './itemsApiSlice'
 import { useDispatch, useSelector } from 'react-redux'
-import { clearConfirm } from '../../app/deleteSlice'
+import { clearConfirm } from '../../app/modalSlice'
 import {
   selectItemsFilter,
   setItemsFilter,
@@ -48,8 +48,8 @@ const ItemList = ({ scrollPosition }: { scrollPosition: number }) => {
 
   const filtersState = useSelector(selectItemsFilter)
 
-  const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
-  const itemToDelete = useSelector((state: RootState) => state.delete.data)
+  const deleteConfirmed = useSelector((state: RootState) => state.modal.delete.status)
+  const itemToDelete = useSelector((state: RootState) => state.modal.delete.data)
 
   const [deleteItem] = useDeleteItemMutation()
 

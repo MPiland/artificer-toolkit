@@ -65,15 +65,9 @@ export const dropdown_container = style({
       paddingLeft: '.75rem',
       overflow: 'hidden',
       cursor: 'pointer',
-    },
-  },
-})
 
-export const invalid = style({
-  '@layer': {
-    [app]: {
       selectors: {
-        [`${dropdown_container} &`]: {
+        '&.invalid': {
           borderColor: theme.vars.input['input-error-color'],
         },
       },
@@ -113,9 +107,6 @@ export const dropdown_input = style({
       whiteSpace: 'nowrap',
 
       selectors: {
-        [`${invalid} &`]: {
-          color: theme.vars.input['input-error-color'],
-        },
         [`${dropdown_container}:has(${dropdown_right_section}) > &`]: {
           paddingRight: '2rem',
         },
@@ -131,7 +122,6 @@ export const dropdown_menu = style({
       flexDirection: 'column',
       maxHeight: '10rem',
       borderRadius: theme['default-border-radius'],
-      overflowY: 'auto',
       zIndex: 1000,
       backgroundColor: theme.vars['app-background-color'],
       color: theme.vars['app-color'],
@@ -139,6 +129,7 @@ export const dropdown_menu = style({
       listStyle: 'none',
       padding: '.25rem',
       border: theme.vars['app-border-line-style'],
+      height: '100%',
     },
   },
 })
@@ -184,6 +175,15 @@ export const dropdown_active_option = style({
       textOverflow: 'ellipsis',
       padding: '.125rem .5rem',
       whiteSpace: 'nowrap',
+    },
+  },
+})
+
+export const dropdown_error_message = style({
+  '@layer': {
+    [app]: {
+      color: theme.vars.input['input-error-color'],
+      fontSize: 'small',
     },
   },
 })

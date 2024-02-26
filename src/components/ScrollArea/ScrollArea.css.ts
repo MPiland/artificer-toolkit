@@ -11,6 +11,7 @@ export const scroll_area_base = style({
       height: '100%',
       scrollbarWidth: 'none',
       msOverflowStyle: 'none',
+      position: 'relative',
 
       selectors: {
         '&::webkit-scrollbar': {

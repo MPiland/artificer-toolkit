@@ -1,4 +1,4 @@
-import { useReducer, FC, useEffect, useState } from 'react'
+import { useReducer, useEffect, useState } from 'react'
 import formReducer from '../../hooks/useReducer'
 import Form from '../../components/Form/Form'
 import {
@@ -8,23 +8,19 @@ import {
   selectItemById,
 } from './itemsApiSlice'
 import { isEqual } from 'lodash'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import Spinner from '../../components/Spinner/Spinner'
-import { Steps } from '../../utils/types'
+import { FormContext, Steps } from '../../utils/types'
 
-interface ItemFormProps {
-  context: 'create' | 'edit'
-}
-
-const ItemForm: FC<ItemFormProps> = ({ context }) => {
+const ItemForm = () => {
+  const { context } = useParams()
   const location = useLocation()
 
   const id = location.state?.data
 
-  const { item, isFetching } = useGetItemsQuery('itemsList', {
-    selectFromResult: ({ data, isFetching }) => ({
+  const { item } = useGetItemsQuery('itemsList', {
+    selectFromResult: ({ data }) => ({
       item: data && selectItemById(data, id),
-      isFetching,
     }),
   })
 
@@ -46,6 +42,9 @@ const ItemForm: FC<ItemFormProps> = ({ context }) => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [match, setMatch] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(
+    (context === 'new' && id) ?? false
+  )
 
   useEffect(() => {
     if (
@@ -71,6 +70,20 @@ const ItemForm: FC<ItemFormProps> = ({ context }) => {
       })
     }
   })
+
+  useEffect(() => {
+    if (state && state?.value !== '' && isLoading) {
+      setState({ target: { name: 'value', value: '' } })
+      setOldState(state)
+    }
+    setIsLoading(false)
+  }, [state, state?.value, isLoading])
+
+  useEffect(() => {
+    if (item && !oldState) {
+      setOldState(item)
+    }
+  }, [oldState, item])
 
   useEffect(() => {
     if (addIsSuccess || updateIsSuccess) {
@@ -122,15 +135,6 @@ const ItemForm: FC<ItemFormProps> = ({ context }) => {
     await addNewItem(state)
   }
 
-  const onUpdate = async () => {
-    if (match) {
-      setErrorMessage('No changes made')
-    } else {
-      await updateItem(state)
-      setOldState(state)
-    }
-  }
-
   const steps: Steps = ['Details', 'Attributes', 'Features']
 
   useEffect(() => {
@@ -143,18 +147,19 @@ const ItemForm: FC<ItemFormProps> = ({ context }) => {
     }
   })
 
-  return isFetching ? (
+  return isLoading || !state ? (
     <Spinner />
   ) : (
     <Form
-      context={{ type: context, title: 'item' }}
+      context={{ type: context as FormContext, title: 'item' }}
       handleSubmit={onSubmit}
-      handleUpdate={onUpdate}
+      update={updateItem}
       steps={steps}
       state={state}
       setState={setState}
       errorMessage={errorMessage}
       successMessage={successMessage}
+      setErrorMessage={setErrorMessage}
     />
   )
 }

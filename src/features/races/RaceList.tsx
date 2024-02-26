@@ -11,7 +11,7 @@ import {
   clearRacesFilter,
   setRacesFilter,
 } from './racesSlice'
-import { clearConfirm } from '../../app/deleteSlice'
+import { clearConfirm } from '../../app/modalSlice'
 import { RootState } from '../../app/store'
 import Spinner from '../../components/Spinner/Spinner'
 import { useMediaQuery } from 'usehooks-ts'
@@ -41,8 +41,8 @@ const RaceList: FC<RaceListProps> = ({
   const dispatch = useDispatch()
   const isLoading = useIsLoading()
 
-  const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
-  const raceToDelete = useSelector((state: RootState) => state.delete.data)
+  const deleteConfirmed = useSelector((state: RootState) => state.modal.delete.status)
+  const raceToDelete = useSelector((state: RootState) => state.modal.delete.data)
 
   const { races } = useGetRacesQuery(undefined, {
     selectFromResult: ({ data }) => ({

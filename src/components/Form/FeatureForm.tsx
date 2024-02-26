@@ -1,17 +1,14 @@
-import { FC, useState, useReducer, useEffect, useCallback } from 'react'
-import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
-import { SerializedError } from '@reduxjs/toolkit'
+import { useState } from 'react'
 import parse from 'html-react-parser'
 import Button from '../Button/Button'
-import FormFooter from './FormFooter'
-import { useNavigate } from 'react-router-dom'
 import FeatureContent from './FeatureContent'
 import SectionContent from './SectionContent'
 import {
   ReducerActionType,
-  FormContext,
-  StepName,
+  FeatureContext,
+  FeatureStepName,
   SectionName,
+  FormContext,
 } from '../../utils/types'
 import {
   feature_description,
@@ -19,71 +16,77 @@ import {
   form_content,
   form_header,
 } from './Form.css'
-import formReducer from '../../hooks/useReducer'
 import Accordion from '../Accordion/Accordion'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { getSectionNames } from './FormUtils'
 import Group from '../Group/Group'
-import { startCase, isEqual } from 'lodash'
+import { startCase } from 'lodash'
 import { sprinkles } from '../../css/sprinkles.css'
+import { validate } from '../../utils/formValidation'
 
 interface FeatureFormProps {
-  state: any
-  isFirstStep: boolean
-  isLastStep: boolean
-  setStepIndex: (arg: (i: number) => number) => void
   context: {
-    type: 'edit' | 'create'
+    type: FormContext
     title: string
   }
-  setState: (arg: ReducerActionType) => void
-  handleSubmit: () => Promise<void>
-  update: (
-    arg: any
-  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
-  setErrorMessage: (arg: string) => void
+  isLastStep?: boolean
+  formState: any
+  setFormState: (arg: ReducerActionType) => void
+  handleRemove: (arg: string) => void
+  handleReset: () => void
+  handleForward: () => void
+  handleBack: () => void
+  handleUpdate: () => void
+  featureState: any
+  setFeatureState: (arg: ReducerActionType) => void
+  featureIndex: number
+  setFeatureIndex: (arg: number) => void
+  optionState: any
+  setOptionState: (arg: ReducerActionType) => void
+  optionIndex: number
+  setOptionIndex: (arg: number) => void
+  sectionState: any
+  setSectionState: (arg: ReducerActionType) => void
+  sectionIndex: number
+  setSectionIndex: (arg: number) => void
+  sectionName: SectionName
+  setSectionName: (arg: SectionName) => void
+  featureContext: FeatureContext
+  setFeatureContext: (arg: FeatureContext) => void
+  featureStepName: FeatureStepName
+  setFeatureStepName: (arg: FeatureStepName) => void
 }
 
-const FeatureForm: FC<FeatureFormProps> = ({
-  state,
-  isLastStep,
-  isFirstStep,
-  setStepIndex,
+const FeatureForm = ({
   context,
-  setState,
-  handleSubmit,
-  update,
-  setErrorMessage,
-}) => {
-  const navigate = useNavigate()
-
-  const [formState, setFormState] = useReducer(formReducer, state)
-  const [oldFormState, setOldFormState] = useState<any>(state)
-  const [matches, setMatches] = useState<boolean>(false)
-  const [featureState, setFeatureState] = useReducer(
-    formReducer,
-    context.title === 'feat' ? state : {}
+  formState,
+  setFormState,
+  handleRemove,
+  handleForward,
+  handleBack,
+  handleUpdate,
+  featureState,
+  setFeatureState,
+  featureIndex,
+  setFeatureIndex,
+  optionState,
+  setOptionState,
+  optionIndex,
+  setOptionIndex,
+  sectionState,
+  setSectionState,
+  sectionIndex,
+  setSectionIndex,
+  sectionName,
+  setSectionName,
+  featureContext,
+  setFeatureContext,
+  featureStepName,
+  setFeatureStepName,
+}: FeatureFormProps) => {
+  const [activeIndex, setActiveIndex] = useState<number | null>(
+    context.type !== 'new' ? null : 0
   )
-  const [featureIndex, setFeatureIndex] = useState<number>(0)
-  const [optionState, setOptionState] = useReducer(formReducer, {})
-  const [optionIndex, setOptionIndex] = useState<number>(0)
-  const [sectionState, setSectionState] = useReducer(formReducer, {})
-  const [sectionIndex, setSectionIndex] = useState<number>(0)
-  const [formContext, setFormContext] = useState<FormContext>('')
-  const [stepName, setStepName] = useState<StepName>(
-    context.title === 'feat' ? 'FeatureContent' : ''
-  )
-  const [sectionName, setSectionName] = useState<SectionName>('')
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
-
-  //Determine if changes made for warning in handleBack
-  useEffect(() => {
-    if (isEqual(formState, oldFormState)) {
-      setMatches(true)
-    } else {
-      setMatches(false)
-    }
-  }, [formState, oldFormState])
 
   const toggle = (index: number) => {
     if (activeIndex === index) {
@@ -92,28 +95,11 @@ const FeatureForm: FC<FeatureFormProps> = ({
     setActiveIndex(index)
   }
 
-  const handleReset = () => {
-    return setFormState({
-      type: 'reset',
-      target: { value: oldFormState },
-    })
-    setMatches(true)
-  }
-
   const handleAdd = () => {
     if (formState.feature?.length > 0) {
       setFeatureIndex(formState.feature.length)
     }
-    setStepName('FeatureContent')
-  }
-
-  const handleRemove = (featureIndex: number) => {
-    setFormState({
-      type: 'removed',
-      target: {
-        name: `feature.${featureIndex}`,
-      },
-    })
+    setFeatureStepName('FeatureContent')
   }
 
   const handleEdit = (featureIndexProp: number) => {
@@ -123,20 +109,134 @@ const FeatureForm: FC<FeatureFormProps> = ({
       type: 'reset',
       target: { value: featureStateProp },
     })
-    setStepName('FeatureContent')
+    setFeatureStepName('FeatureContent')
   }
 
-  const handleForward = () => {
-    if (stepName === 'SectionContent') {
-      if (formContext === 'OptionContent') {
+  const handleFeatureForward = async () => {
+    const isValid = validate()
+    {
+      if (isValid)
+        if (featureStepName === 'SectionContent') {
+          if (featureContext === 'OptionContent') {
+            setOptionState({
+              target: {
+                name: `${sectionName}.${sectionIndex}`,
+                value: sectionState,
+              },
+            })
+          } else {
+            if (context.title === 'feat') {
+              setFormState({
+                target: {
+                  name: `${sectionName}.${sectionIndex}`,
+                  value: sectionState,
+                },
+              })
+            } else {
+              setFeatureState({
+                target: {
+                  name: `${sectionName}.${sectionIndex}`,
+                  value: sectionState,
+                },
+              })
+            }
+          }
+          setSectionState({
+            type: 'reset',
+            target: {
+              value: {},
+            },
+          })
+          return setFeatureStepName('FeatureContent')
+        }
+      if (featureContext === 'OptionContent') {
+        if (context.title === 'feat') {
+          setFormState({
+            target: {
+              name: `option.${optionIndex}`,
+              value: optionState,
+            },
+          })
+        } else {
+          setFeatureState({
+            target: {
+              name: `option.${optionIndex}`,
+              value: optionState,
+            },
+          })
+        }
         setOptionState({
+          type: 'reset',
           target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
+            value: {},
           },
         })
-      } else {
+        setFeatureContext('')
+        return setFeatureStepName('FeatureContent')
+      }
+      if (featureStepName === 'FeatureContent') {
         if (context.title === 'feat') {
+          setFormState({
+            type: 'reset',
+            target: { value: formState },
+          })
+        }
+        setFormState({
+          target: {
+            name: `feature.${featureIndex}`,
+            value: featureState,
+          },
+        })
+        setFeatureState({
+          type: 'reset',
+          target: {
+            value: {},
+          },
+        })
+        return setFeatureStepName('')
+      }
+      handleForward()
+    }
+  }
+
+  const handleFeatureBack = () => {
+    if (featureStepName === 'SectionContent') {
+      setSectionState({
+        type: 'reset',
+        target: { value: {} },
+      })
+      return setFeatureStepName('FeatureContent')
+    }
+    if (featureStepName === 'FeatureContent') {
+      if (featureContext === 'OptionContent') {
+        setOptionState({
+          type: 'reset',
+          target: { value: {} },
+        })
+        setFeatureContext('')
+        return setFeatureStepName('FeatureContent')
+      }
+      setFeatureState({
+        type: 'reset',
+        target: { value: {} },
+      })
+      return setFeatureStepName('')
+    }
+    handleBack()
+  }
+
+  const handleFeatureUpdate = async () => {
+    const isValid = validate()
+    if (isValid) {
+      if (featureStepName === 'SectionContent') {
+        if (featureContext === 'OptionContent') {
+          setOptionState({
+            target: {
+              name: `${sectionName}.${sectionIndex}`,
+              value: sectionState,
+            },
+          })
+        } else if (context.title === 'feat') {
           setFormState({
             target: {
               name: `${sectionName}.${sectionIndex}`,
@@ -152,271 +252,126 @@ const FeatureForm: FC<FeatureFormProps> = ({
           })
         }
       }
-      setSectionState({
-        type: 'reset',
-        target: {
-          value: {},
-        },
-      })
-      return setStepName('FeatureContent')
-    }
-    if (formContext === 'OptionContent') {
-      if (context.title === 'feat') {
-        setFormState({
-          target: {
-            name: `option.${optionIndex}`,
-            value: optionState,
-          },
-        })
-      } else {
-        setFeatureState({
-          target: {
-            name: `option.${optionIndex}`,
-            value: optionState,
-          },
-        })
+      if (featureContext === 'OptionContent') {
+        if (context.title === 'feat') {
+          setFormState({
+            target: {
+              name: `option.${optionIndex}`,
+              value: optionState,
+            },
+          })
+        } else {
+          setFeatureState({
+            target: {
+              name: `option.${optionIndex}`,
+              value: optionState,
+            },
+          })
+        }
       }
-      setOptionState({
-        type: 'reset',
-        target: {
-          value: {},
-        },
-      })
-      setFormContext('')
-      return setStepName('FeatureContent')
-    }
-    if (stepName === 'FeatureContent') {
-      if (context.title === 'feat') {
-        setState({
-          target: { value: formState },
-        })
-        return handleSubmit()
+      if (featureStepName === 'FeatureContent') {
+        if (context.title === 'feat') {
+          return setFormState({
+            type: 'reset',
+            target: { value: formState },
+          })
+        } else {
+          return setFormState({
+            target: {
+              name: `feature.${featureIndex}`,
+              value: featureState,
+            },
+          })
+        }
       }
-      setFormState({
-        target: {
-          name: `feature.${featureIndex}`,
-          value: featureState,
-        },
-      })
-      setFeatureState({
-        type: 'reset',
-        target: {
-          value: {},
-        },
-      })
-      return setStepName('')
+      handleUpdate()
     }
-    setState({
-      target: { value: formState },
-    })
-    if (!isLastStep) {
-      return setStepIndex((i: number) => {
-        return i + 1
-      })
-    }
-    handleSubmit()
   }
-
-  const handleBack = () => {
-    if (stepName === '' && matches) {
-      console.log('matches, alert')
-    }
-    if (isFirstStep) {
-      return navigate(-1)
-    }
-    if (stepName === 'SectionContent') {
-      setSectionState({
-        type: 'reset',
-        target: { value: {} },
-      })
-      return setStepName('FeatureContent')
-    }
-    if (formContext === 'OptionContent' && stepName === 'FeatureContent') {
-      setOptionState({
-        type: 'reset',
-        target: { value: {} },
-      })
-      setFormContext('')
-      return setStepName('FeatureContent')
-    }
-    if (stepName === 'FeatureContent') {
-      setFeatureState({
-        type: 'reset',
-        target: { value: {} },
-      })
-      return setStepName('')
-    }
-    setStepIndex((i: number) => {
-      if (i <= 0) {
-        return i
-      } else {
-        return i - 1
-      }
-    })
-  }
-
-  const handleUpdate = useCallback(() => {
-    if (matches) {
-      return setErrorMessage('No changes made')
-    }
-    if (stepName === 'SectionContent') {
-      if (formContext === 'OptionContent') {
-        setOptionState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
-        })
-      } else if (context.title === 'feat') {
-        setFormState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
-        })
-      } else {
-        setFeatureState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
-        })
-      }
-    }
-    if (formContext === 'OptionContent') {
-      if (context.title === 'feat') {
-        setFormState({
-          target: {
-            name: `option.${optionIndex}`,
-            value: optionState,
-          },
-        })
-      } else {
-        setFeatureState({
-          target: {
-            name: `option.${optionIndex}`,
-            value: optionState,
-          },
-        })
-      }
-    }
-    if (stepName === 'FeatureContent') {
-      if (context.title === 'feat') {
-        setState({
-          target: { value: formState },
-        })
-      } else {
-        setFormState({
-          target: {
-            name: `feature.${featureIndex}`,
-            value: featureState,
-          },
-        })
-        return setState({
-          target: {
-            name: `feature.${featureIndex}`,
-            value: featureState,
-          },
-        })
-      }
-    }
-    setState({
-      type: 'reset',
-      target: { value: formState },
-    })
-    update(formState)
-    setOldFormState(formState)
-  }, [
-    context.title,
-    featureState,
-    optionState,
-    featureIndex,
-    formContext,
-    formState,
-    sectionState,
-    optionIndex,
-    sectionIndex,
-    sectionName,
-    stepName,
-    setState,
-    update,
-    matches,
-    setErrorMessage,
-  ])
 
   const sectionNames = getSectionNames()
 
   const component = () => {
-    if (stepName === 'FeatureContent') {
+    if (featureStepName === 'FeatureContent') {
       if (context.title === 'feat') {
         return (
           <FeatureContent
-            state={state}
+            state={formState}
             context={context}
             setSectionName={setSectionName}
-            setStepName={setStepName}
-            formContext={formContext}
-            setFormContext={setFormContext}
-            featureState={state}
-            setFeatureState={setState}
+            setFeatureStepName={setFeatureStepName}
+            featureContext={featureContext}
+            setFeatureContext={setFeatureContext}
+            featureState={formState}
+            setFeatureState={setFormState}
             setOptionIndex={setOptionIndex}
             setSectionState={setSectionState}
             setOptionState={setOptionState}
-            handleForward={handleForward}
-            handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
+            handleFeatureBack={handleFeatureBack}
+            handleFeatureForward={handleFeatureForward}
+            handleFeatureUpdate={
+              context.type === 'edit' ? handleFeatureUpdate : undefined
+            }
           />
         )
       }
-      if (formContext !== 'OptionContent') {
+      if (featureContext !== 'OptionContent') {
         return (
           <FeatureContent
-            state={state}
+            state={formState}
             context={context}
             setSectionName={setSectionName}
-            setStepName={setStepName}
-            formContext={formContext}
-            setFormContext={setFormContext}
+            setFeatureStepName={setFeatureStepName}
+            featureContext={featureContext}
+            setFeatureContext={setFeatureContext}
             featureState={featureState}
             setFeatureState={setFeatureState}
             setOptionIndex={setOptionIndex}
             setSectionState={setSectionState}
             setOptionState={setOptionState}
-            handleForward={handleForward}
-            handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
+            handleFeatureBack={handleFeatureBack}
+            handleFeatureForward={handleFeatureForward}
+            handleFeatureUpdate={
+              context.type === 'edit' ? handleFeatureUpdate : undefined
+            }
           />
         )
       }
       return (
         <FeatureContent
-          state={state}
+          state={formState}
           context={{ type: context.type, title: 'option' }}
           setSectionName={setSectionName}
-          setStepName={setStepName}
-          formContext={formContext}
-          setFormContext={setFormContext}
+          setFeatureStepName={setFeatureStepName}
+          featureContext={featureContext}
+          setFeatureContext={setFeatureContext}
           featureState={optionState}
           setFeatureState={setOptionState}
           setSectionState={setSectionState}
-          handleForward={handleForward}
-          handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
+          handleFeatureBack={handleFeatureBack}
+          handleFeatureForward={handleFeatureForward}
+          handleFeatureUpdate={
+            context.type === 'edit' ? handleFeatureUpdate : undefined
+          }
         />
       )
     }
-    if (stepName === 'SectionContent') {
+    if (featureStepName === 'SectionContent') {
       return (
         <SectionContent
-          state={state}
+          state={formState}
           sectionName={sectionName}
           featureState={
-            formContext === 'OptionContent' ? optionState : featureState
+            featureContext === 'OptionContent' ? optionState : featureState
           }
           setSectionState={setSectionState}
           setSectionIndex={setSectionIndex}
           sectionState={sectionState}
           sectionIndex={sectionIndex}
-          handleForward={handleForward}
-          handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
-          setStepName={setStepName}
+          handleFeatureBack={handleFeatureBack}
+          handleFeatureForward={handleFeatureForward}
+          handleFeatureUpdate={
+            context.type === 'edit' ? handleFeatureUpdate : undefined
+          }
         />
       )
     }
@@ -425,104 +380,88 @@ const FeatureForm: FC<FeatureFormProps> = ({
   return (
     <>
       <h2 className={form_header}>
-        {stepName === 'FeatureContent' ? 'Feature' : 'Features'}{' '}
+        {featureStepName === 'FeatureContent' ? 'Feature' : 'Features'}{' '}
         {featureState.value != null && `(${featureState.value})`}
-        {formContext === 'OptionContent' &&
+        {featureContext === 'OptionContent' &&
           optionState.value != null &&
           ` / Option (${optionState.value})`}
       </h2>
-      {stepName !== '' ? (
+      {featureStepName !== '' ? (
         component()
       ) : (
-        <>
-          <ScrollArea scrollDirection='vertical' className={form_content}>
-            <Button variant='primary' onClick={handleAdd}>
-              Add Feature
-            </Button>
-            {formState.feature?.length > 0 && (
-              <div className={feature_list}>
-                <Accordion
-                  dataArray={formState.feature}
-                  setState={setFormState}
-                  name='feature'
-                >
-                  {formState.feature?.map(
-                    (featureItem: any, featureIndex: number) => (
-                      <Accordion.Container
-                        key={featureIndex}
-                        itemId={featureItem.id}
+        <ScrollArea scrollDirection='vertical' className={form_content}>
+          <Button variant='primary' onClick={handleAdd}>
+            Add Feature
+          </Button>
+          {formState.feature?.length > 0 && (
+            <div className={feature_list}>
+              <Accordion
+                dataArray={formState.feature}
+                setState={setFormState}
+                name='feature'
+              >
+                {formState.feature?.map(
+                  (featureItem: any, featureIndex: number) => (
+                    <Accordion.Container
+                      key={featureIndex}
+                      itemId={featureItem.id}
+                    >
+                      <Accordion.Header
+                        handleClick={() => toggle(featureIndex)}
+                        handleRemove={() =>
+                          handleRemove(`feature.${featureIndex}`)
+                        }
+                        handleEdit={() => handleEdit(featureIndex)}
+                        active={
+                          !featureItem.desc
+                            ? null
+                            : activeIndex === featureIndex
+                        }
                       >
-                        <Accordion.Header
-                          handleClick={() => toggle(featureIndex)}
-                          handleRemove={() => handleRemove(featureIndex)}
-                          handleEdit={() => handleEdit(featureIndex)}
-                          active={
-                            !featureItem.desc
-                              ? null
-                              : activeIndex === featureIndex
-                          }
+                        {featureItem.value != null && featureItem.value !== ''
+                          ? featureItem.value
+                          : `Feature ${featureIndex + 1}`}
+                      </Accordion.Header>
+                      {featureItem.desc && (
+                        <Accordion.Content
+                          active={activeIndex === featureIndex}
                         >
-                          {featureItem.value != null && featureItem.value !== ''
-                            ? featureItem.value
-                            : `Feature ${featureIndex + 1}`}
-                        </Accordion.Header>
-                        {featureItem.desc && (
-                          <Accordion.Content
-                            active={activeIndex === featureIndex}
-                          >
-                            <div className={feature_description}>
-                              {featureItem.desc && parse(featureItem.desc)}
-                            </div>
-                          </Accordion.Content>
-                        )}
-                        <hr />
-                        <Accordion.Footer>
-                          <Group justifyContentVariant='start'>
-                            {sectionNames.map(
-                              (sectionName: string, sectionIndex: number) => {
-                                return (
-                                  <span
-                                    key={sectionIndex}
-                                    className={sprinkles({ me: 'size-2' })}
-                                  >
-                                    {featureItem[sectionName]?.length > 0 ? (
-                                      <strong>
-                                        {startCase(sectionName.charAt(0))}:{' '}
-                                        {featureItem[sectionName]?.length}
-                                      </strong>
-                                    ) : (
-                                      `${startCase(sectionName.charAt(0))}: 0`
-                                    )}
-                                  </span>
-                                )
-                              }
-                            )}
-                          </Group>
-                        </Accordion.Footer>
-                      </Accordion.Container>
-                    )
-                  )}
-                </Accordion>
-              </div>
-            )}
-          </ScrollArea>
-          <FormFooter
-            handleBack={handleBack}
-            forwardLabel={
-              stepName !== ''
-                ? 'Finish'
-                : isLastStep
-                ? context.type === 'edit'
-                  ? 'Add New'
-                  : 'Submit'
-                : 'Next'
-            }
-            handleReset={handleReset}
-            handleForward={handleForward}
-            backLabel={'Back'}
-            handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
-          />
-        </>
+                          <div className={feature_description}>
+                            {featureItem.desc && parse(featureItem.desc)}
+                          </div>
+                        </Accordion.Content>
+                      )}
+                      <hr />
+                      <Accordion.Footer>
+                        <Group justifyContentVariant='start'>
+                          {sectionNames.map(
+                            (sectionName: string, sectionIndex: number) => {
+                              return (
+                                <span
+                                  key={sectionIndex}
+                                  className={sprinkles({ me: 'size-2' })}
+                                >
+                                  {featureItem[sectionName]?.length > 0 ? (
+                                    <strong>
+                                      {startCase(sectionName.charAt(0))}:{' '}
+                                      {featureItem[sectionName]?.length}
+                                    </strong>
+                                  ) : (
+                                    `${startCase(sectionName.charAt(0))}: 0`
+                                  )}
+                                </span>
+                              )
+                            }
+                          )}
+                        </Group>
+                      </Accordion.Footer>
+                    </Accordion.Container>
+                  )
+                )}
+              </Accordion>
+            </div>
+          )}
+        </ScrollArea>
       )}
     </>
   )

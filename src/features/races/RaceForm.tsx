@@ -1,21 +1,19 @@
-import { useEffect, useState, FC, useReducer } from 'react'
+import { useEffect, useState, useReducer } from 'react'
 import {
   useAddNewRaceMutation,
   useUpdateRaceMutation,
   useGetRacesQuery,
   selectRaceById,
 } from './racesApiSlice'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import Form from '../../components/Form/Form'
 import { isEqual } from 'lodash'
 import formReducer from '../../hooks/useReducer'
-import { Steps } from '../../utils/types'
+import { FormContext, Steps } from '../../utils/types'
+import Spinner from '../../components/Spinner/Spinner'
 
-interface RaceFormProps {
-  context: 'create' | 'edit'
-}
-
-const RaceForm: FC<RaceFormProps> = ({ context }) => {
+const RaceForm = () => {
+  const { context } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -32,12 +30,15 @@ const RaceForm: FC<RaceFormProps> = ({ context }) => {
 
   const [state, setState] = useReducer(
     formReducer,
-    context === 'edit' ? race : {}
+    context === 'edit' || context === 'copy' ? race : {}
   )
   const [oldState, setOldState] = useState(race)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [match, setMatch] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(
+    (context === 'new' && id) ?? false
+  )
 
   const [
     addNewRace,
@@ -58,6 +59,14 @@ const RaceForm: FC<RaceFormProps> = ({ context }) => {
       })
     }
   })
+
+  useEffect(() => {
+    if (state && state?.value !== '' && isLoading) {
+      setState({ target: { name: 'value', value: '' } })
+      setOldState(state)
+    }
+    setIsLoading(false)
+  }, [state, state?.value, isLoading])
 
   useEffect(() => {
     if (race && !oldState) {
@@ -120,30 +129,21 @@ const RaceForm: FC<RaceFormProps> = ({ context }) => {
     }
   }
 
-  const handleUpdate = async () => {
-    if (match) {
-      return setErrorMessage('No changes made')
-    }
-    try {
-      await updateRace(state)
-      setOldState(state)
-    } catch (err: any) {
-      console.log(err.data.message)
-    }
-  }
-
   const steps: Steps = ['Details', 'Traits', 'Features']
 
-  return (
+  return isLoading || !state ? (
+    <Spinner />
+  ) : (
     <Form
-      context={{ type: context, title: 'race' }}
+      context={{ type: context as FormContext, title: 'race' }}
       handleSubmit={handleSubmit}
-      handleUpdate={handleUpdate}
+      update={updateRace}
       steps={steps}
       state={state}
       setState={setState}
       errorMessage={errorMessage}
       successMessage={successMessage}
+      setErrorMessage={setErrorMessage}
     />
   )
 }

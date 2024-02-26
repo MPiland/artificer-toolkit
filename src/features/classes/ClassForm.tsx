@@ -8,14 +8,12 @@ import {
   useGetClassesQuery,
   selectClassById,
 } from './classesApiSlice'
-import { useLocation } from 'react-router-dom'
-import { Steps } from '../../utils/types'
+import { useLocation, useParams } from 'react-router-dom'
+import { FormContext, Steps } from '../../utils/types'
+import Spinner from '../../components/Spinner/Spinner'
 
-interface ClassFormProps {
-  context: 'create' | 'edit'
-}
-
-const ClassForm = ({ context }: ClassFormProps) => {
+const ClassForm = () => {
+  const { context } = useParams()
   const location = useLocation()
 
   const id = location.state?.data
@@ -34,6 +32,9 @@ const ClassForm = ({ context }: ClassFormProps) => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [match, setMatch] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(
+    (context === 'new' && id) ?? false
+  )
 
   const [
     addNewClass,
@@ -53,6 +54,14 @@ const ClassForm = ({ context }: ClassFormProps) => {
       })
     }
   })
+
+  useEffect(() => {
+    if (state && state?.value !== '' && isLoading) {
+      setState({ target: { name: 'value', value: '' } })
+      setOldState(state)
+    }
+    setIsLoading(false)
+  }, [state, state?.value, isLoading])
 
   useEffect(() => {
     if (state && !oldState) {
@@ -118,9 +127,11 @@ const ClassForm = ({ context }: ClassFormProps) => {
     'Features',
   ]
 
-  return (
+  return isLoading || !state ? (
+    <Spinner />
+  ) : (
     <Form
-      context={{ type: context, title: 'class' }}
+      context={{ type: context as FormContext, title: 'class' }}
       handleSubmit={handleSubmit}
       steps={steps}
       state={state}

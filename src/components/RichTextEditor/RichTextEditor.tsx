@@ -112,7 +112,7 @@ const RichTextEditor: FC<RichTextEditorProps> = ({
 
   return (
     <>
-      <label className={editor_label}>{label}</label>
+      <span className={editor_label}>{label}</span>
       <div
         className={clsx(editor_container, { [className]: className })}
         tabIndex={-1}

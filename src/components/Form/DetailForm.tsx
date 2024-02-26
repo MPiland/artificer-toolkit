@@ -1,7 +1,9 @@
-import { FC, useEffect, useState, memo, useReducer } from 'react'
-import { ReducerActionType, DropdownOption } from '../../utils/types'
-import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
-import { SerializedError } from '@reduxjs/toolkit'
+import { useState, memo } from 'react'
+import {
+  ReducerActionType,
+  DropdownOption,
+  FormContext,
+} from '../../utils/types'
 import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import Grid from '../Grid/Grid'
@@ -15,55 +17,31 @@ import {
   selectAllRaces,
   useGetRacesQuery,
 } from '../../features/races/racesApiSlice'
-import { startCase, isEqual } from 'lodash'
+import { startCase } from 'lodash'
 import Button from '../Button/Button'
 import Accordion from '../Accordion/Accordion'
 import { sprinkles } from '../../css/sprinkles.css'
-import FormFooter from './FormFooter'
 import { form_content } from './Form.css'
-import { useNavigate } from 'react-router-dom'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import formReducer from '../../hooks/useReducer'
 import useIsLoading from '../../hooks/useIsLoading'
 import Spinner from '../Spinner/Spinner'
 
 interface DetailFormProps {
-  state: any
-  setState: (arg: ReducerActionType) => void
   context: {
-    type: 'edit' | 'create'
+    type: FormContext
     title: string
   }
-  isLastStep?: boolean
-  isFirstStep?: boolean
-  setStepIndex: (arg: (i: number) => number) => void
-  handleSubmit: () => Promise<void>
-  update: (
-    arg: any
-  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
-  setErrorMessage: (arg: string) => void
+  formState: any
+  setFormState: (arg: ReducerActionType) => void
+  handleRemove: (arg: string) => void
 }
 
-const DetailForm: FC<DetailFormProps> = memo(
-  ({
-    state,
-    setState,
-    context,
-    isLastStep,
-    isFirstStep,
-    setStepIndex,
-    handleSubmit,
-    update,
-    setErrorMessage,
-  }) => {
-    const [formState, setFormState] = useReducer(formReducer, state)
-    const [oldFormState, setOldFormState] = useState<any>(state)
-    const [matches, setMatches] = useState<boolean>(false)
+const DetailForm = memo(
+  ({ context, formState, setFormState, handleRemove }: DetailFormProps) => {
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(
-      context.type === 'edit' ? null : 0
+      context.type !== 'new' ? null : 0
     )
 
-    const navigate = useNavigate()
     const isLoading = useIsLoading()
 
     const { data: builders } = useGetBuildersQuery(undefined)
@@ -80,15 +58,6 @@ const DetailForm: FC<DetailFormProps> = memo(
       }),
     })
 
-    //Determine if changes made for warning in handleBack
-    useEffect(() => {
-      if (isEqual(formState, oldFormState)) {
-        setMatches(true)
-      } else {
-        setMatches(false)
-      }
-    }, [formState, oldFormState])
-
     const toggle = (index: number) => {
       if (activeDetailIndex === index) {
         return setActiveDetailIndex(null)
@@ -96,351 +65,108 @@ const DetailForm: FC<DetailFormProps> = memo(
       setActiveDetailIndex(index)
     }
 
-    const handleReset = () => {
-      setFormState({
-        type: 'reset',
-        target: { value: oldFormState },
-      })
-    }
-
-    const handleForward = () => {
-      setState({
-        type: 'reset',
-        target: {
-          value: formState,
-        },
-      })
-      if (!isLastStep) {
-        return setStepIndex((i: number) => {
-          return i + 1
-        })
-      }
-      handleSubmit()
-    }
-
-    const handleBack = () => {
-      if (!matches) {
-        console.log('changes made, alert!')
-      }
-      if (isFirstStep) {
-        return navigate(-1)
-      }
-      if (!isFirstStep) {
-        setStepIndex((i: number) => {
-          if (i <= 0) {
-            return i
-          } else {
-            return i - 1
-          }
-        })
-      }
-    }
-
-    const handleRemove = (index: number) => {
-      setFormState({ type: 'removed', target: { name: `detail.${index}` } })
-    }
-
-    const handleUpdate = async () => {
-      if (matches) {
-        setErrorMessage('No changes made')
-      } else {
-        setState({
-          type: 'reset',
-          target: { value: formState },
-        })
-        await update(formState)
-        setOldFormState(formState)
-      }
-    }
-
     return isLoading || !builders ? (
       <Spinner />
     ) : (
-      <>
-        <ScrollArea scrollDirection='vertical' className={form_content}>
-          <Grid
-            cols={{ lg: 6, md: 4, base: 2 }}
-            className={sprinkles({ mb: 'size-3' })}
-          >
-            <Input
-              name='value'
-              label={`${startCase(context.title)} Name`}
-              autoComplete='off'
-              value={formState?.value}
-              required={true}
-              onChange={setFormState}
-              autoFocus={true}
-            />
-            {context.title !== 'spell' && context.title !== 'feat' && (
-              <>
-                <Dropdown
-                  name='category'
-                  label={`${startCase(context.title)} Category`}
-                  value={formState?.category}
-                  options={builders[context.title]?.category}
-                  required={true}
-                  onChange={setFormState}
-                />
-                {context.title === 'item' && (
-                  <>
-                    <Dropdown
-                      name='property'
-                      multiSelect={true}
-                      label='Properties'
-                      value={formState?.property}
-                      options={
-                        builders.item.category.find(
-                          (category: any) =>
-                            category._id === formState.category?.id
-                        )?.property
-                      }
-                      onChange={setFormState}
-                    />
-                    <Dropdown
-                      name='rarity'
-                      label='Rarity'
-                      value={formState?.rarity}
-                      options={builders.item.rarity}
-                      required={true}
-                      onChange={setFormState}
-                    />
-                    <Input
-                      validation={'cur'}
-                      name='cost.amount'
-                      autoComplete='off'
-                      label='Cost'
-                      required={true}
-                      errorMsg='Must contain only decimal amounts'
-                      value={formState?.cost?.amount}
-                      onChange={setFormState}
-                    />
-                    <Dropdown
-                      name='cost.currency'
-                      label='Currency'
-                      value={formState?.cost?.currency}
-                      options={builders.currency}
-                      optionalKey='short'
-                      required={true}
-                      onChange={setFormState}
-                    />
-                    <Input
-                      validation={'cur'}
-                      name='weight.amount'
-                      errorMsg='Must contain only numbers'
-                      label='Item Weight'
-                      autoComplete='off'
-                      value={formState?.weight?.amount}
-                      onChange={setFormState}
-                    />
-                    <Dropdown
-                      name='weight.unit'
-                      label='UoM'
-                      value={formState?.weight?.unit}
-                      options={
-                        Object.values(builders.unit.imperial).flatMap(
-                          (item) => item
-                        ) as DropdownOption[]
-                      }
-                      optionalKey='short'
-                      onChange={setFormState}
-                    />
-                  </>
-                )}
-              </>
-            )}
-            {formState?.category?.name && (
-              <>
-                {formState?.category?.name === 'subclass' ? (
-                  <Dropdown
-                    name='parentClass'
-                    label='Parent Class'
-                    value={formState?.parentClass}
-                    options={
-                      classes?.filter(
-                        (classItem: any) =>
-                          classItem.category.name !== 'subclass'
-                      ) as unknown as DropdownOption[]
-                    }
-                    required={true}
-                    onChange={setFormState}
-                  />
-                ) : (
-                  formState.category?.name !== 'subclass' &&
-                  context.title === 'class' && (
-                    <>
-                      <Input
-                        name='hitPoint.diceCount'
-                        autoComplete='off'
-                        label='HP Dice Count'
-                        required={true}
-                        value={formState?.hitPoint?.diceCount}
-                        validation='num'
-                        errorMsg='Must contain whole numbers only'
-                        onChange={setFormState}
-                      />
-                      <Input
-                        name='hitPoint.diceValue'
-                        autoComplete='off'
-                        label='HP Dice Value'
-                        required={true}
-                        value={formState?.hitPoint?.diceValue}
-                        validation='num'
-                        errorMsg='Must contain whole numbers only'
-                        onChange={setFormState}
-                      />
-                    </>
-                  )
-                )}
-                {(formState.category?.name === 'subrace' ||
-                  formState.category?.name === 'variant') && (
-                  <Dropdown
-                    multiSelect={formState?.category.name === 'variant' && true}
-                    name='lineage'
-                    label='Race Lineage'
-                    value={formState?.lineage}
-                    options={races as unknown as DropdownOption[]}
-                    required={true}
-                    onChange={setFormState}
-                  />
-                )}
-                {(formState.category?.name === 'waterVehicle' ||
-                  formState.category?.name === 'mount') && (
-                  <>
-                    <Input
-                      validation={'cur'}
-                      name='speed.amount'
-                      errorMsg='Must contain only numbers'
-                      label='Item Speed'
-                      autoComplete='off'
-                      required={true}
-                      value={formState?.speed?.amount}
-                      onChange={setFormState}
-                    />
-                    <Dropdown
-                      name='speed.unit'
-                      label='UoM'
-                      value={formState?.speed?.unit}
-                      options={
-                        Object.values(builders.unit.imperial).flatMap(
-                          (item) => item
-                        ) as DropdownOption[]
-                      }
-                      optionalKey='short'
-                      onChange={setFormState}
-                    />
-                  </>
-                )}
-                {(formState.category?.name === 'weapon' ||
-                  formState.category?.name === 'armor') && (
-                  <Input
-                    validation={'num'}
-                    name='itemRank'
-                    errorMsg='Must contain only numbers'
-                    label='Item Rank'
-                    autoComplete='off'
-                    value={formState?.itemRank}
-                    onChange={setFormState}
-                  />
-                )}
-                {(formState.property?.some(
-                  (propertyItem: any) => propertyItem.name === 'container'
-                ) ||
-                  formState.category?.name === 'mount') && (
-                  <>
-                    <Input
-                      validation={'cur'}
-                      name='capacity.amount'
-                      errorMsg='Must contain only numbers'
-                      label='Capacity Amount'
-                      autoComplete='off'
-                      value={formState?.capacity?.amount}
-                      onChange={setFormState}
-                    />
-                    <Dropdown
-                      name='capacity.unit'
-                      label='UoM'
-                      value={formState?.capacity?.unit}
-                      options={
-                        Object.values(builders.unit.imperial).flatMap(
-                          (item) => item
-                        ) as DropdownOption[]
-                      }
-                      optionalKey='short'
-                      onChange={setFormState}
-                    />
-                  </>
-                )}
-                {formState?.property?.some(
-                  (property: any) =>
-                    property.name === 'thrown' || property.name === 'ranged'
-                ) && (
-                  <>
-                    <Input
-                      validation='num'
-                      name='minRange'
-                      errorMsg='Must contain only numbers'
-                      label='Min Range'
-                      value={formState?.minRange}
-                      required={true}
-                      onChange={setFormState}
-                    />
-                    <Input
-                      validation='num'
-                      name='maxRange'
-                      errorMsg='Must contain only numbers'
-                      label='Max Range'
-                      value={formState?.maxRange}
-                      required={true}
-                      onChange={setFormState}
-                    />
-                  </>
-                )}
-              </>
-            )}
-            {context.title === 'item' && (
-              <Input
-                validation={'num'}
-                name='quantity'
-                errorMsg='Must contain only numbers'
-                label='Quantity'
-                autoComplete='off'
-                value={formState?.quantity}
+      <ScrollArea scrollDirection='vertical' className={form_content}>
+        <Grid
+          cols={{ lg: 6, md: 4, base: 2 }}
+          className={sprinkles({ mb: 'size-3' })}
+        >
+          <Input
+            name='value'
+            label={`${startCase(context.title)} Name`}
+            autoComplete='off'
+            value={formState?.value}
+            required={true}
+            onChange={setFormState}
+            autoFocus={true}
+            errorMsg='Name must not be blank'
+          />
+          {context.title !== 'spell' && context.title !== 'feat' && (
+            <>
+              <Dropdown
+                name='category'
+                label={`${startCase(context.title)} Category`}
+                value={formState?.category}
+                options={builders[context.title]?.category}
+                required={true}
                 onChange={setFormState}
               />
-            )}
-            {context.title === 'spell' && (
-              <>
-                <Input
-                  validation={'num'}
-                  name='level'
-                  errorMsg='Must contain only numbers'
-                  label='Spell Level'
-                  required={true}
-                  value={formState?.level}
-                  onChange={setFormState}
-                />
+              {context.title === 'item' && (
+                <>
+                  <Dropdown
+                    name='property'
+                    multiSelect={true}
+                    label='Properties'
+                    value={formState?.property}
+                    options={
+                      builders.item.category.find(
+                        (category: any) =>
+                          category._id === formState.category?.id
+                      )?.property
+                    }
+                    onChange={setFormState}
+                  />
+                  <Dropdown
+                    name='rarity'
+                    label='Rarity'
+                    value={formState?.rarity}
+                    options={builders.item.rarity}
+                    required={true}
+                    onChange={setFormState}
+                  />
+                  <Input
+                    validation={'cur'}
+                    name='cost.amount'
+                    autoComplete='off'
+                    label='Cost'
+                    required={true}
+                    errorMsg='Must contain only decimal amounts'
+                    value={formState?.cost?.amount}
+                    onChange={setFormState}
+                  />
+                  <Dropdown
+                    name='cost.currency'
+                    label='Currency'
+                    value={formState?.cost?.currency}
+                    options={builders.currency}
+                    optionalKey='short'
+                    required={true}
+                    onChange={setFormState}
+                  />
+                  <Input
+                    validation={'cur'}
+                    name='weight.amount'
+                    errorMsg='Must contain only numbers'
+                    label='Item Weight'
+                    autoComplete='off'
+                    value={formState?.weight?.amount}
+                    onChange={setFormState}
+                  />
+                  <Dropdown
+                    name='weight.unit'
+                    label='UoM'
+                    value={formState?.weight?.unit}
+                    options={
+                      Object.values(builders.unit.imperial).flatMap(
+                        (item) => item
+                      ) as DropdownOption[]
+                    }
+                    optionalKey='short'
+                    onChange={setFormState}
+                  />
+                </>
+              )}
+            </>
+          )}
+          {formState?.category?.name && (
+            <>
+              {formState?.category?.name === 'subclass' ? (
                 <Dropdown
-                  name='school'
-                  label='Spell School'
-                  value={formState?.school}
-                  options={builders.spell.school}
-                  required={true}
-                  onChange={setFormState}
-                />
-                <Dropdown
-                  name='requirement'
-                  multiSelect={true}
-                  label='Requirements'
-                  value={formState?.requirement}
-                  options={builders.spell.requirement}
-                  required={true}
-                  onChange={setFormState}
-                />
-                <Dropdown
-                  name='classes'
-                  multiSelect={true}
-                  label='Classes'
-                  value={formState?.classes}
+                  name='parentClass'
+                  label='Parent Class'
+                  value={formState?.parentClass}
                   options={
                     classes?.filter(
                       (classItem: any) => classItem.category.name !== 'subclass'
@@ -449,111 +175,279 @@ const DetailForm: FC<DetailFormProps> = memo(
                   required={true}
                   onChange={setFormState}
                 />
-                {formState?.requirement?.some(
-                  (requirementItem: any) => requirementItem.name === 'material'
-                ) && (
+              ) : (
+                formState.category?.name !== 'subclass' &&
+                context.title === 'class' && (
+                  <>
+                    <Input
+                      name='hitPoint.diceCount'
+                      autoComplete='off'
+                      label='HP Dice Count'
+                      required={true}
+                      value={formState?.hitPoint?.diceCount}
+                      validation='num'
+                      errorMsg='Must contain whole numbers only'
+                      onChange={setFormState}
+                    />
+                    <Input
+                      name='hitPoint.diceValue'
+                      autoComplete='off'
+                      label='HP Dice Value'
+                      required={true}
+                      value={formState?.hitPoint?.diceValue}
+                      validation='num'
+                      errorMsg='Must contain whole numbers only'
+                      onChange={setFormState}
+                    />
+                  </>
+                )
+              )}
+              {(formState.category?.name === 'subrace' ||
+                formState.category?.name === 'variant') && (
+                <Dropdown
+                  multiSelect={formState?.category.name === 'variant' && true}
+                  name='lineage'
+                  label='Race Lineage'
+                  value={formState?.lineage}
+                  options={races as unknown as DropdownOption[]}
+                  required={true}
+                  onChange={setFormState}
+                />
+              )}
+              {(formState.category?.name === 'waterVehicle' ||
+                formState.category?.name === 'mount') && (
+                <>
                   <Input
-                    name='materialDesc'
-                    label='Material Desc.'
+                    validation={'cur'}
+                    name='speed.amount'
+                    errorMsg='Must contain only numbers'
+                    label='Item Speed'
+                    autoComplete='off'
                     required={true}
-                    value={formState?.materialDesc}
+                    value={formState?.speed?.amount}
                     onChange={setFormState}
                   />
-                )}
-              </>
-            )}
-          </Grid>
-          {(context.title === 'race' || context.title === 'item') && (
-            <div>
-              <RichTextEditor
-                name={'quote'}
-                className={sprinkles({ mb: 'size-3' })}
-                value={formState?.quote}
-                label={'Quote'}
+                  <Dropdown
+                    name='speed.unit'
+                    label='UoM'
+                    value={formState?.speed?.unit}
+                    options={
+                      Object.values(builders.unit.imperial).flatMap(
+                        (item) => item
+                      ) as DropdownOption[]
+                    }
+                    optionalKey='short'
+                    onChange={setFormState}
+                  />
+                </>
+              )}
+              {(formState.category?.name === 'weapon' ||
+                formState.category?.name === 'armor') && (
+                <Input
+                  validation={'num'}
+                  name='itemRank'
+                  errorMsg='Must contain only numbers'
+                  label='Item Rank'
+                  autoComplete='off'
+                  value={formState?.itemRank}
+                  onChange={setFormState}
+                />
+              )}
+              {(formState.property?.some(
+                (propertyItem: any) => propertyItem.name === 'container'
+              ) ||
+                formState.category?.name === 'mount') && (
+                <>
+                  <Input
+                    validation={'cur'}
+                    name='capacity.amount'
+                    errorMsg='Must contain only numbers'
+                    label='Capacity Amount'
+                    autoComplete='off'
+                    value={formState?.capacity?.amount}
+                    onChange={setFormState}
+                  />
+                  <Dropdown
+                    name='capacity.unit'
+                    label='UoM'
+                    value={formState?.capacity?.unit}
+                    options={
+                      Object.values(builders.unit.imperial).flatMap(
+                        (item) => item
+                      ) as DropdownOption[]
+                    }
+                    optionalKey='short'
+                    onChange={setFormState}
+                  />
+                </>
+              )}
+              {formState?.property?.some(
+                (property: any) =>
+                  property.name === 'thrown' || property.name === 'ranged'
+              ) && (
+                <>
+                  <Input
+                    validation='num'
+                    name='minRange'
+                    errorMsg='Must contain only numbers'
+                    label='Min Range'
+                    value={formState?.minRange}
+                    required={true}
+                    onChange={setFormState}
+                  />
+                  <Input
+                    validation='num'
+                    name='maxRange'
+                    errorMsg='Must contain only numbers'
+                    label='Max Range'
+                    value={formState?.maxRange}
+                    required={true}
+                    onChange={setFormState}
+                  />
+                </>
+              )}
+            </>
+          )}
+          {context.title === 'item' && (
+            <Input
+              validation={'num'}
+              name='quantity'
+              errorMsg='Must contain only numbers'
+              label='Quantity'
+              autoComplete='off'
+              value={formState?.quantity}
+              onChange={setFormState}
+            />
+          )}
+          {context.title === 'spell' && (
+            <>
+              <Input
+                validation={'num'}
+                name='level'
+                errorMsg='Must contain only numbers'
+                label='Spell Level'
+                required={true}
+                value={formState?.level}
                 onChange={setFormState}
               />
-            </div>
+              <Dropdown
+                name='school'
+                label='Spell School'
+                value={formState?.school}
+                options={builders.spell.school}
+                required={true}
+                onChange={setFormState}
+              />
+              <Dropdown
+                name='requirement'
+                multiSelect={true}
+                label='Requirements'
+                value={formState?.requirement}
+                options={builders.spell.requirement}
+                required={true}
+                onChange={setFormState}
+              />
+              <Dropdown
+                name='classes'
+                multiSelect={true}
+                label='Classes'
+                value={formState?.classes}
+                options={
+                  classes?.filter(
+                    (classItem: any) => classItem.category.name !== 'subclass'
+                  ) as unknown as DropdownOption[]
+                }
+                required={true}
+                onChange={setFormState}
+              />
+              {formState?.requirement?.some(
+                (requirementItem: any) => requirementItem.name === 'material'
+              ) && (
+                <Input
+                  name='materialDesc'
+                  label='Material Desc.'
+                  required={true}
+                  value={formState?.materialDesc}
+                  onChange={setFormState}
+                />
+              )}
+            </>
           )}
-          <RichTextEditor
-            name='desc'
-            className={sprinkles({ mb: 'size-3' })}
-            value={formState?.desc}
-            label={`${startCase(context.title)} Description`}
-            onChange={setFormState}
-          />
-          {(context.title === 'race' || context.title === 'class') && (
-            <Button
-              type='button'
+        </Grid>
+        {(context.title === 'race' || context.title === 'item') && (
+          <div>
+            <RichTextEditor
+              name={'quote'}
               className={sprinkles({ mb: 'size-3' })}
-              variant='default'
-              onClick={() =>
-                setFormState({
-                  type: 'added',
-                  target: { name: 'detail' },
-                })
-              }
-            >
-              Add Detail
-            </Button>
-          )}
-          {formState?.detail && (
-            <Accordion
-              dataArray={formState.detail}
-              setState={setFormState}
-              name='detail'
-            >
-              {formState?.detail.map((detailItem: any, detailIndex: number) => {
-                return (
-                  <Accordion.Container key={detailIndex} itemId={detailItem.id}>
-                    <Accordion.Header
-                      handleClick={() => toggle(detailIndex)}
-                      handleRemove={() => handleRemove(detailIndex)}
-                      active={activeDetailIndex === detailIndex}
-                    >
-                      {detailItem.value != null && detailItem.value !== ''
-                        ? detailItem.value
-                        : `Detail ${detailIndex + 1}`}
-                    </Accordion.Header>
-                    <Accordion.Content
-                      active={activeDetailIndex === detailIndex}
-                    >
-                      <Grid className={sprinkles({ mb: 'size-3' })}>
-                        <Input
-                          name={`detail.${detailIndex}.value`}
-                          autoComplete='off'
-                          label='Detail Name'
-                          value={detailItem.value}
-                          onChange={setFormState}
-                        />
-                      </Grid>
-                      <RichTextEditor
-                        name={`detail.${detailIndex}.desc`}
-                        value={detailItem.desc}
-                        label={'Section Description'}
+              value={formState?.quote}
+              label={'Quote'}
+              onChange={setFormState}
+            />
+          </div>
+        )}
+        <RichTextEditor
+          name='desc'
+          className={sprinkles({ mb: 'size-3' })}
+          value={formState?.desc}
+          label={`${startCase(context.title)} Description`}
+          onChange={setFormState}
+        />
+        {(context.title === 'race' || context.title === 'class') && (
+          <Button
+            type='button'
+            className={sprinkles({ mb: 'size-3' })}
+            variant='default'
+            onClick={() =>
+              setFormState({
+                type: 'added',
+                target: { name: 'detail' },
+              })
+            }
+          >
+            Add Detail
+          </Button>
+        )}
+        {formState?.detail && (
+          <Accordion
+            dataArray={formState.detail}
+            setState={setFormState}
+            name='detail'
+          >
+            {formState?.detail.map((detailItem: any, detailIndex: number) => {
+              return (
+                <Accordion.Container key={detailIndex} itemId={detailItem.id}>
+                  <Accordion.Header
+                    handleClick={() => toggle(detailIndex)}
+                    handleRemove={() => handleRemove(`detail.${detailIndex}`)}
+                    active={activeDetailIndex === detailIndex}
+                  >
+                    {detailItem.value != null && detailItem.value !== ''
+                      ? detailItem.value
+                      : `Detail ${detailIndex + 1}`}
+                  </Accordion.Header>
+                  <Accordion.Content active={activeDetailIndex === detailIndex}>
+                    <Grid className={sprinkles({ mb: 'size-3' })}>
+                      <Input
+                        name={`detail.${detailIndex}.value`}
+                        autoComplete='off'
+                        label='Detail Name'
+                        value={detailItem.value}
                         onChange={setFormState}
                       />
-                    </Accordion.Content>
-                  </Accordion.Container>
-                )
-              })}
-            </Accordion>
-          )}
-        </ScrollArea>
-        <FormFooter
-          handleBack={handleBack}
-          forwardLabel={
-            isLastStep
-              ? context.type === 'edit'
-                ? 'Add New'
-                : 'Submit'
-              : 'Next'
-          }
-          handleReset={handleReset}
-          handleForward={handleForward}
-          backLabel={'Back'}
-          handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
-        />
-      </>
+                    </Grid>
+                    <RichTextEditor
+                      name={`detail.${detailIndex}.desc`}
+                      value={detailItem.desc}
+                      label={'Section Description'}
+                      onChange={setFormState}
+                    />
+                  </Accordion.Content>
+                </Accordion.Container>
+              )
+            })}
+          </Accordion>
+        )}
+      </ScrollArea>
     )
   }
 )

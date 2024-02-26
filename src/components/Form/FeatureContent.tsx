@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
 import {
   selectAllItems,
@@ -17,9 +17,10 @@ import {
   ReducerActionType,
   RowHeader,
   RowInput,
-  FormContext,
-  StepName,
+  FeatureContext,
+  FeatureStepName,
   SectionName,
+  FormContext,
 } from '../../utils/types'
 import Grid from '../Grid/Grid'
 import Select from '../Select/Select'
@@ -31,47 +32,46 @@ import { sprinkles } from '../../css/sprinkles.css'
 import useIsLoading from '../../hooks/useIsLoading'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import FormFooter from './FormFooter'
-import { useNavigate } from 'react-router-dom'
 
 interface FeatureContentProps {
   state?: any
   context: {
-    type?: 'edit' | 'create'
+    type?: FormContext
     title: string
   }
   setSectionName: (arg: SectionName) => void
-  setStepName: (arg: StepName) => void
-  formContext: FormContext
-  setFormContext: (arg: FormContext) => void
+  setFeatureStepName: (arg: FeatureStepName) => void
+  featureContext: FeatureContext
+  setFeatureContext: (arg: FeatureContext) => void
   featureState: any
   setFeatureState: (arg: ReducerActionType) => void
   setOptionState?: (arg: ReducerActionType) => void
   setSectionState: (arg: ReducerActionType) => void
   setOptionIndex?: (arg: number) => void
-  handleForward: () => void
-  handleUpdate?: () => void
+  handleFeatureForward: () => void
+  handleFeatureUpdate?: () => void
+  handleFeatureBack: () => void
 }
 
-const FeatureContent: FC<FeatureContentProps> = ({
+const FeatureContent = ({
   state,
   context,
   setSectionName,
-  setStepName,
-  formContext,
-  setFormContext,
+  setFeatureStepName,
+  featureContext,
+  setFeatureContext,
   featureState,
   setFeatureState,
   setOptionState,
   setOptionIndex,
   setSectionState,
-  handleForward,
-  handleUpdate,
-}) => {
+  handleFeatureForward,
+  handleFeatureUpdate,
+  handleFeatureBack,
+}: FeatureContentProps) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [oldFeatureState] = useState<any>(featureState)
   const [matches, setMatches] = useState<boolean>(false)
-
-  const navigate = useNavigate()
 
   const { data: builders } = useGetBuildersQuery(undefined)
 
@@ -169,21 +169,20 @@ const FeatureContent: FC<FeatureContentProps> = ({
 
   const handleEdit = (sectionName: SectionName, sectionIndex: number) => {
     const sectionState = featureState[sectionName][sectionIndex]
-    console.log('sectionState', sectionState)
     if (sectionName === 'option') {
       setOptionState &&
         setOptionState({
           type: 'reset',
           target: { value: sectionState },
         })
-      return setFormContext('OptionContent')
+      return setFeatureContext('OptionContent')
     }
     setSectionName(sectionName)
     setSectionState({
       type: 'reset',
       target: { value: sectionState },
     })
-    setStepName('SectionContent')
+    setFeatureStepName('SectionContent')
   }
 
   const handleReset = () => {
@@ -198,23 +197,12 @@ const FeatureContent: FC<FeatureContentProps> = ({
     if (matches) {
       console.log('matches, alert')
     }
-    setFeatureState({
-      type: 'reset',
-      target: { value: {} },
-    })
-    if (formContext === 'OptionContent') {
-      setFormContext('')
-      return setStepName('FeatureContent')
-    }
-    if (context.title === 'feat') {
-      return navigate(-1)
-    }
-    setStepName('')
+    handleFeatureBack()
   }
 
   const sectionNames = getSectionNames().filter(
     (sectionName) =>
-      (formContext === 'OptionContent'
+      (featureContext === 'OptionContent'
         ? sectionName !== 'option'
         : sectionName) &&
       (featureState?.option?.length > 0
@@ -228,11 +216,11 @@ const FeatureContent: FC<FeatureContentProps> = ({
         const optionIndex =
           featureState.option?.length > 0 ? featureState.option.length : 0
         setOptionIndex && setOptionIndex(optionIndex)
-        setFormContext('OptionContent')
-        return setStepName('FeatureContent')
+        setFeatureContext('OptionContent')
+        return setFeatureStepName('FeatureContent')
       }
       setSectionName(sectionName)
-      setStepName('SectionContent')
+      setFeatureStepName('SectionContent')
     }
   }
 
@@ -247,7 +235,7 @@ const FeatureContent: FC<FeatureContentProps> = ({
               name={`value`}
               autoComplete='off'
               label={
-                formContext === 'OptionContent'
+                featureContext === 'OptionContent'
                   ? 'Option Name'
                   : context.title === 'feat'
                   ? 'Feat Name'
@@ -271,7 +259,7 @@ const FeatureContent: FC<FeatureContentProps> = ({
             className={sprinkles({ mb: 'size-3' })}
           />
           <Grid className={sprinkles({ mb: 'size-3' })}>
-            {context.title !== 'item' && formContext !== 'OptionContent' && (
+            {context.title !== 'item' && featureContext !== 'OptionContent' && (
               <Input
                 name={`levelAvailable`}
                 autoComplete='off'
@@ -655,7 +643,7 @@ const FeatureContent: FC<FeatureContentProps> = ({
                     </Grid>
                   </>
                 )}
-                {(formContext === 'OptionContent'
+                {(featureContext === 'OptionContent'
                   ? featureState
                   : featureState
                 )?.requirement?.option?.some(
@@ -723,7 +711,7 @@ const FeatureContent: FC<FeatureContentProps> = ({
                     </Grid>
                   </>
                 )}
-                {(formContext === 'OptionContent'
+                {(featureContext === 'OptionContent'
                   ? featureState
                   : featureState
                 )?.requirement?.option?.some(
@@ -852,7 +840,7 @@ const FeatureContent: FC<FeatureContentProps> = ({
                   required={true}
                   onChange={setFeatureState}
                 />
-                {(formContext === 'OptionContent'
+                {(featureContext === 'OptionContent'
                   ? featureState
                   : featureState
                 )?.damage?.damageAttribute?.some(
@@ -878,7 +866,7 @@ const FeatureContent: FC<FeatureContentProps> = ({
                     onChange={setFeatureState}
                   />
                 )}
-                {(formContext === 'OptionContent'
+                {(featureContext === 'OptionContent'
                   ? featureState
                   : featureState
                 )?.damage?.damageAttribute?.some(
@@ -936,7 +924,7 @@ const FeatureContent: FC<FeatureContentProps> = ({
                         />
                       )
                     )}
-                    {(formContext === 'OptionContent'
+                    {(featureContext === 'OptionContent'
                       ? featureState
                       : featureState
                     )?.damage?.damageAttribute.some(
@@ -1096,9 +1084,9 @@ const FeatureContent: FC<FeatureContentProps> = ({
         handleBack={handleBack}
         forwardLabel={'Finish'}
         handleReset={handleReset}
-        handleForward={handleForward}
+        handleForward={handleFeatureForward}
         backLabel={'Back'}
-        handleUpdate={handleUpdate}
+        handleUpdate={handleFeatureUpdate}
       />
     </>
   )

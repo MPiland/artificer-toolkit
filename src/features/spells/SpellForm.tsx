@@ -1,7 +1,7 @@
-import { useReducer, useEffect, useState, FC } from 'react'
+import { useReducer, useEffect, useState } from 'react'
 import formReducer from '../../hooks/useReducer'
 import Form from '../../components/Form/Form'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import {
   useAddNewSpellMutation,
   useUpdateSpellMutation,
@@ -9,13 +9,10 @@ import {
   selectSpellById,
 } from './spellsApiSlice'
 import { isEqual } from 'lodash'
-import { Steps } from '../../utils/types'
-
-interface SpellFormProps {
-  context: 'create' | 'edit'
-}
-
-const SpellForm: FC<SpellFormProps> = ({ context }) => {
+import { FormContext, Steps } from '../../utils/types'
+import Spinner from '../../components/Spinner/Spinner'
+const SpellForm = () => {
+  const { context } = useParams()
   const location = useLocation()
 
   const id = location.state?.data
@@ -29,11 +26,14 @@ const SpellForm: FC<SpellFormProps> = ({ context }) => {
   const [oldState, setOldState] = useState(spell)
   const [state, setState] = useReducer(
     formReducer,
-    context === 'edit' ? spell : {}
+    context === 'edit' || id ? spell : {}
   )
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [match, setMatch] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(
+    (context === 'new' && id) ?? false
+  )
 
   const [
     addNewSpell,
@@ -49,10 +49,18 @@ const SpellForm: FC<SpellFormProps> = ({ context }) => {
     if (!state && spell) {
       setState({
         type: 'reset',
-        target: { value: { spell } },
+        target: { value: spell },
       })
     }
-  }, [spell, state])
+  }, [spell, state, state?.value, context])
+
+  useEffect(() => {
+    if (state && state?.value !== '' && isLoading) {
+      setState({ target: { name: 'value', value: '' } })
+      setOldState(state)
+    }
+    setIsLoading(false)
+  }, [state, state?.value, isLoading])
 
   useEffect(() => {
     if (!oldState && spell) {
@@ -130,27 +138,22 @@ const SpellForm: FC<SpellFormProps> = ({ context }) => {
     await addNewSpell(state)
   }
 
-  const onUpdate = async () => {
-    if (match) {
-      setErrorMessage('No changes made')
-    } else {
-      await updateSpell(state)
-      setOldState(state)
-    }
-  }
-
   const steps: Steps = ['Details', 'Attributes']
 
-  return (
+  return isLoading || !state ? (
+    <Spinner />
+  ) : (
     <Form
-      context={{ type: context, title: 'spell' }}
+      context={{ type: context as FormContext, title: 'spell' }}
       handleSubmit={onSubmit}
-      handleUpdate={onUpdate}
+      update={updateSpell}
       steps={steps}
       state={state}
       setState={setState}
       errorMessage={errorMessage}
       successMessage={successMessage}
+      setErrorMessage={setErrorMessage}
+      location={location}
     />
   )
 }

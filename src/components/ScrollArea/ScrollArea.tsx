@@ -1,5 +1,4 @@
 import {
-  FC,
   ReactNode,
   useCallback,
   useRef,
@@ -7,7 +6,6 @@ import {
   MouseEvent as ReactMouseEvent,
   memo,
   useLayoutEffect,
-  useEffect,
   ComponentPropsWithoutRef,
 } from 'react'
 import clsx from 'clsx'
@@ -31,7 +29,7 @@ import { useEventListener, useMediaQuery } from 'usehooks-ts'
 
 const SCROLL_BOX_MIN_HEIGHT = 20
 
-const ScrollArea: FC<ScrollAreaProps> = memo(
+const ScrollArea = memo(
   ({
     children,
     className,
@@ -39,7 +37,7 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
     scrollDirection,
     visibility = 'hidden',
     ...props
-  }) => {
+  }: ScrollAreaProps) => {
     const md = useMediaQuery('(max-width: 1023px)')
 
     const [scrollThumbHeight, setScrollThumbHeight] = useState<number>(
@@ -48,7 +46,6 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
     const [scrollThumbPosition, setScrollThumbPosition] = useState<number>(0)
     const [scrollThumbTop, setScrollThumbTop] = useState<number>(0)
     const [isDragging, setIsDragging] = useState<boolean>(false)
-    const [isScrolling, setIsScrolling] = useState<boolean>(false)
     const [noOverflow, setNoOverflow] = useState<boolean>(true)
     const [mouseOver, setMouseOver] = useState<boolean>(false)
     const [active, setActive] = useState<boolean>()
@@ -93,25 +90,16 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
       return () => observer.disconnect()
     }, [md])
 
-    useEffect(() => {
-      if (
-        (isScrolling || visibility === 'visible' || mouseOver) &&
-        noOverflow === false
-      ) {
-        setActive(true)
-      } else {
-        setActive(false)
-      }
-    }, [md, isScrolling, visibility, mouseOver, noOverflow])
-
     const handleMouseOver = useCallback(() => {
       if (scrollThumbRef.current) {
+        setActive(true)
         setMouseOver(true)
       }
     }, [])
 
     const handleMouseLeave = useCallback(() => {
       if (scrollThumbRef.current) {
+        setActive(false)
         setMouseOver(false)
       }
     }, [])
@@ -157,11 +145,10 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
     const handleScroll = () => {
       const scrollArea = scrollAreaRef.current
       if (scrollArea) {
-        setIsScrolling(true)
-        clearTimeout(scrollTimer)
-        if (!scrollAreaRef) {
-          return
+        if (mouseOver && noOverflow === false) {
+          setActive(true)
         }
+        clearTimeout(scrollTimer)
         let newTop =
           (parseInt(String(scrollArea.scrollTop), 10) /
             parseInt(String(scrollArea.scrollHeight), 10)) *
@@ -173,7 +160,7 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
 
     const handleScrollEnd = () => {
       scrollTimer = setTimeout(() => {
-        setIsScrolling(false)
+        setActive(false)
       }, 750)
     }
 
@@ -205,7 +192,7 @@ const ScrollArea: FC<ScrollAreaProps> = memo(
         </div>
         <div
           className={clsx(scroll_bar_vertical, {
-            ['active']: active,
+            ['active']: (active || visibility === 'visible') && !noOverflow,
           })}
         >
           <div

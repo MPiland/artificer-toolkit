@@ -38,13 +38,10 @@ interface BodyProps {
 }
 
 export const Header: FC<HeaderProps> = ({ title, children, buttonVariant }) => {
-  const location = useLocation()
   const navigate = useNavigate()
 
   const handleClose = () => {
-    navigate(`${location.state.background.pathname}`, {
-      state: location.state,
-    })
+    navigate(-1)
   }
 
   return (
@@ -109,24 +106,19 @@ const Modal: FC & {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const data = location.state.data
-
   // Closes modal when Escape is pressed
   const handleEscKey = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        navigate(`${location.state.background.pathname}`, {
-          state: location.state,
-        })
+        navigate(-1)
       }
     },
-    [navigate, location]
+    [navigate]
   )
 
   const handleClose = () => {
-    navigate(`${location.state.background.pathname}`, {
-      state: location.state,
-    })
+    console.log('close')
+    navigate(-1)
   }
 
   // Listens for Key to close modal
@@ -145,7 +137,7 @@ const Modal: FC & {
             role='document'
             onClick={(e) => e.stopPropagation()}
           >
-            <Outlet context={{ data, handleClose }} />
+            <Outlet />
           </div>
         </Dialogue>
       </div>

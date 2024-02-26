@@ -1,33 +1,43 @@
 import { useState } from 'react'
 import Input from '../Input/Input'
 import { useDispatch } from 'react-redux'
-import { confirmDelete } from '../../app/deleteSlice'
+import { confirmDelete } from '../../app/modalSlice'
 import { useLocation } from 'react-router-dom'
 import Modal from '../Modal/Modal'
 import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
 import { useNavigate } from 'react-router-dom'
+import Group from '../Group/Group'
 
 const Delete = () => {
   const [deleteState, setDeleteState] = useState<string>('')
-  const [errorState, setErrorState] = useState<boolean>(false)
 
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const location = useLocation()
 
-  const onSubmit = () => {
+  const input = document.getElementById('delete_input') as HTMLInputElement
+
+  const handleSubmit = () => {
     if (deleteState === 'DELETE') {
       dispatch(confirmDelete({ status: true, data: location.state.data }))
       navigate(-1)
     } else {
-      setErrorState(true)
+      input.classList.add('invalid')
+      input.dispatchEvent(
+        new CustomEvent('setErrorState', {
+          detail: true,
+        })
+      )
     }
   }
 
   const handleChange = ({ target }: any) => {
-    setErrorState(false)
     setDeleteState(target.value)
+  }
+
+  const handleCancel = () => {
+    navigate(-1)
   }
 
   const content = (
@@ -39,21 +49,21 @@ const Delete = () => {
         </p>
         <Input
           name='deleteItem'
-          error={errorState}
           onChange={handleChange}
           value={deleteState}
           errorMsg='Must type DELETE exactly'
+          id='delete_input'
         />
       </Modal.Body>
       <Modal.Footer>
-        <Button
-          variant='danger'
-          type='button'
-          onClick={onSubmit}
-          className={sprinkles({ justifySelf: 'flex-end' })}
-        >
-          Submit
-        </Button>
+        <Group directionVariant='row' justifyContentVariant='spaceBetween'>
+          <Button variant='default' type='button' onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button variant='danger' type='button' onClick={handleSubmit}>
+            Submit
+          </Button>
+        </Group>
       </Modal.Footer>
     </>
   )

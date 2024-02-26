@@ -60,8 +60,6 @@ const Layout: FC<LayoutProps> = ({ token }) => {
     }
   }, [md, sm, token])
 
-  console.log('showHamburger', showHamburger)
-
   const [sendLogout] = useSendLogoutMutation()
 
   const handleLogout = async () => {
@@ -87,41 +85,31 @@ const Layout: FC<LayoutProps> = ({ token }) => {
         !token && showHamburger ? sidebar_item_group : header_item_group
       }
     >
-      <li className={header_item}>
-        <NavLink to='' className={header_nav_item}>
-          Media
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink to='' className={header_nav_item}>
-          Pricing
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink to='' className={header_nav_item}>
-          About
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink
-          className={header_nav_item}
-          to='register'
-          state={{ background: location, title: 'Register' }}
-          onClick={handleClick}
-        >
-          Register
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink
-          className={header_nav_item}
-          to='login'
-          state={{ background: location, title: 'Login' }}
-          onClick={handleClick}
-        >
-          Login
-        </NavLink>
-      </li>
+      <NavLink to='' className={header_nav_item}>
+        <li className={header_item}>Media </li>
+      </NavLink>
+      <NavLink to='' className={header_nav_item}>
+        <li className={header_item}>Pricing </li>
+      </NavLink>
+      <NavLink to='' className={header_nav_item}>
+        <li className={header_item}>About </li>
+      </NavLink>
+      <NavLink
+        className={header_nav_item}
+        to='register'
+        state={{ background: location, title: 'Register' }}
+        onClick={handleClick}
+      >
+        <li className={header_item}>Register </li>
+      </NavLink>
+      <NavLink
+        className={header_nav_item}
+        to='login'
+        state={{ background: location, title: 'Login' }}
+        onClick={handleClick}
+      >
+        <li className={header_item}>Login </li>
+      </NavLink>
     </ul>
   )
 
@@ -131,54 +119,38 @@ const Layout: FC<LayoutProps> = ({ token }) => {
         token && showHamburger ? sidebar_item_group : header_item_group
       }
     >
-      <li className={header_item}>
-        <NavLink className={header_nav_item} to='characters'>
-          Characters
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink className={header_nav_item} to='classes' onClick={handleClick}>
-          Classes
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink className={header_nav_item} to='races' onClick={handleClick}>
-          Races
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink className={header_nav_item} to='spells' onClick={handleClick}>
-          Spells
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink className={header_nav_item} to='items' onClick={handleClick}>
-          Items
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink to='' className={header_nav_item} onClick={handleClick}>
-          Backgrounds
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink className={header_nav_item} to='feats' onClick={handleClick}>
-          Feats
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink to='' className={header_nav_item} onClick={handleClick}>
-          Monsters
-        </NavLink>
-      </li>
-      <li className={header_item}>
-        <NavLink to='' className={header_nav_item} onClick={handleClick}>
-          Campaigns
-        </NavLink>
-      </li>
-      <li className={header_item} onClick={handleLogout}>
-        Logout
-      </li>
+      <NavLink className={header_nav_item} to='characters'>
+        <li className={header_item}>Characters</li>
+      </NavLink>
+      <NavLink className={header_nav_item} to='classes' onClick={handleClick}>
+        <li className={header_item}>Classes </li>
+      </NavLink>
+      <NavLink className={header_nav_item} to='races' onClick={handleClick}>
+        <li className={header_item}>Races </li>
+      </NavLink>
+      <NavLink className={header_nav_item} to='spells' onClick={handleClick}>
+        <li className={header_item}>Spells </li>
+      </NavLink>
+      <NavLink className={header_nav_item} to='items' onClick={handleClick}>
+        <li className={header_item}>Items </li>
+      </NavLink>
+      <NavLink to='' className={header_nav_item} onClick={handleClick}>
+        <li className={header_item}>Backgrounds </li>
+      </NavLink>
+      <NavLink className={header_nav_item} to='feats' onClick={handleClick}>
+        <li className={header_item}>Feats </li>
+      </NavLink>
+      <NavLink to='' className={header_nav_item} onClick={handleClick}>
+        <li className={header_item}>Monsters </li>
+      </NavLink>
+      <NavLink to='' className={header_nav_item} onClick={handleClick}>
+        <li className={header_item}>Campaigns </li>
+      </NavLink>
+      <a href='' className={header_nav_item}>
+        <li className={header_item} onClick={handleLogout}>
+          Logout
+        </li>
+      </a>
     </ul>
   )
 

@@ -1,6 +1,4 @@
-import { FC, useState, useReducer, useEffect, Fragment } from 'react'
-import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
-import { SerializedError } from '@reduxjs/toolkit'
+import { Fragment } from 'react'
 import Grid from '../Grid/Grid'
 import Button from '../Button/Button'
 import Dropdown from '../Dropdown/Dropdown'
@@ -18,13 +16,8 @@ import {
   form_add_button,
   form_content,
   form_remove_button,
-  form_wrapper,
 } from './Form.css'
-import FormFooter from './FormFooter'
-import { useNavigate } from 'react-router-dom'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import formReducer from '../../hooks/useReducer'
-import { isEqual } from 'lodash'
 import Divider from '../Divider/Divider'
 import Spinner from '../Spinner/Spinner'
 import Card from '../Card/Card'
@@ -34,38 +27,18 @@ import { TbPlus, TbX } from 'react-icons/tb'
 import clsx from 'clsx'
 
 interface EquipmentProps {
-  state: any
-  setState: (arg: ReducerActionType) => void
-  context: {
-    type: 'edit' | 'create'
-    title: string
-  }
-  isLastStep?: boolean
-  isFirstStep?: boolean
-  setStepIndex: (arg: (i: number) => number) => void
-  handleSubmit: () => Promise<void>
-  update: (
-    arg: any
-  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
-  setErrorMessage: (arg: string) => void
+  formState: any
+  setFormState: (arg: ReducerActionType) => void
+  handleRemove: (arg: string) => void
+  handleAdd: (arg: string) => void
 }
 
-const EquipmentForm: FC<EquipmentProps> = ({
-  state,
-  setState,
-  context,
-  isLastStep,
-  isFirstStep,
-  setStepIndex,
-  handleSubmit,
-  update,
-  setErrorMessage,
-}) => {
-  const [formState, setFormState] = useReducer(formReducer, state)
-  const [oldFormState, setOldFormState] = useState<any>(formState)
-  const [matches, setMatches] = useState<boolean>(false)
-
-  const navigate = useNavigate()
+const EquipmentForm = ({
+  formState,
+  setFormState,
+  handleRemove,
+  handleAdd,
+}: EquipmentProps) => {
   const isLoading = useIsLoading()
 
   const { data: builders } = useGetBuildersQuery(undefined)
@@ -76,84 +49,10 @@ const EquipmentForm: FC<EquipmentProps> = ({
     }),
   })
 
-  useEffect(() => {
-    if (isEqual(formState, oldFormState)) {
-      setMatches(true)
-    } else {
-      setMatches(false)
-    }
-  }, [formState, oldFormState])
-
-  const handleAdd = (name: string) => {
-    setFormState({
-      type: 'added',
-      target: { name: name },
-    })
-  }
-
-  const handleRemove = (name: string) => {
-    setFormState({
-      type: 'removed',
-      target: { name: name },
-    })
-  }
-
-  const handleReset = () => {
-    setFormState({
-      type: 'reset',
-      target: { value: oldFormState },
-    })
-  }
-
-  const handleForward = () => {
-    setState({
-      target: {
-        value: formState,
-      },
-    })
-    if (!isLastStep) {
-      return setStepIndex((i: number) => {
-        return i + 1
-      })
-    }
-    handleSubmit()
-  }
-
-  const handleBack = () => {
-    if (!matches) {
-      console.log('changes made, alert!')
-    }
-    if (isFirstStep) {
-      return navigate(-1)
-    }
-    if (!isFirstStep) {
-      setStepIndex((i: number) => {
-        if (i <= 0) {
-          return i
-        } else {
-          return i - 1
-        }
-      })
-    }
-  }
-
-  const handleUpdate = async () => {
-    if (matches) {
-      setErrorMessage('No changes made')
-    } else {
-      setState({
-        type: 'reset',
-        target: { value: formState },
-      })
-      await update(formState)
-      setOldFormState(formState)
-    }
-  }
-
   return isLoading || !builders || !items ? (
     <Spinner />
   ) : (
-    <div className={form_wrapper}>
+    <>
       <Group className={sprinkles({ mb: 'size-3', px: 'size-3' })}>
         <Button
           variant='primary_outline'
@@ -368,17 +267,7 @@ const EquipmentForm: FC<EquipmentProps> = ({
           }
         )}
       </ScrollArea>
-      <FormFooter
-        handleBack={handleBack}
-        forwardLabel={
-          isLastStep ? (context.type === 'edit' ? 'Add New' : 'Submit') : 'Next'
-        }
-        handleReset={handleReset}
-        handleForward={handleForward}
-        backLabel={'Back'}
-        handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
-      />
-    </div>
+    </>
   )
 }
 

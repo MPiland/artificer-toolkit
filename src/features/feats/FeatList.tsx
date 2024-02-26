@@ -6,7 +6,7 @@ import {
   useDeleteFeatMutation,
   useGetFeatsQuery,
 } from './featsApiSlice'
-import { clearConfirm } from '../../app/deleteSlice'
+import { clearConfirm } from '../../app/modalSlice'
 import {
   selectFeatsFilter,
   setFeatsFilter,
@@ -37,8 +37,8 @@ const FeatList: FC<FeatListProps> = ({ scrollPosition }) => {
   const dispatch = useDispatch()
   const isLoading = useIsLoading()
 
-  const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
-  const featToDelete = useSelector((state: RootState) => state.delete.data)
+  const deleteConfirmed = useSelector((state: RootState) => state.modal.delete.status)
+  const featToDelete = useSelector((state: RootState) => state.modal.delete.data)
 
   const { feats } = useGetFeatsQuery(undefined, {
     selectFromResult: ({ data }) => ({

@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useState, FC } from 'react'
+import { useReducer, useEffect, useState } from 'react'
 import formReducer from '../../hooks/useReducer'
 import Form from '../../components/Form/Form'
 import {
@@ -8,14 +8,12 @@ import {
   selectFeatById,
 } from './featsApiSlice'
 import { isEqual } from 'lodash'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Steps } from '../../utils/types'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { FormContext, Steps } from '../../utils/types'
+import Spinner from '../../components/Spinner/Spinner'
 
-interface FeatFormProps {
-  context: 'create' | 'edit'
-}
-
-const FeatForm: FC<FeatFormProps> = ({ context }) => {
+const FeatForm = () => {
+  const { context } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -35,6 +33,9 @@ const FeatForm: FC<FeatFormProps> = ({ context }) => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [match, setMatch] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(
+    (context === 'new' && id) ?? false
+  )
 
   const [
     addNewFeat,
@@ -54,6 +55,14 @@ const FeatForm: FC<FeatFormProps> = ({ context }) => {
       })
     }
   })
+
+  useEffect(() => {
+    if (state && state?.value !== '' && isLoading) {
+      setState({ target: { name: 'value', value: '' } })
+      setOldState(state)
+    }
+    setIsLoading(false)
+  }, [state, state?.value, isLoading])
 
   useEffect(() => {
     if (feat && !oldState) {
@@ -117,30 +126,21 @@ const FeatForm: FC<FeatFormProps> = ({ context }) => {
     }
   }
 
-  const handleUpdate = async () => {
-    if (match) {
-      return setErrorMessage('No changes made')
-    }
-    try {
-      await updateFeat(state)
-      setOldState(state)
-    } catch (err: any) {
-      console.log(err.data.message)
-    }
-  }
-
   const steps: Steps = ['Features']
 
-  return (
+  return isLoading || !state ? (
+    <Spinner />
+  ) : (
     <Form
-      context={{ type: context, title: 'feat' }}
+      context={{ type: context as FormContext, title: 'feat' }}
       handleSubmit={handleSubmit}
-      handleUpdate={handleUpdate}
+      update={updateFeat}
       steps={steps}
       state={state}
       setState={setState}
       errorMessage={errorMessage}
       successMessage={successMessage}
+      setErrorMessage={setErrorMessage}
     />
   )
 }

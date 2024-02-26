@@ -60,9 +60,9 @@ export type Context = {
       }
 }
 
-export type FormContext = 'OptionContent' | ''
+export type FeatureContext = 'OptionContent' | ''
 
-export type StepName = 'FeatureContent' | 'SectionContent' | ''
+export type FeatureStepName = 'FeatureContent' | 'SectionContent' | ''
 
 export type SectionName =
   | 'option'
@@ -77,7 +77,7 @@ export type SelectOption = string | undefined
 export type DropdownOption = {
   name: string | null
   value: string
-  _id: number | string | null
+  id: number | string | null
   [key: string]: any
 }
 
@@ -90,3 +90,5 @@ export type Steps = (
   | 'Proficiencies'
   | 'Equipment'
 )[]
+
+export type FormContext = 'new' | 'edit'

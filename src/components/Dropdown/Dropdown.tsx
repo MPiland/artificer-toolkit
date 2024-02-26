@@ -1,4 +1,4 @@
-import { FC, useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   dropdown_container,
   dropdown_input,
@@ -10,6 +10,7 @@ import {
   dropdown_option,
   dropdown,
   dropdown_option_right_side,
+  dropdown_error_message,
 } from './Dropdown.css'
 import { uniqBy } from 'lodash'
 import clsx from 'clsx'
@@ -28,6 +29,7 @@ import {
   FloatingFocusManager,
   flip,
 } from '@floating-ui/react'
+import ScrollArea from '../ScrollArea/ScrollArea'
 
 interface DropdownProps {
   label?: string | boolean
@@ -40,9 +42,11 @@ interface DropdownProps {
   multiSelect?: boolean
   optionalKey?: string | any[]
   onChange: (arg: ReducerActionType) => void
+  errorMsg?: string
+  id?: string
 }
 
-const Dropdown: FC<DropdownProps> = ({
+const Dropdown = ({
   label,
   required,
   name,
@@ -52,21 +56,41 @@ const Dropdown: FC<DropdownProps> = ({
   value,
   onChange,
   placeholder,
-}) => {
+  className,
+  errorMsg,
+  id,
+}: DropdownProps) => {
   const [selectedOptions, setSelectedOptions] = useState<
     DropdownOption[] | DropdownOption | null
   >(null)
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [error, setError] = useState<boolean>(false)
 
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
   const updatedOptions = useRef<DropdownOption[] | DropdownOption | null>(null)
+
+  useEffect(() => {
+    const dropdown = dropdownRef.current
+    if (dropdown) {
+      dropdown.addEventListener('setErrorState', (e: any) => setError(e.detail))
+
+      return () =>
+        dropdown.removeEventListener('setErrorState', (e: any) =>
+          setError(e.detail)
+        )
+    }
+  }, [])
 
   const appMain = document.getElementById('app-main')
 
   const { refs, floatingStyles, context } = useFloating({
     placement: 'bottom-start',
     open: isOpen,
-    onOpenChange: setIsOpen,
+    onOpenChange(isOpen) {
+      setIsOpen(isOpen)
+      setError(false)
+    },
     whileElementsMounted: autoUpdate,
     middleware: [offset(10), flip()],
   })
@@ -99,8 +123,8 @@ const Dropdown: FC<DropdownProps> = ({
 
   if (options?.length) {
     newOptions = options?.filter((option) => option?.value != null)
-    newOptions = newOptions.map(({ name, value, _id, ...rest }) => {
-      const newObj: DropdownOption = { name, value, _id }
+    newOptions = newOptions.map(({ name, value, id, ...rest }) => {
+      const newObj: DropdownOption = { name, value, id }
 
       if (optionalKey) {
         if (Array.isArray(optionalKey)) {
@@ -128,8 +152,8 @@ const Dropdown: FC<DropdownProps> = ({
 
   if (multiSelect) {
     newOptions.unshift(
-      { name: 'all', value: 'All', _id: 'all' },
-      { name: 'clear', value: 'Clear', _id: 'clear' }
+      { name: 'all', value: 'All', id: 'all' },
+      { name: 'clear', value: 'Clear', id: 'clear' }
     )
   }
 
@@ -148,15 +172,15 @@ const Dropdown: FC<DropdownProps> = ({
         )
       } else if (
         !value.every((option) =>
-          newOptions.some((newOption) => newOption._id === option._id)
+          newOptions.some((newOption) => newOption.id === option.id)
         )
       ) {
         updatedOptions.current = value.filter((valueItem) =>
-          newOptions.some((newOption) => newOption._id === valueItem._id)
+          newOptions.some((newOption) => newOption.id === valueItem.id)
         )
         setSelectedOptions(
           value.filter((valueItem) =>
-            newOptions.some((newOption) => newOption._id === valueItem._id)
+            newOptions.some((newOption) => newOption.id === valueItem.id)
           )
         )
       } else {
@@ -184,9 +208,9 @@ const Dropdown: FC<DropdownProps> = ({
         setSelectedOptions((current) => {
           if (current != null) {
             updated = current.some(
-              (item: DropdownOption) => item._id === option._id
+              (item: DropdownOption) => item.id === option.id
             )
-              ? current.filter((v: any) => v._id !== option._id)
+              ? current.filter((v: any) => v.id !== option.id)
               : [...(current as DropdownOption[]), option]
           } else {
             updated = [option]
@@ -220,10 +244,10 @@ const Dropdown: FC<DropdownProps> = ({
 
   const values = multiSelect
     ? selectedOptions?.slice(0, 1).map(
-        (item: DropdownOption) =>
+        (item: DropdownOption, index: number) =>
           item.name !== 'clear' &&
           item.name !== 'all' && (
-            <span className={dropdown_active_option} key={item._id}>
+            <span className={dropdown_active_option} key={index}>
               {item.value}
             </span>
           )
@@ -231,18 +255,31 @@ const Dropdown: FC<DropdownProps> = ({
     : []
 
   return (
-    <div className={dropdown}>
+    <div className={clsx(dropdown, { [className]: className })}>
       <div className={dropdown_wrapper}>
         {label && (
-          <label className={clsx(dropdown_label, { ['required']: required })}>
+          <span className={clsx(dropdown_label, { ['required']: required })}>
             {label}
-          </label>
+          </span>
         )}
         <div
-          className={dropdown_container}
-          ref={refs.setReference}
+          className={clsx(dropdown_container, 'dropdown', {
+            ['invalid']: error,
+          })}
+          ref={(el) => {
+            refs.setReference(el)
+            dropdownRef.current = el
+          }}
           {...getReferenceProps()}
           tabIndex={0}
+          data-atapp-options={
+            multiSelect
+              ? selectedOptions?.length > 0 && 'true'
+              : (selectedOptions as DropdownOption)?.value
+              ? 'true'
+              : 'false'
+          }
+          id={id}
         >
           <span className={dropdown_input}>
             {multiSelect ? (
@@ -272,6 +309,7 @@ const Dropdown: FC<DropdownProps> = ({
             {selectedOptions && !multiSelect ? <TbX /> : <TbChevronDown />}
           </span>
         </div>
+        {error && <div className={dropdown_error_message}>{errorMsg}</div>}
       </div>
       {isOpen && (
         <FloatingPortal root={appMain} preserveTabOrder={true}>
@@ -286,45 +324,46 @@ const Dropdown: FC<DropdownProps> = ({
               style={floatingStyles}
               {...getFloatingProps()}
             >
-              {newOptions.map(
-                (optionItem: DropdownOption, optionIndex: number) => {
-                  const active = multiSelect
-                    ? selectedOptions?.some(
-                        (selectedOption: DropdownOption) =>
-                          selectedOption._id === optionItem._id
-                      )
-                    : (selectedOptions as DropdownOption)?._id ===
-                      optionItem._id
-                  return (
-                    <div
-                      className={dropdown_option}
-                      key={optionIndex}
-                      {...getItemProps({
-                        onClick() {
-                          handleValueSelect(optionItem)
-                        },
-                        onKeyDown(e) {
-                          if (e.key === 'Enter' || e.key === 'Space') {
+              <ScrollArea scrollDirection='vertical'>
+                {newOptions.map(
+                  (optionItem: DropdownOption, optionIndex: number) => {
+                    const active = multiSelect
+                      ? selectedOptions?.some(
+                          (selectedOption: DropdownOption) =>
+                            selectedOption.id === optionItem.id
+                        )
+                      : (selectedOptions as DropdownOption)?.id ===
+                        optionItem.id
+                    return (
+                      <div
+                        className={dropdown_option}
+                        key={optionIndex}
+                        {...getItemProps({
+                          onClick() {
                             handleValueSelect(optionItem)
-                          }
-                        },
-                      })}
-                      tabIndex={activeIndex === optionIndex ? 0 : -1}
-                      ref={(node) => {
-                        listItemsRef.current[optionIndex] = node
-                        listContentRef.current[optionIndex] =
-                          node?.textContent ?? null
-                      }}
-                    >
-                      <span>{optionItem.value}</span>
-
-                      <span className={dropdown_option_right_side}>
-                        {active && <TbCheck />}
-                      </span>
-                    </div>
-                  )
-                }
-              )}
+                          },
+                          onKeyDown(e) {
+                            if (e.key === 'Enter' || e.key === 'Space') {
+                              handleValueSelect(optionItem)
+                            }
+                          },
+                        })}
+                        tabIndex={activeIndex === optionIndex ? 0 : -1}
+                        ref={(node) => {
+                          listItemsRef.current[optionIndex] = node
+                          listContentRef.current[optionIndex] =
+                            node?.textContent ?? null
+                        }}
+                      >
+                        <span>{optionItem.value}</span>
+                        <span className={dropdown_option_right_side}>
+                          {active && <TbCheck />}
+                        </span>
+                      </div>
+                    )
+                  }
+                )}
+              </ScrollArea>
             </div>
           </FloatingFocusManager>
         </FloatingPortal>

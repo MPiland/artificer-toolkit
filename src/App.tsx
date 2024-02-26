@@ -26,6 +26,7 @@ import Feat from './features/feats/Feat'
 import FeatList from './features/feats/FeatList'
 import FeatForm from './features/feats/FeatForm'
 import Create from './components/Create/Create'
+import Alert from './components/Alert/Alert'
 
 const App = () => {
   const [theme] = useState('light')
@@ -67,55 +68,45 @@ const App = () => {
                     index
                     element={<ClassList scrollPosition={scrollPosition} />}
                   />
-                  <Route path='new' element={<ClassForm context='create' />} />
-                  <Route
-                    path='edit/:id'
-                    element={<ClassForm context='edit' />}
-                  />
+                  <Route path=':context' element={<ClassForm />}>
+                    <Route path=':id' element={<ClassForm />} />
+                  </Route>
                 </Route>
                 <Route path='races'>
                   <Route
                     index
                     element={<RaceList scrollPosition={scrollPosition} />}
                   />
-                  <Route path='new' element={<RaceForm context='create' />} />
-                  <Route
-                    path='edit/:id'
-                    element={<RaceForm context='edit' />}
-                  />
+                  <Route path=':context' element={<RaceForm />}>
+                    <Route path=':id' element={<RaceForm />} />
+                  </Route>
                 </Route>
                 <Route path='spells'>
                   <Route
                     index
                     element={<SpellList scrollPosition={scrollPosition} />}
                   />
-                  <Route path='new' element={<SpellForm context='create' />} />
-                  <Route
-                    path='edit/:id'
-                    element={<SpellForm context='edit' />}
-                  />
+                  <Route path=':context' element={<SpellForm />}>
+                    <Route path=':id' element={<SpellForm />} />
+                  </Route>
                 </Route>
                 <Route path='items'>
                   <Route
                     index
                     element={<ItemList scrollPosition={scrollPosition} />}
                   />
-                  <Route path='new' element={<ItemForm context='create' />} />
-                  <Route
-                    path='edit/:id'
-                    element={<ItemForm context='edit' />}
-                  />
+                  <Route path=':context' element={<ItemForm />}>
+                    <Route path=':id' element={<ItemForm />} />
+                  </Route>
                 </Route>
                 <Route path='feats'>
                   <Route
                     index
                     element={<FeatList scrollPosition={scrollPosition} />}
                   />
-                  <Route path='new' element={<FeatForm context='create' />} />
-                  <Route
-                    path='edit/:id'
-                    element={<FeatForm context='edit' />}
-                  />
+                  <Route path=':context' element={<FeatForm />}>
+                    <Route path=':id' element={<FeatForm />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>
@@ -132,7 +123,8 @@ const App = () => {
             <Route path='/races/:id' element={<Race />} />
             <Route path='/classes/:id' element={<Class />} />
             <Route path='/delete/:id' element={<Delete />} />
-            <Route path='/:context/create' element={<Create />} />
+            <Route path='/create/:type' element={<Create />} />
+            <Route path='/alert' element={<Alert />} />
           </Route>
         </Routes>
       )}

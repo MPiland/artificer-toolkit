@@ -11,7 +11,7 @@ import {
   clearClassesFilter,
 } from '../classes/classesSlice'
 import { useDispatch, useSelector } from 'react-redux'
-import { clearConfirm } from '../../app/deleteSlice'
+import { clearConfirm } from '../../app/modalSlice'
 import Collapse from '../../components/Collapse/Collapse'
 import Spinner from '../../components/Spinner/Spinner'
 import useFilteredList from '../../hooks/useFilteredList'
@@ -33,8 +33,8 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
   const dispatch = useDispatch()
   const isLoading = useIsLoading()
 
-  const deleteConfirmed = useSelector((state: RootState) => state.delete.status)
-  const classToDelete = useSelector((state: RootState) => state.delete.data)
+  const deleteConfirmed = useSelector((state: RootState) => state.modal.delete.status)
+  const classToDelete = useSelector((state: RootState) => state.modal.delete.data)
 
   const { classes } = useGetClassesQuery(undefined, {
     selectFromResult: ({ data }) => ({

@@ -1,9 +1,9 @@
-import { FC, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { startCase, isEqual } from 'lodash'
 import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import Table from '../Table/Table'
-import { ReducerActionType, SectionName, StepName } from '../../utils/types'
+import { ReducerActionType, SectionName } from '../../utils/types'
 import Grid from '../Grid/Grid'
 import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
 import {
@@ -48,18 +48,18 @@ interface SectionContentProps {
   sectionState: any
   setSectionIndex: (arg: number) => void
   sectionIndex: number
-  handleForward: () => void
-  handleUpdate?: () => void
-  setStepName: (arg: StepName) => void
+  handleFeatureForward: () => void
+  handleFeatureUpdate?: () => void
+  handleFeatureBack: () => void
 }
 
-export const FeatContent: FC<SectionProps> = ({
+export const FeatContent = ({
   sectionState,
   setSectionState,
   builders,
   feats,
   state,
-}) => {
+}: SectionProps) => {
   const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
     attributeItem.name === 'providesOptions'
   })
@@ -129,12 +129,12 @@ export const FeatContent: FC<SectionProps> = ({
   )
 }
 
-export const ModifierContent: FC<SectionProps> = ({
+export const ModifierContent = ({
   sectionState,
   setSectionState,
   builders,
   state,
-}) => {
+}: SectionProps) => {
   useEffect(() => {
     if (
       (sectionState.diePerLevel || sectionState.diePerLevel?.length > 0) &&
@@ -580,13 +580,13 @@ export const ModifierContent: FC<SectionProps> = ({
   )
 }
 
-export const ProficiencyContent: FC<SectionProps> = ({
+export const ProficiencyContent = ({
   sectionState,
   setSectionState,
   builders,
   state,
   items,
-}) => {
+}: SectionProps) => {
   const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
     attributeItem.name === 'providesOptions'
   })
@@ -757,12 +757,12 @@ export const ProficiencyContent: FC<SectionProps> = ({
   )
 }
 
-export const SenseContent: FC<SectionProps> = ({
+export const SenseContent = ({
   sectionState,
   setSectionState,
   builders,
   state,
-}) => {
+}: SectionProps) => {
   const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
     attributeItem.name === 'providesOptions'
   })
@@ -830,7 +830,7 @@ export const SenseContent: FC<SectionProps> = ({
   )
 }
 
-export const SpellContent: FC<SectionProps> = ({
+export const SpellContent = ({
   sectionState,
   setSectionState,
   builders,
@@ -838,7 +838,7 @@ export const SpellContent: FC<SectionProps> = ({
   spells,
   classes,
   featureState,
-}) => {
+}: SectionProps) => {
   useEffect(() => {
     if (
       !sectionState.attribute?.some(
@@ -1035,7 +1035,7 @@ export const SpellContent: FC<SectionProps> = ({
   )
 }
 
-const SectionContent: FC<SectionContentProps> = ({
+const SectionContent = ({
   state,
   sectionName,
   featureState,
@@ -1043,10 +1043,10 @@ const SectionContent: FC<SectionContentProps> = ({
   setSectionState,
   setSectionIndex,
   sectionIndex,
-  handleForward,
-  handleUpdate,
-  setStepName,
-}) => {
+  handleFeatureForward,
+  handleFeatureUpdate,
+  handleFeatureBack,
+}: SectionContentProps) => {
   const [oldSectionState] = useState<any>(sectionState)
   const [matches, setMatches] = useState<boolean>(false)
   const { data: builders } = useGetBuildersQuery(undefined)
@@ -1098,11 +1098,7 @@ const SectionContent: FC<SectionContentProps> = ({
     if (matches) {
       console.log('matches, alert')
     }
-    setSectionState({
-      type: 'reset',
-      target: { value: {} },
-    })
-    setStepName('FeatureContent')
+    handleFeatureBack()
   }
 
   const ContentComponent = tableContent[sectionName]?.content
@@ -1127,9 +1123,9 @@ const SectionContent: FC<SectionContentProps> = ({
         handleBack={handleBack}
         forwardLabel={'Finish'}
         handleReset={handleReset}
-        handleForward={handleForward}
+        handleForward={handleFeatureForward}
         backLabel={'Back'}
-        handleUpdate={handleUpdate}
+        handleUpdate={handleFeatureUpdate}
       />
     </>
   )

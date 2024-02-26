@@ -41,7 +41,10 @@ export const input_container = style({
       selectors: {
         '&:has(:focus)': {
           outline: theme.vars['focus-border'],
-          outlineOffset: '-2px'
+          outlineOffset: '-2px',
+        },
+        '&:has(.invalid)': {
+          borderColor: theme.vars.input['input-error-color'],
         },
       },
     },
@@ -53,18 +56,6 @@ export const input_error_message = style({
     [app]: {
       color: theme.vars.input['input-error-color'],
       fontSize: 'small',
-    },
-  },
-})
-
-export const invalid = style({
-  '@layer': {
-    [app]: {
-      selectors: {
-        [`${input_container} &`]: {
-          borderColor: theme.vars.input['input-error-color'],
-        },
-      },
     },
   },
 })
@@ -116,7 +107,7 @@ export const input = style({
         '&:focus': {
           outline: 'none',
         },
-        [`${invalid} &`]: {
+        ['&.invalid']: {
           color: theme.vars.input['input-error-color'],
         },
         [`${input_container}:has(${input_left_section}) > &`]: {

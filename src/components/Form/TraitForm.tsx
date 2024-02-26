@@ -1,145 +1,54 @@
-import { FC, useState, useReducer, useEffect } from 'react'
-import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
-import { SerializedError } from '@reduxjs/toolkit'
+import { memo } from 'react'
 import Grid from '../Grid/Grid'
 import Dropdown from '../Dropdown/Dropdown'
 import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
 import Input from '../Input/Input'
 import Table from '../Table/Table'
 import RichTextEditor from '../RichTextEditor/RichTextEditor'
-import { ReducerActionType } from '../../utils/types'
+import { FormContext, ReducerActionType } from '../../utils/types'
 import { form_content } from './Form.css'
-import FormFooter from './FormFooter'
-import { useNavigate } from 'react-router-dom'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import formReducer from '../../hooks/useReducer'
-import { isEqual } from 'lodash'
 
 interface TraitFormProps {
-  state: any
-  setState: (arg: ReducerActionType) => void
   context: {
-    type: 'edit' | 'create'
+    type: FormContext
     title: string
   }
-  isLastStep?: boolean
-  isFirstStep?: boolean
-  setStepIndex: (arg: (i: number) => number) => void
-  handleSubmit: () => Promise<void>
-  update: (
-    arg: any
-  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
-  setErrorMessage: (arg: string) => void
+  formState: any
+  setFormState: (arg: ReducerActionType) => void
 }
 
-const TraitForm: FC<TraitFormProps> = ({
-  state,
-  setState,
-  context,
-  isLastStep,
-  isFirstStep,
-  setStepIndex,
-  handleSubmit,
-  update,
-  setErrorMessage,
-}) => {
-  const [formState, setFormState] = useReducer(formReducer, state)
-  const [oldFormState, setOldFormState] = useState<any>(state)
-  const [matches, setMatches] = useState<boolean>(false)
+const TraitForm = memo(
+  ({ context, formState, setFormState }: TraitFormProps) => {
+    const { data: builders } = useGetBuildersQuery(undefined)
 
-  const navigate = useNavigate()
-
-  const { data: builders } = useGetBuildersQuery(undefined)
-
-  //Determine if changes made for warning in handleBack
-  useEffect(() => {
-    if (isEqual(formState, oldFormState)) {
-      setMatches(true)
-    } else {
-      setMatches(false)
-    }
-  }, [formState, oldFormState])
-
-  const handleReset = () => {
-    setFormState({
-      type: 'reset',
-      target: { value: state },
-    })
-  }
-
-  const handleForward = () => {
-    setState({
-      target: {
-        value: formState,
-      },
-    })
-    if (!isLastStep) {
-      return setStepIndex((i: number) => {
-        return i + 1
-      })
-    }
-    handleSubmit()
-  }
-
-  const handleBack = () => {
-    if (!matches) {
-      console.log('changes made, alert!')
-    }
-    if (isFirstStep) {
-      return navigate(-1)
-    }
-    if (!isFirstStep) {
-      setStepIndex((i: number) => {
-        if (i <= 0) {
-          return i
-        } else {
-          return i - 1
-        }
-      })
-    }
-  }
-
-  const handleUpdate = async () => {
-    if (matches) {
-      setErrorMessage('No changes made')
-    } else {
-      setState({
-        type: 'reset',
-        target: { value: formState },
-      })
-      await update(formState)
-      setOldFormState(formState)
-    }
-  }
-
-  return (
-    <>
+    return (
       <ScrollArea scrollDirection='vertical' className={form_content}>
         <RichTextEditor
           name='trait.desc'
-          value={state.trait?.desc}
+          value={formState.trait?.desc}
           label={'Traits Description'}
-          onChange={setState}
+          onChange={setFormState}
         />
         <Grid cols={{ lg: 6, md: 4, base: 2 }}>
           <Dropdown
             multiSelect={true}
             name='attribute'
             label='Attributes'
-            value={state.attribute}
+            value={formState.attribute}
             options={builders[context.title].attribute}
             required={true}
-            onChange={setState}
+            onChange={setFormState}
           />
           <Dropdown
             name='trait.size'
             label='Size'
-            value={state.trait?.size}
+            value={formState.trait?.size}
             options={builders.race.size}
             required={true}
-            onChange={setState}
+            onChange={setFormState}
           />
-          {state.attribute?.some(
+          {formState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'walking'
           ) && (
             <Input
@@ -147,12 +56,12 @@ const TraitForm: FC<TraitFormProps> = ({
               name='trait.speed.walking'
               label='Walking Speed'
               errorMsg='Must contain only numbers'
-              value={state.trait?.speed?.walking}
+              value={formState.trait?.speed?.walking}
               required={true}
-              onChange={setState}
+              onChange={setFormState}
             />
           )}
-          {state.attribute?.some(
+          {formState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'climbing'
           ) && (
             <Input
@@ -161,11 +70,11 @@ const TraitForm: FC<TraitFormProps> = ({
               label='Climbing Speed'
               errorMsg='Must contain only numbers'
               required={true}
-              value={state.trait?.speed?.climbing}
-              onChange={setState}
+              value={formState.trait?.speed?.climbing}
+              onChange={setFormState}
             />
           )}
-          {state.attribute?.some(
+          {formState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'swimming'
           ) && (
             <Input
@@ -174,11 +83,11 @@ const TraitForm: FC<TraitFormProps> = ({
               label='Swimming Speed'
               errorMsg='Must contain only numbers'
               required={true}
-              value={state.trait?.speed?.swimming}
-              onChange={setState}
+              value={formState.trait?.speed?.swimming}
+              onChange={setFormState}
             />
           )}
-          {state.attribute?.some(
+          {formState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'flying'
           ) && (
             <Input
@@ -187,16 +96,16 @@ const TraitForm: FC<TraitFormProps> = ({
               label='Flying Speed'
               errorMsg='Must contain only numbers'
               required={true}
-              value={state.trait?.speed?.flying}
-              onChange={setState}
+              value={formState.trait?.speed?.flying}
+              onChange={setFormState}
             />
           )}
         </Grid>
-        {state.attribute?.some(
+        {formState.attribute?.some(
           (attributeItem: any) => attributeItem.name === 'ancestryOptions'
         ) &&
-          (!state.ancestry ? (
-            setState({
+          (!formState.ancestry ? (
+            setFormState({
               type: 'added',
               target: { name: 'ancestry' },
             })
@@ -211,25 +120,17 @@ const TraitForm: FC<TraitFormProps> = ({
                   headers: [{ value: 'Ancestry' }, { value: 'Description' }],
                 }}
                 name='ancestry'
-                value={state?.ancestry}
-                onChange={setState}
+                value={formState?.ancestry}
+                onChange={setFormState}
                 addRow={true}
               />
             </>
           ))}
       </ScrollArea>
-      <FormFooter
-        handleBack={handleBack}
-        forwardLabel={
-          isLastStep ? (context.type === 'edit' ? 'Add New' : 'Submit') : 'Next'
-        }
-        handleReset={handleReset}
-        handleForward={handleForward}
-        backLabel={'Back'}
-        handleUpdate={context.type === 'edit' ? handleUpdate : undefined}
-      />
-    </>
-  )
-}
+    )
+  }
+)
+
+TraitForm.displayName = 'TraitForm'
 
 export default TraitForm

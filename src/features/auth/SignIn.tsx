@@ -7,7 +7,7 @@ import {
 import usePersist from '../../hooks/usePersist'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useGoogleLogin } from '@react-oauth/google'
-import { handleValidation } from '../../utils/form'
+import { validate } from '../../utils/formValidation'
 import Input from '../../components/Input/Input'
 import Button from '../../components/Button/Button'
 import formReducer from '../../hooks/useReducer'
@@ -37,7 +37,8 @@ const SignIn = () => {
   const [errMsg, setErrMsg] = useState<string>()
 
   const onLoginClicked = async () => {
-    const isValid = handleValidation()
+    const isValid = validate()
+    console.log('isValid', isValid)
     if (isValid) {
       setState({ target: { name: 'submitting', value: true } })
       try {
@@ -56,7 +57,7 @@ const SignIn = () => {
   }
 
   const onRegisterClicked = async () => {
-    const isValid = handleValidation()
+    const isValid = validate()
     if (isValid) {
       setState({ target: { name: 'submitting', value: true } })
       try {
