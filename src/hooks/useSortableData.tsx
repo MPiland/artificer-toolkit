@@ -161,8 +161,9 @@ const useSortableData = (
           }
           key.subSort?.order && hierarchyOrderSort(key.subSort.order, direction)
           hierarchyOrderSort(key.order, direction)
-          sortableItems = recursiveSort(items, key, direction)
-        } else if (key) {
+          return (sortableItems = recursiveSort(items, key, direction))
+        }
+        if (key) {
           sortableItems = [...items]
           sortableItems.sort((a, b) => {
             const aValue = get(a, key.sortOn)
@@ -225,8 +226,6 @@ const useSortableData = (
             }
           })
         }
-      } else {
-        sortableItems = [...items]
       }
       return sortableItems
     } else {

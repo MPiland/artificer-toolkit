@@ -6,7 +6,7 @@ import {
 } from './Form.css'
 import { SerializedError } from '@reduxjs/toolkit'
 import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useReducer, useState, useRef } from 'react'
 import { startCase } from 'lodash'
 import ProgressBar from '../ProgressBar/ProgressBar'
 import useIsLoading from '../../hooks/useIsLoading'
@@ -34,6 +34,7 @@ import FormFooter from './FormFooter'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../app/store'
 import { clearBack } from '../../app/modalSlice'
+import { useEventListener } from 'usehooks-ts'
 
 interface FormProps {
   context: {
@@ -49,7 +50,8 @@ interface FormProps {
   setState: (arg: ReducerActionType) => void
   errorMessage: string | null
   successMessage: string | null
-  setErrorMessage: (arg: string) => void
+  setErrorMessage: (arg: string | null) => void
+  setSuccessMessage: (arg: string | null) => void
   location: any
 }
 
@@ -63,6 +65,7 @@ const Form = ({
   errorMessage,
   successMessage,
   setErrorMessage,
+  setSuccessMessage,
   location,
 }: FormProps) => {
   const navigate = useNavigate()
@@ -90,6 +93,34 @@ const Form = ({
     context.title === 'feat' ? 'FeatureContent' : ''
   )
   const [sectionName, setSectionName] = useState<SectionName>('')
+
+  const documentRef = useRef(document)
+
+  useEventListener(
+    'keypress',
+    () => {
+      if (successMessage !== null && !matches) {
+        setSuccessMessage(null)
+      }
+      if (errorMessage) {
+        setErrorMessage(null)
+      }
+    },
+    documentRef
+  )
+
+  useEventListener(
+    'mouseup',
+    () => {
+      if (successMessage !== null && !matches) {
+        setSuccessMessage(null)
+      }
+      if (errorMessage) {
+        setErrorMessage(null)
+      }
+    },
+    documentRef
+  )
 
   // Last/First Step
   useEffect(() => {

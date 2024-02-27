@@ -1,5 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useReducer } from 'react'
 import {
   selectAllClasses,
   useDeleteClassMutation,
@@ -11,30 +10,26 @@ import {
   clearClassesFilter,
 } from '../classes/classesSlice'
 import { useDispatch, useSelector } from 'react-redux'
-import { clearConfirm } from '../../app/modalSlice'
 import Collapse from '../../components/Collapse/Collapse'
-import Spinner from '../../components/Spinner/Spinner'
-import useFilteredList from '../../hooks/useFilteredList'
-import Table from '../../components/Table/Table'
 import Input from '../../components/Input/Input'
 import Grid from '../../components/Grid/Grid'
-import Button from '../../components/Button/Button'
-import { RootState } from '../../app/store'
-import { ReducerActionType, RowHeader, RowInput } from '../../utils/types'
-import Group from '../../components/Group/Group'
-import { useMediaQuery } from 'usehooks-ts'
 import { sprinkles } from '../../css/sprinkles.css'
-import Container from '../../components/Container/Container'
 import useIsLoading from '../../hooks/useIsLoading'
+import formReducer from '../../hooks/useReducer'
+import List from '../../components/List/List'
+import { useMediaQuery } from 'usehooks-ts'
 
-const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
+interface ClassListProps {
+  scrollPosition: number
+}
+
+const ClassList = ({ scrollPosition }: ClassListProps) => {
   const isLoading = useIsLoading()
+  const dispatch = useDispatch()
 
-  const deleteConfirmed = useSelector((state: RootState) => state.modal.delete.status)
-  const classToDelete = useSelector((state: RootState) => state.modal.delete.data)
+  const filterState = useSelector(selectClassesFilter)
+
+  const [listFilter, setListFilter] = useReducer(formReducer, filterState)
 
   const { classes } = useGetClassesQuery(undefined, {
     selectFromResult: ({ data }) => ({
@@ -43,121 +38,34 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
     refetchOnMountOrArgChange: true,
   })
 
-  const filtersState = useSelector(selectClassesFilter)
-
   const [deleteClass] = useDeleteClassMutation()
-
-  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
-    useFilteredList(classes as any[], filtersState)
 
   const sm = useMediaQuery('(max-width: 567px)')
 
-  const [tableColumns, setTableColumns] = useState<{
-    headers: RowHeader[]
-    inputs: RowInput[]
-  }>({ headers: [], inputs: [] })
-  const [errorMessage, setErrorMessage] = useState<string>()
-
-  const tableWindow = document.getElementById('list_table')
-
-  const handleShowDetail = (userClass: any) => {
-    navigate(`/classes/${userClass.name}`, {
-      state: {
-        background: location,
-        title: userClass.value,
-        context: 'classCard',
-        data: userClass,
-        size: 'lg',
-        scrollPosition: tableWindow?.scrollTop,
+  const tableColumns = {
+    headers: [
+      {
+        name: { sortOn: 'name' },
+        value: 'Name',
       },
-    })
-  }
-
-  const handleDelete = (userClass: any) => {
-    navigate(`/delete/${userClass.name}`, {
-      state: {
-        background: location,
-        title: userClass.value,
-        data: userClass,
-        size: 'md',
-        context: 'delete',
+      {
+        name: { sortOn: 'category.value' },
+        value: 'Category',
       },
-    })
+    ],
+    inputs: [
+      {
+        name: 'value',
+      },
+      {
+        name: 'category.value',
+      },
+    ],
   }
 
-  const handleDeleteSubmit = useCallback(async () => {
-    try {
-      await deleteClass({ id: classToDelete._id })
-      setListFilter({ type: 'reset', target: { value: {} } })
-    } catch (err: any) {
-      console.log(err.message)
-      setErrorMessage(err.message)
-    }
-    dispatch(clearConfirm())
-  }, [classToDelete, dispatch, deleteClass, setListFilter])
-
-  useEffect(() => {
-    if (deleteConfirmed) {
-      handleDeleteSubmit()
-    }
-  }, [deleteConfirmed, handleDeleteSubmit])
-
-  useEffect(() => {
-    Object.keys(listFilter).length > 0 && dispatch(setClassesFilter(listFilter))
-  }, [dispatch, listFilter])
-
-  useEffect(() => {
-    filtersState !== null &&
-      setListFilter({ type: 'reset', target: filtersState })
-  }, [filtersState, setListFilter])
-
-  useEffect(() => {
-    const classesJSON = JSON.stringify(classes)
-    const filteredItemsJSON = JSON.stringify(filteredItems)
-    if (
-      classesJSON !== filteredItemsJSON &&
-      Object.keys(filtersState).length === 0
-    ) {
-      setFilteredItems(classes)
-    }
-  }, [classes, setFilteredItems, filteredItems, filtersState])
-
-  useEffect(() => {
-    if (scrollPosition && !isLoading) {
-      tableWindow?.scroll(0, scrollPosition)
-    }
-  })
-
-  useEffect(() => {
-    setTableColumns({
-      headers: [
-        {
-          name: { sortOn: 'name' },
-          value: 'Name',
-        },
-        {
-          name: { sortOn: 'category.value' },
-          value: 'Category',
-        },
-      ],
-      inputs: [
-        {
-          name: 'value',
-        },
-        {
-          name: 'category.value',
-        },
-      ],
-    })
-  }, [setTableColumns])
-
-  const onFilterChange = (e: ReducerActionType) => {
-    setListFilter(e)
-  }
-
-  const onFilterReset = () => {
+  const clearFilters = () => {
+    setListFilter({ type: 'reset', target: { value: {} } })
     dispatch(clearClassesFilter())
-    setListFilter({ type: 'reset', target: {} })
   }
 
   const filter = (
@@ -168,57 +76,27 @@ const ClassList = ({ scrollPosition }: { scrollPosition: number }) => {
           label='Class Name'
           autoComplete='off'
           value={listFilter?.value ?? ''}
-          onChange={onFilterChange}
+          onChange={setListFilter}
         />
       </Grid>
     </Collapse>
   )
 
-  return isLoading || !filteredItems ? (
-    <Spinner />
-  ) : (
-    <Container className={sprinkles({ pt: 'size-3' })}>
-      <Group className={sprinkles({ mb: 'size-3' })}>
-        <h1 className='me-3'>Classes</h1>
-        <Group>
-          <Button type='button' variant='default' onClick={onFilterReset}>
-            Clear Filters
-          </Button>
-          <Button
-            type='button'
-            variant='default'
-            onClick={() => navigate('/classes/new')}
-          >
-            Create a Class
-          </Button>
-        </Group>
-      </Group>
-      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      {filter}
-      <Table
-        id={'list_table'}
-        addRow={false}
-        readOnly={true}
-        sortable={true}
-        value={filteredItems as any[]}
-        collapse={true}
-        rows={{
-          inputs: tableColumns.inputs,
-          headers: tableColumns.headers,
-          filters: { filterOn: 'category.name', filterValue: 'subclass' },
-          subrow: {
-            data: classes?.filter(
-              (classItem: any) => classItem.category.name === 'subclass'
-            ) as any[],
-            matchKey: 'parentClass._id',
-          },
-        }}
-        clickable={true}
-        onClick={(userClass: any) => handleShowDetail(userClass)}
-        deleteRow={(userClass: any) => handleDelete(userClass)}
-        empty='---'
-      />
-    </Container>
+  return (
+    <List
+      filter={filter}
+      tableColumns={tableColumns}
+      context={{ type: 'class', form: 'classes' }}
+      items={classes}
+      deleteItem={deleteClass}
+      scrollPosition={scrollPosition}
+      isLoading={isLoading}
+      setFilter={setClassesFilter}
+      listFilterState={listFilter}
+      collapse={true}
+      selectFilter={selectClassesFilter}
+      filterReset={clearFilters}
+    />
   )
 }
 export default ClassList

@@ -170,7 +170,7 @@ export const dropdown_active_option = style({
       backgroundImage: 'linear-gradient(rgb(0 0 0/10%) 0 0)',
       borderRadius: '.75rem',
       border: theme.vars['app-border-line-style'],
-      width: '5rem',
+      width: 'fit-content',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       padding: '.125rem .5rem',

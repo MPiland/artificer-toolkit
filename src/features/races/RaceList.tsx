@@ -1,5 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom'
-import { useState, useEffect, useCallback, FC } from 'react'
+import { useReducer } from 'react'
 import {
   selectAllRaces,
   useDeleteRaceMutation,
@@ -11,38 +10,26 @@ import {
   clearRacesFilter,
   setRacesFilter,
 } from './racesSlice'
-import { clearConfirm } from '../../app/modalSlice'
-import { RootState } from '../../app/store'
-import Spinner from '../../components/Spinner/Spinner'
 import { useMediaQuery } from 'usehooks-ts'
-import useFilteredList from '../../hooks/useFilteredList'
-import Table from '../../components/Table/Table'
 import Input from '../../components/Input/Input'
-import { ReducerActionType } from '../../utils/types'
 import Collapse from '../../components/Collapse/Collapse'
 import Grid from '../../components/Grid/Grid'
-import Group from '../../components/Group/Group'
-import Button from '../../components/Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
-import Container from '../../components/Container/Container'
 import useIsLoading from '../../hooks/useIsLoading'
+import formReducer from '../../hooks/useReducer'
+import List from '../../components/List/List'
 
 interface RaceListProps {
   scrollPosition: number
 }
 
-const RaceList: FC<RaceListProps> = ({
-  scrollPosition,
-}: {
-  scrollPosition: number
-}) => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
+const RaceList = ({ scrollPosition }: RaceListProps) => {
   const isLoading = useIsLoading()
+  const dispatch = useDispatch()
 
-  const deleteConfirmed = useSelector((state: RootState) => state.modal.delete.status)
-  const raceToDelete = useSelector((state: RootState) => state.modal.delete.data)
+  const filterState = useSelector(selectRacesFilter)
+
+  const [listFilter, setListFilter] = useReducer(formReducer, filterState)
 
   const { races } = useGetRacesQuery(undefined, {
     selectFromResult: ({ data }) => ({
@@ -51,117 +38,31 @@ const RaceList: FC<RaceListProps> = ({
     refetchOnMountOrArgChange: true,
   })
 
-  const filtersState = useSelector(selectRacesFilter)
-
   const [deleteRace] = useDeleteRaceMutation()
 
-  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
-    useFilteredList(races, filtersState)
-  const [tableColumns, setTableColumns] = useState<{
-    headers: any[]
-    inputs: any[]
-  }>({ headers: [], inputs: [] })
-  const [errorMessage, setErrorMessage] = useState<string>()
-
-  const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
   const sm = useMediaQuery('(max-width: 567px)')
 
-  const tableWindow = document.getElementById('list_table')
-
-  const handleShowDetail = (race: any) => {
-    navigate(`/races/${race.name}`, {
-      state: {
-        background: location,
-        title: race.value,
-        context: 'itemCard',
-        data: race,
-        size: 'lg',
-        scrollPosition: tableWindow?.scrollTop,
+  const tableColumns = {
+    headers: [
+      {
+        name: { sortOn: 'name' },
+        value: 'Name',
+        breakpoint: false,
+        defaultSort: true,
       },
-    })
-  }
-
-  const handleDelete = (race: any) => {
-    navigate(`/delete/${race.name}`, {
-      state: {
-        background: location,
-        title: race.value,
-        data: race,
-        size: 'md',
-        context: 'delete',
+    ],
+    inputs: [
+      {
+        name: 'value',
+        breakpoint: false,
       },
-    })
+    ],
   }
 
-  const handleDeleteSubmit = useCallback(async () => {
-    try {
-      await deleteRace({ id: raceToDelete._id })
-      setListFilter({ type: 'reset', target: { value: {} } })
-    } catch (err: any) {
-      setErrorMessage(err.data.message)
-    }
-    dispatch(clearConfirm())
-  }, [raceToDelete, dispatch, deleteRace, setListFilter])
-
-  useEffect(() => {
-    if (deleteConfirmed) {
-      handleDeleteSubmit()
-    }
-  }, [deleteConfirmed, handleDeleteSubmit])
-
-  useEffect(() => {
-    Object.keys(listFilter).length > 0 && dispatch(setRacesFilter(listFilter))
-  }, [dispatch, listFilter])
-
-  useEffect(() => {
-    filtersState !== null &&
-      setListFilter({ type: 'reset', target: filtersState })
-  }, [filtersState, setListFilter])
-
-  useEffect(() => {
-    const racesJSON = JSON.stringify(races)
-    const filteredItemsJSON = JSON.stringify(filteredItems)
-    if (
-      racesJSON !== filteredItemsJSON &&
-      Object.keys(filtersState).length === 0
-    ) {
-      setFilteredItems(races)
-    }
-  }, [races, setFilteredItems, filteredItems, filtersState])
-
-  useEffect(() => {
-    setTableColumns({
-      headers: [
-        {
-          name: { sortOn: 'name' },
-          value: 'Name',
-          breakpoint: false,
-          defaultSort: true,
-        },
-      ],
-      inputs: [
-        {
-          name: 'value',
-          breakpoint: false,
-        },
-      ],
-    })
-  }, [setTableColumns, md, sm])
-
-  const onFilterChange = (e: ReducerActionType) => {
-    setListFilter(e)
-  }
-
-  const onFilterReset = () => {
+  const clearFilters = () => {
+    setListFilter({ type: 'reset', target: { value: {} } })
     dispatch(clearRacesFilter())
-    setListFilter({ type: 'reset', target: {} })
   }
-
-  useEffect(() => {
-    if (scrollPosition && !isLoading) {
-      tableWindow?.scroll(0, scrollPosition)
-    }
-  })
 
   const filter = (
     <Collapse title={'Filters'} startOpened={!sm}>
@@ -171,52 +72,26 @@ const RaceList: FC<RaceListProps> = ({
           label='Race Name'
           autoComplete='off'
           value={listFilter?.value}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
       </Grid>
     </Collapse>
   )
 
-  return isLoading || !filteredItems ? (
-    <Spinner />
-  ) : (
-    <Container className={sprinkles({ pt: 'size-3' })}>
-      <Group className={sprinkles({ mb: 'size-3' })}>
-        <h1>Races</h1>
-        <Group>
-          <Button type='button' variant='default' onClick={onFilterReset}>
-            Clear Filters
-          </Button>
-          <Button
-            type='button'
-            variant='default'
-            onClick={() => navigate('/races/new')}
-          >
-            Create a Race
-          </Button>
-        </Group>
-      </Group>
-      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      {filter}
-      <Table
-        id='list_table'
-        addRow={false}
-        readOnly={true}
-        sortable={true}
-        defaultSort={tableColumns.headers.find(
-          (headerItem) => headerItem.defaultSort === true
-        )}
-        value={filteredItems as any[]}
-        rows={{
-          inputs: tableColumns.inputs,
-          headers: tableColumns.headers,
-        }}
-        clickable={true}
-        onClick={(race) => handleShowDetail(race)}
-        deleteRow={(race) => handleDelete(race)}
-        empty='---'
-      />
-    </Container>
+  return (
+    <List
+      filter={filter}
+      tableColumns={tableColumns}
+      context={{ type: 'race', form: 'races' }}
+      items={races}
+      deleteItem={deleteRace}
+      scrollPosition={scrollPosition}
+      isLoading={isLoading}
+      setFilter={setRacesFilter}
+      listFilterState={listFilter}
+      selectFilter={selectRacesFilter}
+      filterReset={clearFilters}
+    />
   )
 }
 export default RaceList

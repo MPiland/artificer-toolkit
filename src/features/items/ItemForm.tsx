@@ -7,7 +7,6 @@ import {
   useGetItemsQuery,
   selectItemById,
 } from './itemsApiSlice'
-import { isEqual } from 'lodash'
 import { useLocation, useParams } from 'react-router-dom'
 import Spinner from '../../components/Spinner/Spinner'
 import { FormContext, Steps } from '../../utils/types'
@@ -24,6 +23,17 @@ const ItemForm = () => {
     }),
   })
 
+  const [state, setState] = useReducer(
+    formReducer,
+    context === 'edit' || id ? item : {}
+  )
+  const [oldState, setOldState] = useState(item)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(
+    (context === 'new' && id) ?? false
+  )
+
   const [
     addNewItem,
     { isSuccess: addIsSuccess, isError: addIsError, error: addError },
@@ -33,18 +43,6 @@ const ItemForm = () => {
     updateItem,
     { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
   ] = useUpdateItemMutation()
-
-  const [oldState, setOldState] = useState(item)
-  const [state, setState] = useReducer(
-    formReducer,
-    context === 'edit' ? item : {}
-  )
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [match, setMatch] = useState<boolean>(false)
-  const [isLoading, setIsLoading] = useState<boolean>(
-    (context === 'new' && id) ?? false
-  )
 
   useEffect(() => {
     if (
@@ -69,7 +67,7 @@ const ItemForm = () => {
         target: { value: item },
       })
     }
-  })
+  }, [item, state, state?.value, context])
 
   useEffect(() => {
     if (state && state?.value !== '' && isLoading) {
@@ -103,34 +101,6 @@ const ItemForm = () => {
     }
   }, [addIsError, updateIsError, addError, updateError])
 
-  useEffect(() => {
-    document.addEventListener('keypress', () => {
-      if (successMessage !== null && !match) {
-        setSuccessMessage(null)
-      }
-      if (errorMessage) {
-        setErrorMessage(null)
-      }
-    })
-    return () =>
-      document.removeEventListener('keypress', () => {
-        if (successMessage !== null && !match) {
-          setSuccessMessage(null)
-        }
-        if (errorMessage) {
-          setErrorMessage(null)
-        }
-      })
-  }, [errorMessage, match, successMessage])
-
-  useEffect(() => {
-    if (isEqual(oldState, state)) {
-      setMatch(true)
-    } else {
-      setMatch(false)
-    }
-  }, [state, oldState])
-
   const onSubmit = async () => {
     await addNewItem(state)
   }
@@ -160,6 +130,8 @@ const ItemForm = () => {
       errorMessage={errorMessage}
       successMessage={successMessage}
       setErrorMessage={setErrorMessage}
+      setSuccessMessage={setSuccessMessage}
+      location={location}
     />
   )
 }

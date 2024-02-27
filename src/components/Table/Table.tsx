@@ -29,6 +29,7 @@ import {
 import { TbCaretUpFilled, TbTrash, TbCirclePlus } from 'react-icons/tb'
 import clsx from 'clsx'
 import ScrollArea from '../ScrollArea/ScrollArea'
+import useIsLoading from '../../hooks/useIsLoading'
 
 type RowData = {
   inputs: RowInput[]
@@ -37,10 +38,12 @@ type RowData = {
     filterOn: string
     filterValue: string
   }
-  subrow?: {
-    data: any[]
-    matchKey: string
-  }
+  subrow?:
+    | false
+    | {
+        data: any[]
+        matchKey: string
+      }
 }
 
 interface SortState {
@@ -163,11 +166,13 @@ const TableRow: FC<TableRowProps> = ({
   border,
 }) => {
   const [collapsed, setCollapsed] = useState(true)
-  const subrows = rows.subrow?.data?.filter((subrowItem: any) => {
-    if (rows.subrow) {
-      return get(subrowItem, rows?.subrow.matchKey) === valueItem._id
-    }
-  })
+  const subrows =
+    rows.subrow &&
+    rows.subrow?.data?.filter((subrowItem: any) => {
+      if (rows.subrow) {
+        return get(subrowItem, rows?.subrow.matchKey) === valueItem._id
+      }
+    })
 
   return (
     <>
@@ -381,9 +386,10 @@ const Table: FC<TableProps> = memo(
     id,
     border,
   }) => {
+    const isLoading = useIsLoading()
+
     const [sortState, setSortState] = useState<SortState>()
     const [defaultSortRan, setDefaultSortRan] = useState(false)
-    const [isLoadingState, setIsLoadingState] = useState(true)
     const { items, requestSort, sortConfig } = useSortableData(value)
 
     useEffect(() => {
@@ -396,16 +402,6 @@ const Table: FC<TableProps> = memo(
     useEffect(() => {
       setSortState({ valueItems: items, sortConfig } as any)
     }, [setSortState, items, sortConfig])
-
-    useEffect(() => {
-      const handleLoading = () => {
-        setIsLoadingState(false)
-      }
-
-      window.addEventListener('load', handleLoading)
-
-      return () => window.removeEventListener('load', handleLoading)
-    })
 
     const getClassNames = (value: string) => {
       if (!sortState?.sortConfig) {
@@ -427,7 +423,7 @@ const Table: FC<TableProps> = memo(
 
     let content
 
-    if (isLoadingState) {
+    if (isLoading) {
       content = <Spinner />
     }
 

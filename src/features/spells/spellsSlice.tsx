@@ -16,7 +16,7 @@ export const spellsSlice = createSlice({
       state.filters = action.payload
     },
     clearSpellsFilter: (state) => {
-      state.filters = null
+      state.filters = {}
     },
   },
 })

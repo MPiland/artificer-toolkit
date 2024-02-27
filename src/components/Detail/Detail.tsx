@@ -48,19 +48,18 @@ const Detail: FC<DetailProps> = ({
 
   const [sidebarIsOpen, setSidebarIsOpen] = useState<boolean>(false)
 
+  const form = location.state.form
   const id = location.state.data.id
+  const name = location.state.data.name
 
   const sidebarRef = useRef<HTMLDivElement>(null)
   const sidebarListRef = useRef<HTMLUListElement>(null)
   const hamburgerRef = useRef<HTMLDivElement>(null)
 
   const onEditClicked = () => {
-    navigate(
-      `${location.state.background.pathname}/edit/${location.state.data.name}`,
-      {
-        state: { data: id, previous: location },
-      }
-    )
+    navigate(`/${form}/edit/${name}`, {
+      state: { data: id, previous: location },
+    })
   }
 
   const handleScroll = () => {

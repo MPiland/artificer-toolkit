@@ -1,7 +1,6 @@
 import { useReducer, useEffect, useState } from 'react'
 import formReducer from '../../hooks/useReducer'
 import Form from '../../components/Form/Form'
-import { isEqual } from 'lodash'
 import {
   useAddNewClassMutation,
   useUpdateClassMutation,
@@ -27,11 +26,10 @@ const ClassForm = () => {
   const [oldState, setOldState] = useState(userClass)
   const [state, setState] = useReducer(
     formReducer,
-    context === 'edit' ? userClass : {}
+    context === 'edit' || id ? userClass : {}
   )
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [match, setMatch] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(
     (context === 'new' && id) ?? false
   )
@@ -53,7 +51,7 @@ const ClassForm = () => {
         target: { value: userClass },
       })
     }
-  })
+  }, [userClass, state, state?.value, context])
 
   useEffect(() => {
     if (state && state?.value !== '' && isLoading) {
@@ -87,34 +85,6 @@ const ClassForm = () => {
     }
   }, [addIsError, updateIsError, addError, updateError])
 
-  useEffect(() => {
-    document.addEventListener('keypress', () => {
-      if (successMessage !== null && !match) {
-        setSuccessMessage(null)
-      }
-      if (errorMessage) {
-        setErrorMessage(null)
-      }
-    })
-    return () =>
-      document.removeEventListener('keypress', () => {
-        if (successMessage !== null && !match) {
-          setSuccessMessage(null)
-        }
-        if (errorMessage) {
-          setErrorMessage(null)
-        }
-      })
-  }, [errorMessage, match, successMessage])
-
-  useEffect(() => {
-    if (isEqual(oldState, state)) {
-      setMatch(true)
-    } else {
-      setMatch(false)
-    }
-  }, [state, oldState])
-
   const handleSubmit = async () => {
     await addNewClass(state)
   }
@@ -140,6 +110,8 @@ const ClassForm = () => {
       errorMessage={errorMessage}
       successMessage={successMessage}
       setErrorMessage={setErrorMessage}
+      setSuccessMessage={setSuccessMessage}
+      location={location}
     />
   )
 }

@@ -1,10 +1,6 @@
-import { FC, useState, useEffect, useCallback } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useReducer } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import Spinner from '../../components/Spinner/Spinner'
 import { useMediaQuery } from 'usehooks-ts'
-import useFilteredList from '../../hooks/useFilteredList'
-import Table from '../../components/Table/Table'
 import Dropdown from '../../components/Dropdown/Dropdown'
 import Input from '../../components/Input/Input'
 import {
@@ -17,33 +13,24 @@ import {
   setSpellsFilter,
   clearSpellsFilter,
 } from './spellsSlice'
-import { clearConfirm } from '../../app/modalSlice'
-import { RootState } from '../../app/store'
 import Collapse from '../../components/Collapse/Collapse'
-import { ReducerActionType, DropdownOption } from '../../utils/types'
-import Group from '../../components/Group/Group'
-import Button from '../../components/Button/Button'
+import { DropdownOption } from '../../utils/types'
 import Grid from '../../components/Grid/Grid'
-import { sprinkles } from '../../css/sprinkles.css'
-import Container from '../../components/Container/Container'
 import useIsLoading from '../../hooks/useIsLoading'
+import List from '../../components/List/List'
+import formReducer from '../../hooks/useReducer'
 
 interface SpellListProps {
   scrollPosition: number
 }
 
-const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
+const SpellList = ({ scrollPosition }: SpellListProps) => {
   const isLoading = useIsLoading()
+  const dispatch = useDispatch()
 
-  const deleteConfirmed = useSelector(
-    (state: RootState) => state.modal.delete.status
-  )
-  const spellToDelete = useSelector(
-    (state: RootState) => state.modal.delete.data
-  )
+  const filterState = useSelector(selectSpellsFilter)
+
+  const [listFilter, setListFilter] = useReducer(formReducer, filterState)
 
   const { spells } = useGetSpellsQuery(undefined, {
     selectFromResult: ({ data }) => ({
@@ -52,214 +39,118 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
     refetchOnMountOrArgChange: true,
   })
 
-  const filtersState = useSelector(selectSpellsFilter)
-
   const [deleteSpell] = useDeleteSpellMutation()
-
-  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
-    useFilteredList(spells, filtersState)
-  const [tableColumns, setTableColumns] = useState<{
-    headers: any[]
-    inputs: any[]
-  }>({ headers: [], inputs: [] })
-  const [errorMessage, setErrorMessage] = useState<string>()
 
   const md = useMediaQuery('(min-width: 568px) and (max-width: 1023px)')
   const sm = useMediaQuery('(max-width: 567px)')
 
-  const table = document.getElementById('list-table')
-
-  const handleCreate = () => {
-    navigate('/create/spell', {
-      state: {
-        background: location,
-        context: 'spell',
-        form: 'spells',
-        data: spells,
+  const tableColumns = {
+    headers: [
+      {
+        name: { sortOn: 'level' },
+        value: 'Level',
+        breakpoint: false,
       },
-    })
-  }
-
-  const handleShowDetail = (spell: any) => {
-    navigate(`/spells/${spell.name}`, {
-      state: {
-        background: location,
-        title: spell.value,
-        context: 'itemCard',
-        data: spell,
-        size: 'lg',
-        scrollPosition: table?.scrollTop,
+      {
+        name: { sortOn: 'name' },
+        value: 'Name',
+        breakpoint: false,
+        defaultSort: true,
       },
-    })
-  }
-
-  const handleDelete = (spell: any) => {
-    navigate(`/delete/${spell.name}`, {
-      state: {
-        background: location,
-        title: spell.value,
-        data: spell,
-        size: 'sm',
-        context: 'delete',
+      {
+        name: { sortOn: 'classes' },
+        value: 'Classes',
+        breakpoint: false,
       },
-    })
+      {
+        name: { sortOn: 'school' },
+        value: 'School',
+        breakpoint: sm && true,
+      },
+      {
+        name: {
+          sortOn: 'action.value',
+          orderKey: 'action.actionType.value',
+        },
+        value: 'Casting Time',
+        breakpoint: sm && true,
+      },
+      {
+        name: {
+          sortOn: 'duration.value',
+          orderKey: 'duration.durationType.value',
+        },
+        value: 'Duration',
+        breakpoint: (md || sm) && true,
+      },
+      {
+        name: {
+          sortOn: 'range.distance',
+          orderKey: 'range.rangeType.name',
+          subSort: {
+            sortOn: 'shape.size',
+            orderKey: 'shape.shapeType.name',
+          },
+        },
+        value: 'Range (ft)/Area (ft)',
+        breakpoint: (md || sm) && true,
+      },
+      {
+        name: {
+          sortOn: 'damage.damagType',
+          subSort: { sortOn: 'condition' },
+        },
+        value: 'Damage/Effect',
+        breakpoint: false,
+      },
+    ],
+    inputs: [
+      {
+        name: 'level',
+        breakpoint: false,
+      },
+      {
+        name: 'value',
+        breakpoint: false,
+      },
+      {
+        name: 'classes',
+        breakpoint: false,
+      },
+      {
+        name: 'school.value',
+        breakpoint: sm && true,
+      },
+      {
+        name: ['action.value', 'action.actionType.value'],
+        breakpoint: sm && true,
+      },
+      {
+        name: ['duration.value', 'duration.durationType.value'],
+        breakpoint: (md || sm) && true,
+      },
+      {
+        name: [
+          ['range.rangeType.value', 'range.distance', 'range.unit.short'],
+          ['shape.shapeType.value', 'shape.size', 'shape.unit.short'],
+        ],
+        breakpoint: (md || sm) && true,
+      },
+      {
+        name: [
+          ['damage.dice.diceShort', 'damage.dice.secDiceShort'],
+          ['damage.damageType', 'damage.secondaryDamageType'],
+          'condition',
+        ],
+        breakpoint: false,
+      },
+    ],
   }
 
-  const handleDeleteSubmit = useCallback(async () => {
-    try {
-      await deleteSpell({ id: spellToDelete.id })
-      setListFilter({ type: 'reset', target: { value: {} } })
-    } catch (err: any) {
-      setErrorMessage(err.data.message)
-    }
-    dispatch(clearConfirm())
-  }, [spellToDelete, dispatch, deleteSpell, setListFilter])
-
-  useEffect(() => {
-    if (deleteConfirmed) {
-      handleDeleteSubmit()
-    }
-  }, [deleteConfirmed, handleDeleteSubmit])
-
-  useEffect(() => {
-    Object.keys(listFilter).length > 0 && dispatch(setSpellsFilter(listFilter))
-  }, [dispatch, listFilter])
-
-  useEffect(() => {
-    filtersState !== null &&
-      setListFilter({ type: 'reset', target: filtersState })
-  }, [filtersState, setListFilter])
-
-  useEffect(() => {
-    const spellsJSON = JSON.stringify(spells)
-    const filteredItemsJSON = JSON.stringify(filteredItems)
-    if (
-      spellsJSON !== filteredItemsJSON &&
-      Object.keys(filtersState).length === 0
-    ) {
-      setFilteredItems(spells)
-    }
-  }, [spells, setFilteredItems, filteredItems, filtersState])
-
-  useEffect(() => {
-    setTableColumns({
-      headers: [
-        {
-          name: { sortOn: 'level' },
-          value: 'Level',
-          breakpoint: false,
-        },
-        {
-          name: { sortOn: 'name' },
-          value: 'Name',
-          breakpoint: false,
-          defaultSort: true,
-        },
-        {
-          name: { sortOn: 'classes' },
-          value: 'Classes',
-          breakpoint: false,
-        },
-        {
-          name: { sortOn: 'school' },
-          value: 'School',
-          breakpoint: sm && true,
-        },
-        {
-          name: {
-            sortOn: 'action.value',
-            orderKey: 'action.actionType.value',
-          },
-          value: 'Casting Time',
-          breakpoint: sm && true,
-        },
-        {
-          name: {
-            sortOn: 'duration.value',
-            orderKey: 'duration.durationType.value',
-          },
-          value: 'Duration',
-          breakpoint: (md || sm) && true,
-        },
-        {
-          name: {
-            sortOn: 'range.distance',
-            orderKey: 'range.rangeType.name',
-            subSort: {
-              sortOn: 'shape.size',
-              orderKey: 'shape.shapeType.name',
-            },
-          },
-          value: 'Range (ft)/Area (ft)',
-          breakpoint: (md || sm) && true,
-        },
-        {
-          name: {
-            sortOn: 'damage.damagType',
-            subSort: { sortOn: 'condition' },
-          },
-          value: 'Damage/Effect',
-          breakpoint: false,
-        },
-      ],
-      inputs: [
-        {
-          name: 'level',
-          breakpoint: false,
-        },
-        {
-          name: 'value',
-          breakpoint: false,
-        },
-        {
-          name: 'classes',
-          breakpoint: false,
-        },
-        {
-          name: 'school.value',
-          breakpoint: sm && true,
-        },
-        {
-          name: ['action.value', 'action.actionType.value'],
-          breakpoint: sm && true,
-        },
-        {
-          name: ['duration.value', 'duration.durationType.value'],
-          breakpoint: (md || sm) && true,
-        },
-        {
-          name: [
-            ['range.rangeType.value', 'range.distance', 'range.unit.short'],
-            ['shape.shapeType.value', 'shape.size', 'shape.unit.short'],
-          ],
-          breakpoint: (md || sm) && true,
-        },
-        {
-          name: [
-            ['damage.dice.diceShort', 'damage.dice.secDiceShort'],
-            ['damage.damageType', 'damage.secondaryDamageType'],
-            'condition',
-          ],
-          breakpoint: false,
-        },
-      ],
-    })
-  }, [setTableColumns, md, sm])
-
-  const onFilterChange = (e: ReducerActionType) => {
-    setListFilter(e)
-  }
-
-  const onFilterReset = () => {
+  const clearFilters = () => {
+    setListFilter({ type: 'reset', target: { value: {} } })
     dispatch(clearSpellsFilter())
-    setListFilter({ type: 'reset', target: {} })
   }
-
-  useEffect(() => {
-    if (scrollPosition && !isLoading) {
-      table?.scroll(0, scrollPosition)
-    }
-  })
 
   const filter = (
     <Collapse title={'Filters'} startOpened={!sm}>
@@ -274,14 +165,14 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             id: null,
           }))}
           value={listFilter?.level}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Input
           name='value'
           label='Spell Name'
           autoComplete='off'
           value={listFilter?.value}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -295,7 +186,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             }
           })}
           value={listFilter?.classes}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -303,7 +194,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
           label='Spell School'
           options={spells?.map<DropdownOption>((item: any) => item.school)}
           value={listFilter?.school}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -317,7 +208,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             }
           })}
           value={listFilter?.damage?.damageType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -331,7 +222,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             }
           })}
           value={listFilter?.damage?.damageType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -348,7 +239,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             }
           })}
           value={listFilter?.damage?.damageType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -358,7 +249,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             (item: any) => item.action?.actionType
           )}
           value={listFilter?.action?.actionType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -368,7 +259,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             (item: any) => item.action?.actionType
           )}
           value={listFilter?.action?.actionType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -378,7 +269,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             (item: any) => item.duration?.durationType
           )}
           value={listFilter?.duration?.durationType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -388,7 +279,7 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             (item: any) => item.range?.rangeType
           )}
           value={listFilter?.range?.rangeType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
         <Dropdown
           multiSelect={true}
@@ -398,47 +289,26 @@ const SpellList: FC<SpellListProps> = ({ scrollPosition }) => {
             (item: any) => item.shape?.shapeType
           )}
           value={listFilter?.shape?.shapeType}
-          onChange={(e) => onFilterChange(e)}
+          onChange={setListFilter}
         />
       </Grid>
     </Collapse>
   )
 
-  return isLoading || !filteredItems ? (
-    <Spinner />
-  ) : (
-    <Container className={sprinkles({ pt: 'size-3' })}>
-      <Group className={sprinkles({ mb: 'size-3' })}>
-        <h1>Spells</h1>
-        <Group>
-          <Button type='button' variant='default' onClick={onFilterReset}>
-            Clear Filters
-          </Button>
-          <Button type='button' variant='default' onClick={handleCreate}>
-            Create a Spell
-          </Button>
-        </Group>
-      </Group>
-      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      {filter}
-      <Table
-        id={'list-table'}
-        addRow={false}
-        readOnly={true}
-        sortable={true}
-        defaultSort={tableColumns.headers.find(
-          (headerItem) => headerItem.defaultSort === true
-        )}
-        rows={{
-          inputs: tableColumns.inputs,
-          headers: tableColumns.headers,
-        }}
-        value={filteredItems as any[]}
-        clickable={true}
-        onClick={(spell) => handleShowDetail(spell)}
-        deleteRow={(spell) => handleDelete(spell)}
-      />
-    </Container>
+  return (
+    <List
+      filter={filter}
+      tableColumns={tableColumns}
+      context={{ type: 'spell', form: 'spells' }}
+      items={spells}
+      deleteItem={deleteSpell}
+      scrollPosition={scrollPosition}
+      isLoading={isLoading}
+      setFilter={setSpellsFilter}
+      listFilterState={listFilter}
+      selectFilter={selectSpellsFilter}
+      filterReset={clearFilters}
+    />
   )
 }
 

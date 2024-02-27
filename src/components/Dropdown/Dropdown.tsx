@@ -207,10 +207,20 @@ const Dropdown = ({
         let updated: DropdownOption[] | null = null
         setSelectedOptions((current) => {
           if (current != null) {
-            updated = current.some(
-              (item: DropdownOption) => item.id === option.id
-            )
-              ? current.filter((v: any) => v.id !== option.id)
+            updated = current.some((item: DropdownOption) => {
+              if (item.id != null) {
+                return item.id === option.id
+              } else {
+                return item.value === option.value
+              }
+            })
+              ? current.filter((v: any) => {
+                  if (v.id != null) {
+                    return v.id !== option.id
+                  } else {
+                    return v.value != option.value
+                  }
+                })
               : [...(current as DropdownOption[]), option]
           } else {
             updated = [option]
@@ -329,8 +339,13 @@ const Dropdown = ({
                   (optionItem: DropdownOption, optionIndex: number) => {
                     const active = multiSelect
                       ? selectedOptions?.some(
-                          (selectedOption: DropdownOption) =>
-                            selectedOption.id === optionItem.id
+                          (selectedOption: DropdownOption) => {
+                            if (selectedOption.id != null) {
+                              return selectedOption.id === optionItem.id
+                            } else {
+                              return selectedOption.value === optionItem.value
+                            }
+                          }
                         )
                       : (selectedOptions as DropdownOption)?.id ===
                         optionItem.id
