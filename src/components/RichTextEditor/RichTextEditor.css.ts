@@ -56,6 +56,9 @@ export const editor_content_container = style({
       position: 'relative',
       padding: '.5rem',
       maxHeight: '12rem',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '6rem',
     },
   },
 })
@@ -65,6 +68,7 @@ export const editor_content = style({
     [app]: {
       outline: 'none',
       height: '100%',
+      flex: 1,
     },
   },
 })

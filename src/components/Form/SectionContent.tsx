@@ -27,6 +27,10 @@ import { tableContent } from './FormUtils'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
 import FormFooter from './FormFooter'
+import { useDispatch, useSelector } from 'react-redux'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { clearBack } from '../../app/modalSlice'
+import { RootState } from '../../app/store'
 
 export interface SectionProps {
   sectionState: any
@@ -1047,6 +1051,12 @@ const SectionContent = ({
   handleFeatureUpdate,
   handleFeatureBack,
 }: SectionContentProps) => {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const location = useLocation()
+
+  const confirmBack = useSelector((state: RootState) => state.modal.back.status)
+
   const [oldSectionState] = useState<any>(sectionState)
   const [matches, setMatches] = useState<boolean>(false)
   const { data: builders } = useGetBuildersQuery(undefined)
@@ -1086,6 +1096,22 @@ const SectionContent = ({
     }
   }, [sectionState, oldSectionState])
 
+  useEffect(() => {
+    if (confirmBack) {
+      setSectionState({ type: 'reset', target: { value: {} } })
+      handleFeatureBack()
+      dispatch(clearBack())
+    }
+  }, [confirmBack, dispatch, handleFeatureBack, setSectionState])
+
+  const handleAlert = () => {
+    navigate(`/alert`, {
+      state: {
+        background: location,
+      },
+    })
+  }
+
   const handleReset = () => {
     setSectionState({
       type: 'reset',
@@ -1095,8 +1121,8 @@ const SectionContent = ({
   }
 
   const handleBack = () => {
-    if (matches) {
-      console.log('matches, alert')
+    if (!matches) {
+      return handleAlert()
     }
     handleFeatureBack()
   }

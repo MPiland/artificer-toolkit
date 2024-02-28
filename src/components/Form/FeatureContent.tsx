@@ -32,6 +32,10 @@ import { sprinkles } from '../../css/sprinkles.css'
 import useIsLoading from '../../hooks/useIsLoading'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import FormFooter from './FormFooter'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '../../app/store'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { clearBack } from '../../app/modalSlice'
 
 interface FeatureContentProps {
   state?: any
@@ -69,6 +73,13 @@ const FeatureContent = ({
   handleFeatureUpdate,
   handleFeatureBack,
 }: FeatureContentProps) => {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const isLoading = useIsLoading()
+  const location = useLocation()
+
+  const confirmBack = useSelector((state: RootState) => state.modal.back.status)
+
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [oldFeatureState] = useState<any>(featureState)
   const [matches, setMatches] = useState<boolean>(false)
@@ -79,8 +90,6 @@ const FeatureContent = ({
     selectFromResult: ({ data }) => ({ items: data && selectAllItems(data) }),
   })
 
-  const isLoading = useIsLoading()
-
   //Determine if changes made for warning in handleBack
   useEffect(() => {
     if (isEqual(featureState, oldFeatureState)) {
@@ -88,7 +97,26 @@ const FeatureContent = ({
     } else {
       setMatches(false)
     }
-  }, [featureState, oldFeatureState])
+  }, [featureState, oldFeatureState, confirmBack])
+
+  useEffect(() => {
+    if (confirmBack) {
+      setFeatureState({ type: 'reset', target: { value: {} } })
+      if (featureContext === 'OptionContent') {
+        setFeatureContext('')
+      } else {
+        setFeatureStepName('')
+      }
+      dispatch(clearBack())
+    }
+  }, [
+    confirmBack,
+    dispatch,
+    setFeatureState,
+    setFeatureContext,
+    setFeatureStepName,
+    featureContext,
+  ])
 
   const damageTableColumns = (feature: any) => {
     const secondary = feature?.damageAttribute?.some(
@@ -160,6 +188,14 @@ const FeatureContent = ({
     setActiveIndex(index)
   }
 
+  const handleAlert = () => {
+    navigate(`/alert`, {
+      state: {
+        background: location,
+      },
+    })
+  }
+
   const handleRemove = (sectionName: SectionName, sectionIndex: number) => {
     setFeatureState({
       type: 'removed',
@@ -194,8 +230,8 @@ const FeatureContent = ({
   }
 
   const handleBack = () => {
-    if (matches) {
-      console.log('matches, alert')
+    if (!matches) {
+      return handleAlert()
     }
     handleFeatureBack()
   }

@@ -216,12 +216,14 @@ const FeatureForm = ({
         setFeatureContext('')
         return setFeatureStepName('FeatureContent')
       }
+      console.log('feature content')
       setFeatureState({
         type: 'reset',
         target: { value: {} },
       })
       return setFeatureStepName('')
     }
+    console.log('keep going')
     handleBack()
   }
 

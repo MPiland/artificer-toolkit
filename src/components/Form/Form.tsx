@@ -70,6 +70,7 @@ const Form = ({
 }: FormProps) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const isLoading = useIsLoading()
 
   const confirmBack = useSelector((state: RootState) => state.modal.back.status)
 
@@ -152,7 +153,7 @@ const Form = ({
   }, [formState, oldFormState])
 
   useEffect(() => {
-    if (confirmBack) {
+    if (confirmBack && featureStepName === '') {
       dispatch(clearBack())
       if (isFirstStep) {
         navigate(-1)
@@ -170,7 +171,15 @@ const Form = ({
         })
       }
     }
-  }, [confirmBack, dispatch, navigate, isFirstStep, setFormState, oldFormState])
+  }, [
+    confirmBack,
+    dispatch,
+    navigate,
+    isFirstStep,
+    setFormState,
+    oldFormState,
+    featureStepName,
+  ])
 
   const handleAlert = () => {
     navigate(`/alert`, {
@@ -318,11 +327,6 @@ const Form = ({
       content: <EquipmentForm {...commonProps} />,
     },
   ]
-
-  const isLoading = useIsLoading()
-
-  console.log('formState', formState)
-  console.log('oldFormState', oldFormState)
 
   return (
     <form className={form_wrapper}>

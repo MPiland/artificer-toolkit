@@ -261,7 +261,7 @@ const AttributeForm = memo(
       }
       if (resource) {
         inputArray.push({
-          name: 'resource',
+          name: 'resourcePoints',
           value: `${formState.resource?.value ?? 'Resource'} Points`,
           validation: 'num',
           errorMsg: 'Must contain only numbers',
