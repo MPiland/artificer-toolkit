@@ -227,10 +227,8 @@ const useSortableData = (
           })
         }
       }
-      return sortableItems
-    } else {
-      return items
     }
+    return items
   }, [items, sortConfig, recursiveSort, compareValues, hierarchyOrderSort])
 
   const requestSort = (key: SortConfig['key']) => {

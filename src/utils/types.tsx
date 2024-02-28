@@ -3,7 +3,7 @@ import { PropertyPath } from 'lodash'
 export type RowInput = {
   name?: string | any[]
   value?: string
-  breakpoint?: boolean
+  breakpoint?: string[]
   options?: any[]
   validation?: string
   errorMsg?: string
@@ -25,7 +25,7 @@ export type RowHeader = {
       }
   value?: string
   required?: boolean
-  breakpoint?: boolean
+  breakpoint?: string[]
   defaultSort?: boolean
 }
 

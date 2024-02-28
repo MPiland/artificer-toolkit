@@ -12,9 +12,10 @@ import { RootState } from '../../app/store'
 import useFilteredList from '../../hooks/useFilteredList'
 import Spinner from '../Spinner/Spinner'
 import { ActionCreatorWithPayload } from '@reduxjs/toolkit'
+import Filter from './Filter'
+import useIsLoading from '../../hooks/useIsLoading'
 
 interface ListProps {
-  filter: any
   tableColumns: {
     headers: any[]
     inputs: any[]
@@ -26,31 +27,27 @@ interface ListProps {
   items: any
   deleteItem: (arg: { id: number }) => Promise<any>
   scrollPosition: number
-  isLoading: boolean
   setFilter: ActionCreatorWithPayload<any, string>
-  listFilterState: any
   collapse?: boolean
-  selectFilter: (arg: any) => any
   filterReset: () => void
+  selectFilter: (arg: any) => any
 }
 
 const List = ({
-  filter,
   tableColumns,
   context,
   items,
   deleteItem,
   scrollPosition,
-  isLoading,
   setFilter,
-  listFilterState,
   collapse,
-  selectFilter,
   filterReset,
+  selectFilter,
 }: ListProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
+  const isLoading = useIsLoading()
 
   const filterState = useSelector(selectFilter)
 
@@ -63,7 +60,7 @@ const List = ({
   )
 
   const { listFilter, filteredItems, setListFilter, setFilteredItems } =
-    useFilteredList(items, listFilterState)
+    useFilteredList(items, filterState)
 
   const [errorMessage, setErrorMessage] = useState<string>()
 
@@ -76,12 +73,9 @@ const List = ({
 
   useEffect(() => {
     filterState != null &&
+      listFilter == null &&
       setListFilter({ type: 'reset', target: { value: filterState } })
-  }, [filterState, setListFilter])
-
-  useEffect(() => {
-    setListFilter({ type: 'reset', target: { value: listFilterState } })
-  }, [listFilterState, setListFilter])
+  }, [filterState, setListFilter, listFilter])
 
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setFilter(listFilter))
@@ -156,48 +150,63 @@ const List = ({
   return isLoading || !filteredItems ? (
     <Spinner />
   ) : (
-    <Container className={sprinkles({ pt: 'size-3' })}>
-      <Group className={sprinkles({ mb: 'size-3' })}>
-        <h1>{startCase(context.form)}</h1>
-        <Group>
-          <Button type='button' variant='default' onClick={onFilterReset}>
-            Clear Filters
-          </Button>
-          <Button type='button' variant='default' onClick={handleCreate}>
-            Create {context.type === 'item' ? 'an' : 'a'}{' '}
-            {startCase(context.type)}
-          </Button>
+    <>
+      <Container className={sprinkles({ pt: 'size-3' })}>
+        <Group className={sprinkles({ mb: 'size-3' })}>
+          <h1>{startCase(context.form)}</h1>
+          <Group>
+            <Button type='button' variant='default' onClick={onFilterReset}>
+              Clear Filters
+            </Button>
+            <Button type='button' variant='default' onClick={handleCreate}>
+              Create {context.type === 'item' ? 'an' : 'a'}{' '}
+              {startCase(context.type)}
+            </Button>
+          </Group>
         </Group>
-      </Group>
-      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      {filter}
-      <Table
-        id={'list-table'}
-        addRow={false}
-        readOnly={true}
-        sortable={true}
-        defaultSort={tableColumns.headers.find(
-          (headerItem: any) => headerItem.defaultSort === true
-        )}
-        collapse={collapse}
-        rows={{
-          inputs: tableColumns.inputs,
-          headers: tableColumns.headers,
-          filters: { filterOn: 'category.name', filterValue: 'subclass' },
-          subrow: collapse && {
-            data: items?.filter(
-              (item: any) => item.category.name === 'subclass'
-            ) as any[],
-            matchKey: 'parentClass._id',
-          },
-        }}
-        value={filteredItems as any[]}
-        clickable={true}
-        onClick={(item) => handleShowDetail(item)}
-        deleteRow={(item) => handleDelete(item)}
-        empty='---'
-      />
-    </Container>
+        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+        <Filter
+          context={context.type}
+          items={items}
+          listFilter={listFilter}
+          setListFilter={setListFilter}
+        />
+        <Table
+          id={'list-table'}
+          addRow={false}
+          readOnly={true}
+          sortable={true}
+          defaultSort={
+            tableColumns.headers.find(
+              (headerItem: any) => headerItem.defaultSort === true
+            ) ?? undefined
+          }
+          collapse={collapse}
+          rows={{
+            inputs: tableColumns.inputs,
+            headers: tableColumns.headers,
+            filters:
+              context.type === 'class'
+                ? {
+                    filterOn: 'category.name',
+                    filterValue: 'subclass',
+                  }
+                : undefined,
+            subrow: collapse && {
+              data: items?.filter(
+                (item: any) => item.category.name === 'subclass'
+              ) as any[],
+              matchKey: 'parentClass._id',
+            },
+          }}
+          value={filteredItems as any[]}
+          clickable={true}
+          onClick={(item) => handleShowDetail(item)}
+          deleteRow={(item) => handleDelete(item)}
+          empty='---'
+        />
+      </Container>
+    </>
   )
 }
 

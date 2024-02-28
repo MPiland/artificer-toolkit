@@ -1,24 +1,13 @@
-import { useReducer } from 'react'
 import {
   selectAllItems,
   useDeleteItemMutation,
   useGetItemsQuery,
 } from './itemsApiSlice'
-import { useDispatch, useSelector } from 'react-redux'
 import {
   selectItemsFilter,
   setItemsFilter,
   clearItemsFilter,
 } from '../items/itemsSlice'
-import Input from '../../components/Input/Input'
-import Grid from '../../components/Grid/Grid'
-import Collapse from '../../components/Collapse/Collapse'
-import { DropdownOption } from '../../utils/types'
-import Dropdown from '../../components/Dropdown/Dropdown'
-import { useMediaQuery } from 'usehooks-ts'
-import { sprinkles } from '../../css/sprinkles.css'
-import useIsLoading from '../../hooks/useIsLoading'
-import formReducer from '../../hooks/useReducer'
 import List from '../../components/List/List'
 
 interface ItemListProps {
@@ -26,13 +15,6 @@ interface ItemListProps {
 }
 
 const ItemList = ({ scrollPosition }: ItemListProps) => {
-  const isLoading = useIsLoading()
-  const dispatch = useDispatch()
-
-  const filterState = useSelector(selectItemsFilter)
-
-  const [listFilter, setListFilter] = useReducer(formReducer, filterState)
-
   const { items } = useGetItemsQuery(undefined, {
     selectFromResult: ({ data }) => ({
       items: data && selectAllItems(data),
@@ -42,46 +24,40 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
 
   const [deleteItem] = useDeleteItemMutation()
 
-  const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
-  const sm = useMediaQuery('(max-width: 567px)')
-
   const tableColumns = {
     headers: [
       {
         name: { sortOn: 'value' },
         value: 'Name',
-        breakpoint: false,
         defaultSort: true,
       },
       {
         name: { sortOn: 'category.value' },
         value: 'Category',
-        breakpoint: false,
       },
       {
         name: { sortOn: 'property' },
         value: 'Properties',
-        breakpoint: false,
       },
       {
         name: { sortOn: 'damage.damageType' },
         value: 'Damage Type',
-        breakpoint: sm && true,
+        breakpoint: ['sm'],
       },
       {
         name: { sortOn: 'armorClass' },
         value: 'AC',
-        breakpoint: sm && true,
+        breakpoint: ['sm'],
       },
       {
         name: { sortOn: 'weight.amount', orderKey: 'weight.unit.short' },
         value: 'Weight',
-        breakpoint: (sm || md) && true,
+        breakpoint: ['sm', 'md'],
       },
       {
         name: { sortOn: 'quantity' },
         value: 'Qty',
-        breakpoint: sm && true,
+        breakpoint: ['sm'],
       },
       {
         name: {
@@ -96,21 +72,18 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
           ],
         },
         value: 'Cost',
-        breakpoint: (sm || md) && true,
+        breakpoint: ['sm', 'md'],
       },
     ],
     inputs: [
       {
         name: 'value',
-        breakpoint: false,
       },
       {
         name: 'category.value',
-        breakpoint: false,
       },
       {
         name: 'property',
-        breakpoint: false,
       },
       {
         name: [
@@ -120,112 +93,37 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
           ],
           'damage.damageType',
         ],
-        breakpoint: sm && true,
+        breakpoint: ['sm'],
       },
       {
         name: 'armorClass',
-        breakpoint: sm && true,
+        breakpoint: ['sm'],
       },
       {
         name: ['weight.amount', 'weight.unit.short'],
-        breakpoint: (sm || md) && true,
+        breakpoint: ['sm', 'md'],
       },
       {
         name: 'quantity',
-        breakpoint: sm && true,
+        breakpoint: ['sm'],
       },
       {
         name: ['cost.amount', 'cost.currency.short'],
-        breakpoint: (sm || md) && true,
+        breakpoint: ['sm', 'md'],
       },
     ],
   }
 
-  const clearFilters = () => {
-    setListFilter({ type: 'reset', target: { value: {} } })
-    dispatch(clearItemsFilter())
-  }
-
-  const filter = (
-    <Collapse title='Filters' startOpened={!sm}>
-      <Grid className={sprinkles({ py: 'size-2' })}>
-        <Input
-          name='value'
-          label='Item Name'
-          autoComplete='off'
-          value={listFilter?.value}
-          onChange={setListFilter}
-        />
-        <Dropdown
-          multiSelect={true}
-          name='category'
-          label='Item Category'
-          placeholder='Select...'
-          options={items?.map((item: any) => item.category) as DropdownOption[]}
-          value={listFilter?.category}
-          onChange={setListFilter}
-        />
-        <Dropdown
-          multiSelect={true}
-          name='property'
-          label='Item Property'
-          options={
-            items?.flatMap((item: any) => {
-              if (item.property && Array.isArray(item.property)) {
-                return item.property
-              } else {
-                return []
-              }
-            }) as DropdownOption[]
-          }
-          value={listFilter?.property}
-          onChange={setListFilter}
-        />
-        <Dropdown
-          multiSelect={true}
-          name='damage.damageType'
-          label='Damage Type'
-          options={
-            items?.flatMap((item: any) => {
-              if (item.damage && Array.isArray(item.damage.damageType)) {
-                return item.damage.damageType
-              } else {
-                return []
-              }
-            }) as DropdownOption[]
-          }
-          value={listFilter?.damage?.damageType}
-          onChange={setListFilter}
-        />
-        <Dropdown
-          multiSelect={true}
-          name='armorClass'
-          label='AC'
-          options={
-            items?.map((item: any) => ({
-              value: item.armorClass,
-            })) as DropdownOption[]
-          }
-          value={listFilter.armorClass}
-          onChange={setListFilter}
-        />
-      </Grid>
-    </Collapse>
-  )
-
   return (
     <List
-      filter={filter}
       tableColumns={tableColumns}
       context={{ type: 'item', form: 'items' }}
       items={items}
       deleteItem={deleteItem}
       scrollPosition={scrollPosition}
-      isLoading={isLoading}
       setFilter={setItemsFilter}
-      listFilterState={listFilter}
+      filterReset={clearItemsFilter}
       selectFilter={selectItemsFilter}
-      filterReset={clearFilters}
     />
   )
 }

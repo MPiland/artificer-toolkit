@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment, memo, FC } from 'react'
+import { useEffect, useState, Fragment, memo } from 'react'
 import useSortableData from '../../hooks/useSortableData'
 import { getValueFromState } from '../../utils/formatting'
 import { PropertyPath, get } from 'lodash'
@@ -30,6 +30,7 @@ import { TbCaretUpFilled, TbTrash, TbCirclePlus } from 'react-icons/tb'
 import clsx from 'clsx'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import useIsLoading from '../../hooks/useIsLoading'
+import { useMediaQuery } from 'usehooks-ts'
 
 type RowData = {
   inputs: RowInput[]
@@ -95,7 +96,7 @@ interface TableProps {
   border?: boolean
 }
 
-const TableHeader: FC<TableHeaderProps> = ({
+const TableHeader = ({
   headers,
   collapse,
   sortable,
@@ -104,7 +105,12 @@ const TableHeader: FC<TableHeaderProps> = ({
   addRow,
   deleteRow,
   border,
-}) => {
+}: TableHeaderProps) => {
+  const sm = useMediaQuery('screen and (max-width: 567px)')
+  const md = useMediaQuery(
+    'screen and (min-width: 568px) and (max-width: 1023px)'
+  )
+
   return (
     <Grid
       cols={{
@@ -116,7 +122,10 @@ const TableHeader: FC<TableHeaderProps> = ({
       {collapse && <div className={table_header} />}
       {headers?.map((headerItem: RowHeader, headerIndex: number) => {
         return (
-          !headerItem.breakpoint && (
+          !headerItem.breakpoint?.some(
+            (breakpointItem) =>
+              (breakpointItem === 'sm' && sm) || (breakpointItem === 'md' && md)
+          ) && (
             <Fragment key={headerIndex}>
               {
                 <div
@@ -152,7 +161,7 @@ const TableHeader: FC<TableHeaderProps> = ({
   )
 }
 
-const TableRow: FC<TableRowProps> = ({
+const TableRow = ({
   valueItem,
   valueIndex,
   rows,
@@ -164,8 +173,14 @@ const TableRow: FC<TableRowProps> = ({
   addRow,
   collapse,
   border,
-}) => {
+}: TableRowProps) => {
   const [collapsed, setCollapsed] = useState(true)
+
+  const sm = useMediaQuery('screen and (max-width: 567px)')
+  const md = useMediaQuery(
+    'screen and (min-width: 568px) and (max-width: 1023px)'
+  )
+
   const subrows =
     rows.subrow &&
     rows.subrow?.data?.filter((subrowItem: any) => {
@@ -217,7 +232,11 @@ const TableRow: FC<TableRowProps> = ({
               ? getValueFromState(inputItem, valueItem)
               : ''
           return (
-            !inputItem.breakpoint && (
+            !inputItem.breakpoint?.some(
+              (breakpointItem) =>
+                (breakpointItem === 'sm' && sm) ||
+                (breakpointItem === 'md' && md)
+            ) && (
               <Fragment key={inputIndex}>
                 {readOnly || inputItem.readOnly ? (
                   <div className={table_cell}>{itemValue}</div>
@@ -369,7 +388,7 @@ const TableRow: FC<TableRowProps> = ({
   )
 }
 
-const Table: FC<TableProps> = memo(
+const Table = memo(
   ({
     rows,
     name,
@@ -385,7 +404,7 @@ const Table: FC<TableProps> = memo(
     scrollable,
     id,
     border,
-  }) => {
+  }: TableProps) => {
     const isLoading = useIsLoading()
 
     const [sortState, setSortState] = useState<SortState>()
@@ -393,7 +412,7 @@ const Table: FC<TableProps> = memo(
     const { items, requestSort, sortConfig } = useSortableData(value)
 
     useEffect(() => {
-      if (defaultSort && defaultSortRan === false) {
+      if (defaultSort != null && defaultSortRan === false) {
         setDefaultSortRan(true)
         requestSort(defaultSort.name)
       }
@@ -421,13 +440,9 @@ const Table: FC<TableProps> = memo(
         })
       : items
 
-    let content
-
-    if (isLoading) {
-      content = <Spinner />
-    }
-
-    content = (
+    return isLoading ? (
+      <Spinner />
+    ) : (
       <div className={clsx(table, { ['scrollable']: scrollable })} id={id}>
         {rows?.headers && (
           <TableHeader
@@ -462,8 +477,6 @@ const Table: FC<TableProps> = memo(
         </ScrollArea>
       </div>
     )
-
-    return content
   }
 )
 
