@@ -4,7 +4,7 @@ import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
 import palette from '../../css/colors.css'
 
-export const height = createVar('height')
+export const height = createVar()
 
 export const accordion = style({
   '@layer': {
@@ -28,7 +28,6 @@ export const accordion_container = style({
       marginBottom: size['size-2'],
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
       backgroundColor: theme.vars['app-background-color'],
-      zIndex: 0,
     },
   },
 })

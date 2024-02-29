@@ -15,7 +15,6 @@ import { TbEye, TbEyeOff } from 'react-icons/tb'
 import Spinner from '../../components/Spinner/Spinner'
 import { FaTwitch, FaFacebook, FaGoogle } from 'react-icons/fa'
 import Group from '../../components/Group/Group'
-import { submit_button } from '../../css/Form.css'
 import { sprinkles } from '../../css/sprinkles.css'
 import Modal from '../../components/Modal/Modal'
 import { startCase } from 'lodash'
@@ -38,7 +37,6 @@ const SignIn = () => {
 
   const onLoginClicked = async () => {
     const isValid = validate()
-    console.log('isValid', isValid)
     if (isValid) {
       setState({ target: { name: 'submitting', value: true } })
       try {
@@ -137,13 +135,13 @@ const SignIn = () => {
               </span>
             }
           />
-          <div
+          <Group
             className={sprinkles({
               mb: 'size-2',
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
             })}
+            directionVariant='row'
+            alignItemsVariant='center'
+            justifyContentVariant='start'
           >
             <input
               type='checkbox'
@@ -155,16 +153,16 @@ const SignIn = () => {
             <label htmlFor='persist' className={sprinkles({ ms: 'size-2' })}>
               Trust This Device
             </label>
-          </div>
+          </Group>
           <Button
             variant='primary'
             type='submit'
-            className={submit_button}
             disabled={state?.submitting}
             onClick={(e: any) => {
               e.preventDefault()
               formContext === 'Login' ? onLoginClicked() : onRegisterClicked()
             }}
+            className={sprinkles({ width: 'full' })}
           >
             {!loginIsLoading &&
             !googleIsLoading &&
@@ -187,9 +185,9 @@ const SignIn = () => {
           <Button
             variant='primary'
             type='button'
-            className={submit_button}
             disabled={true}
             onClick={onGoogleLoginClicked}
+            className={sprinkles({ width: 'full' })}
           >
             <FaGoogle />
             <span className={sprinkles({ ms: 'size-1' })}>
@@ -199,8 +197,8 @@ const SignIn = () => {
           <Button
             variant='primary'
             type='button'
-            className={submit_button}
             disabled={true}
+            className={sprinkles({ width: 'full' })}
           >
             <FaFacebook />
             <span className={sprinkles({ ms: 'size-1' })}>
@@ -210,8 +208,8 @@ const SignIn = () => {
           <Button
             variant='primary'
             type='button'
-            className={submit_button}
             disabled={true}
+            className={sprinkles({ width: 'full' })}
           >
             <FaTwitch />
             <span className={sprinkles({ ms: 'size-1' })}>

@@ -62,6 +62,8 @@ export const scroll_area_wrapper = style({
       position: 'relative',
       height: '100%',
       overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
     },
   },
 })

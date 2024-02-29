@@ -1,4 +1,4 @@
-import { FC, ReactNode, useRef } from 'react'
+import { ReactNode, useRef, memo } from 'react'
 import { TbSquarePlus, TbSquareMinus, TbEdit } from 'react-icons/tb'
 import {
   accordion,
@@ -35,7 +35,7 @@ import { ReducerActionType } from '../../utils/types'
 
 interface ContainerProps {
   children: ReactNode
-  itemId?: number
+  itemId?: number | string
 }
 
 interface HeaderProps {
@@ -62,7 +62,7 @@ interface AccordionProps {
   name?: string
 }
 
-const Container: FC<ContainerProps> = ({ children, itemId }) => {
+const Container = memo(({ children, itemId }: ContainerProps) => {
   const {
     attributes,
     listeners,
@@ -71,12 +71,12 @@ const Container: FC<ContainerProps> = ({ children, itemId }) => {
     transition,
     isDragging,
   } = useSortable({
-    id: itemId as number,
+    id: itemId as any,
     disabled: !itemId,
   })
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
     zIndex: isDragging ? 1 : 0,
   }
@@ -92,15 +92,17 @@ const Container: FC<ContainerProps> = ({ children, itemId }) => {
       {children}
     </div>
   )
-}
+})
 
-const Header: FC<HeaderProps> = ({
+Container.displayName = 'Container'
+
+const Header = ({
   children,
   handleClick,
   active,
   handleRemove,
   handleEdit,
-}) => {
+}: HeaderProps) => {
   return (
     <div
       className={clsx(accordion_header, { ['collapsed']: !active })}
@@ -149,7 +151,7 @@ const Header: FC<HeaderProps> = ({
   )
 }
 
-const Content: FC<ContentProps> = ({ children, active = false }) => {
+const Content = ({ children, active = false }: ContentProps) => {
   const content = useRef<HTMLDivElement | null>(null)
 
   return (
@@ -162,16 +164,11 @@ const Content: FC<ContentProps> = ({ children, active = false }) => {
   )
 }
 
-const Footer: FC<FooterProps> = ({ children }) => {
+const Footer = ({ children }: FooterProps) => {
   return <div className={accordion_footer}>{children}</div>
 }
 
-const Accordion: FC<AccordionProps> & {
-  Container: FC<ContainerProps>
-  Header: FC<HeaderProps>
-  Content: FC<ContentProps>
-  Footer: FC<FooterProps>
-} = ({ children, dataArray, setState, name }) => {
+const Accordion = ({ children, dataArray, setState, name }: AccordionProps) => {
   const sensor = useSensors(
     useSensor(TouchSensor, {
       activationConstraint: {
@@ -188,10 +185,8 @@ const Accordion: FC<AccordionProps> & {
   )
 
   const onDragEnd = (event: DragEndEvent) => {
-    console.log('dragging ended')
     const { active, over } = event
     if (active.id === over?.id) {
-      console.log('same id')
       return
     }
 
@@ -213,7 +208,9 @@ const Accordion: FC<AccordionProps> & {
         onDragEnd={onDragEnd}
       >
         <SortableContext
-          items={dataArray as any[]}
+          items={(dataArray as any[]).map(
+            (dataItem, dataIndex) => dataItem.id ?? dataIndex
+          )}
           strategy={verticalListSortingStrategy}
         >
           {children}

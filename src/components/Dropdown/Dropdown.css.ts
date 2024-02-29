@@ -129,7 +129,7 @@ export const dropdown_menu = style({
       listStyle: 'none',
       padding: '.25rem',
       border: theme.vars['app-border-line-style'],
-      height: '100%',
+      height: 'fit-content',
     },
   },
 })
@@ -175,15 +175,6 @@ export const dropdown_active_option = style({
       textOverflow: 'ellipsis',
       padding: '.125rem .5rem',
       whiteSpace: 'nowrap',
-    },
-  },
-})
-
-export const dropdown_error_message = style({
-  '@layer': {
-    [app]: {
-      color: theme.vars.input['input-error-color'],
-      fontSize: 'small',
     },
   },
 })

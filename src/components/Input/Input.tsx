@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import {
   input_wrapper,
   input_label,
-  input_error_message,
   input_container,
   input_left_section,
   input_right_section,
@@ -11,6 +10,7 @@ import {
 import { ReducerActionType } from '../../utils/types'
 import clsx from 'clsx'
 import { useDebounceCallback } from 'usehooks-ts'
+import Tooltip from '../Tooltip/Tooltip'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
@@ -72,6 +72,7 @@ const Input = memo(
 
     useEffect(() => {
       if (value !== inputValue && !debouncing) {
+        setError(false)
         setInputValue(value)
       }
     }, [inputValue, value, debouncing])
@@ -116,10 +117,12 @@ const Input = memo(
     )
 
     const content = (
-      <div
+      <Tooltip
         className={clsx(input_wrapper, {
           [`${className}`]: className,
         })}
+        error={error}
+        errorMsg={errorMsg}
       >
         {label && (
           <label
@@ -147,14 +150,13 @@ const Input = memo(
             tabIndex={0}
             ref={inputRef}
             id={id ?? name}
-            data-atp-validation={validation}
+            data-atapp-validation={validation}
           />
           {rightSection && (
             <div className={input_right_section}>{rightSection}</div>
           )}
         </div>
-        {error && <p className={input_error_message}>{errorMsg}</p>}
-      </div>
+      </Tooltip>
     )
     return content
   }

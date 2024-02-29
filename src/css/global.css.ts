@@ -49,7 +49,7 @@ export const light = createTheme(vars, {
   'focus-border': '2px solid black',
 
   'input': {
-    'input-error-color': 'red',
+    'input-error-color': `${palette['red-6']}`,
   },
 })
 

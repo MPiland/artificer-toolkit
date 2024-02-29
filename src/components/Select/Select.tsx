@@ -22,6 +22,7 @@ import {
   FloatingFocusManager,
   flip,
 } from '@floating-ui/react'
+import ScrollArea from '../ScrollArea/ScrollArea'
 
 interface SelectProps {
   label: string
@@ -99,30 +100,32 @@ const Select: FC<SelectProps> = ({
               style={floatingStyles}
               {...getFloatingProps()}
             >
-              {options.map((optionItem: string, optionIndex: number) => (
-                <div
-                  className={select_option}
-                  key={optionIndex}
-                  {...getItemProps({
-                    onClick() {
-                      handleChange(optionItem)
-                    },
-                    onKeyDown(e) {
-                      if (e.key === 'Enter' || e.key === 'Space') {
+              <ScrollArea scrollDirection='vertical'>
+                {options.map((optionItem: string, optionIndex: number) => (
+                  <div
+                    className={select_option}
+                    key={optionIndex}
+                    {...getItemProps({
+                      onClick() {
                         handleChange(optionItem)
-                      }
-                    },
-                  })}
-                  tabIndex={activeIndex === optionIndex ? 0 : -1}
-                  ref={(node) => {
-                    listItemsRef.current[optionIndex] = node
-                    listContentRef.current[optionIndex] =
-                      node?.textContent ?? null
-                  }}
-                >
-                  {startCase(optionItem as string)}
-                </div>
-              ))}
+                      },
+                      onKeyDown(e) {
+                        if (e.key === 'Enter' || e.key === 'Space') {
+                          handleChange(optionItem)
+                        }
+                      },
+                    })}
+                    tabIndex={activeIndex === optionIndex ? 0 : -1}
+                    ref={(node) => {
+                      listItemsRef.current[optionIndex] = node
+                      listContentRef.current[optionIndex] =
+                        node?.textContent ?? null
+                    }}
+                  >
+                    {startCase(optionItem as string)}
+                  </div>
+                ))}
+              </ScrollArea>
             </div>
           </FloatingFocusManager>
         </FloatingPortal>

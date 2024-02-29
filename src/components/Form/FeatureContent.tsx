@@ -36,6 +36,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../app/store'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { clearBack } from '../../app/modalSlice'
+import Group from '../Group/Group'
 
 interface FeatureContentProps {
   state?: any
@@ -236,15 +237,7 @@ const FeatureContent = ({
     handleFeatureBack()
   }
 
-  const sectionNames = getSectionNames().filter(
-    (sectionName) =>
-      (featureContext === 'OptionContent'
-        ? sectionName !== 'option'
-        : sectionName) &&
-      (featureState?.option?.length > 0
-        ? sectionName === 'option'
-        : sectionName)
-  )
+  const sectionNames = getSectionNames()
 
   const selectSection = (sectionName: SectionName) => {
     if (sectionName !== '') {
@@ -277,14 +270,24 @@ const FeatureContent = ({
                   ? 'Feat Name'
                   : 'Feature Name'
               }
+              required={true}
               value={featureState?.value}
+              errorMsg='Name must not be blank'
               onChange={setFeatureState}
             />
             <Select
               handleChange={selectSection as (arg: string) => void}
               placeholder='Add...'
               label={'Add Section'}
-              options={sectionNames}
+              options={sectionNames.filter(
+                (sectionName) =>
+                  (featureContext === 'OptionContent'
+                    ? sectionName !== 'option'
+                    : sectionName) &&
+                  (featureState?.option?.length > 0
+                    ? sectionName === 'option'
+                    : sectionName)
+              )}
             />
           </Grid>
           <RichTextEditor
@@ -1064,13 +1067,11 @@ const FeatureContent = ({
             </>
           )}
         </div>
-        {Object.keys(featureState).some((key) =>
-          sectionNames.includes(key as SectionName)
-        ) && (
-          <div className={feature_list}>
-            {sectionNames.map(
-              (sectionName: SectionName, sectionNameIndex: number) => {
-                return (
+        <div className={feature_list}>
+          {sectionNames.map(
+            (sectionName: SectionName, sectionNameIndex: number) => {
+              return (
+                featureState[sectionName]?.length > 0 && (
                   <Accordion
                     key={sectionNameIndex}
                     dataArray={featureState[sectionName]}
@@ -1081,7 +1082,7 @@ const FeatureContent = ({
                       (sectionItem: any, sectionIndex: number) => (
                         <Accordion.Container
                           key={sectionIndex}
-                          itemId={sectionItem.id}
+                          itemId={sectionItem.id ?? sectionIndex}
                         >
                           <Accordion.Header
                             key={sectionIndex}
@@ -1092,29 +1093,78 @@ const FeatureContent = ({
                             handleEdit={() =>
                               handleEdit(sectionName, sectionIndex)
                             }
-                            active={activeIndex === sectionIndex}
+                            active={
+                              sectionName === 'option'
+                                ? activeIndex === sectionIndex
+                                : null
+                            }
                           >
                             {`${startCase(sectionName)} ${sectionIndex + 1}`}
                             {sectionItem.value != null &&
                               sectionItem.value !== '' &&
                               ` (${sectionItem.value})`}
                           </Accordion.Header>
-                          <Accordion.Content
-                            active={activeIndex === sectionIndex}
-                          >
-                            <div className={feature_description}>
-                              {sectionItem.desc && parse(sectionItem.desc)}
-                            </div>
-                          </Accordion.Content>
+                          {sectionName === 'option' && (
+                            <>
+                              <Accordion.Content
+                                active={activeIndex === sectionIndex}
+                              >
+                                <div className={feature_description}>
+                                  {sectionItem.desc && parse(sectionItem.desc)}
+                                </div>
+                              </Accordion.Content>
+                              <Accordion.Footer>
+                                <Group justifyContentVariant='start'>
+                                  {sectionNames.map(
+                                    (
+                                      footerSectionName: string,
+                                      footerSectionIndex: number
+                                    ) => {
+                                      return (
+                                        <span
+                                          key={footerSectionIndex}
+                                          className={sprinkles({
+                                            me: 'size-2',
+                                          })}
+                                        >
+                                          {sectionItem[footerSectionName]
+                                            ?.length > 0 ? (
+                                            <strong key={footerSectionIndex}>
+                                              {console.log(
+                                                'footerSectionName',
+                                                footerSectionName
+                                              )}
+                                              {startCase(
+                                                footerSectionName.charAt(0)
+                                              )}
+                                              :
+                                              {
+                                                sectionItem[footerSectionName]
+                                                  ?.length
+                                              }
+                                            </strong>
+                                          ) : (
+                                            `${startCase(
+                                              footerSectionName.charAt(0)
+                                            )}: 0`
+                                          )}
+                                        </span>
+                                      )
+                                    }
+                                  )}
+                                </Group>
+                              </Accordion.Footer>
+                            </>
+                          )}
                         </Accordion.Container>
                       )
                     )}
                   </Accordion>
                 )
-              }
-            )}
-          </div>
-        )}
+              )
+            }
+          )}
+        </div>
       </ScrollArea>
       <FormFooter
         handleBack={handleBack}

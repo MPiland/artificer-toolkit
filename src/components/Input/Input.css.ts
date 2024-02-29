@@ -51,15 +51,6 @@ export const input_container = style({
   },
 })
 
-export const input_error_message = style({
-  '@layer': {
-    [app]: {
-      color: theme.vars.input['input-error-color'],
-      fontSize: 'small',
-    },
-  },
-})
-
 export const input_left_section = style({
   '@layer': {
     [app]: {

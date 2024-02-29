@@ -114,41 +114,40 @@ const FeatureForm = ({
 
   const handleFeatureForward = async () => {
     const isValid = validate()
-    {
-      if (isValid)
-        if (featureStepName === 'SectionContent') {
-          if (featureContext === 'OptionContent') {
-            setOptionState({
+    if (isValid) {
+      if (featureStepName === 'SectionContent') {
+        if (featureContext === 'OptionContent') {
+          setOptionState({
+            target: {
+              name: `${sectionName}.${sectionIndex}`,
+              value: sectionState,
+            },
+          })
+        } else {
+          if (context.title === 'feat') {
+            setFormState({
               target: {
                 name: `${sectionName}.${sectionIndex}`,
                 value: sectionState,
               },
             })
           } else {
-            if (context.title === 'feat') {
-              setFormState({
-                target: {
-                  name: `${sectionName}.${sectionIndex}`,
-                  value: sectionState,
-                },
-              })
-            } else {
-              setFeatureState({
-                target: {
-                  name: `${sectionName}.${sectionIndex}`,
-                  value: sectionState,
-                },
-              })
-            }
+            setFeatureState({
+              target: {
+                name: `${sectionName}.${sectionIndex}`,
+                value: sectionState,
+              },
+            })
           }
-          setSectionState({
-            type: 'reset',
-            target: {
-              value: {},
-            },
-          })
-          return setFeatureStepName('FeatureContent')
         }
+        setSectionState({
+          type: 'reset',
+          target: {
+            value: {},
+          },
+        })
+        return setFeatureStepName('FeatureContent')
+      }
       if (featureContext === 'OptionContent') {
         if (context.title === 'feat') {
           setFormState({
@@ -273,12 +272,12 @@ const FeatureForm = ({
       }
       if (featureStepName === 'FeatureContent') {
         if (context.title === 'feat') {
-          return setFormState({
+          setFormState({
             type: 'reset',
             target: { value: formState },
           })
         } else {
-          return setFormState({
+          setFormState({
             target: {
               name: `feature.${featureIndex}`,
               value: featureState,
@@ -406,7 +405,7 @@ const FeatureForm = ({
                   (featureItem: any, featureIndex: number) => (
                     <Accordion.Container
                       key={featureIndex}
-                      itemId={featureItem.id}
+                      itemId={featureItem.id ?? featureIndex}
                     >
                       <Accordion.Header
                         handleClick={() => toggle(featureIndex)}

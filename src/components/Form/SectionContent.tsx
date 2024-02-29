@@ -139,6 +139,8 @@ export const ModifierContent = ({
   builders,
   state,
 }: SectionProps) => {
+  console.log('sectionState', sectionState)
+
   useEffect(() => {
     if (
       (sectionState.diePerLevel || sectionState.diePerLevel?.length > 0) &&
@@ -224,14 +226,14 @@ export const ModifierContent = ({
           required={true}
           onChange={setSectionState}
         />
-        {sectionState.module?._id && (
+        {sectionState.module?.id && (
           <Dropdown
             name={`modType`}
             label='Modifier Type'
             value={sectionState.modType}
             options={builders.modifier.modType?.filter((modItem: any) =>
               modItem.module.some(
-                (moduleItem: any) => moduleItem.id === sectionState.module?._id
+                (moduleItem: any) => moduleItem.id === sectionState.module?.id
               )
             )}
             required={true}
@@ -326,7 +328,7 @@ export const ModifierContent = ({
               options={builders.modifier.method.filter((methodItem: any) =>
                 methodItem.module?.some(
                   (moduleItem: any) =>
-                    moduleItem.id === sectionState.module?._id
+                    moduleItem.id === sectionState.module?.id
                 )
               )}
               required={true}
@@ -342,7 +344,7 @@ export const ModifierContent = ({
                     label='Minimum Value'
                     errorMsg='Must contain only whole numbers'
                     autoComplete='off'
-                    value={sectionState.multiplier}
+                    value={sectionState.minValue}
                     onChange={setSectionState}
                   />
                   <Input

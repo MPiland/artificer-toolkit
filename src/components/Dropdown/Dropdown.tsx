@@ -10,7 +10,6 @@ import {
   dropdown_option,
   dropdown,
   dropdown_option_right_side,
-  dropdown_error_message,
 } from './Dropdown.css'
 import { uniqBy } from 'lodash'
 import clsx from 'clsx'
@@ -30,6 +29,7 @@ import {
   flip,
 } from '@floating-ui/react'
 import ScrollArea from '../ScrollArea/ScrollArea'
+import Tooltip from '../Tooltip/Tooltip'
 
 interface DropdownProps {
   label?: string | boolean
@@ -57,7 +57,7 @@ const Dropdown = ({
   onChange,
   placeholder,
   className,
-  errorMsg,
+  errorMsg = 'Must select an option',
   id,
 }: DropdownProps) => {
   const [selectedOptions, setSelectedOptions] = useState<
@@ -266,7 +266,7 @@ const Dropdown = ({
 
   return (
     <div className={clsx(dropdown, { [className]: className })}>
-      <div className={dropdown_wrapper}>
+      <Tooltip error={error} errorMsg={errorMsg} className={dropdown_wrapper}>
         {label && (
           <span className={clsx(dropdown_label, { ['required']: required })}>
             {label}
@@ -290,6 +290,7 @@ const Dropdown = ({
               : 'false'
           }
           id={id}
+          aria-required={required}
         >
           <span className={dropdown_input}>
             {multiSelect ? (
@@ -319,8 +320,7 @@ const Dropdown = ({
             {selectedOptions && !multiSelect ? <TbX /> : <TbChevronDown />}
           </span>
         </div>
-        {error && <div className={dropdown_error_message}>{errorMsg}</div>}
-      </div>
+      </Tooltip>
       {isOpen && (
         <FloatingPortal root={appMain} preserveTabOrder={true}>
           <FloatingFocusManager
