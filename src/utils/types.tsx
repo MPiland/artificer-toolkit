@@ -78,6 +78,7 @@ export type DropdownOption = {
   name: string | null
   value: string
   id: number | string | null
+  _id: number | string | null
   [key: string]: any
 }
 

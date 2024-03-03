@@ -20,8 +20,6 @@ import {
   ReducerActionType,
   Steps,
   FeatureStepName,
-  FeatureContext,
-  SectionName,
 } from '../../utils/types'
 import ContainsForm from './ContainsForm'
 import ProficiencyForm from './ProficiencyForm'
@@ -79,49 +77,11 @@ const Form = ({
   const [isLastStep, setIsLastStep] = useState<boolean>(false)
   const [formState, setFormState] = useReducer(formReducer, state)
   const [oldFormState, setOldFormState] = useState<any>(formState)
-  const [matches, setMatches] = useState<boolean>(false)
-  const [featureState, setFeatureState] = useReducer(
-    formReducer,
-    context.title === 'feat' ? formState : {}
-  )
-  const [featureIndex, setFeatureIndex] = useState<number>(0)
-  const [optionState, setOptionState] = useReducer(formReducer, {})
-  const [optionIndex, setOptionIndex] = useState<number>(0)
-  const [sectionState, setSectionState] = useReducer(formReducer, {})
-  const [sectionIndex, setSectionIndex] = useState<number>(0)
-  const [featureContext, setFeatureContext] = useState<FeatureContext>('')
   const [featureStepName, setFeatureStepName] = useState<FeatureStepName>(
     context.title === 'feat' ? 'FeatureContent' : ''
   )
-  const [sectionName, setSectionName] = useState<SectionName>('')
 
   const documentRef = useRef(document)
-
-  useEventListener(
-    'keypress',
-    () => {
-      if (successMessage !== null && !matches) {
-        setSuccessMessage(null)
-      }
-      if (errorMessage) {
-        setErrorMessage(null)
-      }
-    },
-    documentRef
-  )
-
-  useEventListener(
-    'mouseup',
-    () => {
-      if (successMessage !== null && !matches) {
-        setSuccessMessage(null)
-      }
-      if (errorMessage) {
-        setErrorMessage(null)
-      }
-    },
-    documentRef
-  )
 
   // Last/First Step
   useEffect(() => {
@@ -142,15 +102,6 @@ const Form = ({
       setFormState({ type: 'reset', target: { value: state } })
     }
   }, [state, formState])
-
-  //Determine if changes made for warning in handleBack
-  useEffect(() => {
-    if (isEqual(formState, oldFormState)) {
-      setMatches(true)
-    } else {
-      setMatches(false)
-    }
-  }, [formState, oldFormState])
 
   useEffect(() => {
     if (confirmBack && featureStepName === '') {
@@ -213,7 +164,7 @@ const Form = ({
           return i + 1
         })
       }
-      if (matches) {
+      if (isEqual(oldFormState, formState)) {
         return setErrorMessage('No changes made')
       }
       setState({
@@ -228,7 +179,7 @@ const Form = ({
   }
 
   const handleBack = () => {
-    if (!matches) {
+    if (!isEqual(oldFormState, formState)) {
       return handleAlert()
     }
     if (isFirstStep) {
@@ -245,23 +196,58 @@ const Form = ({
     }
   }
 
-  const handleUpdate = async () => {
-    if (matches) {
+  const handleUpdate = async (formStateProp?: object) => {
+    const isValid = validate()
+    if (formStateProp != null) {
+      if (isEqual(oldFormState, formStateProp)) {
+        return setErrorMessage('No changes made')
+      }
+      setState({
+        type: 'reset',
+        target: { value: formStateProp },
+      })
+      setOldFormState(formStateProp)
+      return await update(formStateProp)
+    }
+    console.log('else Form')
+    if (isEqual(oldFormState, formState)) {
       return setErrorMessage('No changes made')
     }
-    const isValid = validate()
     if (isValid) {
       setState({
         type: 'reset',
         target: { value: formState },
       })
-      await update(formState)
       setOldFormState(formState)
-      if (isLastStep) {
-        navigate(-1)
-      }
+      await update(formState)
     }
   }
+
+  useEventListener(
+    'keypress',
+    () => {
+      if (successMessage !== null) {
+        setSuccessMessage(null)
+      }
+      if (errorMessage) {
+        setErrorMessage(null)
+      }
+    },
+    documentRef
+  )
+
+  useEventListener(
+    'mouseup',
+    () => {
+      if (successMessage !== null) {
+        setSuccessMessage(null)
+      }
+      if (errorMessage) {
+        setErrorMessage(null)
+      }
+    },
+    documentRef
+  )
 
   const commonProps = {
     context,
@@ -277,24 +263,10 @@ const Form = ({
 
   const featureProps = {
     isLastStep,
-    featureState,
-    setFeatureState,
-    featureIndex,
-    setFeatureIndex,
-    optionState,
-    setOptionState,
-    optionIndex,
-    setOptionIndex,
-    sectionState,
-    setSectionState,
-    sectionIndex,
-    setSectionIndex,
-    sectionName,
-    setSectionName,
-    featureContext,
-    setFeatureContext,
+    isFirstStep,
     featureStepName,
     setFeatureStepName,
+    formState,
   }
 
   const formSteps = [
@@ -339,7 +311,7 @@ const Form = ({
             context.title === 'item' ? ' An ' : ' A '
           }`}
           {startCase(context.title)}
-          {state?.value && ` (${state.value})`}
+          {formState?.value && ` (${formState.value})`}
           {errorMessage && (
             <span className={error_message}> - {errorMessage}</span>
           )}
@@ -357,7 +329,9 @@ const Form = ({
               formSteps.findIndex((step) => step.name === steps[stepIndex])
             ].content
           }
-          {featureStepName === '' && (
+          {formSteps[
+            formSteps.findIndex((step) => step.name === steps[stepIndex])
+          ].name !== 'Features' && (
             <FormFooter
               handleBack={handleBack}
               forwardLabel={
@@ -374,9 +348,9 @@ const Form = ({
                   : handleForward
               }
               backLabel={isFirstStep ? 'Cancel' : 'Back'}
-              handleUpdate={
+              handleUpdate={() =>
                 context.type === 'edit' && !isLastStep
-                  ? handleUpdate
+                  ? handleUpdate()
                   : undefined
               }
             />

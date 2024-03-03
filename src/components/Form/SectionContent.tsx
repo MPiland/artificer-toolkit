@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { startCase, isEqual } from 'lodash'
+import { useEffect } from 'react'
+import { startCase } from 'lodash'
 import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import Table from '../Table/Table'
@@ -26,11 +26,6 @@ import Spinner from '../Spinner/Spinner'
 import { tableContent } from './FormUtils'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
-import FormFooter from './FormFooter'
-import { useDispatch, useSelector } from 'react-redux'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { clearBack } from '../../app/modalSlice'
-import { RootState } from '../../app/store'
 
 export interface SectionProps {
   sectionState: any
@@ -139,8 +134,6 @@ export const ModifierContent = ({
   builders,
   state,
 }: SectionProps) => {
-  console.log('sectionState', sectionState)
-
   useEffect(() => {
     if (
       (sectionState.diePerLevel || sectionState.diePerLevel?.length > 0) &&
@@ -327,8 +320,7 @@ export const ModifierContent = ({
               value={sectionState.method?.methodType}
               options={builders.modifier.method.filter((methodItem: any) =>
                 methodItem.module?.some(
-                  (moduleItem: any) =>
-                    moduleItem.id === sectionState.module?.id
+                  (moduleItem: any) => moduleItem.id === sectionState.module?.id
                 )
               )}
               required={true}
@@ -1049,18 +1041,7 @@ const SectionContent = ({
   setSectionState,
   setSectionIndex,
   sectionIndex,
-  handleFeatureForward,
-  handleFeatureUpdate,
-  handleFeatureBack,
 }: SectionContentProps) => {
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const location = useLocation()
-
-  const confirmBack = useSelector((state: RootState) => state.modal.back.status)
-
-  const [oldSectionState] = useState<any>(sectionState)
-  const [matches, setMatches] = useState<boolean>(false)
   const { data: builders } = useGetBuildersQuery(undefined)
 
   const { spells } = useGetSpellsQuery(undefined, {
@@ -1089,46 +1070,6 @@ const SectionContent = ({
     }
   }, [featureState, sectionName, setSectionIndex, sectionIndex])
 
-  //Determine if changes made for warning in handleBack
-  useEffect(() => {
-    if (isEqual(sectionState, oldSectionState)) {
-      setMatches(true)
-    } else {
-      setMatches(false)
-    }
-  }, [sectionState, oldSectionState])
-
-  useEffect(() => {
-    if (confirmBack) {
-      setSectionState({ type: 'reset', target: { value: {} } })
-      handleFeatureBack()
-      dispatch(clearBack())
-    }
-  }, [confirmBack, dispatch, handleFeatureBack, setSectionState])
-
-  const handleAlert = () => {
-    navigate(`/alert`, {
-      state: {
-        background: location,
-      },
-    })
-  }
-
-  const handleReset = () => {
-    setSectionState({
-      type: 'reset',
-      target: { value: oldSectionState },
-    })
-    setMatches(true)
-  }
-
-  const handleBack = () => {
-    if (!matches) {
-      return handleAlert()
-    }
-    handleFeatureBack()
-  }
-
   const ContentComponent = tableContent[sectionName]?.content
   return !sectionState ? (
     <Spinner />
@@ -1147,14 +1088,6 @@ const SectionContent = ({
           builders={builders}
         />
       </ScrollArea>
-      <FormFooter
-        handleBack={handleBack}
-        forwardLabel={'Finish'}
-        handleReset={handleReset}
-        handleForward={handleFeatureForward}
-        backLabel={'Back'}
-        handleUpdate={handleFeatureUpdate}
-      />
     </>
   )
 }

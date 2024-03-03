@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
 import {
   selectAllItems,
@@ -24,18 +24,13 @@ import {
 } from '../../utils/types'
 import Grid from '../Grid/Grid'
 import Select from '../Select/Select'
-import { startCase, isEqual } from 'lodash'
+import { startCase } from 'lodash'
 import { feature_description, feature_list, form_content } from './Form.css'
 import Accordion from '../Accordion/Accordion'
 import parse from 'html-react-parser'
 import { sprinkles } from '../../css/sprinkles.css'
 import useIsLoading from '../../hooks/useIsLoading'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import FormFooter from './FormFooter'
-import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../../app/store'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { clearBack } from '../../app/modalSlice'
 import Group from '../Group/Group'
 
 interface FeatureContentProps {
@@ -56,6 +51,8 @@ interface FeatureContentProps {
   handleFeatureForward: () => void
   handleFeatureUpdate?: () => void
   handleFeatureBack: () => void
+  setOldOptionState: (arg: any) => void
+  setOldSectionState: (arg: any) => void
 }
 
 const FeatureContent = ({
@@ -70,54 +67,18 @@ const FeatureContent = ({
   setOptionState,
   setOptionIndex,
   setSectionState,
-  handleFeatureForward,
-  handleFeatureUpdate,
-  handleFeatureBack,
+  setOldOptionState,
+  setOldSectionState,
 }: FeatureContentProps) => {
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
   const isLoading = useIsLoading()
-  const location = useLocation()
-
-  const confirmBack = useSelector((state: RootState) => state.modal.back.status)
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const [oldFeatureState] = useState<any>(featureState)
-  const [matches, setMatches] = useState<boolean>(false)
 
   const { data: builders } = useGetBuildersQuery(undefined)
 
   const { items } = useGetItemsQuery(undefined, {
     selectFromResult: ({ data }) => ({ items: data && selectAllItems(data) }),
   })
-
-  //Determine if changes made for warning in handleBack
-  useEffect(() => {
-    if (isEqual(featureState, oldFeatureState)) {
-      setMatches(true)
-    } else {
-      setMatches(false)
-    }
-  }, [featureState, oldFeatureState, confirmBack])
-
-  useEffect(() => {
-    if (confirmBack) {
-      setFeatureState({ type: 'reset', target: { value: {} } })
-      if (featureContext === 'OptionContent') {
-        setFeatureContext('')
-      } else {
-        setFeatureStepName('')
-      }
-      dispatch(clearBack())
-    }
-  }, [
-    confirmBack,
-    dispatch,
-    setFeatureState,
-    setFeatureContext,
-    setFeatureStepName,
-    featureContext,
-  ])
 
   const damageTableColumns = (feature: any) => {
     const secondary = feature?.damageAttribute?.some(
@@ -189,14 +150,6 @@ const FeatureContent = ({
     setActiveIndex(index)
   }
 
-  const handleAlert = () => {
-    navigate(`/alert`, {
-      state: {
-        background: location,
-      },
-    })
-  }
-
   const handleRemove = (sectionName: SectionName, sectionIndex: number) => {
     setFeatureState({
       type: 'removed',
@@ -212,6 +165,8 @@ const FeatureContent = ({
           type: 'reset',
           target: { value: sectionState },
         })
+      setOptionIndex && setOptionIndex(sectionIndex)
+      setOldOptionState(sectionState)
       return setFeatureContext('OptionContent')
     }
     setSectionName(sectionName)
@@ -219,22 +174,8 @@ const FeatureContent = ({
       type: 'reset',
       target: { value: sectionState },
     })
+    setOldSectionState(sectionState)
     setFeatureStepName('SectionContent')
-  }
-
-  const handleReset = () => {
-    setFeatureState({
-      type: 'reset',
-      target: { value: oldFeatureState },
-    })
-    setMatches(true)
-  }
-
-  const handleBack = () => {
-    if (!matches) {
-      return handleAlert()
-    }
-    handleFeatureBack()
   }
 
   const sectionNames = getSectionNames()
@@ -1130,10 +1071,6 @@ const FeatureContent = ({
                                           {sectionItem[footerSectionName]
                                             ?.length > 0 ? (
                                             <strong key={footerSectionIndex}>
-                                              {console.log(
-                                                'footerSectionName',
-                                                footerSectionName
-                                              )}
                                               {startCase(
                                                 footerSectionName.charAt(0)
                                               )}
@@ -1166,14 +1103,6 @@ const FeatureContent = ({
           )}
         </div>
       </ScrollArea>
-      <FormFooter
-        handleBack={handleBack}
-        forwardLabel={'Finish'}
-        handleReset={handleReset}
-        handleForward={handleFeatureForward}
-        backLabel={'Back'}
-        handleUpdate={handleFeatureUpdate}
-      />
     </>
   )
 }

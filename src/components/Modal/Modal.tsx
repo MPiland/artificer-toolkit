@@ -117,7 +117,6 @@ const Modal: FC & {
   )
 
   const handleClose = () => {
-    console.log('close')
     navigate(-1)
   }
 

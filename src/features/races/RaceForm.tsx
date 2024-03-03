@@ -46,7 +46,6 @@ const RaceForm = () => {
 
   useEffect(() => {
     if (!state && race) {
-      console.log('race', race)
       setState({
         type: 'reset',
         target: { value: race },

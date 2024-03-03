@@ -807,79 +807,81 @@ const AttributeForm = memo(
             title={'Spellcaster Attributes'}
             className={sprinkles({ mb: 'size-3' })}
           >
-            <Dropdown
-              name='spellcasting.ability'
-              label='Spellcasting Ability'
-              required={true}
-              value={formState?.spellcasting?.ability}
-              options={builders.ability}
-              onChange={setFormState}
-            />
-            <Dropdown
-              name='spellcasting.attribute'
-              label='Spell Casting Attributes'
-              multiSelect={true}
-              value={formState?.spellcasting?.attribute}
-              options={builders.class.spell.attribute}
-              onChange={setFormState}
-            />
-            {formState?.spellcasting?.attribute?.some(
-              (attributeItem: any) => attributeItem.name === 'preparesSpells'
-            ) && (
+            <Grid>
               <Dropdown
-                name='spellcasting.prepareLimit.method'
-                label='Prepare Limit Method'
-                multiSelect={true}
-                value={formState?.spellcasting?.prepareLimit?.method}
-                options={builders.class.spell.prepareLimitAttribute}
+                name='spellcasting.ability'
+                label='Spellcasting Ability'
+                required={true}
+                value={formState?.spellcasting?.ability}
+                options={builders.ability}
                 onChange={setFormState}
               />
-            )}
-            {formState?.spellcasting?.prepareLimit?.method?.some(
-              (methodItem: any) => methodItem.name === 'classLevel'
-            ) && (
-              <>
+              <Dropdown
+                name='spellcasting.attribute'
+                label='Spell Casting Attributes'
+                multiSelect={true}
+                value={formState?.spellcasting?.attribute}
+                options={builders.class.spell.attribute}
+                onChange={setFormState}
+              />
+              {formState?.spellcasting?.attribute?.some(
+                (attributeItem: any) => attributeItem.name === 'preparesSpells'
+              ) && (
                 <Dropdown
-                  name='spellcasting.prepareLimit.level.measurement'
-                  label='Level Measurement'
-                  value={
-                    formState?.spellcasting?.prepareLimit?.level?.measurement
-                  }
-                  options={builders.system.rules.measurement}
+                  name='spellcasting.prepareLimitMethod'
+                  label='Prepare Limit Method'
+                  multiSelect={true}
+                  value={formState?.spellcasting?.prepareLimitMethod}
+                  options={builders.class.spell.prepareLimitAttribute}
                   onChange={setFormState}
                 />
-                {formState?.spellcasting?.prepareLimit?.level?.measurement
-                  ?.name === 'half' && (
+              )}
+              {formState?.spellcasting?.prepareLimitMethod?.some(
+                (methodItem: any) => methodItem.name === 'classLevel'
+              ) && (
+                <>
                   <Dropdown
-                    name='spellcasting.prepareLimit.level.rounding'
-                    label='Level Rounding'
+                    name='spellcasting.prepareLimitLevel.measurement'
+                    label='Level Measurement'
                     value={
-                      formState?.spellcasting?.prepareLimit?.level?.rounding
+                      formState?.spellcasting?.prepareLimitLevel?.measurement
                     }
-                    options={builders.system.rules.rounding}
+                    options={builders.system.rules.measurement}
                     onChange={setFormState}
                   />
-                )}
-              </>
-            )}
-            <Input
-              name='spellcasting.maxSpellLevel'
-              autoComplete='off'
-              label='Max Spell Level'
-              required={true}
-              value={formState?.spellcasting?.maxSpellLevel}
-              validation='num'
-              errorMsg='Must contain whole numbers only'
-              onChange={setFormState}
-            />
-            <Dropdown
-              name='spellcasting.resetOption'
-              label='Spellslot Reset Option'
-              value={formState?.spellcasting?.resetOption}
-              options={builders.feature.chargeReset}
-              required={true}
-              onChange={setFormState}
-            />
+                  {formState?.spellcasting?.prepareLimitLevel?.measurement
+                    ?.name === 'half' && (
+                    <Dropdown
+                      name='spellcasting.prepareLimitLevel.rounding'
+                      label='Level Rounding'
+                      value={
+                        formState?.spellcasting?.prepareLimit?.level?.rounding
+                      }
+                      options={builders.system.rules.rounding}
+                      onChange={setFormState}
+                    />
+                  )}
+                </>
+              )}
+              <Input
+                name='spellcasting.maxSpellLevel'
+                autoComplete='off'
+                label='Max Spell Level'
+                required={true}
+                value={formState?.spellcasting?.maxSpellLevel}
+                validation='num'
+                errorMsg='Must contain whole numbers only'
+                onChange={setFormState}
+              />
+              <Dropdown
+                name='spellcasting.resetOption'
+                label='Spellslot Reset Option'
+                value={formState?.spellcasting?.resetOption}
+                options={builders.feature.chargeReset}
+                required={true}
+                onChange={setFormState}
+              />
+            </Grid>
           </Collapse>
         )}
         {context.title === 'class' && formState.category.name === 'base' && (

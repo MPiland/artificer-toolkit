@@ -123,8 +123,8 @@ const Dropdown = ({
 
   if (options?.length) {
     newOptions = options?.filter((option) => option?.value != null)
-    newOptions = newOptions.map(({ name, value, id, ...rest }) => {
-      const newObj: DropdownOption = { name, value, id }
+    newOptions = newOptions.map(({ name, value, _id, id, ...rest }) => {
+      const newObj: DropdownOption = { name, value, _id, id }
 
       if (optionalKey) {
         if (Array.isArray(optionalKey)) {
@@ -152,8 +152,8 @@ const Dropdown = ({
 
   if (multiSelect) {
     newOptions.unshift(
-      { name: 'all', value: 'All', id: 'all' },
-      { name: 'clear', value: 'Clear', id: 'clear' }
+      { name: 'all', value: 'All', _id: 'all', id: 'all' },
+      { name: 'clear', value: 'Clear', _id: 'clear', id: 'clear' }
     )
   }
 
@@ -172,15 +172,15 @@ const Dropdown = ({
         )
       } else if (
         !value.every((option) =>
-          newOptions.some((newOption) => newOption.id === option.id)
+          newOptions.some((newOption) => newOption._id === option._id)
         )
       ) {
         updatedOptions.current = value.filter((valueItem) =>
-          newOptions.some((newOption) => newOption.id === valueItem.id)
+          newOptions.some((newOption) => newOption._id === valueItem._id)
         )
         setSelectedOptions(
           value.filter((valueItem) =>
-            newOptions.some((newOption) => newOption.id === valueItem.id)
+            newOptions.some((newOption) => newOption._id === valueItem._id)
           )
         )
       } else {
@@ -208,15 +208,15 @@ const Dropdown = ({
         setSelectedOptions((current) => {
           if (current != null) {
             updated = current.some((item: DropdownOption) => {
-              if (item.id != null) {
-                return item.id === option.id
+              if (item._id != null) {
+                return item._id === option._id
               } else {
                 return item.value === option.value
               }
             })
               ? current.filter((v: any) => {
-                  if (v.id != null) {
-                    return v.id !== option.id
+                  if (v._id != null) {
+                    return v._id !== option._id
                   } else {
                     return v.value != option.value
                   }
@@ -274,7 +274,7 @@ const Dropdown = ({
         )}
         <div
           className={clsx(dropdown_container, 'dropdown', {
-            ['invalid']: error,
+            ['inval_id']: error,
           })}
           ref={(el) => {
             refs.setReference(el)
@@ -340,15 +340,15 @@ const Dropdown = ({
                     const active = multiSelect
                       ? selectedOptions?.some(
                           (selectedOption: DropdownOption) => {
-                            if (selectedOption.id != null) {
-                              return selectedOption.id === optionItem.id
+                            if (selectedOption._id != null) {
+                              return selectedOption._id === optionItem._id
                             } else {
                               return selectedOption.value === optionItem.value
                             }
                           }
                         )
-                      : (selectedOptions as DropdownOption)?.id ===
-                        optionItem.id
+                      : (selectedOptions as DropdownOption)?._id ===
+                        optionItem._id
                     return (
                       <div
                         className={dropdown_option}

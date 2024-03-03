@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState, useReducer } from 'react'
 import parse from 'html-react-parser'
 import Button from '../Button/Button'
 import FeatureContent from './FeatureContent'
@@ -20,9 +20,15 @@ import Accordion from '../Accordion/Accordion'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { getSectionNames } from './FormUtils'
 import Group from '../Group/Group'
-import { startCase } from 'lodash'
+import { isEqual, startCase } from 'lodash'
 import { sprinkles } from '../../css/sprinkles.css'
 import { validate } from '../../utils/formValidation'
+import formReducer from '../../hooks/useReducer'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '../../app/store'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { clearBack } from '../../app/modalSlice'
+import FormFooter from './FormFooter'
 
 interface FeatureFormProps {
   context: {
@@ -36,57 +42,83 @@ interface FeatureFormProps {
   handleReset: () => void
   handleForward: () => void
   handleBack: () => void
-  handleUpdate: () => void
-  featureState: any
-  setFeatureState: (arg: ReducerActionType) => void
-  featureIndex: number
-  setFeatureIndex: (arg: number) => void
-  optionState: any
-  setOptionState: (arg: ReducerActionType) => void
-  optionIndex: number
-  setOptionIndex: (arg: number) => void
-  sectionState: any
-  setSectionState: (arg: ReducerActionType) => void
-  sectionIndex: number
-  setSectionIndex: (arg: number) => void
-  sectionName: SectionName
-  setSectionName: (arg: SectionName) => void
-  featureContext: FeatureContext
-  setFeatureContext: (arg: FeatureContext) => void
+  handleUpdate: (arg?: any) => void
   featureStepName: FeatureStepName
   setFeatureStepName: (arg: FeatureStepName) => void
+  isFirstStep: boolean
 }
 
 const FeatureForm = ({
   context,
+  isLastStep,
   formState,
   setFormState,
   handleRemove,
   handleForward,
   handleBack,
   handleUpdate,
-  featureState,
-  setFeatureState,
-  featureIndex,
-  setFeatureIndex,
-  optionState,
-  setOptionState,
-  optionIndex,
-  setOptionIndex,
-  sectionState,
-  setSectionState,
-  sectionIndex,
-  setSectionIndex,
-  sectionName,
-  setSectionName,
-  featureContext,
-  setFeatureContext,
   featureStepName,
   setFeatureStepName,
+  isFirstStep,
 }: FeatureFormProps) => {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const [featureState, setFeatureState] = useReducer(
+    formReducer,
+    context.title === 'feat' ? formState : {}
+  )
+  const [oldFeatureState, setOldFeatureState] = useState<any>({})
+  const [featureIndex, setFeatureIndex] = useState<number>(0)
+  const [optionState, setOptionState] = useReducer(formReducer, {})
+  const [oldOptionState, setOldOptionState] = useState<any>({})
+  const [optionIndex, setOptionIndex] = useState<number>(0)
+  const [sectionState, setSectionState] = useReducer(formReducer, {})
+  const [oldSectionState, setOldSectionState] = useState<any>({})
+  const [sectionIndex, setSectionIndex] = useState<number>(0)
+  const [featureContext, setFeatureContext] = useState<FeatureContext>('')
+  const [sectionName, setSectionName] = useState<SectionName>('')
   const [activeIndex, setActiveIndex] = useState<number | null>(
     context.type !== 'new' ? null : 0
   )
+
+  const formStateClone = useRef(JSON.parse(JSON.stringify(formState)))
+
+  const confirmBack = useSelector((state: RootState) => state.modal.back.status)
+
+  useEffect(() => {
+    if (confirmBack) {
+      if (featureStepName === 'SectionContent') {
+        setSectionState({ type: 'reset', target: { value: {} } })
+        setOldSectionState({})
+        setFeatureStepName('FeatureContent')
+      } else if (featureContext === 'OptionContent') {
+        setOptionState({ type: 'reset', target: { value: {} } })
+        setOldOptionState({})
+        setFeatureContext('')
+      } else if (featureStepName === 'FeatureContent') {
+        setFeatureState({ type: 'reset', target: { value: {} } })
+        setOldFeatureState({})
+        setFeatureStepName('')
+      }
+      dispatch(clearBack())
+    }
+  }, [
+    confirmBack,
+    dispatch,
+    setFeatureState,
+    setFeatureContext,
+    setFeatureStepName,
+    featureContext,
+    featureStepName,
+  ])
+
+  useEffect(() => {
+    if (formStateClone.current == null && formState) {
+      formStateClone.current = JSON.parse(JSON.stringify(formState))
+    }
+  }, [formState])
 
   const toggle = (index: number) => {
     if (activeIndex === index) {
@@ -95,9 +127,18 @@ const FeatureForm = ({
     setActiveIndex(index)
   }
 
+  const handleAlert = () => {
+    navigate(`/alert`, {
+      state: {
+        background: location,
+      },
+    })
+  }
+
   const handleAdd = () => {
     if (formState.feature?.length > 0) {
       setFeatureIndex(formState.feature.length)
+      setOldFeatureState({})
     }
     setFeatureStepName('FeatureContent')
   }
@@ -109,61 +150,87 @@ const FeatureForm = ({
       type: 'reset',
       target: { value: featureStateProp },
     })
+    setOldFeatureState(featureStateProp)
     setFeatureStepName('FeatureContent')
+  }
+
+  const handleSaveSection = () => {
+    if (featureContext === 'OptionContent') {
+      setOptionState({
+        target: {
+          name: `${sectionName}.${sectionIndex}`,
+          value: sectionState,
+        },
+      })
+      return (formStateClone.current.feature[featureIndex].option[sectionName][
+        sectionIndex
+      ] = sectionState)
+    }
+    if (context.title === 'feat') {
+      setFormState({
+        target: {
+          name: `${sectionName}.${sectionIndex}`,
+          value: sectionState,
+        },
+      })
+      return (formStateClone.current[sectionName][sectionIndex] = sectionState)
+    }
+    setFeatureState({
+      target: {
+        name: `${sectionName}.${sectionIndex}`,
+        value: sectionState,
+      },
+    })
+    formStateClone.current.feature[featureIndex][sectionName][sectionIndex] =
+      sectionState
+  }
+
+  const handleSaveOption = () => {
+    if (context.title === 'feat') {
+      setFormState({
+        target: {
+          name: `option.${optionIndex}`,
+          value: optionState,
+        },
+      })
+      formStateClone.current.option[optionIndex] = optionState
+    } else {
+      setFeatureState({
+        target: {
+          name: `option.${optionIndex}`,
+          value: optionState,
+        },
+      })
+    }
+    formStateClone.current.feature[featureIndex].option[optionIndex] =
+      optionState
+  }
+
+  const handleSaveFeature = () => {
+    setFormState({
+      target: {
+        name: `feature.${featureIndex}`,
+        value: featureState,
+      },
+    })
+    formStateClone.current.feature[featureIndex] = featureState
   }
 
   const handleFeatureForward = async () => {
     const isValid = validate()
+    if (featureStepName === 'SectionContent') {
+      handleSaveSection()
+      setSectionState({
+        type: 'reset',
+        target: {
+          value: {},
+        },
+      })
+      return setFeatureStepName('FeatureContent')
+    }
     if (isValid) {
-      if (featureStepName === 'SectionContent') {
-        if (featureContext === 'OptionContent') {
-          setOptionState({
-            target: {
-              name: `${sectionName}.${sectionIndex}`,
-              value: sectionState,
-            },
-          })
-        } else {
-          if (context.title === 'feat') {
-            setFormState({
-              target: {
-                name: `${sectionName}.${sectionIndex}`,
-                value: sectionState,
-              },
-            })
-          } else {
-            setFeatureState({
-              target: {
-                name: `${sectionName}.${sectionIndex}`,
-                value: sectionState,
-              },
-            })
-          }
-        }
-        setSectionState({
-          type: 'reset',
-          target: {
-            value: {},
-          },
-        })
-        return setFeatureStepName('FeatureContent')
-      }
       if (featureContext === 'OptionContent') {
-        if (context.title === 'feat') {
-          setFormState({
-            target: {
-              name: `option.${optionIndex}`,
-              value: optionState,
-            },
-          })
-        } else {
-          setFeatureState({
-            target: {
-              name: `option.${optionIndex}`,
-              value: optionState,
-            },
-          })
-        }
+        handleSaveOption()
         setOptionState({
           type: 'reset',
           target: {
@@ -174,18 +241,7 @@ const FeatureForm = ({
         return setFeatureStepName('FeatureContent')
       }
       if (featureStepName === 'FeatureContent') {
-        if (context.title === 'feat') {
-          setFormState({
-            type: 'reset',
-            target: { value: formState },
-          })
-        }
-        setFormState({
-          target: {
-            name: `feature.${featureIndex}`,
-            value: featureState,
-          },
-        })
+        handleSaveFeature()
         setFeatureState({
           type: 'reset',
           target: {
@@ -200,92 +256,61 @@ const FeatureForm = ({
 
   const handleFeatureBack = () => {
     if (featureStepName === 'SectionContent') {
+      if (!isEqual(sectionState, oldSectionState)) {
+        return handleAlert()
+      }
       setSectionState({
         type: 'reset',
         target: { value: {} },
       })
       return setFeatureStepName('FeatureContent')
-    }
-    if (featureStepName === 'FeatureContent') {
-      if (featureContext === 'OptionContent') {
-        setOptionState({
-          type: 'reset',
-          target: { value: {} },
-        })
-        setFeatureContext('')
-        return setFeatureStepName('FeatureContent')
+    } else if (featureContext === 'OptionContent') {
+      if (!isEqual(optionState, oldOptionState)) {
+        return handleAlert()
       }
-      console.log('feature content')
+      setOptionState({
+        type: 'reset',
+        target: { value: {} },
+      })
+      setFeatureContext('')
+      return setFeatureStepName('FeatureContent')
+    } else if (featureStepName === 'FeatureContent') {
+      if (!isEqual(oldFeatureState, featureState)) {
+        return handleAlert()
+      }
       setFeatureState({
         type: 'reset',
         target: { value: {} },
       })
       return setFeatureStepName('')
     }
-    console.log('keep going')
     handleBack()
   }
 
-  const handleFeatureUpdate = async () => {
+  const handleFeatureUpdate = () => {
     const isValid = validate()
     if (isValid) {
       if (featureStepName === 'SectionContent') {
-        if (featureContext === 'OptionContent') {
-          setOptionState({
-            target: {
-              name: `${sectionName}.${sectionIndex}`,
-              value: sectionState,
-            },
-          })
-        } else if (context.title === 'feat') {
-          setFormState({
-            target: {
-              name: `${sectionName}.${sectionIndex}`,
-              value: sectionState,
-            },
-          })
-        } else {
-          setFeatureState({
-            target: {
-              name: `${sectionName}.${sectionIndex}`,
-              value: sectionState,
-            },
-          })
-        }
+        handleSaveSection()
+      } else if (featureContext === 'OptionContent') {
+        handleSaveOption()
+      } else if (
+        featureStepName === 'FeatureContent' &&
+        context.title !== 'feat'
+      ) {
+        handleSaveFeature()
       }
-      if (featureContext === 'OptionContent') {
-        if (context.title === 'feat') {
-          setFormState({
-            target: {
-              name: `option.${optionIndex}`,
-              value: optionState,
-            },
-          })
-        } else {
-          setFeatureState({
-            target: {
-              name: `option.${optionIndex}`,
-              value: optionState,
-            },
-          })
-        }
-      }
-      if (featureStepName === 'FeatureContent') {
-        if (context.title === 'feat') {
-          setFormState({
-            type: 'reset',
-            target: { value: formState },
-          })
-        } else {
-          setFormState({
-            target: {
-              name: `feature.${featureIndex}`,
-              value: featureState,
-            },
-          })
-        }
-      }
-      handleUpdate()
+      handleUpdate(formStateClone.current)
+    }
+  }
+
+  const handleFeatureReset = () => {
+    if (featureStepName === 'SectionContent') {
+      setSectionState({ type: 'reset', target: { value: oldSectionState } })
+    } else if (featureContext === 'OptionContent') {
+      setOldOptionState({ type: 'reset', target: { value: oldOptionState } })
+    } else if (featureStepName === 'FeatureContent') {
+      setOldFeatureState({ type: 'reset', target: { value: oldFeatureState } })
     }
   }
 
@@ -312,6 +337,8 @@ const FeatureForm = ({
             handleFeatureUpdate={
               context.type === 'edit' ? handleFeatureUpdate : undefined
             }
+            setOldOptionState={setOldOptionState}
+            setOldSectionState={setOldSectionState}
           />
         )
       }
@@ -334,6 +361,8 @@ const FeatureForm = ({
             handleFeatureUpdate={
               context.type === 'edit' ? handleFeatureUpdate : undefined
             }
+            setOldOptionState={setOldOptionState}
+            setOldSectionState={setOldSectionState}
           />
         )
       }
@@ -353,6 +382,8 @@ const FeatureForm = ({
           handleFeatureUpdate={
             context.type === 'edit' ? handleFeatureUpdate : undefined
           }
+          setOldOptionState={setOldOptionState}
+          setOldSectionState={setOldSectionState}
         />
       )
     }
@@ -390,80 +421,92 @@ const FeatureForm = ({
       {featureStepName !== '' ? (
         component()
       ) : (
-        <ScrollArea scrollDirection='vertical' className={form_content}>
-          <Button variant='primary' onClick={handleAdd}>
-            Add Feature
-          </Button>
-          {formState.feature?.length > 0 && (
-            <div className={feature_list}>
-              <Accordion
-                dataArray={formState.feature}
-                setState={setFormState}
-                name='feature'
-              >
-                {formState.feature?.map(
-                  (featureItem: any, featureIndex: number) => (
-                    <Accordion.Container
-                      key={featureIndex}
-                      itemId={featureItem.id ?? featureIndex}
-                    >
-                      <Accordion.Header
-                        handleClick={() => toggle(featureIndex)}
-                        handleRemove={() =>
-                          handleRemove(`feature.${featureIndex}`)
-                        }
-                        handleEdit={() => handleEdit(featureIndex)}
-                        active={
-                          !featureItem.desc
-                            ? null
-                            : activeIndex === featureIndex
-                        }
+        <>
+          <ScrollArea scrollDirection='vertical' className={form_content}>
+            <Button variant='primary' onClick={handleAdd}>
+              Add Feature
+            </Button>
+            {formState.feature?.length > 0 && (
+              <div className={feature_list}>
+                <Accordion
+                  dataArray={formState.feature}
+                  setState={setFormState}
+                  name='feature'
+                >
+                  {formState.feature?.map(
+                    (featureItem: any, featureIndex: number) => (
+                      <Accordion.Container
+                        key={featureIndex}
+                        itemId={featureItem.id ?? featureIndex}
                       >
-                        {featureItem.value != null && featureItem.value !== ''
-                          ? featureItem.value
-                          : `Feature ${featureIndex + 1}`}
-                      </Accordion.Header>
-                      {featureItem.desc && (
-                        <Accordion.Content
-                          active={activeIndex === featureIndex}
+                        <Accordion.Header
+                          handleClick={() => toggle(featureIndex)}
+                          handleRemove={() =>
+                            handleRemove(`feature.${featureIndex}`)
+                          }
+                          handleEdit={() => handleEdit(featureIndex)}
+                          active={
+                            !featureItem.desc
+                              ? null
+                              : activeIndex === featureIndex
+                          }
                         >
-                          <div className={feature_description}>
-                            {featureItem.desc && parse(featureItem.desc)}
-                          </div>
-                        </Accordion.Content>
-                      )}
-                      <hr />
-                      <Accordion.Footer>
-                        <Group justifyContentVariant='start'>
-                          {sectionNames.map(
-                            (sectionName: string, sectionIndex: number) => {
-                              return (
-                                <span
-                                  key={sectionIndex}
-                                  className={sprinkles({ me: 'size-2' })}
-                                >
-                                  {featureItem[sectionName]?.length > 0 ? (
-                                    <strong>
-                                      {startCase(sectionName.charAt(0))}:{' '}
-                                      {featureItem[sectionName]?.length}
-                                    </strong>
-                                  ) : (
-                                    `${startCase(sectionName.charAt(0))}: 0`
-                                  )}
-                                </span>
-                              )
-                            }
-                          )}
-                        </Group>
-                      </Accordion.Footer>
-                    </Accordion.Container>
-                  )
-                )}
-              </Accordion>
-            </div>
-          )}
-        </ScrollArea>
+                          {featureItem.value != null && featureItem.value !== ''
+                            ? featureItem.value
+                            : `Feature ${featureIndex + 1}`}
+                        </Accordion.Header>
+                        {featureItem.desc && (
+                          <Accordion.Content
+                            active={activeIndex === featureIndex}
+                          >
+                            <div className={feature_description}>
+                              {featureItem.desc && parse(featureItem.desc)}
+                            </div>
+                          </Accordion.Content>
+                        )}
+                        <hr />
+                        <Accordion.Footer>
+                          <Group justifyContentVariant='start'>
+                            {sectionNames.map(
+                              (sectionName: string, sectionIndex: number) => {
+                                return (
+                                  <span
+                                    key={sectionIndex}
+                                    className={sprinkles({ me: 'size-2' })}
+                                  >
+                                    {featureItem[sectionName]?.length > 0 ? (
+                                      <strong>
+                                        {startCase(sectionName.charAt(0))}:{' '}
+                                        {featureItem[sectionName]?.length}
+                                      </strong>
+                                    ) : (
+                                      `${startCase(sectionName.charAt(0))}: 0`
+                                    )}
+                                  </span>
+                                )
+                              }
+                            )}
+                          </Group>
+                        </Accordion.Footer>
+                      </Accordion.Container>
+                    )
+                  )}
+                </Accordion>
+              </div>
+            )}
+          </ScrollArea>
+        </>
       )}
+      <FormFooter
+        handleBack={handleFeatureBack}
+        forwardLabel={
+          featureStepName === '' ? (isLastStep ? 'Submit' : 'Next') : 'Finish'
+        }
+        handleReset={handleFeatureReset}
+        handleForward={handleFeatureForward}
+        backLabel={isFirstStep ? 'Cancel' : 'Back'}
+        handleUpdate={handleFeatureUpdate}
+      />
     </>
   )
 }
