@@ -13,6 +13,7 @@ export type RowInput = {
   multiple?: boolean
   required?: boolean
   optionalKey?: string
+  placeholder?: string
 }
 
 export type RowHeader = {

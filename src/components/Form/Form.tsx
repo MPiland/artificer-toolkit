@@ -4,8 +4,6 @@ import {
   form_wrapper,
   success_message,
 } from './Form.css'
-import { SerializedError } from '@reduxjs/toolkit'
-import { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { useEffect, useReducer, useState, useRef } from 'react'
 import { startCase } from 'lodash'
 import ProgressBar from '../ProgressBar/ProgressBar'
@@ -20,6 +18,8 @@ import {
   ReducerActionType,
   Steps,
   FeatureStepName,
+  FeatureContext,
+  SectionName,
 } from '../../utils/types'
 import ContainsForm from './ContainsForm'
 import ProficiencyForm from './ProficiencyForm'
@@ -33,38 +33,42 @@ import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../app/store'
 import { clearBack } from '../../app/modalSlice'
 import { useEventListener } from 'usehooks-ts'
+import {
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryError,
+  TypedUseMutation,
+} from '@reduxjs/toolkit/query/react'
 
 interface FormProps {
   context: {
     type: FormContext
     title: string
   }
-  handleSubmit: () => Promise<void>
-  update: (
-    arg: any
-  ) => Promise<{ data: any } | { error: FetchBaseQueryError | SerializedError }>
   steps: Steps
   state: any
   setState: (arg: ReducerActionType) => void
-  errorMessage: string | null
-  successMessage: string | null
-  setErrorMessage: (arg: string | null) => void
-  setSuccessMessage: (arg: string | null) => void
   location: any
+  useAddNewItem: TypedUseMutation<
+    any,
+    any,
+    BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>
+  >
+  useUpdateItem: TypedUseMutation<
+    any,
+    any,
+    BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>
+  >
 }
 
 const Form = ({
   context,
-  handleSubmit,
-  update,
   steps,
   state,
   setState,
-  errorMessage,
-  successMessage,
-  setErrorMessage,
-  setSuccessMessage,
   location,
+  useAddNewItem,
+  useUpdateItem,
 }: FormProps) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -72,6 +76,18 @@ const Form = ({
 
   const confirmBack = useSelector((state: RootState) => state.modal.back.status)
 
+  const [
+    addNewItem,
+    { isSuccess: addIsSuccess, isError: addIsError, error: addError },
+  ] = useAddNewItem()
+
+  const [
+    updateItem,
+    { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
+  ] = useUpdateItem()
+
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [stepIndex, setStepIndex] = useState<number>(0)
   const [isFirstStep, setIsFirstStep] = useState<boolean>(false)
   const [isLastStep, setIsLastStep] = useState<boolean>(false)
@@ -80,6 +96,20 @@ const Form = ({
   const [featureStepName, setFeatureStepName] = useState<FeatureStepName>(
     context.title === 'feat' ? 'FeatureContent' : ''
   )
+  const [featureState, setFeatureState] = useReducer(
+    formReducer,
+    context.title === 'feat' ? formState : {}
+  )
+  const [oldFeatureState, setOldFeatureState] = useState<any>({})
+  const [featureIndex, setFeatureIndex] = useState<number>(0)
+  const [optionState, setOptionState] = useReducer(formReducer, {})
+  const [oldOptionState, setOldOptionState] = useState<any>({})
+  const [optionIndex, setOptionIndex] = useState<number>(0)
+  const [sectionState, setSectionState] = useReducer(formReducer, {})
+  const [oldSectionState, setOldSectionState] = useState<any>({})
+  const [sectionIndex, setSectionIndex] = useState<number>(0)
+  const [featureContext, setFeatureContext] = useState<FeatureContext>('')
+  const [sectionName, setSectionName] = useState<SectionName>('')
 
   const documentRef = useRef(document)
 
@@ -132,6 +162,46 @@ const Form = ({
     featureStepName,
   ])
 
+  useEffect(() => {
+    if (addIsSuccess || updateIsSuccess) {
+      setSuccessMessage(
+        `${startCase(context.title)} ${
+          context.type === 'edit' ? 'updated' : 'added'
+        } successfully!`
+      )
+      setErrorMessage(null)
+    }
+  }, [
+    addIsSuccess,
+    updateIsSuccess,
+    context.type,
+    context.title,
+    setErrorMessage,
+    setSuccessMessage,
+  ])
+
+  useEffect(() => {
+    if (addIsError || updateIsError) {
+      if (addError && 'data' in addError) {
+        setErrorMessage((addError.data as any).message)
+      }
+      if (updateError && 'data' in updateError) {
+        setErrorMessage((updateError.data as any).message)
+      }
+    }
+  }, [
+    addIsSuccess,
+    updateIsSuccess,
+    context.type,
+    context.title,
+    setErrorMessage,
+    setSuccessMessage,
+    addIsError,
+    updateIsError,
+    addError,
+    updateError,
+  ])
+
   const handleAlert = () => {
     navigate(`/alert`, {
       state: {
@@ -153,6 +223,10 @@ const Form = ({
       type: 'reset',
       target: { value: oldFormState },
     })
+  }
+
+  const handleSubmit = async () => {
+    await addNewItem(state)
   }
 
   const handleForward = async () => {
@@ -207,7 +281,7 @@ const Form = ({
         target: { value: formStateProp },
       })
       setOldFormState(formStateProp)
-      return await update(formStateProp)
+      return await updateItem(formStateProp)
     }
     console.log('else Form')
     if (isEqual(oldFormState, formState)) {
@@ -219,7 +293,7 @@ const Form = ({
         target: { value: formState },
       })
       setOldFormState(formState)
-      await update(formState)
+      await updateItem(formState)
     }
   }
 
@@ -267,6 +341,28 @@ const Form = ({
     featureStepName,
     setFeatureStepName,
     formState,
+    featureState,
+    setFeatureState,
+    oldFeatureState,
+    setOldFeatureState,
+    featureIndex,
+    setFeatureIndex,
+    optionState,
+    setOptionState,
+    oldOptionState,
+    setOldOptionState,
+    optionIndex,
+    setOptionIndex,
+    sectionState,
+    setSectionState,
+    oldSectionState,
+    setOldSectionState,
+    sectionIndex,
+    setSectionIndex,
+    featureContext,
+    setFeatureContext,
+    sectionName,
+    setSectionName,
   }
 
   const formSteps = [

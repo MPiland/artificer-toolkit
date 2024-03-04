@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useReducer } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import parse from 'html-react-parser'
 import Button from '../Button/Button'
 import FeatureContent from './FeatureContent'
@@ -23,7 +23,6 @@ import Group from '../Group/Group'
 import { isEqual, startCase } from 'lodash'
 import { sprinkles } from '../../css/sprinkles.css'
 import { validate } from '../../utils/formValidation'
-import formReducer from '../../hooks/useReducer'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../app/store'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -46,6 +45,28 @@ interface FeatureFormProps {
   featureStepName: FeatureStepName
   setFeatureStepName: (arg: FeatureStepName) => void
   isFirstStep: boolean
+  featureState: any
+  setFeatureState: (arg: ReducerActionType) => void
+  oldFeatureState: any
+  setOldFeatureState: (arg: any) => void
+  featureIndex: number
+  setFeatureIndex: (arg: number) => void
+  optionState: any
+  setOptionState: (arg: ReducerActionType) => void
+  oldOptionState: any
+  setOldOptionState: (arg: any) => void
+  optionIndex: number
+  setOptionIndex: (arg: number) => void
+  sectionState: any
+  setSectionState: (arg: ReducerActionType) => void
+  oldSectionState: any
+  setOldSectionState: (arg: any) => void
+  sectionIndex: number
+  setSectionIndex: (arg: number) => void
+  featureContext: FeatureContext
+  setFeatureContext: (arg: FeatureContext) => void
+  sectionName: SectionName
+  setSectionName: (arg: SectionName) => void
 }
 
 const FeatureForm = ({
@@ -60,25 +81,32 @@ const FeatureForm = ({
   featureStepName,
   setFeatureStepName,
   isFirstStep,
+  featureState,
+  setFeatureState,
+  oldFeatureState,
+  setOldFeatureState,
+  featureIndex,
+  setFeatureIndex,
+  optionState,
+  setOptionState,
+  oldOptionState,
+  setOldOptionState,
+  optionIndex,
+  setOptionIndex,
+  sectionState,
+  setSectionState,
+  oldSectionState,
+  setOldSectionState,
+  sectionIndex,
+  setSectionIndex,
+  featureContext,
+  setFeatureContext,
+  sectionName,
+  setSectionName,
 }: FeatureFormProps) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-
-  const [featureState, setFeatureState] = useReducer(
-    formReducer,
-    context.title === 'feat' ? formState : {}
-  )
-  const [oldFeatureState, setOldFeatureState] = useState<any>({})
-  const [featureIndex, setFeatureIndex] = useState<number>(0)
-  const [optionState, setOptionState] = useReducer(formReducer, {})
-  const [oldOptionState, setOldOptionState] = useState<any>({})
-  const [optionIndex, setOptionIndex] = useState<number>(0)
-  const [sectionState, setSectionState] = useReducer(formReducer, {})
-  const [oldSectionState, setOldSectionState] = useState<any>({})
-  const [sectionIndex, setSectionIndex] = useState<number>(0)
-  const [featureContext, setFeatureContext] = useState<FeatureContext>('')
-  const [sectionName, setSectionName] = useState<SectionName>('')
   const [activeIndex, setActiveIndex] = useState<number | null>(
     context.type !== 'new' ? null : 0
   )
@@ -112,6 +140,11 @@ const FeatureForm = ({
     setFeatureStepName,
     featureContext,
     featureStepName,
+    setOldFeatureState,
+    setOldOptionState,
+    setOldSectionState,
+    setOptionState,
+    setSectionState,
   ])
 
   useEffect(() => {
@@ -135,7 +168,7 @@ const FeatureForm = ({
     })
   }
 
-  const handleAdd = () => {
+  const handleFeatureAdd = () => {
     if (formState.feature?.length > 0) {
       setFeatureIndex(formState.feature.length)
       setOldFeatureState({})
@@ -155,6 +188,7 @@ const FeatureForm = ({
   }
 
   const handleSaveSection = () => {
+    setOldSectionState(sectionState)
     if (featureContext === 'OptionContent') {
       setOptionState({
         target: {
@@ -186,6 +220,7 @@ const FeatureForm = ({
   }
 
   const handleSaveOption = () => {
+    setOldOptionState(featureState)
     if (context.title === 'feat') {
       setFormState({
         target: {
@@ -207,6 +242,7 @@ const FeatureForm = ({
   }
 
   const handleSaveFeature = () => {
+    setOldFeatureState(featureState)
     setFormState({
       target: {
         name: `feature.${featureIndex}`,
@@ -276,6 +312,8 @@ const FeatureForm = ({
       return setFeatureStepName('FeatureContent')
     } else if (featureStepName === 'FeatureContent') {
       if (!isEqual(oldFeatureState, featureState)) {
+        console.log('oldFeatureState', oldFeatureState)
+        console.log('featureState', featureState)
         return handleAlert()
       }
       setFeatureState({
@@ -409,6 +447,8 @@ const FeatureForm = ({
     }
   }
 
+  console.log('featureState', featureState)
+
   return (
     <>
       <h2 className={form_header}>
@@ -423,7 +463,7 @@ const FeatureForm = ({
       ) : (
         <>
           <ScrollArea scrollDirection='vertical' className={form_content}>
-            <Button variant='primary' onClick={handleAdd}>
+            <Button variant='primary' onClick={handleFeatureAdd}>
               Add Feature
             </Button>
             {formState.feature?.length > 0 && (

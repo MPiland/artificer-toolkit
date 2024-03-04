@@ -28,21 +28,9 @@ const ItemForm = () => {
     context === 'edit' || id ? item : {}
   )
   const [oldState, setOldState] = useState(item)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(
     (context === 'new' && id) ?? false
   )
-
-  const [
-    addNewItem,
-    { isSuccess: addIsSuccess, isError: addIsError, error: addError },
-  ] = useAddNewItemMutation()
-
-  const [
-    updateItem,
-    { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
-  ] = useUpdateItemMutation()
 
   useEffect(() => {
     if (
@@ -83,28 +71,6 @@ const ItemForm = () => {
     }
   }, [oldState, item])
 
-  useEffect(() => {
-    if (addIsSuccess || updateIsSuccess) {
-      setSuccessMessage('Spell added successfully!')
-      setErrorMessage(null)
-    }
-  }, [addIsSuccess, updateIsSuccess])
-
-  useEffect(() => {
-    if (addIsError || updateIsError) {
-      if (addError && 'data' in addError) {
-        setErrorMessage((addError.data as any).message)
-      }
-      if (updateError && 'data' in updateError) {
-        setErrorMessage((updateError.data as any).message)
-      }
-    }
-  }, [addIsError, updateIsError, addError, updateError])
-
-  const onSubmit = async () => {
-    await addNewItem(state)
-  }
-
   const steps: Steps = ['Details', 'Attributes', 'Features']
 
   useEffect(() => {
@@ -122,16 +88,12 @@ const ItemForm = () => {
   ) : (
     <Form
       context={{ type: context as FormContext, title: 'item' }}
-      handleSubmit={onSubmit}
-      update={updateItem}
       steps={steps}
       state={state}
       setState={setState}
-      errorMessage={errorMessage}
-      successMessage={successMessage}
-      setErrorMessage={setErrorMessage}
-      setSuccessMessage={setSuccessMessage}
       location={location}
+      useUpdateItem={useUpdateItemMutation}
+      useAddNewItem={useAddNewItemMutation}
     />
   )
 }

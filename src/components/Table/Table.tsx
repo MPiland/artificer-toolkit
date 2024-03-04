@@ -247,7 +247,7 @@ const TableRow = ({
                         name={`${name}.${valueIndex}.${inputItem.name}`}
                         label={inputItem.label}
                         multiSelect={inputItem.multiple}
-                        placeholder={inputItem.value}
+                        placeholder={inputItem.placeholder}
                         value={get(valueItem, inputItem?.name as PropertyPath)}
                         required={inputItem.required}
                         options={inputItem.options as DropdownOption[]}
@@ -258,7 +258,7 @@ const TableRow = ({
                       <Input
                         name={`${name}.${valueIndex}.${inputItem.name}`}
                         label={inputItem.label ?? false}
-                        placeholder={inputItem.value}
+                        placeholder={inputItem.placeholder}
                         errorMsg={inputItem.errorMsg}
                         value={get(valueItem, inputItem.name as PropertyPath)}
                         required={inputItem.required}

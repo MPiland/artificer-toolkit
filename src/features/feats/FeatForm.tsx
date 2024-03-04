@@ -28,21 +28,9 @@ const FeatForm = () => {
     context === 'edit' || id ? feat : {}
   )
   const [oldState, setOldState] = useState(feat)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(
     (context === 'new' && id) ?? false
   )
-
-  const [
-    addNewFeat,
-    { isSuccess: addIsSuccess, isError: addIsError, error: addError },
-  ] = useAddNewFeatMutation()
-
-  const [
-    updateFeat,
-    { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
-  ] = useUpdateFeatMutation()
 
   useEffect(() => {
     if (!state && feat) {
@@ -67,28 +55,6 @@ const FeatForm = () => {
     }
   }, [oldState, feat])
 
-  useEffect(() => {
-    if (addIsSuccess || updateIsSuccess) {
-      setSuccessMessage('Spell added successfully!')
-      setErrorMessage(null)
-    }
-  }, [addIsSuccess, updateIsSuccess])
-
-  useEffect(() => {
-    if (addIsError || updateIsError) {
-      if (addError && 'data' in addError) {
-        setErrorMessage((addError.data as any).message)
-      }
-      if (updateError && 'data' in updateError) {
-        setErrorMessage((updateError.data as any).message)
-      }
-    }
-  }, [addIsError, updateIsError, addError, updateError])
-
-  const handleSubmit = async () => {
-    await addNewFeat(state)
-  }
-
   const steps: Steps = ['Features']
 
   return isLoading || !state ? (
@@ -96,16 +62,12 @@ const FeatForm = () => {
   ) : (
     <Form
       context={{ type: context as FormContext, title: 'feat' }}
-      handleSubmit={handleSubmit}
-      update={updateFeat}
       steps={steps}
       state={state}
       setState={setState}
-      errorMessage={errorMessage}
-      successMessage={successMessage}
-      setErrorMessage={setErrorMessage}
-      setSuccessMessage={setSuccessMessage}
       location={location}
+      useAddNewItem={useAddNewFeatMutation}
+      useUpdateItem={useUpdateFeatMutation}
     />
   )
 }

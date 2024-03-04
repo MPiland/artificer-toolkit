@@ -159,17 +159,21 @@ const Dropdown = ({
 
   useEffect(() => {
     if (Array.isArray(value)) {
-      if (
-        value.some((item) => item.name === 'all') &&
-        !selectedOptions?.every((option: DropdownOption) =>
-          newOptions.map((newOption) => newOption.value === option.value)
-        )
-      ) {
-        setSelectedOptions(
-          uniqBy(newOptions, (obj) => obj.value).filter(
-            (option) => option.name !== 'all' && option.name !== 'clear'
+      if (value.some((item) => item.name === 'all')) {
+        if (
+          selectedOptions?.every((option: DropdownOption) =>
+            newOptions.map((newOption) => newOption.value === option.value)
           )
-        )
+        ) {
+          setSelectedOptions(
+            uniqBy(newOptions, (obj) => obj.value).filter(
+              (option) => option.name !== 'all' && option.name !== 'clear'
+            )
+          )
+        } else {
+          updatedOptions.current = value
+          setSelectedOptions(value)
+        }
       } else if (
         !value.every((option) =>
           newOptions.some((newOption) => newOption._id === option._id)
@@ -183,9 +187,6 @@ const Dropdown = ({
             newOptions.some((newOption) => newOption._id === valueItem._id)
           )
         )
-      } else {
-        updatedOptions.current = value
-        setSelectedOptions(value)
       }
     }
     if (value !== updatedOptions.current) {
@@ -200,7 +201,10 @@ const Dropdown = ({
         setSelectedOptions([])
         updatedOptions.current = null
       } else if (option.name === 'all') {
-        const allOptions = uniqBy(options, (obj) => obj.value)
+        const allOptions = uniqBy(newOptions, (obj) => obj.value).filter(
+          (obj) => obj.name !== 'all' && obj.name !== 'clear'
+        )
+        console.log('all options', allOptions)
         setSelectedOptions(allOptions)
         updatedOptions.current = [option]
       } else {
@@ -230,9 +234,9 @@ const Dropdown = ({
         updatedOptions.current = updated
       }
     } else {
+      // If it's a single select, update updatedOptions.current to match selectedOptions
       setSelectedOptions(option)
       setIsOpen(false)
-      // If it's a single select, update updatedOptions.current to match selectedOptions
       updatedOptions.current = option
     }
     onChange({
@@ -253,15 +257,13 @@ const Dropdown = ({
   }
 
   const values = multiSelect
-    ? selectedOptions?.slice(0, 1).map(
-        (item: DropdownOption, index: number) =>
-          item.name !== 'clear' &&
-          item.name !== 'all' && (
-            <span className={dropdown_active_option} key={index}>
-              {item.value}
-            </span>
-          )
-      )
+    ? selectedOptions
+        ?.slice(0, 1)
+        .map((item: DropdownOption, index: number) => (
+          <span className={dropdown_active_option} key={index}>
+            {item.value}
+          </span>
+        ))
     : []
 
   return (

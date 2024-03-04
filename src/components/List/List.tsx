@@ -111,15 +111,16 @@ const List = ({
     }
   }, [deleteConfirmed, itemToDelete, dispatch, deleteItem, setListFilter])
 
-  const handleShowDetail = (spell: any) => {
-    navigate(`/${context.form}/${spell.name}`, {
+  const handleShowDetail = (item: any) => {
+    navigate(`/${context.form}/${item.name}`, {
       state: {
         background: location,
         context: context.type,
         form: context.form,
-        data: spell,
+        data: item,
         size: 'lg',
         scrollPosition: table?.scrollTop,
+        title: item.value,
       },
     })
   }

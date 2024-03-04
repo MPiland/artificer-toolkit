@@ -28,21 +28,9 @@ const RaceForm = () => {
     context === 'edit' || id ? race : {}
   )
   const [oldState, setOldState] = useState(race)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(
     (context === 'new' && id) ?? false
   )
-
-  const [
-    addNewRace,
-    { isSuccess: addIsSuccess, isError: addIsError, error: addError },
-  ] = useAddNewRaceMutation()
-
-  const [
-    updateRace,
-    { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
-  ] = useUpdateRaceMutation()
 
   useEffect(() => {
     if (!state && race) {
@@ -67,28 +55,6 @@ const RaceForm = () => {
     }
   }, [oldState, race])
 
-  useEffect(() => {
-    if (addIsSuccess || updateIsSuccess) {
-      setSuccessMessage('Spell added successfully!')
-      setErrorMessage(null)
-    }
-  }, [addIsSuccess, updateIsSuccess])
-
-  useEffect(() => {
-    if (addIsError || updateIsError) {
-      if (addError && 'data' in addError) {
-        setErrorMessage((addError.data as any).message)
-      }
-      if (updateError && 'data' in updateError) {
-        setErrorMessage((updateError.data as any).message)
-      }
-    }
-  }, [addIsError, updateIsError, addError, updateError])
-
-  const handleSubmit = async () => {
-    await addNewRace(state)
-  }
-
   const steps: Steps = ['Details', 'Traits', 'Features']
 
   return isLoading || !state ? (
@@ -96,16 +62,12 @@ const RaceForm = () => {
   ) : (
     <Form
       context={{ type: context as FormContext, title: 'race' }}
-      handleSubmit={handleSubmit}
-      update={updateRace}
       steps={steps}
       state={state}
       setState={setState}
-      errorMessage={errorMessage}
-      successMessage={successMessage}
-      setErrorMessage={setErrorMessage}
-      setSuccessMessage={setSuccessMessage}
       location={location}
+      useUpdateItem={useUpdateRaceMutation}
+      useAddNewItem={useAddNewRaceMutation}
     />
   )
 }

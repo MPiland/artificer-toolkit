@@ -57,9 +57,9 @@ const Class = () => {
             userClass.detail?.length > 0 &&
             userClass.detail.map((detailItem: any, detailIndex: number) => (
               <section id={`${detailItem.name}`} key={detailIndex}>
-                <h3>
-                  <strong>{detailItem.value}</strong>
-                </h3>
+                <strong>
+                  <h2>{detailItem.value}</h2>
+                </strong>
                 <hr />
                 {detailItem.desc && parse(detailItem.desc)}
                 {detailIndex === userClass.detail.length - 1 &&

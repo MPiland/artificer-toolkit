@@ -630,7 +630,7 @@ const FeatureContent = ({
                   (featureState: any) => featureState.name === 'equipped'
                 ) && (
                   <>
-                    <Divider label={'Equipped'} />{' '}
+                    <Divider label={'Equipped'} />
                     <Grid>
                       <Input
                         name={`requirement.equipped.numberEquipped`}
@@ -698,7 +698,7 @@ const FeatureContent = ({
                   (featureState: any) => featureState.name === 'notEquipped'
                 ) && (
                   <>
-                    <Divider label={'Not Equipped'} />{' '}
+                    <Divider label={'Not Equipped'} />
                     <Grid className={sprinkles({ mb: 'size-2' })}>
                       <Dropdown
                         multiSelect={true}
@@ -720,11 +720,11 @@ const FeatureContent = ({
                               ? featureState.requirement.notEquipped?.category?.some(
                                   (categoryItem: any) =>
                                     categoryItem.name ===
-                                    item.categoryItem?.name
+                                    item.category?.name
                                 )
                               : item
                           )
-                          .map((item: any) => item.property)}
+                          .map((item: any) => item)}
                         onChange={setFeatureState}
                       />
                       <Dropdown
@@ -739,7 +739,7 @@ const FeatureContent = ({
                               ? featureState.requirement.notEquipped?.category?.some(
                                   (categoryItem: any) =>
                                     categoryItem.name ===
-                                    item.categoryItem?.name
+                                    item.category?.name
                                 )
                               : item
                           )

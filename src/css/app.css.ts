@@ -16,7 +16,7 @@ globalStyle(
 )
 
 globalStyle(
-  '*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *):not(h1, h2, h3, h4, h5, h6))',
+  '*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *):not(h1, h2, h3, h4, h5, h6, h1 *, h2 *, h3 *, h4 *, h5 *, h6 *))',
   {
     '@layer': {
       [app]: {
