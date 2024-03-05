@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment, memo } from 'react'
+import { useEffect, useState, Fragment, memo, useId } from 'react'
 import useSortableData from '../../hooks/useSortableData'
 import { getValueFromState } from '../../utils/formatting'
 import { PropertyPath, get } from 'lodash'
@@ -92,7 +92,7 @@ interface TableProps {
   collapse?: boolean
   empty?: string
   id?: string | undefined
-  scrollable?: boolean
+  scrollable?: 'horizontal' | 'vertical' | 'all' | 'none'
   border?: boolean
 }
 
@@ -198,6 +198,7 @@ const TableRow = ({
         }}
         className={clsx(
           table_row,
+          'table_row',
           { ['clickable']: onClick },
           { ['collapsed']: collapsed },
           { ['borderless']: border === false }
@@ -264,6 +265,7 @@ const TableRow = ({
                         required={inputItem.required}
                         onChange={(e) => onChange && onChange(e)}
                         validation={inputItem.validation}
+                        autoComplete='off'
                       />
                     )}
                   </div>
@@ -401,7 +403,7 @@ const Table = memo(
     deleteRow,
     addRow,
     collapse,
-    scrollable,
+    scrollable = 'none',
     id,
     border,
   }: TableProps) => {
@@ -410,6 +412,71 @@ const Table = memo(
     const [sortState, setSortState] = useState<SortState>()
     const [defaultSortRan, setDefaultSortRan] = useState(false)
     const { items, requestSort, sortConfig } = useSortableData(value)
+
+    const bodyId = useId()
+
+    const tableBody = document.getElementById(`${bodyId}`)
+
+    useEffect(() => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        const target = event.target as HTMLInputElement
+        if (target?.tagName === 'INPUT' && tableBody) {
+          const focusedElement: HTMLInputElement = target
+
+          if (
+            event.key === 'ArrowLeft' ||
+            event.key === 'ArrowRight' ||
+            event.key === 'ArrowUp' ||
+            event.key === 'ArrowDown'
+          ) {
+            event.preventDefault()
+
+            const currentRow = focusedElement.closest('.table_row')
+            const siblingRows = Array.from(
+              tableBody.querySelectorAll('.table_row')
+            )
+            const currentRowIndex = siblingRows.indexOf(currentRow as Element)
+            const currentElements = (currentRow as Element).querySelectorAll(
+              'input'
+            )
+            const currentIndex = Array.from(currentElements).findIndex(
+              (element) => element.name === focusedElement.name
+            )
+            if (currentRowIndex === -1) return
+
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              const nextInputIncrement = event.key === 'ArrowRight' ? 1 : -1
+
+              const nextInput = currentIndex + nextInputIncrement
+
+              if (nextInput !== -1 && nextInput !== currentElements.length) {
+                currentElements[nextInput].focus()
+              }
+            } else {
+              const rowIncrement = event.key === 'ArrowDown' ? 1 : -1
+              const nextRow =
+                siblingRows[(currentRowIndex as number) + rowIncrement]
+              if (!nextRow) return
+
+              const nextElements = nextRow.querySelectorAll('input')
+              const nextIndex = Array.from(nextElements).findIndex(
+                (_, index) => index === currentIndex
+              )
+
+              if (nextIndex !== -1 && nextIndex !== siblingRows.length - 1) {
+                nextElements[nextIndex].focus()
+              }
+            }
+          }
+        }
+      }
+
+      document.addEventListener('keydown', handleKeyDown)
+
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown)
+      }
+    }, [tableBody])
 
     useEffect(() => {
       if (defaultSort != null && defaultSortRan === false) {
@@ -443,7 +510,15 @@ const Table = memo(
     return isLoading ? (
       <Spinner />
     ) : (
-      <div className={clsx(table, { ['scrollable']: scrollable })} id={id}>
+      <ScrollArea
+        className={clsx(table)}
+        scrollDirection={
+          scrollable === 'horizontal' || scrollable === 'all'
+            ? 'horizontal'
+            : 'none'
+        }
+        id={id}
+      >
         {rows?.headers && (
           <TableHeader
             headers={rows.headers}
@@ -456,7 +531,12 @@ const Table = memo(
             border={border}
           />
         )}
-        <ScrollArea scrollDirection='vertical' className={clsx(table_body)}>
+        <ScrollArea
+          scrollDirection={scrollable !== 'horizontal' ? 'vertical' : 'none'}
+          scrollWrapperOverflow={scrollable === 'horizontal' ? 'off' : 'hidden'}
+          className={clsx(table_body)}
+          id={bodyId}
+        >
           {filteredItems?.map((valueItem: any, valueIndex: number) => (
             <Fragment key={valueIndex}>
               <TableRow
@@ -475,7 +555,7 @@ const Table = memo(
             </Fragment>
           ))}
         </ScrollArea>
-      </div>
+      </ScrollArea>
     )
   }
 )

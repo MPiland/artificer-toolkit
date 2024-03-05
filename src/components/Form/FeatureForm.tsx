@@ -717,7 +717,9 @@ const FeatureForm = ({
         handleReset={handleFeatureReset}
         handleForward={handleFeatureForward}
         backLabel={isFirstStep ? 'Cancel' : 'Back'}
-        handleUpdate={context.type === 'edit' ? handleFeatureUpdate : undefined}
+        handleUpdate={() =>
+          context.type === 'edit' ? handleFeatureUpdate() : undefined
+        }
       />
     </>
   )

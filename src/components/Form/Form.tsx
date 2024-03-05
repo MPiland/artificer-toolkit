@@ -128,12 +128,14 @@ const Form = ({
     }
   }, [stepIndex, steps.length])
 
+  // Set formState
   useEffect(() => {
     if (state && !formState) {
       setFormState({ type: 'reset', target: { value: state } })
     }
   }, [state, formState])
 
+  // Confirm Alert back
   useEffect(() => {
     if (confirmBack.status && featureStepName === '') {
       dispatch(clearBack())
@@ -167,6 +169,7 @@ const Form = ({
     featureStepName,
   ])
 
+  // Confirm Alert forward
   useEffect(() => {
     if (confirmForward.status && featureStepName === '') {
       dispatch(clearForward())
@@ -188,6 +191,7 @@ const Form = ({
     featureStepName,
   ])
 
+  // Sucess Message
   useEffect(() => {
     if (addIsSuccess || updateIsSuccess) {
       setSuccessMessage(
@@ -206,6 +210,7 @@ const Form = ({
     setSuccessMessage,
   ])
 
+  // Error Message
   useEffect(() => {
     if (addIsError || updateIsError) {
       if (addError && 'data' in addError) {
@@ -297,21 +302,21 @@ const Form = ({
 
   const handleUpdate = async (formStateProp?: any) => {
     const isValid = validate()
-    if (formStateProp != null) {
-      if (isEqual(oldFormState, formStateProp)) {
+    if (isValid) {
+      if (formStateProp != null) {
+        if (isEqual(oldFormState, formStateProp)) {
+          return setErrorMessage('No changes made')
+        }
+        setState({
+          type: 'reset',
+          target: { value: formStateProp },
+        })
+        setOldFormState(formStateProp)
+        return await updateItem(formStateProp)
+      }
+      if (isEqual(oldFormState, formState)) {
         return setErrorMessage('No changes made')
       }
-      setState({
-        type: 'reset',
-        target: { value: formStateProp },
-      })
-      setOldFormState(formStateProp)
-      return await updateItem(formStateProp)
-    }
-    if (isEqual(oldFormState, formState)) {
-      return setErrorMessage('No changes made')
-    }
-    if (isValid) {
       setState({
         type: 'reset',
         target: { value: formState },
@@ -484,15 +489,15 @@ const Form = ({
                   : 'Next'
               }
               handleReset={handleReset}
-              handleForward={
+              handleForward={() =>
                 context.type === 'edit' && isLastStep
-                  ? handleUpdate
-                  : handleForward
+                  ? handleUpdate()
+                  : handleForward()
               }
               backLabel={isFirstStep ? 'Cancel' : 'Back'}
-              handleUpdate={
+              handleUpdate={() =>
                 context.type === 'edit' && !isLastStep
-                  ? handleUpdate
+                  ? handleUpdate()
                   : undefined
               }
             />

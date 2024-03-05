@@ -5,13 +5,32 @@ export const thumb_height = createVar()
 
 export const thumb_top = createVar()
 
+export const scroll_area_wrapper = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+
+      selectors: {
+        '&.overflow_hidden': {
+          overflow: 'hidden',
+        },
+      },
+    },
+  },
+})
+
 export const scroll_area_base = style({
   '@layer': {
     [app]: {
-      height: '100%',
       scrollbarWidth: 'none',
       msOverflowStyle: 'none',
       position: 'relative',
+      height: '100%',
+      width: '100%',
+      zIndex: 0,
 
       selectors: {
         '&::webkit-scrollbar': {
@@ -39,7 +58,6 @@ export const scroll_area = styleVariants({
       '@layer': {
         [app]: {
           overflowY: 'auto',
-          zIndex: 0,
         },
       },
     },
@@ -54,18 +72,14 @@ export const scroll_area = styleVariants({
       },
     },
   ],
-})
-
-export const scroll_area_wrapper = style({
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      height: '100%',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
+  none: [
+    scroll_area_base,
+    {
+      '@layer': {
+        [app]: {},
+      },
     },
-  },
+  ],
 })
 
 export const scroll_bar_vertical = style({
@@ -91,10 +105,46 @@ export const scroll_bar_vertical = style({
   },
 })
 
-export const scroll_thumb = style({
+export const scroll_thumb_vertical = style({
   '@layer': {
     [app]: {
       width: '.75rem',
+      position: 'absolute',
+      borderRadius: '.5rem',
+      opacity: '1',
+      backgroundColor: 'rgba(0,0,0,.55)',
+      zIndex: 11,
+    },
+  },
+})
+
+export const scroll_bar_horizontal = style({
+  '@layer': {
+    [app]: {
+      height: '.75rem',
+      width: '100%',
+      left: 0,
+      bottom: 0,
+      position: 'absolute',
+      borderRadius: '.5rem',
+      backgroundColor: 'rgba(0, 0, 0, .35)',
+      opacity: 0,
+      transition: 'opacity .2s ease-in-out',
+      zIndex: 10,
+
+      selectors: {
+        '&.active': {
+          opacity: 1,
+        },
+      },
+    },
+  },
+})
+
+export const scroll_thumb_horizontal = style({
+  '@layer': {
+    [app]: {
+      height: '.75rem',
       position: 'absolute',
       borderRadius: '.5rem',
       opacity: '1',

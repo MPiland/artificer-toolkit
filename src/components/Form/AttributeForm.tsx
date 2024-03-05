@@ -47,6 +47,7 @@ const AttributeForm = memo(
       }),
     })
 
+    // Remove Resource if not needed
     useEffect(() => {
       if (
         !formState.attribute?.some(
@@ -228,17 +229,7 @@ const AttributeForm = memo(
           type: 'added',
           target: { name: 'levelAttribute' },
         })
-      spellCaster &&
-        formState.levelAttribute?.map(
-          (levelAttributeItem: any, levelAttributeIndex: number) =>
-            !levelAttributeItem?.spellSlots &&
-            setFormState({
-              type: 'added',
-              target: {
-                name: `levelAttribute.${levelAttributeIndex}.spellSlots`,
-              },
-            })
-        )
+
       const resource = formState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'resource'
       )
@@ -1060,7 +1051,7 @@ const AttributeForm = memo(
                   value={formState?.levelAttribute}
                   onChange={setFormState}
                   addRow={true}
-                  scrollable={true}
+                  scrollable='horizontal'
                   border={false}
                 />
               </Collapse>
@@ -1355,7 +1346,7 @@ const AttributeForm = memo(
                 value={formState?.upcast?.upcastStats}
                 onChange={setFormState}
                 addRow={true}
-                scrollable={true}
+                scrollable='horizontal'
               />
             </Collapse>
           </>

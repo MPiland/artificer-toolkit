@@ -11,12 +11,7 @@ export const table = style({
       flexDirection: 'column',
       borderTop: '0 solid transparent',
       zIndex: 1,
-      selectors: {
-        '&.scrollable': {
-          overflowX: 'auto',
-          width: '100%',
-        },
-      },
+      width: '100%',
     },
   },
 })

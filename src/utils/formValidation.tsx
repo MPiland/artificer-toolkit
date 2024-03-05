@@ -27,7 +27,7 @@ export const validate = (resetValidation: boolean = false): boolean => {
             detail: isValidDropdown ? false : true,
           })
         )
-        isValid = isValidDropdown
+        isValid = isValid && isValidDropdown
       }
     }
   })

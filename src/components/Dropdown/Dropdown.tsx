@@ -275,7 +275,7 @@ const Dropdown = ({
         )}
         <div
           className={clsx(dropdown_container, 'dropdown', {
-            ['inval_id']: error,
+            ['invalid']: error,
           })}
           ref={(el) => {
             refs.setReference(el)

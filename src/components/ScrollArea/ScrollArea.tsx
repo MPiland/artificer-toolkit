@@ -12,22 +12,26 @@ import clsx from 'clsx'
 import {
   scroll_area,
   scroll_area_wrapper,
+  scroll_bar_horizontal,
   scroll_bar_vertical,
-  scroll_thumb,
+  scroll_thumb_horizontal,
+  scroll_thumb_vertical,
 } from './ScrollArea.css'
 
 interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
   children: ReactNode
   className?: string | number | symbol | any
   wrapperClassName?: string | number | symbol | any
-  scrollDirection: 'horizontal' | 'vertical' | 'all'
+  scrollDirection: 'horizontal' | 'vertical' | 'all' | 'none'
   visibility?: 'hidden' | 'visible'
   [key: string]: any
+  scrollWrapperOverflow?: 'hidden' | 'off'
 }
 
 import { useEventListener, useMediaQuery } from 'usehooks-ts'
 
 const SCROLL_BOX_MIN_HEIGHT = 20
+const SCROLL_BOX_MIN_WIDTH = 20
 
 const ScrollArea = memo(
   ({
@@ -36,21 +40,29 @@ const ScrollArea = memo(
     wrapperClassName,
     scrollDirection,
     visibility = 'hidden',
+    scrollWrapperOverflow = 'hidden',
     ...props
   }: ScrollAreaProps) => {
     const md = useMediaQuery('(max-width: 1023px)')
 
-    const [scrollThumbHeight, setScrollThumbHeight] = useState<number>(
+    const [vertScrollThumbHeight, setVertScrollThumbHeight] = useState<number>(
       SCROLL_BOX_MIN_HEIGHT
     )
-    const [scrollThumbPosition, setScrollThumbPosition] = useState<number>(0)
-    const [scrollThumbTop, setScrollThumbTop] = useState<number>(0)
+    const [vertScrollThumbPosition, setVertScrollThumbPosition] =
+      useState<number>(0)
+    const [vertScrollThumbTop, setVertScrollThumbTop] = useState<number>(0)
+    const [horzScrollThumbWidth, setHorzScrollThumbWidth] =
+      useState<number>(SCROLL_BOX_MIN_WIDTH)
+    const [horzScrollThumbPosition, setHorzScrollThumbPosition] =
+      useState<number>(0)
+    const [horzScrollThumbLeft, setHorzScrollThumbLeft] = useState<number>(0)
     const [isDragging, setIsDragging] = useState<boolean>(false)
-    const [noOverflow, setNoOverflow] = useState<boolean>(true)
-    const [mouseOver, setMouseOver] = useState<boolean>(false)
+    const [vertNoOverflow, setVertNoOverflow] = useState<boolean>(true)
+    const [horzNoOverflow, setHorzNoOverflow] = useState<boolean>(true)
     const [active, setActive] = useState<boolean>()
-    const scrollAreaRef = useRef<HTMLDivElement>(null)
-    const scrollThumbRef = useRef<HTMLDivElement>(null)
+    const scrollAreaRef = useRef<HTMLDivElement | null>(null)
+    const vertScrollThumbRef = useRef<HTMLDivElement>(null)
+    const horzScrollThumbRef = useRef<HTMLDivElement>(null)
     const scrollWrapperRef = useRef<HTMLDivElement>(null)
     const documentRef = useRef<Document>(document)
 
@@ -61,18 +73,39 @@ const ScrollArea = memo(
       const handleResize = (entries: Array<ResizeObserverEntry>) => {
         entries.forEach(() => {
           if (scrollArea) {
-            if (scrollArea?.scrollHeight > scrollArea?.clientHeight) {
-              setNoOverflow(false)
+            if (
+              (scrollDirection === 'all' || scrollDirection === 'vertical') &&
+              scrollArea.scrollHeight > scrollArea.clientHeight
+            ) {
+              setVertNoOverflow(false)
               const scrollThumbPercentage =
                 scrollArea.clientHeight / scrollArea.scrollHeight
 
-              const scrollThumbHeight = Math.max(
+              const vertScrollThumbHeight = Math.max(
                 scrollThumbPercentage * scrollArea.clientHeight,
                 SCROLL_BOX_MIN_HEIGHT
               )
-              setScrollThumbHeight(scrollThumbHeight)
+
+              setVertScrollThumbHeight(vertScrollThumbHeight)
             } else {
-              setNoOverflow(true)
+              setVertNoOverflow(true)
+            }
+            if (
+              (scrollDirection === 'all' || scrollDirection === 'horizontal') &&
+              scrollArea.scrollWidth > scrollArea.clientWidth
+            ) {
+              setHorzNoOverflow(false)
+              const scrollThumbPercentage =
+                scrollArea.clientWidth / scrollArea.scrollWidth
+
+              const horzScrollThumbWidth = Math.max(
+                scrollThumbPercentage * scrollArea.clientWidth,
+                SCROLL_BOX_MIN_WIDTH
+              )
+
+              setHorzScrollThumbWidth(horzScrollThumbWidth)
+            } else {
+              setHorzNoOverflow(true)
             }
           }
         })
@@ -88,19 +121,17 @@ const ScrollArea = memo(
       }
 
       return () => observer.disconnect()
-    }, [md])
+    }, [md, scrollDirection])
 
     const handleMouseOver = useCallback(() => {
-      if (scrollThumbRef.current) {
+      if (vertScrollThumbRef.current || horzScrollThumbRef.current) {
         setActive(true)
-        setMouseOver(true)
       }
     }, [])
 
     const handleMouseLeave = useCallback(() => {
-      if (scrollThumbRef.current) {
+      if (vertScrollThumbRef.current || horzScrollThumbRef.current) {
         setActive(false)
-        setMouseOver(false)
       }
     }, [])
 
@@ -114,47 +145,96 @@ const ScrollArea = memo(
           e.stopPropagation()
           const scrollArea = scrollAreaRef.current
           if (scrollArea) {
-            const deltaY = e.clientY - scrollThumbPosition
-            const percentage =
-              deltaY * (scrollArea.scrollHeight / scrollArea.offsetHeight)
+            if (scrollDirection === 'all' || scrollDirection === 'vertical') {
+              const deltaY = e.clientY - vertScrollThumbPosition
+              const vertPercentage =
+                deltaY * (scrollArea.scrollHeight / scrollArea.offsetHeight)
 
-            setScrollThumbPosition(e.clientY)
-            setScrollThumbTop(
-              Math.min(
-                Math.max(0, scrollThumbTop + deltaY),
-                scrollArea.offsetHeight - scrollThumbHeight
+              setVertScrollThumbPosition(e.clientY)
+              setVertScrollThumbTop(
+                Math.min(
+                  Math.max(0, vertScrollThumbTop + deltaY),
+                  scrollArea.offsetHeight - vertScrollThumbHeight
+                )
               )
-            )
-            scrollArea.scrollTop = Math.min(
-              scrollArea.scrollTop + percentage,
-              scrollArea.scrollHeight - scrollArea.offsetHeight
-            )
+              scrollArea.scrollTop = Math.min(
+                scrollArea.scrollTop + vertPercentage,
+                scrollArea.scrollHeight - scrollArea.offsetHeight
+              )
+            }
+            if (scrollDirection === 'all' || scrollDirection === 'horizontal') {
+              const deltaX = e.clientX - horzScrollThumbPosition
+              const horzPercentage =
+                deltaX * (scrollArea.scrollWidth / scrollArea.offsetWidth)
+
+              setHorzScrollThumbPosition(e.clientX)
+              setHorzScrollThumbLeft(
+                Math.min(
+                  Math.max(0, horzScrollThumbLeft + deltaX),
+                  scrollArea.offsetWidth - horzScrollThumbWidth
+                )
+              )
+              scrollArea.scrollLeft = Math.min(
+                scrollArea.scrollLeft + horzPercentage,
+                scrollArea.scrollWidth - scrollArea.offsetWidth
+              )
+            }
           }
         }
       },
-      [isDragging, scrollThumbPosition, scrollThumbHeight, scrollThumbTop]
+      [
+        isDragging,
+        vertScrollThumbPosition,
+        vertScrollThumbHeight,
+        vertScrollThumbTop,
+        horzScrollThumbPosition,
+        horzScrollThumbWidth,
+        horzScrollThumbLeft,
+        scrollDirection,
+      ]
     )
 
-    const handleScrollThumbMouseDown = useCallback((e: ReactMouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setScrollThumbPosition(e.clientY)
-      setIsDragging(true)
-    }, [])
+    const handleScrollThumbMouseDown = useCallback(
+      (e: ReactMouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (scrollDirection === 'all' || scrollDirection === 'vertical') {
+          setVertScrollThumbPosition(e.clientY)
+        }
+        if (scrollDirection === 'all' || scrollDirection === 'horizontal') {
+          setHorzScrollThumbPosition(e.clientX)
+        }
+        setIsDragging(true)
+      },
+      [scrollDirection]
+    )
 
     const handleScroll = () => {
       const scrollArea = scrollAreaRef.current
       if (scrollArea) {
-        if (mouseOver && noOverflow === false) {
-          setActive(true)
-        }
         clearTimeout(scrollTimer)
-        let newTop =
-          (parseInt(String(scrollArea.scrollTop), 10) /
-            parseInt(String(scrollArea.scrollHeight), 10)) *
-          scrollArea.offsetHeight
-        newTop = Math.min(newTop, scrollArea.offsetHeight - scrollThumbHeight)
-        setScrollThumbTop(newTop)
+        if (scrollDirection === 'all' || scrollDirection === 'vertical') {
+          let newTop =
+            (parseInt(String(scrollArea.scrollTop), 10) /
+              parseInt(String(scrollArea.scrollHeight), 10)) *
+            scrollArea.offsetHeight
+          newTop = Math.min(
+            newTop,
+            scrollArea.offsetHeight - vertScrollThumbHeight
+          )
+          setVertScrollThumbTop(newTop)
+        }
+        if (scrollDirection === 'all' || scrollDirection === 'horizontal') {
+          let newLeft =
+            (parseInt(String(scrollArea.scrollLeft), 10) /
+              parseInt(String(scrollArea.scrollWidth), 10)) *
+            scrollArea.offsetWidth
+          newLeft = Math.min(
+            newLeft,
+            scrollArea.offsetWidth - horzScrollThumbWidth
+          )
+          setHorzScrollThumbLeft(newLeft)
+        }
       }
     }
 
@@ -177,6 +257,7 @@ const ScrollArea = memo(
       <div
         className={clsx(scroll_area_wrapper, {
           [wrapperClassName]: wrapperClassName,
+          ['overflow_hidden']: scrollWrapperOverflow === 'hidden',
         })}
         ref={scrollWrapperRef}
       >
@@ -192,15 +273,30 @@ const ScrollArea = memo(
         </div>
         <div
           className={clsx(scroll_bar_vertical, {
-            ['active']: (active || visibility === 'visible') && !noOverflow,
+            ['active']: (active || visibility === 'visible') && !vertNoOverflow,
           })}
         >
           <div
-            ref={scrollThumbRef}
-            className={scroll_thumb}
+            ref={vertScrollThumbRef}
+            className={scroll_thumb_vertical}
             style={{
-              height: `${scrollThumbHeight}px`,
-              top: scrollThumbTop,
+              height: `${vertScrollThumbHeight}px`,
+              top: vertScrollThumbTop,
+            }}
+            onMouseDown={handleScrollThumbMouseDown}
+          />
+        </div>
+        <div
+          className={clsx(scroll_bar_horizontal, {
+            ['active']: (active || visibility === 'visible') && !horzNoOverflow,
+          })}
+        >
+          <div
+            ref={horzScrollThumbRef}
+            className={scroll_thumb_horizontal}
+            style={{
+              width: `${horzScrollThumbWidth}px`,
+              left: horzScrollThumbLeft,
             }}
             onMouseDown={handleScrollThumbMouseDown}
           />

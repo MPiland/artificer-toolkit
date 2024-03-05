@@ -135,8 +135,6 @@ export const app_sidebar = style({
       'top': `${theme['header-height']}`,
       'bottom': 0,
       'left': 'calc(-1 * 25%)',
-      'display': 'flex',
-      'flexDirection': 'column',
       'width': '25%',
       'zIndex': 3000,
       'border': 'none',

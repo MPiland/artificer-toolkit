@@ -40,7 +40,7 @@ const ProficiencyForm = memo(
     handleRemove,
     handleAdd,
   }: ProficiencyFormProps) => {
-    const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(
+    const [activeIndex, setActiveIndex] = useState<number | null>(
       context.type !== 'new' ? null : 0
     )
     const isLoading = useIsLoading()
@@ -54,10 +54,10 @@ const ProficiencyForm = memo(
     })
 
     const toggle = (index: number) => {
-      if (activeDetailIndex === index) {
-        return setActiveDetailIndex(null)
+      if (activeIndex === index) {
+        return setActiveIndex(null)
       }
-      setActiveDetailIndex(index)
+      setActiveIndex(index)
     }
 
     return isLoading || !builders || !items ? (
@@ -67,7 +67,10 @@ const ProficiencyForm = memo(
         <Group>
           <Button
             variant='primary_outline'
-            onClick={() => handleAdd('proficiency')}
+            onClick={() => {
+              setActiveIndex(formState?.proficiency?.length)
+              handleAdd('proficiency')
+            }}
             className={sprinkles({ ms: 'size-3', mb: 'size-2' })}
           >
             Add Proficiency
@@ -97,12 +100,12 @@ const ProficiencyForm = memo(
                         handleRemove={() =>
                           handleRemove(`proficiency.${proficiencyIndex}`)
                         }
-                        active={activeDetailIndex === proficiencyIndex}
+                        active={activeIndex === proficiencyIndex}
                       >
                         {`Proficiency ${proficiencyIndex + 1}`}
                       </Accordion.Header>
                       <Accordion.Content
-                        active={activeDetailIndex === proficiencyIndex}
+                        active={activeIndex === proficiencyIndex}
                       >
                         <Grid>
                           <Dropdown
@@ -163,12 +166,23 @@ const ProficiencyForm = memo(
                               onChange={setFormState}
                             />
                           )}
+                          {proficiencyItem.area?.name === 'ability' && (
+                            <Dropdown
+                              name={`proficiency.${proficiencyIndex}.ability`}
+                              multiSelect={true}
+                              label='Ability'
+                              value={proficiencyItem.ability}
+                              options={builders.ability}
+                              required={true}
+                              onChange={setFormState}
+                            />
+                          )}
                           {proficiencyItem.area?.name === 'saveAbility' && (
                             <Dropdown
                               name={`proficiency.${proficiencyIndex}.saveAbility.ability`}
                               multiSelect={true}
                               label='Save Ability'
-                              value={proficiencyItem.saveAbility.ability}
+                              value={proficiencyItem.saveAbility?.ability}
                               options={builders.ability}
                               required={true}
                               onChange={setFormState}

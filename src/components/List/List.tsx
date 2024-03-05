@@ -125,13 +125,27 @@ const List = ({
     })
   }
 
-  const handleCreate = () => {
+  const handleCreate = (secondary?: boolean) => {
+    if (secondary) {
+      return navigate(`/create/subclass`, {
+        state: {
+          background: location,
+          context: context.type,
+          form: context.form,
+          data: items.filter((item: any) =>
+            context.type === 'class' ? item.category.name === 'subclass' : item
+          ),
+        },
+      })
+    }
     navigate(`/create/${context.type}`, {
       state: {
         background: location,
         context: context.type,
         form: context.form,
-        data: items,
+        data: items.filter((item: any) =>
+          context.type === 'class' ? item.category.name === 'base' : item
+        ),
       },
     })
   }
@@ -160,9 +174,14 @@ const List = ({
               Clear Filters
             </Button>
             <Button type='button' variant='default' onClick={handleCreate}>
-              Create {context.type === 'item' ? 'an' : 'a'}{' '}
+              Create {context.type === 'item' ? 'an' : 'a'}
               {startCase(context.type)}
             </Button>
+            {context.type === 'class' && (
+              <Button type='button' variant='default' onClick={handleCreate}>
+                Create a Subclass
+              </Button>
+            )}
           </Group>
         </Group>
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}

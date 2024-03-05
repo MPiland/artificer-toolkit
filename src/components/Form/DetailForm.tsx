@@ -397,12 +397,14 @@ const DetailForm = memo(
             type='button'
             className={sprinkles({ mb: 'size-3' })}
             variant='default'
-            onClick={() =>
+            onClick={() => {
+              setActiveDetailIndex(formState?.detail?.length)
               setFormState({
                 type: 'added',
                 target: { name: 'detail' },
               })
-            }
+              setActiveDetailIndex(formState?.detail?.length)
+            }}
           >
             Add Detail
           </Button>
