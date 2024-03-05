@@ -37,6 +37,8 @@ export interface SectionProps {
   classes?: any[]
   state: any
   setSectionState: (arg: ReducerActionType) => void
+  optionGroups: boolean
+  providesOptions: boolean
 }
 
 interface SectionContentProps {
@@ -45,8 +47,6 @@ interface SectionContentProps {
   featureState: any
   setSectionState: (arg: ReducerActionType) => void
   sectionState: any
-  setSectionIndex: (arg: number) => void
-  sectionIndex: number
   handleFeatureForward: () => void
   handleFeatureUpdate?: () => void
   handleFeatureBack: () => void
@@ -58,10 +58,9 @@ export const FeatContent = ({
   builders,
   feats,
   state,
+  providesOptions,
+  optionGroups,
 }: SectionProps) => {
-  const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
-    attributeItem.name === 'providesOptions'
-  })
   return (
     <>
       <Grid>
@@ -89,9 +88,7 @@ export const FeatContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'optionGroups'
-        ) && (
+        {optionGroups && (
           <Input
             validation='num'
             name={`optionGroup`}
@@ -111,7 +108,7 @@ export const FeatContent = ({
           required={true}
           onChange={setSectionState}
         />
-        {multipleOptions && (
+        {providesOptions && (
           <Input
             validation='num'
             name={`selectionCount`}
@@ -133,6 +130,8 @@ export const ModifierContent = ({
   setSectionState,
   builders,
   state,
+  providesOptions,
+  optionGroups,
 }: SectionProps) => {
   useEffect(() => {
     if (
@@ -168,9 +167,6 @@ export const ModifierContent = ({
     }
   }, [sectionState.addPerLevel, sectionState.method, setSectionState])
 
-  const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
-    attributeItem.name === 'providesOptions'
-  })
   return (
     <>
       <Grid>
@@ -198,9 +194,7 @@ export const ModifierContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'optionGroups'
-        ) && (
+        {optionGroups && (
           <Input
             validation='num'
             name={`optionGroup`}
@@ -472,7 +466,7 @@ export const ModifierContent = ({
               onChange={setSectionState}
             />
           )}
-        {multipleOptions && (
+        {providesOptions && (
           <Input
             validation='num'
             name={`selectionCount`}
@@ -584,15 +578,14 @@ export const ProficiencyContent = ({
   builders,
   state,
   items,
+  providesOptions,
+  optionGroups,
 }: SectionProps) => {
-  const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
-    attributeItem.name === 'providesOptions'
-  })
   return (
     <Grid>
       <Dropdown
         multiSelect={true}
-        name={`attribute`}
+        name={'attribute'}
         options={[].concat(
           builders.section.attribute,
           state.category?.name === 'subclass' &&
@@ -614,9 +607,7 @@ export const ProficiencyContent = ({
           onChange={setSectionState}
         />
       )}
-      {sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'optionGroups'
-      ) && (
+      {optionGroups && (
         <Input
           validation='num'
           name={`optionGroup`}
@@ -739,7 +730,7 @@ export const ProficiencyContent = ({
         required={true}
         onChange={setSectionState}
       />
-      {multipleOptions && (
+      {providesOptions && (
         <Input
           validation='num'
           name={`selectionCount`}
@@ -760,10 +751,9 @@ export const SenseContent = ({
   setSectionState,
   builders,
   state,
+  providesOptions,
+  optionGroups,
 }: SectionProps) => {
-  const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
-    attributeItem.name === 'providesOptions'
-  })
   return (
     <Grid>
       <Dropdown
@@ -790,9 +780,7 @@ export const SenseContent = ({
           onChange={setSectionState}
         />
       )}
-      {sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'optionGroups'
-      ) && (
+      {optionGroups && (
         <Input
           validation='num'
           name={`optionGroup`}
@@ -812,7 +800,7 @@ export const SenseContent = ({
         required={true}
         onChange={setSectionState}
       />
-      {multipleOptions && (
+      {providesOptions && (
         <Input
           validation='num'
           name={`selectionCount`}
@@ -836,6 +824,8 @@ export const SpellContent = ({
   spells,
   classes,
   featureState,
+  providesOptions,
+  optionGroups,
 }: SectionProps) => {
   useEffect(() => {
     if (
@@ -851,10 +841,6 @@ export const SpellContent = ({
       })
     }
   }, [sectionState, setSectionState])
-
-  const multipleOptions = sectionState.attribute?.some((attributeItem: any) => {
-    attributeItem.name === 'providesOptions'
-  })
 
   return (
     <Grid>
@@ -914,9 +900,7 @@ export const SpellContent = ({
           onChange={setSectionState}
         />
       )}
-      {sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'optionGroups'
-      ) && (
+      {optionGroups && (
         <Input
           validation='num'
           name={`optionGroup`}
@@ -1015,7 +999,7 @@ export const SpellContent = ({
               onChange={setSectionState}
             />
           )}
-          {multipleOptions && (
+          {providesOptions && (
             <Input
               validation='num'
               name={`selectionCount`}
@@ -1039,8 +1023,6 @@ const SectionContent = ({
   featureState,
   sectionState,
   setSectionState,
-  setSectionIndex,
-  sectionIndex,
 }: SectionContentProps) => {
   const { data: builders } = useGetBuildersQuery(undefined)
 
@@ -1064,12 +1046,6 @@ const SectionContent = ({
     selectFromResult: ({ data }) => ({ feats: data && selectAllFeats(data) }),
   })
 
-  useEffect(() => {
-    if (featureState[sectionName]?.length > 0) {
-      setSectionIndex(featureState[sectionName]?.length)
-    }
-  }, [featureState, sectionName, setSectionIndex, sectionIndex])
-
   const ContentComponent = tableContent[sectionName]?.content
   return !sectionState ? (
     <Spinner />
@@ -1086,6 +1062,12 @@ const SectionContent = ({
           classes={classes}
           setSectionState={setSectionState}
           builders={builders}
+          providesOptions={sectionState.attribute?.some(
+            (attributeItem: any) => attributeItem.name === 'providesOptions'
+          )}
+          optionGroups={sectionState.attribute?.some(
+            (attributeItem: any) => attributeItem.name === 'optionGroups'
+          )}
         />
       </ScrollArea>
     </>

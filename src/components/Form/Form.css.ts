@@ -3,7 +3,6 @@ import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
 import { theme } from '../../css/global.css'
 import palette from '../../css/colors.css'
-import { fontSize } from '../../css/typography.css'
 
 export const form_wrapper = style({
   '@layer': {
@@ -31,7 +30,6 @@ export const form_header = style({
       marginBottom: size['size-1'],
       paddingLeft: '1rem',
       paddingRight: '1rem',
-      fontSize: fontSize['font-size-0'],
     },
   },
 })

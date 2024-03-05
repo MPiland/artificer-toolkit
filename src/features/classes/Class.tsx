@@ -92,9 +92,9 @@ const Class = () => {
               {subclass.map((subclassItem: any, subClassIndex: number) => {
                 return (
                   <section id={`${subclassItem.name}`} key={subClassIndex}>
-                    <h3>
+                    <h2>
                       <strong>{subclassItem.value}</strong>
-                    </h3>
+                    </h2>
                     <hr />
                     {subclassItem.desc && parse(subclassItem.desc)}
                     {subclassItem.feature?.length > 0 &&
@@ -102,11 +102,11 @@ const Class = () => {
                         (featureItem: any, featureIndex: number) => {
                           return (
                             <Fragment key={featureIndex}>
-                              <h4>
+                              <h3>
                                 <strong>
                                   <u>{featureItem.value}</u>
                                 </strong>
-                              </h4>
+                              </h3>
                               {featureItem.desc && parse(featureItem.desc)}
                             </Fragment>
                           )
@@ -121,7 +121,7 @@ const Class = () => {
         </>
       ) : (
         <>
-          {userClass.feature.length > 0 &&
+          {userClass.feature?.length > 0 &&
             userClass.feature.map((featureItem: any, featureIndex: number) => (
               <section
                 id={`${featureItem.name}`}

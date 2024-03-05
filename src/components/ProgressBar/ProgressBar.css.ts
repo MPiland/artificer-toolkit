@@ -96,6 +96,7 @@ export const progress_step = style({
       color: 'white',
       fontWeight: 'bold',
       transition: 'background-color .3s ease-in-out',
+      cursor: 'pointer',
 
       selectors: {
         '&:before': {

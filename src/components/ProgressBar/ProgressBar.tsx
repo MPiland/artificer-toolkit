@@ -14,9 +14,14 @@ import { useMediaQuery } from 'usehooks-ts'
 interface ProgressBarProps {
   steps: any[]
   currentStepIndex: number
+  handleStepChange: (arg: number) => void
 }
 
-const ProgressBar: FC<ProgressBarProps> = ({ steps, currentStepIndex }) => {
+const ProgressBar: FC<ProgressBarProps> = ({
+  steps,
+  currentStepIndex,
+  handleStepChange,
+}) => {
   const [progressWidth, setProgressWidth] = useState<string>('0')
   const progressBarRef = useRef<HTMLDivElement | null>(null)
 
@@ -61,6 +66,7 @@ const ProgressBar: FC<ProgressBarProps> = ({ steps, currentStepIndex }) => {
                   ['active']: currentStepIndex >= stepIndex,
                 })}
                 data-atapp-step={stepItem}
+                onClick={() => handleStepChange(stepIndex)}
               />
             </Fragment>
           )

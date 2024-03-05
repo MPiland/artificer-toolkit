@@ -2,15 +2,24 @@ import Modal from '../Modal/Modal'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
 import { useDispatch } from 'react-redux'
-import { confirmBack } from '../../app/modalSlice'
-import { useNavigate } from 'react-router-dom'
+import { confirmBack, confirmForward } from '../../app/modalSlice'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const Alert = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const location = useLocation()
+
+  const context = location.state.context
+  const index = location.state.index
 
   const handleConfirmBack = () => {
-    dispatch(confirmBack({ status: true }))
+    dispatch(confirmBack({ status: true, index: index }))
+    navigate(-1)
+  }
+
+  const handleConfirmForward = () => {
+    dispatch(confirmForward({ status: true, index: index }))
     navigate(-1)
   }
 
@@ -29,7 +38,14 @@ const Alert = () => {
           <Button variant='default' onClick={handleCancel}>
             Cancel
           </Button>
-          <Button variant='danger' onClick={handleConfirmBack}>
+          <Button
+            variant='danger'
+            onClick={() =>
+              context === 'foward'
+                ? handleConfirmForward()
+                : handleConfirmBack()
+            }
+          >
             Continue
           </Button>
         </Group>

@@ -152,8 +152,8 @@ const Dropdown = ({
 
   if (multiSelect) {
     newOptions.unshift(
-      { name: 'all', value: 'All', _id: 'all', id: 'all' },
-      { name: 'clear', value: 'Clear', _id: 'clear', id: 'clear' }
+      { name: 'all', value: 'All', id: null, _id: null },
+      { name: 'clear', value: 'Clear', id: null, _id: null }
     )
   }
 
@@ -204,7 +204,6 @@ const Dropdown = ({
         const allOptions = uniqBy(newOptions, (obj) => obj.value).filter(
           (obj) => obj.name !== 'all' && obj.name !== 'clear'
         )
-        console.log('all options', allOptions)
         setSelectedOptions(allOptions)
         updatedOptions.current = [option]
       } else {

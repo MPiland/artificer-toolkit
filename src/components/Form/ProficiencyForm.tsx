@@ -17,6 +17,9 @@ import {
   useGetItemsQuery,
 } from '../../features/items/itemsApiSlice'
 import Spinner from '../Spinner/Spinner'
+import Button from '../Button/Button'
+import { sprinkles } from '../../css/sprinkles.css'
+import Group from '../Group/Group'
 
 interface ProficiencyFormProps {
   context: {
@@ -26,6 +29,7 @@ interface ProficiencyFormProps {
   formState: any
   setFormState: (arg: ReducerActionType) => void
   handleRemove: (arg: string) => void
+  handleAdd: (arg: string) => void
 }
 
 const ProficiencyForm = memo(
@@ -34,6 +38,7 @@ const ProficiencyForm = memo(
     formState,
     setFormState,
     handleRemove,
+    handleAdd,
   }: ProficiencyFormProps) => {
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(
       context.type !== 'new' ? null : 0
@@ -58,6 +63,17 @@ const ProficiencyForm = memo(
     return isLoading || !builders || !items ? (
       <Spinner />
     ) : (
+      <>
+        <Group>
+          <Button
+            variant='primary_outline'
+            onClick={() => handleAdd('proficiency')}
+            className={sprinkles({ ms: 'size-3', mb: 'size-2' })}
+          >
+            Add Proficiency
+          </Button>
+        </Group>
+
         <ScrollArea scrollDirection='vertical' className={form_content}>
           {formState.proficiency && (
             <Accordion
@@ -253,6 +269,7 @@ const ProficiencyForm = memo(
             </Accordion>
           )}
         </ScrollArea>
+      </>
     )
   }
 )

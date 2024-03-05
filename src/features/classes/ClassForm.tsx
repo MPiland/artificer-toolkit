@@ -57,8 +57,8 @@ const ClassForm = () => {
 
   const steps: Steps = [
     'Details',
-    'Equipment',
     'Proficiencies',
+    'Equipment',
     'Attributes',
     'Features',
   ]

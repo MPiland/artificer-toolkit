@@ -1,14 +1,17 @@
-import { TbCaretUpFilled } from 'react-icons/tb'
+import { TbSquareMinus, TbSquarePlus, TbX } from 'react-icons/tb'
 import { useLayoutEffect, useState, ReactNode, memo } from 'react'
 import {
-  collapse_button,
+  collapse_header,
   collapse_body,
   collapse_wrapper,
-  collapse_button_caret,
+  collapse_header_button,
   collapse_content,
+  collapse_remove_button,
 } from './Collapse.css'
 import Button from '../Button/Button'
 import clsx from 'clsx'
+import Group from '../Group/Group'
+import { sprinkles } from '../../css/sprinkles.css'
 
 interface CollapseProps {
   startOpened?: boolean
@@ -16,6 +19,7 @@ interface CollapseProps {
   children?: ReactNode
   buttonDisabled?: boolean
   className?: string | number | symbol | any
+  handleRemove?: () => void
 }
 
 const Collapse = memo(
@@ -25,6 +29,7 @@ const Collapse = memo(
     children,
     buttonDisabled,
     className,
+    handleRemove,
   }: CollapseProps) => {
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
 
@@ -47,18 +52,35 @@ const Collapse = memo(
     return (
       <div className={clsx(collapse_wrapper, { [className]: className })}>
         {!buttonDisabled && (
-          <Button
-            variant='unstyled'
-            className={clsx(collapse_button, { ['collapsed']: isCollapsed })}
+          <div
+            className={clsx(collapse_header, { ['collapsed']: isCollapsed })}
             onClick={handleButtonClick}
           >
-            <span>{title}</span>
-            <TbCaretUpFilled
-              className={clsx(collapse_button_caret, {
-                ['collapsed']: isCollapsed,
-              })}
-            />
-          </Button>
+            <Group
+              justifyContentVariant='spaceBetween'
+              className={sprinkles({ width: 'full' })}
+            >
+              <Group>
+                {handleRemove && (
+                  <Button
+                    variant='unstyled'
+                    type='button'
+                    className={collapse_remove_button}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRemove()
+                    }}
+                  >
+                    <TbX />
+                  </Button>
+                )}
+                <h3>{title}</h3>
+              </Group>
+            </Group>
+            <span className={collapse_header_button}>
+              {isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}
+            </span>
+          </div>
         )}
         <div
           className={clsx(collapse_body, {

@@ -31,7 +31,7 @@ import { isEqual } from 'lodash'
 import FormFooter from './FormFooter'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../app/store'
-import { clearBack } from '../../app/modalSlice'
+import { clearBack, clearForward } from '../../app/modalSlice'
 import { useEventListener } from 'usehooks-ts'
 import {
   BaseQueryFn,
@@ -74,7 +74,8 @@ const Form = ({
   const dispatch = useDispatch()
   const isLoading = useIsLoading()
 
-  const confirmBack = useSelector((state: RootState) => state.modal.back.status)
+  const confirmBack = useSelector((state: RootState) => state.modal.back)
+  const confirmForward = useSelector((state: RootState) => state.modal.forward)
 
   const [
     addNewItem,
@@ -134,7 +135,7 @@ const Form = ({
   }, [state, formState])
 
   useEffect(() => {
-    if (confirmBack && featureStepName === '') {
+    if (confirmBack.status && featureStepName === '') {
       dispatch(clearBack())
       if (isFirstStep) {
         navigate(-1)
@@ -143,13 +144,17 @@ const Form = ({
           type: 'reset',
           target: { value: oldFormState },
         })
-        setStepIndex((i: number) => {
-          if (i <= 0) {
-            return i
-          } else {
-            return i - 1
-          }
-        })
+        if (String(confirmBack.index) && confirmBack.index != null) {
+          setStepIndex(confirmBack.index)
+        } else {
+          setStepIndex((i: number) => {
+            if (i <= 0) {
+              return i
+            } else {
+              return i - 1
+            }
+          })
+        }
       }
     }
   }, [
@@ -157,6 +162,27 @@ const Form = ({
     dispatch,
     navigate,
     isFirstStep,
+    setFormState,
+    oldFormState,
+    featureStepName,
+  ])
+
+  useEffect(() => {
+    if (confirmForward.status && featureStepName === '') {
+      dispatch(clearForward())
+      if (!isLastStep && confirmForward.index) {
+        setFormState({
+          type: 'reset',
+          target: { value: oldFormState },
+        })
+        setStepIndex(confirmForward.index)
+      }
+    }
+  }, [
+    confirmForward,
+    dispatch,
+    navigate,
+    isLastStep,
     setFormState,
     oldFormState,
     featureStepName,
@@ -202,10 +228,12 @@ const Form = ({
     updateError,
   ])
 
-  const handleAlert = () => {
+  const handleAlert = (alertContext: string, alertIndex?: number) => {
     navigate(`/alert`, {
       state: {
         background: location,
+        context: alertContext,
+        index: alertIndex,
       },
     })
   }
@@ -225,8 +253,8 @@ const Form = ({
     })
   }
 
-  const handleSubmit = async () => {
-    await addNewItem(state)
+  const handleSubmit = async (formState: any) => {
+    await addNewItem(formState)
   }
 
   const handleForward = async () => {
@@ -238,23 +266,20 @@ const Form = ({
           return i + 1
         })
       }
-      if (isEqual(oldFormState, formState)) {
-        return setErrorMessage('No changes made')
-      }
       setState({
         type: 'reset',
         target: {
           value: formState,
         },
       })
-      await handleSubmit()
+      await handleSubmit(formState)
       navigate(-1)
     }
   }
 
   const handleBack = () => {
     if (!isEqual(oldFormState, formState)) {
-      return handleAlert()
+      return handleAlert('back')
     }
     if (isFirstStep) {
       return navigate(-1)
@@ -270,7 +295,7 @@ const Form = ({
     }
   }
 
-  const handleUpdate = async (formStateProp?: object) => {
+  const handleUpdate = async (formStateProp?: any) => {
     const isValid = validate()
     if (formStateProp != null) {
       if (isEqual(oldFormState, formStateProp)) {
@@ -283,7 +308,6 @@ const Form = ({
       setOldFormState(formStateProp)
       return await updateItem(formStateProp)
     }
-    console.log('else Form')
     if (isEqual(oldFormState, formState)) {
       return setErrorMessage('No changes made')
     }
@@ -295,6 +319,26 @@ const Form = ({
       setOldFormState(formState)
       await updateItem(formState)
     }
+  }
+
+  const handleStepChange = (progressStepIndex: number) => {
+    if (featureStepName !== '') {
+      setSectionState({ type: 'reset', target: { value: {} } })
+      setOldSectionState({})
+      setFeatureState({ type: 'reset', target: { value: {} } })
+      setOldFeatureState({})
+      setOptionState({ type: 'reset', target: { value: {} } })
+      setOldOptionState({})
+      setFeatureStepName('')
+    }
+    if (!isEqual(oldFormState, formState)) {
+      if (progressStepIndex < stepIndex) {
+        return handleAlert('back', progressStepIndex)
+      } else {
+        return handleAlert('forward', progressStepIndex)
+      }
+    }
+    setStepIndex(progressStepIndex)
   }
 
   useEventListener(
@@ -399,7 +443,11 @@ const Form = ({
   return (
     <form className={form_wrapper}>
       {steps.length > 1 && (
-        <ProgressBar currentStepIndex={stepIndex} steps={steps} />
+        <ProgressBar
+          currentStepIndex={stepIndex}
+          steps={steps}
+          handleStepChange={handleStepChange}
+        />
       )}
       <div className={form_header}>
         <h1>
@@ -408,13 +456,11 @@ const Form = ({
           }`}
           {startCase(context.title)}
           {formState?.value && ` (${formState.value})`}
-          {errorMessage && (
-            <span className={error_message}> - {errorMessage}</span>
-          )}
-          {successMessage && (
-            <span className={success_message}> - {successMessage}</span>
-          )}
         </h1>
+        {errorMessage && <span className={error_message}>{errorMessage}</span>}
+        {successMessage && (
+          <span className={success_message}>{successMessage}</span>
+        )}
       </div>
       {isLoading ? (
         <Spinner />
@@ -433,7 +479,7 @@ const Form = ({
               forwardLabel={
                 isLastStep
                   ? context.type === 'edit'
-                    ? 'Update'
+                    ? 'Add New'
                     : 'Submit'
                   : 'Next'
               }
@@ -444,9 +490,9 @@ const Form = ({
                   : handleForward
               }
               backLabel={isFirstStep ? 'Cancel' : 'Back'}
-              handleUpdate={() =>
+              handleUpdate={
                 context.type === 'edit' && !isLastStep
-                  ? handleUpdate()
+                  ? handleUpdate
                   : undefined
               }
             />

@@ -9,7 +9,7 @@ import Dropdown from '../Dropdown/Dropdown'
 import RichTextEditor from '../RichTextEditor/RichTextEditor'
 import Table from '../Table/Table'
 import Divider from '../Divider/Divider'
-import CollapseContainer from '../Collapse/Collapse'
+import Collapse from '../Collapse/Collapse'
 import { getSectionNames } from './FormUtils'
 import Spinner from '../Spinner/Spinner'
 import {
@@ -53,6 +53,7 @@ interface FeatureContentProps {
   handleFeatureBack: () => void
   setOldOptionState: (arg: any) => void
   setOldSectionState: (arg: any) => void
+  setSectionIndex: (arg: number) => void
 }
 
 const FeatureContent = ({
@@ -69,6 +70,7 @@ const FeatureContent = ({
   setSectionState,
   setOldOptionState,
   setOldSectionState,
+  setSectionIndex,
 }: FeatureContentProps) => {
   const isLoading = useIsLoading()
 
@@ -159,6 +161,7 @@ const FeatureContent = ({
 
   const handleEdit = (sectionName: SectionName, sectionIndex: number) => {
     const sectionState = featureState[sectionName][sectionIndex]
+    setSectionIndex(sectionIndex)
     if (sectionName === 'option') {
       setOptionState &&
         setOptionState({
@@ -181,6 +184,9 @@ const FeatureContent = ({
   const sectionNames = getSectionNames()
 
   const selectSection = (sectionName: SectionName) => {
+    if (featureState[sectionName]?.length > 0) {
+      setSectionIndex(featureState[sectionName]?.length)
+    }
     if (sectionName !== '') {
       if (sectionName === 'option') {
         const optionIndex =
@@ -357,36 +363,38 @@ const FeatureContent = ({
                     />
                   )
                 )}
-                {featureState?.limitUse?.limitBy?.name !== 'level' &&
+                {featureState?.limitUse?.limitBy &&
                   featureState.limitUse?.limitBy?.name !== 'setValue' && (
                     <>
+                      {featureState?.limitUse?.limitBy?.name !== 'level' && (
+                        <>
+                          <Input
+                            name={`limitUse.addValue`}
+                            autoComplete='off'
+                            label='Additional Amount'
+                            value={featureState?.limitUse?.addValue}
+                            onChange={setFeatureState}
+                          />
+                          <Input
+                            name={`limitUse.minValue`}
+                            autoComplete='off'
+                            label='Minimal Value'
+                            value={featureState?.limitUse?.minValue}
+                            onChange={setFeatureState}
+                          />
+                        </>
+                      )}
                       <Input
-                        name={`limitUse.addValue`}
+                        name={`limitUse.multiplier`}
                         autoComplete='off'
-                        label='Additional Amount'
-                        value={featureState?.limitUse?.addValue}
-                        onChange={setFeatureState}
-                      />
-                      <Input
-                        name={`limitUse.minValue`}
-                        autoComplete='off'
-                        label='Minimal Value'
-                        value={featureState?.limitUse?.minValue}
+                        validation='num'
+                        errorMsg='Must contain whole numbers only'
+                        label='Multiplier'
+                        value={featureState?.limitUse?.multiplier}
                         onChange={setFeatureState}
                       />
                     </>
                   )}
-                {featureState?.limitUse?.limitBy?.name !== 'setValue' && (
-                  <Input
-                    name={`limitUse.multiplier`}
-                    autoComplete='off'
-                    validation='num'
-                    errorMsg='Must contain whole numbers only'
-                    label='Multiplier'
-                    value={featureState?.limitUse?.multiplier}
-                    onChange={setFeatureState}
-                  />
-                )}
                 <Dropdown
                   name={`limitUse.resetOption`}
                   label='Reset Option'
@@ -719,8 +727,7 @@ const FeatureContent = ({
                               ?.length > 0
                               ? featureState.requirement.notEquipped?.category?.some(
                                   (categoryItem: any) =>
-                                    categoryItem.name ===
-                                    item.category?.name
+                                    categoryItem.name === item.category?.name
                                 )
                               : item
                           )
@@ -738,8 +745,7 @@ const FeatureContent = ({
                               ?.length > 0
                               ? featureState.requirement.notEquipped?.category?.some(
                                   (categoryItem: any) =>
-                                    categoryItem.name ===
-                                    item.category?.name
+                                    categoryItem.name === item.category?.name
                                 )
                               : item
                           )
@@ -754,17 +760,9 @@ const FeatureContent = ({
           {featureState?.limitUse?.limitBy?.name === 'level' &&
             featureState.attribute?.some(
               (attributeItem: any) => attributeItem.name === 'limitUse'
-            ) &&
-            (!featureState.limitUse.level ? (
-              setFeatureState({
-                type: 'added',
-                target: {
-                  name: `limitUse.level`,
-                },
-              })
-            ) : (
+            ) && (
               <>
-                <CollapseContainer title={'Limit Use Table'}>
+                <Collapse title={'Limit Use Table'}>
                   <div className='section-content'>
                     <Table
                       rows={{
@@ -795,9 +793,9 @@ const FeatureContent = ({
                       addRow={true}
                     />
                   </div>
-                </CollapseContainer>
+                </Collapse>
               </>
-            ))}
+            )}
           {featureState?.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'doesDamage'
           ) && (
@@ -816,7 +814,15 @@ const FeatureContent = ({
                   multiSelect={true}
                   label='Damage Type'
                   value={featureState?.damage?.damageType}
-                  options={builders.damage}
+                  options={[
+                    ...builders.damage,
+                    {
+                      id: undefined,
+                      _id: undefined,
+                      name: 'matchWeapon',
+                      value: 'Match Weapon',
+                    },
+                  ]}
                   required={true}
                   onChange={setFeatureState}
                 />
@@ -975,18 +981,14 @@ const FeatureContent = ({
                   </>
                 )}
               </Grid>
-              {!featureState.damage?.damageAttribute?.some(
-                (attributeItem: any) => attributeItem.name === 'damagePool'
-              ) && !featureState.damage?.damageByLevel ? (
-                setFeatureState({
-                  type: 'added',
-                  target: {
-                    name: `damage.damageByLevel`,
-                  },
-                })
-              ) : (
+              {featureState.damage?.damageAttribute?.some(
+                (attributeItem: any) => attributeItem.name === 'damageByLevel'
+              ) && (
                 <>
-                  <CollapseContainer title={'Damage Table'}>
+                  <Collapse
+                    title={'Damage Table'}
+                    className={sprinkles({ mt: 'size-3' })}
+                  >
                     <div className='section-content'>
                       <Table
                         rows={{
@@ -1002,7 +1004,7 @@ const FeatureContent = ({
                         scrollable={true}
                       />
                     </div>
-                  </CollapseContainer>
+                  </Collapse>
                 </>
               )}
             </>
