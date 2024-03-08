@@ -21,10 +21,11 @@ import clsx from 'clsx'
 import { ReducerActionType } from '../../utils/types'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { useDebounceCallback } from 'usehooks-ts'
+import { sprinkles } from '../../css/sprinkles.css'
 
 interface RichTextEditorProps {
   onChange: (arg: ReducerActionType) => void
-  label: string
+  label?: string
   name: string
   value: any
   className?: string | number | symbol | any
@@ -112,13 +113,16 @@ const RichTextEditor: FC<RichTextEditorProps> = ({
 
   return (
     <>
-      <span className={editor_label}>{label}</span>
+      {label && <span className={editor_label}>{label}</span>}
       <div
         className={clsx(editor_container, { [className]: className })}
         tabIndex={-1}
       >
         <MenuBar editor={editor} />
-        <ScrollArea scrollDirection='vertical'>
+        <ScrollArea
+          scrollDirection='vertical'
+          wrapperClassName={sprinkles({ pb: 'size-3' })}
+        >
           <EditorContent editor={editor} className={editor_content_container} />
         </ScrollArea>
       </div>

@@ -39,12 +39,12 @@ export const collapse_content = style({
       width: '100%',
       height: 'auto',
       overflow: 'hidden',
-      padding: `${size['size-1']} ${size['size-1']}`,
+      padding: `${size['size-3']} ${size['size-3']}`,
       transition: 'padding 0.3s ease-in-out',
 
       selectors: {
         '&.collapsed': {
-          padding: `0 ${size['size-1']}`,
+          padding: `0 ${size['size-3']}`,
         },
       },
     },
@@ -67,7 +67,7 @@ export const collapse_header = style({
       alignItems: 'center',
       justifyContent: 'start',
       cursor: 'pointer',
-      padding: `${size['size-1']} ${size['size-2']}`,
+      padding: `${size['size-3']} ${size['size-3']}`,
 
       selectors: {
         '&.collapsed': {

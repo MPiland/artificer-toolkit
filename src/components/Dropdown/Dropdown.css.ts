@@ -1,6 +1,7 @@
 import { theme } from '../../css/global.css'
 import { app } from '../../css/layers.css'
 import { style, globalStyle } from '@vanilla-extract/css'
+import { size } from '../../css/size.css'
 
 export const dropdown = style({
   '@layer': {
@@ -62,7 +63,7 @@ export const dropdown_container = style({
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      paddingLeft: '.75rem',
+      paddingLeft: size['size-3'],
       overflow: 'hidden',
       cursor: 'pointer',
 
@@ -85,7 +86,7 @@ export const dropdown_right_section = style({
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: '2rem',
+      width: size['size-9'],
       height: '100%',
     },
   },
@@ -127,7 +128,7 @@ export const dropdown_menu = style({
       color: theme.vars['app-color'],
       boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
       listStyle: 'none',
-      padding: '.25rem',
+      padding: `${size['size-0']} ${size['size-0']}`,
       border: theme.vars['app-border-line-style'],
       height: 'fit-content',
     },
@@ -138,7 +139,7 @@ export const dropdown_option = style({
   '@layer': {
     [app]: {
       cursor: 'default',
-      padding: '.25rem .25rem',
+      padding: `${size['size-1']} ${size['size-3']}`,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -158,7 +159,7 @@ export const dropdown_option = style({
 
 export const dropdown_option_right_side = style({
   width: '1rem',
-  marginLeft: '.5rem',
+  marginLeft: size['size-2'],
   display: 'flex',
   flexDirection: 'row',
   alignItems: 'row',
@@ -173,7 +174,7 @@ export const dropdown_active_option = style({
       width: 'fit-content',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
-      padding: '.125rem .5rem',
+      padding: `${size['size-0']} ${size['size-2']}`,
       whiteSpace: 'nowrap',
     },
   },

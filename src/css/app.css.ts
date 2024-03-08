@@ -1,6 +1,7 @@
 import { globalStyle } from '@vanilla-extract/css'
 import { app } from './layers.css'
 import { fontFamily, fontSize } from './typography.css'
+import { size } from './size.css'
 
 globalStyle(
   '*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *))',
@@ -40,6 +41,14 @@ globalStyle('html, body, #root', {
       padding: 0,
       margin: 0,
       boxSizing: 'border-box',
+    },
+  },
+})
+
+globalStyle('p, blockquote, table, .tableWrapper', {
+  '@layer': {
+    [app]: {
+      paddingBottom: size['size-2'],
     },
   },
 })

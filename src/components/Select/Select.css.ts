@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css'
 import { theme } from '../../css/global.css'
 import { app } from '../../css/layers.css'
+import { size } from '../../css/size.css'
 
 export const select = style({
   '@layer': {
@@ -42,7 +43,7 @@ export const select_container = style({
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      paddingLeft: '.75rem',
+      paddingLeft: size['size-3'],
       overflow: 'hidden',
       cursor: 'pointer',
     },
@@ -74,42 +75,42 @@ export const select_input = style({
 })
 
 export const select_menu = style({
-    '@layer': {
-      [app]: {
-        display: 'flex',
-        flexDirection: 'column',
-        maxHeight: '10rem',
-        borderRadius: theme['default-border-radius'],
-        overflowY: 'auto',
-        zIndex: 1000,
-        backgroundColor: theme.vars['app-background-color'],
-        color: theme.vars['app-color'],
-        boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
-        listStyle: 'none',
-        padding: '.25rem',
-        border: theme.vars['app-border-line-style'],
-      },
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'column',
+      maxHeight: '10rem',
+      borderRadius: theme['default-border-radius'],
+      overflowY: 'auto',
+      zIndex: 1000,
+      backgroundColor: theme.vars['app-background-color'],
+      color: theme.vars['app-color'],
+      boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
+      listStyle: 'none',
+      border: theme.vars['app-border-line-style'],
+      padding: `${size['size-0']} ${size['size-0']}`,
     },
-  })
-  
-  export const select_option = style({
-    '@layer': {
-      [app]: {
-        cursor: 'default',
-        padding: '.25rem .25rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-  
-        selectors: {
-          '&:focus': {
-            outline: 'none',
-            backgroundColor: 'rgb(118, 184, 255)',
-          },
-          '&:hover': {
-            backgroundColor: 'rgb(118, 184, 255)',
-          },
+  },
+})
+
+export const select_option = style({
+  '@layer': {
+    [app]: {
+      cursor: 'default',
+      padding: `${size['size-1']} ${size['size-3']}`,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+
+      selectors: {
+        '&:focus': {
+          outline: 'none',
+          backgroundColor: 'rgb(118, 184, 255)',
+        },
+        '&:hover': {
+          backgroundColor: 'rgb(118, 184, 255)',
         },
       },
     },
-  })
+  },
+})

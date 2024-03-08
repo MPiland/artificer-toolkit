@@ -37,16 +37,12 @@ interface EquipmentProps {
     title: string
   }
   setFormState: (arg: ReducerActionType) => void
-  handleRemove: (arg: string) => void
-  handleAdd: (arg: string) => void
 }
 
 const EquipmentForm = ({
   formState,
   context,
   setFormState,
-  handleRemove,
-  handleAdd,
 }: EquipmentProps) => {
   const isLoading = useIsLoading()
 
@@ -109,8 +105,15 @@ const EquipmentForm = ({
         <Button
           variant='primary_outline'
           onClick={() => {
-            setActiveIndex(formState?.startingEquipment?.length)
-            handleAdd('startingEquipment')
+            if (formState?.startingEquipment?.length > 0) {
+              setActiveIndex(formState?.startingEquipment?.length)
+            } else {
+              setActiveIndex(0)
+            }
+            setFormState({
+              type: 'added',
+              target: { name: 'startingEquipment' },
+            })
           }}
         >
           Add Equipment Group
@@ -130,7 +133,10 @@ const EquipmentForm = ({
                     <Accordion.Header
                       handleClick={() => toggle(groupIndex)}
                       handleRemove={() =>
-                        handleRemove(`startingEquipment.${groupIndex}`)
+                        setFormState({
+                          type: 'removed',
+                          target: { name: `startingEquipment.${groupIndex}` },
+                        })
                       }
                       active={activeIndex === groupIndex}
                       key={groupIndex}
@@ -142,7 +148,12 @@ const EquipmentForm = ({
                         <Button
                           variant='primary_outline'
                           onClick={() =>
-                            handleAdd(`startingEquipment.${groupIndex}.option`)
+                            setFormState({
+                              type: 'added',
+                              target: {
+                                name: `startingEquipment.${groupIndex}.option`,
+                              },
+                            })
                           }
                         >
                           Add Option
@@ -294,18 +305,27 @@ const EquipmentForm = ({
                                               if (
                                                 groupItem.option.length === 1
                                               ) {
-                                                handleRemove(
-                                                  `startingEquipment.${groupIndex}`
-                                                )
+                                                setFormState({
+                                                  type: 'removed',
+                                                  target: {
+                                                    name: `startingEquipment.${groupIndex}`,
+                                                  },
+                                                })
                                               } else {
-                                                handleRemove(
-                                                  `startingEquipment.${groupIndex}.option.${optionIndex}`
-                                                )
+                                                setFormState({
+                                                  type: 'removed',
+                                                  target: {
+                                                    name: `startingEquipment.${groupIndex}.option.${optionIndex}`,
+                                                  },
+                                                })
                                               }
                                             } else {
-                                              handleRemove(
-                                                `startingEquipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}`
-                                              )
+                                              setFormState({
+                                                type: 'removed',
+                                                target: {
+                                                  name: `startingEquipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}`,
+                                                },
+                                              })
                                             }
                                           }}
                                         >
@@ -318,9 +338,12 @@ const EquipmentForm = ({
                                             equipment_sub_group_button
                                           )}
                                           onClick={() =>
-                                            handleAdd(
-                                              `startingEquipment.${groupIndex}.option.${optionIndex}.equipment`
-                                            )
+                                            setFormState({
+                                              type: 'added',
+                                              target: {
+                                                name: `startingEquipment.${groupIndex}.option.${optionIndex}.equipment`,
+                                              },
+                                            })
                                           }
                                         >
                                           <TbPlus />

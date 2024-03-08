@@ -25,6 +25,7 @@ import {
   table_cell,
   table_button_cell,
   table_body,
+  table_button_wrapper,
 } from './Table.css'
 import { TbCaretUpFilled, TbTrash, TbCirclePlus } from 'react-icons/tb'
 import clsx from 'clsx'
@@ -275,24 +276,26 @@ const TableRow = ({
           )
         })}
         {addRow && (
-          <div
-            className={table_button_cell}
-            onClick={() => {
-              onChange &&
-                onChange({
-                  type: 'added',
-                  target: { name: name },
-                })
-            }}
-          >
-            <Button
-              className={table_dynamic_button}
-              variant='unstyled'
-              type='button'
-              name={`${name}`}
+          <div className={table_button_wrapper}>
+            <div
+              className={table_button_cell}
+              onClick={() => {
+                onChange &&
+                  onChange({
+                    type: 'added',
+                    target: { name: name },
+                  })
+              }}
             >
-              <TbCirclePlus />
-            </Button>
+              <Button
+                className={table_dynamic_button}
+                variant='unstyled'
+                type='button'
+                name={`${name}`}
+              >
+                <TbCirclePlus />
+              </Button>
+            </div>
             {valueIndex !== 0 && (
               <div
                 className={table_button_cell}

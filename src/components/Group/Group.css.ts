@@ -4,6 +4,7 @@ import { app } from '../../css/layers.css'
 export const base = style({
   '@layer': {
     [app]: {
+      position: 'relative',
       display: 'flex',
       alignItems: 'center',
       height: 'fit-content',

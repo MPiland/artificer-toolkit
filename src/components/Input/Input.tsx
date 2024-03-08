@@ -143,7 +143,7 @@ const Input = memo(
             className={clsx(input, { ['invalid']: error })}
             required={required}
             autoFocus={autoFocus}
-            autoComplete={autoComplete}
+            autoComplete={autoComplete ?? 'off'}
             readOnly={readOnly}
             value={inputValue ?? ''}
             onChange={(e: any) => handleChange(e)}

@@ -8,7 +8,7 @@ import {
   selectFeatById,
 } from './featsApiSlice'
 import { useLocation, useParams } from 'react-router-dom'
-import { FormContext, Steps } from '../../utils/types'
+import { FormContext, Step } from '../../utils/types'
 import Spinner from '../../components/Spinner/Spinner'
 
 const FeatForm = () => {
@@ -55,7 +55,7 @@ const FeatForm = () => {
     }
   }, [oldState, feat])
 
-  const steps: Steps = ['Features']
+  const steps: Step[] = ['Features']
 
   return isLoading || !state ? (
     <Spinner />

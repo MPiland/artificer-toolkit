@@ -2,36 +2,42 @@ import { theme } from '../../css/global.css'
 import { styleVariants, style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import palette from '../../css/colors.css'
-
-export const button_content = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'row',
-      height: '100%',
-      alignItems: 'center',
-    },
-  },
-})
+import { size } from '../../css/size.css'
 
 const base = style({
   '@layer': {
     [app]: {
+      position: 'relative',
       borderRadius: theme['default-border-radius'],
       height: theme['button-height'],
-      padding: '0 1.125rem',
       cursor: 'pointer',
       outline: 'none',
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
+      zIndex: 1,
+      padding: `0 ${size['size-3']}`,
 
       selectors: {
         '&:active': {
           backgroundImage: 'linear-gradient(rgb(0 0 0/40%) 0 0)',
         },
       },
+    },
+  },
+})
+
+export const button_content = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'row',
+      height: '100%',
+      alignItems: 'center',
+      userSelect: 'none',
+      zIndex: 0,
     },
   },
 })
@@ -51,7 +57,6 @@ const buttonPalette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: palette['blue-7'],
         color: palette['blue-7'],
         border: '1px solid',
       },
@@ -71,7 +76,6 @@ const buttonPalette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: palette['yellow-7'],
         color: palette['yellow-7'],
         border: '1px solid',
       },
@@ -91,7 +95,6 @@ const buttonPalette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: palette['gray-6'],
         color: palette['gray-6'],
         border: '1px solid',
       },
@@ -111,7 +114,6 @@ const buttonPalette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: palette['red-7'],
         color: palette['red-7'],
         border: '1px solid',
       },
@@ -131,7 +133,6 @@ const buttonPalette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: palette['teal-7'],
         color: palette['teal-7'],
         border: '1px solid',
       },
@@ -141,10 +142,9 @@ const buttonPalette = {
     '@layer': {
       [app]: {
         backgroundColor: 'transparent',
-        borderColor: 'unset',
         color: theme.vars['app-color'],
         border: 'none',
-        padding: '0',
+        padding: 'unset',
       },
     },
   },

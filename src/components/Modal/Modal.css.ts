@@ -6,7 +6,7 @@ import { size } from '../../css/size.css'
 export const modal = style({
   '@layer': {
     [app]: {
-      position: 'fixed',
+      position: 'absolute',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
@@ -23,6 +23,7 @@ export const modal = style({
 export const modal_dialogue = style({
   '@layer': {
     [app]: {
+      'position': 'relative',
       'display': 'flex',
       'flexDirection': 'row',
       'backgroundColor': theme.vars['app-background-color'],
@@ -77,6 +78,7 @@ export const modal_dialogue = style({
 export const modal_content = style({
   '@layer': {
     [app]: {
+      'position': 'relative',
       'display': 'flex',
       'flexDirection': 'column',
       'width': '100%',
@@ -103,6 +105,7 @@ export const modal_content = style({
 export const modal_header = style({
   '@layer': {
     [app]: {
+      'position': 'relative',
       'height': 'fit-content',
       'padding': `0 ${size['size-9']} ${size['size-3']}`,
 
@@ -118,9 +121,9 @@ export const modal_header = style({
 export const modal_body = style({
   '@layer': {
     [app]: {
+      'position': 'relative',
       'display': 'flex',
       'flexDirection': 'column',
-      'position': 'relative',
       'overflow': 'hidden',
       'padding': `${size['size-3']} ${size['size-9']}`,
 
@@ -146,6 +149,7 @@ export const modal_title = style({
 export const modal_footer = style({
   '@layer': {
     [app]: {
+      'position': 'relative',
       'display': 'flex',
       'flexDirection': 'column',
       'padding': ` ${size['size-3']} ${size['size-9']} 0`,
@@ -163,6 +167,7 @@ export const modal_footer = style({
 export const modal_divider = style({
   '@layer': {
     [app]: {
+      position: 'relative',
       margin: `0 ${size['size-7']}`,
     },
   },

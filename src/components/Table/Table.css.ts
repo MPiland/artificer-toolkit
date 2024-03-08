@@ -207,12 +207,23 @@ export const table_button_cell = style({
       alignItems: 'center',
       justifyContent: 'space-between',
       borderRadius: theme['default-border-radius'],
-
+      height: '100%',
       selectors: {
         '&:active': {
           backgroundImage: 'linear-gradient(rgb(0 0 0/40%) 0 0)',
         },
       },
+    },
+  },
+})
+export const table_button_wrapper = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderRadius: theme['default-border-radius'],
     },
   },
 })

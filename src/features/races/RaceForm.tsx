@@ -8,7 +8,7 @@ import {
 import { useLocation, useParams } from 'react-router-dom'
 import Form from '../../components/Form/Form'
 import formReducer from '../../hooks/useReducer'
-import { FormContext, Steps } from '../../utils/types'
+import { FormContext, Step } from '../../utils/types'
 import Spinner from '../../components/Spinner/Spinner'
 
 const RaceForm = () => {
@@ -55,7 +55,13 @@ const RaceForm = () => {
     }
   }, [oldState, race])
 
-  const steps: Steps = ['Details', 'Traits', 'Features']
+  const steps: Step[] = [
+    'Details',
+    'Traits',
+    'Ancestry',
+    'Proficiencies',
+    'Features',
+  ]
 
   return isLoading || !state ? (
     <Spinner />

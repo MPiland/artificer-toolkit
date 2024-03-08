@@ -33,11 +33,10 @@ interface DetailFormProps {
   }
   formState: any
   setFormState: (arg: ReducerActionType) => void
-  handleRemove: (arg: string) => void
 }
 
 const DetailForm = memo(
-  ({ context, formState, setFormState, handleRemove }: DetailFormProps) => {
+  ({ context, formState, setFormState }: DetailFormProps) => {
     const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(
       context.type !== 'new' ? null : 0
     )
@@ -288,19 +287,19 @@ const DetailForm = memo(
                 <>
                   <Input
                     validation='num'
-                    name='minRange'
+                    name='range.minRange'
                     errorMsg='Must contain only numbers'
                     label='Min Range'
-                    value={formState?.minRange}
+                    value={formState?.range?.minRange}
                     required={true}
                     onChange={setFormState}
                   />
                   <Input
                     validation='num'
-                    name='maxRange'
+                    name='range.maxRange'
                     errorMsg='Must contain only numbers'
                     label='Max Range'
-                    value={formState?.maxRange}
+                    value={formState?.range?.maxRange}
                     required={true}
                     onChange={setFormState}
                   />
@@ -398,12 +397,15 @@ const DetailForm = memo(
             className={sprinkles({ mb: 'size-3' })}
             variant='default'
             onClick={() => {
-              setActiveDetailIndex(formState?.detail?.length)
+              if (formState?.detail?.length > 0) {
+                setActiveDetailIndex(formState?.detail?.length)
+              } else {
+                setActiveDetailIndex(0)
+              }
               setFormState({
                 type: 'added',
                 target: { name: 'detail' },
               })
-              setActiveDetailIndex(formState?.detail?.length)
             }}
           >
             Add Detail
@@ -420,7 +422,12 @@ const DetailForm = memo(
                 <Accordion.Container key={detailIndex} itemId={detailItem.id}>
                   <Accordion.Header
                     handleClick={() => toggle(detailIndex)}
-                    handleRemove={() => handleRemove(`detail.${detailIndex}`)}
+                    handleRemove={() =>
+                      setFormState({
+                        type: 'removed',
+                        target: { name: `detail.${detailIndex}` },
+                      })
+                    }
                     active={activeDetailIndex === detailIndex}
                   >
                     {detailItem.value != null && detailItem.value !== ''

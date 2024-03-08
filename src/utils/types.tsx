@@ -9,11 +9,12 @@ export type RowInput = {
   errorMsg?: string
   label?: string
   readOnly?: boolean
-  type?: string
+  type?: 'input' | 'select'
   multiple?: boolean
   required?: boolean
   optionalKey?: string
   placeholder?: string
+  id?: string
 }
 
 export type RowHeader = {
@@ -45,7 +46,7 @@ export type SortConfig = {
 }
 
 export type ReducerActionType = {
-  type?: string
+  type?: 'added' | 'reset' | 'removed'
   target: {
     name?: string | string[]
     value?: any
@@ -71,6 +72,7 @@ export type SectionName =
   | 'spell'
   | 'proficiency'
   | 'sense'
+  | 'feature'
   | ''
 
 export type SelectOption = string | undefined
@@ -83,7 +85,7 @@ export type DropdownOption = {
   [key: string]: any
 }
 
-export type Steps = (
+export type Step =
   | 'Details'
   | 'Traits'
   | 'Attributes'
@@ -91,6 +93,6 @@ export type Steps = (
   | 'Contains'
   | 'Proficiencies'
   | 'Equipment'
-)[]
+  | 'Ancestry'
 
 export type FormContext = 'new' | 'edit'

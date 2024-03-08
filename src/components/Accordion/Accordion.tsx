@@ -56,10 +56,11 @@ interface FooterProps {
 }
 
 interface AccordionProps {
-  dataArray?: any[]
+  dataArray: any[]
   children: ReactNode
   setState?: (arg: ReducerActionType) => void
   name?: string
+  disableSort?: boolean
 }
 
 const Container = memo(({ children, itemId }: ContainerProps) => {
@@ -168,7 +169,13 @@ const Footer = ({ children }: FooterProps) => {
   return <div className={accordion_footer}>{children}</div>
 }
 
-const Accordion = ({ children, dataArray, setState, name }: AccordionProps) => {
+const Accordion = ({
+  children,
+  dataArray,
+  setState,
+  name,
+  disableSort = false,
+}: AccordionProps) => {
   const sensor = useSensors(
     useSensor(TouchSensor, {
       activationConstraint: {
@@ -190,13 +197,9 @@ const Accordion = ({ children, dataArray, setState, name }: AccordionProps) => {
       return
     }
 
-    const oldIndex = (dataArray as []).findIndex(
-      (item: any) => item.id === active.id
-    )
-    const newIndex = (dataArray as []).findIndex(
-      (item: any) => item.id === over?.id
-    )
-    const newArray = arrayMove(dataArray as any[], oldIndex, newIndex)
+    const oldIndex = dataArray.findIndex((item: any) => item.id === active.id)
+    const newIndex = dataArray.findIndex((item: any) => item.id === over?.id)
+    const newArray = arrayMove(dataArray, oldIndex, newIndex)
     setState && setState({ target: { name: name, value: newArray } })
   }
 
@@ -208,9 +211,10 @@ const Accordion = ({ children, dataArray, setState, name }: AccordionProps) => {
         onDragEnd={onDragEnd}
       >
         <SortableContext
-          items={(dataArray as any[]).map(
-            (dataItem, dataIndex) => dataItem.id ?? dataIndex
+          items={dataArray.map(
+            (dataItem, dataIndex) => dataItem?.id ?? dataIndex
           )}
+          disabled={disableSort}
           strategy={verticalListSortingStrategy}
         >
           {children}

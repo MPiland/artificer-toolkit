@@ -85,13 +85,13 @@ export const scroll_area = styleVariants({
 export const scroll_bar_vertical = style({
   '@layer': {
     [app]: {
-      width: '.75rem',
+      width: '.5rem',
       height: '100%',
       right: 0,
       top: 0,
       position: 'absolute',
       borderRadius: '.5rem',
-      backgroundColor: 'rgba(0, 0, 0, .35)',
+      backgroundColor: 'transparent',
       opacity: 0,
       transition: 'opacity .2s ease-in-out',
       zIndex: 10,
@@ -108,7 +108,7 @@ export const scroll_bar_vertical = style({
 export const scroll_thumb_vertical = style({
   '@layer': {
     [app]: {
-      width: '.75rem',
+      width: '.5rem',
       position: 'absolute',
       borderRadius: '.5rem',
       opacity: '1',
@@ -121,13 +121,13 @@ export const scroll_thumb_vertical = style({
 export const scroll_bar_horizontal = style({
   '@layer': {
     [app]: {
-      height: '.75rem',
+      height: '.5rem',
       width: '100%',
       left: 0,
       bottom: 0,
       position: 'absolute',
       borderRadius: '.5rem',
-      backgroundColor: 'rgba(0, 0, 0, .35)',
+      backgroundColor: 'transparent',
       opacity: 0,
       transition: 'opacity .2s ease-in-out',
       zIndex: 10,
@@ -144,7 +144,7 @@ export const scroll_bar_horizontal = style({
 export const scroll_thumb_horizontal = style({
   '@layer': {
     [app]: {
-      height: '.75rem',
+      height: '.5rem',
       position: 'absolute',
       borderRadius: '.5rem',
       opacity: '1',

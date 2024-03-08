@@ -13,6 +13,7 @@ export const editor_container = style({
       'backgroundColor': 'transparent',
       'display': 'flex',
       'flexDirection': 'column',
+      'width': '100%',
 
       'selectors': {
         '&:focus-within': {
@@ -54,7 +55,7 @@ export const editor_content_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      padding: '.5rem',
+      padding: `0 ${size['size-4']}`,
       maxHeight: '12rem',
       display: 'flex',
       flexDirection: 'column',
@@ -69,6 +70,7 @@ export const editor_content = style({
       outline: 'none',
       height: '100%',
       flex: 1,
+      padding: '1rem 0',
     },
   },
 })

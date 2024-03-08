@@ -39,7 +39,7 @@ const ProgressBar: FC<ProgressBarProps> = ({
         }) * ${currentStepIndex}))`
       )
     }
-  }, [currentStepIndex, steps, sm])
+  }, [currentStepIndex, steps.length, sm])
 
   return (
     <section className={progress_bar}>

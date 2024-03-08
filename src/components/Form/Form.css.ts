@@ -28,8 +28,7 @@ export const form_header = style({
     [app]: {
       paddingTop: size['size-1'],
       marginBottom: size['size-1'],
-      paddingLeft: '1rem',
-      paddingRight: '1rem',
+      padding: `0 ${size['size-4']}`,
     },
   },
 })
@@ -60,35 +59,6 @@ export const form_footer = style({
       padding: '.5rem .5rem',
     },
   },
-})
-
-export const feature_list = style({
-  '@layer': {
-    [app]: {
-      width: '80%',
-      marginLeft: '10%',
-      marginTop: '2rem',
-    },
-  },
-})
-
-export const feature_card = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%',
-      height: 'auto',
-      borderRadius: theme['default-border-radius'],
-      border: theme.vars['app-border-line-style'],
-      marginBottom: size['size-2'],
-      boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
-    },
-  },
-})
-
-export const feature_description = style({
-  height: '100%',
 })
 
 export const form_remove_button = style({
@@ -140,6 +110,44 @@ export const form_add_button = style({
       },
     },
   },
+})
+
+export const feature_header = style({
+  '@layer': {
+    [app]: {
+      marginBottom: size['size-3'],
+      padding: `0 ${size['size-4']}`,
+    },
+  },
+})
+
+export const feature_list = style({
+  '@layer': {
+    [app]: {
+      width: '80%',
+      marginLeft: '10%',
+      marginTop: '2rem',
+    },
+  },
+})
+
+export const feature_card = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
+      height: 'auto',
+      borderRadius: theme['default-border-radius'],
+      border: theme.vars['app-border-line-style'],
+      marginBottom: size['size-2'],
+      boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
+    },
+  },
+})
+
+export const feature_description = style({
+  height: '100%',
 })
 
 export const error_message = style({

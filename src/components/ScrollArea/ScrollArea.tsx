@@ -213,6 +213,7 @@ const ScrollArea = memo(
       const scrollArea = scrollAreaRef.current
       if (scrollArea) {
         clearTimeout(scrollTimer)
+        setActive(true)
         if (scrollDirection === 'all' || scrollDirection === 'vertical') {
           let newTop =
             (parseInt(String(scrollArea.scrollTop), 10) /
@@ -271,36 +272,40 @@ const ScrollArea = memo(
         >
           {children}
         </div>
-        <div
-          className={clsx(scroll_bar_vertical, {
-            ['active']: (active || visibility === 'visible') && !vertNoOverflow,
-          })}
-        >
+        {!vertNoOverflow && (
           <div
-            ref={vertScrollThumbRef}
-            className={scroll_thumb_vertical}
-            style={{
-              height: `${vertScrollThumbHeight}px`,
-              top: vertScrollThumbTop,
-            }}
-            onMouseDown={handleScrollThumbMouseDown}
-          />
-        </div>
-        <div
-          className={clsx(scroll_bar_horizontal, {
-            ['active']: (active || visibility === 'visible') && !horzNoOverflow,
-          })}
-        >
+            className={clsx(scroll_bar_vertical, {
+              ['active']: active || visibility === 'visible',
+            })}
+          >
+            <div
+              ref={vertScrollThumbRef}
+              className={scroll_thumb_vertical}
+              style={{
+                height: `${vertScrollThumbHeight}px`,
+                top: vertScrollThumbTop,
+              }}
+              onMouseDown={handleScrollThumbMouseDown}
+            />
+          </div>
+        )}
+        {!horzNoOverflow && (
           <div
-            ref={horzScrollThumbRef}
-            className={scroll_thumb_horizontal}
-            style={{
-              width: `${horzScrollThumbWidth}px`,
-              left: horzScrollThumbLeft,
-            }}
-            onMouseDown={handleScrollThumbMouseDown}
-          />
-        </div>
+            className={clsx(scroll_bar_horizontal, {
+              ['active']: active || visibility === 'visible',
+            })}
+          >
+            <div
+              ref={horzScrollThumbRef}
+              className={scroll_thumb_horizontal}
+              style={{
+                width: `${horzScrollThumbWidth}px`,
+                left: horzScrollThumbLeft,
+              }}
+              onMouseDown={handleScrollThumbMouseDown}
+            />
+          </div>
+        )}
       </div>
     )
   }

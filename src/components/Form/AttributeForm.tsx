@@ -32,11 +32,10 @@ interface AttributeFormProps {
   }
   formState: any
   setFormState: (arg: ReducerActionType) => void
-  handleRemove: (arg: string) => void
 }
 
 const AttributeForm = memo(
-  ({ context, formState, setFormState, handleRemove }: AttributeFormProps) => {
+  ({ context, formState, setFormState }: AttributeFormProps) => {
     const isLoading = useIsLoading()
 
     const { data: builders } = useGetBuildersQuery(undefined)
@@ -55,9 +54,133 @@ const AttributeForm = memo(
         ) &&
         formState.resource
       ) {
-        handleRemove('resource')
+        setFormState({ type: 'removed', target: { name: 'resource' } })
       }
-    }, [formState.attribute, formState.resource, setFormState, handleRemove])
+    }, [formState.attribute, formState.resource, setFormState])
+
+    // Create level attribute table
+    useEffect(() => {
+      if (!formState.levelAttribute) {
+        setFormState({
+          type: 'added',
+          target: { name: 'levelAttribute' },
+        })
+      }
+    }, [formState.levelAttribute, setFormState])
+
+    // Create/Remove Subtypes table
+    useEffect(() => {
+      if (
+        formState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'subtypes'
+        ) &&
+        !formState.subtype
+      ) {
+        setFormState({
+          type: 'added',
+          target: { name: 'subtype' },
+        })
+      }
+      if (
+        !formState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'subtypes'
+        ) &&
+        formState.subtype != null
+      ) {
+        setFormState({
+          type: 'removed',
+          target: { name: 'subtype' },
+        })
+      }
+    }, [formState, setFormState])
+
+    // Create/remove Upcast table
+    useEffect(() => {
+      if (
+        formState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'canUpcast'
+        ) &&
+        formState.upcast?.upcastAttribute?.length > 0 &&
+        !formState.upcast?.upcastAttribute?.every(
+          (attributeItem: any) => attributeItem.name === 'targets'
+        ) &&
+        formState.upcast?.upcastStats == null
+      ) {
+        setFormState({
+          type: 'added',
+          target: { name: 'upcast.upcastStats' },
+        })
+      }
+      if (
+        !formState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'canUpcast'
+        ) &&
+        formState.upcast?.upcastStats != null
+      ) {
+        setFormState({
+          type: 'removed',
+          target: { name: 'upcast.upcastStats' },
+        })
+      }
+    }, [setFormState, formState])
+
+    //Create/remove Limit Use table
+    useEffect(() => {
+      if (
+        formState.limitUse?.limitBy?.name === 'level' &&
+        formState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'limitUse'
+        ) &&
+        formState.limitUse?.level == null
+      ) {
+        setFormState({
+          type: 'added',
+          target: { name: `limitUse.level` },
+        })
+      }
+      if (
+        formState.limitUse?.limitBy?.name !== 'level' &&
+        formState.limitUse?.level != null
+      ) {
+        setFormState({
+          type: 'removed',
+          target: { name: `limitUse.level` },
+        })
+      }
+    }, [formState, setFormState])
+
+    // Remove Damage data
+    useEffect(() => {
+      if (
+        (!formState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'doesDamage'
+        ) &&
+          formState.category?.name !== 'weapon') ||
+        formState.property?.some(
+          (propertyItem: any) => propertyItem.name === 'special'
+        )
+      ) {
+        setFormState({
+          type: 'removed',
+          target: { name: 'damage' },
+        })
+      }
+    }, [setFormState, formState])
+
+    // Remove Spellcasting data
+    useEffect(() => {
+      if (
+        !formState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'spellCaster'
+        ) &&
+        formState.spellcasting != null
+      ) {
+        setFormState({
+          type: 'removed',
+          target: { name: 'spellcasting' },
+        })
+      }
+    }, [formState, setFormState])
 
     // Damage table data
     const damageTableColumns = () => {
@@ -176,8 +299,14 @@ const AttributeForm = memo(
       if (range) {
         inputArray.push(
           {
-            name: 'range.distance',
-            value: 'Distance',
+            name: 'range.minRange',
+            value: 'Min. Range',
+            errorMsg: 'Must contain only numbers',
+            validation: 'num',
+          },
+          {
+            name: 'range.maxRange',
+            value: 'Max Range',
             errorMsg: 'Must contain only numbers',
             validation: 'num',
           },
@@ -224,11 +353,6 @@ const AttributeForm = memo(
       const spellCaster = formState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'spellCaster'
       )
-      !formState.levelAttribute &&
-        setFormState({
-          type: 'added',
-          target: { name: 'levelAttribute' },
-        })
 
       const resource = formState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'resource'
@@ -290,120 +414,6 @@ const AttributeForm = memo(
 
       return { inputs: inputArray, headers: headerArray }
     }
-
-    // Create/Remove Subtypes table
-    useEffect(() => {
-      if (
-        formState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'subtypes'
-        ) &&
-        !formState.subtype
-      ) {
-        setFormState({
-          type: 'added',
-          target: { name: 'subtype' },
-        })
-      }
-      if (
-        !formState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'subtypes'
-        ) &&
-        formState.subtype != null
-      ) {
-        setFormState({
-          type: 'removed',
-          target: { name: 'subtype' },
-        })
-      }
-    }, [formState, setFormState])
-
-    // Create/remove Upcast table
-    useEffect(() => {
-      if (
-        formState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'canUpcast'
-        ) &&
-        formState.upcast?.upcastAttribute?.length > 0 &&
-        !formState.upcast?.upcastAttribute?.every(
-          (attributeItem: any) => attributeItem.name === 'targets'
-        ) &&
-        formState.upcast?.upcastStats == null
-      ) {
-        setFormState({
-          type: 'added',
-          target: { name: 'upcast.upcastStats' },
-        })
-      }
-      if (
-        !formState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'canUpcast'
-        ) &&
-        formState.upcast?.upcastStats != null
-      ) {
-        setFormState({
-          type: 'removed',
-          target: { name: 'upcast.upcastStats' },
-        })
-      }
-    }, [setFormState, formState])
-
-    //Create/remove Limit Use table
-    useEffect(() => {
-      if (
-        formState.limitUse?.limitBy?.name === 'level' &&
-        formState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'limitUse'
-        ) &&
-        formState.limitUse?.level == null
-      ) {
-        setFormState({
-          type: 'added',
-          target: { name: `limitUse.level` },
-        })
-      }
-      if (
-        formState.limitUse?.limitBy?.name !== 'level' &&
-        formState.limitUse?.level != null
-      ) {
-        setFormState({
-          type: 'removed',
-          target: { name: `limitUse.level` },
-        })
-      }
-    }, [formState, setFormState])
-
-    // Renove Damage data
-    useEffect(() => {
-      if (
-        (!formState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'doesDamage'
-        ) &&
-          formState.category?.name !== 'weapon') ||
-        formState.property?.some(
-          (propertyItem: any) => propertyItem.name === 'special'
-        )
-      ) {
-        setFormState({
-          type: 'removed',
-          target: { name: 'damage' },
-        })
-      }
-    }, [setFormState, formState])
-
-    // Remove Spellcasting data
-    useEffect(() => {
-      if (
-        !formState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'spellCaster'
-        ) &&
-        formState.spellcasting != null
-      ) {
-        setFormState({
-          type: 'removed',
-          target: { name: 'spellcasting' },
-        })
-      }
-    }, [formState, setFormState])
 
     return isLoading || !builders ? (
       <Spinner />
@@ -568,8 +578,8 @@ const AttributeForm = memo(
                   <>
                     <Input
                       validation={'num'}
-                      name='range.distance'
-                      errorMsg='Must contain only numbers'
+                      name='range.minRange'
+                      errorMsg='Please enter a valid number greater than 0'
                       label='Distance'
                       autoComplete='off'
                       required={
@@ -577,7 +587,21 @@ const AttributeForm = memo(
                           ? true
                           : false
                       }
-                      value={formState?.range?.distance}
+                      value={formState?.range?.minRange}
+                      onChange={setFormState}
+                    />
+                    <Input
+                      validation={'num'}
+                      name='range.maxRange'
+                      errorMsg='Please enter a valid number greater than 0'
+                      label='Distance'
+                      autoComplete='off'
+                      required={
+                        formState.range?.rangeType?.name === 'distance'
+                          ? true
+                          : false
+                      }
+                      value={formState?.range?.maxRange}
                       onChange={setFormState}
                     />
                     <Dropdown
@@ -613,7 +637,7 @@ const AttributeForm = memo(
                     <Input
                       validation={'cur'}
                       name='shape.size'
-                      errorMsg='Must contain only numbers'
+                      errorMsg='Please enter a valid number (can inlude decimals)'
                       label='Shape Size'
                       autoComplete='off'
                       required={true}
@@ -635,15 +659,20 @@ const AttributeForm = memo(
                     />
                   </>
                 )}
-              <Input
-                name='targets'
-                value={formState?.targets ?? 1}
-                label='No. of Targets'
-                required={true}
-                validation='num'
-                errorMsg='Must contain only numbers'
-                onChange={setFormState}
-              />
+              {formState?.attribute?.some(
+                (attributeItem: any) => attributeItem.name === 'limitedTargets'
+              ) && (
+                <Input
+                  name='targets'
+                  value={formState?.targets}
+                  label='No. of Targets'
+                  required={true}
+                  validation='num'
+                  errorMsg='Enter a valid number greater than 0'
+                  onChange={setFormState}
+                  placeholder='1'
+                />
+              )}
               {formState?.attribute?.some(
                 (attributeItem: any) => attributeItem.name === 'canUpcast'
               ) && (
@@ -651,23 +680,27 @@ const AttributeForm = memo(
                   name='upcast.upcastAttribute'
                   label='Upcast Attribute'
                   value={formState?.upcast?.upcastAttribute}
-                  options={builders.spell.upcastAttribute
-                    .filter((upcastItem: any) =>
-                      !formState.attribute?.some(
+                  options={builders.spell.upcastAttribute.filter(
+                    (upcastItem: any) =>
+                      (!formState.attribute?.some(
                         (attributeItem: any) =>
                           attributeItem.name === 'doesDamage'
                       )
                         ? upcastItem.name !== 'damage'
-                        : upcastItem
-                    )
-                    .filter((upcastItem: any) =>
-                      !formState.damage?.damageAttribute?.some(
+                        : upcastItem) &&
+                      (!formState.damage?.damageAttribute?.some(
                         (attributeItem: any) =>
                           attributeItem.name === 'secondaryDice'
                       )
                         ? upcastItem.name !== 'secondaryDice'
-                        : upcastItem
-                    )}
+                        : upcastItem) &&
+                      (!formState?.attribute?.some(
+                        (attributeItem: any) =>
+                          attributeItem.name === 'limitedTargets'
+                      )
+                        ? upcastItem.name !== 'targets'
+                        : upcastItem)
+                  )}
                   multiSelect={true}
                   onChange={setFormState}
                 />
@@ -726,16 +759,6 @@ const AttributeForm = memo(
               />
               {context.title !== 'spell' && (
                 <>
-                  <Input
-                    validation='num'
-                    name={`saveAbility.minValue`}
-                    autoComplete='off'
-                    label='Minimum Value'
-                    required={true}
-                    errorMsg='Must contain only numbers'
-                    value={formState?.saveAbility?.minValue}
-                    onChange={setFormState}
-                  />
                   {formState?.saveAbility?.attribute?.some(
                     (attributeItem: any) =>
                       attributeItem.name === 'addAbilityModifier'
@@ -749,6 +772,16 @@ const AttributeForm = memo(
                       onChange={setFormState}
                     />
                   )}
+                  <Input
+                    validation='num'
+                    name={`saveAbility.minValue`}
+                    autoComplete='off'
+                    label='Base Value'
+                    required={true}
+                    errorMsg='Must contain only numbers'
+                    value={formState?.saveAbility?.minValue}
+                    onChange={setFormState}
+                  />
                 </>
               )}
             </>

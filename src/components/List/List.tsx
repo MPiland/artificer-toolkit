@@ -14,6 +14,7 @@ import Spinner from '../Spinner/Spinner'
 import { ActionCreatorWithPayload } from '@reduxjs/toolkit'
 import Filter from './Filter'
 import useIsLoading from '../../hooks/useIsLoading'
+import Grid from '../Grid/Grid'
 
 interface ListProps {
   tableColumns: {
@@ -126,7 +127,7 @@ const List = ({
   }
 
   const handleCreate = (secondary?: boolean) => {
-    if (secondary) {
+    if (secondary != null && secondary) {
       return navigate(`/create/subclass`, {
         state: {
           background: location,
@@ -169,20 +170,35 @@ const List = ({
       <Container className={sprinkles({ pt: 'size-3' })}>
         <Group className={sprinkles({ mb: 'size-3' })}>
           <h1>{startCase(context.form)}</h1>
-          <Group>
+          <Grid
+            cols={{
+              lg: context.type === 'class' ? 3 : 2,
+              md: context.type === 'class' ? 3 : 2,
+              base: context.type === 'class' ? 3 : 2,
+            }}
+            className={sprinkles({ width: 'auto' })}
+          >
             <Button type='button' variant='default' onClick={onFilterReset}>
               Clear Filters
             </Button>
-            <Button type='button' variant='default' onClick={handleCreate}>
-              Create {context.type === 'item' ? 'an' : 'a'}
+            <Button
+              type='button'
+              variant='default'
+              onClick={() => handleCreate()}
+            >
+              Create {context.type === 'item' ? 'an ' : 'a '}
               {startCase(context.type)}
             </Button>
             {context.type === 'class' && (
-              <Button type='button' variant='default' onClick={handleCreate}>
+              <Button
+                type='button'
+                variant='default'
+                onClick={() => handleCreate(true)}
+              >
                 Create a Subclass
               </Button>
             )}
-          </Group>
+          </Grid>
         </Group>
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         <Filter

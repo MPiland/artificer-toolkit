@@ -23,7 +23,7 @@ import {
   useGetFeatsQuery,
 } from '../../features/feats/featsApiSlice'
 import Spinner from '../Spinner/Spinner'
-import { tableContent } from './FormUtils'
+import { tableContent } from './formUtils'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
 
@@ -47,9 +47,6 @@ interface SectionContentProps {
   featureState: any
   setSectionState: (arg: ReducerActionType) => void
   sectionState: any
-  handleFeatureForward: () => void
-  handleFeatureUpdate?: () => void
-  handleFeatureBack: () => void
 }
 
 export const FeatContent = ({
@@ -1047,6 +1044,7 @@ const SectionContent = ({
   })
 
   const ContentComponent = tableContent[sectionName]?.content
+  
   return !sectionState ? (
     <Spinner />
   ) : (

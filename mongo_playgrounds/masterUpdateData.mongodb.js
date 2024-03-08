@@ -18,17 +18,17 @@ const cleanData = (dataArray) => {
   return dataArray
 }
 
-const data = db.spells.find().toArray()
+const data = db.items.find().toArray()
 
 const updateMaster = async (data) => {
   data = cleanData(data)
 
+  const bulkOperations = data.map((item) => ({
+    insertOne: item,
+  }))
+
   try {
-    await db.masters.updateOne(
-      { _id: ObjectId('64adb66bd75ac94ebbb88f9f') },
-      { $set: { spells: data } },
-      { upsert: true }
-    )
+    await db.masterItems.bulkWrite(bulkOperations)
   } catch (err) {
     console.log(err)
   }

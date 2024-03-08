@@ -25,12 +25,12 @@ const Race = () => {
     <>
       <div>{(race as any)?.quote && parse((race as any).quote)}</div>
       <div>{(race as any)?.desc && parse((race as any).desc)}</div>
-      <h2>Traits</h2>
-      <div>{(race as any)?.traits && parse((race as any).traits.desc)}</div>
+      <h2>{(race as any)?.value} Traits</h2>
+      <div>{(race as any)?.trait && parse((race as any).trait.desc)}</div>
     </>
   )
 
-  content = <Detail detail={detail} location={location} footerSpacing='end'/>
+  content = <Detail detail={detail} location={location} footerSpacing='end' />
 
   return content
 }

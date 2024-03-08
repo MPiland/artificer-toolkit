@@ -67,11 +67,11 @@ const Class = () => {
                   userClass.feature.map(
                     (featureItem: any, featureIndex: number) => (
                       <Fragment key={featureIndex}>
-                        <h4>
+                        <h3>
                           <strong>
                             <u>{featureItem.value}</u>
                           </strong>
-                        </h4>
+                        </h3>
                         {featureItem.desc && parse(featureItem.desc)}
                       </Fragment>
                     )
@@ -128,11 +128,11 @@ const Class = () => {
                 key={featureIndex}
                 className='pb-4'
               >
-                <h4>
+                <h3>
                   <strong>
                     <u>{featureItem.value}</u>
                   </strong>
-                </h4>
+                </h3>
                 {featureItem.desc && parse(featureItem.desc)}
               </section>
             ))}

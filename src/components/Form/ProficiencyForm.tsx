@@ -28,18 +28,10 @@ interface ProficiencyFormProps {
   }
   formState: any
   setFormState: (arg: ReducerActionType) => void
-  handleRemove: (arg: string) => void
-  handleAdd: (arg: string) => void
 }
 
 const ProficiencyForm = memo(
-  ({
-    context,
-    formState,
-    setFormState,
-    handleRemove,
-    handleAdd,
-  }: ProficiencyFormProps) => {
+  ({ context, formState, setFormState }: ProficiencyFormProps) => {
     const [activeIndex, setActiveIndex] = useState<number | null>(
       context.type !== 'new' ? null : 0
     )
@@ -69,7 +61,7 @@ const ProficiencyForm = memo(
             variant='primary_outline'
             onClick={() => {
               setActiveIndex(formState?.proficiency?.length)
-              handleAdd('proficiency')
+              setFormState({ type: 'added', target: { name: 'proficiency' } })
             }}
             className={sprinkles({ ms: 'size-3', mb: 'size-2' })}
           >
@@ -98,7 +90,10 @@ const ProficiencyForm = memo(
                       <Accordion.Header
                         handleClick={() => toggle(proficiencyIndex)}
                         handleRemove={() =>
-                          handleRemove(`proficiency.${proficiencyIndex}`)
+                          setFormState({
+                            type: 'removed',
+                            target: { name: `proficiency.${proficiencyIndex}` },
+                          })
                         }
                         active={activeIndex === proficiencyIndex}
                       >

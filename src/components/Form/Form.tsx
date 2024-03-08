@@ -5,8 +5,8 @@ import {
   success_message,
 } from './Form.css'
 import { useEffect, useReducer, useState, useRef } from 'react'
-import { startCase } from 'lodash'
-import ProgressBar from '../ProgressBar/ProgressBar'
+import { set, startCase } from 'lodash'
+import ProgressBar from './ProgressBar'
 import useIsLoading from '../../hooks/useIsLoading'
 import Spinner from '../Spinner/Spinner'
 import DetailForm from './DetailForm'
@@ -16,7 +16,7 @@ import FeatureForm from './FeatureForm'
 import {
   FormContext,
   ReducerActionType,
-  Steps,
+  Step,
   FeatureStepName,
   FeatureContext,
   SectionName,
@@ -31,7 +31,7 @@ import { isEqual } from 'lodash'
 import FormFooter from './FormFooter'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../app/store'
-import { clearBack, clearForward } from '../../app/modalSlice'
+import { clearBack } from '../../app/modalSlice'
 import { useEventListener } from 'usehooks-ts'
 import {
   BaseQueryFn,
@@ -45,7 +45,7 @@ interface FormProps {
     type: FormContext
     title: string
   }
-  steps: Steps
+  steps: Step[]
   state: any
   setState: (arg: ReducerActionType) => void
   location: any
@@ -75,7 +75,6 @@ const Form = ({
   const isLoading = useIsLoading()
 
   const confirmBack = useSelector((state: RootState) => state.modal.back)
-  const confirmForward = useSelector((state: RootState) => state.modal.forward)
 
   const [
     addNewItem,
@@ -87,6 +86,7 @@ const Form = ({
     { isSuccess: updateIsSuccess, isError: updateIsError, error: updateError },
   ] = useUpdateItem()
 
+  const [saving, setSaving] = useState<boolean>(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [stepIndex, setStepIndex] = useState<number>(0)
@@ -111,8 +111,13 @@ const Form = ({
   const [sectionIndex, setSectionIndex] = useState<number>(0)
   const [featureContext, setFeatureContext] = useState<FeatureContext>('')
   const [sectionName, setSectionName] = useState<SectionName>('')
+  const [stepName, setStepName] = useState<Step>(steps[stepIndex])
 
   const documentRef = useRef(document)
+
+  useEffect(() => {
+    setStepName(steps[stepIndex])
+  }, [stepIndex, steps])
 
   // Last/First Step
   useEffect(() => {
@@ -137,59 +142,11 @@ const Form = ({
 
   // Confirm Alert back
   useEffect(() => {
-    if (confirmBack.status && featureStepName === '') {
+    if (confirmBack.status) {
       dispatch(clearBack())
-      if (isFirstStep) {
-        navigate(-1)
-      } else {
-        setFormState({
-          type: 'reset',
-          target: { value: oldFormState },
-        })
-        if (String(confirmBack.index) && confirmBack.index != null) {
-          setStepIndex(confirmBack.index)
-        } else {
-          setStepIndex((i: number) => {
-            if (i <= 0) {
-              return i
-            } else {
-              return i - 1
-            }
-          })
-        }
-      }
+      navigate(-1)
     }
-  }, [
-    confirmBack,
-    dispatch,
-    navigate,
-    isFirstStep,
-    setFormState,
-    oldFormState,
-    featureStepName,
-  ])
-
-  // Confirm Alert forward
-  useEffect(() => {
-    if (confirmForward.status && featureStepName === '') {
-      dispatch(clearForward())
-      if (!isLastStep && confirmForward.index) {
-        setFormState({
-          type: 'reset',
-          target: { value: oldFormState },
-        })
-        setStepIndex(confirmForward.index)
-      }
-    }
-  }, [
-    confirmForward,
-    dispatch,
-    navigate,
-    isLastStep,
-    setFormState,
-    oldFormState,
-    featureStepName,
-  ])
+  }, [confirmBack.status, dispatch, navigate])
 
   // Sucess Message
   useEffect(() => {
@@ -233,63 +190,297 @@ const Form = ({
     updateError,
   ])
 
-  const handleAlert = (alertContext: string, alertIndex?: number) => {
+  useEffect(() => {
+    if (
+      formState?.attribute?.some(
+        (attributeItem: any) => attributeItem.name === 'ancestryOptions'
+      ) &&
+      !steps.includes('Ancestry')
+    ) {
+      steps.splice(2, 0, 'Ancestry')
+    }
+    if (
+      !formState?.attribute?.some(
+        (attributeItem: any) => attributeItem.name === 'ancestryOptions'
+      ) &&
+      steps.includes('Ancestry')
+    ) {
+      const index = steps.indexOf('Ancestry')
+      steps.splice(index, 1)
+    }
+  }, [formState.attribute, steps])
+
+  const handleAlert = ({
+    context,
+    message,
+  }: {
+    context: string
+    message: string
+  }) => {
     navigate(`/alert`, {
       state: {
         background: location,
-        context: alertContext,
-        index: alertIndex,
+        context: context,
+        message: message,
       },
     })
   }
 
-  const handleRemove = (name: string) => {
-    setFormState({ type: 'removed', target: { name: name } })
-  }
-
-  const handleAdd = (name: string) => {
-    setFormState({ type: 'added', target: { name: name } })
-  }
-
-  const handleReset = () => {
-    setFormState({
-      type: 'reset',
-      target: { value: oldFormState },
+  // Save section form state
+  const handleSaveFeatureSection = (clone?: any) => {
+    const formClone = clone ? JSON.parse(JSON.stringify(clone)) : {}
+    const arrayName = stepName === 'Ancestry' ? 'ancestry.option' : 'feature'
+    const subArrayName = stepName === 'Ancestry' ? 'feature' : 'option'
+    setOldSectionState(sectionState)
+    if (context.title === 'feat') {
+      if (featureContext === 'OptionContent') {
+        const objectPath = `option.${optionIndex}.${sectionName}.${sectionIndex}`
+        setFormState({
+          target: {
+            name: objectPath,
+            value: sectionState,
+          },
+        })
+        const arrayPath = objectPath.split('.')
+        set(formClone, arrayPath, sectionState)
+        return formClone
+      }
+      const objectPath = `${sectionName}.${sectionIndex}`
+      setFormState({
+        target: {
+          name: objectPath,
+          value: sectionState,
+        },
+      })
+      const arrayPath = objectPath.split('.')
+      set(formClone, arrayPath, sectionState)
+      return formClone
+    }
+    if (featureContext === 'OptionContent') {
+      const objectPath = `${arrayName}.${featureIndex}.${subArrayName}.${optionIndex}.${sectionName}.${sectionIndex}`
+      setOptionState({
+        target: {
+          name: `${subArrayName}.${optionIndex}.${sectionName}.${sectionIndex}`,
+          value: sectionState,
+        },
+      })
+      const arrayPath = objectPath.split('.')
+      set(formClone, arrayPath, sectionState)
+      return formClone
+    }
+    const objectPath = `${arrayName}.${featureIndex}.${sectionName}.${sectionIndex}`
+    setFeatureState({
+      target: {
+        name: `${sectionName}.${sectionIndex}`,
+        value: sectionState,
+      },
     })
+    const arrayPath = objectPath.split('.')
+    set(formClone, arrayPath, sectionState)
+    return formClone
   }
 
-  const handleSubmit = async (formState: any) => {
-    await addNewItem(formState)
+  // Save option form state
+  const handleSaveFeatureOption = (clone?: any) => {
+    const formClone = clone ? JSON.parse(JSON.stringify(clone)) : {}
+    const arrayName = stepName === 'Ancestry' ? 'ancestry.option' : 'feature'
+    const subArrayName = stepName === 'Ancestry' ? 'feature' : 'option'
+
+    setOldOptionState(featureState)
+    if (context.title === 'feat') {
+      const objectPath = `option.${optionIndex}`
+      setFormState({
+        target: {
+          name: objectPath,
+          value: optionState,
+        },
+      })
+      const arrayPath = objectPath.split('.')
+      set(formClone, arrayPath, optionState)
+      return formClone
+    }
+    const objectPath = `${arrayName}.${featureIndex}.${subArrayName}.${optionIndex}`
+    setFeatureState({
+      target: {
+        name: `${subArrayName}.${optionIndex}`,
+        value: optionState,
+      },
+    })
+    const arrayPath = objectPath.split('.')
+    set(formClone, arrayPath, optionState)
+    return formClone
+  }
+
+  // Save feature form state
+  const handleSaveFeature = (clone?: any) => {
+    const formClone = clone ? JSON.parse(JSON.stringify(clone)) : {}
+    const arrayName = stepName === 'Ancestry' ? 'ancestry.option' : 'feature'
+    const objectPath = `${arrayName}.${featureIndex}`
+
+    setOldFeatureState(featureState)
+    setFormState({
+      target: {
+        name: objectPath,
+        value: featureState,
+      },
+    })
+    const arrayPath = objectPath.split('.')
+    set(formClone, arrayPath, featureState)
+    return formClone
+  }
+
+  const handleUpdateFeature = () => {
+    let formClone = JSON.parse(JSON.stringify(formState))
+    if (
+      featureStepName === 'SectionContent' &&
+      !isEqual(oldSectionState, sectionState)
+    ) {
+      return (formClone = handleSaveFeatureSection(formClone))
+    }
+    if (
+      featureContext === 'OptionContent' &&
+      !isEqual(oldOptionState, optionState)
+    ) {
+      return (formClone = handleSaveFeatureOption(formClone))
+    }
+    if (
+      featureStepName === 'FeatureContent' &&
+      !isEqual(oldFeatureState, featureState)
+    ) {
+      return (formClone = handleSaveFeature(formClone))
+    }
+  }
+
+  // Save feature hierachy and clear states
+  const handleSave = () => {
+    if (featureStepName === 'SectionContent') {
+      if (context.title === 'feat') {
+        setFormState({
+          target: {
+            name: `${sectionName}.${sectionIndex}`,
+            value: sectionState,
+          },
+        })
+      } else if (featureContext === 'OptionContent') {
+        setOptionState({
+          target: {
+            name: `${sectionName}.${sectionIndex}`,
+          },
+        })
+      } else {
+        setFeatureState({
+          target: {
+            name: `${sectionName}.${sectionIndex}`,
+            value: sectionState,
+          },
+        })
+      }
+      return setFeatureStepName('FeatureContent')
+    }
+    if (featureContext === 'OptionContent') {
+      const parentName = stepName === 'Ancestry' ? 'feature' : 'option'
+      if (context.title === 'feat') {
+        setFormState({
+          target: {
+            name: `option.${optionIndex}`,
+            value: optionState,
+          },
+        })
+      }
+      setFeatureState({
+        target: {
+          name: `${parentName}.${optionIndex}`,
+          value: optionState,
+        },
+      })
+      setFeatureContext('')
+      return setFeatureStepName('FeatureContent')
+    }
+    if (featureStepName === 'FeatureContent') {
+      if (context.title !== 'feat') {
+        const parentName =
+          stepName === 'Ancestry' ? 'ancestry.option' : 'feature'
+        setFormState({
+          target: {
+            name: `${parentName}.${featureIndex}`,
+            value: featureState,
+          },
+        })
+      }
+      return setFeatureStepName('')
+    }
+    /* Form Saving */
+    setOldFormState(formState)
   }
 
   const handleForward = async () => {
     const isValid = validate()
     if (isValid) {
-      setOldFormState(formState)
-      if (!isLastStep) {
-        return setStepIndex((i: number) => {
-          return i + 1
-        })
+      if (featureStepName !== '') {
+        return handleSave()
       }
-      setState({
-        type: 'reset',
-        target: {
-          value: formState,
-        },
-      })
-      await handleSubmit(formState)
+      setOldFormState(formState)
+      setStepIndex((prev: number) => prev + 1)
+    }
+    if (isLastStep && featureStepName === '') {
+      setSaving(true)
+      await addNewItem(formState)
+      setSaving(false)
       navigate(-1)
     }
   }
 
   const handleBack = () => {
-    if (!isEqual(oldFormState, formState)) {
-      return handleAlert('back')
-    }
+    const isValid = validate()
     if (isFirstStep) {
+      if (!isEqual(state, formState)) {
+        return handleAlert({
+          context: 'back',
+          message:
+            context.type === 'edit'
+              ? `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
+              : `${startCase(
+                  context.title
+                )} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+        })
+      }
       return navigate(-1)
     }
     if (!isFirstStep) {
+      if (featureStepName !== '') {
+        if (featureStepName === 'SectionContent') {
+          if (isEqual(sectionState, oldSectionState)) {
+            return setFeatureStepName('FeatureContent')
+          }
+          if (isValid) {
+            handleSaveFeatureSection()
+            return setFeatureStepName('FeatureContent')
+          }
+        }
+        if (featureContext === 'OptionContent') {
+          if (isEqual(optionState, oldOptionState)) {
+            return setFeatureContext('')
+          }
+          if (isValid) {
+            handleSaveFeatureOption()
+            return setFeatureContext('')
+          }
+        }
+        if (featureStepName === 'FeatureContent') {
+          if (isEqual(featureState, oldFeatureState)) {
+            return setFeatureStepName('')
+          }
+          if (isValid) {
+            handleSaveFeature()
+            return setFeatureStepName('')
+          }
+        }
+      }
+      if (isEqual(oldFormState, formState)) {
+        if (isFirstStep) {
+          return navigate(-1)
+        }
+      }
       setStepIndex((i: number) => {
         if (i <= 0) {
           return i
@@ -300,19 +491,24 @@ const Form = ({
     }
   }
 
-  const handleUpdate = async (formStateProp?: any) => {
+  const handleUpdate = async () => {
     const isValid = validate()
     if (isValid) {
-      if (formStateProp != null) {
-        if (isEqual(oldFormState, formStateProp)) {
+      if (featureStepName !== '') {
+        const formClone = handleUpdateFeature()
+        if (isEqual(oldFormState, formClone)) {
           return setErrorMessage('No changes made')
         }
+        setFormState({
+          type: 'reset',
+          target: { value: formClone },
+        })
         setState({
           type: 'reset',
-          target: { value: formStateProp },
+          target: { value: formClone },
         })
-        setOldFormState(formStateProp)
-        return await updateItem(formStateProp)
+        await updateItem(formClone)
+        return setOldFormState(formClone)
       }
       if (isEqual(oldFormState, formState)) {
         return setErrorMessage('No changes made')
@@ -326,23 +522,33 @@ const Form = ({
     }
   }
 
+  const handleReset = () => {
+    if (featureStepName === 'SectionContent') {
+      return setSectionState({
+        type: 'reset',
+        target: { value: oldSectionState },
+      })
+    }
+    if (featureContext === 'OptionContent') {
+      return setOptionState({
+        type: 'reset',
+        target: { value: oldOptionState },
+      })
+    }
+    if (featureStepName === 'FeatureContent') {
+      return setFeatureState({
+        type: 'reset',
+        target: { value: oldFeatureState },
+      })
+    }
+    setFormState({
+      type: 'reset',
+      target: { value: oldFormState },
+    })
+  }
+
   const handleStepChange = (progressStepIndex: number) => {
-    if (featureStepName !== '') {
-      setSectionState({ type: 'reset', target: { value: {} } })
-      setOldSectionState({})
-      setFeatureState({ type: 'reset', target: { value: {} } })
-      setOldFeatureState({})
-      setOptionState({ type: 'reset', target: { value: {} } })
-      setOldOptionState({})
-      setFeatureStepName('')
-    }
-    if (!isEqual(oldFormState, formState)) {
-      if (progressStepIndex < stepIndex) {
-        return handleAlert('back', progressStepIndex)
-      } else {
-        return handleAlert('forward', progressStepIndex)
-      }
-    }
+    handleSave()
     setStepIndex(progressStepIndex)
   }
 
@@ -376,37 +582,25 @@ const Form = ({
     context,
     formState,
     setFormState,
-    handleRemove,
-    handleAdd,
-    handleReset,
-    handleForward,
-    handleBack,
-    handleUpdate,
+    stepName,
   }
 
   const featureProps = {
-    isLastStep,
-    isFirstStep,
     featureStepName,
     setFeatureStepName,
     formState,
     featureState,
     setFeatureState,
-    oldFeatureState,
     setOldFeatureState,
-    featureIndex,
     setFeatureIndex,
     optionState,
     setOptionState,
-    oldOptionState,
     setOldOptionState,
-    optionIndex,
     setOptionIndex,
     sectionState,
     setSectionState,
     oldSectionState,
     setOldSectionState,
-    sectionIndex,
     setSectionIndex,
     featureContext,
     setFeatureContext,
@@ -428,6 +622,10 @@ const Form = ({
       content: <TraitForm {...commonProps} />,
     },
     {
+      name: 'Ancestry',
+      content: <FeatureForm {...commonProps} {...featureProps} />,
+    },
+    {
       name: 'Features',
       content: <FeatureForm {...commonProps} {...featureProps} />,
     },
@@ -445,7 +643,9 @@ const Form = ({
     },
   ]
 
-  return (
+  return saving ? (
+    <Spinner />
+  ) : (
     <form className={form_wrapper}>
       {steps.length > 1 && (
         <ProgressBar
@@ -474,34 +674,32 @@ const Form = ({
           {
             formSteps[
               formSteps.findIndex((step) => step.name === steps[stepIndex])
-            ].content
+            ]?.content
           }
-          {formSteps[
-            formSteps.findIndex((step) => step.name === steps[stepIndex])
-          ].name !== 'Features' && (
-            <FormFooter
-              handleBack={handleBack}
-              forwardLabel={
-                isLastStep
+          <FormFooter
+            handleBack={handleBack}
+            forwardLabel={
+              featureStepName === ''
+                ? isLastStep
                   ? context.type === 'edit'
-                    ? 'Add New'
-                    : 'Submit'
+                    ? 'Update'
+                    : 'Create'
                   : 'Next'
+                : 'Finish'
+            }
+            handleReset={() => handleReset()}
+            handleForward={() => {
+              if (isLastStep && context.type === 'edit') {
+                handleUpdate()
+              } else {
+                handleForward()
               }
-              handleReset={handleReset}
-              handleForward={() =>
-                context.type === 'edit' && isLastStep
-                  ? handleUpdate()
-                  : handleForward()
-              }
-              backLabel={isFirstStep ? 'Cancel' : 'Back'}
-              handleUpdate={() =>
-                context.type === 'edit' && !isLastStep
-                  ? handleUpdate()
-                  : undefined
-              }
-            />
-          )}
+            }}
+            backLabel={isFirstStep ? 'Cancel' : 'Back'}
+            handleUpdate={() => handleUpdate()}
+            isLastStep={isLastStep && featureStepName === ''}
+            context={context.type}
+          />
         </>
       )}
     </form>

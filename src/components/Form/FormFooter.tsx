@@ -9,6 +9,8 @@ interface FormFooterProps {
   forwardLabel: string
   handleReset?: () => void
   handleUpdate?: () => void
+  isLastStep: boolean
+  context: 'edit' | 'new'
 }
 
 const FormFooter = ({
@@ -18,6 +20,8 @@ const FormFooter = ({
   forwardLabel,
   handleReset,
   handleUpdate,
+  context,
+  isLastStep,
 }: FormFooterProps) => {
   return (
     <Group className={form_footer} justifyContentVariant={'spaceBetween'}>
@@ -25,14 +29,12 @@ const FormFooter = ({
         <Button variant='default' type='button' onClick={handleBack}>
           {backLabel}
         </Button>
-        {handleReset && (
-          <Button variant='warning' type='button' onClick={handleReset}>
-            Reset
-          </Button>
-        )}
+        <Button variant='warning' type='button' onClick={handleReset}>
+          Reset
+        </Button>
       </Group>
       <Group>
-        {handleUpdate && (
+        {context === 'edit' && !isLastStep && (
           <Button variant='update' type='button' onClick={handleUpdate}>
             Update
           </Button>
