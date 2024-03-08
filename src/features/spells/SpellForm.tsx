@@ -8,7 +8,7 @@ import {
   useGetSpellsQuery,
   selectSpellById,
 } from './spellsApiSlice'
-import { FormContext, Steps } from '../../utils/types'
+import { FormContext, Step } from '../../utils/types'
 import Spinner from '../../components/Spinner/Spinner'
 
 const SpellForm = () => {
@@ -55,7 +55,7 @@ const SpellForm = () => {
     }
   }, [spell, oldState])
 
-  const steps: Steps = ['Details', 'Attributes']
+  const steps: Step[] = ['Details', 'Attributes']
 
   return isLoading || !state ? (
     <Spinner />

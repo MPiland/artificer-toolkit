@@ -8,7 +8,7 @@ import {
   selectClassById,
 } from './classesApiSlice'
 import { useLocation, useParams } from 'react-router-dom'
-import { FormContext, Steps } from '../../utils/types'
+import { FormContext, Step } from '../../utils/types'
 import Spinner from '../../components/Spinner/Spinner'
 
 const ClassForm = () => {
@@ -55,7 +55,7 @@ const ClassForm = () => {
     }
   }, [state, oldState])
 
-  const steps: Steps = [
+  const steps: Step[] = [
     'Details',
     'Proficiencies',
     'Equipment',

@@ -9,7 +9,7 @@ import {
 } from './itemsApiSlice'
 import { useLocation, useParams } from 'react-router-dom'
 import Spinner from '../../components/Spinner/Spinner'
-import { FormContext, Steps } from '../../utils/types'
+import { FormContext, Step } from '../../utils/types'
 
 const ItemForm = () => {
   const { context } = useParams()
@@ -71,7 +71,7 @@ const ItemForm = () => {
     }
   }, [oldState, item])
 
-  const steps: Steps = ['Details', 'Attributes', 'Features']
+  const steps: Step[] = ['Details', 'Attributes', 'Features']
 
   useEffect(() => {
     if (
