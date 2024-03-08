@@ -359,7 +359,7 @@ const FeatureContent = ({
           placeholder='Add...'
           label={'Add Section'}
           options={sectionNames.filter(
-            (sectionName) =>
+            (sectionName: SectionName) =>
               (featureContext === 'OptionContent'
                 ? sectionName !== 'option' && sectionName !== 'feature'
                 : sectionName) &&
