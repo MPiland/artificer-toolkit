@@ -4,7 +4,7 @@ import {
   selectAllItems,
   useGetItemsQuery,
 } from '../../features/items/itemsApiSlice'
-import { getSectionNames } from './formUtils'
+import { getSectionNames } from '../../utils/formUtils'
 import Input from '../Input/Input'
 import Dropdown from '../Dropdown/Dropdown'
 import RichTextEditor from '../RichTextEditor/RichTextEditor'

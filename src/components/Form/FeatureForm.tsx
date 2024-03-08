@@ -14,7 +14,7 @@ import {
 import { feature_description, feature_list, form_content } from './Form.css'
 import Accordion from '../Accordion/Accordion'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import { getSectionNames } from './formUtils'
+import { getSectionNames } from '../../utils/formUtils'
 import Group from '../Group/Group'
 import { get, startCase } from 'lodash'
 import { sprinkles } from '../../css/sprinkles.css'

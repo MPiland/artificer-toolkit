@@ -6,8 +6,8 @@ import {
   SenseContent,
   SpellContent,
   SectionProps,
-} from './SectionContent'
-import { SectionName } from '../../utils/types'
+} from '../components/Form/SectionContent'
+import { SectionName } from './types'
 
 type TableContent = {
   [key: string]: {

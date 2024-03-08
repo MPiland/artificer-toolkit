@@ -23,7 +23,7 @@ import {
   useGetFeatsQuery,
 } from '../../features/feats/featsApiSlice'
 import Spinner from '../Spinner/Spinner'
-import { tableContent } from './formUtils'
+import { tableContent } from '../../utils/formUtils'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
 
