@@ -67,7 +67,7 @@ export const collapse_header = style({
       alignItems: 'center',
       justifyContent: 'start',
       cursor: 'pointer',
-      padding: `${size['size-3']} ${size['size-3']}`,
+      padding: `${size['size-2']} ${size['size-3']}`,
 
       selectors: {
         '&.collapsed': {

@@ -59,7 +59,6 @@ const RaceForm = () => {
     'Details',
     'Traits',
     'Ancestry',
-    'Proficiencies',
     'Features',
   ]
 

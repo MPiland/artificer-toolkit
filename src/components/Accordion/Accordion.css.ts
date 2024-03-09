@@ -36,7 +36,7 @@ export const accordion_header = style({
   display: 'flex',
   flexDirection: 'row',
   cursor: 'pointer',
-  padding: `${size['size-3']} ${size['size-3']}`,
+  padding: `${size['size-2']} ${size['size-3']}`,
 })
 
 export const accordion_header_button = style({

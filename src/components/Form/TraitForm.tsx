@@ -8,6 +8,8 @@ import { ReducerActionType } from '../../utils/types'
 import { form_content } from './Form.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { sprinkles } from '../../css/sprinkles.css'
+import Collapse from '../Collapse/Collapse'
+import Button from '../Button/Button'
 
 interface TraitFormProps {
   formState: any
@@ -19,13 +21,41 @@ const TraitForm = memo(({ formState, setFormState }: TraitFormProps) => {
 
   return (
     <ScrollArea scrollDirection='vertical' className={form_content}>
-      <RichTextEditor
-        name='trait.desc'
-        value={formState.trait?.desc}
-        label={'Traits Description'}
-        onChange={setFormState}
+      <Button
+        onClick={() =>
+          setFormState({ type: 'added', target: { name: 'trait.area' } })
+        }
+        variant='primary_outline'
         className={sprinkles({ mb: 'size-3' })}
-      />
+      >
+        Add Trait
+      </Button>
+      {formState?.trait?.area?.length > 0 &&
+        formState.trait.area.map((areaItem: any, areaIndex: number) => (
+          <Collapse
+            title={areaItem.value ?? `Trait ${areaIndex}`}
+            key={areaIndex}
+            className={sprinkles({ mb: 'size-3' })}
+          >
+            <Grid>
+              <Input
+                name={`trait.area.${areaIndex}.value`}
+                label='Trait Name'
+                errorMsg='Must contain only numbers'
+                value={areaItem?.value}
+                onChange={setFormState}
+                className={sprinkles({ mb: 'size-3' })}
+              />
+            </Grid>
+            <RichTextEditor
+              name={`trait.area.${areaIndex}.desc`}
+              value={areaItem?.desc}
+              label={'Traits Description'}
+              onChange={setFormState}
+              className={sprinkles({ mb: 'size-3' })}
+            />
+          </Collapse>
+        ))}
       <Grid>
         <Dropdown
           name='trait.size'

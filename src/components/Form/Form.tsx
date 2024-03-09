@@ -413,10 +413,13 @@ const Form = ({
     setOldFormState(formState)
   }
 
+  console.log('sectionIndex', sectionIndex)
+
   const handleForward = async () => {
     const isValid = validate()
     if (isValid) {
       if (featureStepName !== '') {
+        console.log({ featureStepName: featureStepName })
         return handleSave()
       }
       setOldFormState(formState)
@@ -507,6 +510,7 @@ const Form = ({
           type: 'reset',
           target: { value: formClone },
         })
+        console.log({ formClone: formClone })
         await updateItem(formClone)
         return setOldFormState(formClone)
       }
@@ -689,7 +693,11 @@ const Form = ({
             }
             handleReset={() => handleReset()}
             handleForward={() => {
-              if (isLastStep && context.type === 'edit') {
+              if (
+                isLastStep &&
+                context.type === 'edit' &&
+                featureStepName === ''
+              ) {
                 handleUpdate()
               } else {
                 handleForward()

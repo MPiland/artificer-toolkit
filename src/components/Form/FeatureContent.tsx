@@ -319,7 +319,12 @@ const FeatureContent = ({
   const selectSection = (sectionName: SectionName) => {
     if (featureState[sectionName]?.length > 0) {
       setSectionIndex(featureState[sectionName]?.length)
+    } else {
+      setSectionIndex(0)
     }
+
+    console.log({ featureState: featureState })
+    console.log({ sectionIndex: featureState[sectionName]?.length })
 
     if (sectionName !== '') {
       if (sectionName === 'option' || sectionName === 'feature') {
@@ -379,9 +384,8 @@ const FeatureContent = ({
         />
         <Grid className={sprinkles({ mb: 'size-2' })}>
           {context.title !== 'item' &&
-            !(
-              stepName === 'Ancestry' && featureContext !== 'OptionContent'
-            ) && (
+            !(stepName === 'Ancestry' && featureContext !== 'OptionContent') &&
+            !(context.title === 'race' && stepName !== 'Ancestry') && (
               <Input
                 name={`levelAvailable`}
                 autoComplete='off'

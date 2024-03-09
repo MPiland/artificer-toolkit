@@ -253,7 +253,7 @@ const FeatureForm = ({
                   <Input
                     name='ancestry.value'
                     autoComplete='off'
-                    label='Ancestry Type'
+                    label='Ancestry Name'
                     required={
                       formState?.ancestry?.desc !== '' &&
                       formState?.ancestry?.desc != null

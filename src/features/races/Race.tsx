@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { selectRaceById, useGetRacesQuery } from './racesApiSlice'
 import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
+import { Fragment } from 'react'
 
 const Race = () => {
   const location: any = useLocation()
@@ -26,7 +27,17 @@ const Race = () => {
       <div>{(race as any)?.quote && parse((race as any).quote)}</div>
       <div>{(race as any)?.desc && parse((race as any).desc)}</div>
       <h2>{(race as any)?.value} Traits</h2>
-      <div>{(race as any)?.trait && parse((race as any).trait.desc)}</div>
+      {(race as any)?.trait?.area?.length > 0 &&
+        (race as any).trait.area.map((areaItem: any, areaIndex: number) => (
+          <Fragment key={areaIndex}>
+            <h3>
+              <strong>
+                <u>{areaItem.value}</u>
+              </strong>
+            </h3>
+            {areaItem.desc && parse(areaItem.desc)}
+          </Fragment>
+        ))}
     </>
   )
 
