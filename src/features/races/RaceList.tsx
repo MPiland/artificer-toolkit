@@ -42,7 +42,7 @@ const RaceList = ({ scrollPosition }: RaceListProps) => {
   return (
     <List
       tableColumns={tableColumns}
-      context={{ type: 'race', form: 'races' }}
+      context={{ title: 'race' }}
       items={races}
       deleteItem={deleteRace}
       scrollPosition={scrollPosition}

@@ -22,10 +22,7 @@ import { sprinkles } from '../../css/sprinkles.css'
 import Group from '../Group/Group'
 
 interface ProficiencyFormProps {
-  context: {
-    type: FormContext
-    title: string
-  }
+  context: FormContext
   formState: any
   setFormState: (arg: ReducerActionType) => void
 }
@@ -220,7 +217,7 @@ const ProficiencyForm = memo(
                                           )
                                         : bCategoryItem
                                     )
-                                    .map(
+                                    .flatMap(
                                       (categoryItem: any) =>
                                         categoryItem.property
                                     )}

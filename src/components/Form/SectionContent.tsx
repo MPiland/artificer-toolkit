@@ -26,8 +26,12 @@ import Spinner from '../Spinner/Spinner'
 import { tableContent } from '../../utils/formUtils'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
+import {
+  selectAllRaces,
+  useGetRacesQuery,
+} from '../../features/races/racesApiSlice'
 
-export interface SectionProps {
+export interface SectionContentProps {
   sectionState: any
   featureState?: any
   builders?: any
@@ -35,13 +39,14 @@ export interface SectionProps {
   items?: any[]
   spells?: any[]
   classes?: any[]
+  races?: any[]
   state: any
   setSectionState: (arg: ReducerActionType) => void
   optionGroups: boolean
   providesOptions: boolean
 }
 
-interface SectionContentProps {
+interface SectionProps {
   state: any
   sectionName: SectionName
   featureState: any
@@ -57,7 +62,7 @@ export const FeatContent = ({
   state,
   providesOptions,
   optionGroups,
-}: SectionProps) => {
+}: SectionContentProps) => {
   return (
     <>
       <Grid>
@@ -129,11 +134,11 @@ export const ModifierContent = ({
   state,
   providesOptions,
   optionGroups,
-}: SectionProps) => {
+}: SectionContentProps) => {
   useEffect(() => {
     if (
       (sectionState.diePerLevel || sectionState.diePerLevel?.length > 0) &&
-      (sectionState.modType?.name !== 'setDieValue' ||
+      (sectionState.type?.name !== 'setDieValue' ||
         sectionState.method?.methodType?.name !== 'diePerLevel')
     ) {
       setSectionState({
@@ -143,10 +148,22 @@ export const ModifierContent = ({
         },
       })
     }
+    if (
+      sectionState.type?.name === 'setDieValue' &&
+      sectionState.method?.methodType?.name === 'diePerLevel' &&
+      (!sectionState.diePerLevel || !(sectionState.diePerLevel?.length > 0))
+    ) {
+      setSectionState({
+        type: 'added',
+        target: {
+          name: `diePerLevel`,
+        },
+      })
+    }
   }, [
     sectionState.diePerLevel,
     setSectionState,
-    sectionState.modType,
+    sectionState.type,
     sectionState.method,
   ])
 
@@ -162,8 +179,18 @@ export const ModifierContent = ({
         },
       })
     }
+    if (
+      sectionState.method?.methodType?.name === 'addPerLevel' &&
+      (!sectionState.addPerLevel || !(sectionState.addPerLevel?.length > 0))
+    ) {
+      setSectionState({
+        type: 'added',
+        target: {
+          name: `addPerLevel`,
+        },
+      })
+    }
   }, [sectionState.addPerLevel, sectionState.method, setSectionState])
-
   return (
     <>
       <Grid>
@@ -203,29 +230,32 @@ export const ModifierContent = ({
           />
         )}
         <Dropdown
-          name={`module`}
+          name={`category`}
           label='Modifier Category'
-          value={sectionState.module}
-          options={builders.modifier.module}
+          value={sectionState.category}
+          options={builders.modifier.category}
           required={true}
           onChange={setSectionState}
         />
-        {sectionState.module?.id && (
+        {sectionState.category?._id && (
           <Dropdown
-            name={`modType`}
+            name={`type`}
             label='Modifier Type'
-            value={sectionState.modType}
-            options={builders.modifier.modType?.filter((modItem: any) =>
-              modItem.module.some(
-                (moduleItem: any) => moduleItem.id === sectionState.module?.id
+            value={sectionState.type}
+            options={builders.modifier.type
+              ?.filter((typeItem: any) =>
+                typeItem.category?.some(
+                  (categoryItem: any) =>
+                    categoryItem._id === sectionState.category?._id
+                )
               )
-            )}
+              .map((typeItem: any) => typeItem)}
             required={true}
             onChange={setSectionState}
           />
         )}
-        {sectionState.module?.name === 'limitUse' &&
-          sectionState.modType?.name === 'useReset' && (
+        {sectionState.category?.name === 'limitUse' &&
+          sectionState.type?.name === 'useReset' && (
             <>
               <Dropdown
                 name={`limitUse.resetOption`}
@@ -245,7 +275,7 @@ export const ModifierContent = ({
               />
             </>
           )}
-        {sectionState.module?.name === 'ability' && (
+        {sectionState.category?.name === 'ability' && (
           <Dropdown
             name={`ability`}
             multiSelect={true}
@@ -256,7 +286,7 @@ export const ModifierContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.module?.name === 'saveAbility' && (
+        {sectionState.category?.name === 'saveAbility' && (
           <Dropdown
             name={`saveAbility`}
             multiSelect={true}
@@ -267,7 +297,7 @@ export const ModifierContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.module?.name === 'skill' && (
+        {sectionState.category?.name === 'skill' && (
           <Dropdown
             name={`skill`}
             multiSelect={true}
@@ -278,7 +308,7 @@ export const ModifierContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.module?.name === 'damageSave' && (
+        {sectionState.category?.name === 'damageSave' && (
           <Dropdown
             name={`damageSave`}
             multiSelect={true}
@@ -289,7 +319,7 @@ export const ModifierContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.module?.name === 'conditionSave' && (
+        {sectionState.category?.name === 'conditionSave' && (
           <Dropdown
             name={`conditionSave`}
             multiSelect={true}
@@ -300,25 +330,27 @@ export const ModifierContent = ({
             onChange={setSectionState}
           />
         )}
-        {(sectionState.modType?.name === 'bonus' ||
-          sectionState.modType?.name === 'penalty' ||
-          sectionState.modType?.name === 'setDieValue' ||
-          sectionState.modType?.name === 'setBonus') && (
+        {(sectionState.type?.name === 'bonus' ||
+          sectionState.type?.name === 'penalty' ||
+          sectionState.type?.name === 'setDieValue' ||
+          sectionState.type?.name === 'setBonus') && (
           <>
             <Dropdown
               name={`method.methodType`}
               label='Method'
               value={sectionState.method?.methodType}
               options={builders.modifier.method.filter((methodItem: any) =>
-                methodItem.module?.some(
-                  (moduleItem: any) => moduleItem.id === sectionState.module?.id
+                methodItem.category?.some(
+                  (categoryItem: any) =>
+                    categoryItem._id === sectionState.category?._id
                 )
               )}
               required={true}
               onChange={setSectionState}
             />
 
-            {sectionState.method?.methodType?.name !== 'addPerLevel' &&
+            {sectionState.method?.methodType?.name &&
+              sectionState.method?.methodType?.name !== 'addPerLevel' &&
               sectionState.method?.methodType?.name !== 'diePerLevel' && (
                 <>
                   <Input
@@ -343,7 +375,7 @@ export const ModifierContent = ({
               )}
           </>
         )}
-        {sectionState.module?.name === 'condition' ? (
+        {sectionState.category?.name === 'condition' ? (
           <Dropdown
             name={`condition`}
             multiSelect={true}
@@ -353,7 +385,7 @@ export const ModifierContent = ({
             required={true}
             onChange={setSectionState}
           />
-        ) : sectionState.module?.name === 'speed' ? (
+        ) : sectionState.category?.name === 'speed' ? (
           <Dropdown
             name={`speed`}
             multiSelect={true}
@@ -363,7 +395,7 @@ export const ModifierContent = ({
             required={true}
             onChange={setSectionState}
           />
-        ) : sectionState.module?.name === 'passive' ? (
+        ) : sectionState.category?.name === 'passive' ? (
           <Dropdown
             name={`passive`}
             multiSelect={true}
@@ -374,8 +406,8 @@ export const ModifierContent = ({
             onChange={setSectionState}
           />
         ) : (
-          (sectionState.module?.name === 'damage' ||
-            sectionState.module?.name === 'spellDamage') && (
+          (sectionState.category?.name === 'damage' ||
+            sectionState.category?.name === 'spellDamage') && (
             <Dropdown
               name={`damage`}
               multiSelect={true}
@@ -388,8 +420,8 @@ export const ModifierContent = ({
           )
         )}
         {(sectionState.method?.methodType?.name === 'setValue' &&
-          sectionState.modType?.name !== 'setDieValue') ||
-        sectionState.modType?.name === 'setValue' ? (
+          sectionState.type?.name !== 'setDieValue') ||
+        sectionState.type?.name === 'setValue' ? (
           <>
             <Input
               validation='num'
@@ -414,7 +446,7 @@ export const ModifierContent = ({
             />
           </>
         ) : sectionState.method?.methodType?.name === 'setValue' &&
-          sectionState.modType?.name === 'setDieValue' ? (
+          sectionState.type?.name === 'setDieValue' ? (
           <>
             <Input
               validation='num'
@@ -449,9 +481,9 @@ export const ModifierContent = ({
             </>
           )
         )}
-        {(sectionState.modType?.name === 'bonus' ||
-          sectionState.modType?.name === 'setValue') &&
-          sectionState.module?.name === 'ability' && (
+        {(sectionState.type?.name === 'bonus' ||
+          sectionState.type?.name === 'setValue') &&
+          sectionState.category?.name === 'ability' && (
             <Input
               validation='num'
               name={`maxValue`}
@@ -477,17 +509,8 @@ export const ModifierContent = ({
         )}
       </Grid>
       <>
-        {sectionState.modType?.name === 'setDieValue' &&
-          sectionState.method?.methodType?.name === 'diePerLevel' &&
-          (!sectionState.diePerLevel ||
-          !(sectionState.diePerLevel?.length > 0) ? (
-            setSectionState({
-              type: 'added',
-              target: {
-                name: `diePerLevel`,
-              },
-            })
-          ) : (
+        {sectionState.type?.name === 'setDieValue' &&
+          sectionState.method?.methodType?.name === 'diePerLevel' && (
             <Table
               name={`diePerLevel`}
               rows={{
@@ -524,17 +547,9 @@ export const ModifierContent = ({
               addRow={true}
               onChange={setSectionState}
             />
-          ))}
+          )}
         {sectionState.method?.methodType?.name === 'addPerLevel' &&
-          (!sectionState.addPerLevel ||
-          !(sectionState.addPerLevel?.length > 0) ? (
-            setSectionState({
-              type: 'added',
-              target: {
-                name: `addPerLevel`,
-              },
-            })
-          ) : (
+          sectionState.addPerLevel?.length > 0 && (
             <Table
               name={`addPerLevel`}
               rows={{
@@ -563,7 +578,7 @@ export const ModifierContent = ({
               addRow={true}
               onChange={setSectionState}
             />
-          ))}
+          )}
       </>
     </>
   )
@@ -577,7 +592,7 @@ export const ProficiencyContent = ({
   items,
   providesOptions,
   optionGroups,
-}: SectionProps) => {
+}: SectionContentProps) => {
   return (
     <Grid>
       <Dropdown
@@ -750,7 +765,7 @@ export const SenseContent = ({
   state,
   providesOptions,
   optionGroups,
-}: SectionProps) => {
+}: SectionContentProps) => {
   return (
     <Grid>
       <Dropdown
@@ -823,12 +838,14 @@ export const SpellContent = ({
   featureState,
   providesOptions,
   optionGroups,
-}: SectionProps) => {
+}: SectionContentProps) => {
+  // Add/Remove Spells By Level Data
   useEffect(() => {
     if (
       !sectionState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-      )
+      ) &&
+      sectionState.spellsByLevel
     ) {
       setSectionState({
         type: 'removed',
@@ -837,7 +854,46 @@ export const SpellContent = ({
         },
       })
     }
-  }, [sectionState, setSectionState])
+    if (
+      (featureState.levelAvailable == null ||
+        featureState.levelAvailable === '' ||
+        !sectionState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'spellsByLevel'
+        )) &&
+      sectionState.spellsByLevel?.length > 0
+    ) {
+      setSectionState({
+        type: 'removed',
+        target: {
+          name: `spellsByLevel`,
+        },
+      })
+    }
+    if (
+      (featureState.levelAvailable != null &&
+        featureState.levelAvailable !== '' &&
+        !(sectionState.spellsByLevel?.length > 0)) ||
+      featureState?.levelAvailable?.split(', ')?.length !==
+        sectionState.spellsByLevel?.length
+    ) {
+      setSectionState({
+        type: 'added',
+        target: {
+          name: `spellsByLevel`,
+          value: featureState?.levelAvailable
+            ?.split(', ')
+            .map((levelItem: string) => ({
+              level: Number(levelItem),
+            })),
+        },
+      })
+    }
+  }, [
+    featureState.levelAvailable,
+    sectionState.spellsByLevel,
+    sectionState.attribute,
+    setSectionState,
+  ])
 
   return (
     <Grid>
@@ -911,53 +967,35 @@ export const SpellContent = ({
       {sectionState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'spellsByLevel'
       ) ? (
-        (featureState.levelAvailable != null &&
-          featureState.levelAvailable !== '' &&
-          !(sectionState.spellsByLevel?.length > 0)) ||
-        featureState?.levelAvailable?.split(', ')?.length !==
-          sectionState.spellsByLevel?.length ? (
-          setSectionState({
-            type: 'added',
-            target: {
-              name: `spellsByLevel`,
-              value: featureState?.levelAvailable
-                ?.split(', ')
-                .map((levelItem: string) => ({
-                  level: Number(levelItem),
-                })),
-            },
-          })
-        ) : (
-          <>
-            <Table
-              rows={{
-                inputs: [
-                  {
-                    name: 'level',
-                    readOnly: true,
-                  },
-                  {
-                    name: 'spell',
-                    type: 'select',
-                    options: spells,
-                    multiple: true,
-                  },
-                ],
-                headers: [
-                  {
-                    value: 'Level',
-                  },
-                  {
-                    value: 'Spells',
-                  },
-                ],
-              }}
-              name={`spellsByLevel`}
-              value={sectionState.spellsByLevel}
-              onChange={setSectionState}
-            />
-          </>
-        )
+        <>
+          <Table
+            rows={{
+              inputs: [
+                {
+                  name: 'level',
+                  readOnly: true,
+                },
+                {
+                  name: 'spell',
+                  type: 'select',
+                  options: spells,
+                  multiple: true,
+                },
+              ],
+              headers: [
+                {
+                  value: 'Level',
+                },
+                {
+                  value: 'Spells',
+                },
+              ],
+            }}
+            name={`spellsByLevel`}
+            value={sectionState.spellsByLevel}
+            onChange={setSectionState}
+          />
+        </>
       ) : (
         <>
           <Dropdown
@@ -1014,13 +1052,88 @@ export const SpellContent = ({
   )
 }
 
+export const AncestryContent = ({
+  sectionState,
+  setSectionState,
+  builders,
+  state,
+  races,
+  providesOptions,
+}: SectionContentProps) => {
+  return (
+    <>
+      <Grid>
+        <Dropdown
+          multiSelect={true}
+          name={`attribute`}
+          options={[].concat(
+            builders.section.attribute,
+            state.category?.name === 'subclass' &&
+              builders.section.subclass.attribute
+          )}
+          label={`${startCase('Ancestry')} Attributes`}
+          value={sectionState.attribute}
+          onChange={setSectionState}
+        />
+        <Dropdown
+          name='origin'
+          label='Ancestry Origin'
+          value={sectionState?.origin}
+          options={races?.filter(
+            (raceItem: any) => raceItem.ancestry?.name != null
+          )}
+          required={true}
+          onChange={setSectionState}
+        />
+        <Dropdown
+          name='option'
+          label='Ancestry Option'
+          multiSelect={providesOptions}
+          value={sectionState?.option}
+          options={
+            races?.find(
+              (raceItem: any) => raceItem.name === sectionState?.origin?.name
+            )?.ancestry?.option
+          }
+          required={true}
+          onChange={setSectionState}
+        />
+        {providesOptions && (
+          <Input
+            validation='num'
+            name={`selectionCount`}
+            label='# of Selections'
+            autoComplete='off'
+            value={sectionState.selectionCount}
+            errorMsg='Must contain only numbers'
+            required={true}
+            onChange={setSectionState}
+          />
+        )}
+        {sectionState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'subtypeSpecific'
+        ) && (
+          <Dropdown
+            name={`subtype`}
+            label='Subtype'
+            value={sectionState.subtype}
+            options={state?.subtype}
+            required={true}
+            onChange={setSectionState}
+          />
+        )}
+      </Grid>
+    </>
+  )
+}
+
 const SectionContent = ({
   state,
   sectionName,
   featureState,
   sectionState,
   setSectionState,
-}: SectionContentProps) => {
+}: SectionProps) => {
   const { data: builders } = useGetBuildersQuery(undefined)
 
   const { spells } = useGetSpellsQuery(undefined, {
@@ -1043,8 +1156,14 @@ const SectionContent = ({
     selectFromResult: ({ data }) => ({ feats: data && selectAllFeats(data) }),
   })
 
+  const { races } = useGetRacesQuery(undefined, {
+    selectFromResult: ({ data }) => ({
+      races: data && selectAllRaces(data),
+    }),
+  })
+
   const ContentComponent = tableContent[sectionName]?.content
-  
+
   return !sectionState ? (
     <Spinner />
   ) : (
@@ -1058,6 +1177,7 @@ const SectionContent = ({
           spells={spells}
           feats={feats}
           classes={classes}
+          races={races}
           setSectionState={setSectionState}
           builders={builders}
           providesOptions={sectionState.attribute?.some(

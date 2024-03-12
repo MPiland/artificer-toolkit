@@ -69,7 +69,7 @@ const Class = () => {
                       <Fragment key={featureIndex}>
                         <h3>
                           <strong>
-                            <u>{featureItem.value}</u>
+                            {featureItem.value}
                           </strong>
                         </h3>
                         {featureItem.desc && parse(featureItem.desc)}
@@ -104,7 +104,7 @@ const Class = () => {
                             <Fragment key={featureIndex}>
                               <h3>
                                 <strong>
-                                  <u>{featureItem.value}</u>
+                                  {featureItem.value}
                                 </strong>
                               </h3>
                               {featureItem.desc && parse(featureItem.desc)}
@@ -130,7 +130,7 @@ const Class = () => {
               >
                 <h3>
                   <strong>
-                    <u>{featureItem.value}</u>
+                    {featureItem.value}
                   </strong>
                 </h3>
                 {featureItem.desc && parse(featureItem.desc)}

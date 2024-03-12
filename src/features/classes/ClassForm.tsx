@@ -67,8 +67,13 @@ const ClassForm = () => {
     <Spinner />
   ) : (
     <Form
-      context={{ type: context as FormContext, title: 'class' }}
+      context={{ type: context, title: 'class' } as FormContext}
       steps={steps}
+      stepFilter={{
+        name: 'category.name',
+        value: 'subclass',
+        filter: 'Equipment',
+      }}
       state={state}
       setState={setState}
       location={location}

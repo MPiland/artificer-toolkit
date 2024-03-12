@@ -32,10 +32,7 @@ import Accordion from '../Accordion/Accordion'
 
 interface EquipmentProps {
   formState: any
-  context: {
-    type: FormContext
-    title: string
-  }
+  context: FormContext
   setFormState: (arg: ReducerActionType) => void
 }
 
@@ -141,7 +138,7 @@ const EquipmentForm = ({
                       active={activeIndex === groupIndex}
                       key={groupIndex}
                     >
-                      {`Equipment Group ${groupIndex}`}
+                      {`Equipment Group ${groupIndex + 1}`}
                     </Accordion.Header>
                     <Accordion.Content active={activeIndex === groupIndex}>
                       <Group className={sprinkles({ mb: 'size-3' })}>

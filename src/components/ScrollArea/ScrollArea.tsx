@@ -5,7 +5,7 @@ import {
   useState,
   MouseEvent as ReactMouseEvent,
   memo,
-  useLayoutEffect,
+  useEffect,
   ComponentPropsWithoutRef,
 } from 'react'
 import clsx from 'clsx'
@@ -68,11 +68,13 @@ const ScrollArea = memo(
 
     let scrollTimer: ReturnType<typeof setTimeout>
 
-    useLayoutEffect(() => {
+    useEffect(() => {
+      const scrollWrapper = scrollWrapperRef.current
       const scrollArea = scrollAreaRef.current
-      const handleResize = (entries: Array<ResizeObserverEntry>) => {
-        entries.forEach(() => {
-          if (scrollArea) {
+      if (scrollArea) {
+        const scrollChildren = Array.from(scrollArea.children)
+        const handleResize = (entries: Array<ResizeObserverEntry>) => {
+          entries.forEach(() => {
             if (
               (scrollDirection === 'all' || scrollDirection === 'vertical') &&
               scrollArea.scrollHeight > scrollArea.clientHeight
@@ -107,21 +109,20 @@ const ScrollArea = memo(
             } else {
               setHorzNoOverflow(true)
             }
-          }
-        })
-      }
-      const observer = new ResizeObserver(handleResize)
+          })
+        }
 
-      if (scrollArea) {
-        observer.observe(scrollArea)
-        const scrollChildren = Array.from(scrollArea.children)
-        scrollChildren.forEach((child) => {
-          observer.observe(child)
-        })
-      }
+        const observer = new ResizeObserver(handleResize)
 
-      return () => observer.disconnect()
-    }, [md, scrollDirection])
+        if (scrollWrapper && scrollArea) {
+          scrollChildren.forEach((child) => {
+            observer.observe(child)
+          })
+        }
+
+        return () => observer.disconnect()
+      }
+    }, [md, scrollDirection, children])
 
     const handleMouseOver = useCallback(() => {
       if (vertScrollThumbRef.current || horzScrollThumbRef.current) {

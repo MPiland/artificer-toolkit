@@ -16,6 +16,7 @@ import {
   editor_table,
   editor_table_th,
   editor_table_td,
+  editor_blockquote,
 } from './RichTextEditor.css'
 import clsx from 'clsx'
 import { ReducerActionType } from '../../utils/types'
@@ -68,6 +69,11 @@ const RichTextEditor: FC<RichTextEditorProps> = ({
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3, 4, 5, 6],
+        },
+        blockquote: {
+          HTMLAttributes: {
+            class: editor_blockquote,
+          },
         },
       }),
       Underline,

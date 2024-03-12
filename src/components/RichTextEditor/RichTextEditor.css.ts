@@ -115,11 +115,22 @@ export const editor_button = style({
   },
 })
 
+export const editor_blockquote = style({
+  '@layer': {
+    [app]: {
+      borderRadius: theme['default-border-radius'],
+      border: theme.vars['app-border-line-style'],
+      marginLeft: size['size-3'],
+      marginTop: size['size-3'],
+      padding: size['size-1'],
+    },
+  },
+})
+
 export const editor_table = style({
   '@layer': {
     [app]: {
       borderCollapse: 'collapse',
-      margin: '0',
       overflow: 'hidden',
       tableLayout: 'fixed',
       width: '90%',
@@ -184,7 +195,7 @@ globalStyle('.ProseMirror table', {
   '@layer': {
     [app]: {
       borderCollapse: 'collapse',
-      margin: '0',
+      margin: `${size['size-3']} 0`,
       overflow: 'hidden',
       tableLayout: 'fixed',
     },
@@ -216,14 +227,4 @@ globalStyle('.resize-cursor', {
   },
 })
 
-globalStyle(`${editor_content} blockquote`, {
-  '@layer': {
-    [app]: {
-      borderRadius: theme['default-border-radius'],
-      border: theme.vars['app-border-line-style'],
-      marginLeft: size['size-3'],
-      marginTop: size['size-2'],
-      padding: size['size-1'],
-    },
-  },
-})
+globalStyle(`${editor_content} blockquote`, {})

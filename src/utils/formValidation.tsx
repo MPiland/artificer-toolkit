@@ -16,7 +16,7 @@ export const validate = (resetValidation: boolean = false): boolean => {
     document.querySelectorAll('[aria-required]')
 
   requiredDropdowns.forEach((element: Element) => {
-    if (element && element.getAttribute('[aria-required]') === 'true') {
+    if (element && element.getAttribute('aria-required') === 'true') {
       let isValidDropdown: boolean
       if (element.hasAttribute('data-atapp-options')) {
         isValidDropdown =
@@ -39,17 +39,16 @@ export const validate = (resetValidation: boolean = false): boolean => {
     if (element) {
       let isValidInput: boolean
 
+      const value: string = (element as HTMLInputElement).value
+      const valid: boolean = value !== '' && element.hasAttribute('required')
+
       if (element.hasAttribute('data-atapp-validation')) {
         const validation: string | null = element.getAttribute(
           'data-atapp-validation'
         )
-        const value: string = (element as HTMLInputElement).value
-
-        const isEmptyAndRequired: boolean =
-          value === '' && element.hasAttribute('required')
 
         isValidInput =
-          !isEmptyAndRequired &&
+          valid &&
           ((validation === 'user' && USER_REGEX.test(value)) ||
             (validation === 'pwd' && PWD_REGEX.test(value)) ||
             (validation === 'del' && DEL_REGEX.test(value)) ||
@@ -62,6 +61,13 @@ export const validate = (resetValidation: boolean = false): boolean => {
           })
         )
         isValid = isValidInput && isValid
+      } else {
+        element.dispatchEvent(
+          new CustomEvent('setErrorState', {
+            detail: valid ? false : true,
+          })
+        )
+        isValid = isValid && valid
       }
     }
   })

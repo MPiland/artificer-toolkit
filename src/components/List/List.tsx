@@ -15,16 +15,14 @@ import { ActionCreatorWithPayload } from '@reduxjs/toolkit'
 import Filter from './Filter'
 import useIsLoading from '../../hooks/useIsLoading'
 import Grid from '../Grid/Grid'
+import { FormContext } from '../../utils/types'
 
 interface ListProps {
   tableColumns: {
     headers: any[]
     inputs: any[]
   }
-  context: {
-    type: string
-    form: string
-  }
+  context: FormContext
   items: any
   deleteItem: (arg: { id: number }) => Promise<any>
   scrollPosition: number
@@ -113,17 +111,19 @@ const List = ({
   }, [deleteConfirmed, itemToDelete, dispatch, deleteItem, setListFilter])
 
   const handleShowDetail = (item: any) => {
-    navigate(`/${context.form}/${item.name}`, {
-      state: {
-        background: location,
-        context: context.type,
-        form: context.form,
-        data: item,
-        size: 'lg',
-        scrollPosition: table?.scrollTop,
-        title: item.value,
-      },
-    })
+    navigate(
+      `/${context.title === 'class' ? 'classe' : context.title}s/${item.name}`,
+      {
+        state: {
+          background: location,
+          form: `${context.title === 'class' ? 'classe' : context.title}s`,
+          data: item,
+          size: 'lg',
+          scrollPosition: table?.scrollTop,
+          title: item.value,
+        },
+      }
+    )
   }
 
   const handleCreate = (secondary?: boolean) => {
@@ -132,9 +132,9 @@ const List = ({
         state: {
           background: location,
           context: context.type,
-          form: context.form,
+          form: `${context.title === 'class' ? 'classe' : context.title}s`,
           data: items.filter((item: any) =>
-            context.type === 'class' ? item.category.name === 'subclass' : item
+            context.title === 'class' ? item.category.name === 'subclass' : item
           ),
         },
       })
@@ -143,9 +143,9 @@ const List = ({
       state: {
         background: location,
         context: context.type,
-        form: context.form,
+        form: `${context.title === 'class' ? 'classe' : context.title}s`,
         data: items.filter((item: any) =>
-          context.type === 'class' ? item.category.name === 'base' : item
+          context.title === 'class' ? item.category.name === 'base' : item
         ),
       },
     })
@@ -169,12 +169,16 @@ const List = ({
     <>
       <Container className={sprinkles({ pt: 'size-3' })}>
         <Group className={sprinkles({ mb: 'size-3' })}>
-          <h1>{startCase(context.form)}</h1>
+          <h1>
+            {startCase(
+              `${context.title === 'class' ? 'classe' : context.title}s`
+            )}
+          </h1>
           <Grid
             cols={{
-              lg: context.type === 'class' ? 3 : 2,
-              md: context.type === 'class' ? 3 : 2,
-              base: context.type === 'class' ? 3 : 2,
+              lg: context.title === 'class' ? 3 : 2,
+              md: context.title === 'class' ? 3 : 2,
+              base: context.title === 'class' ? 3 : 2,
             }}
             className={sprinkles({ width: 'auto' })}
           >
@@ -186,10 +190,10 @@ const List = ({
               variant='default'
               onClick={() => handleCreate()}
             >
-              Create {context.type === 'item' ? 'an ' : 'a '}
-              {startCase(context.type)}
+              Create {context.title === 'item' ? 'an ' : 'a '}
+              {startCase(context.title)}
             </Button>
-            {context.type === 'class' && (
+            {context.title === 'class' && (
               <Button
                 type='button'
                 variant='default'
@@ -202,7 +206,7 @@ const List = ({
         </Group>
         {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
         <Filter
-          context={context.type}
+          context={`${context.title === 'class' ? 'classe' : context.title}s`}
           items={items}
           listFilter={listFilter}
           setListFilter={setListFilter}
@@ -222,7 +226,7 @@ const List = ({
             inputs: tableColumns.inputs,
             headers: tableColumns.headers,
             filters:
-              context.type === 'class'
+              context.title === 'class'
                 ? {
                     filterOn: 'category.name',
                     filterValue: 'subclass',

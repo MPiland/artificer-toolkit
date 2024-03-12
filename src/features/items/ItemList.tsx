@@ -88,8 +88,8 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
       {
         name: [
           [
-            'damageprimaryDice.diceShort',
-            'damageprimaryDice.versatileDiceShort',
+            'damage.dice.diceShort',
+            'damage.dice.versatileDiceShort',
           ],
           'damage.damageType',
         ],
@@ -117,7 +117,7 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
   return (
     <List
       tableColumns={tableColumns}
-      context={{ type: 'item', form: 'items' }}
+      context={{ title: 'item' }}
       items={items}
       deleteItem={deleteItem}
       scrollPosition={scrollPosition}

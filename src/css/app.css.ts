@@ -48,7 +48,15 @@ globalStyle('html, body, #root', {
 globalStyle('p, blockquote, table, .tableWrapper', {
   '@layer': {
     [app]: {
-      paddingBottom: size['size-2'],
+      marginBottom: size['size-3'],
+    },
+  },
+})
+
+globalStyle('table', {
+  '@layer': {
+    [app]: {
+      marginTop: size['size-3'],
     },
   },
 })

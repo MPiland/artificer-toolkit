@@ -6,6 +6,7 @@ import {
   SenseContent,
   SpellContent,
   SectionProps,
+  AncestryContent,
 } from '../components/Form/SectionContent'
 import { SectionName } from './types'
 
@@ -31,6 +32,9 @@ export const tableContent: TableContent = {
   spell: {
     content: SpellContent,
   },
+  ancestry: {
+    content: AncestryContent
+  }
 }
 
 export const getSectionNames = (): SectionName[] => {

@@ -27,8 +27,15 @@ const ClassList = ({ scrollPosition }: ClassListProps) => {
   const tableColumns = {
     headers: [
       {
-        name: { sortOn: 'name' },
+        name: {
+          sortOn: 'name',
+          filter: {
+            filterKey: 'base',
+            filterOn: 'category.name',
+          },
+        },
         value: 'Name',
+        defaultSort: true,
       },
       {
         name: { sortOn: 'category.value' },
@@ -48,7 +55,7 @@ const ClassList = ({ scrollPosition }: ClassListProps) => {
   return (
     <List
       tableColumns={tableColumns}
-      context={{ type: 'class', form: 'classes' }}
+      context={{ title: 'class' }}
       items={classes}
       deleteItem={deleteClass}
       scrollPosition={scrollPosition}

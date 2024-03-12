@@ -77,13 +77,11 @@ export const accordion_body = style({
       borderSpacing: 0,
       gridTemplateRows: '1fr',
       transition:
-        'grid-template-rows 0.3s ease-in-out, margin 0.3s ease-in-out, padding .3s ease-in-out',
-      padding: `${size['size-2']} 0`,
+        'grid-template-rows 0.3s ease-in-out, margin 0.3s ease-in-out',
 
       selectors: {
         '&.collapsed': {
           gridTemplateRows: '0fr',
-          padding: '0',
         },
       },
     },
@@ -96,7 +94,14 @@ export const accordion_content = style({
       width: '100%',
       height: 'auto',
       overflow: 'hidden',
-      padding: `0 ${size['size-2']}`,
+      transition: 'padding .3s ease-in-out',
+      padding: `${size['size-2']} ${size['size-2']}`,
+
+      selectors: {
+        '&.collapsed': {
+          padding: `0 ${size['size-2']}`,
+        },
+      },
     },
   },
 })

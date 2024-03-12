@@ -27,10 +27,7 @@ import useIsLoading from '../../hooks/useIsLoading'
 import Spinner from '../Spinner/Spinner'
 
 interface DetailFormProps {
-  context: {
-    type: FormContext
-    title: string
-  }
+  context: FormContext
   formState: any
   setFormState: (arg: ReducerActionType) => void
 }
@@ -82,83 +79,85 @@ const DetailForm = memo(
             autoFocus={true}
             errorMsg='Name must not be blank'
           />
-          {context.title !== 'spell' && context.title !== 'feat' && (
-            <>
-              <Dropdown
-                name='category'
-                label={`${startCase(context.title)} Category`}
-                value={formState?.category}
-                options={builders[context.title]?.category}
-                required={true}
-                onChange={setFormState}
-              />
-              {context.title === 'item' && (
-                <>
-                  <Dropdown
-                    name='property'
-                    multiSelect={true}
-                    label='Properties'
-                    value={formState?.property}
-                    options={
-                      builders.item.category.find(
-                        (category: any) =>
-                          category._id === formState.category?.id
-                      )?.property
-                    }
-                    onChange={setFormState}
-                  />
-                  <Dropdown
-                    name='rarity'
-                    label='Rarity'
-                    value={formState?.rarity}
-                    options={builders.item.rarity}
-                    required={true}
-                    onChange={setFormState}
-                  />
-                  <Input
-                    validation={'cur'}
-                    name='cost.amount'
-                    autoComplete='off'
-                    label='Cost'
-                    required={true}
-                    errorMsg='Must contain only decimal amounts'
-                    value={formState?.cost?.amount}
-                    onChange={setFormState}
-                  />
-                  <Dropdown
-                    name='cost.currency'
-                    label='Currency'
-                    value={formState?.cost?.currency}
-                    options={builders.currency}
-                    optionalKey='short'
-                    required={true}
-                    onChange={setFormState}
-                  />
-                  <Input
-                    validation={'cur'}
-                    name='weight.amount'
-                    errorMsg='Must contain only numbers'
-                    label='Item Weight'
-                    autoComplete='off'
-                    value={formState?.weight?.amount}
-                    onChange={setFormState}
-                  />
-                  <Dropdown
-                    name='weight.unit'
-                    label='UoM'
-                    value={formState?.weight?.unit}
-                    options={
-                      Object.values(builders.unit.imperial).flatMap(
-                        (item) => item
-                      ) as DropdownOption[]
-                    }
-                    optionalKey='short'
-                    onChange={setFormState}
-                  />
-                </>
-              )}
-            </>
-          )}
+          {context.title &&
+            context.title !== 'spell' &&
+            context.title !== 'feat' && (
+              <>
+                <Dropdown
+                  name='category'
+                  label={`${startCase(context.title)} Category`}
+                  value={formState?.category}
+                  options={builders[context.title]?.category}
+                  required={true}
+                  onChange={setFormState}
+                />
+                {context.title === 'item' && (
+                  <>
+                    <Dropdown
+                      name='property'
+                      multiSelect={true}
+                      label='Properties'
+                      value={formState?.property}
+                      options={
+                        builders.item.category.find(
+                          (category: any) =>
+                            category._id === formState.category?.id
+                        )?.property
+                      }
+                      onChange={setFormState}
+                    />
+                    <Dropdown
+                      name='rarity'
+                      label='Rarity'
+                      value={formState?.rarity}
+                      options={builders.item.rarity}
+                      required={true}
+                      onChange={setFormState}
+                    />
+                    <Input
+                      validation={'cur'}
+                      name='cost.amount'
+                      autoComplete='off'
+                      label='Cost'
+                      required={true}
+                      errorMsg='Must contain only decimal amounts'
+                      value={formState?.cost?.amount}
+                      onChange={setFormState}
+                    />
+                    <Dropdown
+                      name='cost.currency'
+                      label='Currency'
+                      value={formState?.cost?.currency}
+                      options={builders.currency}
+                      optionalKey='short'
+                      required={true}
+                      onChange={setFormState}
+                    />
+                    <Input
+                      validation={'cur'}
+                      name='weight.amount'
+                      errorMsg='Must contain only numbers'
+                      label='Item Weight'
+                      autoComplete='off'
+                      value={formState?.weight?.amount}
+                      onChange={setFormState}
+                    />
+                    <Dropdown
+                      name='weight.unit'
+                      label='UoM'
+                      value={formState?.weight?.unit}
+                      options={
+                        Object.values(builders.unit.imperial).flatMap(
+                          (item) => item
+                        ) as DropdownOption[]
+                      }
+                      optionalKey='short'
+                      onChange={setFormState}
+                    />
+                  </>
+                )}
+              </>
+            )}
           {formState?.category?.name && (
             <>
               {formState?.category?.name === 'subclass' ? (
@@ -196,6 +195,14 @@ const DetailForm = memo(
                       value={formState?.hitPoint?.diceValue}
                       validation='num'
                       errorMsg='Must contain whole numbers only'
+                      onChange={setFormState}
+                    />
+                    <Dropdown
+                      name='hitPointModifier'
+                      label='HP Modifier Ability'
+                      value={formState?.hitPointModifier}
+                      options={builders.ability}
+                      required={true}
                       onChange={setFormState}
                     />
                   </>
@@ -351,11 +358,7 @@ const DetailForm = memo(
                 multiSelect={true}
                 label='Classes'
                 value={formState?.classes}
-                options={
-                  classes?.filter(
-                    (classItem: any) => classItem.category.name !== 'subclass'
-                  ) as unknown as DropdownOption[]
-                }
+                options={classes as unknown as DropdownOption[]}
                 required={true}
                 onChange={setFormState}
               />

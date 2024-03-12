@@ -1,6 +1,7 @@
 import { form_footer } from './Form.css'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
+import { FormContext } from '../../utils/types'
 
 interface FormFooterProps {
   handleBack: () => void
@@ -10,7 +11,7 @@ interface FormFooterProps {
   handleReset?: () => void
   handleUpdate?: () => void
   isLastStep: boolean
-  context: 'edit' | 'new'
+  context: FormContext
 }
 
 const FormFooter = ({
@@ -34,7 +35,7 @@ const FormFooter = ({
         </Button>
       </Group>
       <Group>
-        {context === 'edit' && !isLastStep && (
+        {context.type === 'edit' && !isLastStep && (
           <Button variant='update' type='button' onClick={handleUpdate}>
             Update
           </Button>

@@ -24,6 +24,10 @@ export type RowHeader = {
         sortOn: string
         orderKey?: string
         order?: Array<{ [key: number]: string }>
+        filter?: {
+          filterOn: string | PropertyPath
+          filterKey: string
+        }
       }
   value?: string
   required?: boolean
@@ -40,6 +44,10 @@ export type SortConfig = {
       orderKey?: string | PropertyPath
       order?: any[]
       sortOn: string | PropertyPath | undefined
+    }
+    filter?: {
+      filterKey: string
+      filterOn: string | PropertyPath
     }
   }
   direction?: 'ascending' | 'descending'
@@ -62,7 +70,7 @@ export type Context = {
       }
 }
 
-export type FeatureContext = 'OptionContent' | ''
+export type FeatureContext = 'OptionContent' | 'OptionFeatureContent' | ''
 
 export type FeatureStepName = 'FeatureContent' | 'SectionContent' | ''
 
@@ -73,6 +81,7 @@ export type SectionName =
   | 'proficiency'
   | 'sense'
   | 'feature'
+  | 'ancestry'
   | ''
 
 export type SelectOption = string | undefined
@@ -80,7 +89,6 @@ export type SelectOption = string | undefined
 export type DropdownOption = {
   name: string | null
   value: string
-  id: number | string | null
   _id: number | string | null
   [key: string]: any
 }
@@ -95,4 +103,7 @@ export type Step =
   | 'Equipment'
   | 'Ancestry'
 
-export type FormContext = 'new' | 'edit'
+export type FormContext = {
+  type?: 'new' | 'edit'
+  title?: 'class' | 'spell' | 'race' | 'item' | 'feat' | 'option'
+}

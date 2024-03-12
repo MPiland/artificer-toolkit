@@ -1,55 +1,40 @@
-/* global use, db */
+/* global use, db, ObjectId */
 use('ATdb')
 
-function transformArray(data) {
+function renameKey(data) {
   if (Array.isArray(data)) {
-    // If the input is an array, iterate over its elements
-    return data.map((item) => transformArray(item))
+    return data.map((item) => renameKey(item))
   } else if (typeof data === 'object' && data !== null) {
-    // If the input is an object, process its properties
-    if ('id' in data) {
-      // Check if 'id' property exists
-      if (data.id === null || data.id === undefined) {
-        // If 'id' is null or undefined, delete it
-        delete data.id
-      } else {
-        // If 'id' exists and is not null, check for '_id'
-        // Copy 'id' to '_id' and delete 'id'
-        data._id = data.id
-        delete data.id
+    for (let key in data) {
+      if (key === 'id') {
+        if (data[key] !== null) {
+          data._id = ObjectId(data[key])
+        }
+        delete data[key]
+      } else if (typeof data[key] === 'object') {
+        data[key] = renameKey(data[key]) // Recursive call for nested objects
       }
     }
-
-    // Recursively transform nested objects
-    for (const key in data) {
-      if (data.hasOwnProperty(key)) {
-        data[key] = transformArray(data[key])
-      }
-    }
-
-    return data
-  } else {
-    // Base case: return non-object values as is
-    return data
   }
+  return data
 }
 
-const collection = 'items'
+const collection = 'spells'
 
-let dataSet = db[`${collection}`].find({}).toArray()
+const data = db[collection].find().toArray()
 
-const cleanData = async (dataSet) => {
-  dataSet = transformArray(dataSet)
-  const bulkUpdate = dataSet.map((data) => ({
-    replaceOne: {
-      filter: { _id: data._id },
-      replacement: data,
-      upsert: true,
+const clearData = async (data) => {
+  data = renameKey(data)
+  const bulkOperations = data.map((item) => ({
+    updateOne: {
+      filter: { _id: item._id },
+      update: { $set: item },
     },
   }))
-  await db[`${collection}`].bulkWrite(bulkUpdate)
+  await db[collection].bulkWrite(bulkOperations)
+  // await db.tests.insertMany(data)
 }
 
-if (dataSet) {
-  cleanData(dataSet)
+if (data) {
+  clearData(data)
 }

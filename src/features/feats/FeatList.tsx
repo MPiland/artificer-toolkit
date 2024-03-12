@@ -42,7 +42,7 @@ const FeatList = ({ scrollPosition }: FeatListProps) => {
   return (
     <List
       tableColumns={tableColumns}
-      context={{ type: 'feat', form: 'feats' }}
+      context={{ title: 'feat' }}
       items={feats}
       deleteItem={deleteFeat}
       scrollPosition={scrollPosition}

@@ -160,7 +160,9 @@ const Content = ({ children, active = false }: ContentProps) => {
       className={clsx(accordion_body, { ['collapsed']: !active })}
       ref={content}
     >
-      <div className={accordion_content}>{children}</div>
+      <div className={clsx(accordion_content, { ['collapsed']: !active })}>
+        {children}
+      </div>
     </div>
   )
 }

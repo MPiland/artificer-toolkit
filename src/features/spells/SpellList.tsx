@@ -62,7 +62,7 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       },
       {
         name: {
-          sortOn: 'range.distance',
+          sortOn: 'range.minRange',
           orderKey: 'range.rangeType.name',
           subSort: {
             sortOn: 'shape.size',
@@ -75,6 +75,7 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       {
         name: {
           sortOn: 'damage.damagType',
+          orderKey: 'damage.dice.diceShort',
           subSort: { sortOn: 'condition' },
         },
         value: 'Damage/Effect',
@@ -104,7 +105,8 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       },
       {
         name: [
-          ['range.rangeType.value', 'range.distance', 'range.unit.short'],
+          ['range.rangeType.value', 'range.minRange', 'range.unit.short'],
+          ['range.maxRange', 'range.unit.short'],
           ['shape.shapeType.value', 'shape.size', 'shape.unit.short'],
         ],
         breakpoint: ['sm', 'md'],
@@ -122,7 +124,7 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
   return (
     <List
       tableColumns={tableColumns}
-      context={{ type: 'spell', form: 'spells' }}
+      context={{ title: 'spell' }}
       items={spells}
       deleteItem={deleteSpell}
       scrollPosition={scrollPosition}

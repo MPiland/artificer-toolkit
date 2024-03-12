@@ -5,14 +5,14 @@ import {
   success_message,
 } from './Form.css'
 import { useEffect, useReducer, useState, useRef } from 'react'
-import { set, startCase } from 'lodash'
+import { get, set, startCase } from 'lodash'
 import ProgressBar from './ProgressBar'
 import useIsLoading from '../../hooks/useIsLoading'
 import Spinner from '../Spinner/Spinner'
 import DetailForm from './DetailForm'
 import AttributeForm from './AttributeForm'
 import TraitForm from './TraitForm'
-import FeatureForm from './FeatureForm'
+import FeatureForm from './FeatureList'
 import {
   FormContext,
   ReducerActionType,
@@ -39,12 +39,13 @@ import {
   FetchBaseQueryError,
   TypedUseMutation,
 } from '@reduxjs/toolkit/query/react'
+import FeatureList from './FeatureList'
+import FeatureContent from './FeatureContent'
+import SectionContent from './SectionContent'
+import { sprinkles } from '../../css/sprinkles.css'
 
 interface FormProps {
-  context: {
-    type: FormContext
-    title: string
-  }
+  context: FormContext
   steps: Step[]
   state: any
   setState: (arg: ReducerActionType) => void
@@ -59,6 +60,11 @@ interface FormProps {
     any,
     BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>
   >
+  stepFilter?: {
+    name: string
+    value: string
+    filter: Step
+  }
 }
 
 const Form = ({
@@ -69,6 +75,7 @@ const Form = ({
   location,
   useAddNewItem,
   useUpdateItem,
+  stepFilter,
 }: FormProps) => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
@@ -92,32 +99,55 @@ const Form = ({
   const [stepIndex, setStepIndex] = useState<number>(0)
   const [isFirstStep, setIsFirstStep] = useState<boolean>(false)
   const [isLastStep, setIsLastStep] = useState<boolean>(false)
+  // Form state
   const [formState, setFormState] = useReducer(formReducer, state)
   const [oldFormState, setOldFormState] = useState<any>(formState)
   const [featureStepName, setFeatureStepName] = useState<FeatureStepName>(
     context.title === 'feat' ? 'FeatureContent' : ''
   )
+  // Feature state
   const [featureState, setFeatureState] = useReducer(
     formReducer,
     context.title === 'feat' ? formState : {}
   )
   const [oldFeatureState, setOldFeatureState] = useState<any>({})
   const [featureIndex, setFeatureIndex] = useState<number>(0)
+  // Option state
   const [optionState, setOptionState] = useReducer(formReducer, {})
   const [oldOptionState, setOldOptionState] = useState<any>({})
   const [optionIndex, setOptionIndex] = useState<number>(0)
+  // Feature section state
   const [sectionState, setSectionState] = useReducer(formReducer, {})
   const [oldSectionState, setOldSectionState] = useState<any>({})
   const [sectionIndex, setSectionIndex] = useState<number>(0)
+  // Subfeature state
+  const [subFeatureState, setSubFeatureState] = useReducer(formReducer, {})
+  const [oldSubFeatureState, setOldSubFeatureState] = useState<any>({})
+  const [subFeatureIndex, setSubFeatureIndex] = useState<number>(0)
   const [featureContext, setFeatureContext] = useState<FeatureContext>('')
   const [sectionName, setSectionName] = useState<SectionName>('')
   const [stepName, setStepName] = useState<Step>(steps[stepIndex])
 
   const documentRef = useRef(document)
 
+  const handleNavigateEdit = (id: number) => {
+    const form = `${context.title === 'class' ? 'classe' : context.title}s`
+    navigate(`/${form}/edit/${formState.name}`, {
+      state: { data: id, previous: `/${form}` },
+    })
+    setStepIndex(0)
+    setSaving(false)
+  }
+
   useEffect(() => {
-    setStepName(steps[stepIndex])
-  }, [stepIndex, steps])
+    setStepName(
+      steps?.filter((step: Step) =>
+        stepFilter && get(formState, stepFilter?.name) === stepFilter?.value
+          ? step !== stepFilter?.filter
+          : step
+      )[stepIndex]
+    )
+  }, [stepIndex, steps, formState, stepFilter])
 
   // Last/First Step
   useEffect(() => {
@@ -126,12 +156,20 @@ const Form = ({
     } else {
       setIsFirstStep(false)
     }
-    if (stepIndex === steps.length - 1) {
+    if (
+      stepIndex ===
+      steps?.filter((step: Step) =>
+        stepFilter && get(formState, stepFilter?.name) === stepFilter?.value
+          ? step !== stepFilter?.filter
+          : step
+      ).length -
+        1
+    ) {
       setIsLastStep(true)
     } else {
       setIsLastStep(false)
     }
-  }, [stepIndex, steps.length])
+  }, [stepIndex, steps, formState, stepFilter])
 
   // Set formState
   useEffect(() => {
@@ -150,22 +188,11 @@ const Form = ({
 
   // Sucess Message
   useEffect(() => {
-    if (addIsSuccess || updateIsSuccess) {
-      setSuccessMessage(
-        `${startCase(context.title)} ${
-          context.type === 'edit' ? 'updated' : 'added'
-        } successfully!`
-      )
+    if (updateIsSuccess) {
+      setSuccessMessage(`${startCase(context.title)} updated successfully!`)
       setErrorMessage(null)
     }
-  }, [
-    addIsSuccess,
-    updateIsSuccess,
-    context.type,
-    context.title,
-    setErrorMessage,
-    setSuccessMessage,
-  ])
+  }, [updateIsSuccess, context.title, setErrorMessage, setSuccessMessage])
 
   // Error Message
   useEffect(() => {
@@ -190,6 +217,7 @@ const Form = ({
     updateError,
   ])
 
+  // Add Ancestry step
   useEffect(() => {
     if (
       formState?.attribute?.some(
@@ -256,6 +284,18 @@ const Form = ({
       set(formClone, arrayPath, sectionState)
       return formClone
     }
+    if (featureContext === 'OptionFeatureContent') {
+      const objectPath = `${arrayName}.${featureIndex}.${subArrayName}.${optionIndex}.feature.${subFeatureIndex}.${sectionName}.${sectionIndex}`
+      setOptionState({
+        target: {
+          name: `${subArrayName}.${optionIndex}.feature.${subFeatureIndex}.${sectionName}.${sectionIndex}`,
+          value: sectionState,
+        },
+      })
+      const arrayPath = objectPath.split('.')
+      set(formClone, arrayPath, sectionState)
+      return formClone
+    }
     if (featureContext === 'OptionContent') {
       const objectPath = `${arrayName}.${featureIndex}.${subArrayName}.${optionIndex}.${sectionName}.${sectionIndex}`
       setOptionState({
@@ -293,6 +333,19 @@ const Form = ({
         target: {
           name: objectPath,
           value: optionState,
+        },
+      })
+      const arrayPath = objectPath.split('.')
+      set(formClone, arrayPath, optionState)
+      return formClone
+    }
+    if (featureContext === 'OptionFeatureContent') {
+      setOldSubFeatureState(subFeatureState)
+      const objectPath = `${arrayName}.${featureIndex}.${subArrayName}.${optionIndex}.feature.${subFeatureIndex}`
+      setOptionState({
+        target: {
+          name: `feature.${subFeatureIndex}`,
+          value: subFeatureState,
         },
       })
       const arrayPath = objectPath.split('.')
@@ -349,63 +402,105 @@ const Form = ({
     ) {
       return (formClone = handleSaveFeature(formClone))
     }
+    return formClone
   }
 
   // Save feature hierachy and clear states
   const handleSave = () => {
+    const isValid = validate()
     if (featureStepName === 'SectionContent') {
-      if (context.title === 'feat') {
-        setFormState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
-        })
-      } else if (featureContext === 'OptionContent') {
-        setOptionState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-          },
-        })
-      } else {
-        setFeatureState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
-        })
+      if (!isEqual(sectionState, oldSectionState)) {
+        if (isValid) {
+          if (context.title === 'feat') {
+            setFormState({
+              target: {
+                name: `${sectionName}.${sectionIndex}`,
+                value: sectionState,
+              },
+            })
+          } else if (featureContext === 'OptionFeatureContent') {
+            setSubFeatureState({
+              target: {
+                name: `${sectionName}.${sectionIndex}`,
+              },
+            })
+          } else if (featureContext === 'OptionContent') {
+            setOptionState({
+              target: {
+                name: `${sectionName}.${sectionIndex}`,
+              },
+            })
+          } else {
+            setFeatureState({
+              target: {
+                name: `${sectionName}.${sectionIndex}`,
+                value: sectionState,
+              },
+            })
+          }
+          return setFeatureStepName('FeatureContent')
+        }
+        return
       }
       return setFeatureStepName('FeatureContent')
     }
-    if (featureContext === 'OptionContent') {
-      const parentName = stepName === 'Ancestry' ? 'feature' : 'option'
-      if (context.title === 'feat') {
-        setFormState({
-          target: {
-            name: `option.${optionIndex}`,
-            value: optionState,
-          },
-        })
+    if (featureContext === 'OptionFeatureContent') {
+      if (!isEqual(subFeatureState, oldSubFeatureState)) {
+        if (isValid) {
+          setOptionState({
+            target: {
+              name: `feature.${subFeatureIndex}`,
+              value: subFeatureState,
+            },
+          })
+          return setFeatureContext('OptionContent')
+        }
+        return
       }
-      setFeatureState({
-        target: {
-          name: `${parentName}.${optionIndex}`,
-          value: optionState,
-        },
-      })
+      return setFeatureContext('OptionContent')
+    }
+    if (featureContext === 'OptionContent') {
+      if (!isEqual(optionState, oldOptionState)) {
+        if (isValid) {
+          const parentName = stepName === 'Ancestry' ? 'feature' : 'option'
+          if (context.title === 'feat') {
+            setFormState({
+              target: {
+                name: `option.${optionIndex}`,
+                value: optionState,
+              },
+            })
+          }
+          setFeatureState({
+            target: {
+              name: `${parentName}.${optionIndex}`,
+              value: optionState,
+            },
+          })
+          setFeatureContext('')
+          return setFeatureStepName('FeatureContent')
+        }
+        return
+      }
       setFeatureContext('')
       return setFeatureStepName('FeatureContent')
     }
     if (featureStepName === 'FeatureContent') {
-      if (context.title !== 'feat') {
-        const parentName =
-          stepName === 'Ancestry' ? 'ancestry.option' : 'feature'
-        setFormState({
-          target: {
-            name: `${parentName}.${featureIndex}`,
-            value: featureState,
-          },
-        })
+      if (!isEqual(featureState, oldFeatureState)) {
+        if (isValid) {
+          if (context.title !== 'feat') {
+            const parentName =
+              stepName === 'Ancestry' ? 'ancestry.option' : 'feature'
+            setFormState({
+              target: {
+                name: `${parentName}.${featureIndex}`,
+                value: featureState,
+              },
+            })
+          }
+          return setFeatureStepName('')
+        }
+        return
       }
       return setFeatureStepName('')
     }
@@ -413,13 +508,10 @@ const Form = ({
     setOldFormState(formState)
   }
 
-  console.log('sectionIndex', sectionIndex)
-
   const handleForward = async () => {
     const isValid = validate()
     if (isValid) {
       if (featureStepName !== '') {
-        console.log({ featureStepName: featureStepName })
         return handleSave()
       }
       setOldFormState(formState)
@@ -427,57 +519,34 @@ const Form = ({
     }
     if (isLastStep && featureStepName === '') {
       setSaving(true)
-      await addNewItem(formState)
-      setSaving(false)
-      navigate(-1)
+      const payload = await addNewItem(formState)
+      if ('data' in payload) {
+        return handleNavigateEdit(payload.data.id)
+      }
     }
   }
 
   const handleBack = () => {
     const isValid = validate()
     if (isFirstStep) {
-      if (!isEqual(state, formState)) {
-        return handleAlert({
-          context: 'back',
-          message:
-            context.type === 'edit'
-              ? `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
-              : `${startCase(
-                  context.title
-                )} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
-        })
+      if (isValid) {
+        if (!isEqual(state, formState)) {
+          return handleAlert({
+            context: 'back',
+            message:
+              context.type === 'edit'
+                ? `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
+                : `${startCase(
+                    context.title
+                  )} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+          })
+        }
+        return navigate(-1)
       }
-      return navigate(-1)
     }
     if (!isFirstStep) {
       if (featureStepName !== '') {
-        if (featureStepName === 'SectionContent') {
-          if (isEqual(sectionState, oldSectionState)) {
-            return setFeatureStepName('FeatureContent')
-          }
-          if (isValid) {
-            handleSaveFeatureSection()
-            return setFeatureStepName('FeatureContent')
-          }
-        }
-        if (featureContext === 'OptionContent') {
-          if (isEqual(optionState, oldOptionState)) {
-            return setFeatureContext('')
-          }
-          if (isValid) {
-            handleSaveFeatureOption()
-            return setFeatureContext('')
-          }
-        }
-        if (featureStepName === 'FeatureContent') {
-          if (isEqual(featureState, oldFeatureState)) {
-            return setFeatureStepName('')
-          }
-          if (isValid) {
-            handleSaveFeature()
-            return setFeatureStepName('')
-          }
-        }
+        return handleSave()
       }
       if (isEqual(oldFormState, formState)) {
         if (isFirstStep) {
@@ -506,11 +575,11 @@ const Form = ({
           type: 'reset',
           target: { value: formClone },
         })
+        setOldFormState(formClone)
         setState({
           type: 'reset',
           target: { value: formClone },
         })
-        console.log({ formClone: formClone })
         await updateItem(formClone)
         return setOldFormState(formClone)
       }
@@ -552,8 +621,25 @@ const Form = ({
   }
 
   const handleStepChange = (progressStepIndex: number) => {
-    handleSave()
-    setStepIndex(progressStepIndex)
+    const isValid = validate()
+    if (featureStepName !== '') {
+      if (isValid) {
+        const formClone = handleUpdateFeature()
+        setFormState({
+          type: 'reset',
+          target: { value: formClone },
+        })
+        setFeatureContext('')
+        setFeatureStepName('')
+        return setStepIndex(progressStepIndex)
+      }
+    }
+    if (
+      (isEqual(formState, oldFormState) || isValid) &&
+      featureStepName === ''
+    ) {
+      return setStepIndex(progressStepIndex)
+    }
   }
 
   useEventListener(
@@ -590,9 +676,11 @@ const Form = ({
   }
 
   const featureProps = {
+    formState,
+    featureContext,
+    setFeatureContext,
     featureStepName,
     setFeatureStepName,
-    formState,
     featureState,
     setFeatureState,
     setOldFeatureState,
@@ -606,8 +694,10 @@ const Form = ({
     oldSectionState,
     setOldSectionState,
     setSectionIndex,
-    featureContext,
-    setFeatureContext,
+    subFeatureState,
+    setSubFeatureState,
+    setOldSubFeatureState,
+    setSubFeatureIndex,
     sectionName,
     setSectionName,
   }
@@ -654,7 +744,11 @@ const Form = ({
       {steps.length > 1 && (
         <ProgressBar
           currentStepIndex={stepIndex}
-          steps={steps}
+          steps={steps?.filter((step: Step) =>
+            stepFilter && get(formState, stepFilter?.name) === stepFilter?.value
+              ? step !== stepFilter?.filter
+              : step
+          )}
           handleStepChange={handleStepChange}
         />
       )}
@@ -675,11 +769,163 @@ const Form = ({
         <Spinner />
       ) : (
         <>
-          {
+          {formSteps[
+            formSteps.findIndex(
+              (step) =>
+                step.name ===
+                steps?.filter((step: Step) =>
+                  stepFilter &&
+                  get(formState, stepFilter?.name) === stepFilter?.value
+                    ? step !== stepFilter?.filter
+                    : step
+                )[stepIndex]
+            )
+          ]?.name === 'Features' ? (
+            featureStepName === '' ? (
+              <FeatureList {...commonProps} {...featureProps} />
+            ) : (
+              <>
+                <h2 className={sprinkles({ mb: 'size-2', px: 'size-4' })}>
+                  {featureState.value != null &&
+                    featureState.value !== '' &&
+                    `${
+                      stepName === 'Ancestry'
+                        ? 'Ancestry'
+                        : featureContext === 'OptionContent'
+                        ? 'Option'
+                        : featureContext === 'OptionFeatureContent'
+                        ? 'Sub-Feature'
+                        : 'Feature'
+                    } (${
+                      featureContext !== ''
+                        ? optionState.value
+                        : featureState.value
+                    }${
+                      featureContext === 'OptionFeatureContent'
+                        ? subFeatureState.value
+                          ? ` - ${subFeatureState.value}`
+                          : ` - Sub-Feature ${subFeatureIndex + 1}`
+                        : ''
+                    })`}
+                </h2>
+                {featureStepName === 'FeatureContent' ? (
+                  context.title === 'feat' ? (
+                    <FeatureContent
+                      state={formState}
+                      context={context}
+                      setSectionName={setSectionName}
+                      setFeatureStepName={setFeatureStepName}
+                      featureContext={featureContext}
+                      setFeatureContext={setFeatureContext}
+                      featureState={formState}
+                      setFeatureState={setFormState}
+                      setSectionState={setSectionState}
+                      setOldSectionState={setOldSectionState}
+                      setSectionIndex={setSectionIndex}
+                      stepName={stepName}
+                    />
+                  ) : featureContext === 'OptionFeatureContent' ? (
+                    <FeatureContent
+                      state={formState}
+                      context={{ type: context.type, title: 'option' }}
+                      setSectionName={setSectionName}
+                      setFeatureStepName={setFeatureStepName}
+                      featureContext={featureContext}
+                      setFeatureContext={setFeatureContext}
+                      featureState={subFeatureState}
+                      setFeatureState={setSubFeatureState}
+                      setSubFeatureState={setSubFeatureState}
+                      setOldSubFeatureState={setOldSubFeatureState}
+                      setSubFeatureIndex={setSubFeatureIndex}
+                      setSectionState={setSectionState}
+                      setOldSectionState={setOldSectionState}
+                      setSectionIndex={setSectionIndex}
+                      stepName={stepName}
+                    />
+                  ) : featureContext === 'OptionContent' ? (
+                    <FeatureContent
+                      state={formState}
+                      context={{ type: context.type, title: 'option' }}
+                      setSectionName={setSectionName}
+                      setFeatureStepName={setFeatureStepName}
+                      featureContext={featureContext}
+                      setFeatureContext={setFeatureContext}
+                      featureState={optionState}
+                      setFeatureState={setOptionState}
+                      setOptionState={setOptionState}
+                      setOldOptionState={setOldOptionState}
+                      setOptionIndex={setOptionIndex}
+                      setSectionState={setSectionState}
+                      setOldSectionState={setOldSectionState}
+                      setSectionIndex={setSectionIndex}
+                      setSubFeatureState={setSubFeatureState}
+                      setOldSubFeatureState={setOldSubFeatureState}
+                      setSubFeatureIndex={setSubFeatureIndex}
+                      stepName={stepName}
+                    />
+                  ) : (
+                    <FeatureContent
+                      state={formState}
+                      context={context}
+                      setSectionName={setSectionName}
+                      setFeatureStepName={setFeatureStepName}
+                      featureContext={featureContext}
+                      setFeatureContext={setFeatureContext}
+                      featureState={featureState}
+                      setFeatureState={setFeatureState}
+                      setOptionState={setOptionState}
+                      setOldOptionState={setOldOptionState}
+                      setOptionIndex={setOptionIndex}
+                      setSectionState={setSectionState}
+                      setOldSectionState={setOldSectionState}
+                      setSectionIndex={setSectionIndex}
+                      stepName={stepName}
+                    />
+                  )
+                ) : (
+                  featureStepName === 'SectionContent' &&
+                  (featureContext === 'OptionFeatureContent' ? (
+                    <SectionContent
+                      state={formState}
+                      sectionName={sectionName}
+                      featureState={subFeatureState}
+                      setSectionState={setSectionState}
+                      sectionState={sectionState}
+                    />
+                  ) : featureContext === 'OptionContent' ? (
+                    <SectionContent
+                      state={formState}
+                      sectionName={sectionName}
+                      featureState={optionState}
+                      setSectionState={setSectionState}
+                      sectionState={sectionState}
+                    />
+                  ) : (
+                    <SectionContent
+                      state={formState}
+                      sectionName={sectionName}
+                      featureState={featureState}
+                      setSectionState={setSectionState}
+                      sectionState={sectionState}
+                    />
+                  ))
+                )}
+              </>
+            )
+          ) : (
             formSteps[
-              formSteps.findIndex((step) => step.name === steps[stepIndex])
+              formSteps.findIndex(
+                (step) =>
+                  step.name ===
+                  steps?.filter((step: Step) =>
+                    stepFilter &&
+                    get(formState, stepFilter?.name) === stepFilter?.value
+                      ? step !== stepFilter?.filter
+                      : step
+                  )[stepIndex]
+              )
             ]?.content
-          }
+          )}
           <FormFooter
             handleBack={handleBack}
             forwardLabel={
@@ -706,7 +952,7 @@ const Form = ({
             backLabel={isFirstStep ? 'Cancel' : 'Back'}
             handleUpdate={() => handleUpdate()}
             isLastStep={isLastStep && featureStepName === ''}
-            context={context.type}
+            context={context}
           />
         </>
       )}

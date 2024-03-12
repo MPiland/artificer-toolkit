@@ -123,8 +123,8 @@ const Dropdown = ({
 
   if (options?.length) {
     newOptions = options?.filter((option) => option?.value != null)
-    newOptions = newOptions.map(({ name, value, _id, id, ...rest }) => {
-      const newObj: DropdownOption = { name, value, _id, id }
+    newOptions = newOptions.map(({ name, value, _id, ...rest }) => {
+      const newObj: DropdownOption = { name, value, _id }
 
       if (optionalKey) {
         if (Array.isArray(optionalKey)) {
@@ -152,8 +152,8 @@ const Dropdown = ({
 
   if (multiSelect) {
     newOptions.unshift(
-      { name: 'all', value: 'All', id: null, _id: null },
-      { name: 'clear', value: 'Clear', id: null, _id: null }
+      { name: 'all', value: 'All', _id: null },
+      { name: 'clear', value: 'Clear', _id: null }
     )
   }
 

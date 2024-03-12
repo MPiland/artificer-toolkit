@@ -6,10 +6,12 @@ function renameKey(data) {
     return data.map((item) => renameKey(item))
   } else if (typeof data === 'object' && data !== null) {
     for (let key in data) {
-      if (key === 'distance') {
-        data['maxRange'] = data['distance']
-        data['minRange'] = 5
-        delete data['distance']
+      if (key === 'module') {
+        data['category'] = data[key]
+        delete data[key]
+      } else if (key === 'modType') {
+        data['type'] = data[key]
+        delete data[key]
       } else if (typeof data[key] === 'object') {
         data[key] = renameKey(data[key]) // Recursive call for nested objects
       }
@@ -18,7 +20,9 @@ function renameKey(data) {
   return data
 }
 
-const data = db.spells.find().toArray()
+const collection = 'builders'
+
+const data = db[collection].find().toArray()
 
 const clearData = async (data) => {
   data = renameKey(data)
@@ -28,7 +32,7 @@ const clearData = async (data) => {
       update: { $set: item },
     },
   }))
-  await db.spells.bulkWrite(bulkOperations)
+  await db[collection].bulkWrite(bulkOperations)
   // await db.tests.insertMany(data)
 }
 

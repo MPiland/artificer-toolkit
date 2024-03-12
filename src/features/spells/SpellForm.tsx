@@ -61,7 +61,7 @@ const SpellForm = () => {
     <Spinner />
   ) : (
     <Form
-      context={{ type: context as FormContext, title: 'spell' }}
+      context={{ type: context, title: 'spell' } as FormContext}
       steps={steps}
       state={state}
       setState={setState}

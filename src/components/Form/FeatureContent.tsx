@@ -41,21 +41,21 @@ import Group from '../Group/Group'
 
 interface FeatureContentProps {
   state?: any
-  context: {
-    type?: FormContext
-    title: string
-  }
-  setSectionName: (arg: SectionName) => void
-  setFeatureStepName: (arg: FeatureStepName) => void
+  context: FormContext
   featureContext: FeatureContext
   setFeatureContext: (arg: FeatureContext) => void
+  setFeatureStepName: (arg: FeatureStepName) => void
+  setSectionName: (arg: SectionName) => void
   featureState: any
   setFeatureState: (arg: ReducerActionType) => void
-  setOptionState: (arg: ReducerActionType) => void
+  setOptionState?: (arg: ReducerActionType) => void
   setSectionState: (arg: ReducerActionType) => void
-  setOptionIndex: (arg: number) => void
-  setOldOptionState: (arg: any) => void
+  setOptionIndex?: (arg: number) => void
+  setOldOptionState?: (arg: any) => void
   setOldSectionState: (arg: any) => void
+  setSubFeatureState?: (arg: ReducerActionType) => void
+  setOldSubFeatureState?: (arg: any) => void
+  setSubFeatureIndex?: (arg: number) => void
   setSectionIndex: (arg: number) => void
   stepName: Step
 }
@@ -70,11 +70,14 @@ const FeatureContent = ({
   featureState,
   setFeatureState,
   setOptionState,
+  setOldOptionState,
   setOptionIndex,
   setSectionState,
-  setOldOptionState,
   setOldSectionState,
   setSectionIndex,
+  setOldSubFeatureState,
+  setSubFeatureIndex,
+  setSubFeatureState,
   stepName,
 }: FeatureContentProps) => {
   const isLoading = useIsLoading()
@@ -82,7 +85,7 @@ const FeatureContent = ({
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [subArray, setSubArray] = useState<'option' | 'feature' | ''>('')
   const [valueLabel, setValueLabel] = useState<
-    'Feat' | 'feature' | 'Option' | 'Feature' | 'Ancestry'
+    'Feat' | 'Option' | 'Feature' | 'Ancestry' | 'Sub-Feature'
   >()
 
   const { data: builders } = useGetBuildersQuery(undefined)
@@ -187,6 +190,7 @@ const FeatureContent = ({
     featureState.attribute,
   ])
 
+  // Set array name for Ancestry vs Feature (generic)
   useEffect(() => {
     if (featureContext === 'OptionContent') {
       if (stepName === 'Ancestry') {
@@ -199,10 +203,11 @@ const FeatureContent = ({
     }
   }, [featureContext, stepName])
 
+  // Set header label
   useEffect(() => {
     if (stepName === 'Ancestry') {
       if (featureContext === 'OptionContent') {
-        setValueLabel('feature')
+        setValueLabel('Feature')
       } else {
         setValueLabel('Ancestry')
       }
@@ -210,6 +215,8 @@ const FeatureContent = ({
       setValueLabel('Feat')
     } else if (featureContext === 'OptionContent') {
       setValueLabel('Option')
+    } else if (featureContext === 'OptionFeatureContent') {
+      setValueLabel('Sub-Feature')
     } else {
       setValueLabel('Feature')
     }
@@ -296,13 +303,23 @@ const FeatureContent = ({
     const sectionState = featureState[sectionName][sectionIndex]
     setSectionIndex(sectionIndex)
     if (sectionName === 'option' || sectionName === 'feature') {
+      if (featureContext === 'OptionContent') {
+        setSubFeatureState &&
+          setSubFeatureState({
+            type: 'reset',
+            target: { value: sectionState },
+          })
+        setSubFeatureIndex && setSubFeatureIndex(sectionIndex)
+        setOldSubFeatureState && setOldSubFeatureState(sectionState)
+        return setFeatureContext('OptionFeatureContent')
+      }
       setOptionState &&
         setOptionState({
           type: 'reset',
           target: { value: sectionState },
         })
       setOptionIndex && setOptionIndex(sectionIndex)
-      setOldOptionState(sectionState)
+      setOldOptionState && setOldOptionState(sectionState)
       return setFeatureContext('OptionContent')
     }
     setSectionName(sectionName)
@@ -314,7 +331,9 @@ const FeatureContent = ({
     setFeatureStepName('SectionContent')
   }
 
-  const sectionNames = getSectionNames()
+  const sectionNames = getSectionNames().sort((a: any, b: any) =>
+    a.localeCompare(b)
+  )
 
   const selectSection = (sectionName: SectionName) => {
     if (featureState[sectionName]?.length > 0) {
@@ -323,21 +342,32 @@ const FeatureContent = ({
       setSectionIndex(0)
     }
 
-    console.log({ featureState: featureState })
-    console.log({ sectionIndex: featureState[sectionName]?.length })
-
     if (sectionName !== '') {
       if (sectionName === 'option' || sectionName === 'feature') {
-        setOptionState({ type: 'reset', target: { value: {} } })
-        setOldOptionState({})
+        // If Option content, add sub-feature
+        if (featureContext === 'OptionContent') {
+          setSubFeatureState &&
+            setSubFeatureState({ type: 'reset', target: { value: {} } })
+          setOldSubFeatureState && setOldSubFeatureState({})
+          const optionIndex =
+            featureState[sectionName]?.length > 0
+              ? featureState[sectionName].length
+              : 0
+          setSubFeatureIndex && setSubFeatureIndex(optionIndex)
+          return setFeatureContext('OptionFeatureContent')
+        }
+        // Add Option content
+        setOptionState &&
+          setOptionState({ type: 'reset', target: { value: {} } })
+        setOldOptionState && setOldOptionState({})
         const optionIndex =
           featureState[sectionName]?.length > 0
             ? featureState[sectionName].length
             : 0
         setOptionIndex && setOptionIndex(optionIndex)
-        setFeatureContext('OptionContent')
-        return setFeatureStepName('FeatureContent')
+        return setFeatureContext('OptionContent')
       }
+      // Add Section
       setSectionState({ type: 'reset', target: { value: {} } })
       setOldSectionState({})
       setSectionName(sectionName)
@@ -366,11 +396,20 @@ const FeatureContent = ({
           options={sectionNames.filter(
             (sectionName: SectionName) =>
               (featureContext === 'OptionContent'
-                ? sectionName !== 'option' && sectionName !== 'feature'
+                ? sectionName !== 'option'
                 : sectionName) &&
               (stepName === 'Ancestry'
                 ? sectionName !== 'option'
-                : sectionName !== 'feature')
+                : sectionName) &&
+              (context.title !== 'class'
+                ? sectionName !== 'ancestry'
+                : sectionName) &&
+              (featureContext !== 'OptionContent'
+                ? sectionName !== 'feature'
+                : sectionName) &&
+              (featureContext === 'OptionFeatureContent'
+                ? sectionName !== 'option'
+                : sectionName)
           )}
         />
       </Grid>
@@ -707,7 +746,7 @@ const FeatureContent = ({
               name={`saveAbility.minValue`}
               autoComplete='off'
               label='Base Value'
-              required={true}
+              required={context.title !== 'class' && true}
               errorMsg='Must contain only numbers'
               value={featureState?.saveAbility?.minValue}
               onChange={setFeatureState}
@@ -1234,7 +1273,7 @@ const FeatureContent = ({
                         return (
                           <Accordion.Container
                             key={sectionIndex}
-                            itemId={sectionItem?.id ?? sectionIndex}
+                            itemId={sectionItem?._id ?? sectionIndex}
                           >
                             <Accordion.Header
                               key={sectionIndex}

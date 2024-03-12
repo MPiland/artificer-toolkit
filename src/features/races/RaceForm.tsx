@@ -55,18 +55,13 @@ const RaceForm = () => {
     }
   }, [oldState, race])
 
-  const steps: Step[] = [
-    'Details',
-    'Traits',
-    'Ancestry',
-    'Features',
-  ]
+  const steps: Step[] = ['Details', 'Traits', 'Ancestry', 'Features']
 
   return isLoading || !state ? (
     <Spinner />
   ) : (
     <Form
-      context={{ type: context as FormContext, title: 'race' }}
+      context={{ type: context, title: 'race' } as FormContext}
       steps={steps}
       state={state}
       setState={setState}

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { PropertyPath, get, isObject, uniq } from 'lodash'
 import { SortConfig } from '../utils/types'
 
@@ -18,6 +18,23 @@ const useSortableData = (
   config: UseSortableDataProps['config'] = null
 ): UseSortableDataResult => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(config)
+  const itemsRef = useRef<any[]>(items)
+
+  useMemo(() => {
+    if (sortConfig && sortConfig.key.filter) {
+      itemsRef.current = items.filter((item) => {
+        const filter = sortConfig.key.filter
+        if (filter && filter.filterOn) {
+          const value = get(item, filter.filterOn)
+          return value === filter.filterKey
+        } else {
+          return true // Keep the item if no filterOn is provided
+        }
+      })
+    } else {
+      itemsRef.current = items // If no filter, keep items unchanged
+    }
+  }, [items, sortConfig])
 
   const compareValues = useCallback(
     (aValue: any, bValue: any, direction: SortConfig['direction']): number => {
@@ -46,8 +63,8 @@ const useSortableData = (
           return direction === 'ascending' ? -1 : 1
         } else {
           return direction === 'ascending'
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue)
+            ? String(aValue).localeCompare(String(bValue))
+            : String(bValue).localeCompare(String(aValue))
         }
       }
     },
@@ -128,6 +145,7 @@ const useSortableData = (
         })
         sortableItems.push(...nullArray)
       } else {
+        sortableItems = [...items]
         sortableItems = items.sort((a, b) => {
           const aValue = get(a, sortOn)
           const bValue = get(b, sortOn)
@@ -141,29 +159,30 @@ const useSortableData = (
 
   const sortedItems = useMemo(() => {
     let sortableItems: any[] = []
+    const items = itemsRef.current
 
     if (items != null && items.length > 0) {
       if (sortConfig !== null) {
         const { key, direction } = sortConfig
-
-        if (key?.orderKey) {
-          if (!key.order) {
-            key.order = uniq(
-              items.map((item) => get(item, key.orderKey as PropertyPath))
-            ).filter((orderItem) => orderItem != null)
-            if (key?.subSort && !key.subSort.order) {
-              key.subSort.order = uniq(
-                items.map((item) =>
-                  get(item, key.subSort?.orderKey as PropertyPath)
-                )
-              ).filter((orderItem) => orderItem != null)
-            }
-          }
-          key.subSort?.order && hierarchyOrderSort(key.subSort.order, direction)
-          hierarchyOrderSort(key.order, direction)
-          return (sortableItems = recursiveSort(items, key, direction))
-        }
         if (key) {
+          if (key?.orderKey) {
+            if (!key.order) {
+              key.order = uniq(
+                items.map((item) => get(item, key.orderKey as PropertyPath))
+              ).filter((orderItem) => orderItem != null)
+              if (key?.subSort && !key.subSort.order) {
+                key.subSort.order = uniq(
+                  items.map((item) =>
+                    get(item, key.subSort?.orderKey as PropertyPath)
+                  )
+                ).filter((orderItem) => orderItem != null)
+              }
+              key.subSort?.order &&
+                hierarchyOrderSort(key.subSort.order, direction)
+            }
+            hierarchyOrderSort(key.order, direction)
+            return (sortableItems = recursiveSort(items, key, direction))
+          }
           sortableItems = [...items]
           sortableItems.sort((a, b) => {
             const aValue = get(a, key.sortOn)
@@ -228,8 +247,8 @@ const useSortableData = (
         }
       }
     }
-    return items
-  }, [items, sortConfig, recursiveSort, compareValues, hierarchyOrderSort])
+    return sortableItems
+  }, [sortConfig, recursiveSort, compareValues, hierarchyOrderSort])
 
   const requestSort = (key: SortConfig['key']) => {
     let direction: SortConfig['direction'] = 'ascending'

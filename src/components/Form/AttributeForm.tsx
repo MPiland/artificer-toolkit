@@ -26,10 +26,7 @@ import Spinner from '../Spinner/Spinner'
 import RichTextEditor from '../RichTextEditor/RichTextEditor'
 
 interface AttributeFormProps {
-  context: {
-    type: FormContext
-    title: string
-  }
+  context: FormContext
   formState: any
   setFormState: (arg: ReducerActionType) => void
 }
@@ -420,33 +417,35 @@ const AttributeForm = memo(
     ) : (
       <ScrollArea scrollDirection='vertical' className={form_content}>
         <Grid className={sprinkles({ mb: 'size-3' })}>
-          <Dropdown
-            multiSelect={true}
-            name='attribute'
-            label={`${startCase(context.title)} Attributes`}
-            value={formState?.attribute}
-            options={builders[context.title].attribute
-              .filter((attributeItem: any) =>
-                formState.category?.name === 'armor' ||
-                formState.category?.name === 'weapon'
-                  ? attributeItem
-                  : attributeItem.name !== 'maxBonus'
-              )
-              .filter(
-                (attributeItem: any) =>
-                  (formState.category?.name === 'base'
+          {context.title && (
+            <Dropdown
+              multiSelect={true}
+              name='attribute'
+              label={`${startCase(context.title)} Attributes`}
+              value={formState?.attribute}
+              options={builders[context.title].attribute
+                .filter((attributeItem: any) =>
+                  formState.category?.name === 'armor' ||
+                  formState.category?.name === 'weapon'
                     ? attributeItem
-                    : attributeItem.name !== 'primaryAbility' &&
-                      attributeItem.name !== 'secondaryAbility') &&
-                  (formState.attribute?.some(
-                    (attributeItem: any) =>
-                      attributeItem.name === 'primaryAbility'
-                  )
-                    ? attributeItem
-                    : attributeItem.name !== 'optionalAbility')
-              )}
-            onChange={setFormState}
-          />
+                    : attributeItem.name !== 'maxBonus'
+                )
+                .filter(
+                  (attributeItem: any) =>
+                    (formState.category?.name === 'base'
+                      ? attributeItem
+                      : attributeItem.name !== 'primaryAbility' &&
+                        attributeItem.name !== 'secondaryAbility') &&
+                    (formState.attribute?.some(
+                      (attributeItem: any) =>
+                        attributeItem.name === 'primaryAbility'
+                    )
+                      ? attributeItem
+                      : attributeItem.name !== 'optionalAbility')
+                )}
+              onChange={setFormState}
+            />
+          )}
           {formState?.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'resource'
           ) && (
@@ -491,20 +490,25 @@ const AttributeForm = memo(
           )}
           {formState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'isAction'
-          ) && (
-            <Dropdown
-              name={context.title === 'spell' ? 'action.actionType' : 'action'}
-              label={context.title === 'spell' ? 'Casting Time' : 'Action Type'}
-              value={
-                context.title === 'spell'
-                  ? formState?.action?.actionType
-                  : formState?.action
-              }
-              options={builders[context.title].action}
-              required={true}
-              onChange={setFormState}
-            />
-          )}
+          ) &&
+            context.title && (
+              <Dropdown
+                name={
+                  context.title === 'spell' ? 'action.actionType' : 'action'
+                }
+                label={
+                  context.title === 'spell' ? 'Casting Time' : 'Action Type'
+                }
+                value={
+                  context.title === 'spell'
+                    ? formState?.action?.actionType
+                    : formState?.action
+                }
+                options={builders[context.title].action}
+                required={true}
+                onChange={setFormState}
+              />
+            )}
           {context.title === 'spell' && (
             <>
               {formState?.attribute?.some(
@@ -849,6 +853,18 @@ const AttributeForm = memo(
                 onChange={setFormState}
               />
               {formState?.spellcasting?.attribute?.some(
+                (attributeItem: any) => attributeItem.name === 'magicName'
+              ) && (
+                <Input
+                  name='spellcasting.magicName'
+                  autoComplete='off'
+                  label='Magic Type Name'
+                  required={true}
+                  value={formState?.spellcasting?.magicName}
+                  onChange={setFormState}
+                />
+              )}
+              {formState?.spellcasting?.attribute?.some(
                 (attributeItem: any) => attributeItem.name === 'preparesSpells'
               ) && (
                 <Dropdown
@@ -908,7 +924,7 @@ const AttributeForm = memo(
             </Grid>
           </Collapse>
         )}
-        {context.title === 'class' && formState.category.name === 'base' && (
+        {context.title === 'class' && formState.category?.name === 'base' && (
           <Collapse
             startOpened={context.type === 'new'}
             title='Subclass Details'
@@ -1471,7 +1487,7 @@ const AttributeForm = memo(
                             ?.length > 0
                             ? formState.requirement.itemProficiency?.category?.some(
                                 (categoryItem: any) =>
-                                  categoryItem.name === item.category.name
+                                  categoryItem.name === item.category?.name
                               )
                             : item
                         ) as unknown as DropdownOption[]
@@ -1490,7 +1506,7 @@ const AttributeForm = memo(
                               ?.length > 0
                               ? formState.requirement.itemProficiency?.category?.some(
                                   (categoryItem: any) =>
-                                    categoryItem.name === item.category.name
+                                    categoryItem.name === item.category?.name
                                 )
                               : item
                           )
@@ -1543,7 +1559,7 @@ const AttributeForm = memo(
                           formState.requirement.equipped?.category?.length > 0
                             ? formState.requirement.equipped?.category?.some(
                                 (categoryItem: any) =>
-                                  categoryItem.name === item.category.name
+                                  categoryItem.name === item.category?.name
                               )
                             : item
                         ) as unknown as DropdownOption[]
@@ -1561,7 +1577,7 @@ const AttributeForm = memo(
                             formState.requirement.equipped?.category?.length
                               ? formState.requirement.equipped?.category?.some(
                                   (categoryItem: any) =>
-                                    categoryItem.name === item.category.name
+                                    categoryItem.name === item.category?.name
                                 )
                               : item
                           )
@@ -1606,7 +1622,7 @@ const AttributeForm = memo(
                           0
                             ? formState.requirement.notEquipped?.category?.some(
                                 (categoryItem: any) =>
-                                  categoryItem.name === item.category.name
+                                  categoryItem.name === item.category?.name
                               )
                             : item
                         ) as unknown as DropdownOption[]
@@ -1624,7 +1640,7 @@ const AttributeForm = memo(
                           0
                             ? formState.requirement.notEquipped?.category?.some(
                                 (categoryItem: any) =>
-                                  categoryItem.name === item.category.name
+                                  categoryItem.name === item.category?.name
                               )
                             : item
                         )

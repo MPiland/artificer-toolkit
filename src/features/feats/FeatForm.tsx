@@ -61,7 +61,7 @@ const FeatForm = () => {
     <Spinner />
   ) : (
     <Form
-      context={{ type: context as FormContext, title: 'feat' }}
+      context={{ type: context, title: 'feat' } as FormContext}
       steps={steps}
       state={state}
       setState={setState}

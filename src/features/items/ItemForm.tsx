@@ -87,7 +87,7 @@ const ItemForm = () => {
     <Spinner />
   ) : (
     <Form
-      context={{ type: context as FormContext, title: 'item' }}
+      context={{ type: context, title: 'item' } as FormContext}
       steps={steps}
       state={state}
       setState={setState}

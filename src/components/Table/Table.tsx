@@ -375,7 +375,7 @@ const TableRow = ({
                 className={table_button_cell}
                 onClick={(e) => {
                   e.stopPropagation()
-                  deleteRow(valueItem)
+                  deleteRow(subrowItem)
                 }}
               >
                 <Button
