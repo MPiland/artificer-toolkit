@@ -5,14 +5,14 @@ import {
   ProficiencyContent,
   SenseContent,
   SpellContent,
-  SectionProps,
+  SectionContentProps,
   AncestryContent,
 } from '../components/Form/SectionContent'
 import { SectionName } from './types'
 
 type TableContent = {
   [key: string]: {
-    content: FC<SectionProps>
+    content: FC<SectionContentProps>
   }
 }
 
@@ -33,8 +33,8 @@ export const tableContent: TableContent = {
     content: SpellContent,
   },
   ancestry: {
-    content: AncestryContent
-  }
+    content: AncestryContent,
+  },
 }
 
 export const getSectionNames = (): SectionName[] => {
