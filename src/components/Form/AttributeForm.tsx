@@ -280,7 +280,7 @@ const AttributeForm = memo(
       if (duration) {
         inputArray.push(
           {
-            name: 'duration.durationType',
+            name: 'duration.type',
             value: 'Duration',
             type: 'select',
             options: builders.spell.duration,
@@ -320,6 +320,12 @@ const AttributeForm = memo(
       }
       if (shape) {
         inputArray.push(
+          {
+            name: 'shape.type',
+            value: 'Shape Type',
+            type: 'select',
+            options: builders.spell.shape,
+          },
           {
             name: 'shape.size',
             value: 'Shape Size',
@@ -545,17 +551,17 @@ const AttributeForm = memo(
                   />
                 )}
               <Dropdown
-                name='duration.durationType'
+                name='duration.type'
                 label='Duration'
-                value={formState?.duration?.durationType}
+                value={formState?.duration?.type}
                 options={builders.spell.duration}
                 required={true}
                 onChange={setFormState}
               />
               {formState?.duration &&
-                formState.duration?.durationType.name !== 'instantaneous' &&
-                formState.duration?.durationType.name !== 'untilDispelled' &&
-                formState.duration?.durationType.name !== 'special' && (
+                formState.duration?.type.name !== 'instantaneous' &&
+                formState.duration?.type.name !== 'untilDispelled' &&
+                formState.duration?.type.name !== 'special' && (
                   <Input
                     validation={'num'}
                     name='duration.value'
@@ -568,17 +574,17 @@ const AttributeForm = memo(
                   />
                 )}
               <Dropdown
-                name='range.rangeType'
+                name='range.type'
                 label='Range'
-                value={formState?.range?.rangeType}
+                value={formState?.range?.type}
                 options={builders.spell.range}
                 required={true}
                 onChange={setFormState}
               />
-              {formState?.range?.rangeType?.name !== 'touch' &&
-                formState.range?.rangeType?.name !== 'sight' &&
-                formState.range?.rangeType?.name !== 'unlimited' &&
-                formState.range?.rangeType && (
+              {formState?.range?.type?.name !== 'touch' &&
+                formState.range?.type?.name !== 'sight' &&
+                formState.range?.type?.name !== 'unlimited' &&
+                formState.range?.type && (
                   <>
                     <Input
                       validation={'num'}
@@ -587,7 +593,7 @@ const AttributeForm = memo(
                       label='Distance'
                       autoComplete='off'
                       required={
-                        formState.range?.rangeType?.name === 'distance'
+                        formState.range?.type?.name === 'distance'
                           ? true
                           : false
                       }
@@ -601,7 +607,7 @@ const AttributeForm = memo(
                       label='Distance'
                       autoComplete='off'
                       required={
-                        formState.range?.rangeType?.name === 'distance'
+                        formState.range?.type?.name === 'distance'
                           ? true
                           : false
                       }
@@ -618,7 +624,7 @@ const AttributeForm = memo(
                         ) as DropdownOption[]
                       }
                       required={
-                        formState.range?.rangeType?.name === 'distance'
+                        formState.range?.type?.name === 'distance'
                           ? true
                           : false
                       }
@@ -628,15 +634,15 @@ const AttributeForm = memo(
                   </>
                 )}
               <Dropdown
-                name='shape.shapeType'
+                name='shape.type'
                 label='Shape'
                 options={builders.spell.shape}
-                value={formState?.shape?.shapeType}
+                value={formState?.shape?.type}
                 onChange={setFormState}
               />
-              {formState?.shape?.shapeType?.name &&
-                formState.shape?.shapeType?.name !== 'none' &&
-                formState.shape?.shapeType?.name !== 'weapon' && (
+              {formState?.shape?.type?.name &&
+                formState.shape?.type?.name !== 'none' &&
+                formState.shape?.type?.name !== 'weapon' && (
                   <>
                     <Input
                       validation={'cur'}
@@ -1477,10 +1483,10 @@ const AttributeForm = memo(
                       onChange={setFormState}
                     />
                     <Dropdown
-                      name='requirement.itemProficiency.itemType'
+                      name='requirement.itemProficiency.type'
                       multiSelect={true}
                       label='Item type'
-                      value={formState?.requirement?.itemProficiency?.itemType}
+                      value={formState?.requirement?.itemProficiency?.type}
                       options={
                         items?.filter((item: any) =>
                           formState.requirement.itemProficiency?.category
@@ -1511,9 +1517,9 @@ const AttributeForm = memo(
                               : item
                           )
                           .filter((item: any) =>
-                            formState.requirement.itemProficiency?.itemType
+                            formState.requirement.itemProficiency?.type
                               ?.length > 0
-                              ? formState.requirement.itemProficiency?.itemType?.some(
+                              ? formState.requirement.itemProficiency?.type?.some(
                                   (typeItem: any) => typeItem.name === item.name
                                 )
                               : item
@@ -1551,9 +1557,9 @@ const AttributeForm = memo(
                     />
                     <Dropdown
                       multiSelect={true}
-                      name='requirement.equipped.itemType'
+                      name='requirement.equipped.type'
                       label='Item type'
-                      value={formState?.requirement?.equipped?.itemType}
+                      value={formState?.requirement?.equipped?.type}
                       options={
                         items?.filter((item: any) =>
                           formState.requirement.equipped?.category?.length > 0
@@ -1582,8 +1588,8 @@ const AttributeForm = memo(
                               : item
                           )
                           .filter((item: any) =>
-                            formState.requirement.equipped?.itemType?.length > 0
-                              ? formState.requirement.equipped?.itemType?.some(
+                            formState.requirement.equipped?.type?.length > 0
+                              ? formState.requirement.equipped?.type?.some(
                                   (typeItem: any) => typeItem.name === item.name
                                 )
                               : item
@@ -1613,9 +1619,9 @@ const AttributeForm = memo(
                     />
                     <Dropdown
                       multiSelect={true}
-                      name='requirement.notEquipped.itemType'
+                      name='requirement.notEquipped.type'
                       label='Item type'
-                      value={formState?.requirement?.notEquipped?.itemType}
+                      value={formState?.requirement?.notEquipped?.type}
                       options={
                         items?.filter((item: any) =>
                           formState.requirement.notEquipped?.category?.length >
@@ -1645,9 +1651,8 @@ const AttributeForm = memo(
                             : item
                         )
                         .filter((item: any) =>
-                          formState.requirement.notEquipped?.itemType?.length >
-                          0
-                            ? formState.requirement.notEquipped?.itemType?.some(
+                          formState.requirement.notEquipped?.type?.length > 0
+                            ? formState.requirement.notEquipped?.type?.some(
                                 (typeItem: any) => typeItem.name === item.name
                               )
                             : item

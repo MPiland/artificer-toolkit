@@ -514,13 +514,13 @@ const Table = memo(
       <Spinner />
     ) : (
       <ScrollArea
-        className={clsx(table)}
+        className={clsx(table, 'table')}
         scrollDirection={
           scrollable === 'horizontal' || scrollable === 'all'
             ? 'horizontal'
             : 'none'
         }
-        id={id}
+        id={id ?? undefined}
       >
         {rows?.headers && (
           <TableHeader

@@ -129,32 +129,32 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
             />
             <Dropdown
               multiSelect={true}
-              name='duration.durationType'
+              name='duration.type'
               label='Duration'
               options={items?.map(
-                (item: DropdownOption) => item.duration?.durationType
+                (item: DropdownOption) => item.duration?.type
               )}
-              value={listFilter?.duration?.durationType}
+              value={listFilter?.duration?.type}
               onChange={setListFilter}
             />
             <Dropdown
               multiSelect={true}
-              name='range.rangeType'
+              name='range.type'
               label='Range'
               options={items?.map(
-                (item: DropdownOption) => item.range?.rangeType
+                (item: DropdownOption) => item.range?.type
               )}
-              value={listFilter?.range?.rangeType}
+              value={listFilter?.range?.type}
               onChange={setListFilter}
             />
             <Dropdown
               multiSelect={true}
-              name='shape.shapeType'
+              name='shape.type'
               label='Shape'
               options={items?.map(
-                (item: DropdownOption) => item.shape?.shapeType
+                (item: DropdownOption) => item.shape?.type
               )}
-              value={listFilter?.shape?.shapeType}
+              value={listFilter?.shape?.type}
               onChange={setListFilter}
             />
           </>

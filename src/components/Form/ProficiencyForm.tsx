@@ -191,7 +191,7 @@ const ProficiencyForm = memo(
                             />
                           )}
                           {(proficiencyItem.area?.name === 'property' ||
-                            proficiencyItem.area?.name === 'itemType') && (
+                            proficiencyItem.area?.name === 'item') && (
                             <>
                               <Dropdown
                                 name={`proficiency.${proficiencyIndex}.category`}
@@ -224,22 +224,22 @@ const ProficiencyForm = memo(
                                   onChange={setFormState}
                                 />
                               )}
-                              {proficiencyItem.area?.name === 'itemType' && (
+                              {proficiencyItem.area?.name === 'item' && (
                                 <Dropdown
-                                  name={`proficiency.${proficiencyIndex}.itemType`}
+                                  name={`proficiency.${proficiencyIndex}.item`}
                                   multiSelect={true}
-                                  label='Item Type'
-                                  value={proficiencyItem.itemType}
+                                  label='Item'
+                                  value={proficiencyItem.item}
                                   options={(
                                     items as unknown as DropdownOption[]
-                                  )?.filter((itemType: any) =>
+                                  )?.filter((item: any) =>
                                     proficiencyItem.category?.length > 0
                                       ? proficiencyItem.category?.some(
                                           (categoryItem: any) =>
                                             categoryItem.name ===
-                                            itemType.category?.name
+                                            item.category?.name
                                         )
-                                      : itemType
+                                      : item
                                   )}
                                   onChange={setFormState}
                                 />

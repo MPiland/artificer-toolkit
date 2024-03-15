@@ -5,7 +5,7 @@ import {
   useState,
   MouseEvent as ReactMouseEvent,
   memo,
-  useEffect,
+  useLayoutEffect,
   ComponentPropsWithoutRef,
 } from 'react'
 import clsx from 'clsx'
@@ -68,11 +68,12 @@ const ScrollArea = memo(
 
     let scrollTimer: ReturnType<typeof setTimeout>
 
-    useEffect(() => {
+    useLayoutEffect(() => {
       const scrollWrapper = scrollWrapperRef.current
       const scrollArea = scrollAreaRef.current
-      if (scrollArea) {
-        const scrollChildren = Array.from(scrollArea.children)
+      if (scrollArea && scrollWrapper) {
+        const scrollWrapperChildren = Array.from(scrollWrapper.children)
+        const scrollAreaChildren = Array.from(scrollArea.children)
         const handleResize = (entries: Array<ResizeObserverEntry>) => {
           entries.forEach(() => {
             if (
@@ -115,7 +116,12 @@ const ScrollArea = memo(
         const observer = new ResizeObserver(handleResize)
 
         if (scrollWrapper && scrollArea) {
-          scrollChildren.forEach((child) => {
+          scrollWrapperChildren.forEach((wrapperChild) => {
+            if (wrapperChild === scrollArea) {
+              observer.observe(wrapperChild)
+            }
+          })
+          scrollAreaChildren.forEach((child) => {
             observer.observe(child)
           })
         }

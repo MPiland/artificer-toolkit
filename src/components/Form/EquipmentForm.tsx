@@ -225,14 +225,14 @@ const EquipmentForm = ({
                                             onChange={setFormState}
                                           />
                                           <Dropdown
-                                            name={`startingEquipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.itemType`}
+                                            name={`startingEquipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.type`}
                                             multiSelect={true}
                                             label='Item Type'
-                                            value={equipmentItem.itemType}
+                                            value={equipmentItem.type}
                                             options={(
                                               items as unknown as DropdownOption[]
                                             )?.filter(
-                                              (itemType) =>
+                                              (type) =>
                                                 (!equipmentItem.category ||
                                                   equipmentItem.category
                                                     .length === 0 ||
@@ -241,16 +241,16 @@ const EquipmentForm = ({
                                                     equipmentItem.category.some(
                                                       (categoryItem: any) =>
                                                         categoryItem.name ===
-                                                        itemType.category?.name
+                                                        type.category?.name
                                                     ))) &&
                                                 (!equipmentItem.property ||
                                                   equipmentItem.property
                                                     .length === 0 ||
                                                   (equipmentItem.property
                                                     ?.length > 0 &&
-                                                    itemType.property?.length >
+                                                    type.property?.length >
                                                       0 &&
-                                                    itemType.property.some(
+                                                    type.property.some(
                                                       (propertyItem: any) =>
                                                         equipmentItem.property.some(
                                                           (

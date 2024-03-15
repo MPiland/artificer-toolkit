@@ -198,7 +198,7 @@ const Dropdown = ({
   const handleValueSelect = (option: DropdownOption) => {
     if (multiSelect) {
       if (option.name === 'clear') {
-        setSelectedOptions([])
+        setSelectedOptions(null)
         updatedOptions.current = null
       } else if (option.name === 'all') {
         const allOptions = uniqBy(newOptions, (obj) => obj.value).filter(

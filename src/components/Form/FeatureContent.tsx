@@ -38,6 +38,10 @@ import { sprinkles } from '../../css/sprinkles.css'
 import useIsLoading from '../../hooks/useIsLoading'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import Group from '../Group/Group'
+import {
+  selectAllSpells,
+  useGetSpellsQuery,
+} from '../../features/spells/spellsApiSlice'
 
 interface FeatureContentProps {
   state?: any
@@ -94,6 +98,37 @@ const FeatureContent = ({
     selectFromResult: ({ data }) => ({ items: data && selectAllItems(data) }),
   })
 
+  const { spells } = useGetSpellsQuery(undefined, {
+    selectFromResult: ({ data }) => ({ spells: data && selectAllSpells(data) }),
+  })
+
+  // Add/Remove replace at level table
+  useEffect(() => {
+    if (
+      featureState.attribute?.some(
+        (attributeItem: any) => attributeItem.name === 'selectCountByLevel'
+      ) &&
+      (!featureState.selectCountByLevel ||
+        !(featureState.selectCountByLevel?.length > 0))
+    ) {
+      setFeatureState({
+        type: 'added',
+        target: { name: 'selectCountByLevel' },
+      })
+    }
+    if (
+      featureState.selectCountByLevel &&
+      !featureState.attribute?.some(
+        (attributeItem: any) => attributeItem.name === 'selectCountByLevel'
+      )
+    ) {
+      setFeatureState({
+        type: 'removed',
+        target: { name: 'selectCountByLevel' },
+      })
+    }
+  })
+
   // Limit use table
   useEffect(() => {
     if (
@@ -143,7 +178,7 @@ const FeatureContent = ({
     featureState.limitUse?.level,
   ])
 
-  // Damage table
+  // Add/remove Damage By Level table
   useEffect(() => {
     if (
       featureState.damage?.damageAttribute?.some(
@@ -190,16 +225,64 @@ const FeatureContent = ({
     featureState.attribute,
   ])
 
+  // Add/remove Bonus Damage Set by Level
+  useEffect(() => {
+    if (
+      featureState?.damage?.bonus?.bonusAttribute?.name === 'setPerLevel' &&
+      !(featureState?.damage?.bonus?.setPerLevel?.length > 0)
+    ) {
+      setFeatureState({
+        type: 'added',
+        target: { name: 'damage.bonus.setPerLevel' },
+      })
+    }
+    if (
+      !(featureState?.damage?.bonus?.bonusAttribute?.name === 'setPerLevel') &&
+      featureState?.damage?.bonus?.setPerLevel?.length > 0
+    ) {
+      setFeatureState({
+        type: 'removed',
+        target: { name: 'damage.bonus.setPerLevel' },
+      })
+    }
+  }, [
+    featureState?.damage?.bonus?.bonusAttribute?.name,
+    featureState?.damage?.bonus?.setPerLevel?.length,
+    setFeatureState,
+  ])
+
+  // Add/remove Bonus Damage Set by Level
+  useEffect(() => {
+    if (
+      featureState?.damage?.bonus?.bonusAttribute?.name === 'diePerLevel' &&
+      !(featureState?.damage?.bonus?.diePerLevel?.length > 0)
+    ) {
+      setFeatureState({
+        type: 'added',
+        target: { name: 'damage.bonus.diePerLevel' },
+      })
+    }
+    if (
+      !(featureState?.damage?.bonus?.bonusAttribute?.name === 'diePerLevel') &&
+      featureState?.damage?.bonus?.diePerLevel?.length > 0
+    ) {
+      setFeatureState({
+        type: 'removed',
+        target: { name: 'damage.bonus.diePerLevel' },
+      })
+    }
+  }, [
+    featureState?.damage?.bonus?.bonusAttribute?.name,
+    featureState?.damage?.bonus?.diePerLevel?.length,
+    setFeatureState,
+  ])
+
   // Set array name for Ancestry vs Feature (generic)
   useEffect(() => {
-    if (featureContext === 'OptionContent') {
-      if (stepName === 'Ancestry') {
-        setSubArray('feature')
-      } else {
-        setSubArray('option')
-      }
+    if (stepName === 'Ancestry') {
+      setSubArray('feature')
     } else {
-      setSubArray('')
+      setSubArray('option')
     }
   }, [featureContext, stepName])
 
@@ -234,7 +317,7 @@ const FeatureContent = ({
       {
         name: 'level',
         value: 'Level',
-        errorMsg: 'Must contain only numbers',
+        errorMsg: 'Must not be blank and contain only numbers',
         validation: 'num',
       },
       {
@@ -447,7 +530,10 @@ const FeatureContent = ({
                   builders.feature.attribute,
                   context.title &&
                     builders.feature[context.title]?.attribute?.length > 0 &&
-                    builders.feature[context.title]?.attribute
+                    builders.feature[context.title]?.attribute,
+                  featureState.option &&
+                    featureState.option.length > 0 &&
+                    builders.feature.option.attribute
                 )
                 .filter((attributeItem: any) =>
                   context.title === 'item'
@@ -465,9 +551,9 @@ const FeatureContent = ({
               (attributeItem: any) => attributeItem.name === 'replaceAtLevel'
             ) && (
               <Input
-                name={`replaceCount`}
-                value={featureState?.replaceCount}
-                label='Replacement at Level Count'
+                name={`replaceCountAtLevel`}
+                value={featureState?.replaceCountAtLevel}
+                label='Num. To Replace'
                 onChange={setFeatureState}
                 validation='num'
                 required={true}
@@ -595,17 +681,17 @@ const FeatureContent = ({
           <>
             <Grid className={sprinkles({ mb: 'size-2' })}>
               <Dropdown
-                name='range.rangeType'
+                name='range.type'
                 label='Range'
-                value={featureState?.range?.rangeType}
+                value={featureState?.range?.type}
                 options={builders.spell.range}
                 required={true}
                 onChange={setFeatureState}
               />
-              {featureState?.range?.rangeType?.name !== 'touch' &&
-                featureState.range?.rangeType?.name !== 'sight' &&
-                featureState.range?.rangeType?.name !== 'unlimited' &&
-                featureState.range?.rangeType && (
+              {featureState?.range?.type?.name !== 'touch' &&
+                featureState.range?.type?.name !== 'sight' &&
+                featureState.range?.type?.name !== 'unlimited' &&
+                featureState.range?.type && (
                   <>
                     <Input
                       validation={'num'}
@@ -614,7 +700,7 @@ const FeatureContent = ({
                       label='Min. Range'
                       autoComplete='off'
                       required={
-                        featureState.range?.rangeType?.name === 'distance'
+                        featureState.range?.type?.name === 'distance'
                           ? true
                           : false
                       }
@@ -628,7 +714,7 @@ const FeatureContent = ({
                       label='Max Range'
                       autoComplete='off'
                       required={
-                        featureState.range?.rangeType?.name === 'distance'
+                        featureState.range?.type?.name === 'distance'
                           ? true
                           : false
                       }
@@ -645,7 +731,7 @@ const FeatureContent = ({
                         ) as DropdownOption[]
                       }
                       required={
-                        featureState.range?.rangeType?.name === 'distance'
+                        featureState.range?.type?.name === 'distance'
                           ? true
                           : false
                       }
@@ -670,15 +756,15 @@ const FeatureContent = ({
             </Grid>
             <Grid>
               <Dropdown
-                name='shape.shapeType'
+                name='shape.type'
                 label='Shape'
                 options={builders.spell.shape}
-                value={featureState?.shape?.shapeType}
+                value={featureState?.shape?.type}
                 onChange={setFeatureState}
               />
-              {featureState?.shape?.shapeType?.name &&
-                featureState.shape?.shapeType?.name !== 'none' &&
-                featureState.shape?.shapeType?.name !== 'weapon' && (
+              {featureState?.shape?.type?.name &&
+                featureState.shape?.type?.name !== 'none' &&
+                featureState.shape?.type?.name !== 'weapon' && (
                   <>
                     <Input
                       validation={'cur'}
@@ -765,12 +851,56 @@ const FeatureContent = ({
                 builders.feature.requirement,
                 context.title &&
                   builders.feature[context.title]?.requirement?.length > 0 &&
-                  builders.feature[context.title]?.requirement
+                  builders.feature[context.title]?.requirement,
+                featureContext === 'OptionContent' &&
+                  builders.feature.option.requirement
               )}
               value={featureState?.requirement?.option}
               required={true}
               onChange={setFeatureState}
             />
+            {featureState?.requirement?.option?.some(
+              (requirementItem: any) => requirementItem.name === 'spellKnown'
+            ) && (
+              <Dropdown
+                multiSelect={true}
+                name={`requirement.spellKnown.spell`}
+                value={featureState?.requirement?.spellKnown?.spell}
+                label='Spell'
+                options={spells as unknown as DropdownOption[]}
+                onChange={setFeatureState}
+              />
+            )}
+            {featureState?.requirement?.option?.some(
+              (requirementItem: any) => requirementItem.name === 'featureKnown'
+            ) && (
+              <>
+                <Dropdown
+                  multiSelect={true}
+                  name={`requirement.featureKnown.feature`}
+                  value={featureState?.requirement?.featureKnown?.feature}
+                  label='Feature'
+                  options={state.feature as unknown as DropdownOption[]}
+                  optionalKey={'option'}
+                  onChange={setFeatureState}
+                />
+                {featureState?.requirement?.featureKnown?.feature?.some(
+                  (featureItem: any) => featureItem.option?.length > 0
+                ) && (
+                  <Dropdown
+                    multiSelect={true}
+                    name={`requirement.featureKnown.option`}
+                    value={featureState?.requirement?.featureKnown?.option}
+                    label='Feature Option'
+                    options={featureState?.requirement?.featureKnown?.feature?.flatMap(
+                      (featureItem: any) =>
+                        featureItem.option?.length > 0 && featureItem.option
+                    )}
+                    onChange={setFeatureState}
+                  />
+                )}
+              </>
+            )}
           </Grid>
         )}
         {featureState?.attribute?.some(
@@ -778,9 +908,16 @@ const FeatureContent = ({
         ) &&
           !featureState.requirement?.option?.every(
             (featureState: any) => featureState.name === 'notProficient'
-          ) && (
+          ) &&
+          !featureState.requirement?.option?.every(
+            (featureState: any) => featureState.name === 'spellKnown'
+          ) &&
+          !featureState.requirement?.option?.every(
+            (featureState: any) => featureState.name === 'featureKnown'
+          ) &&
+          featureState.requirement?.option?.length > 0 && (
             <>
-              <Divider label={'Requirements'} />{' '}
+              <Divider label={'Requirements'} />
               <Grid>
                 {featureState?.requirement?.option?.some(
                   (featureState: any) =>
@@ -859,12 +996,10 @@ const FeatureContent = ({
                       onChange={setFeatureState}
                     />
                     <Dropdown
-                      name={`requirement.itemProficiency.itemType`}
+                      name={`requirement.itemProficiency.type`}
                       multiSelect={true}
                       label='Item type'
-                      value={
-                        featureState?.requirement?.itemProficiency?.itemType
-                      }
+                      value={featureState?.requirement?.itemProficiency?.type}
                       options={items
                         ?.filter((item: any) =>
                           featureState.requirement.itemProficiency?.category
@@ -881,11 +1016,8 @@ const FeatureContent = ({
                   </Grid>
                 </>
               )}
-              {(featureContext === 'OptionContent'
-                ? featureState
-                : featureState
-              )?.requirement?.option?.some(
-                (featureState: any) => featureState.name === 'equipped'
+              {featureState?.requirement?.option?.some(
+                (requirementItem: any) => requirementItem.name === 'equipped'
               ) && (
                 <>
                   <Divider label={'Equipped'} />
@@ -928,9 +1060,9 @@ const FeatureContent = ({
                     />
                     <Dropdown
                       multiSelect={true}
-                      name={`requirement.equipped.itemType`}
+                      name={`requirement.equipped.type`}
                       label='Item type'
-                      value={featureState?.requirement?.equipped?.itemType}
+                      value={featureState?.requirement?.equipped?.type}
                       options={items
                         ?.filter((item: any) =>
                           featureState.requirement.equipped?.category?.length >
@@ -947,11 +1079,8 @@ const FeatureContent = ({
                   </Grid>
                 </>
               )}
-              {(featureContext === 'OptionContent'
-                ? featureState
-                : featureState
-              )?.requirement?.option?.some(
-                (featureState: any) => featureState.name === 'notEquipped'
+              {featureState?.requirement?.option?.some(
+                (requirementItem: any) => requirementItem.name === 'notEquipped'
               ) && (
                 <>
                   <Divider label={'Not Equipped'} />
@@ -984,9 +1113,9 @@ const FeatureContent = ({
                     />
                     <Dropdown
                       multiSelect={true}
-                      name={`requirement.notEquipped.itemType`}
+                      name={`requirement.notEquipped.type`}
                       label='Item type'
-                      value={featureState?.requirement?.notEquipped?.itemType}
+                      value={featureState?.requirement?.notEquipped?.type}
                       options={items
                         ?.filter((item: any) =>
                           featureState.requirement.notEquipped?.category
@@ -1005,12 +1134,52 @@ const FeatureContent = ({
               )}
             </>
           )}
+        {featureState?.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'selectCountByLevel'
+        ) && (
+          <Collapse
+            title='Select Count By Level Table'
+            className={sprinkles({ mt: 'size-3' })}
+          >
+            <Table
+              rows={{
+                inputs: [
+                  {
+                    name: 'level',
+                    errorMsg: 'Must not be blank and contain only numbers',
+                    validation: 'num',
+                  },
+                  {
+                    name: 'selectionCount',
+                    errorMsg: 'Must not be blank and contain only numbers',
+                    validation: 'num',
+                  },
+                ],
+                headers: [
+                  {
+                    value: 'Level',
+                  },
+                  {
+                    value: 'Count',
+                  },
+                ],
+              }}
+              name={`selectCountByLevel`}
+              value={featureState?.selectCountByLevel}
+              onChange={setFeatureState}
+              addRow={true}
+            />
+          </Collapse>
+        )}
         {featureState?.limitUse?.limitBy?.name === 'level' &&
           featureState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'limitUse'
           ) && (
             <>
-              <Collapse title={'Limit Use Table'}>
+              <Collapse
+                title={'Limit Use Table'}
+                className={sprinkles({ mt: 'size-3' })}
+              >
                 <div className='section-content'>
                   <Table
                     rows={{
@@ -1057,37 +1226,57 @@ const FeatureContent = ({
                 options={builders.feature.damageAttribute}
                 onChange={setFeatureState}
               />
-              <Dropdown
-                name={`damage.damageType`}
-                multiSelect={true}
-                label='Damage Type'
-                value={featureState?.damage?.damageType}
-                options={[
-                  ...builders.damage,
-                  {
-                    id: undefined,
-                    _id: undefined,
-                    name: 'matchWeapon',
-                    value: 'Match Weapon',
-                  },
-                ]}
-                required={true}
-                onChange={setFeatureState}
-              />
-              {(featureContext === 'OptionContent'
-                ? featureState
-                : featureState
-              )?.damage?.damageAttribute?.some(
-                (attributeItem: any) => attributeItem.name === 'bonusDamage'
+              {featureState?.damage?.damageAttribute?.some(
+                (attributeItem: any) => attributeItem.name === 'primaryDamage'
               ) && (
                 <Dropdown
-                  name={`damage.bonus.bonusAttribute`}
-                  label='Bonus Type'
-                  value={featureState?.damage?.bonus?.bonusAttribute}
-                  options={builders.feature.bonusAttribute}
+                  name={`damage.primaryType`}
+                  multiSelect={true}
+                  label='Damage Type'
+                  value={featureState?.damage?.primaryType}
+                  options={[
+                    ...builders.damage,
+                    {
+                      id: undefined,
+                      _id: undefined,
+                      name: 'matchWeapon',
+                      value: 'Match Weapon',
+                    },
+                  ]}
                   required={true}
                   onChange={setFeatureState}
                 />
+              )}
+              {featureState?.damage?.damageAttribute?.some(
+                (attributeItem: any) => attributeItem.name === 'bonusDamage'
+              ) && (
+                <>
+                  <Dropdown
+                    name={`damage.bonusType`}
+                    multiSelect={true}
+                    label='Damage Type'
+                    value={featureState?.damage?.bonusType}
+                    options={[
+                      ...builders.damage,
+                      {
+                        id: undefined,
+                        _id: undefined,
+                        name: 'matchWeapon',
+                        value: 'Match Weapon',
+                      },
+                    ]}
+                    required={true}
+                    onChange={setFeatureState}
+                  />
+                  <Dropdown
+                    name={`damage.bonus.bonusAttribute`}
+                    label='Bonus Type'
+                    value={featureState?.damage?.bonus?.bonusAttribute}
+                    options={builders.feature.bonusAttribute}
+                    required={true}
+                    onChange={setFeatureState}
+                  />
+                </>
               )}
               {featureState?.damage?.bonus?.bonusAttribute?.name ===
                 'abilityBonus' && (
@@ -1100,10 +1289,42 @@ const FeatureContent = ({
                   onChange={setFeatureState}
                 />
               )}
-              {(featureContext === 'OptionContent'
-                ? featureState
-                : featureState
-              )?.damage?.damageAttribute?.some(
+              {featureState?.damage?.bonus?.bonusAttribute?.name !==
+                'diePerLevel' &&
+                featureState?.damage?.bonus?.bonusAttribute?.name !==
+                  'setPerLevel' && (
+                  <>
+                    {featureState?.damage?.bonusAttribute?.name ===
+                      'setValue' && (
+                      <Input
+                        name={`damage.bonus.setValue`}
+                        value={featureState?.damage?.bonus?.setValue}
+                        label='Set Value'
+                        onChange={setFeatureState}
+                        required={true}
+                        validation='num'
+                        errorMsg={'Must contain only numbers'}
+                      />
+                    )}
+                    <Input
+                      name={`damage.bonus.minValue`}
+                      value={featureState?.damage?.bonus?.minValue}
+                      label='Min. Value'
+                      onChange={setFeatureState}
+                      validation='num'
+                      errorMsg={'Must contain only numbers'}
+                    />
+                    <Input
+                      name={`damage.bonus.maxValue`}
+                      value={featureState?.damage?.bonus?.maxValue}
+                      label='Max Value'
+                      onChange={setFeatureState}
+                      validation='num'
+                      errorMsg={'Must contain only numbers'}
+                    />
+                  </>
+                )}
+              {featureState?.damage?.damageAttribute?.some(
                 (attributeItem: any) => attributeItem.name === 'damagePool'
               ) && (
                 <>
@@ -1156,10 +1377,7 @@ const FeatureContent = ({
                       />
                     )
                   )}
-                  {(featureContext === 'OptionContent'
-                    ? featureState
-                    : featureState
-                  )?.damage?.damageAttribute.some(
+                  {featureState?.damage?.damageAttribute.some(
                     (attributeItem: any) =>
                       attributeItem.name === 'secondaryDamage'
                   ) && (
@@ -1253,6 +1471,86 @@ const FeatureContent = ({
               </>
             )}
           </>
+        )}
+        {featureState?.damage?.bonus?.bonusAttribute?.name ===
+          'diePerLevel' && (
+          <Collapse
+            title='Bonus Damage Die By Level'
+            className={sprinkles({ mt: 'size-3' })}
+          >
+            <Table
+              name='damage.bonus.diePerLevel'
+              rows={{
+                inputs: [
+                  {
+                    name: 'level',
+                    validation: 'num',
+                    errorMsg: 'Must be whole numbers only',
+                  },
+                  {
+                    name: 'diceCount',
+                    validation: 'num',
+                    errorMsg: 'Must be whole numbers only',
+                  },
+                  {
+                    name: 'diceValue',
+                    validation: 'num',
+                    errorMsg: 'Must be whole numbers only',
+                  },
+                ],
+                headers: [
+                  {
+                    value: 'Level',
+                  },
+                  {
+                    value: 'Die Count',
+                  },
+                  {
+                    value: 'Die Value',
+                  },
+                ],
+              }}
+              value={featureState?.damage?.bonus?.diePerLevel}
+              addRow={true}
+              onChange={setSectionState}
+            />
+          </Collapse>
+        )}
+        {featureState?.damage?.bonus?.bonusAttribute?.name ===
+          'setPerLevel' && (
+          <Collapse
+            title='Bonus Damage By Level'
+            className={sprinkles({ mt: 'size-3' })}
+          >
+            <Table
+              name='damage.bonus.setPerLevel'
+              rows={{
+                inputs: [
+                  {
+                    name: 'level',
+                    validation: 'num',
+                    errorMsg: 'Must be whole numbers, commas, and spaces only',
+                  },
+                  {
+                    name: 'value',
+                    validation: 'num',
+                    errorMsg: 'Must be whole numbers only',
+                  },
+                ],
+                headers: [
+                  {
+                    value: 'Level',
+                  },
+                  {
+                    value: 'Amount',
+                  },
+                ],
+              }}
+              value={featureState?.damage?.bonus?.setPerLevel}
+              addRow={true}
+              onChange={setSectionState}
+            />
+          </Collapse>
         )}
         <div className={feature_list}>
           {sectionNames.map(

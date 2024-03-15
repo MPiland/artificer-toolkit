@@ -6,11 +6,34 @@ function renameKey(data) {
     return data.map((item) => renameKey(item))
   } else if (typeof data === 'object' && data !== null) {
     for (let key in data) {
-      if (key === 'module') {
-        data['category'] = data[key]
-        delete data[key]
-      } else if (key === 'modType') {
+      if (key === 'proficiency' && Array.isArray(data[key])) {
+        data[key].forEach((profObj) => {
+          if (profObj.area && profObj.area.name === 'itemType') {
+            profObj.area.name = 'item'
+            profObj.area.value = 'Item'
+          }
+          if (profObj.itemType) {
+            profObj.item = profObj.itemType
+            delete profObj.itemType
+          }
+        })
+      } else if (
+        key === 'itemType' ||
+        key === 'rangeType' ||
+        key === 'shapeType' ||
+        key === 'durationType' ||
+        key === 'addPerLevel'
+      ) {
         data['type'] = data[key]
+        delete data[key]
+      } else if (key === 'damageType') {
+        data['primaryType'] = data[key]
+        delete data[key]
+      } else if (key === 'methodType') {
+        data['option'] = data[key]
+        delete data[key]
+      } else if (key === 'secondaryDamageType') {
+        data['secondaryType'] = data[key]
         delete data[key]
       } else if (typeof data[key] === 'object') {
         data[key] = renameKey(data[key]) // Recursive call for nested objects
@@ -20,7 +43,7 @@ function renameKey(data) {
   return data
 }
 
-const collection = 'builders'
+const collection = 'races'
 
 const data = db[collection].find().toArray()
 
