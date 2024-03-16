@@ -10,36 +10,49 @@ import {
 import { useLocation, useParams } from 'react-router-dom'
 import { FormContext, Step } from '../../utils/types'
 import Spinner from '../../components/Spinner/Spinner'
+import { isEqual } from 'lodash'
 
 const ClassForm = () => {
   const { context } = useParams()
   const location = useLocation()
 
-  const id = location.state?.data
+  const formData = location.state?.data
 
   const { userClass } = useGetClassesQuery(undefined, {
     selectFromResult: ({ data }) => ({
-      userClass: data && selectClassById(data, id),
+      userClass: data && selectClassById(data, formData?._id),
     }),
   })
 
   const [oldState, setOldState] = useState(userClass)
   const [state, setState] = useReducer(
     formReducer,
-    context === 'edit' || id ? userClass : {}
+    context === 'edit' ? (formData ? formData : userClass) : {}
   )
   const [isLoading, setIsLoading] = useState<boolean>(
-    (context === 'new' && id) ?? false
+    (context === 'new' && formData?._id) ?? false
   )
 
   useEffect(() => {
-    if (!state && userClass) {
-      setState({
-        type: 'reset',
-        target: { value: userClass },
-      })
+    if (
+      state &&
+      Object.keys(state).length === 0 &&
+      (formData || userClass) &&
+      context === 'edit'
+    ) {
+      if (formData && !isEqual(state, formData)) {
+        setState({
+          type: 'reset',
+          target: { value: formData },
+        })
+      } else if (userClass && !isEqual(state, userClass)) {
+        setState({
+          type: 'reset',
+          target: { value: userClass },
+        })
+      }
     }
-  }, [userClass, state, state?.value, context])
+  }, [userClass, state, state?.value, context, formData])
 
   useEffect(() => {
     if (state && state?.value !== '' && isLoading) {

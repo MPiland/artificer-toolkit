@@ -7,25 +7,28 @@ import Detail from '../../components/Detail/Detail'
 const Feat = () => {
   const location: any = useLocation()
 
-  const { feat, isLoading, isFetching } = useGetFeatsQuery(undefined, {
-    selectFromResult: ({ data, isLoading, isFetching }) => ({
-      feat: data && selectFeatById(data, location.state.data.id),
-      isLoading,
-      isFetching,
-    }),
-  })
+  const {
+    feat,
+    isLoading,
+    isFetching,
+  }: { feat: any; isFetching: boolean; isLoading: boolean } = useGetFeatsQuery(
+    undefined,
+    {
+      selectFromResult: ({ data, isLoading, isFetching }) => ({
+        feat: data && selectFeatById(data, location.state.data.id),
+        isLoading,
+        isFetching,
+      }),
+    }
+  )
 
-  let content
+  const detail = <div>{parse(feat.desc)}</div>
 
-  if (isLoading || isFetching || !feat) {
-    content = <Spinner />
-  }
-
-  const detail = <div>{parse((feat as any).desc)}</div>
-
-  content = <Detail detail={detail} location={location} footerSpacing='end' />
-
-  return content
+  return isLoading || isFetching || !feat ? (
+    <Spinner />
+  ) : (
+    <Detail detail={detail} location={location} footerSpacing='end' />
+  )
 }
 
 export default Feat

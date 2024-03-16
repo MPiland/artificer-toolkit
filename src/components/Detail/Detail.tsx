@@ -49,7 +49,7 @@ const Detail: FC<DetailProps> = ({
   const [sidebarIsOpen, setSidebarIsOpen] = useState<boolean>(false)
 
   const form = location.state.form
-  const id = location.state.data.id
+  const data = location.state.data
   const name = location.state.data.name
 
   const sidebarRef = useRef<HTMLDivElement>(null)
@@ -58,7 +58,7 @@ const Detail: FC<DetailProps> = ({
 
   const onEditClicked = () => {
     navigate(`/${form}/edit/${name}`, {
-      state: { data: id, previous: location },
+      state: { data: data, previous: location },
     })
   }
 

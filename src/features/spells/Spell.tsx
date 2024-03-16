@@ -7,13 +7,18 @@ import Detail from '../../components/Detail/Detail'
 const Spell = () => {
   const location: any = useLocation()
 
-  const { spell, isLoading, isFetching } = useGetSpellsQuery(undefined, {
-    selectFromResult: ({ data, isLoading, isFetching }) => ({
-      spell: data && selectSpellById(data, location.state.data.id),
-      isLoading,
-      isFetching,
-    }),
-  })
+  const {
+    spell,
+    isLoading,
+    isFetching,
+  }: { spell: any; isFetching: boolean; isLoading: boolean } =
+    useGetSpellsQuery(undefined, {
+      selectFromResult: ({ data, isLoading, isFetching }) => ({
+        spell: data && selectSpellById(data, location.state.data.id),
+        isLoading,
+        isFetching,
+      }),
+    })
 
   const materialDesc = () => {
     if (spell && 'materialDesc' in spell) {
@@ -55,19 +60,13 @@ const Spell = () => {
     },
   ]
 
-  let content
-
-  if (isLoading || isFetching || !spell) {
-    return (content = <Spinner />)
-  }
-
-  const detail = 'desc' in spell && spell.desc && (
-    <div>{parse(spell.desc as string)}</div>
-  )
+  const detail = 'desc' in spell && spell.desc && <div>{parse(spell.desc)}</div>
 
   const footer = <span>{materialDesc()}</span>
 
-  content = (
+  return isLoading || !spell || isFetching ? (
+    <Spinner />
+  ) : (
     <Detail
       cols={cols}
       colsData={spell}
@@ -76,8 +75,6 @@ const Spell = () => {
       location={location}
     />
   )
-
-  return content
 }
 
 export default Spell

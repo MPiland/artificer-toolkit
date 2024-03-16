@@ -139,10 +139,10 @@ const List = ({
         },
       })
     }
-    navigate(`/create/${context.type}`, {
+    navigate(`/create/${context.title}`, {
       state: {
         background: location,
-        context: context.type,
+        context: context,
         form: `${context.title === 'class' ? 'classe' : context.title}s`,
         data: items.filter((item: any) =>
           context.title === 'class' ? item.category.name === 'base' : item

@@ -10,36 +10,49 @@ import {
 } from './spellsApiSlice'
 import { FormContext, Step } from '../../utils/types'
 import Spinner from '../../components/Spinner/Spinner'
+import { isEqual } from 'lodash'
 
 const SpellForm = () => {
   const { context } = useParams()
   const location = useLocation()
 
-  const id = location.state?.data
+  const formData = location.state?.data
 
   const { spell } = useGetSpellsQuery(undefined, {
     selectFromResult: ({ data }) => ({
-      spell: data && selectSpellById(data, id),
+      spell: data && selectSpellById(data, formData?._id),
     }),
   })
 
   const [state, setState] = useReducer(
     formReducer,
-    context === 'edit' || id ? spell : {}
+    context === 'edit' ? (formData ? formData : spell) : {}
   )
   const [oldState, setOldState] = useState(spell)
   const [isLoading, setIsLoading] = useState<boolean>(
-    (context === 'new' && id) ?? false
+    (context === 'new' && formData?._id) ?? false
   )
 
   useEffect(() => {
-    if (!state && spell) {
-      setState({
-        type: 'reset',
-        target: { value: spell },
-      })
+    if (
+      state &&
+      Object.keys(state).length === 0 &&
+      (formData || spell) &&
+      context === 'edit'
+    ) {
+      if (formData && !isEqual(state, formData)) {
+        setState({
+          type: 'reset',
+          target: { value: formData },
+        })
+      } else if (spell && !isEqual(state, spell)) {
+        setState({
+          type: 'reset',
+          target: { value: spell },
+        })
+      }
     }
-  }, [spell, state, state?.value, context])
+  }, [spell, state, state?.value, context, formData])
 
   useEffect(() => {
     if (state && state?.value !== '' && isLoading) {

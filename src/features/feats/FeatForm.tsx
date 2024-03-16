@@ -10,36 +10,49 @@ import {
 import { useLocation, useParams } from 'react-router-dom'
 import { FormContext, Step } from '../../utils/types'
 import Spinner from '../../components/Spinner/Spinner'
+import { isEqual } from 'lodash'
 
 const FeatForm = () => {
   const { context } = useParams()
   const location = useLocation()
 
-  const id = location.state?.data
+  const formData = location.state?.data
 
   const { feat } = useGetFeatsQuery(undefined, {
     selectFromResult: ({ data }) => ({
-      feat: data && selectFeatById(data, id),
+      feat: data && selectFeatById(data, formData?._id),
     }),
   })
 
   const [state, setState] = useReducer(
     formReducer,
-    context === 'edit' || id ? feat : {}
+    context === 'edit' ? (formData ? formData : feat) : {}
   )
   const [oldState, setOldState] = useState(feat)
   const [isLoading, setIsLoading] = useState<boolean>(
-    (context === 'new' && id) ?? false
+    (context === 'new' && formData?._id) ?? false
   )
 
   useEffect(() => {
-    if (!state && feat) {
-      setState({
-        type: 'reset',
-        target: { value: feat },
-      })
+    if (
+      state &&
+      Object.keys(state).length === 0 &&
+      (formData || feat) &&
+      context === 'edit'
+    ) {
+      if (formData && !isEqual(state, formData)) {
+        setState({
+          type: 'reset',
+          target: { value: formData },
+        })
+      } else if (feat && !isEqual(state, feat)) {
+        setState({
+          type: 'reset',
+          target: { value: feat },
+        })
+      }
     }
-  }, [feat, state, state?.value, context])
+  }, [feat, state, state?.value, context, formData])
 
   useEffect(() => {
     if (state && state?.value !== '' && isLoading) {

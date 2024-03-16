@@ -33,7 +33,7 @@ const Create = () => {
     } else {
       navigate(`/${location.state.form}/new`, {
         state: {
-          data: selection.id,
+          data: selection,
         },
       })
     }
@@ -52,7 +52,7 @@ const Create = () => {
             onChange={handleSelect}
             name='copy'
             value={selection}
-            className={sprinkles({ width: 'size-14' })}
+            className={sprinkles({ flex: '1', me: 'size-3' })}
             id='create_dropdown'
             errorMsg='Select a spell to copy'
           />

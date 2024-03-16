@@ -7,13 +7,20 @@ import Detail from '../../components/Detail/Detail'
 const Item = () => {
   const location = useLocation()
 
-  const { item, isLoading, isFetching } = useGetItemsQuery('itemsList', {
-    selectFromResult: ({ data, isLoading, isFetching }) => ({
-      item: data && selectItemById(data, location.state.data.id),
-      isLoading,
-      isFetching,
-    }),
-  })
+  const {
+    item,
+    isLoading,
+    isFetching,
+  }: { item: any; isFetching: boolean; isLoading: boolean } = useGetItemsQuery(
+    'itemsList',
+    {
+      selectFromResult: ({ data, isLoading, isFetching }) => ({
+        item: data && selectItemById(data, location.state.data.id),
+        isLoading,
+        isFetching,
+      }),
+    }
+  )
 
   const cols = [
     { header: 'CATEGORY', name: 'category.value' },
@@ -36,15 +43,11 @@ const Item = () => {
     { header: 'COST', name: ['cost.amount', 'cost.currency.short'] },
   ]
 
-  let content
+  const detail = <div>{item?.desc && parse(item.desc)}</div>
 
-  if (isLoading || !item || isFetching) {
-    return (content = <Spinner />)
-  }
-
-  const detail = <div>{(item as any)?.desc && parse((item as any).desc)}</div>
-
-  content = (
+  return isLoading || !item || isFetching ? (
+    <Spinner />
+  ) : (
     <Detail
       cols={cols}
       location={location}
@@ -53,8 +56,6 @@ const Item = () => {
       footerSpacing='end'
     />
   )
-
-  return content
 }
 
 export default Item

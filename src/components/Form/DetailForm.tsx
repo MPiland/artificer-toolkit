@@ -376,7 +376,7 @@ const DetailForm = memo(
             </>
           )}
         </Grid>
-        {(context.title === 'race' || context.title === 'item') && (
+        {context.title === 'item' && (
           <div>
             <RichTextEditor
               name={'quote'}

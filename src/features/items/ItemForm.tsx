@@ -10,27 +10,49 @@ import {
 import { useLocation, useParams } from 'react-router-dom'
 import Spinner from '../../components/Spinner/Spinner'
 import { FormContext, Step } from '../../utils/types'
+import { isEqual } from 'lodash'
 
 const ItemForm = () => {
   const { context } = useParams()
   const location = useLocation()
 
-  const id = location.state?.data
+  const formData = location.state?.data
 
   const { item } = useGetItemsQuery('itemsList', {
     selectFromResult: ({ data }) => ({
-      item: data && selectItemById(data, id),
+      item: data && selectItemById(data, formData?._id),
     }),
   })
 
   const [state, setState] = useReducer(
     formReducer,
-    context === 'edit' || id ? item : {}
+    context === 'edit' ? (formData ? formData : item) : {}
   )
   const [oldState, setOldState] = useState(item)
   const [isLoading, setIsLoading] = useState<boolean>(
-    (context === 'new' && id) ?? false
+    (context === 'new' && formData?._id) ?? false
   )
+
+  useEffect(() => {
+    if (
+      state &&
+      Object.keys(state).length === 0 &&
+      (formData || item) &&
+      context === 'edit'
+    ) {
+      if (formData && !isEqual(state, formData)) {
+        setState({
+          type: 'reset',
+          target: { value: formData },
+        })
+      } else if (item && !isEqual(state, item)) {
+        setState({
+          type: 'reset',
+          target: { value: item },
+        })
+      }
+    }
+  }, [item, state, state?.value, context, formData])
 
   useEffect(() => {
     if (
@@ -47,15 +69,6 @@ const ItemForm = () => {
       })
     }
   }, [state.contains, state.attribute])
-
-  useEffect(() => {
-    if (!state && item) {
-      setState({
-        type: 'reset',
-        target: { value: item },
-      })
-    }
-  }, [item, state, state?.value, context])
 
   useEffect(() => {
     if (state && state?.value !== '' && isLoading) {

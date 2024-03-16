@@ -130,10 +130,10 @@ const Form = ({
 
   const documentRef = useRef(document)
 
-  const handleNavigateEdit = (id: number) => {
+  const handleNavigateEdit = (item: any) => {
     const form = `${context.title === 'class' ? 'classe' : context.title}s`
     navigate(`/${form}/edit/${formState.name}`, {
-      state: { data: id, previous: `/${form}` },
+      state: { data: item, previous: `/${form}` },
     })
     setStepIndex(0)
     setSaving(false)
@@ -177,6 +177,12 @@ const Form = ({
       setFormState({ type: 'reset', target: { value: state } })
     }
   }, [state, formState])
+
+  useEffect(() => {
+    if ('id' in state && !('id' in formState)) {
+      setFormState({ type: 'reset', target: { value: state } })
+    }
+  }, [formState, state])
 
   // Confirm Alert back
   useEffect(() => {
@@ -419,7 +425,6 @@ const Form = ({
           value: formClone,
         },
       })
-      console.log({ sectionOptionClone: formClone })
       return formClone
     }
     // Set feature clone state
@@ -715,8 +720,10 @@ const Form = ({
     if (isLastStep && featureStepName === '') {
       setSaving(true)
       const payload = await addNewItem(formState)
-      if ('data' in payload) {
-        return handleNavigateEdit(payload.data.id)
+      if ('data' in payload && 'item' in payload.data) {
+        return handleNavigateEdit(payload.data.item)
+      } else {
+        setErrorMessage('No data returned')
       }
     }
   }

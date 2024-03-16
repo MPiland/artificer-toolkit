@@ -183,12 +183,6 @@ const Class = () => {
       })
   }
 
-  let content
-
-  if (isFetching || isLoading || !userClass) {
-    return (content = <Spinner />)
-  }
-
   const detail = (
     <>
       <div id='quote'>
@@ -354,7 +348,9 @@ const Class = () => {
       </>
     )
 
-  content = (
+  return isFetching || isLoading || !userClass ? (
+    <Spinner />
+  ) : (
     <Detail
       detail={detail}
       sidebar={{ list: sidebarList }}
@@ -362,8 +358,6 @@ const Class = () => {
       footerSpacing='end'
     />
   )
-
-  return content
 }
 
 export default Class
