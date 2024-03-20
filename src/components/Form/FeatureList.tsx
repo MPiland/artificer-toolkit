@@ -87,7 +87,7 @@ const FeatureList = ({
     setOldFeatureState({})
     setFeatureStepName('FeatureContent')
   }
-  
+
   // Delete feature
   const handleRemove = (featureIndexProp: number) => {
     setFormState({
@@ -161,7 +161,7 @@ const FeatureList = ({
               {featureArray?.map((featureItem: any, featureIndex: number) => (
                 <Accordion.Container
                   key={featureIndex}
-                  itemId={featureItem.id ?? featureIndex}
+                  itemId={String(featureIndex)}
                 >
                   <Accordion.Header
                     handleClick={() => toggle(featureIndex)}

@@ -28,6 +28,10 @@ export type RowHeader = {
           filterOn: string | PropertyPath
           filterKey: string
         }
+        subSort?: {
+          sortOn: string
+          orderKey?: string
+        }
       }
   value?: string
   required?: boolean

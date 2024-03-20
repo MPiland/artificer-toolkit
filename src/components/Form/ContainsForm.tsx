@@ -3,7 +3,7 @@ import Table from '../Table/Table'
 import {
   useGetItemsQuery,
   selectAllItems,
-} from '../../features/items/itemsApiSlice'
+} from '../../features/item/itemApiSlice'
 import { ReducerActionType } from '../../utils/types'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'

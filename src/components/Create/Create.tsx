@@ -22,7 +22,7 @@ const Create = () => {
     setSelection(target.value)
   }
 
-  const handleGo = () => {
+  const handleCopy = () => {
     const dropdown = document.getElementById('create_dropdown')
     if (dropdown?.getAttribute('data-atapp-dropdown') === 'false') {
       dropdown.dispatchEvent(
@@ -37,6 +37,14 @@ const Create = () => {
         },
       })
     }
+  }
+
+  const handleNew = () => {
+    navigate(`/${location.state.form}/new`, {
+      state: {
+        defaultCategory: location.state.defaultCategory,
+      },
+    })
   }
 
   return isLoading ? (
@@ -56,15 +64,12 @@ const Create = () => {
             id='create_dropdown'
             errorMsg='Select a spell to copy'
           />
-          <Button variant='primary' onClick={handleGo}>
+          <Button variant='primary' onClick={handleCopy}>
             Go
           </Button>
         </Group>
         <Divider label='OR' />
-        <Button
-          variant='update'
-          onClick={() => navigate(`/${location.state.form}/new`)}
-        >
+        <Button variant='update' onClick={handleNew}>
           Create From Scratch
         </Button>
       </Modal.Body>

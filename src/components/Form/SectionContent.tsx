@@ -6,26 +6,28 @@ import Table from '../Table/Table'
 import {
   DropdownOption,
   ReducerActionType,
+  RowHeader,
+  RowInput,
   SectionName,
 } from '../../utils/types'
 import Grid from '../Grid/Grid'
-import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
+import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
 import {
   selectAllClasses,
   useGetClassesQuery,
-} from '../../features/classes/classesApiSlice'
+} from '../../features/class/classApiSlice'
 import {
   useGetItemsQuery,
   selectAllItems,
-} from '../../features/items/itemsApiSlice'
+} from '../../features/item/itemApiSlice'
 import {
   selectAllSpells,
   useGetSpellsQuery,
-} from '../../features/spells/spellsApiSlice'
+} from '../../features/spell/spellApiSlice'
 import {
   selectAllFeats,
   useGetFeatsQuery,
-} from '../../features/feats/featsApiSlice'
+} from '../../features/feat/featApiSlice'
 import Spinner from '../Spinner/Spinner'
 import { tableContent } from '../../utils/formUtils'
 import ScrollArea from '../ScrollArea/ScrollArea'
@@ -33,7 +35,7 @@ import { form_content } from './Form.css'
 import {
   selectAllRaces,
   useGetRacesQuery,
-} from '../../features/races/racesApiSlice'
+} from '../../features/race/raceApiSlice'
 
 export interface SectionContentProps {
   sectionState: any
@@ -420,10 +422,10 @@ export const ModifierContent = ({
         )}
         {sectionState.category?.name === 'damageSave' && (
           <Dropdown
-            name={`damageSave`}
+            name={`damage.damageSave`}
             multiSelect={true}
             label='Damage'
-            value={sectionState.damageSave}
+            value={sectionState.damage?.damageSave}
             options={builders.damage}
             required={true}
             onChange={setSectionState}
@@ -533,7 +535,7 @@ export const ModifierContent = ({
               name={`damage.type`}
               multiSelect={true}
               label='Damage Type'
-              value={sectionState.damage}
+              value={sectionState.damage?.type}
               options={builders.damage}
               required={true}
               onChange={setSectionState}
@@ -1095,9 +1097,11 @@ export const SpellContent = ({
   // Add/Remove Spells By Level Data
   useEffect(() => {
     if (
-      !sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-      ) &&
+      (featureState.levelAvailable == null ||
+        featureState.levelAvailable === '' ||
+        !sectionState.attribute?.some(
+          (attributeItem: any) => attributeItem.name === 'spellsByLevel'
+        )) &&
       sectionState.spellsByLevel
     ) {
       setSectionState({
@@ -1108,39 +1112,15 @@ export const SpellContent = ({
       })
     }
     if (
-      (featureState.levelAvailable == null ||
-        featureState.levelAvailable === '' ||
-        !sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-        )) &&
-      sectionState.spellsByLevel?.length > 0
-    ) {
-      setSectionState({
-        type: 'removed',
-        target: {
-          name: `spellsByLevel`,
-        },
-      })
-    }
-    if (
-      ((featureState.levelAvailable != null &&
-        featureState.levelAvailable !== '' &&
-        !(sectionState.spellsByLevel?.length > 0)) ||
-        featureState?.levelAvailable?.split(', ')?.length !==
-          sectionState.spellsByLevel?.length) &&
       sectionState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-      )
+      ) &&
+      !sectionState.spellsByLevel
     ) {
       setSectionState({
         type: 'added',
         target: {
           name: `spellsByLevel`,
-          value: featureState?.levelAvailable
-            ?.split(', ')
-            .map((levelItem: string) => ({
-              level: Number(levelItem),
-            })),
         },
       })
     }
@@ -1150,6 +1130,45 @@ export const SpellContent = ({
     sectionState.attribute,
     setSectionState,
   ])
+
+  const spellTableColumns = () => {
+    const inputArray: RowInput[] = [
+      {
+        name: 'level',
+        value: 'Level',
+        validation: 'num',
+        required: true,
+        errorMsg: 'Must not be blank. Enter whole numbers only.',
+      },
+      {
+        name: 'spell',
+        value: 'Spell',
+        type: 'select',
+        options: spells,
+        multiple: true,
+      },
+    ]
+
+    if (
+      sectionState.attribute?.some(
+        (attributeItem: any) => attributeItem.name === 'castAtLevel'
+      )
+    ) {
+      inputArray.push({
+        name: 'spellLevel',
+        value: 'Spell Level',
+        validation: 'num',
+        errorMsg: 'Must not be blank. Enter whole numbers only.',
+      })
+    }
+
+    const headerArray: RowHeader[] = inputArray.map((inputItem) => ({
+      value: inputItem.value,
+      required: true,
+    }))
+
+    return { inputs: inputArray, headers: headerArray }
+  }
 
   return (
     <>
@@ -1249,6 +1268,21 @@ export const SpellContent = ({
               onChange={setSectionState}
             />
             {sectionState.attribute?.some(
+              (attributeItem: any) =>
+                attributeItem.name === 'castAtLevel' && (
+                  <Input
+                    validation='num'
+                    name={`spellLevel`}
+                    label='Spell Level'
+                    autoComplete='off'
+                    value={sectionState.spellLevel}
+                    errorMsg='Must contain only numbers'
+                    required={true}
+                    onChange={setSectionState}
+                  />
+                )
+            )}
+            {sectionState.attribute?.some(
               (attributeItem: any) => attributeItem.name === 'optionalAbility'
             ) && (
               <Dropdown
@@ -1282,30 +1316,13 @@ export const SpellContent = ({
         <>
           <Table
             rows={{
-              inputs: [
-                {
-                  name: 'level',
-                  readOnly: true,
-                },
-                {
-                  name: 'spell',
-                  type: 'select',
-                  options: spells,
-                  multiple: true,
-                },
-              ],
-              headers: [
-                {
-                  value: 'Level',
-                },
-                {
-                  value: 'Spells',
-                },
-              ],
+              inputs: spellTableColumns().inputs,
+              headers: spellTableColumns().headers,
             }}
             name={`spellsByLevel`}
             value={sectionState.spellsByLevel}
             onChange={setSectionState}
+            addRow={true}
           />
         </>
       )}

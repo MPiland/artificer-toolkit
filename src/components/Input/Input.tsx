@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback, useRef, memo } from 'react'
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+  memo,
+} from 'react'
 import {
   input_wrapper,
   input_label,
@@ -53,7 +60,7 @@ const Input = memo(
     rightSection,
     id,
   }: InputProps) => {
-    const [inputValue, setInputValue] = useState<string>('')
+    const [inputValue, setInputValue] = useState<string>(value ?? '')
     const [debouncing, setDebouncing] = useState(false)
     const [error, setError] = useState<boolean>(false)
 
@@ -70,7 +77,7 @@ const Input = memo(
       }
     }, [])
 
-    useEffect(() => {
+    useLayoutEffect(() => {
       if (value !== inputValue && !debouncing) {
         setError(false)
         setInputValue(value)
@@ -80,10 +87,10 @@ const Input = memo(
     const debounceSave = useDebounceCallback(
       useCallback(
         (target: React.ChangeEvent<HTMLInputElement>['target']) => {
-          onChange({ target: { name: target.name, value: target.value } })
+          onChange({ target: { name: name, value: target.value } })
           setDebouncing(false)
         },
-        [onChange]
+        [onChange, name]
       ),
       0.3 * 1000
     ) // every 3 seconds max
@@ -115,6 +122,13 @@ const Input = memo(
       },
       [debounceSave, validation]
     )
+
+    useEffect(() => {
+      if (value === '' && inputValue === '' && !debouncing) {
+        onChange({ type: 'removed', target: { name: name } })
+        onChange({ type: 'removed', target: { name: 'name' } })
+      }
+    }, [inputValue, value, name, onChange, debouncing])
 
     const content = (
       <Tooltip

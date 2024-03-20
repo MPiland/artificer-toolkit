@@ -2,11 +2,11 @@ import { Fragment, useEffect, useState } from 'react'
 import Grid from '../Grid/Grid'
 import Button from '../Button/Button'
 import Dropdown from '../Dropdown/Dropdown'
-import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
+import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
 import {
   selectAllItems,
   useGetItemsQuery,
-} from '../../features/items/itemsApiSlice'
+} from '../../features/item/itemApiSlice'
 import Input from '../Input/Input'
 import useIsLoading from '../../hooks/useIsLoading'
 import {
@@ -126,7 +126,10 @@ const EquipmentForm = ({
             {formState.startingEquipment?.map(
               (groupItem: any, groupIndex: number) => {
                 return (
-                  <Accordion.Container key={groupIndex} itemId={groupIndex}>
+                  <Accordion.Container
+                    key={groupIndex}
+                    itemId={String(groupIndex)}
+                  >
                     <Accordion.Header
                       handleClick={() => toggle(groupIndex)}
                       handleRemove={() =>
@@ -248,8 +251,7 @@ const EquipmentForm = ({
                                                     .length === 0 ||
                                                   (equipmentItem.property
                                                     ?.length > 0 &&
-                                                    type.property?.length >
-                                                      0 &&
+                                                    type.property?.length > 0 &&
                                                     type.property.some(
                                                       (propertyItem: any) =>
                                                         equipmentItem.property.some(

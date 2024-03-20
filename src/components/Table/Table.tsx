@@ -186,7 +186,12 @@ const TableRow = ({
     rows.subrow &&
     rows.subrow?.data?.filter((subrowItem: any) => {
       if (rows.subrow) {
-        return get(subrowItem, rows?.subrow.matchKey) === valueItem._id
+        const data = get(subrowItem, rows.subrow.matchKey)
+        if (Array.isArray(data)) {
+          return data.some((dataItem) => dataItem._id === valueItem._id)
+        } else {
+          return data._id === valueItem._id
+        }
       }
     })
 

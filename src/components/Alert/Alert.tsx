@@ -2,7 +2,7 @@ import Modal from '../Modal/Modal'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
 import { useDispatch } from 'react-redux'
-import { confirmBack, confirmForward } from '../../app/modalSlice'
+import { confirmBack, confirmForward, confirmStep } from '../../app/modalSlice'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const Alert = () => {
@@ -10,17 +10,25 @@ const Alert = () => {
   const dispatch = useDispatch()
   const location = useLocation()
 
-  const context = location.state.context
+  const context: 'back' | 'forward' | 'step' = location.state.context
+  const message = location.state.message
   const index = location.state.index
 
+  console.log({ alertIndex: index, alertContext: context })
+
   const handleConfirmBack = () => {
-    dispatch(confirmBack({ status: true, index: index }))
     navigate(-1)
+    dispatch(confirmBack({ status: true }))
   }
 
   const handleConfirmForward = () => {
-    dispatch(confirmForward({ status: true, index: index }))
     navigate(-1)
+    dispatch(confirmForward({ status: true }))
+  }
+
+  const handleConfirmStep = () => {
+    navigate(-1)
+    dispatch(confirmStep({ status: true, index: index }))
   }
 
   const handleCancel = () => {
@@ -31,7 +39,7 @@ const Alert = () => {
     <>
       <Modal.Header title='Alert' />
       <Modal.Body>
-        <span>There are unsaved changes</span>
+        <span>{message}</span>
       </Modal.Body>
       <Modal.Footer>
         <Group directionVariant='row' justifyContentVariant='spaceBetween'>
@@ -41,8 +49,10 @@ const Alert = () => {
           <Button
             variant='danger'
             onClick={() =>
-              context === 'foward'
+              context === 'forward'
                 ? handleConfirmForward()
+                : context === 'step'
+                ? handleConfirmStep()
                 : handleConfirmBack()
             }
           >

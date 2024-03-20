@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
+import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
 import {
   selectAllItems,
   useGetItemsQuery,
-} from '../../features/items/itemsApiSlice'
+} from '../../features/item/itemApiSlice'
 import { getSectionNames } from '../../utils/formUtils'
 import Input from '../Input/Input'
 import Dropdown from '../Dropdown/Dropdown'
@@ -41,7 +41,7 @@ import Group from '../Group/Group'
 import {
   selectAllSpells,
   useGetSpellsQuery,
-} from '../../features/spells/spellsApiSlice'
+} from '../../features/spell/spellApiSlice'
 
 interface FeatureContentProps {
   state?: any
@@ -147,10 +147,7 @@ const FeatureContent = ({
     }
     if (
       featureState.limitUse?.level &&
-      (!(featureState?.limitUse?.limitBy?.name === 'level') ||
-        !featureState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'limitUse'
-        ))
+      !(featureState?.limitUse?.limitBy?.name === 'level')
     ) {
       setFeatureState({
         type: 'removed',
@@ -162,7 +159,8 @@ const FeatureContent = ({
     if (
       !featureState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'limitUse'
-      )
+      ) &&
+      featureState.limitUse
     ) {
       setFeatureState({
         type: 'removed',
@@ -176,6 +174,7 @@ const FeatureContent = ({
     featureState.attribute,
     setFeatureState,
     featureState.limitUse?.level,
+    featureState.limitUse,
   ])
 
   // Add/remove Damage By Level table
@@ -209,7 +208,8 @@ const FeatureContent = ({
     if (
       !featureState.attribute?.some(
         (attributeItem: any) => attributeItem.name === 'doesDamage'
-      )
+      ) &&
+      featureState.damage
     ) {
       setFeatureState({
         type: 'removed',
@@ -223,6 +223,7 @@ const FeatureContent = ({
     featureState.damage?.damageByLevel,
     setFeatureState,
     featureState.attribute,
+    featureState.damage,
   ])
 
   // Add/remove Bonus Damage Set by Level
@@ -1571,7 +1572,7 @@ const FeatureContent = ({
                         return (
                           <Accordion.Container
                             key={sectionIndex}
-                            itemId={sectionItem?._id ?? sectionIndex}
+                            itemId={String(sectionIndex)}
                           >
                             <Accordion.Header
                               key={sectionIndex}

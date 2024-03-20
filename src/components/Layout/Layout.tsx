@@ -123,28 +123,26 @@ const Layout: FC<LayoutProps> = ({ token }) => {
         <li className={header_item}>Characters</li>
       </NavLink>
       <NavLink className={header_nav_item} to='classes' onClick={handleClick}>
-        <li className={header_item}>Classes </li>
+        <li className={header_item}>Classes</li>
       </NavLink>
       <NavLink className={header_nav_item} to='races' onClick={handleClick}>
-        <li className={header_item}>Races </li>
+        <li className={header_item}>Races</li>
       </NavLink>
       <NavLink className={header_nav_item} to='spells' onClick={handleClick}>
-        <li className={header_item}>Spells </li>
+        <li className={header_item}>Spells</li>
       </NavLink>
       <NavLink className={header_nav_item} to='items' onClick={handleClick}>
-        <li className={header_item}>Items </li>
+        <li className={header_item}>Items</li>
       </NavLink>
-      <NavLink to='' className={header_nav_item} onClick={handleClick}>
-        <li className={header_item}>Backgrounds </li>
+      <NavLink
+        className={header_nav_item}
+        to='backgrounds'
+        onClick={handleClick}
+      >
+        <li className={header_item}>Backgrounds</li>
       </NavLink>
       <NavLink className={header_nav_item} to='feats' onClick={handleClick}>
-        <li className={header_item}>Feats </li>
-      </NavLink>
-      <NavLink to='' className={header_nav_item} onClick={handleClick}>
-        <li className={header_item}>Monsters </li>
-      </NavLink>
-      <NavLink to='' className={header_nav_item} onClick={handleClick}>
-        <li className={header_item}>Campaigns </li>
+        <li className={header_item}>Feats</li>
       </NavLink>
       <a href='' className={header_nav_item}>
         <li className={header_item} onClick={handleLogout}>

@@ -31,7 +31,7 @@ import { isEqual } from 'lodash'
 import FormFooter from './FormFooter'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../app/store'
-import { clearBack } from '../../app/modalSlice'
+import { clearBack, clearForward, clearStep } from '../../app/modalSlice'
 import { useEventListener } from 'usehooks-ts'
 import {
   BaseQueryFn,
@@ -43,6 +43,7 @@ import FeatureList from './FeatureList'
 import FeatureContent from './FeatureContent'
 import SectionContent from './SectionContent'
 import { sprinkles } from '../../css/sprinkles.css'
+import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
 
 interface FormProps {
   context: FormContext
@@ -82,6 +83,8 @@ const Form = ({
   const isLoading = useIsLoading()
 
   const confirmBack = useSelector((state: RootState) => state.modal.back)
+  const confirmForward = useSelector((state: RootState) => state.modal.forward)
+  const confirmStep = useSelector((state: RootState) => state.modal.step)
 
   const [
     addNewItem,
@@ -94,6 +97,7 @@ const Form = ({
   ] = useUpdateItem()
 
   const [saving, setSaving] = useState<boolean>(false)
+  const [validForm, setValidForm] = useState<boolean>(true)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [stepIndex, setStepIndex] = useState<number>(0)
@@ -139,6 +143,44 @@ const Form = ({
     setSaving(false)
   }
 
+  const { data: builders } = useGetBuildersQuery(undefined)
+
+  useEffect(() => {
+    if (formState.category?.name && !formState.category?.value) {
+      let category = {}
+      if (context.title === 'class') {
+        category = {
+          ...builders?.class.category.find(
+            (categoryItem: any) =>
+              categoryItem.name === formState.category?.name
+          ),
+        }
+      }
+      if (context.title === 'race') {
+        category = {
+          ...builders?.race.category.find(
+            (categoryItem: any) =>
+              categoryItem.name === formState.category?.name
+          ),
+        }
+      }
+      const formClone = JSON.parse(JSON.stringify(state))
+      set(formClone, 'category', category)
+      setFormState({
+        target: { name: 'category', value: category },
+      })
+      setOldFormState(formClone)
+    }
+  }, [
+    builders?.class.category,
+    builders?.race.category,
+    context.title,
+    formState.category?.name,
+    formState.category?.value,
+    setFormState,
+    state,
+  ])
+
   useEffect(() => {
     setStepName(
       steps?.filter((step: Step) =>
@@ -179,18 +221,83 @@ const Form = ({
   }, [state, formState])
 
   useEffect(() => {
-    if ('id' in state && !('id' in formState)) {
+    if (state.id && !formState.id) {
       setFormState({ type: 'reset', target: { value: state } })
     }
   }, [formState, state])
 
   // Confirm Alert back
   useEffect(() => {
-    if (confirmBack.status) {
+    if (confirmBack.status === true) {
+      if (featureStepName !== '') {
+        if (featureStepName === 'SectionContent') {
+          setFeatureStepName('FeatureContent')
+        } else if (featureStepName === 'FeatureContent') {
+          if (featureContext === 'OptionFeatureContent') {
+            setFeatureContext('OptionContent')
+          } else if (featureContext === 'OptionContent') {
+            setFeatureContext('')
+          } else {
+            setFeatureStepName('')
+          }
+        }
+      } else {
+        setStepIndex((prev: number) => prev - 1)
+      }
       dispatch(clearBack())
-      navigate(-1)
     }
-  }, [confirmBack.status, dispatch, navigate])
+  }, [
+    confirmBack.status,
+    dispatch,
+    featureContext,
+    featureStepName,
+    isLastStep,
+  ])
+
+  // If Alert forward status is true
+  useEffect(() => {
+    if (confirmForward.status === true) {
+      if (!isLastStep) {
+        if (featureStepName !== '') {
+          if (featureStepName === 'SectionContent') {
+            setFeatureStepName('FeatureContent')
+          } else if (featureStepName === 'FeatureContent') {
+            if (featureContext === 'OptionFeatureContent') {
+              setFeatureContext('OptionContent')
+            } else if (featureContext === 'OptionContent') {
+              setFeatureContext('')
+            } else {
+              setFeatureStepName('')
+            }
+          }
+        } else {
+          setStepIndex((prev: number) => prev + 1)
+        }
+        dispatch(clearForward())
+      }
+      setValidForm(false)
+    }
+  }, [
+    confirmForward.status,
+    dispatch,
+    featureContext,
+    featureStepName,
+    isLastStep,
+  ])
+
+  // If Alert step status is true
+  useEffect(() => {
+    if (confirmStep.status === true) {
+      setValidForm(false)
+      if (featureStepName !== '') {
+        setFeatureContext('')
+        setFeatureStepName('')
+      } else {
+        setStepIndex(confirmStep.index as number)
+        dispatch(clearStep())
+      }
+    }
+  }, [confirmStep.status, dispatch, confirmStep.index, featureStepName])
 
   // Sucess Message
   useEffect(() => {
@@ -247,15 +354,18 @@ const Form = ({
   const handleAlert = ({
     context,
     message,
+    index,
   }: {
     context: string
     message: string
+    index?: number
   }) => {
-    navigate(`/alert`, {
+    navigate(`${location.pathname}/alert`, {
       state: {
         background: location,
         context: context,
         message: message,
+        index: index,
       },
     })
   }
@@ -577,6 +687,7 @@ const Form = ({
     return formClone
   }
 
+  // Update feature hierarchy and pass back updated formState
   const handleUpdateFeature = async () => {
     let formClone = JSON.parse(JSON.stringify(formState))
     if (
@@ -638,9 +749,7 @@ const Form = ({
               },
             })
           }
-          return setFeatureStepName('FeatureContent')
         }
-        return
       }
       return setFeatureStepName('FeatureContent')
     }
@@ -653,9 +762,7 @@ const Form = ({
               value: subFeatureState,
             },
           })
-          return setFeatureContext('OptionContent')
         }
-        return
       }
       return setFeatureContext('OptionContent')
     }
@@ -677,10 +784,7 @@ const Form = ({
               value: optionState,
             },
           })
-          setFeatureContext('')
-          return setFeatureStepName('FeatureContent')
         }
-        return
       }
       setFeatureContext('')
       return setFeatureStepName('FeatureContent')
@@ -710,17 +814,33 @@ const Form = ({
 
   const handleForward = async () => {
     const isValid = validate()
-    if (isValid) {
-      if (featureStepName !== '') {
-        return handleSave()
+    if (!isLastStep || (isLastStep && featureStepName !== '')) {
+      if (isValid) {
+        if (featureStepName !== '') {
+          setValidForm(true)
+          return handleSave()
+        }
+        setOldFormState(formState)
+        setStepIndex((prev: number) => prev + 1)
+        return setValidForm(true)
       }
-      setOldFormState(formState)
-      setStepIndex((prev: number) => prev + 1)
+      return handleAlert({
+        context: 'forward',
+        message:
+          'Some required fields are missing. Current form step will not be saved.',
+      })
     }
     if (isLastStep && featureStepName === '') {
+      if (!validForm) {
+        return handleAlert({
+          context: 'invalidForm',
+          message:
+            'There are missing fields are required. Please review each step.',
+        })
+      }
       setSaving(true)
-      const payload = await addNewItem(formState)
-      if ('data' in payload && 'item' in payload.data) {
+      const payload: any = await addNewItem(formState)
+      if (payload) {
         return handleNavigateEdit(payload.data.item)
       } else {
         setErrorMessage('No data returned')
@@ -729,24 +849,22 @@ const Form = ({
   }
 
   const handleBack = () => {
-    const isValid = validate()
     if (isFirstStep) {
-      if (isValid) {
-        if (!isEqual(state, formState)) {
-          return handleAlert({
-            context: 'back',
-            message:
-              context.type === 'edit'
-                ? `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
-                : `${startCase(
-                    context.title
-                  )} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
-          })
-        }
-        return navigate(-1)
+      if (!isEqual(oldFormState, formState)) {
+        return handleAlert({
+          context: 'back',
+          message:
+            context.type === 'edit'
+              ? `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
+              : `${startCase(
+                  context.title
+                )} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+        })
       }
+      return navigate(-1)
     }
-    if (!isFirstStep) {
+    const isValid = validate()
+    if (isValid) {
       if (featureStepName !== '') {
         return handleSave()
       }
@@ -755,7 +873,7 @@ const Form = ({
           return navigate(-1)
         }
       }
-      setStepIndex((i: number) => {
+      return setStepIndex((i: number) => {
         if (i <= 0) {
           return i
         } else {
@@ -763,6 +881,11 @@ const Form = ({
         }
       })
     }
+    handleAlert({
+      context: 'back',
+      message:
+        'Some required fields are missing. Current form step will not be saved.',
+    })
   }
 
   const handleUpdate = async () => {
@@ -775,15 +898,28 @@ const Form = ({
           type: 'reset',
           target: { value: formClone },
         })
-        await updateItem(formClone)
-        return setOldFormState(formClone)
+        try {
+          await updateItem(formState)
+        } catch (err: any) {
+          setErrorMessage(err.data.message)
+        }
+        setOldFormState(formClone)
+        return setState({
+          type: 'reset',
+          target: { value: formState },
+        })
       }
-      setState({
-        type: 'reset',
-        target: { value: formState },
-      })
-      setOldFormState(formState)
-      await updateItem(formState)
+      try {
+        await updateItem(formState)
+      } catch (err: any) {
+        setErrorMessage(err.data.message)
+      } finally {
+        setOldFormState(formState)
+        setState({
+          type: 'reset',
+          target: { value: formState },
+        })
+      }
     }
   }
 
@@ -812,26 +948,28 @@ const Form = ({
     })
   }
 
-  const handleStepChange = (progressStepIndex: number) => {
+  const handleStepChange = async (progressStepIndex: number) => {
     const isValid = validate()
-    if (featureStepName !== '') {
-      const formClone = handleUpdateFeature()
-      if (isValid) {
-        setFormState({
-          type: 'reset',
-          target: { value: formClone },
-        })
+    if (isValid) {
+      if (isEqual(formState, oldFormState) && featureStepName === '') {
+        return setStepIndex(progressStepIndex)
       }
+      setValidForm(true)
+      const formClone = await handleUpdateFeature()
+      setFormState({
+        type: 'reset',
+        target: { value: formClone },
+      })
       setFeatureContext('')
       setFeatureStepName('')
       return setStepIndex(progressStepIndex)
     }
-    if (
-      (isEqual(formState, oldFormState) || isValid) &&
-      featureStepName === ''
-    ) {
-      return setStepIndex(progressStepIndex)
-    }
+    return handleAlert({
+      context: 'step',
+      message:
+        'Some required fields are missing. Current form step will not be saved.',
+      index: progressStepIndex,
+    })
   }
 
   useEventListener(

@@ -9,22 +9,22 @@ import Modal from './components/Modal/Modal'
 import Prefetch from './components/Prefetch/Prefetch'
 import SignIn from './features/auth/SignIn'
 import Delete from './components/Delete/Delete'
-import CharacterList from './features/characters/CharacterList'
-import Class from './features/classes/Class'
-import ClassList from './features/classes/ClassList'
-import ClassForm from './features/classes/ClassForm'
-import Race from './features/races/Race'
-import RaceList from './features/races/RaceList'
-import RaceForm from './features/races/RaceForm'
-import Spell from './features/spells/Spell'
-import SpellList from './features/spells/SpellList'
-import SpellForm from './features/spells/SpellForm'
-import Item from './features/items/Item'
-import ItemList from './features/items/ItemList'
-import ItemForm from './features/items/ItemForm'
-import Feat from './features/feats/Feat'
-import FeatList from './features/feats/FeatList'
-import FeatForm from './features/feats/FeatForm'
+import CharacterList from './features/character/CharacterList'
+import Class from './features/class/Class'
+import ClassList from './features/class/ClassList'
+import ClassForm from './features/class/ClassForm'
+import Race from './features/race/Race'
+import RaceList from './features/race/RaceList'
+import RaceForm from './features/race/RaceForm'
+import Spell from './features/spell/Spell'
+import SpellList from './features/spell/SpellList'
+import SpellForm from './features/spell/SpellForm'
+import Item from './features/item/Item'
+import ItemList from './features/item/ItemList'
+import ItemForm from './features/item/ItemForm'
+import Feat from './features/feat/Feat'
+import FeatList from './features/feat/FeatList'
+import FeatForm from './features/feat/FeatForm'
 import Create from './components/Create/Create'
 import Alert from './components/Alert/Alert'
 
@@ -124,7 +124,7 @@ const App = () => {
             <Route path='/classes/:id' element={<Class />} />
             <Route path='/delete/:id' element={<Delete />} />
             <Route path='/create/:type' element={<Create />} />
-            <Route path='/alert' element={<Alert />} />
+            <Route path='*' element={<Alert />} />
           </Route>
         </Routes>
       )}

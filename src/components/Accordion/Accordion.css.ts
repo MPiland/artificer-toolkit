@@ -28,6 +28,12 @@ export const accordion_container = style({
       marginBottom: size['size-2'],
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
       backgroundColor: theme.vars['app-background-color'],
+
+      selectors: {
+        '&.dragging': {
+          backgroundColor: palette['blue-1'],
+        },
+      },
     },
   },
 })

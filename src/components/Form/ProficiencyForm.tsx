@@ -3,7 +3,7 @@ import useIsLoading from '../../hooks/useIsLoading'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
 import Accordion from '../Accordion/Accordion'
-import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
+import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
 import Grid from '../Grid/Grid'
 import Dropdown from '../Dropdown/Dropdown'
 import {
@@ -15,7 +15,7 @@ import Input from '../Input/Input'
 import {
   selectAllItems,
   useGetItemsQuery,
-} from '../../features/items/itemsApiSlice'
+} from '../../features/item/itemApiSlice'
 import Spinner from '../Spinner/Spinner'
 import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'

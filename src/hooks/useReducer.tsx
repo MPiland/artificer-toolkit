@@ -38,20 +38,26 @@ const formReducer = produce((draft: any, action: ReducerActionType) => {
       const lastKey = path[path.length - 1]
       if (!isNumber(lastKey)) {
         const newPath = path
-        if (get(draft, newPath)) {
-          set(draft, newPath, undefined)
+        newPath.pop()
+        const object = get(draft, newPath)
+        if (path.length > 1 && object) {
+          const newObject = { ...get(draft, newPath) }
+          delete newObject[path[path.length - 1]]
+          set(draft, newPath, newObject)
+        } else {
+          const newObject = { ...draft }
+          delete newObject[path[0]]
+          return newObject
         }
       } else {
-        const newPath = path.slice(0, -1) // Remove the last key
-        if (get(draft, newPath)) {
-          set(
-            draft,
-            newPath,
-            get(draft, newPath).filter(
-              (_: any, index: number) => index !== Number(lastKey)
-            )
+        const newPath = path.slice(0, -1)
+        set(
+          draft,
+          newPath,
+          get(draft, newPath).filter(
+            (_: any, index: number) => index !== Number(lastKey)
           )
-        }
+        )
       }
     }
   } else if (action?.type === 'reset') {
@@ -62,9 +68,10 @@ const formReducer = produce((draft: any, action: ReducerActionType) => {
       if (path.length === 1) {
         set(draft, 'name', camelCase(action?.target?.value))
       } else {
-        path.pop()
-        path.push('name')
-        set(draft, path, camelCase(action?.target?.value))
+        const newPath = [...path]
+        newPath.pop()
+        newPath.push('name')
+        set(draft, newPath, camelCase(action?.target?.value))
       }
     }
   }

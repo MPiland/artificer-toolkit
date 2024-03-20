@@ -1,33 +1,33 @@
 import { store } from '../../app/store'
-import { itemsApiSlice } from '../../features/items/itemsApiSlice'
-import { spellsApiSlice } from '../../features/spells/spellsApiSlice'
-import { racesApiSlice } from '../../features/races/racesApiSlice'
-import { featsApiSlice } from '../../features/feats/featsApiSlice'
-import { classesApiSlice } from '../../features/classes/classesApiSlice'
-import { charactersApiSlice } from '../../features/characters/charactersApiSlice'
+import { itemApiSlice } from '../../features/item/itemApiSlice'
+import { spellApiSlice } from '../../features/spell/spellApiSlice'
+import { raceApiSlice } from '../../features/race/raceApiSlice'
+import { featApiSlice } from '../../features/feat/featApiSlice'
+import { classApiSlice } from '../../features/class/classApiSlice'
+import { charactersApiSlice } from '../../features/character/charactersApiSlice'
 import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
-import { buildersApiSlice } from '../../features/builders/buildersApiSlice'
+import { builderApiSlice } from '../../features/builder/builderApiSlice'
 
 const Prefetch = () => {
   useEffect(() => {
     store.dispatch(
-      buildersApiSlice.util.prefetch('getBuilders', undefined, { force: true })
+      builderApiSlice.util.prefetch('getBuilders', undefined, { force: true })
     )
     store.dispatch(
-      itemsApiSlice.util.prefetch('getItems', undefined, { force: true })
+      itemApiSlice.util.prefetch('getItems', undefined, { force: true })
     )
     store.dispatch(
-      spellsApiSlice.util.prefetch('getSpells', undefined, { force: true })
+      spellApiSlice.util.prefetch('getSpells', undefined, { force: true })
     )
     store.dispatch(
-      racesApiSlice.util.prefetch('getRaces', undefined, { force: true })
+      raceApiSlice.util.prefetch('getRaces', undefined, { force: true })
     )
     store.dispatch(
-      featsApiSlice.util.prefetch('getFeats', undefined, { force: true })
+      featApiSlice.util.prefetch('getFeats', undefined, { force: true })
     )
     store.dispatch(
-      classesApiSlice.util.prefetch('getClasses', undefined, { force: true })
+      classApiSlice.util.prefetch('getClasses', undefined, { force: true })
     )
     store.dispatch(
       charactersApiSlice.util.prefetch('getCharacters', undefined, {

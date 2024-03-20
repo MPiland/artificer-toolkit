@@ -2,23 +2,23 @@ import { combineSlices } from '@reduxjs/toolkit'
 import { apiSlice } from './api/apiSlice'
 import { authSlice } from '../features/auth/authSlice'
 import { modalSlice } from './modalSlice'
-import { buildersSlice } from '../features/builders/buildersSlice'
-import { spellsSlice } from '../features/spells/spellsSlice'
-import { racesSlice } from '../features/races/racesSlice'
-import { itemsSlice } from '../features/items/itemsSlice'
-import { classesSlice } from '../features/classes/classesSlice'
-import { featsSlice } from '../features/feats/featsSlice'
-import { charactersSlice } from '../features/characters/charactersSlice'
+import { builderSlice } from '../features/builder/builderSlice'
+import { spellSlice } from '../features/spell/spellSlice'
+import { raceSlice } from '../features/race/raceSlice'
+import { itemSlice } from '../features/item/itemSlice'
+import { classSlice } from '../features/class/classSlice'
+import { featSlice } from '../features/feat/featSlice'
+import { characterSlice } from '../features/character/characterSlice'
 
 export const rootReducer = combineSlices(
   apiSlice,
   authSlice,
   modalSlice,
-  buildersSlice,
-  spellsSlice,
-  racesSlice,
-  itemsSlice,
-  classesSlice,
-  featsSlice,
-  charactersSlice
+  builderSlice,
+  spellSlice,
+  raceSlice,
+  itemSlice,
+  classSlice,
+  featSlice,
+  characterSlice,
 )

@@ -11,7 +11,7 @@ import {
   dropdown,
   dropdown_option_right_side,
 } from './Dropdown.css'
-import { uniqBy } from 'lodash'
+import { isEqual, uniqBy } from 'lodash'
 import clsx from 'clsx'
 import { DropdownOption, ReducerActionType } from '../../utils/types'
 import { TbX, TbChevronDown, TbCheck } from 'react-icons/tb'
@@ -35,7 +35,7 @@ interface DropdownProps {
   label?: string | boolean
   name: string
   required?: boolean
-  value: any[] | null
+  value: DropdownOption[] | DropdownOption | null
   className?: string | number | symbol | any
   placeholder?: string
   options: DropdownOption[] | undefined
@@ -66,9 +66,12 @@ const Dropdown = ({
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [error, setError] = useState<boolean>(false)
+  const [settingOption, setSettingOption] = useState<boolean>(false)
 
   const dropdownRef = useRef<HTMLDivElement | null>(null)
-  const updatedOptions = useRef<DropdownOption[] | DropdownOption | null>(null)
+  const updatedOptions = useRef<DropdownOption[] | DropdownOption | null>(
+    value ?? null
+  )
 
   useEffect(() => {
     const dropdown = dropdownRef.current
@@ -119,11 +122,11 @@ const Dropdown = ({
     [click, listNavigation, typeahead, dismiss]
   )
 
-  let newOptions: DropdownOption[]
+  let optionArray: DropdownOption[]
 
   if (options?.length) {
-    newOptions = options?.filter((option) => option?.value != null)
-    newOptions = newOptions.map(({ name, value, _id, ...rest }) => {
+    optionArray = options?.filter((option) => option?.value != null)
+    optionArray = optionArray.map(({ name, value, _id, ...rest }) => {
       const newObj: DropdownOption = { name, value, _id }
 
       if (optionalKey) {
@@ -141,14 +144,16 @@ const Dropdown = ({
 
       return newObj
     })
-    newOptions.sort((a, b) =>
+    optionArray.sort((a, b) =>
       a.value === b.value ? 0 : a.value > b.value ? 1 : -1
     )
   } else {
-    newOptions = []
+    optionArray = []
   }
 
-  newOptions = uniqBy(newOptions, (obj) => obj.value)
+  optionArray = uniqBy(optionArray, (obj) => obj.value)
+
+  const newOptions = [...optionArray]
 
   if (multiSelect) {
     newOptions.unshift(
@@ -158,79 +163,89 @@ const Dropdown = ({
   }
 
   useEffect(() => {
-    if (Array.isArray(value)) {
-      if (value.some((item) => item.name === 'all')) {
+    if (!isEqual(value, updatedOptions.current) && !settingOption) {
+      updatedOptions.current = value
+    }
+    if (updatedOptions.current && !settingOption) {
+      if (Array.isArray(updatedOptions.current)) {
         if (
-          selectedOptions?.every((option: DropdownOption) =>
-            newOptions.map((newOption) => newOption.value === option.value)
-          )
+          updatedOptions.current.some((valueItem) => valueItem.name === 'all')
         ) {
+          if (
+            selectedOptions?.length === 0 ||
+            !optionArray?.every((optionItem: DropdownOption) =>
+              selectedOptions?.some(
+                (selectedOption: DropdownOption) =>
+                  selectedOption._id === optionItem._id
+              )
+            )
+          ) {
+            setSelectedOptions(optionArray)
+          }
+        } else if (!isEqual(selectedOptions, updatedOptions.current)) {
           setSelectedOptions(
-            uniqBy(newOptions, (obj) => obj.value).filter(
-              (option) => option.name !== 'all' && option.name !== 'clear'
+            updatedOptions.current.filter((valueItem) =>
+              optionArray.some((optionItem) => valueItem._id === optionItem._id)
             )
           )
-        } else {
-          updatedOptions.current = value
-          setSelectedOptions(value)
         }
-      } else if (
-        !value.every((option) =>
-          newOptions.some((newOption) => newOption._id === option._id)
-        )
-      ) {
-        updatedOptions.current = value.filter((valueItem) =>
-          newOptions.some((newOption) => newOption._id === valueItem._id)
-        )
-        setSelectedOptions(
-          value.filter((valueItem) =>
-            newOptions.some((newOption) => newOption._id === valueItem._id)
+      } else if (!isEqual(updatedOptions.current, selectedOptions)) {
+        if (
+          optionArray.some(
+            (optionItem) =>
+              optionItem._id === (updatedOptions.current as DropdownOption)._id
           )
-        )
+        ) {
+          setSelectedOptions(updatedOptions.current)
+        } else {
+          setSelectedOptions(null)
+          onChange({ type: 'removed', target: { name: name } })
+        }
       }
     }
-    if (value !== updatedOptions.current) {
-      updatedOptions.current = value
-      setSelectedOptions(value)
-    }
-  }, [value, newOptions, selectedOptions])
+  }, [value, optionArray, settingOption, name, onChange, selectedOptions])
 
   const handleValueSelect = (option: DropdownOption) => {
+    setSettingOption(true)
     if (multiSelect) {
       if (option.name === 'clear') {
         setSelectedOptions(null)
         updatedOptions.current = null
+        return onChange({
+          type: 'removed',
+          target: { name: name },
+        })
       } else if (option.name === 'all') {
-        const allOptions = uniqBy(newOptions, (obj) => obj.value).filter(
-          (obj) => obj.name !== 'all' && obj.name !== 'clear'
-        )
-        setSelectedOptions(allOptions)
+        setSelectedOptions(optionArray)
         updatedOptions.current = [option]
       } else {
-        let updated: DropdownOption[] | null = null
-        setSelectedOptions((current) => {
-          if (current != null) {
-            updated = current.some((item: DropdownOption) => {
-              if (item._id != null) {
-                return item._id === option._id
-              } else {
-                return item.value === option.value
-              }
-            })
-              ? current.filter((v: any) => {
-                  if (v._id != null) {
-                    return v._id !== option._id
-                  } else {
-                    return v.value != option.value
-                  }
-                })
-              : [...(current as DropdownOption[]), option]
-          } else {
-            updated = [option]
-          }
-          return updated
-        })
-        updatedOptions.current = updated
+        if (!(selectedOptions?.length > 0)) {
+          updatedOptions.current = [option]
+          setSelectedOptions([option])
+        } else if (
+          selectedOptions?.some(
+            (selectedOption: DropdownOption) =>
+              selectedOption._id === option._id
+          )
+        ) {
+          updatedOptions.current = selectedOptions.filter(
+            (selectedOption: DropdownOption) =>
+              selectedOption._id !== option._id
+          )
+          setSelectedOptions((current) =>
+            current?.filter(
+              (currentItem: DropdownOption) => currentItem._id !== option._id
+            )
+          )
+        } else {
+          updatedOptions.current = [
+            ...(updatedOptions.current as DropdownOption[]),
+            option,
+          ]
+          setSelectedOptions((current) => {
+            return [...(current as DropdownOption[]), option]
+          })
+        }
       }
     } else {
       // If it's a single select, update updatedOptions.current to match selectedOptions
@@ -241,18 +256,15 @@ const Dropdown = ({
     onChange({
       target: { name: name, value: updatedOptions.current },
     })
+    setSettingOption(false)
   }
 
-  const handleValueRemove = (option: DropdownOption) => {
-    if (multiSelect) {
-      setSelectedOptions((current) =>
-        current?.filter((v: DropdownOption) => v !== option)
-      )
-    } else {
-      updatedOptions.current = null
-      onChange({ target: { name: name, value: null } })
-      setSelectedOptions(null)
-    }
+  const handleValueRemove = () => {
+    setSettingOption(true)
+    updatedOptions.current = null
+    onChange({ type: 'removed', target: { name: name } })
+    setSelectedOptions(null)
+    setSettingOption(true)
   }
 
   const values = multiSelect
@@ -314,8 +326,9 @@ const Dropdown = ({
           <span
             className={dropdown_right_section}
             onClick={(e: any) => {
-              selectedOptions && !multiSelect && e.stopPropagation()
-              handleValueRemove(selectedOptions as DropdownOption)
+              e.stopPropagation()
+              !multiSelect && handleValueRemove()
+              multiSelect && setIsOpen((prev) => !prev)
             }}
           >
             {selectedOptions && !multiSelect ? <TbX /> : <TbChevronDown />}

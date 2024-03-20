@@ -35,7 +35,7 @@ import { ReducerActionType } from '../../utils/types'
 
 interface ContainerProps {
   children: ReactNode
-  itemId?: number | string
+  itemId: string
 }
 
 interface HeaderProps {
@@ -72,7 +72,7 @@ const Container = memo(({ children, itemId }: ContainerProps) => {
     transition,
     isDragging,
   } = useSortable({
-    id: itemId as any,
+    id: itemId,
     disabled: !itemId,
   })
 
@@ -88,7 +88,7 @@ const Container = memo(({ children, itemId }: ContainerProps) => {
       {...attributes}
       {...listeners}
       style={style}
-      className={accordion_container}
+      className={clsx(accordion_container, { ['dragging']: isDragging })}
     >
       {children}
     </div>
@@ -199,10 +199,14 @@ const Accordion = ({
       return
     }
 
-    const oldIndex = dataArray.findIndex((item: any) => item.id === active.id)
-    const newIndex = dataArray.findIndex((item: any) => item.id === over?.id)
-    const newArray = arrayMove(dataArray, oldIndex, newIndex)
-    setState && setState({ target: { name: name, value: newArray } })
+    const oldArray = JSON.parse(JSON.stringify(dataArray))
+
+    const oldIndex = Number(active.id)
+    const newIndex = Number(over?.id)
+    const newArray = arrayMove(oldArray, oldIndex, newIndex)
+    if (setState) {
+      setState({ target: { name: name, value: newArray } })
+    }
   }
 
   return (
@@ -213,9 +217,7 @@ const Accordion = ({
         onDragEnd={onDragEnd}
       >
         <SortableContext
-          items={dataArray.map(
-            (dataItem, dataIndex) => dataItem?.id ?? dataIndex
-          )}
+          items={dataArray.map((_, dataIndex) => String(dataIndex))}
           disabled={disableSort}
           strategy={verticalListSortingStrategy}
         >

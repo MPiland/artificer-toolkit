@@ -8,15 +8,15 @@ import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import Grid from '../Grid/Grid'
 import RichTextEditor from '../RichTextEditor/RichTextEditor'
-import { useGetBuildersQuery } from '../../features/builders/buildersApiSlice'
+import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
 import {
   selectAllClasses,
   useGetClassesQuery,
-} from '../../features/classes/classesApiSlice'
+} from '../../features/class/classApiSlice'
 import {
   selectAllRaces,
   useGetRacesQuery,
-} from '../../features/races/racesApiSlice'
+} from '../../features/race/raceApiSlice'
 import { startCase } from 'lodash'
 import Button from '../Button/Button'
 import Accordion from '../Accordion/Accordion'
@@ -34,7 +34,7 @@ interface DetailFormProps {
 
 const DetailForm = memo(
   ({ context, formState, setFormState }: DetailFormProps) => {
-    const [activeDetailIndex, setActiveDetailIndex] = useState<number | null>(
+    const [activeIndex, setActiveIndex] = useState<number | null>(
       context.type !== 'new' ? null : 0
     )
 
@@ -55,13 +55,13 @@ const DetailForm = memo(
     })
 
     const toggle = (index: number) => {
-      if (activeDetailIndex === index) {
-        return setActiveDetailIndex(null)
+      if (activeIndex === index) {
+        return setActiveIndex(null)
       }
-      setActiveDetailIndex(index)
+      setActiveIndex(index)
     }
 
-    return isLoading || !builders ? (
+    return isLoading || !builders || !formState ? (
       <Spinner />
     ) : (
       <ScrollArea scrollDirection='vertical' className={form_content}>
@@ -167,7 +167,8 @@ const DetailForm = memo(
                   value={formState?.parentClass}
                   options={
                     classes?.filter(
-                      (classItem: any) => classItem.category.name !== 'subclass'
+                      (classItem: any) =>
+                        classItem.category?.name !== 'subclass'
                     ) as unknown as DropdownOption[]
                   }
                   required={true}
@@ -211,11 +212,15 @@ const DetailForm = memo(
               {(formState.category?.name === 'subrace' ||
                 formState.category?.name === 'variant') && (
                 <Dropdown
-                  multiSelect={formState?.category.name === 'variant' && true}
+                  multiSelect={true}
                   name='lineage'
                   label='Race Lineage'
                   value={formState?.lineage}
-                  options={races as unknown as DropdownOption[]}
+                  options={
+                    races?.filter(
+                      (raceItem: any) => raceItem.category.name === 'base'
+                    ) as unknown as DropdownOption[]
+                  }
                   required={true}
                   onChange={setFormState}
                 />
@@ -401,9 +406,9 @@ const DetailForm = memo(
             variant='default'
             onClick={() => {
               if (formState?.detail?.length > 0) {
-                setActiveDetailIndex(formState?.detail?.length)
+                setActiveIndex(formState?.detail?.length)
               } else {
-                setActiveDetailIndex(0)
+                setActiveIndex(0)
               }
               setFormState({
                 type: 'added',
@@ -422,7 +427,10 @@ const DetailForm = memo(
           >
             {formState?.detail.map((detailItem: any, detailIndex: number) => {
               return (
-                <Accordion.Container key={detailIndex} itemId={detailItem.id}>
+                <Accordion.Container
+                  key={detailIndex}
+                  itemId={String(detailIndex)}
+                >
                   <Accordion.Header
                     handleClick={() => toggle(detailIndex)}
                     handleRemove={() =>
@@ -431,13 +439,13 @@ const DetailForm = memo(
                         target: { name: `detail.${detailIndex}` },
                       })
                     }
-                    active={activeDetailIndex === detailIndex}
+                    active={activeIndex === detailIndex}
                   >
                     {detailItem.value != null && detailItem.value !== ''
                       ? detailItem.value
                       : `Detail ${detailIndex + 1}`}
                   </Accordion.Header>
-                  <Accordion.Content active={activeDetailIndex === detailIndex}>
+                  <Accordion.Content active={activeIndex === detailIndex}>
                     <Grid className={sprinkles({ mb: 'size-3' })}>
                       <Input
                         name={`detail.${detailIndex}.value`}
