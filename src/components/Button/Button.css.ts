@@ -18,6 +18,9 @@ const base = style({
       justifyContent: 'center',
       zIndex: 1,
       padding: `0 ${size['size-3']}`,
+      width: 'fit-content',
+      flexWrap: 'nowrap',
+      textWrap: 'nowrap',
 
       selectors: {
         '&:active': {
@@ -50,6 +53,12 @@ const buttonPalette = {
         borderColor: 'unset',
         color: 'white',
         border: '1px solid',
+
+        selectors: {
+          '&:hover': {
+            backgroundColor: palette['blue-9'],
+          },
+        },
       },
     },
   },
@@ -59,6 +68,15 @@ const buttonPalette = {
         backgroundColor: 'transparent',
         color: palette['blue-7'],
         border: '1px solid',
+
+        selectors: {
+          '&:hover': {
+            backgroundColor: palette['blue-7'],
+            borderColor: 'unset',
+            color: 'white',
+            border: '1px solid',
+          },
+        },
       },
     },
   },

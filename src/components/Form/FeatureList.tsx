@@ -119,31 +119,38 @@ const FeatureList = ({
         alignItemsVariant='start'
         className={sprinkles({ px: 'size-4' })}
       >
-        {stepName === 'Ancestry' && featureStepName === '' && (
-          <>
-            <Grid className={sprinkles({ mb: 'size-3' })}>
-              <Input
-                name='ancestry.value'
-                autoComplete='off'
-                label='Ancestry Name'
-                required={
-                  formState?.ancestry?.desc !== '' &&
-                  formState?.ancestry?.desc != null
-                }
-                value={formState?.ancestry?.value}
-                errorMsg='Name must not be blank'
-                onChange={setFormState}
-              />
-            </Grid>
-            <Collapse title='Ancestry Description'>
-              <RichTextEditor
-                name='ancestry.desc'
-                onChange={setFormState}
-                value={formState?.ancestry?.desc}
-              />
-            </Collapse>
-          </>
-        )}
+        {stepName === 'Ancestry' &&
+          featureStepName === '' &&
+          featureArray &&
+          featureArray.length > 0 && (
+            <>
+              <Grid className={sprinkles({ mb: 'size-3' })}>
+                <Input
+                  name='ancestry.value'
+                  autoComplete='off'
+                  label='Ancestry Name'
+                  required={
+                    formState?.ancestry?.desc !== '' &&
+                    formState?.ancestry?.desc != null
+                  }
+                  value={formState?.ancestry?.value}
+                  errorMsg='Name must not be blank'
+                  onChange={setFormState}
+                />
+              </Grid>
+              <Collapse
+                title='Ancestry Description'
+                className={sprinkles({ width: 'full' })}
+                startOpened={context.type === 'new'}
+              >
+                <RichTextEditor
+                  name='ancestry.desc'
+                  onChange={setFormState}
+                  value={formState?.ancestry?.desc}
+                />
+              </Collapse>
+            </>
+          )}
         <Group className={sprinkles({ mt: 'size-3' })}>
           <Button variant='primary_outline' onClick={handleAdd}>
             {`Add ${stepName === 'Ancestry' ? 'Ancestry' : 'Feature'}`}

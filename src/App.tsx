@@ -27,6 +27,10 @@ import FeatList from './features/feat/FeatList'
 import FeatForm from './features/feat/FeatForm'
 import Create from './components/Create/Create'
 import Alert from './components/Alert/Alert'
+import BackgroundForm from './features/background/BackgroundForm'
+import BackgroundList from './features/background/BackgroundList'
+import Background from './features/background/Background'
+import CharacterForm from './features/character/CharacterForm'
 
 const App = () => {
   const [theme] = useState('light')
@@ -60,10 +64,13 @@ const App = () => {
             {/*Logged in*/}
             <Route element={<RequireAuth />}>
               <Route element={<Prefetch />}>
-                <Route path='characters'>
+                <Route path='character'>
                   <Route index element={<CharacterList />} />
+                  <Route path=':context' element={<CharacterForm />}>
+                    <Route path=':id' element={<CharacterForm />} />
+                  </Route>
                 </Route>
-                <Route path='classes'>
+                <Route path='class'>
                   <Route
                     index
                     element={<ClassList scrollPosition={scrollPosition} />}
@@ -72,7 +79,7 @@ const App = () => {
                     <Route path=':id' element={<ClassForm />} />
                   </Route>
                 </Route>
-                <Route path='races'>
+                <Route path='race'>
                   <Route
                     index
                     element={<RaceList scrollPosition={scrollPosition} />}
@@ -81,7 +88,7 @@ const App = () => {
                     <Route path=':id' element={<RaceForm />} />
                   </Route>
                 </Route>
-                <Route path='spells'>
+                <Route path='spell'>
                   <Route
                     index
                     element={<SpellList scrollPosition={scrollPosition} />}
@@ -90,7 +97,7 @@ const App = () => {
                     <Route path=':id' element={<SpellForm />} />
                   </Route>
                 </Route>
-                <Route path='items'>
+                <Route path='item'>
                   <Route
                     index
                     element={<ItemList scrollPosition={scrollPosition} />}
@@ -99,13 +106,22 @@ const App = () => {
                     <Route path=':id' element={<ItemForm />} />
                   </Route>
                 </Route>
-                <Route path='feats'>
+                <Route path='feat'>
                   <Route
                     index
                     element={<FeatList scrollPosition={scrollPosition} />}
                   />
                   <Route path=':context' element={<FeatForm />}>
                     <Route path=':id' element={<FeatForm />} />
+                  </Route>
+                </Route>
+                <Route path='background'>
+                  <Route
+                    index
+                    element={<BackgroundList scrollPosition={scrollPosition} />}
+                  />
+                  <Route path=':context' element={<BackgroundForm />}>
+                    <Route path=':id' element={<BackgroundForm />} />
                   </Route>
                 </Route>
               </Route>
@@ -117,11 +133,12 @@ const App = () => {
         <Routes>
           <Route element={<Modal />}>
             <Route path='/:context' element={<SignIn />} />
-            <Route path='/spells/:id' element={<Spell />} />
-            <Route path='/feats/:id' element={<Feat />} />
-            <Route path='/items/:id' element={<Item />} />
-            <Route path='/races/:id' element={<Race />} />
-            <Route path='/classes/:id' element={<Class />} />
+            <Route path='/spell/:id' element={<Spell />} />
+            <Route path='/feat/:id' element={<Feat />} />
+            <Route path='/item/:id' element={<Item />} />
+            <Route path='/race/:id' element={<Race />} />
+            <Route path='/class/:id' element={<Class />} />
+            <Route path='/background/:id' element={<Background />} />
             <Route path='/delete/:id' element={<Delete />} />
             <Route path='/create/:type' element={<Create />} />
             <Route path='*' element={<Alert />} />

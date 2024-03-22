@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import Container from '../Container/Container'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
 import Table from '../Table/Table'
@@ -116,19 +115,16 @@ const List = ({
   }, [deleteConfirmed, itemToDelete, dispatch, deleteItem, setListFilter])
 
   const handleShowDetail = (item: any) => {
-    navigate(
-      `/${context.title === 'class' ? 'classe' : context.title}s/${item.name}`,
-      {
-        state: {
-          background: location,
-          form: `${context.title === 'class' ? 'classe' : context.title}s`,
-          data: item,
-          size: 'lg',
-          scrollPosition: table?.scrollTop,
-          title: item.value,
-        },
-      }
-    )
+    navigate(`/${context.title}/${item.name}`, {
+      state: {
+        background: location,
+        form: context.title,
+        data: item,
+        size: 'lg',
+        scrollPosition: table?.scrollTop,
+        title: item.value,
+      },
+    })
   }
 
   const handleCreate = (secondary?: boolean) => {
@@ -138,7 +134,7 @@ const List = ({
           state: {
             background: location,
             context: context.type,
-            form: 'classes',
+            form: 'class',
             data: items.filter(
               (item: any) => item.category.name === 'subclass'
             ),
@@ -151,7 +147,7 @@ const List = ({
           state: {
             background: location,
             context: context.type,
-            form: 'races',
+            form: 'race',
             data: items.filter((item: any) => item.category.name === 'subrace'),
             defaultCategory: 'subrace',
           },
@@ -162,7 +158,7 @@ const List = ({
       state: {
         background: location,
         context: context,
-        form: `${context.title === 'class' ? 'classe' : context.title}s`,
+        form: context.title,
         data: items.filter((item: any) =>
           context.title === 'class' ? item.category.name === 'base' : item
         ),
@@ -188,85 +184,82 @@ const List = ({
     <Spinner />
   ) : (
     <>
-      <Container className={sprinkles({ pt: 'size-3' })}>
-        <Group className={sprinkles({ mb: 'size-3' })}>
-          <h1>
-            {startCase(
-              `${context.title === 'class' ? 'classe' : context.title}s`
-            )}
-          </h1>
-          <Grid
-            cols={{
-              lg: context.title === 'class' || context.title === 'race' ? 3 : 2,
-              md: context.title === 'class' || context.title === 'race' ? 3 : 2,
-              base:
-                context.title === 'class' || context.title === 'race' ? 3 : 2,
-            }}
-            className={sprinkles({ width: 'auto' })}
+      <Group className={sprinkles({ my: 'size-3' })}>
+        <h1>
+          {startCase(
+            `${context.title === 'class' ? 'classe' : context.title}s`
+          )}
+        </h1>
+        <Grid
+          cols={{
+            lg: context.title === 'class' || context.title === 'race' ? 3 : 2,
+            md: context.title === 'class' || context.title === 'race' ? 3 : 2,
+            base: context.title === 'class' || context.title === 'race' ? 3 : 2,
+          }}
+          className={sprinkles({ width: 'auto' })}
+        >
+          <Button type='button' variant='default' onClick={onFilterReset}>
+            Clear Filters
+          </Button>
+          <Button
+            type='button'
+            variant='default'
+            onClick={() => handleCreate()}
           >
-            <Button type='button' variant='default' onClick={onFilterReset}>
-              Clear Filters
-            </Button>
+            Create {context.title === 'item' ? 'an ' : 'a '}
+            {startCase(context.title)}
+          </Button>
+          {(context.title === 'class' || context.title === 'race') && (
             <Button
               type='button'
               variant='default'
-              onClick={() => handleCreate()}
+              onClick={() => handleCreate(true)}
             >
-              Create {context.title === 'item' ? 'an ' : 'a '}
-              {startCase(context.title)}
+              Create a {context.title === 'class' ? 'Subclass' : 'Subrace'}
             </Button>
-            {(context.title === 'class' || context.title === 'race') && (
-              <Button
-                type='button'
-                variant='default'
-                onClick={() => handleCreate(true)}
-              >
-                Create a {context.title === 'class' ? 'Subclass' : 'Subrace'}
-              </Button>
-            )}
-          </Grid>
-        </Group>
-        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-        <Filter
-          context={`${context.title === 'class' ? 'classe' : context.title}s`}
-          items={items}
-          listFilter={listFilter}
-          setListFilter={setListFilter}
-        />
-        <Table
-          id={'list-table'}
-          addRow={false}
-          readOnly={true}
-          sortable={true}
-          defaultSort={
-            tableColumns.headers.find(
-              (headerItem: any) => headerItem.defaultSort === true
-            ) ?? undefined
-          }
-          collapse={subrow?.collapse}
-          rows={{
-            inputs: tableColumns.inputs,
-            headers: tableColumns.headers,
-            filters: subrow
-              ? {
-                  filterOn: subrow?.filterOn as string,
-                  filterValue: subrow?.filter as string,
-                }
-              : undefined,
-            subrow: subrow?.collapse && {
-              data: items?.filter(
-                (item: any) => item.category.name === subrow.filter
-              ) as any[],
-              matchKey: subrow.matchKey,
-            },
-          }}
-          value={filteredItems as any[]}
-          clickable={true}
-          onClick={(item) => handleShowDetail(item)}
-          deleteRow={(item) => handleDelete(item)}
-          empty='---'
-        />
-      </Container>
+          )}
+        </Grid>
+      </Group>
+      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+      <Filter
+        context={`${context.title}`}
+        items={items}
+        listFilter={listFilter}
+        setListFilter={setListFilter}
+      />
+      <Table
+        id={'list-table'}
+        addRow={false}
+        readOnly={true}
+        sortable={true}
+        defaultSort={
+          tableColumns.headers.find(
+            (headerItem: any) => headerItem.defaultSort === true
+          ) ?? undefined
+        }
+        collapse={subrow?.collapse}
+        rows={{
+          inputs: tableColumns.inputs,
+          headers: tableColumns.headers,
+          filters: subrow
+            ? {
+                filterOn: subrow?.filterOn as string,
+                filterValue: subrow?.filter as string,
+              }
+            : undefined,
+          subrow: subrow?.collapse && {
+            data: items?.filter(
+              (item: any) => item.category.name === subrow.filter
+            ) as any[],
+            matchKey: subrow.matchKey,
+          },
+        }}
+        value={filteredItems as any[]}
+        clickable={true}
+        onClick={(item) => handleShowDetail(item)}
+        deleteRow={(item) => handleDelete(item)}
+        empty='---'
+      />
     </>
   )
 }

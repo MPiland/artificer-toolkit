@@ -1,6 +1,6 @@
 import { theme } from '../../css/global.css'
 import { app } from '../../css/layers.css'
-import { style } from '@vanilla-extract/css'
+import { globalStyle, style } from '@vanilla-extract/css'
 import { size } from '../../css/size.css'
 import palette from '../../css/colors.css'
 
@@ -68,6 +68,7 @@ export const collapse_header = style({
       justifyContent: 'start',
       cursor: 'pointer',
       padding: `${size['size-2']} ${size['size-3']}`,
+      height: '3rem',
 
       selectors: {
         '&.collapsed': {
@@ -80,11 +81,11 @@ export const collapse_header = style({
   },
 })
 
-export const collapse_header_button = style({
+export const collapse_header_icon = style({
   '@layer': {
     [app]: {
       height: '100%',
-      width: '1.25rem',
+      width: 'auto',
       alignItems: 'center',
       display: 'flex',
     },
@@ -109,4 +110,13 @@ export const collapse_remove_button = style({
       },
     },
   },
+})
+
+globalStyle(`${collapse_header_icon} svg`, {
+  '@layer': {
+    [app]: {
+      height: '60%',
+      width:'auto'
+    }
+  }
 })

@@ -112,7 +112,7 @@ export const form_add_button = style({
   },
 })
 
-export const feature_header = style({
+export const feature_content_header = style({
   '@layer': {
     [app]: {
       marginBottom: size['size-3'],
@@ -136,12 +136,34 @@ export const feature_card = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      width: '100%',
+      width: 'auto',
       height: 'auto',
       borderRadius: theme['default-border-radius'],
       border: theme.vars['app-border-line-style'],
-      marginBottom: size['size-2'],
+      margin: size['size-3'],
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
+    },
+  },
+})
+
+export const feature_card_header = style({
+  '@layer': {
+    [app]: {
+      padding: `0 ${size['size-3']}`,
+      borderBottom: theme.vars['app-border-line-style'],
+      height: '3rem',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      backgroundColor: palette['gray-3'],
+    },
+  },
+})
+
+export const feature_card_body = style({
+  '@layer': {
+    [app]: {
+      padding: size['size-3'],
     },
   },
 })

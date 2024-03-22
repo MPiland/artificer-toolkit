@@ -4,7 +4,7 @@ import {
   collapse_header,
   collapse_body,
   collapse_wrapper,
-  collapse_header_button,
+  collapse_header_icon,
   collapse_content,
   collapse_remove_button,
 } from './Collapse.css'
@@ -18,6 +18,11 @@ interface CollapseProps {
   title?: string
   children?: ReactNode
   buttonDisabled?: boolean
+  headerButton?: {
+    label: string
+    function: () => void
+  }[]
+
   className?: string | number | symbol | any
   handleRemove?: () => void
 }
@@ -30,6 +35,7 @@ const Collapse = memo(
     buttonDisabled,
     className,
     handleRemove,
+    headerButton,
   }: CollapseProps) => {
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
 
@@ -77,7 +83,26 @@ const Collapse = memo(
                 <h3>{title}</h3>
               </Group>
             </Group>
-            <span className={collapse_header_button}>
+            {headerButton &&
+              headerButton.length > 0 &&
+              headerButton?.map((buttonItem: any, buttonIndex: number) => (
+                <Button
+                  variant='primary_outline'
+                  type='button'
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    buttonItem.function()
+                  }}
+                  className={clsx({
+                    [sprinkles({ me: 'size-2' })]:
+                      buttonIndex !== headerButton.length - 1,
+                  })}
+                  key={buttonIndex}
+                >
+                  {buttonItem.label}
+                </Button>
+              ))}
+            <span className={collapse_header_icon}>
               {isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}
             </span>
           </div>

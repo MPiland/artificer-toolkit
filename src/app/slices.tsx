@@ -9,6 +9,7 @@ import { itemSlice } from '../features/item/itemSlice'
 import { classSlice } from '../features/class/classSlice'
 import { featSlice } from '../features/feat/featSlice'
 import { characterSlice } from '../features/character/characterSlice'
+import { backgroundSlice } from '../features/background/backgroundSlice'
 
 export const rootReducer = combineSlices(
   apiSlice,
@@ -21,4 +22,5 @@ export const rootReducer = combineSlices(
   classSlice,
   featSlice,
   characterSlice,
+  backgroundSlice
 )

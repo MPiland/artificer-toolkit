@@ -8,6 +8,7 @@ import { charactersApiSlice } from '../../features/character/charactersApiSlice'
 import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { builderApiSlice } from '../../features/builder/builderApiSlice'
+import { backgroundsApiSlice } from '../../features/background/backgroundApiSlice'
 
 const Prefetch = () => {
   useEffect(() => {
@@ -31,6 +32,11 @@ const Prefetch = () => {
     )
     store.dispatch(
       charactersApiSlice.util.prefetch('getCharacters', undefined, {
+        force: true,
+      })
+    )
+    store.dispatch(
+      backgroundsApiSlice.util.prefetch('getBackgrounds', undefined, {
         force: true,
       })
     )

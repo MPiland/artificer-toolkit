@@ -28,7 +28,7 @@ import Select from '../Select/Select'
 import { startCase } from 'lodash'
 import {
   feature_description,
-  feature_header,
+  feature_content_header,
   feature_list,
   form_content,
 } from './Form.css'
@@ -89,7 +89,14 @@ const FeatureContent = ({
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [subArray, setSubArray] = useState<'option' | 'feature' | ''>('')
   const [valueLabel, setValueLabel] = useState<
-    'Feat' | 'Option' | 'Feature' | 'Ancestry' | 'Sub-Feature'
+    | 'Feat'
+    | 'Background'
+    | 'Option'
+    | 'Feature'
+    | 'Ancestry'
+    | 'Sub-Feature'
+    | 'Ancestry Feature'
+    | 'Ancestry Sub-Feature'
   >()
 
   const { data: builders } = useGetBuildersQuery(undefined)
@@ -291,7 +298,9 @@ const FeatureContent = ({
   useEffect(() => {
     if (stepName === 'Ancestry') {
       if (featureContext === 'OptionContent') {
-        setValueLabel('Feature')
+        setValueLabel('Ancestry Feature')
+      } else if (featureContext === 'OptionFeatureContent') {
+        setValueLabel('Ancestry Sub-Feature')
       } else {
         setValueLabel('Ancestry')
       }
@@ -428,6 +437,7 @@ const FeatureContent = ({
 
     if (sectionName !== '') {
       if (sectionName === 'option' || sectionName === 'feature') {
+        console.log({ sectionName })
         // If Option content, add sub-feature
         if (featureContext === 'OptionContent') {
           setSubFeatureState &&
@@ -463,7 +473,7 @@ const FeatureContent = ({
     <Spinner />
   ) : (
     <>
-      <Grid className={feature_header}>
+      <Grid className={feature_content_header}>
         <Input
           name={`value`}
           autoComplete='off'
@@ -488,11 +498,11 @@ const FeatureContent = ({
               (context.title !== 'class'
                 ? sectionName !== 'ancestry'
                 : sectionName) &&
-              (featureContext !== 'OptionContent'
+              (stepName !== 'Ancestry' && featureContext !== 'OptionContent'
                 ? sectionName !== 'feature'
                 : sectionName) &&
               (featureContext === 'OptionFeatureContent'
-                ? sectionName !== 'option'
+                ? sectionName !== 'option' && sectionName !== 'feature'
                 : sectionName)
           )}
         />
@@ -507,13 +517,15 @@ const FeatureContent = ({
         />
         <Grid className={sprinkles({ mb: 'size-2' })}>
           {context.title !== 'item' &&
-            !(stepName === 'Ancestry' && featureContext !== 'OptionContent') &&
-            !(context.title === 'race' && stepName !== 'Ancestry') && (
+            context.title !== 'background' &&
+            !(
+              stepName === 'Ancestry' && featureContext !== 'OptionContent'
+            ) && (
               <Input
                 name={`levelAvailable`}
                 autoComplete='off'
                 label='Level(s) Available'
-                required={true}
+                required={context.title === 'race' ? false : true}
                 value={featureState?.levelAvailable}
                 validation='num'
                 errorMsg='Must contain whole numbers and commas only'

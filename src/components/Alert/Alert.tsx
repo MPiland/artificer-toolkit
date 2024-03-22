@@ -14,8 +14,6 @@ const Alert = () => {
   const message = location.state.message
   const index = location.state.index
 
-  console.log({ alertIndex: index, alertContext: context })
-
   const handleConfirmBack = () => {
     navigate(-1)
     dispatch(confirmBack({ status: true }))

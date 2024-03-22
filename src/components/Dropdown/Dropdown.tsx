@@ -166,6 +166,14 @@ const Dropdown = ({
     if (!isEqual(value, updatedOptions.current) && !settingOption) {
       updatedOptions.current = value
     }
+    if (
+      value == null &&
+      updatedOptions.current == null &&
+      selectedOptions != null &&
+      !settingOption
+    ) {
+      setSelectedOptions(null)
+    }
     if (updatedOptions.current && !settingOption) {
       if (Array.isArray(updatedOptions.current)) {
         if (
@@ -174,10 +182,13 @@ const Dropdown = ({
           if (
             selectedOptions?.length === 0 ||
             !optionArray?.every((optionItem: DropdownOption) =>
-              selectedOptions?.some(
-                (selectedOption: DropdownOption) =>
-                  selectedOption._id === optionItem._id
-              )
+              selectedOptions?.some((selectedOption: DropdownOption) => {
+                if (optionItem._id !== null) {
+                  return selectedOption._id === optionItem._id
+                } else {
+                  return selectedOption.name === optionItem.name
+                }
+              })
             )
           ) {
             setSelectedOptions(optionArray)
@@ -185,16 +196,31 @@ const Dropdown = ({
         } else if (!isEqual(selectedOptions, updatedOptions.current)) {
           setSelectedOptions(
             updatedOptions.current.filter((valueItem) =>
-              optionArray.some((optionItem) => valueItem._id === optionItem._id)
+              optionArray.some((optionItem) => {
+                if (optionItem._id !== null) {
+                  return valueItem._id === optionItem._id
+                } else {
+                  return valueItem.name === optionItem.name
+                }
+              })
             )
           )
         }
       } else if (!isEqual(updatedOptions.current, selectedOptions)) {
         if (
-          optionArray.some(
-            (optionItem) =>
-              optionItem._id === (updatedOptions.current as DropdownOption)._id
-          )
+          optionArray.some((optionItem) => {
+            if (optionItem._id !== null) {
+              return (
+                optionItem._id ===
+                (updatedOptions.current as DropdownOption)._id
+              )
+            } else {
+              return (
+                optionItem.name ===
+                (updatedOptions.current as DropdownOption).name
+              )
+            }
+          })
         ) {
           setSelectedOptions(updatedOptions.current)
         } else {
@@ -223,19 +249,26 @@ const Dropdown = ({
           updatedOptions.current = [option]
           setSelectedOptions([option])
         } else if (
-          selectedOptions?.some(
-            (selectedOption: DropdownOption) =>
-              selectedOption._id === option._id
-          )
+          selectedOptions?.some((selectedOption: DropdownOption) => {
+            if (selectedOption._id !== null) {
+              return selectedOption._id === option._id
+            } else {
+              return selectedOption.name === option.name
+            }
+          })
         ) {
           updatedOptions.current = selectedOptions.filter(
             (selectedOption: DropdownOption) =>
               selectedOption._id !== option._id
           )
-          setSelectedOptions((current) =>
-            current?.filter(
-              (currentItem: DropdownOption) => currentItem._id !== option._id
-            )
+          setSelectedOptions((selectedOption) =>
+            selectedOption?.filter((optionItem: DropdownOption) => {
+              if (optionItem._id !== null) {
+                return optionItem._id === option._id
+              } else {
+                return optionItem.name === option.name
+              }
+            })
           )
         } else {
           updatedOptions.current = [
@@ -354,15 +387,22 @@ const Dropdown = ({
                     const active = multiSelect
                       ? selectedOptions?.some(
                           (selectedOption: DropdownOption) => {
-                            if (selectedOption._id != null) {
+                            if (
+                              selectedOption._id != null &&
+                              optionItem._id !== null
+                            ) {
                               return selectedOption._id === optionItem._id
                             } else {
                               return selectedOption.value === optionItem.value
                             }
                           }
                         )
-                      : (selectedOptions as DropdownOption)?._id ===
+                      : optionItem._id !== null &&
+                        (selectedOptions as DropdownOption)?._id !== null
+                      ? (selectedOptions as DropdownOption)?._id ===
                         optionItem._id
+                      : (selectedOptions as DropdownOption)?.name ===
+                        optionItem.name
                     return (
                       <div
                         className={dropdown_option}

@@ -1,40 +1,54 @@
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   selectAllCharacters,
   useGetCharactersQuery,
 } from './charactersApiSlice'
-import Character from './Character'
+import useIsLoading from '../../hooks/useIsLoading'
 import Spinner from '../../components/Spinner/Spinner'
+import Group from '../../components/Group/Group'
+import Button from '../../components/Button/Button'
+import { sprinkles } from '../../css/sprinkles.css'
+import Grid from '../../components/Grid/Grid'
 
 const CharacterList = () => {
-  const { characters, isFetching } = useGetCharactersQuery('charactersList', {
+  const navigate = useNavigate()
+  const isLoading = useIsLoading()
+  const location = useLocation()
+
+  const { characters } = useGetCharactersQuery(undefined, {
     selectFromResult: ({ data, isFetching }) => ({
       characters: data && selectAllCharacters(data),
       isFetching,
     }),
   })
 
-  let content
-
-  if (isFetching) {
-    return (content = <Spinner />)
+  const handleCreate = () => {
+    navigate(`/create/character`, {
+      state: {
+        background: location,
+        context: { type: 'new', title: 'character' },
+        form: 'character',
+        data: characters,
+        defaultCategory: null,
+      },
+    })
   }
 
-  content =
-    characters?.length &&
-    characters.map((character: any) => (
-      <Character character={character} key={character._id} />
-    ))
-
-  content = (
-    <div className='main-container'>
+  return isLoading ? (
+    <Spinner />
+  ) : (
+    <Group className={sprinkles({ my: 'size-3' })}>
       <h1>Characters</h1>
-      <div className='row row-cols-1 row-cols-lg-3 row-cols-md-2 g-4 m-3'>
-        Test
-      </div>
-    </div>
+      <Grid
+        cols={{ lg: 1, md: 1, base: 1 }}
+        className={sprinkles({ width: 'auto' })}
+      >
+        <Button type='button' variant='default' onClick={() => handleCreate()}>
+          Create a Character
+        </Button>
+      </Grid>
+    </Group>
   )
-
-  return content
 }
 
 export default CharacterList

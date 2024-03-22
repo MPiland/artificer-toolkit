@@ -23,6 +23,8 @@ const Race = () => {
     }
   )
 
+  console.log({ race: race })
+
   const detail = (
     <>
       <div>{race?.quote && parse((race as any).quote)}</div>
@@ -45,13 +47,17 @@ const Race = () => {
           {race.trait.area.map((areaItem: any, areaIndex: number) => (
             <Fragment key={areaIndex}>
               <h3>
-                <strong>
-                  {areaItem.value}
-                </strong>
+                <strong>{areaItem.value}</strong>
               </h3>
               {areaItem.desc && parse(areaItem.desc)}
             </Fragment>
           ))}
+        </section>
+      )}
+      {race.ancestry && (
+        <section>
+          <h3>{race.ancestry.value}</h3>
+          {race.ancestry.desc && parse(race.ancestry.desc)}
         </section>
       )}
       {race.feature?.length > 0 &&

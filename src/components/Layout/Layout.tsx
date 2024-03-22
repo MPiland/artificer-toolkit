@@ -119,29 +119,29 @@ const Layout: FC<LayoutProps> = ({ token }) => {
         token && showHamburger ? sidebar_item_group : header_item_group
       }
     >
-      <NavLink className={header_nav_item} to='characters'>
+      <NavLink className={header_nav_item} to='character'>
         <li className={header_item}>Characters</li>
       </NavLink>
-      <NavLink className={header_nav_item} to='classes' onClick={handleClick}>
+      <NavLink className={header_nav_item} to='class' onClick={handleClick}>
         <li className={header_item}>Classes</li>
       </NavLink>
-      <NavLink className={header_nav_item} to='races' onClick={handleClick}>
+      <NavLink className={header_nav_item} to='race' onClick={handleClick}>
         <li className={header_item}>Races</li>
       </NavLink>
-      <NavLink className={header_nav_item} to='spells' onClick={handleClick}>
+      <NavLink className={header_nav_item} to='spell' onClick={handleClick}>
         <li className={header_item}>Spells</li>
       </NavLink>
-      <NavLink className={header_nav_item} to='items' onClick={handleClick}>
+      <NavLink className={header_nav_item} to='item' onClick={handleClick}>
         <li className={header_item}>Items</li>
       </NavLink>
       <NavLink
         className={header_nav_item}
-        to='backgrounds'
+        to='background'
         onClick={handleClick}
       >
         <li className={header_item}>Backgrounds</li>
       </NavLink>
-      <NavLink className={header_nav_item} to='feats' onClick={handleClick}>
+      <NavLink className={header_nav_item} to='feat' onClick={handleClick}>
         <li className={header_item}>Feats</li>
       </NavLink>
       <a href='' className={header_nav_item}>

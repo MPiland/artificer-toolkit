@@ -53,7 +53,7 @@ const Grid: FC<GridProps> = ({ children, className, cols, onClick }) => {
             {
               [start]: cols.start !== 0,
             },
-            `repeat(${childCount}, minmax(3rem, 1fr))`,
+            `repeat(${childCount}, minmax(3rem, auto))`,
             { [end]: cols.end !== 0 }
           )
         )
@@ -61,31 +61,31 @@ const Grid: FC<GridProps> = ({ children, className, cols, onClick }) => {
         // Handle colsSet
         if (lg) {
           if (cols && cols.lg) {
-            setGridSize(`repeat(${cols.lg}, minmax(3rem, 1fr))`)
+            setGridSize(`repeat(${cols.lg}, minmax(3rem, auto))`)
           } else {
-            setGridSize(`repeat(5, minmax(3rem, 1fr))`)
+            setGridSize(`repeat(5, minmax(3rem, auto))`)
           }
         } else if (md) {
           if (cols && cols.md) {
-            setGridSize(`repeat(${cols.md}, minmax(3rem, 1fr))`)
+            setGridSize(`repeat(${cols.md}, minmax(3rem, auto))`)
           } else {
-            setGridSize(`repeat(4, minmax(3rem, 1fr))`)
+            setGridSize(`repeat(4, minmax(3rem, auto))`)
           }
         } else {
           if (cols && cols.base) {
-            setGridSize(`repeat(${cols.base}, minmax(3rem, 1fr))`)
+            setGridSize(`repeat(${cols.base}, minmax(3rem, auto))`)
           } else {
-            setGridSize(`repeat(2, minmax(3rem, 1fr))`)
+            setGridSize(`repeat(2, minmax(3rem, auto))`)
           }
         }
       }
     } else {
       if (lg) {
-        setGridSize(`repeat(5, minmax(0, 1fr))`)
+        setGridSize(`repeat(5, minmax(0, auto))`)
       } else if (md) {
-        setGridSize(`repeat(4, minmax(0, 1fr))`)
+        setGridSize(`repeat(4, minmax(0, auto))`)
       } else {
-        setGridSize(`repeat(2, minmax(0, 1fr))`)
+        setGridSize(`repeat(2, minmax(0, auto))`)
       }
     }
   }, [cols, lg, md, children])

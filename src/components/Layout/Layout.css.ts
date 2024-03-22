@@ -73,11 +73,9 @@ export const header_nav_item = style({
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
+      color: theme.vars['app-color'],
 
       selectors: {
-        '&:visited': {
-          color: theme.vars['app-color'],
-        },
         '&:last-of-type': {
           paddingRight: size['size-5'],
         },

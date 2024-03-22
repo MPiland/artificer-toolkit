@@ -79,9 +79,30 @@ const DetailForm = memo(
             autoFocus={true}
             errorMsg='Name must not be blank'
           />
+          {context.title === 'character' && (
+            <>
+              <Dropdown
+                name='advancement'
+                label='Advancement Type'
+                value={formState?.advancement}
+                options={builders[context.title]?.advancement}
+                required={true}
+                onChange={setFormState}
+              />
+              <Dropdown
+                name='hitpoint'
+                label='Hit Point Type'
+                value={formState?.hitpoint}
+                options={builders[context.title]?.hitpoint}
+                required={true}
+                onChange={setFormState}
+              />
+            </>
+          )}
           {context.title &&
-            context.title !== 'spell' &&
-            context.title !== 'feat' && (
+            (context.title === 'race' ||
+              context.title === 'class' ||
+              context.title === 'item') && (
               <>
                 <Dropdown
                   name='category'
@@ -91,6 +112,28 @@ const DetailForm = memo(
                   required={true}
                   onChange={setFormState}
                 />
+                {context.title === 'race' &&
+                  formState?.category?.name === 'base' && (
+                    <Dropdown
+                      name='playable'
+                      label='Playable'
+                      value={formState?.playable}
+                      options={[
+                        {
+                          name: 'true',
+                          value: 'Yes',
+                          _id: null,
+                        },
+                        {
+                          name: 'false',
+                          value: 'No',
+                          _id: null,
+                        },
+                      ]}
+                      required={true}
+                      onChange={setFormState}
+                    />
+                  )}
                 {context.title === 'item' && (
                   <>
                     <Dropdown
@@ -392,14 +435,18 @@ const DetailForm = memo(
             />
           </div>
         )}
-        <RichTextEditor
-          name='desc'
-          className={sprinkles({ mb: 'size-3' })}
-          value={formState?.desc}
-          label={`${startCase(context.title)} Description`}
-          onChange={setFormState}
-        />
-        {(context.title === 'race' || context.title === 'class') && (
+        {context.title !== 'character' && (
+          <RichTextEditor
+            name='desc'
+            className={sprinkles({ mb: 'size-3' })}
+            value={formState?.desc}
+            label={`${startCase(context.title)} Description`}
+            onChange={setFormState}
+          />
+        )}
+        {(context.title === 'race' ||
+          context.title === 'class' ||
+          context.title === 'background') && (
           <Button
             type='button'
             className={sprinkles({ mb: 'size-3' })}

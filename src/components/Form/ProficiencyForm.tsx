@@ -82,7 +82,7 @@ const ProficiencyForm = memo(
                   return (
                     <Accordion.Container
                       key={proficiencyIndex}
-                      itemId={proficiencyItem.id}
+                      itemId={String(proficiencyIndex)}
                     >
                       <Accordion.Header
                         handleClick={() => toggle(proficiencyIndex)}

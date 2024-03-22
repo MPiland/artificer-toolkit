@@ -99,15 +99,28 @@ export type DropdownOption = {
 
 export type Step =
   | 'Details'
+  | 'Class'
+  | 'Race'
+  | 'Abilities'
   | 'Traits'
   | 'Attributes'
   | 'Features'
+  | 'FeaturesContent'
   | 'Contains'
   | 'Proficiencies'
   | 'Equipment'
   | 'Ancestry'
+  | 'Background'
 
 export type FormContext = {
   type?: 'new' | 'edit'
-  title?: 'class' | 'spell' | 'race' | 'item' | 'feat' | 'option'
+  title?:
+    | 'class'
+    | 'spell'
+    | 'race'
+    | 'item'
+    | 'feat'
+    | 'option'
+    | 'background'
+    | 'character'
 }

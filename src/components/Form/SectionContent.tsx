@@ -348,16 +348,17 @@ export const ModifierContent = ({
             />
           </>
         )}
-        {(sectionState.category || sectionState.spellCategory) && (
-          <Dropdown
-            name={`type`}
-            label='Modifier Type'
-            value={sectionState.type}
-            options={modType}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
+        {modType?.length > 0 &&
+          (sectionState.category || sectionState.spellCategory) && (
+            <Dropdown
+              name={`type`}
+              label='Modifier Type'
+              value={sectionState.type}
+              options={modType}
+              required={true}
+              onChange={setSectionState}
+            />
+          )}
         {sectionState.category?.name === 'limitUse' &&
           sectionState.type?.name === 'useReset' && (
             <>
