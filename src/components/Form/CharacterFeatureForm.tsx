@@ -96,7 +96,11 @@ const CharacterFeatureForm = ({
                         )
                         if (providesOptions) {
                           for (let i = 0; i < sectionItem.selectionCount; i++) {
-                            return <div>{sectionName}</div>
+                            return (
+                              <div key={`${sectionItemIndex}${i}`}>
+                                {sectionName}
+                              </div>
+                            )
                           }
                         }
                       }
