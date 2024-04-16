@@ -4,23 +4,18 @@ import {
   useGetRacesQuery,
 } from './raceApiSlice'
 import {
-  selectRacesFilter,
-  clearRaceFilter,
-  setRaceFilter,
+  selectFilter,
+  clearFilter,
+  setFilter,
 } from './raceSlice'
 import List from '../../components/List/List'
 import { RowHeader, RowInput } from '../../utils/types'
 
-interface RaceListProps {
-  scrollPosition: number
-}
-
-const RaceList = ({ scrollPosition }: RaceListProps) => {
+const RaceList = () => {
   const { races } = useGetRacesQuery(undefined, {
     selectFromResult: ({ data }) => ({
       races: data && selectAllRaces(data),
     }),
-    refetchOnMountOrArgChange: true,
   })
 
   const [deleteRace] = useDeleteRaceMutation()
@@ -52,16 +47,15 @@ const RaceList = ({ scrollPosition }: RaceListProps) => {
       context={{ title: 'race' }}
       items={races}
       deleteItem={deleteRace}
-      scrollPosition={scrollPosition}
-      setFilter={setRaceFilter}
+      setFilter={setFilter}
       subrow={{
         collapse: true,
         filter: 'subrace',
         filterOn: 'category.name',
         matchKey: 'lineage',
       }}
-      filterReset={clearRaceFilter}
-      selectFilter={selectRacesFilter}
+      filterReset={clearFilter}
+      selectFilter={selectFilter}
     />
   )
 }

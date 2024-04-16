@@ -10,7 +10,8 @@ const Alert = () => {
   const dispatch = useDispatch()
   const location = useLocation()
 
-  const context: 'back' | 'forward' | 'step' = location.state.context
+  const context: 'back' | 'forward' | 'step' | 'invalidForm' =
+    location.state.context
   const message = location.state.message
   const index = location.state.index
 
@@ -42,20 +43,22 @@ const Alert = () => {
       <Modal.Footer>
         <Group directionVariant='row' justifyContentVariant='spaceBetween'>
           <Button variant='default' onClick={handleCancel}>
-            Cancel
+            {context === 'invalidForm' ? 'Ok' : 'Cancel'}
           </Button>
-          <Button
-            variant='danger'
-            onClick={() =>
-              context === 'forward'
-                ? handleConfirmForward()
-                : context === 'step'
-                ? handleConfirmStep()
-                : handleConfirmBack()
-            }
-          >
-            Continue
-          </Button>
+          {context !== 'invalidForm' && (
+            <Button
+              variant='danger'
+              onClick={() =>
+                context === 'forward'
+                  ? handleConfirmForward()
+                  : context === 'step'
+                  ? handleConfirmStep()
+                  : handleConfirmBack()
+              }
+            >
+              Continue
+            </Button>
+          )}
         </Group>
       </Modal.Footer>
     </>

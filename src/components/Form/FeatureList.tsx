@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react'
 import parse from 'html-react-parser'
 import Button from '../Button/Button'
-import {
-  ReducerActionType,
-  FeatureStepName,
-  FormContext,
-  Step,
-} from '../../utils/types'
+import { ReducerActionType, FeatureStepName, FormContext, Step } from '../../utils/types'
 import { feature_description, feature_list, form_content } from './Form.css'
 import Accordion from '../Accordion/Accordion'
 import ScrollArea from '../ScrollArea/ScrollArea'
@@ -18,6 +13,11 @@ import RichTextEditor from '../RichTextEditor/RichTextEditor'
 import Input from '../Input/Input'
 import Grid from '../Grid/Grid'
 import Collapse from '../Collapse/Collapse'
+import { selectAllRaces, useGetRacesQuery } from '../../features/race/raceApiSlice'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '../../app/store'
+import { clearCopy } from '../../app/modalSlice'
 
 interface FeatureListProps {
   context: FormContext
@@ -43,11 +43,43 @@ const FeatureList = ({
   setFeatureIndex,
   stepName,
 }: FeatureListProps) => {
-  const [activeIndex, setActiveIndex] = useState<number | null>(
-    context.type !== 'new' ? null : 0
-  )
+  const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
+
+  const copy = useSelector((state: RootState) => state.modal.copy.status)
+
+  const [activeIndex, setActiveIndex] = useState<number | null>(context.type !== 'new' ? null : 0)
   const [arrayName, setArrayName] = useState<any | any[]>(null)
   const [featureArray, setFeatureArray] = useState<any[]>()
+
+  const { races } = useGetRacesQuery(undefined, {
+    selectFromResult: ({ data }) => ({ races: data && selectAllRaces(data) }),
+  })
+
+  // Set features from parent races
+  useEffect(() => {
+    if (
+      formState.category?.name === 'subrace' &&
+      formState.lineage?.length > 0 &&
+      (formState.feature == null || !(formState.feature?.length > 0))
+    ) {
+      let features: any[] = []
+      formState.lineage?.map((lineageItem: any) => {
+        const parentRace = races?.find((raceItem: any) => raceItem._id === lineageItem._id) as any
+        if (parentRace && parentRace.feature?.length > 0) {
+          features = [...features, ...parentRace.feature]
+        }
+      })
+
+      setFormState({
+        target: {
+          name: 'feature',
+          value: features,
+        },
+      })
+    }
+  }, [formState.category?.name, formState.lineage, formState.feature, races, setFormState])
 
   useEffect(() => {
     if (context.title === 'feat') {
@@ -57,17 +89,37 @@ const FeatureList = ({
     } else {
       setArrayName('feature')
     }
-  }, [
-    context.title,
-    formState?.ancestry?.option,
-    formState?.feature,
-    formState,
-    stepName,
-  ])
+  }, [context.title, formState?.ancestry?.option, formState?.feature, formState, stepName])
 
+  // Set feature array if exists
   useEffect(() => {
     setFeatureArray(get(formState, arrayName))
   }, [arrayName, formState])
+
+  // Copy feature
+  useEffect(() => {
+    if (copy === true) {
+      const feature = location.state.feature
+      if (featureArray && featureArray.length > 0) {
+        setFeatureIndex(featureArray.length)
+      } else {
+        setFeatureIndex(0)
+      }
+      setFeatureState({ type: 'reset', target: { value: feature } })
+      setOldFeatureState(feature)
+      setFeatureStepName('FeatureContent')
+      dispatch(clearCopy())
+    }
+  }, [
+    copy,
+    featureArray,
+    location.state.feature,
+    setFeatureIndex,
+    setFeatureState,
+    setOldFeatureState,
+    setFeatureStepName,
+    dispatch,
+  ])
 
   const toggle = (index: number) => {
     if (activeIndex === index) {
@@ -110,73 +162,66 @@ const FeatureList = ({
     }
   }
 
+  // Copy feature
+  const handleCopy = () => {
+    navigate(`/copy/feature`, {
+      state: {
+        background: location,
+      },
+    })
+  }
+
   const sectionNames = getSectionNames()
 
   return (
     <>
-      <Group
-        directionVariant='column'
-        alignItemsVariant='start'
-        className={sprinkles({ px: 'size-4' })}
-      >
-        {stepName === 'Ancestry' &&
-          featureStepName === '' &&
-          featureArray &&
-          featureArray.length > 0 && (
-            <>
-              <Grid className={sprinkles({ mb: 'size-3' })}>
-                <Input
-                  name='ancestry.value'
-                  autoComplete='off'
-                  label='Ancestry Name'
-                  required={
-                    formState?.ancestry?.desc !== '' &&
-                    formState?.ancestry?.desc != null
-                  }
-                  value={formState?.ancestry?.value}
-                  errorMsg='Name must not be blank'
-                  onChange={setFormState}
-                />
-              </Grid>
-              <Collapse
-                title='Ancestry Description'
-                className={sprinkles({ width: 'full' })}
-                startOpened={context.type === 'new'}
-              >
-                <RichTextEditor
-                  name='ancestry.desc'
-                  onChange={setFormState}
-                  value={formState?.ancestry?.desc}
-                />
-              </Collapse>
-            </>
-          )}
+      <Group directionVariant='column' alignItemsVariant='start' className={sprinkles({ px: 'size-4' })}>
+        {stepName === 'Ancestry' && featureStepName === '' && featureArray && featureArray.length > 0 && (
+          <>
+            <Grid className={sprinkles({ mb: 'size-3' })}>
+              <Input
+                name='ancestry.value'
+                autoComplete='off'
+                label='Ancestry Name'
+                required={formState?.ancestry?.desc !== '' && formState?.ancestry?.desc != null}
+                value={formState?.ancestry?.value}
+                errorMsg='Name must not be blank'
+                onChange={setFormState}
+              />
+            </Grid>
+            <Collapse
+              title='Ancestry Description'
+              className={sprinkles({ width: 'full' })}
+              startOpened={context.type === 'new'}
+            >
+              <RichTextEditor name='ancestry.desc' onChange={setFormState} value={formState?.ancestry?.desc} />
+            </Collapse>
+          </>
+        )}
         <Group className={sprinkles({ mt: 'size-3' })}>
-          <Button variant='primary_outline' onClick={handleAdd}>
-            {`Add ${stepName === 'Ancestry' ? 'Ancestry' : 'Feature'}`}
-          </Button>
+          <Grid>
+            <Button variant='primary_outline' onClick={handleAdd}>
+              {`Add ${stepName === 'Ancestry' ? 'Ancestry' : 'Feature'}`}
+            </Button>
+            {stepName === 'Features' && (
+              <Button variant='primary_outline' onClick={handleCopy}>
+                Copy Feature
+              </Button>
+            )}
+          </Grid>
         </Group>
       </Group>
       <ScrollArea scrollDirection='vertical' className={form_content}>
         {featureArray && featureArray.length > 0 && (
           <div className={feature_list}>
-            <Accordion
-              dataArray={featureArray}
-              setState={setFormState}
-              name='feature'
-            >
+            <Accordion dataArray={featureArray} setState={setFormState} name='feature'>
               {featureArray?.map((featureItem: any, featureIndex: number) => (
-                <Accordion.Container
-                  key={featureIndex}
-                  itemId={String(featureIndex)}
-                >
+                <Accordion.Container key={featureIndex} itemId={String(featureIndex)}>
                   <Accordion.Header
                     handleClick={() => toggle(featureIndex)}
                     handleRemove={() => handleRemove(featureIndex)}
                     handleEdit={() => handleEdit(featureIndex)}
-                    active={
-                      !featureItem.desc ? null : activeIndex === featureIndex
-                    }
+                    active={!featureItem.desc ? null : activeIndex === featureIndex}
                   >
                     {featureItem.value != null && featureItem.value !== ''
                       ? featureItem.value
@@ -185,32 +230,36 @@ const FeatureList = ({
                   {featureItem.desc && (
                     <Accordion.Content active={activeIndex === featureIndex}>
                       <div className={feature_description}>
-                        {featureItem.desc && parse(featureItem.desc)}
+                        <div>
+                          {featureItem?.desc && parse(featureItem.desc)}
+                          {featureItem.option &&
+                            featureItem.option?.length > 0 &&
+                            featureItem.option?.map((optionItem: any, optionIndex: number) => (
+                              <div key={optionIndex}>
+                                {optionItem?.value && <strong>{optionItem.value}</strong>}
+                                {optionItem?.desc && parse(optionItem.desc)}
+                              </div>
+                            ))}
+                        </div>
                       </div>
                     </Accordion.Content>
                   )}
                   <hr />
                   <Accordion.Footer>
                     <Group justifyContentVariant='start'>
-                      {sectionNames.map(
-                        (sectionName: string, sectionIndex: number) => {
-                          return (
-                            <span
-                              key={sectionIndex}
-                              className={sprinkles({ me: 'size-2' })}
-                            >
-                              {featureItem[sectionName]?.length > 0 ? (
-                                <strong>
-                                  {startCase(sectionName.charAt(0))}:{' '}
-                                  {featureItem[sectionName]?.length}
-                                </strong>
-                              ) : (
-                                `${startCase(sectionName.charAt(0))}: 0`
-                              )}
-                            </span>
-                          )
-                        }
-                      )}
+                      {sectionNames.map((sectionName: string, sectionIndex: number) => {
+                        return (
+                          <span key={sectionIndex} className={sprinkles({ me: 'size-2' })}>
+                            {featureItem[sectionName]?.length > 0 ? (
+                              <strong>
+                                {startCase(sectionName.charAt(0))}: {featureItem[sectionName]?.length}
+                              </strong>
+                            ) : (
+                              `${startCase(sectionName.charAt(0))}: 0`
+                            )}
+                          </span>
+                        )
+                      })}
                     </Group>
                   </Accordion.Footer>
                 </Accordion.Container>

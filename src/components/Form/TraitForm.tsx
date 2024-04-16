@@ -1,4 +1,4 @@
-import { memo, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import Grid from '../Grid/Grid'
 import Dropdown from '../Dropdown/Dropdown'
 import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
@@ -10,6 +10,10 @@ import ScrollArea from '../ScrollArea/ScrollArea'
 import { sprinkles } from '../../css/sprinkles.css'
 import Button from '../Button/Button'
 import Accordion from '../Accordion/Accordion'
+import {
+  selectAllRaces,
+  useGetRacesQuery,
+} from '../../features/race/raceApiSlice'
 
 interface TraitFormProps {
   formState: any
@@ -22,6 +26,43 @@ const TraitForm = memo(
     const [activeIndex, setActiveIndex] = useState<number | null>(
       context.type !== 'new' ? null : 0
     )
+
+    const { races } = useGetRacesQuery(undefined, {
+      selectFromResult: ({ data }) => ({ races: data && selectAllRaces(data) }),
+    })
+
+    // Set traits from parent races
+    useEffect(() => {
+      if (
+        (formState.category?.name === 'subrace' &&
+          formState.lineage?.length > 0 &&
+          formState.trait?.area == null) ||
+        !(formState.trait?.area?.length > 0)
+      ) {
+        let traitArea: any[] = []
+        formState.lineage?.map((lineageItem: any) => {
+          const parentRace = races?.find(
+            (raceItem: any) => raceItem._id === lineageItem._id
+          ) as any
+          if (parentRace && parentRace.trait?.area?.length > 0) {
+            traitArea = [...traitArea, ...parentRace.trait.area]
+          }
+        })
+
+        setFormState({
+          target: {
+            name: 'trait.area',
+            value: traitArea,
+          },
+        })
+      }
+    }, [
+      formState.category?.name,
+      formState.lineage,
+      formState.trait?.area,
+      races,
+      setFormState,
+    ])
 
     const { data: builders } = useGetBuildersQuery(undefined)
 

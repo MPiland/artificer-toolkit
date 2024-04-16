@@ -8,7 +8,7 @@ export const app_shell = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
+      height: '100dvh',
       width: '100%',
       overflow: 'hidden',
       backgroundColor: theme.vars['app-background-color'],
@@ -24,7 +24,9 @@ export const app_main = style({
       'padding': '0 calc(((100% - 80%) / 2))',
       'overflow': 'hidden',
       'backgroundColor': 'inherit',
-      'flex': 1,
+      'height': `calc(100dvh - ${theme['header-height']})`,
+      'display': 'flex',
+      'flexDirection': 'column',
 
       '@media': {
         'screen and (min-width: 568px) and (max-width: 1024px)': {

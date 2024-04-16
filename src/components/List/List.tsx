@@ -24,7 +24,6 @@ interface ListProps {
   context: FormContext
   items: any
   deleteItem: (arg: { id: number }) => Promise<any>
-  scrollPosition: number
   setFilter: ActionCreatorWithPayload<any, string>
   subrow?: {
     collapse: boolean
@@ -41,7 +40,6 @@ const List = ({
   context,
   items,
   deleteItem,
-  scrollPosition,
   setFilter,
   subrow,
   filterReset,
@@ -67,8 +65,6 @@ const List = ({
 
   const [errorMessage, setErrorMessage] = useState<string>()
 
-  const table = document.getElementById('list-table')
-
   const onFilterReset = () => {
     filterReset()
     setListFilter({ type: 'reset', target: { value: {} } })
@@ -83,12 +79,6 @@ const List = ({
   useEffect(() => {
     Object.keys(listFilter).length > 0 && dispatch(setFilter(listFilter))
   }, [dispatch, listFilter, setFilter])
-
-  useEffect(() => {
-    if (scrollPosition && !isLoading) {
-      table?.scroll(0, scrollPosition)
-    }
-  })
 
   useEffect(() => {
     if (
@@ -121,7 +111,6 @@ const List = ({
         form: context.title,
         data: item,
         size: 'lg',
-        scrollPosition: table?.scrollTop,
         title: item.value,
       },
     })

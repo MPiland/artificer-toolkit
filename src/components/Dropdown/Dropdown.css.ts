@@ -98,18 +98,21 @@ export const dropdown_input = style({
       position: 'relative',
       border: 'none',
       backgroundColor: 'transparent',
-      width: '100%',
+      width: 'auto',
       color: theme.vars['app-color'],
       userSelect: 'none',
-      display: 'flex',
-      flexDirection: 'row',
       flexWrap: 'nowrap',
       overflow: 'hidden',
       whiteSpace: 'nowrap',
+      textOverflow: 'ellipsis',
 
       selectors: {
         [`${dropdown_container}:has(${dropdown_right_section}) > &`]: {
-          paddingRight: '2rem',
+          marginRight: '2rem',
+        },
+        '&.multiselect': {
+          display: 'flex',
+          flexDirection: 'row',
         },
       },
     },
@@ -120,7 +123,6 @@ export const dropdown_menu = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      flexDirection: 'column',
       maxHeight: '10rem',
       borderRadius: theme['default-border-radius'],
       zIndex: 1000,

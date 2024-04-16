@@ -13,6 +13,7 @@ export const modalSlice = createSlice({
     back: { status: false } as ModalState,
     forward: { status: false } as ModalState,
     step: { status: false, index: undefined } as ModalState,
+    copy: { status: false } as ModalState,
   },
   reducers: {
     confirmDelete: (state, action: PayloadAction<ModalState>) => {
@@ -41,6 +42,12 @@ export const modalSlice = createSlice({
     clearStep: (state) => {
       state.step.status = false
     },
+    confirmCopy: (state, action: PayloadAction<ModalState>) => {
+      state.copy.status = action.payload.status
+    },
+    clearCopy: (state) => {
+      state.copy.status = false
+    },
   },
 })
 
@@ -53,6 +60,8 @@ export const {
   clearForward,
   confirmStep,
   clearStep,
+  confirmCopy,
+  clearCopy,
 } = modalSlice.actions
 
 export default modalSlice.reducer

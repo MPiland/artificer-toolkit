@@ -156,6 +156,8 @@ export const feature_card_header = style({
       flexDirection: 'column',
       justifyContent: 'center',
       backgroundColor: palette['gray-3'],
+      borderTopRightRadius: theme['default-border-radius'],
+      borderTopLeftRadius: theme['default-border-radius'],
     },
   },
 })
@@ -203,6 +205,23 @@ export const equipment_sub_group_button = style({
   '@layer': {
     [app]: {
       marginTop: '19px',
+    },
+  },
+})
+
+export const subrace_collapse = style({
+  '@layer': {
+    [app]: {
+      margin: `0 ${size['size-8']}`,
+      borderRadius: '0px',
+      borderTop: 'none',
+
+      selectors: {
+        '&:last-of-type': {
+          borderBottomLeftRadius: theme['default-border-radius'],
+          borderBottomRightRadius: theme['default-border-radius'],
+        },
+      },
     },
   },
 })

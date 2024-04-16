@@ -78,7 +78,6 @@ export const select_menu = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      flexDirection: 'column',
       maxHeight: '10rem',
       borderRadius: theme['default-border-radius'],
       overflowY: 'auto',

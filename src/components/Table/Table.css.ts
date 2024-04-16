@@ -103,6 +103,12 @@ export const table_subrow = style({
           maxHeight: '0',
           transform: 'scaleY(0)',
         },
+        '&:hover': {
+          backgroundImage: 'linear-gradient(rgb(0 0 0/5%) 0 0)',
+        },
+        '&.clickable': {
+          cursor: 'pointer',
+        },
       },
     },
   },

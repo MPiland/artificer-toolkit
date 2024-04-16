@@ -41,6 +41,7 @@ globalStyle('html, body, #root', {
       padding: 0,
       margin: 0,
       boxSizing: 'border-box',
+      overflow: 'hidden',
     },
   },
 })

@@ -137,14 +137,14 @@ const DetailForm = memo(
                 {context.title === 'item' && (
                   <>
                     <Dropdown
-                      name='property'
+                      name='property.type'
                       multiSelect={true}
                       label='Properties'
-                      value={formState?.property}
+                      value={formState?.property?.type}
                       options={
                         builders.item.category.find(
                           (category: any) =>
-                            category._id === formState.category?.id
+                            category._id === formState.category?._id
                         )?.property
                       }
                       onChange={setFormState}
@@ -168,10 +168,10 @@ const DetailForm = memo(
                       onChange={setFormState}
                     />
                     <Dropdown
-                      name='cost.currency'
+                      name='cost.currency.type'
                       label='Currency'
-                      value={formState?.cost?.currency}
-                      options={builders.currency}
+                      value={formState?.cost?.currency?.type}
+                      options={builders.currency.type}
                       optionalKey='short'
                       required={true}
                       onChange={setFormState}
@@ -242,10 +242,10 @@ const DetailForm = memo(
                       onChange={setFormState}
                     />
                     <Dropdown
-                      name='hitPointModifier'
+                      name='hitPoint.ability.type'
                       label='HP Modifier Ability'
-                      value={formState?.hitPointModifier}
-                      options={builders.ability}
+                      value={formState?.hitPoint.ability.type}
+                      options={builders.ability.type}
                       required={true}
                       onChange={setFormState}
                     />
@@ -406,7 +406,9 @@ const DetailForm = memo(
                 multiSelect={true}
                 label='Classes'
                 value={formState?.classes}
-                options={classes as unknown as DropdownOption[]}
+                options={(classes as unknown as DropdownOption[])?.filter(
+                  (uClass) => uClass.category.name === 'base'
+                )}
                 required={true}
                 onChange={setFormState}
               />

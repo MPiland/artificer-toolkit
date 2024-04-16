@@ -26,13 +26,13 @@ const Item = () => {
     { header: 'CATEGORY', name: 'category.value' },
     {
       header: 'PROPERTIES',
-      name: 'property',
+      name: 'property.type',
     },
     {
       header: 'DAMAGE TYPE',
       name: [
-        ['damageprimaryDice.diceShort', 'damageprimaryDice.versatileDiceShort'],
-        'damage.damageType',
+        ['damage.primary.diceShort', 'damage.versatile.diceShort'],
+        'damage.primary.type',
       ],
     },
     { header: 'AC', name: 'armorClass' },
@@ -40,7 +40,7 @@ const Item = () => {
       header: 'WEIGHT',
       name: ['weight.amount', 'weight.unit.short'],
     },
-    { header: 'COST', name: ['cost.amount', 'cost.currency.short'] },
+    { header: 'COST', name: ['cost.amount', 'cost.currency.type.short'] },
   ]
 
   const detail = <div>{item?.desc && parse(item.desc)}</div>

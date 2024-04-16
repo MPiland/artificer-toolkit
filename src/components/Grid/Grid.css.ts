@@ -12,7 +12,7 @@ export const grid = style({
       width: '100%',
       gridTemplateColumns: grid_size,
       columnGap: size['size-1'],
-      rowGap: size['size-1'],
+      rowGap: size['size-3'],
     },
   },
 })

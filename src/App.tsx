@@ -31,6 +31,7 @@ import BackgroundForm from './features/background/BackgroundForm'
 import BackgroundList from './features/background/BackgroundList'
 import Background from './features/background/Background'
 import CharacterForm from './features/character/CharacterForm'
+import Copy from './components/Copy/Copy'
 
 const App = () => {
   const [theme] = useState('light')
@@ -54,7 +55,6 @@ const App = () => {
   const token = useSelector(selectCurrentToken)
   const location = useLocation()
   const background = location.state?.background
-  const scrollPosition: number = location.state?.scrollPosition
 
   const content = (
     <>
@@ -71,55 +71,37 @@ const App = () => {
                   </Route>
                 </Route>
                 <Route path='class'>
-                  <Route
-                    index
-                    element={<ClassList scrollPosition={scrollPosition} />}
-                  />
+                  <Route index element={<ClassList />} />
                   <Route path=':context' element={<ClassForm />}>
                     <Route path=':id' element={<ClassForm />} />
                   </Route>
                 </Route>
                 <Route path='race'>
-                  <Route
-                    index
-                    element={<RaceList scrollPosition={scrollPosition} />}
-                  />
+                  <Route index element={<RaceList />} />
                   <Route path=':context' element={<RaceForm />}>
                     <Route path=':id' element={<RaceForm />} />
                   </Route>
                 </Route>
                 <Route path='spell'>
-                  <Route
-                    index
-                    element={<SpellList scrollPosition={scrollPosition} />}
-                  />
+                  <Route index element={<SpellList />} />
                   <Route path=':context' element={<SpellForm />}>
                     <Route path=':id' element={<SpellForm />} />
                   </Route>
                 </Route>
                 <Route path='item'>
-                  <Route
-                    index
-                    element={<ItemList scrollPosition={scrollPosition} />}
-                  />
+                  <Route index element={<ItemList />} />
                   <Route path=':context' element={<ItemForm />}>
                     <Route path=':id' element={<ItemForm />} />
                   </Route>
                 </Route>
                 <Route path='feat'>
-                  <Route
-                    index
-                    element={<FeatList scrollPosition={scrollPosition} />}
-                  />
+                  <Route index element={<FeatList />} />
                   <Route path=':context' element={<FeatForm />}>
                     <Route path=':id' element={<FeatForm />} />
                   </Route>
                 </Route>
                 <Route path='background'>
-                  <Route
-                    index
-                    element={<BackgroundList scrollPosition={scrollPosition} />}
-                  />
+                  <Route index element={<BackgroundList />} />
                   <Route path=':context' element={<BackgroundForm />}>
                     <Route path=':id' element={<BackgroundForm />} />
                   </Route>
@@ -141,6 +123,7 @@ const App = () => {
             <Route path='/background/:id' element={<Background />} />
             <Route path='/delete/:id' element={<Delete />} />
             <Route path='/create/:type' element={<Create />} />
+            <Route path='/copy/feature' element={<Copy />} />
             <Route path='*' element={<Alert />} />
           </Route>
         </Routes>

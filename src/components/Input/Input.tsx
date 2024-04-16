@@ -123,13 +123,6 @@ const Input = memo(
       [debounceSave, validation]
     )
 
-    useEffect(() => {
-      if (value === '' && inputValue === '' && !debouncing) {
-        onChange({ type: 'removed', target: { name: name } })
-        onChange({ type: 'removed', target: { name: 'name' } })
-      }
-    }, [inputValue, value, name, onChange, debouncing])
-
     const content = (
       <Tooltip
         className={clsx(input_wrapper, {

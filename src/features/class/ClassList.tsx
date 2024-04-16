@@ -4,23 +4,18 @@ import {
   useGetClassesQuery,
 } from './classApiSlice'
 import {
-  selectClassFilter,
-  setClassFilter,
-  clearClassFilter,
+  selectFilter,
+  setFilter,
+  clearFilter,
 } from './classSlice'
 import List from '../../components/List/List'
 import { RowHeader, RowInput } from '../../utils/types'
 
-interface ClassListProps {
-  scrollPosition: number
-}
-
-const ClassList = ({ scrollPosition }: ClassListProps) => {
+const ClassList = () => {
   const { classes } = useGetClassesQuery(undefined, {
     selectFromResult: ({ data }) => ({
       classes: data && selectAllClasses(data),
     }),
-    refetchOnMountOrArgChange: true,
   })
 
   const [deleteClass] = useDeleteClassMutation()
@@ -59,16 +54,15 @@ const ClassList = ({ scrollPosition }: ClassListProps) => {
       context={{ title: 'class' }}
       items={classes}
       deleteItem={deleteClass}
-      scrollPosition={scrollPosition}
-      setFilter={setClassFilter}
+      setFilter={setFilter}
       subrow={{
         collapse: true,
         filter: 'subclass',
         filterOn: 'category.name',
         matchKey: 'parentClass',
       }}
-      filterReset={clearClassFilter}
-      selectFilter={selectClassFilter}
+      filterReset={clearFilter}
+      selectFilter={selectFilter}
     />
   )
 }

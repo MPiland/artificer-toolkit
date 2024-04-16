@@ -4,27 +4,20 @@ import {
   useGetFeatsQuery,
 } from './featApiSlice'
 import {
-  selectFeatsFilter,
-  setFeatFilter,
-  clearFeatFilter,
+  selectFilter,
+  setFilter,
+  clearFilter,
 } from './featSlice'
 import List from '../../components/List/List'
 import { RowHeader, RowInput } from '../../utils/types'
-
-interface FeatListProps {
-  scrollPosition: number
-}
-
-const FeatList = ({ scrollPosition }: FeatListProps) => {
+const FeatList = () => {
   const { feats } = useGetFeatsQuery(undefined, {
     selectFromResult: ({ data }) => ({
       feats: data && selectAllFeats(data),
     }),
-    refetchOnMountOrArgChange: true,
   })
 
   const [deleteFeat] = useDeleteFeatMutation()
-
   const tableColumns: { headers: RowHeader[]; inputs: RowInput[] } = {
     headers: [
       {
@@ -46,10 +39,9 @@ const FeatList = ({ scrollPosition }: FeatListProps) => {
       context={{ title: 'feat' }}
       items={feats}
       deleteItem={deleteFeat}
-      scrollPosition={scrollPosition}
-      setFilter={setFeatFilter}
-      filterReset={clearFeatFilter}
-      selectFilter={selectFeatsFilter}
+      setFilter={setFilter}
+      filterReset={clearFilter}
+      selectFilter={selectFilter}
     />
   )
 }

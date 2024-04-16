@@ -4,23 +4,18 @@ import {
   useGetItemsQuery,
 } from './itemApiSlice'
 import {
-  selectItemsFilter,
-  setItemFilter,
-  clearItemFilter,
+  selectFilter,
+  setItem,
+  clearFilter,
 } from './itemSlice'
 import List from '../../components/List/List'
 import { RowHeader, RowInput } from '../../utils/types'
 
-interface ItemListProps {
-  scrollPosition: number
-}
-
-const ItemList = ({ scrollPosition }: ItemListProps) => {
+const ItemList = () => {
   const { items } = useGetItemsQuery(undefined, {
     selectFromResult: ({ data }) => ({
       items: data && selectAllItems(data),
     }),
-    refetchOnMountOrArgChange: true,
   })
 
   const [deleteItem] = useDeleteItemMutation()
@@ -37,11 +32,11 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
         value: 'Category',
       },
       {
-        name: { sortOn: 'property' },
+        name: { sortOn: 'property.type' },
         value: 'Properties',
       },
       {
-        name: { sortOn: 'damage.damageType' },
+        name: { sortOn: 'damage.primary.type' },
         value: 'Damage Type',
         breakpoint: ['sm'],
       },
@@ -84,12 +79,12 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
         name: 'category.value',
       },
       {
-        name: 'property',
+        name: 'property.type',
       },
       {
         name: [
-          ['damage.dice.diceShort', 'damage.dice.versatileDiceShort'],
-          'damage.damageType',
+          ['damage.primary.diceShort', 'damage.versatile.diceShort'],
+          'damage.primary.type',
         ],
         breakpoint: ['sm'],
       },
@@ -106,7 +101,7 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
         breakpoint: ['sm'],
       },
       {
-        name: ['cost.amount', 'cost.currency.short'],
+        name: ['cost.amount', 'cost.currency.type.short'],
         breakpoint: ['sm', 'md'],
       },
     ],
@@ -118,10 +113,9 @@ const ItemList = ({ scrollPosition }: ItemListProps) => {
       context={{ title: 'item' }}
       items={items}
       deleteItem={deleteItem}
-      scrollPosition={scrollPosition}
-      setFilter={setItemFilter}
-      filterReset={clearItemFilter}
-      selectFilter={selectItemsFilter}
+      setFilter={setItem}
+      filterReset={clearFilter}
+      selectFilter={selectFilter}
     />
   )
 }

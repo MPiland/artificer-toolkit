@@ -1,5 +1,4 @@
 import { PayloadAction, createSlice } from '@reduxjs/toolkit'
-import { authApiSlice } from './authApiSlice'
 import { RootState } from '../../app/store'
 
 interface AuthState {
@@ -18,19 +17,14 @@ export const authSlice = createSlice({
       state.token = payload.accessToken
       state.id = payload.id
     },
-  },
-  extraReducers: (builder) => {
-    builder.addMatcher(
-      authApiSlice.endpoints.sendLogout.matchFulfilled,
-      (state) => {
-        state.token = null
-        localStorage.removeItem('persist')
-      }
-    )
+    clearCredentials: (state) => {
+      state.token = null
+      localStorage.removeItem('persist')
+    },
   },
 })
 
-export const { setCredentials } = authSlice.actions
+export const { setCredentials, clearCredentials } = authSlice.actions
 
 export const selectCurrentToken = (state: RootState) => state.auth.token
 export const selectCurrentId = (state: RootState) => state.auth.id

@@ -3,15 +3,15 @@ import {
   useDeleteBackgroundMutation,
   useGetBackgroundsQuery,
 } from './backgroundApiSlice'
-import { selectBackgroundsFilter, setBackgroundFilter, clearBackgroundFilter } from './backgroundSlice'
+import {
+  selectFilter,
+  setFilter,
+  clearFilter,
+} from './backgroundSlice'
 import List from '../../components/List/List'
 import { RowHeader, RowInput } from '../../utils/types'
 
-interface BackgroundListProps {
-  scrollPosition: number
-}
-
-const BackgroundList = ({ scrollPosition }: BackgroundListProps) => {
+const BackgroundList = () => {
   const { backgrounds } = useGetBackgroundsQuery(undefined, {
     selectFromResult: ({ data }) => ({
       backgrounds: data && selectAllBackgrounds(data),
@@ -42,10 +42,9 @@ const BackgroundList = ({ scrollPosition }: BackgroundListProps) => {
       context={{ title: 'background' }}
       items={backgrounds}
       deleteItem={deleteBackground}
-      scrollPosition={scrollPosition}
-      setFilter={setBackgroundFilter}
-      filterReset={clearBackgroundFilter}
-      selectFilter={selectBackgroundsFilter}
+      setFilter={setFilter}
+      filterReset={clearFilter}
+      selectFilter={selectFilter}
     />
   )
 }

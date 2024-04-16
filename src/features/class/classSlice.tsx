@@ -3,21 +3,24 @@ import { RootState } from '../../app/store'
 
 export const classSlice = createSlice({
   name: 'class',
-  initialState: {
-    filters: {},
-  },
+  initialState: { filters: {}, scrollPosition: null },
   reducers: {
-    setClassFilter: (state, action: PayloadAction<any>) => {
+    setFilter: (state, action: PayloadAction<any>) => {
       state.filters = action.payload
     },
-    clearClassFilter: (state) => {
+    clearFilter: (state) => {
       state.filters = {}
+    },
+    setScrollPosition: (state, action: PayloadAction<any>) => {
+      state.scrollPosition = action.payload
     },
   },
 })
 
-export const selectClassFilter = (state: RootState) => state.class.filters
-
-export const { setClassFilter, clearClassFilter } = classSlice.actions
+export const { setFilter, clearFilter, setScrollPosition } = classSlice.actions
 
 export default classSlice.reducer
+
+export const selectFilter = (state: RootState) => state.class.filters
+export const getScrollPosition = (state: RootState) =>
+  state.class.scrollPosition

@@ -68,7 +68,7 @@ export const collapse_header = style({
       justifyContent: 'start',
       cursor: 'pointer',
       padding: `${size['size-2']} ${size['size-3']}`,
-      height: '3rem',
+      height: '2.5rem',
 
       selectors: {
         '&.collapsed': {
@@ -88,6 +88,15 @@ export const collapse_header_icon = style({
       width: 'auto',
       alignItems: 'center',
       display: 'flex',
+      marginLeft: size['size-3'],
+    },
+  },
+})
+
+export const collapse_optional_button = style({
+  '@layer': {
+    [app]: {
+      height: '100%',
     },
   },
 })
@@ -116,7 +125,7 @@ globalStyle(`${collapse_header_icon} svg`, {
   '@layer': {
     [app]: {
       height: '60%',
-      width:'auto'
-    }
-  }
+      width: 'auto',
+    },
+  },
 })

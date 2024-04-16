@@ -7,6 +7,7 @@ import {
   collapse_header_icon,
   collapse_content,
   collapse_remove_button,
+  collapse_optional_button,
 } from './Collapse.css'
 import Button from '../Button/Button'
 import clsx from 'clsx'
@@ -93,10 +94,13 @@ const Collapse = memo(
                     e.stopPropagation()
                     buttonItem.function()
                   }}
-                  className={clsx({
-                    [sprinkles({ me: 'size-2' })]:
-                      buttonIndex !== headerButton.length - 1,
-                  })}
+                  className={clsx(
+                    {
+                      [sprinkles({ me: 'size-2' })]:
+                        buttonIndex !== headerButton.length - 1,
+                    },
+                    collapse_optional_button
+                  )}
                   key={buttonIndex}
                 >
                   {buttonItem.label}

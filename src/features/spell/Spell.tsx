@@ -30,37 +30,37 @@ const Spell = () => {
     { header: 'LEVEL', name: 'level' },
     {
       header: 'CASTING TIME',
-      name: ['action.value', 'action.actionType.value'],
+      name: ['action', 'action.type'],
     },
     {
       header: 'RANGE/AREA',
       name: [
-        ['range.rangeType.value', 'range.distance', 'range.unit.short'],
-        ['shape.shapeType.value', 'shape.size', 'shape.unit.short'],
+        ['range.type', 'range.distance', 'range.unit.short'],
+        ['shape.type', 'shape.size', 'shape.unit.short'],
       ],
     },
     { header: 'REQUIREMENTS', name: 'requirement', truncate: 1 },
     {
       header: 'DURATION',
-      name: ['duration.value', 'duration.durationType.value'],
+      name: ['duration.value', 'duration.type'],
     },
-    { header: 'SCHOOL', name: 'school.value' },
+    { header: 'SCHOOL', name: 'school' },
     {
       header: 'SAVE ABILITY',
-      name: 'saveAbility.ability',
+      name: 'saveAbility.type',
       filter: ['isAttack', 'requireSave'],
     },
     {
       header: 'DAMAGE',
       name: [
-        ['damage.dice.diceShort', 'damage.dice.secDiceShort'],
-        ['damage.damageType', 'damage.secondaryDamageType'],
-        'condition',
+        ['damage.primary.diceShort', 'damage.primary.type'],
+        ['damage.secondary.diceShort', 'damage.secondary.type'],
+        'condition.type',
       ],
     },
   ]
 
-  const detail = 'desc' in spell && spell.desc && <div>{parse(spell.desc)}</div>
+  const detail = spell && spell.desc && <div>{parse(spell.desc)}</div>
 
   const footer = <span>{materialDesc()}</span>
 

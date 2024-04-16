@@ -1,41 +1,22 @@
 import { useEffect, useState } from 'react'
-import { startCase } from 'lodash'
+import { isEqual, startCase } from 'lodash'
 import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import Table from '../Table/Table'
-import {
-  DropdownOption,
-  ReducerActionType,
-  RowHeader,
-  RowInput,
-  SectionName,
-} from '../../utils/types'
+import { DropdownOption, FormContext, ReducerActionType, RowHeader, RowInput, SectionName } from '../../utils/types'
 import Grid from '../Grid/Grid'
 import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
-import {
-  selectAllClasses,
-  useGetClassesQuery,
-} from '../../features/class/classApiSlice'
-import {
-  useGetItemsQuery,
-  selectAllItems,
-} from '../../features/item/itemApiSlice'
-import {
-  selectAllSpells,
-  useGetSpellsQuery,
-} from '../../features/spell/spellApiSlice'
-import {
-  selectAllFeats,
-  useGetFeatsQuery,
-} from '../../features/feat/featApiSlice'
+import { selectAllClasses, useGetClassesQuery } from '../../features/class/classApiSlice'
+import { useGetItemsQuery, selectAllItems } from '../../features/item/itemApiSlice'
+import { selectAllSpells, useGetSpellsQuery } from '../../features/spell/spellApiSlice'
+import { selectAllFeats, useGetFeatsQuery } from '../../features/feat/featApiSlice'
 import Spinner from '../Spinner/Spinner'
 import { tableContent } from '../../utils/formUtils'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { form_content } from './Form.css'
-import {
-  selectAllRaces,
-  useGetRacesQuery,
-} from '../../features/race/raceApiSlice'
+import { selectAllRaces, useGetRacesQuery } from '../../features/race/raceApiSlice'
+import Collapse from '../Collapse/Collapse'
+import { sprinkles } from '../../css/sprinkles.css'
 
 export interface SectionContentProps {
   sectionState: any
@@ -46,18 +27,20 @@ export interface SectionContentProps {
   spells?: any[]
   classes?: any[]
   races?: any[]
-  state: any
+  formState: any
   setSectionState: (arg: ReducerActionType) => void
   optionGroups: boolean
   providesOptions: boolean
+  context: FormContext
 }
 
 interface SectionProps {
-  state: any
+  formState: any
   sectionName: SectionName
   featureState: any
   setSectionState: (arg: ReducerActionType) => void
   sectionState: any
+  context: FormContext
 }
 
 export const FeatContent = ({
@@ -65,9 +48,8 @@ export const FeatContent = ({
   setSectionState,
   builders,
   feats,
-  state,
+  formState,
   providesOptions,
-  optionGroups,
 }: SectionContentProps) => {
   return (
     <>
@@ -77,45 +59,31 @@ export const FeatContent = ({
           name={`attribute`}
           options={[].concat(
             builders.section.attribute,
-            state.category?.name === 'subclass' &&
-              builders.section.subclass.attribute
+            formState.category?.name === 'subclass' && builders.section.subclass.attribute
           )}
           label={`${startCase('feat')} Attributes`}
           value={sectionState.attribute}
           onChange={setSectionState}
         />
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'subtypeSpecific'
-        ) && (
-          <Dropdown
-            name={`subtype`}
-            label='Subtype'
-            value={sectionState.subtype}
-            options={state?.subtype}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
-        {optionGroups && (
-          <Input
-            validation='num'
-            name={`optionGroup`}
-            label='Opt. Grp. #'
-            autoComplete='off'
-            value={sectionState.optionGroup}
-            errorMsg='Must contain only numbers'
-            onChange={setSectionState}
-          />
-        )}
         <Dropdown
-          name={`feat`}
+          name={`type`}
           multiSelect={true}
           label='Feat'
-          value={sectionState.feat}
+          value={sectionState.type}
           options={feats}
           required={true}
           onChange={setSectionState}
         />
+        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') && (
+          <Dropdown
+            name={`subtype`}
+            label='Subtype'
+            value={sectionState.subtype}
+            options={formState?.subtype}
+            required={true}
+            onChange={setSectionState}
+          />
+        )}
         {providesOptions && (
           <Input
             validation='num'
@@ -133,47 +101,123 @@ export const FeatContent = ({
   )
 }
 
+type categoryType =
+  | 'armorClass'
+  | 'saveAbility'
+  | 'spellSlot'
+  | 'skill'
+  | 'ability'
+  | 'meleeAttack'
+  | 'rangeAttack'
+  | 'unarmedAttack'
+  | 'unarmedDamage'
+  | 'spellAttack'
+  | 'spellDC'
+  | 'damage'
+  | 'spellDamage'
+  | 'passive'
+  | 'speed'
+  | 'condition'
+  | 'proficiencyBonus'
+  | 'initiative'
+  | 'hitPoints'
+  | 'meleeDamage'
+  | 'rangeDamage'
+  | 'damageSave'
+  | 'conditionSave'
+  | 'limitUse'
+  | 'spell'
+  | 'modifierAbility'
+  | 'optionalModifierAbility'
+
 export const ModifierContent = ({
   sectionState,
   setSectionState,
   builders,
-  state,
+  formState,
   providesOptions,
-  optionGroups,
   spells,
+  context,
 }: SectionContentProps) => {
-  const [modType, setModType] = useState<DropdownOption[]>([])
+  const [modMode, setModMode] = useState<DropdownOption[]>([])
   const [modMethod, setModMethod] = useState<DropdownOption[] | null>(null)
   const [spellsArray, setSpellsArray] = useState<DropdownOption[]>()
+  const [typeOptions, setTypeOptions] = useState<boolean>(false)
 
-  // Set modType and modMethod options
+  const categoryName: categoryType = sectionState?.category?.name
+  const subCategoryName = sectionState.spellCategory?.name
+  const pathName = subCategoryName != null ? `${categoryName}.${subCategoryName}` : `${categoryName}`
+
   useEffect(() => {
-    if (sectionState.category != null) {
-      if (sectionState.category?.name === 'spell') {
-        const type = builders.modifier.spellCategory?.find(
-          (cat: any) => cat._id === sectionState.spellCategory?._id
-        )?.type
-
-        setModType(type)
-      } else {
-        const type = builders.modifier.category?.find(
-          (cat: any) => cat._id === sectionState.category?._id
-        )?.type
-
-        setModType(type)
+    const sectionItem = JSON.parse(JSON.stringify(sectionState))
+    if (Object.keys(sectionItem)?.length > 0) {
+      if (sectionItem.category) {
+        Object.keys(sectionItem).forEach((key) => {
+          if (
+            key !== 'category' &&
+            key !== sectionItem.category?.name &&
+            key !== '_id' &&
+            key !== 'id' &&
+            key !== 'attribute' &&
+            key !== 'selectionCount'
+          ) {
+            delete sectionItem[key]
+          }
+        })
       }
     }
-    if (modType?.length > 0) {
-      if (sectionState.category?.name === 'spell') {
+
+    if (!isEqual(sectionItem, sectionState)) {
+      setSectionState({
+        type: 'reset',
+        target: { value: sectionItem },
+      })
+    }
+  }, [sectionState, setSectionState])
+
+  // Set if selected category has type options
+  useEffect(() => {
+    categoryName === 'damage' ||
+    categoryName === 'ability' ||
+    categoryName === 'saveAbility' ||
+    categoryName === 'condition' ||
+    categoryName === 'conditionSave' ||
+    categoryName === 'damageSave' ||
+    categoryName === 'speed' ||
+    categoryName === 'passive' ||
+    categoryName === 'modifierAbility' ||
+    categoryName === 'optionalModifierAbility' ||
+    categoryName === 'spellDamage'
+      ? setTypeOptions(true)
+      : setTypeOptions(false)
+  }, [categoryName])
+
+  // Set modMode and modMethod options
+  useEffect(() => {
+    if (categoryName != null) {
+      if (categoryName === 'spell') {
+        const mode = builders.modifier.spellCategory?.find(
+          (cat: any) => cat._id === sectionState.spellCategory?._id
+        )?.mode
+
+        setModMode(mode)
+      } else {
+        const mode = builders.modifier.category?.find((cat: any) => cat._id === sectionState.category?._id)?.mode
+
+        setModMode(mode)
+      }
+    }
+    if (modMode?.length > 0) {
+      if (categoryName === 'spell') {
         const method = builders.modifier.spellCategory
           ?.find((cat: any) => cat._id === sectionState.spellCategory?._id)
-          ?.type?.find((ty: any) => ty._id === sectionState.type?._id)?.method
+          ?.mode?.find((ty: any) => ty._id === sectionState[pathName]?.mode?._id)?.method
 
         setModMethod(method)
       } else {
         const method = builders.modifier.category
           ?.find((cat: any) => cat._id === sectionState.category?._id)
-          ?.type?.find((ty: any) => ty._id === sectionState.type?._id)?.method
+          ?.mode?.find((mo: any) => mo._id === sectionState[pathName]?.mode?._id)?.method
 
         setModMethod(method)
       }
@@ -181,106 +225,85 @@ export const ModifierContent = ({
   }, [
     builders.modifier.category,
     builders.modifier.spellCategory,
-    modType,
-    sectionState.type,
-    sectionState.category,
+    modMode,
+    sectionState,
     sectionState.spellCategory?._id,
+    categoryName,
+    pathName,
   ])
 
   // Filter spells array
   useEffect(() => {
     const filteredSpells = spells?.filter((spell) => {
-      if (sectionState.spellCategory?.name === 'damageSave') {
-        return spell.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'requireSave'
-        )
+      if (subCategoryName === 'damageSave') {
+        return spell.attribute?.some((attributeItem: any) => attributeItem.name === 'requireSave')
       }
-      if (sectionState.spellCategory?.name === 'spellDamage') {
-        return spell.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'doesDamage'
-        )
+      if (subCategoryName === 'spellDamage') {
+        return spell.attribute?.some((attributeItem: any) => attributeItem.name === 'doesDamage')
       }
-      if (sectionState.spellCategory?.name === 'spellMaxRange') {
-        return spell.range && spell.range.minRange
+      if (subCategoryName === 'spellRange') {
+        return spell.range && spell.range.minRange && spell.range.maxRange
       }
-      if (sectionState.spellCategory?.name === 'spellMinRange') {
-        return spell.range && spell.range.maxRange
+      if (subCategoryName === 'spellShape') {
+        return spell.shape && spell.shape.type && spell.shape.size
       }
-      if (sectionState.spellCategory?.name === 'spellShapeType') {
-        return spell.shape && spell.shape.type
-      }
-      if (sectionState.spellCategory?.name === 'spellShapeSize') {
-        return spell.shape && spell.shape.size
-      }
-      if (sectionState.spellCategory?.name === 'spellDurationType') {
-        return spell.duration && spell.duration.type
-      }
-      if (sectionState.spellCategory?.name === 'spellDurationValue') {
-        return spell.duration && spell.duration.value
+      if (subCategoryName === 'spellDuration') {
+        return spell.duration && spell.duration.type && spell.duration.value
       }
       return false
     })
     setSpellsArray(filteredSpells)
-  }, [sectionState.spellCategory?.name, spells])
+  }, [subCategoryName, spells])
 
   // Add/Remove die per level Table
   useEffect(() => {
     if (
-      (sectionState.diePerLevel || sectionState.diePerLevel?.length > 0) &&
-      (sectionState.type?.name !== 'setDieValue' ||
-        sectionState.method?.option?.name !== 'diePerLevel')
+      (sectionState?.[pathName]?.diePerLevel || sectionState?.[pathName]?.diePerLevel?.length > 0) &&
+      (sectionState?.[pathName]?.mode?.name !== 'setValue' || sectionState?.[pathName]?.method?.name !== 'diePerLevel')
     ) {
       setSectionState({
         type: 'removed',
         target: {
-          name: `diePerLevel`,
+          name: `${pathName}.diePerLevel`,
         },
       })
     }
     if (
-      sectionState.type?.name === 'setDieValue' &&
-      sectionState.method?.option?.name === 'diePerLevel' &&
-      (!sectionState.diePerLevel || !(sectionState.diePerLevel?.length > 0))
+      sectionState?.[pathName]?.mode?.name === 'setValue' &&
+      sectionState?.[pathName]?.method?.name === 'diePerLevel' &&
+      (!sectionState?.[pathName]?.diePerLevel || !(sectionState?.[pathName]?.diePerLevel?.length > 0))
     ) {
       setSectionState({
         type: 'added',
         target: {
-          name: `diePerLevel`,
+          name: `${pathName}.diePerLevel`,
         },
       })
     }
-  }, [
-    sectionState.diePerLevel,
-    setSectionState,
-    sectionState.type,
-    sectionState.method,
-  ])
+  }, [pathName, sectionState, setSectionState, sectionState.type, sectionState.method])
 
   // Add/remove setPerLevel table
   useEffect(() => {
-    if (
-      sectionState.setPerLevel &&
-      sectionState.method?.option?.name !== 'setPerLevel'
-    ) {
+    if (sectionState[pathName]?.setPerLevel && sectionState[pathName]?.method?.name !== 'setPerLevel') {
       setSectionState({
         type: 'removed',
         target: {
-          name: `setPerLevel`,
+          name: `${pathName}.setPerLevel`,
         },
       })
     }
     if (
-      sectionState.method?.option?.name === 'setPerLevel' &&
-      (!sectionState.setPerLevel || !(sectionState.setPerLevel?.length > 0))
+      sectionState[pathName]?.method?.name === 'setPerLevel' &&
+      (!sectionState[pathName]?.setPerLevel || !(sectionState[pathName]?.setPerLevel?.length > 0))
     ) {
       setSectionState({
         type: 'added',
         target: {
-          name: `setPerLevel`,
+          name: `${pathName}.setPerLevel`,
         },
       })
     }
-  }, [sectionState.setPerLevel, sectionState.method, setSectionState])
+  }, [sectionState, pathName, setSectionState])
 
   return (
     <>
@@ -290,36 +313,12 @@ export const ModifierContent = ({
           name={`attribute`}
           options={[].concat(
             builders.section.attribute,
-            state.category?.name === 'subclass' &&
-              builders.section.subclass.attribute
+            formState.category?.name === 'subclass' && builders.section.subclass.attribute
           )}
           label={`${startCase('modifier')} Attributes`}
           value={sectionState.attribute}
           onChange={setSectionState}
         />
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'subtypeSpecific'
-        ) && (
-          <Dropdown
-            name={`subtype`}
-            label='Subtype'
-            value={sectionState.subtype}
-            options={state?.subtype}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
-        {optionGroups && (
-          <Input
-            validation='num'
-            name={`optionGroup`}
-            label='Opt. Grp. #'
-            autoComplete='off'
-            value={sectionState.optionGroup}
-            errorMsg='Must contain only numbers'
-            onChange={setSectionState}
-          />
-        )}
         <Dropdown
           name={`category`}
           label='Modifier Category'
@@ -328,7 +327,7 @@ export const ModifierContent = ({
           required={true}
           onChange={setSectionState}
         />
-        {sectionState.category?.name === 'spell' && (
+        {categoryName === 'spell' && (
           <>
             <Dropdown
               name={`spellCategory`}
@@ -339,370 +338,287 @@ export const ModifierContent = ({
               onChange={setSectionState}
             />
             <Dropdown
-              name={`spell`}
+              name={`${categoryName}.type`}
               label='Spell'
-              value={sectionState.spell}
+              value={sectionState[categoryName]?.type}
               options={spellsArray}
               required={true}
               onChange={setSectionState}
             />
           </>
         )}
-        {modType?.length > 0 &&
-          (sectionState.category || sectionState.spellCategory) && (
-            <Dropdown
-              name={`type`}
-              label='Modifier Type'
-              value={sectionState.type}
-              options={modType}
-              required={true}
-              onChange={setSectionState}
-            />
-          )}
-        {sectionState.category?.name === 'limitUse' &&
-          sectionState.type?.name === 'useReset' && (
-            <>
-              <Dropdown
-                name={`limitUse.resetOption`}
-                label='Reset Option'
-                value={sectionState.limitUse?.resetOption}
-                options={builders.feature.chargeReset}
-                required={true}
-                onChange={setSectionState}
-              />
-              <Dropdown
-                name={`limitUse.feature`}
-                label='Feature'
-                value={sectionState.limitUse?.feature}
-                options={state?.feature}
-                required={true}
-                onChange={setSectionState}
-              />
-              <Dropdown
-                name={`method.option`}
-                label='Method'
-                value={sectionState.method?.option}
-                options={sectionState.type.method}
-                required={true}
-                onChange={setSectionState}
-              />
-            </>
-          )}
-        {sectionState.category?.name === 'ability' && (
+        {typeOptions && (
           <Dropdown
-            name={`ability`}
+            name={`${pathName}.type`}
             multiSelect={true}
-            label='Ability'
-            value={sectionState.ability}
-            options={builders.ability}
+            label={`${startCase(sectionState.category?.value)} Type`}
+            value={sectionState[pathName]?.type}
+            options={
+              categoryName === 'saveAbility'
+                ? builders.ability.type
+                : categoryName === 'conditionSave'
+                ? builders.condition.type
+                : categoryName === 'spellDamage' || categoryName === 'damageSave'
+                ? builders.damage.type
+                : builders[categoryName]?.type
+            }
             required={true}
             onChange={setSectionState}
           />
         )}
-        {sectionState.category?.name === 'saveAbility' && (
+        {modMode?.length > 0 && categoryName && (
           <Dropdown
-            name={`saveAbility`}
-            multiSelect={true}
-            label='Save Ability'
-            value={sectionState.saveAbility}
-            options={builders.ability}
+            name={`${pathName}.mode`}
+            label='Modifier Mode'
+            value={sectionState[pathName]?.mode}
+            options={modMode}
             required={true}
             onChange={setSectionState}
           />
         )}
-        {sectionState.category?.name === 'skill' && (
+        {modMethod != null && modMethod?.length > 0 && (
           <Dropdown
-            name={`skill`}
-            multiSelect={true}
-            label='Skill'
-            value={sectionState.skill}
-            options={builders.skill}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
-        {sectionState.category?.name === 'damageSave' && (
-          <Dropdown
-            name={`damage.damageSave`}
-            multiSelect={true}
-            label='Damage'
-            value={sectionState.damage?.damageSave}
-            options={builders.damage}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
-        {sectionState.category?.name === 'conditionSave' && (
-          <Dropdown
-            name={`conditionSave`}
-            multiSelect={true}
-            label='Condition'
-            value={sectionState.conditionSave}
-            options={builders.condition}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
-        {modMethod != null && (
-          <Dropdown
-            name={`method.option`}
+            name={`${pathName}.method`}
             label='Method'
-            value={sectionState.method?.option}
+            value={sectionState[categoryName]?.method}
             options={modMethod}
             required={true}
             onChange={setSectionState}
           />
         )}
-        {sectionState.spellCategory &&
-        sectionState.spellCategory?.name === 'spellShapeType' ? (
-          <Dropdown
-            name={`shape.type`}
-            label='Shape'
-            value={sectionState.shape?.type}
-            options={builders.spell.shape}
-            required={true}
-            onChange={setSectionState}
-          />
-        ) : (
-          sectionState.spellCategory?.name === 'spellDurationType' && (
-            <Dropdown
-              name={`duration.type`}
-              label='Duration'
-              value={sectionState.duration?.type}
-              options={builders.spell.duration}
-              required={true}
-              onChange={setSectionState}
-            />
-          )
-        )}
-        {sectionState.method?.option?.name &&
-          sectionState.method?.option?.name !== 'setPerLevel' &&
-          sectionState.method?.option?.name !== 'diePerLevel' && (
-            <>
-              <Input
-                validation='num'
-                name={`minValue`}
-                label='Minimum Value'
-                errorMsg='Must contain only whole numbers'
-                autoComplete='off'
-                value={sectionState.minValue}
-                onChange={setSectionState}
-              />
-              <Input
-                validation='num'
-                name={`multiplier`}
-                label='Multiplier'
-                errorMsg='Must contain only whole numbers'
-                autoComplete='off'
-                value={sectionState.multiplier}
-                onChange={setSectionState}
-              />
-            </>
-          )}
-        {sectionState.category?.name === 'condition' ? (
-          <Dropdown
-            name={`condition`}
-            multiSelect={true}
-            label='Condition Type'
-            value={sectionState.condition}
-            options={builders.condition}
-            required={true}
-            onChange={setSectionState}
-          />
-        ) : sectionState.category?.name === 'speed' ? (
-          <Dropdown
-            name={`speed`}
-            multiSelect={true}
-            value={sectionState.speed}
-            label='Speed Type'
-            options={builders.speed}
-            required={true}
-            onChange={setSectionState}
-          />
-        ) : sectionState.category?.name === 'passive' ? (
-          <Dropdown
-            name={`passive`}
-            multiSelect={true}
-            label='Passive Type'
-            value={sectionState.passive?.options}
-            options={builders.passive}
-            required={true}
-            onChange={setSectionState}
-          />
-        ) : (
-          (sectionState.category?.name === 'damage' ||
-            sectionState.category?.name === 'spellDamage') && (
-            <Dropdown
-              name={`damage.type`}
-              multiSelect={true}
-              label='Damage Type'
-              value={sectionState.damage?.type}
-              options={builders.damage}
-              required={true}
-              onChange={setSectionState}
-            />
-          )
-        )}
-        {sectionState.method?.option?.name === 'setValue' ? (
-          sectionState.spellCategory?.name === 'spellMinValue' ? (
-            <>
-              <Input
-                validation='num'
-                name={`range.minValue`}
-                label='Minimum Value'
-                errorMsg='Must contain only whole numbers'
-                autoComplete='off'
-                value={sectionState.range?.minValue}
-                onChange={setSectionState}
-              />
-              <Dropdown
-                name='shape.unit'
-                label='UoM'
-                value={sectionState?.range?.unit}
-                options={
-                  Object.values(builders.unit.imperial).flatMap(
-                    (item) => item
-                  ) as DropdownOption[]
-                }
-                required={
-                  sectionState.range?.type?.name === 'distance' ? true : false
-                }
-                optionalKey='short'
-                onChange={setSectionState}
-              />
-            </>
-          ) : sectionState.spellCategory?.name === 'spellMaxValue' ? (
-            <>
-              <Input
-                validation='num'
-                name={`range.maxValue`}
-                label='Minimum Value'
-                errorMsg='Must contain only whole numbers'
-                autoComplete='off'
-                value={sectionState.range?.maxValue}
-                onChange={setSectionState}
-              />
-              <Dropdown
-                name='shape.unit'
-                label='UoM'
-                value={sectionState?.range?.unit}
-                options={
-                  Object.values(builders.unit.imperial).flatMap(
-                    (item) => item
-                  ) as DropdownOption[]
-                }
-                required={
-                  sectionState.range?.type?.name === 'distance' ? true : false
-                }
-                optionalKey='short'
-                onChange={setSectionState}
-              />
-            </>
-          ) : sectionState.spellCategory?.name === 'spellShapeSize' ? (
-            <>
-              <Input
-                validation='num'
-                name={`shape.size`}
-                label='Minimum Value'
-                errorMsg='Must contain only whole numbers'
-                autoComplete='off'
-                value={sectionState.shape.size}
-                onChange={setSectionState}
-              />
-              <Dropdown
-                name='shape.unit'
-                label='UoM'
-                value={sectionState?.shape?.unit}
-                options={
-                  Object.values(builders.unit.imperial).flatMap(
-                    (item) => item
-                  ) as DropdownOption[]
-                }
-                required={
-                  sectionState.shape?.type?.name === 'distance' ? true : false
-                }
-                optionalKey='short'
-                onChange={setSectionState}
-              />
-            </>
-          ) : sectionState.spellCategory?.name === 'spellDurationValue' ? (
-            <Input
-              validation={'num'}
-              name='duration.value'
-              errorMsg='Must contain only numbers'
-              label='Duration Increment'
-              autoComplete='off'
-              required={true}
-              value={sectionState.duration?.value}
-              onChange={setSectionState}
-            />
-          ) : (
-            <Input
-              validation='num'
-              name={`method.setValue`}
-              label='Set Value'
-              errorMsg='Must contain only numbers'
-              autoComplete='off'
-              value={sectionState.method?.setValue}
-              required={true}
-              onChange={setSectionState}
-            />
-          )
-        ) : sectionState.method?.option?.name === 'ability' ? (
-          <Dropdown
-            name={`method.ability`}
-            label='Method Ability'
-            value={sectionState.method.ability}
-            options={builders.ability}
-            required={true}
-            onChange={setSectionState}
-          />
-        ) : sectionState.method?.option?.name === 'setValue' &&
-          sectionState.type?.name === 'setDieValue' ? (
+        {categoryName === 'limitUse' && sectionState[pathName]?.mode?.name === 'useReset' && (
           <>
-            <Input
-              validation='num'
-              name={`dieCount`}
-              label='Die Count'
-              errorMsg='Must contain only whole numbers'
-              autoComplete='off'
-              value={sectionState.dieCount}
+            <Dropdown
+              name={`${pathName}.charge.reset`}
+              label='Reset Option'
+              value={sectionState[pathName]?.charge?.reset}
+              options={builders.feature.charge.reset}
+              required={true}
               onChange={setSectionState}
             />
-            <Input
-              validation='num'
-              name={`dieValue`}
-              label='Die Value'
-              errorMsg='Must contain only whole numbers'
-              autoComplete='off'
-              value={sectionState.dieValue}
+            <Dropdown
+              name={`${pathName}.feature`}
+              label='Feature'
+              value={sectionState[pathName]?.feature}
+              options={[].concat(formState?.feature, context.title === 'class' && formState.resource)}
+              required={true}
               onChange={setSectionState}
             />
           </>
-        ) : (
-          sectionState.method?.option?.name === 'skill' && (
+        )}
+        {categoryName === 'spell' && (
+          <>
             <Dropdown
-              name={`method.skill`}
-              label='Method Skill'
-              value={sectionState.method.skill}
-              options={builders.skill}
+              name={`spellCategory`}
+              label='Spell Category'
+              value={sectionState.spellCategory}
+              options={builders.modifier.spellCategory}
               required={true}
               onChange={setSectionState}
             />
-          )
+            <Dropdown
+              name={`${categoryName}.type`}
+              label='Spell'
+              value={sectionState[categoryName]?.type}
+              options={spellsArray}
+              required={true}
+              onChange={setSectionState}
+            />
+            {subCategoryName === 'spellDuration' ? (
+              <>
+                <Dropdown
+                  name={`${pathName}.type`}
+                  label='Spell Duration Type'
+                  value={sectionState[pathName]?.type}
+                  options={builders.spell.duration.type}
+                  required={true}
+                  onChange={setSectionState}
+                />
+                {sectionState[pathName]?.mode?.name === 'setValue' && (
+                  <>
+                    <Input
+                      validation='num'
+                      name={`${pathName}.value`}
+                      label='Duration Increment'
+                      errorMsg='Must contain only whole numbers'
+                      autoComplete='off'
+                      value={sectionState[pathName]?.value}
+                      onChange={setSectionState}
+                    />
+                  </>
+                )}
+              </>
+            ) : subCategoryName === 'spellRange' ? (
+              <>
+                <Dropdown
+                  name={`${pathName}.type`}
+                  label='Spell Range Type'
+                  value={sectionState[pathName]?.type}
+                  options={builders.spell.range.type}
+                  required={true}
+                  onChange={setSectionState}
+                />
+                {sectionState[pathName]?.method.name === 'setValue' && (
+                  <>
+                    <Input
+                      validation='num'
+                      name={`${pathName}.minValue`}
+                      label='Minimum Value'
+                      errorMsg='Must contain only whole numbers'
+                      autoComplete='off'
+                      value={sectionState[categoryName][subCategoryName]?.minValue}
+                      onChange={setSectionState}
+                    />
+                    <Input
+                      validation='num'
+                      name={`${pathName}.maxValue`}
+                      label='Maximum Value'
+                      errorMsg='Must contain only whole numbers'
+                      autoComplete='off'
+                      value={sectionState[categoryName][subCategoryName]?.maxValue}
+                      onChange={setSectionState}
+                    />
+                    <Dropdown
+                      name={`${pathName}.unit`}
+                      label='UoM'
+                      value={sectionState[categoryName][subCategoryName]?.unit}
+                      options={Object.values(builders.unit.imperial).flatMap((item) => item) as DropdownOption[]}
+                      required={sectionState[categoryName][subCategoryName]?.type?.name === 'distance' ? true : false}
+                      optionalKey='short'
+                      onChange={setSectionState}
+                    />
+                  </>
+                )}
+              </>
+            ) : (
+              subCategoryName === 'spellShape' && (
+                <>
+                  <Dropdown
+                    name={`${pathName}.type`}
+                    label='Spell Shape Type'
+                    value={sectionState[pathName]?.type}
+                    options={builders.spell.shape.type}
+                    required={true}
+                    onChange={setSectionState}
+                  />
+                  {sectionState[pathName]?.mode?.name === 'setValue' && (
+                    <>
+                      <Input
+                        validation='num'
+                        name={`${pathName}.size`}
+                        label='Shape Size'
+                        errorMsg='Must contain only whole numbers'
+                        autoComplete='off'
+                        value={sectionState[pathName]?.size}
+                        onChange={setSectionState}
+                      />
+                      <Dropdown
+                        name={`${pathName}.unit`}
+                        label='UoM'
+                        value={sectionState[pathName]?.unit}
+                        options={Object.values(builders.unit.imperial).flatMap((item) => item) as DropdownOption[]}
+                        required={sectionState[pathName]?.type?.name === 'distance' ? true : false}
+                        optionalKey='short'
+                        onChange={setSectionState}
+                      />
+                    </>
+                  )}
+                </>
+              )
+            )}
+          </>
         )}
-        {(sectionState.type?.name === 'bonus' ||
-          sectionState.type?.name === 'setValue') && (
-          <Input
-            validation='num'
-            name={`maxValue`}
-            label='Max Value'
-            autoComplete='off'
-            value={sectionState.maxValue}
-            errorMsg='Must contain only numbers'
-            onChange={setSectionState}
-          />
-        )}
+        {categoryName !== 'spell' &&
+          sectionState[pathName]?.method?.name &&
+          sectionState[pathName]?.method?.name !== 'setPerLevel' &&
+          sectionState[pathName]?.method?.name !== 'diePerLevel' && (
+            <>
+              {(sectionState[pathName]?.mode?.name === 'bonus' ||
+                sectionState[pathName]?.mode?.name === 'setValue' ||
+                sectionState[pathName]?.mode?.name === 'modifierAbility' ||
+                sectionState[pathName]?.mode?.name === 'optionalModifierAbility') && (
+                <>
+                  {sectionState[pathName]?.method?.name === 'setValue' ? (
+                    <Input
+                      validation='num'
+                      name={`${pathName}.setValue`}
+                      label='Set Value'
+                      errorMsg='Must contain only numbers'
+                      autoComplete='off'
+                      value={sectionState[pathName]?.setValue}
+                      required={true}
+                      onChange={setSectionState}
+                    />
+                  ) : sectionState[pathName]?.method?.name === 'ability' ? (
+                    <Dropdown
+                      name={`${pathName}.modAbility.type`}
+                      label='Method Ability'
+                      value={sectionState[pathName]?.modAbility?.type}
+                      options={builders.ability.type}
+                      required={true}
+                      onChange={setSectionState}
+                    />
+                  ) : (
+                    sectionState[pathName]?.method?.name === 'skill' && (
+                      <Dropdown
+                        name={`${pathName}.modSkill.type`}
+                        label='Method Skill'
+                        value={sectionState[pathName]?.modSkill?.type}
+                        options={builders.skill.type}
+                        required={true}
+                        onChange={setSectionState}
+                      />
+                    )
+                  )}
+                  {sectionState[pathName]?.mode?.name !== 'modifierAbility' && (
+                    <Input
+                      validation='num'
+                      name={`${pathName}.maxValue`}
+                      label='Max Value'
+                      autoComplete='off'
+                      value={sectionState[pathName]?.maxValue}
+                      errorMsg='Must contain only numbers'
+                      onChange={setSectionState}
+                    />
+                  )}
+                </>
+              )}
+              {sectionState[pathName]?.method?.name !== 'setValue' && (
+                <>
+                  <Input
+                    validation='num'
+                    name={`${pathName}.multiplier`}
+                    label='Multiplier'
+                    errorMsg='Must contain only whole numbers'
+                    autoComplete='off'
+                    value={sectionState[pathName]?.multiplier}
+                    onChange={setSectionState}
+                  />
+                  <Input
+                    validation='num'
+                    name={`${pathName}.minValue`}
+                    label='Minimum Value'
+                    errorMsg='Must contain only whole numbers'
+                    autoComplete='off'
+                    value={sectionState[pathName]?.minValue}
+                    onChange={setSectionState}
+                  />
+                </>
+              )}
+            </>
+          )}
+        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') &&
+          categoryName != null && (
+            <Dropdown
+              name={`${pathName}.subtype`}
+              multiSelect={true}
+              label='Subclass Subtype'
+              value={sectionState[pathName]?.subtype}
+              options={formState?.subtype}
+              required={true}
+              onChange={setSectionState}
+            />
+          )}
         {providesOptions && (
           <Input
             validation='num'
@@ -716,78 +632,78 @@ export const ModifierContent = ({
           />
         )}
       </Grid>
-      <>
-        {sectionState.type?.name === 'setDieValue' &&
-          sectionState.method?.option?.name === 'diePerLevel' && (
-            <Table
-              name={`diePerLevel`}
-              rows={{
-                inputs: [
-                  {
-                    name: 'level',
-                    validation: 'num',
-                    errorMsg: 'Must be whole numbers only',
-                  },
-                  {
-                    name: 'diceCount',
-                    validation: 'num',
-                    errorMsg: 'Must be whole numbers only',
-                  },
-                  {
-                    name: 'diceValue',
-                    validation: 'num',
-                    errorMsg: 'Must be whole numbers only',
-                  },
-                ],
-                headers: [
-                  {
-                    value: 'Level',
-                  },
-                  {
-                    value: 'Die Count',
-                  },
-                  {
-                    value: 'Die Value',
-                  },
-                ],
-              }}
-              value={sectionState.diePerLevel}
-              addRow={true}
-              onChange={setSectionState}
-            />
-          )}
-        {sectionState.method?.option?.name === 'setPerLevel' &&
-          sectionState.setPerLevel?.length > 0 && (
-            <Table
-              name={`setPerLevel`}
-              rows={{
-                inputs: [
-                  {
-                    name: 'level',
-                    validation: 'num',
-                    errorMsg: 'Must be whole numbers, commas, and spaces only',
-                  },
-                  {
-                    name: 'value',
-                    validation: 'num',
-                    errorMsg: 'Must be whole numbers only',
-                  },
-                ],
-                headers: [
-                  {
-                    value: 'Level',
-                  },
-                  {
-                    value: 'Amount',
-                  },
-                ],
-              }}
-              value={sectionState.setPerLevel}
-              addRow={true}
-              onChange={setSectionState}
-            />
-          )}
-      </>
+      {sectionState[pathName]?.mode?.name === 'setValue' && sectionState[pathName]?.method?.name === 'diePerLevel' && (
+        <Collapse title='Die Per Level' className={sprinkles({ mt: 'size-3' })}>
+          <Table
+            name={`${pathName}.diePerLevel`}
+            rows={{
+              inputs: [
+                {
+                  name: 'level',
+                  validation: 'num',
+                  errorMsg: 'Must be whole numbers only',
+                },
+                {
+                  name: 'diceCount',
+                  validation: 'num',
+                  errorMsg: 'Must be whole numbers only',
+                },
+                {
+                  name: 'diceValue',
+                  validation: 'num',
+                  errorMsg: 'Must be whole numbers only',
+                },
+              ],
+              headers: [
+                {
+                  value: 'Level',
+                },
+                {
+                  value: 'Die Count',
+                },
+                {
+                  value: 'Die Value',
+                },
+              ],
+            }}
+            value={sectionState[pathName]?.diePerLevel}
+            addRow={true}
+            onChange={setSectionState}
+          />
+        </Collapse>
+      )}
+      {sectionState[pathName]?.method?.name === 'setPerLevel' && sectionState[pathName]?.setPerLevel?.length > 0 && (
+        <Collapse title='Set Per Level' className={sprinkles({ mt: 'size-3' })}>
+          <Table
+            name={`${pathName}.setPerLevel`}
+            rows={{
+              inputs: [
+                {
+                  name: 'level',
+                  validation: 'num',
+                  errorMsg: 'Must be whole numbers, commas, and spaces only',
+                },
+                {
+                  name: 'value',
+                  validation: 'num',
+                  errorMsg: 'Must be whole numbers only',
+                },
+              ],
+              headers: [
+                {
+                  value: 'Level',
+                },
+                {
+                  value: 'Amount',
+                },
+              ],
+            }}
+            value={sectionState[pathName]?.setPerLevel}
+            addRow={true}
+            onChange={setSectionState}
+          />
+        </Collapse>
+      )}
     </>
   )
 }
@@ -796,11 +712,12 @@ export const ProficiencyContent = ({
   sectionState,
   setSectionState,
   builders,
-  state,
+  formState,
   items,
   providesOptions,
-  optionGroups,
 }: SectionContentProps) => {
+  const categoryName: 'skill' | 'saveAbility' | 'property' | 'item' | 'language' | 'initiative' =
+    sectionState?.category?.name
   return (
     <Grid>
       <Dropdown
@@ -808,148 +725,111 @@ export const ProficiencyContent = ({
         name={'attribute'}
         options={[].concat(
           builders.section.attribute,
-          state.category?.name === 'subclass' &&
-            builders.section.subclass.attribute
+          formState.category?.name === 'subclass' && builders.section.subclass.attribute
         )}
         label={`${startCase('proficiency')} Attributes`}
         value={sectionState.attribute}
         onChange={setSectionState}
       />
-      {sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'subtypeSpecific'
-      ) && (
-        <Dropdown
-          name={`subtype`}
-          label='Subtype'
-          value={sectionState.subtype}
-          options={state?.subtype}
-          required={true}
-          onChange={setSectionState}
-        />
-      )}
-      {optionGroups && (
-        <Input
-          validation='num'
-          name={`optionGroup`}
-          label='Opt. Grp. #'
-          autoComplete='off'
-          value={sectionState.optionGroup}
-          errorMsg='Must contain only numbers'
-          onChange={setSectionState}
-        />
-      )}
       <Dropdown
-        name={`area`}
-        label='Proficiency Area'
-        value={sectionState.area}
-        options={builders.proficiency.area}
+        name={`category`}
+        label='Proficiency Category'
+        value={sectionState.category}
+        options={builders.proficiency.category}
         required={true}
         onChange={setSectionState}
       />
-      {sectionState?.area?.name === 'ability' && (
-        <Dropdown
-          name={`ability`}
-          multiSelect={true}
-          label='Ability'
-          value={sectionState.ability}
-          options={builders.ability}
-          required={true}
-          onChange={setSectionState}
-        />
-      )}
-      {sectionState?.area?.name === 'skill' && (
-        <Dropdown
-          name={`skill`}
-          multiSelect={true}
-          label='Skill'
-          value={sectionState.skill}
-          options={builders.skill}
-          required={true}
-          onChange={setSectionState}
-        />
-      )}
-      {sectionState?.area?.name === 'saveAbility' && (
-        <Dropdown
-          name={`saveAbility`}
-          multiSelect={true}
-          label='Save Ability'
-          value={sectionState.saveAbility}
-          options={builders.ability}
-          required={true}
-          onChange={setSectionState}
-        />
-      )}
-      {sectionState?.area?.name === 'language' && (
-        <Dropdown
-          name={`language`}
-          multiSelect={true}
-          label='Language'
-          value={sectionState.language}
-          options={builders.language}
-          onChange={setSectionState}
-        />
-      )}
-      {(sectionState.area?.name === 'property' ||
-        sectionState.area?.name === 'item') && (
-        <>
+      {categoryName != null &&
+        (categoryName !== 'property' && categoryName !== 'item' ? (
           <Dropdown
-            name={`category`}
+            name={`${categoryName}.type`}
             multiSelect={true}
-            label='Item Category'
-            value={sectionState.category}
-            options={builders.item.category}
+            label={`${startCase(sectionState.category.value)} Type`}
+            value={sectionState[categoryName]?.type}
+            options={categoryName === 'saveAbility' ? builders.ability.type : builders[categoryName]?.type}
+            required={true}
             onChange={setSectionState}
           />
-          {sectionState.area?.name === 'property' && (
+        ) : (
+          <>
             <Dropdown
-              name={`property`}
+              name={`${categoryName}.category`}
               multiSelect={true}
-              label='Item Property'
-              value={sectionState.property}
-              options={[].concat(
-                ...builders.item.category
-                  .filter((bCategoryItem: any) =>
-                    sectionState.category?.length > 0
-                      ? sectionState.category?.some(
-                          (categoryItem: any) =>
-                            categoryItem.name === bCategoryItem.name
+              label='Item Category'
+              value={sectionState[categoryName]?.category}
+              options={builders.item.category}
+              onChange={setSectionState}
+            />
+            {categoryName === 'property' && (
+              <Dropdown
+                name={`${categoryName}.type`}
+                multiSelect={true}
+                label='Item Property'
+                value={sectionState[categoryName]?.type}
+                options={items
+                  ?.filter((item) =>
+                    sectionState[categoryName]?.category?.length > 0
+                      ? sectionState[categoryName]?.category?.some(
+                          (categoryItem: any) => categoryItem._id === item.category._id
                         )
-                      : bCategoryItem
+                      : item
                   )
-                  .map((category: any) => category.property)
-              )}
-              onChange={setSectionState}
-            />
-          )}
-          {sectionState.area?.name === 'item' && (
-            <Dropdown
-              name={`item`}
-              multiSelect={true}
-              label='Item'
-              value={sectionState.item}
-              options={items
-                ?.filter((item) =>
-                  sectionState.category?.length > 0
-                    ? sectionState.category?.some(
-                        (categoryItem: any) =>
-                          categoryItem.name === item.category.name
-                      )
-                    : item
-                )
-                .map((item) => item)}
-              onChange={setSectionState}
-            />
-          )}
-        </>
-      )}
+                  .flatMap((item) => item.property?.type)}
+                onChange={setSectionState}
+                required={true}
+              />
+            )}
+            {categoryName === 'item' && (
+              <Dropdown
+                name={`${categoryName}.type`}
+                multiSelect={true}
+                label='Item Type'
+                value={sectionState[categoryName]?.type}
+                options={items
+                  ?.filter((item) =>
+                    sectionState[categoryName]?.category?.length > 0
+                      ? sectionState[categoryName]?.category?.some(
+                          (categoryItem: any) => categoryItem._id === item.category._id
+                        )
+                      : item
+                  )
+                  .map((item) => item)}
+                required={true}
+                onChange={setSectionState}
+              />
+            )}
+          </>
+        ))}
       <Dropdown
-        name={`level`}
+        name={`${categoryName}.level`}
         label='Proficiency Level'
-        value={sectionState.level}
+        value={sectionState[categoryName]?.level}
         options={builders.proficiency.level}
         required={true}
         onChange={setSectionState}
       />
+      {sectionState[categoryName]?.level?.name === 'half' && (
+        <Dropdown
+          name={`${categoryName}.rounding`}
+          label='Rounding Type'
+          value={sectionState[categoryName]?.rounding}
+          options={builders.system.rules.rounding}
+          required={true}
+          onChange={setSectionState}
+        />
+      )}
+      {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') &&
+        categoryName != null && (
+          <Dropdown
+            name={`${categoryName}.subtype`}
+            multiSelect={true}
+            label='Subclass Subtype'
+            value={sectionState[categoryName]?.subtype}
+            options={formState?.subtype}
+            required={true}
+            onChange={setSectionState}
+          />
+        )}
       {providesOptions && (
         <Input
           validation='num'
@@ -970,9 +850,8 @@ export const SenseContent = ({
   sectionState,
   setSectionState,
   builders,
-  state,
+  formState,
   providesOptions,
-  optionGroups,
 }: SectionContentProps) => {
   return (
     <Grid>
@@ -981,45 +860,31 @@ export const SenseContent = ({
         name={`attribute`}
         options={[].concat(
           builders.section.attribute,
-          state.category?.name === 'subclass' &&
-            builders.section.subclass.attribute
+          formState.category?.name === 'subclass' && builders.section.subclass.attribute
         )}
         label={`${startCase('sense')} Attributes`}
         value={sectionState.attribute}
         onChange={setSectionState}
       />
-      {sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'subtypeSpecific'
-      ) && (
+      <Dropdown
+        name={`type`}
+        multiSelect={true}
+        label='Sense'
+        value={sectionState.type}
+        options={builders.sense.type}
+        required={true}
+        onChange={setSectionState}
+      />
+      {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') && (
         <Dropdown
           name={`subtype`}
           label='Subtype'
           value={sectionState.subtype}
-          options={state?.subtype}
+          options={formState?.subtype}
           required={true}
           onChange={setSectionState}
         />
       )}
-      {optionGroups && (
-        <Input
-          validation='num'
-          name={`optionGroup`}
-          label='Opt. Grp. #'
-          autoComplete='off'
-          value={sectionState.optionGroup}
-          errorMsg='Must contain only numbers'
-          onChange={setSectionState}
-        />
-      )}
-      <Dropdown
-        name={`sense`}
-        multiSelect={true}
-        label='Sense'
-        value={sectionState.sense}
-        options={builders.sense}
-        required={true}
-        onChange={setSectionState}
-      />
       {providesOptions && (
         <Input
           validation='num'
@@ -1040,12 +905,12 @@ export const SpellContent = ({
   sectionState,
   setSectionState,
   builders,
-  state,
+  formState,
   spells,
   classes,
   featureState,
   providesOptions,
-  optionGroups,
+  context,
 }: SectionContentProps) => {
   const [spellsArray, setSpellsArray] = useState<DropdownOption[]>()
 
@@ -1061,25 +926,18 @@ export const SpellContent = ({
         meetsClassLimit =
           !sectionState.classLimit ||
           sectionState.classLimit?.some((limitItem: any) =>
-            spellItem.classes?.some(
-              (classItem: any) => limitItem.name === classItem.name
-            )
+            spellItem.classes?.some((classItem: any) => limitItem.name === classItem.name)
           )
       }
 
       // Check against levelLimit filter
       if (sectionState.levelLimit?.length > 0) {
-        meetsLevelLimit = sectionState.levelLimit?.some(
-          (levelItem: any) => levelItem.value === spellItem.level
-        )
+        meetsLevelLimit = sectionState.levelLimit?.some((levelItem: any) => levelItem.value === spellItem.level)
       }
 
       if (sectionState.attributeLimit?.length > 0) {
-        meetsAttributeLimit = sectionState.attributeLimit?.some(
-          (limitItem: any) =>
-            spellItem.attribute?.some(
-              (attributeItem: any) => attributeItem.name === limitItem.name
-            )
+        meetsAttributeLimit = sectionState.attributeLimit?.some((limitItem: any) =>
+          spellItem.attribute?.some((attributeItem: any) => attributeItem.name === limitItem.name)
         )
       }
 
@@ -1088,21 +946,13 @@ export const SpellContent = ({
     })
 
     setSpellsArray(filteredSpells)
-  }, [
-    spells,
-    sectionState.classLimit,
-    sectionState.levelLimit,
-    sectionState.attributeLimit,
-  ])
+  }, [spells, sectionState.classLimit, sectionState.levelLimit, sectionState.attributeLimit])
 
   // Add/Remove Spells By Level Data
   useEffect(() => {
     if (
-      (featureState.levelAvailable == null ||
-        featureState.levelAvailable === '' ||
-        !sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-        )) &&
+      (((featureState.levelAvailable == null || featureState.levelAvailable === '') && context.title === 'class') ||
+        !sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellsByLevel')) &&
       sectionState.spellsByLevel
     ) {
       setSectionState({
@@ -1113,9 +963,7 @@ export const SpellContent = ({
       })
     }
     if (
-      sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-      ) &&
+      sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellsByLevel') &&
       !sectionState.spellsByLevel
     ) {
       setSectionState({
@@ -1125,12 +973,7 @@ export const SpellContent = ({
         },
       })
     }
-  }, [
-    featureState.levelAvailable,
-    sectionState.spellsByLevel,
-    sectionState.attribute,
-    setSectionState,
-  ])
+  }, [featureState.levelAvailable, sectionState.spellsByLevel, sectionState.attribute, setSectionState, context.title])
 
   const spellTableColumns = () => {
     const inputArray: RowInput[] = [
@@ -1150,11 +993,7 @@ export const SpellContent = ({
       },
     ]
 
-    if (
-      sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'castAtLevel'
-      )
-    ) {
+    if (sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'castAtLevel')) {
       inputArray.push({
         name: 'spellLevel',
         value: 'Spell Level',
@@ -1180,36 +1019,33 @@ export const SpellContent = ({
           options={[].concat(
             builders.section.spell.attribute,
             builders.section.attribute,
-            state.category?.name === 'subclass' &&
-              builders.section.subclass.attribute
+            formState.category?.name === 'subclass' && builders.section.subclass.attribute
           )}
           label={`${startCase('spell')} Attributes`}
           value={sectionState.attribute}
           onChange={setSectionState}
         />
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'classLimit'
-        ) && (
+        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'classLimit') && (
           <Dropdown
             name={`classLimit`}
             multiSelect={true}
             label='Class Limit'
             value={sectionState.classLimit}
-            options={classes?.filter(
-              (classItem: any) => classItem.category.name !== 'subclass'
-            )}
+            options={classes?.filter((classItem: any) => classItem.category.name !== 'subclass')}
             required={true}
             onChange={setSectionState}
           />
         )}
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'levelLimit'
-        ) && (
+        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'levelLimit') && (
           <Dropdown
             name={`levelLimit`}
             multiSelect={true}
             label='Level Limit'
-            value={sectionState.levelLimit}
+            value={sectionState.levelLimit?.map((levelItem: any) => ({
+              value: String(levelItem.value),
+              name: null,
+              _id: null,
+            }))}
             options={spells?.map((spellItem) => ({
               value: spellItem.level,
               name: null,
@@ -1219,9 +1055,7 @@ export const SpellContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'attributeLimit'
-        ) && (
+        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'attributeLimit') && (
           <Dropdown
             name={`attributeLimit`}
             multiSelect={true}
@@ -1232,38 +1066,23 @@ export const SpellContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'subtypeSpecific'
-        ) && (
+        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') && (
           <Dropdown
             name={`subtype`}
             label='Subtype'
             value={sectionState.subtype}
-            options={state?.subtype}
+            options={formState?.subtype}
             required={true}
             onChange={setSectionState}
           />
         )}
-        {optionGroups && (
-          <Input
-            validation='num'
-            name={`optionGroup`}
-            label='Opt. Grp. #'
-            autoComplete='off'
-            value={sectionState.optionGroup}
-            errorMsg='Must contain only numbers'
-            onChange={setSectionState}
-          />
-        )}
-        {!sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-        ) && (
+        {!sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellsByLevel') && (
           <>
             <Dropdown
-              name={`spell`}
+              name={`type`}
               multiSelect={true}
               label='Spell'
-              value={sectionState.spell}
+              value={sectionState.type}
               options={spellsArray}
               required={true}
               onChange={setSectionState}
@@ -1283,15 +1102,12 @@ export const SpellContent = ({
                   />
                 )
             )}
-            {sectionState.attribute?.some(
-              (attributeItem: any) => attributeItem.name === 'optionalAbility'
-            ) && (
+            {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'optionalAbility') && (
               <Dropdown
-                name={`ability`}
-                multiSelect={true}
+                name={`ability.type`}
                 label='Ability'
-                value={sectionState.ability}
-                options={builders.ability}
+                value={sectionState.ability?.type}
+                options={builders.ability.type}
                 required={true}
                 onChange={setSectionState}
               />
@@ -1311,9 +1127,7 @@ export const SpellContent = ({
           </>
         )}
       </Grid>
-      {sectionState.attribute?.some(
-        (attributeItem: any) => attributeItem.name === 'spellsByLevel'
-      ) && (
+      {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellsByLevel') && (
         <>
           <Table
             rows={{
@@ -1335,7 +1149,7 @@ export const AncestryContent = ({
   sectionState,
   setSectionState,
   builders,
-  state,
+  formState,
   races,
   providesOptions,
 }: SectionContentProps) => {
@@ -1347,8 +1161,7 @@ export const AncestryContent = ({
           name={`attribute`}
           options={[].concat(
             builders.section.attribute,
-            state.category?.name === 'subclass' &&
-              builders.section.subclass.attribute
+            formState.category?.name === 'subclass' && builders.section.subclass.attribute
           )}
           label={`${startCase('Ancestry')} Attributes`}
           value={sectionState.attribute}
@@ -1358,9 +1171,7 @@ export const AncestryContent = ({
           name='origin'
           label='Ancestry Origin'
           value={sectionState?.origin}
-          options={races?.filter(
-            (raceItem: any) => raceItem.ancestry?.name != null
-          )}
+          options={races?.filter((raceItem: any) => raceItem.ancestry?.name != null)}
           required={true}
           onChange={setSectionState}
         />
@@ -1369,14 +1180,20 @@ export const AncestryContent = ({
           label='Ancestry Option'
           multiSelect={providesOptions}
           value={sectionState?.option}
-          options={
-            races?.find(
-              (raceItem: any) => raceItem.name === sectionState?.origin?.name
-            )?.ancestry?.option
-          }
+          options={races?.find((raceItem: any) => raceItem.name === sectionState?.origin?.name)?.ancestry?.option}
           required={true}
           onChange={setSectionState}
         />
+        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') && (
+          <Dropdown
+            name={`subtype`}
+            label='Subtype'
+            value={sectionState.subtype}
+            options={formState?.subtype}
+            required={true}
+            onChange={setSectionState}
+          />
+        )}
         {providesOptions && (
           <Input
             validation='num'
@@ -1389,29 +1206,18 @@ export const AncestryContent = ({
             onChange={setSectionState}
           />
         )}
-        {sectionState.attribute?.some(
-          (attributeItem: any) => attributeItem.name === 'subtypeSpecific'
-        ) && (
-          <Dropdown
-            name={`subtype`}
-            label='Subtype'
-            value={sectionState.subtype}
-            options={state?.subtype}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
       </Grid>
     </>
   )
 }
 
 const SectionContent = ({
-  state,
+  formState,
   sectionName,
   featureState,
   sectionState,
   setSectionState,
+  context,
 }: SectionProps) => {
   const { data: builders } = useGetBuildersQuery(undefined)
 
@@ -1449,7 +1255,8 @@ const SectionContent = ({
     <>
       <ScrollArea scrollDirection='vertical' className={form_content}>
         <ContentComponent
-          state={state}
+          formState={formState}
+          context={context}
           sectionState={sectionState}
           featureState={featureState}
           items={items}
@@ -1462,9 +1269,7 @@ const SectionContent = ({
           providesOptions={sectionState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'providesOptions'
           )}
-          optionGroups={sectionState.attribute?.some(
-            (attributeItem: any) => attributeItem.name === 'optionGroups'
-          )}
+          optionGroups={sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'optionGroups')}
         />
       </ScrollArea>
     </>

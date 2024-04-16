@@ -3,24 +3,11 @@ import Grid from '../Grid/Grid'
 import Button from '../Button/Button'
 import Dropdown from '../Dropdown/Dropdown'
 import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
-import {
-  selectAllItems,
-  useGetItemsQuery,
-} from '../../features/item/itemApiSlice'
+import { selectAllItems, useGetItemsQuery } from '../../features/item/itemApiSlice'
 import Input from '../Input/Input'
 import useIsLoading from '../../hooks/useIsLoading'
-import {
-  DropdownOption,
-  FormContext,
-  ReducerActionType,
-} from '../../utils/types'
-import {
-  equipment_form_sub_group,
-  equipment_sub_group_button,
-  form_add_button,
-  form_content,
-  form_remove_button,
-} from './Form.css'
+import { DropdownOption, FormContext, ReducerActionType } from '../../utils/types'
+import { equipment_form_sub_group, equipment_sub_group_button, form_add_button, form_content, form_remove_button } from './Form.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import Divider from '../Divider/Divider'
 import Spinner from '../Spinner/Spinner'
@@ -36,16 +23,10 @@ interface EquipmentProps {
   setFormState: (arg: ReducerActionType) => void
 }
 
-const EquipmentForm = ({
-  formState,
-  context,
-  setFormState,
-}: EquipmentProps) => {
+const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => {
   const isLoading = useIsLoading()
 
-  const [activeIndex, setActiveIndex] = useState<number | null>(
-    context.type !== 'new' ? null : 0
-  )
+  const [activequipmentIndex, setActivequipmentIndex] = useState<number | null>(context.type !== 'new' ? null : 0)
 
   const { data: builders } = useGetBuildersQuery(undefined)
 
@@ -56,28 +37,23 @@ const EquipmentForm = ({
   })
 
   const toggle = (index: number) => {
-    if (activeIndex === index) {
-      return setActiveIndex(null)
+    if (activequipmentIndex === index) {
+      return setActivequipmentIndex(null)
     }
-    setActiveIndex(index)
+    setActivequipmentIndex(index)
   }
 
   useEffect(() => {
     if (formState.equipment?.length > 0) {
-      const groupIndex = formState.equipment.length - 1
-      if (groupIndex >= 0) {
-        const optionIndex = formState.equipment[groupIndex].option?.length - 1
+      const equipmentIndex = formState.equipment?.length - 1
+      if (equipmentIndex >= 0) {
+        const optionIndex = formState.equipment[equipmentIndex].option?.length - 1
         if (optionIndex >= 0) {
-          if (
-            !(
-              formState.equipment[groupIndex].option[optionIndex].equipment
-                ?.length > 0
-            )
-          ) {
+          if (!(formState.equipment[equipmentIndex].option[optionIndex]?.group?.length > 0)) {
             setFormState({
               type: 'added',
               target: {
-                name: `equipment.${groupIndex}.option.${optionIndex}.equipment`,
+                name: `equipment.${equipmentIndex}.option.${optionIndex}.group`,
               },
             })
           }
@@ -85,7 +61,7 @@ const EquipmentForm = ({
           setFormState({
             type: 'added',
             target: {
-              name: `equipment.${groupIndex}.option`,
+              name: `equipment.${equipmentIndex}.option`,
             },
           })
         }
@@ -103,9 +79,9 @@ const EquipmentForm = ({
             variant='primary_outline'
             onClick={() => {
               if (formState?.equipment?.length > 0) {
-                setActiveIndex(formState?.equipment?.length)
+                setActivequipmentIndex(formState?.equipment?.length)
               } else {
-                setActiveIndex(0)
+                setActivequipmentIndex(0)
               }
               setFormState({
                 type: 'added',
@@ -121,517 +97,370 @@ const EquipmentForm = ({
         {formState.equipment && (
           <>
             {context.title !== 'class' ? (
-              formState.equipment?.map(
-                (equipmentItem: any, equipmentIndex: number) => {
-                  const multipleOptions = equipmentItem.attribute?.some(
-                    (attributeItem: any) =>
-                      attributeItem.name === 'providesOptions'
-                  )
-                  return (
-                    <Grid
-                      className={clsx({
-                        [sprinkles({ mb: 'size-3' })]:
-                          formState.equipment.length > 1,
-                      })}
-                      cols={{
-                        lg: equipmentItem.category?.some(
-                          (categoryItem: any) =>
-                            categoryItem.name === 'currency'
-                        )
-                          ? 7
-                          : 5,
-                      }}
-                      key={equipmentIndex}
-                    >
-                      <Dropdown
-                        name={`equipment.${equipmentIndex}.attribute`}
-                        multiSelect={true}
-                        options={builders.section.item.attribute}
-                        label='Equipment Attributes'
-                        value={equipmentItem.attribute}
-                        onChange={setFormState}
-                      />
-                      <Dropdown
-                        name={`equipment.${equipmentIndex}.category`}
-                        multiSelect={true}
-                        label='Item Category'
-                        value={equipmentItem.category}
-                        options={builders.item.category}
-                        onChange={setFormState}
-                      />
-                      {!equipmentItem.category?.some(
-                        (categoryItem: any) => categoryItem.name === 'currency'
-                      ) && (
-                        <>
-                          <Dropdown
-                            name={`equipment.${equipmentIndex}.property`}
-                            multiSelect={true}
-                            label='Item Property'
-                            value={equipmentItem.property}
-                            options={builders.item.category
-                              .filter((bCategoryItem: any) =>
-                                equipmentItem.category?.length > 0
-                                  ? equipmentItem.category?.some(
-                                      (categoryItem: any) =>
-                                        categoryItem.name === bCategoryItem.name
-                                    )
-                                  : bCategoryItem
-                              )
-                              .flatMap(
-                                (categoryItem: any) => categoryItem.property
-                              )}
-                            onChange={setFormState}
-                          />
-                          <Dropdown
-                            name={`equipment.${equipmentIndex}.type`}
-                            multiSelect={true}
-                            label='Item Type'
-                            value={equipmentItem.type}
-                            options={(
-                              items as unknown as DropdownOption[]
-                            )?.filter(
-                              (type) =>
-                                (!equipmentItem.category ||
-                                  equipmentItem.category.length === 0 ||
-                                  (equipmentItem.category?.length > 0 &&
-                                    equipmentItem.category.some(
-                                      (categoryItem: any) =>
-                                        categoryItem.name ===
-                                        type.category?.name
-                                    ))) &&
-                                (!equipmentItem.property ||
-                                  equipmentItem.property.length === 0 ||
-                                  (equipmentItem.property?.length > 0 &&
-                                    type.property?.length > 0 &&
-                                    type.property.some((propertyItem: any) =>
-                                      equipmentItem.property.some(
-                                        (equipmentProperty: any) =>
-                                          equipmentProperty.name ===
-                                          propertyItem.name
-                                      )
-                                    )))
-                            )}
-                            onChange={setFormState}
-                          />
-                          {multipleOptions ? (
-                            <Input
-                              validation='num'
-                              name={`equipment.${equipmentIndex}.selectionCount`}
-                              label='# of Selections'
-                              autoComplete='off'
-                              value={equipmentItem.selectionCount}
-                              errorMsg='Must contain only numbers'
-                              required={true}
-                              onChange={setFormState}
-                            />
-                          ) : (
-                            <Input
-                              validation='num'
-                              name={`equipment.${equipmentIndex}.quantity`}
-                              label='Quantity'
-                              autoComplete='off'
-                              value={equipmentItem.quantity}
-                              errorMsg='Must contain only numbers'
-                              required={true}
-                              onChange={setFormState}
-                            />
+              formState.equipment?.map((groupItem: any, groupIndex: number) => {
+                const multipleOptions = groupItem.attribute?.some((attributequipmentItem: any) => attributequipmentItem.name === 'providesOptions')
+                return (
+                  <Grid
+                    className={clsx({
+                      [sprinkles({ mb: 'size-3' })]: formState.equipment?.length > 1,
+                    })}
+                    cols={{
+                      lg: groupItem.category?.some((categoryItem: any) => categoryItem.name === 'currency') ? 7 : 5,
+                    }}
+                    key={groupIndex}
+                  >
+                    <Dropdown
+                      name={`equipment.${groupIndex}.attribute`}
+                      multiSelect={true}
+                      options={builders.section.item.attribute}
+                      label='Equipment Attributes'
+                      value={groupItem.attribute}
+                      onChange={setFormState}
+                    />
+                    <Dropdown
+                      name={`equipment.${groupIndex}.category`}
+                      label='Item Category'
+                      value={groupItem.category}
+                      options={builders.item.category}
+                      onChange={setFormState}
+                    />
+                    {!groupItem.category?.some((categoryItem: any) => categoryItem.name === 'currency') && (
+                      <>
+                        <Dropdown
+                          name={`equipment.${groupIndex}.property.type`}
+                          multiSelect={true}
+                          label='Item Property'
+                          value={groupItem.property?.type}
+                          options={builders.item.category
+                            .filter((bCategoryItem: any) => (groupItem.category?._id ? groupItem.category?._id === bCategoryItem._id : bCategoryItem))
+                            .flatMap((bCategoryItem: any) => bCategoryItem.property)}
+                          onChange={setFormState}
+                        />
+                        <Dropdown
+                          name={`equipment.${groupIndex}.item.type`}
+                          multiSelect={true}
+                          label='Item Type'
+                          value={groupItem.item?.type}
+                          options={(items as unknown as DropdownOption[])?.filter(
+                            (type) =>
+                              groupItem.category?._id &&
+                              groupItem.category?._id === type.category?._id &&
+                              (!groupItem.property?.type ||
+                                groupItem.property?.type?.length === 0 ||
+                                (groupItem.property?.type?.length > 0 &&
+                                  type.property?.length > 0 &&
+                                  type.property.some((propertyItem: any) =>
+                                    groupItem.property?.type?.some((equipmentProperty: any) => equipmentProperty.name === propertyItem.name)
+                                  )))
                           )}
-                        </>
-                      )}
-                      {equipmentItem.category?.some(
-                        (categoryItem: any) => categoryItem.name === 'currency'
-                      ) && (
-                        <>
+                          onChange={setFormState}
+                        />
+                        {multipleOptions ? (
                           <Input
                             validation='num'
-                            name={`equipment.${equipmentIndex}.copper`}
-                            label='CP'
+                            name={`equipment.${groupIndex}.selectionCount`}
+                            label='# of Selections'
                             autoComplete='off'
-                            value={equipmentItem.copper}
+                            value={groupItem.selectionCount}
                             errorMsg='Must contain only numbers'
+                            required={true}
                             onChange={setFormState}
                           />
+                        ) : (
                           <Input
                             validation='num'
-                            name={`equipment.${equipmentIndex}.silver`}
-                            label='SP'
+                            name={`equipment.${groupIndex}.quantity`}
+                            label='Quantity'
                             autoComplete='off'
-                            value={equipmentItem.silver}
+                            value={groupItem.quantity}
                             errorMsg='Must contain only numbers'
+                            required={true}
                             onChange={setFormState}
                           />
-                          <Input
-                            validation='num'
-                            name={`equipment.${equipmentIndex}.electrum`}
-                            label='EP'
-                            autoComplete='off'
-                            value={equipmentItem.electrum}
-                            errorMsg='Must contain only numbers'
-                            onChange={setFormState}
-                          />
-                          <Input
-                            validation='num'
-                            name={`equipment.${equipmentIndex}.gold`}
-                            label='GP'
-                            autoComplete='off'
-                            value={equipmentItem.gold}
-                            errorMsg='Must contain only numbers'
-                            onChange={setFormState}
-                          />
-                          <Input
-                            validation='num'
-                            name={`equipment.${equipmentIndex}.platinum`}
-                            label='PP'
-                            autoComplete='off'
-                            value={equipmentItem.platinum}
-                            errorMsg='Must contain only numbers'
-                            onChange={setFormState}
-                          />
-                        </>
-                      )}
-                    </Grid>
-                  )
-                }
-              )
+                        )}
+                      </>
+                    )}
+                    {groupItem.category?.some((categoryItem: any) => categoryItem.name === 'currency') && (
+                      <>
+                        <Input
+                          validation='num'
+                          name={`equipment.${groupIndex}.copper`}
+                          label='CP'
+                          autoComplete='off'
+                          value={groupItem.copper}
+                          errorMsg='Must contain only numbers'
+                          onChange={setFormState}
+                        />
+                        <Input
+                          validation='num'
+                          name={`equipment.${groupIndex}.silver`}
+                          label='SP'
+                          autoComplete='off'
+                          value={groupItem.silver}
+                          errorMsg='Must contain only numbers'
+                          onChange={setFormState}
+                        />
+                        <Input
+                          validation='num'
+                          name={`equipment.${groupIndex}.electrum`}
+                          label='EP'
+                          autoComplete='off'
+                          value={groupItem.electrum}
+                          errorMsg='Must contain only numbers'
+                          onChange={setFormState}
+                        />
+                        <Input
+                          validation='num'
+                          name={`equipment.${groupIndex}.gold`}
+                          label='GP'
+                          autoComplete='off'
+                          value={groupItem.gold}
+                          errorMsg='Must contain only numbers'
+                          onChange={setFormState}
+                        />
+                        <Input
+                          validation='num'
+                          name={`equipment.${groupIndex}.platinum`}
+                          label='PP'
+                          autoComplete='off'
+                          value={groupItem.platinum}
+                          errorMsg='Must contain only numbers'
+                          onChange={setFormState}
+                        />
+                      </>
+                    )}
+                  </Grid>
+                )
+              })
             ) : (
-              <Accordion
-                dataArray={formState.equipment}
-                name='equipment'
-                setState={setFormState}
-              >
-                {formState.equipment?.map(
-                  (groupItem: any, groupIndex: number) => {
-                    return (
-                      <Accordion.Container
-                        key={groupIndex}
-                        itemId={String(groupIndex)}
+              <Accordion dataArray={formState.equipment} name='equipment' setState={setFormState}>
+                {formState.equipment?.map((equipmentItem: any, equipmentIndex: number) => {
+                  return (
+                    <Accordion.Container key={equipmentIndex} itemId={String(equipmentIndex)}>
+                      <Accordion.Header
+                        handleClick={() => toggle(equipmentIndex)}
+                        handleRemove={() =>
+                          setFormState({
+                            type: 'removed',
+                            target: { name: `equipment.${equipmentIndex}` },
+                          })
+                        }
+                        active={activequipmentIndex === equipmentIndex}
+                        key={equipmentIndex}
                       >
-                        <Accordion.Header
-                          handleClick={() => toggle(groupIndex)}
-                          handleRemove={() =>
-                            setFormState({
-                              type: 'removed',
-                              target: { name: `equipment.${groupIndex}` },
-                            })
-                          }
-                          active={activeIndex === groupIndex}
-                          key={groupIndex}
-                        >
-                          {`Equipment Group ${groupIndex + 1}`}
-                        </Accordion.Header>
-                        <Accordion.Content active={activeIndex === groupIndex}>
-                          <Group className={sprinkles({ mb: 'size-3' })}>
-                            <Button
-                              variant='primary_outline'
-                              onClick={() =>
-                                setFormState({
-                                  type: 'added',
-                                  target: {
-                                    name: `equipment.${groupIndex}.option`,
-                                  },
-                                })
-                              }
-                            >
-                              Add Option
-                            </Button>
-                          </Group>
-                          {groupItem.option?.length > 0 &&
-                            groupItem.option?.map(
-                              (optionItem: any, optionIndex: number) => (
-                                <Fragment key={optionIndex}>
-                                  <>
-                                    {optionItem.equipment?.map(
-                                      (
-                                        equipmentItem: any,
-                                        equipmentIndex: number
-                                      ) => {
-                                        const multipleOptions =
-                                          equipmentItem.attribute?.some(
-                                            (attributeItem: any) =>
-                                              attributeItem.name ===
-                                              'providesOptions'
-                                          )
-                                        return (
-                                          <Group
-                                            key={equipmentIndex}
-                                            className={equipment_form_sub_group}
-                                          >
-                                            <Grid
-                                              className={clsx({
-                                                [sprinkles({ mb: 'size-3' })]:
-                                                  optionItem.equipment.length >
-                                                  1,
-                                              })}
-                                              cols={{
-                                                lg: equipmentItem.category?.some(
-                                                  (categoryItem: any) =>
-                                                    categoryItem.name ===
-                                                    'currency'
-                                                )
-                                                  ? 7
-                                                  : 5,
-                                              }}
-                                            >
-                                              <Dropdown
-                                                name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.attribute`}
-                                                multiSelect={true}
-                                                options={
-                                                  builders.section.item
-                                                    .attribute
-                                                }
-                                                label='Equipment Attributes'
-                                                value={equipmentItem.attribute}
-                                                onChange={setFormState}
-                                              />
-                                              <Dropdown
-                                                name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.category`}
-                                                multiSelect={true}
-                                                label='Item Category'
-                                                value={equipmentItem.category}
-                                                options={builders.item.category}
-                                                onChange={setFormState}
-                                              />
-                                              {!equipmentItem.category?.some(
-                                                (categoryItem: any) =>
-                                                  categoryItem.name ===
-                                                  'currency'
-                                              ) && (
-                                                <>
-                                                  <Dropdown
-                                                    name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.property`}
-                                                    multiSelect={true}
-                                                    label='Item Property'
-                                                    value={
-                                                      equipmentItem.property
-                                                    }
-                                                    options={builders.item.category
-                                                      .filter(
-                                                        (bCategoryItem: any) =>
-                                                          equipmentItem.category
-                                                            ?.length > 0
-                                                            ? equipmentItem.category?.some(
-                                                                (
-                                                                  categoryItem: any
-                                                                ) =>
-                                                                  categoryItem.name ===
-                                                                  bCategoryItem.name
-                                                              )
-                                                            : bCategoryItem
+                        {`Equipment Group ${equipmentIndex + 1}`}
+                      </Accordion.Header>
+                      <Accordion.Content active={activequipmentIndex === equipmentIndex}>
+                        <Group className={sprinkles({ mb: 'size-3' })}>
+                          <Button
+                            variant='primary_outline'
+                            onClick={() => {
+                              const optionIndex = equipmentItem.option?.length
+                              setFormState({
+                                type: 'added',
+                                target: {
+                                  name: `equipment.${equipmentIndex}.option.${optionIndex}.group`,
+                                },
+                              })
+                            }}
+                          >
+                            Add Option
+                          </Button>
+                        </Group>
+                        {equipmentItem.option?.length > 0 &&
+                          equipmentItem.option?.map((optionItem: any, optionIndex: number) => (
+                            <Fragment key={optionIndex}>
+                              <>
+                                {optionItem.group?.map((groupItem: any, groupIndex: number) => {
+                                  const multipleOptions = groupItem.attribute?.some(
+                                    (attributequipmentItem: any) => attributequipmentItem.name === 'providesOptions'
+                                  )
+                                  return (
+                                    <Group key={groupIndex} className={equipment_form_sub_group}>
+                                      <Grid
+                                        className={clsx({
+                                          [sprinkles({ mb: 'size-3' })]: optionItem.group.length > 1,
+                                        })}
+                                        cols={{
+                                          lg: groupItem.category?.name === 'currency' ? 7 : 5,
+                                        }}
+                                      >
+                                        <Dropdown
+                                          name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.attribute`}
+                                          multiSelect={true}
+                                          options={builders.section.item.attribute}
+                                          label='Equipment Attributes'
+                                          value={groupItem.attribute}
+                                          onChange={setFormState}
+                                        />
+                                        <Dropdown
+                                          name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.category`}
+                                          label='Item Category'
+                                          value={groupItem.category}
+                                          options={builders.item.category}
+                                          onChange={setFormState}
+                                        />
+                                        {groupItem.category?.name !== 'currency' && (
+                                          <>
+                                            <Dropdown
+                                              name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.property.type`}
+                                              multiSelect={true}
+                                              label='Item Property'
+                                              value={groupItem.property?.type}
+                                              options={builders.item.category
+                                                .filter((categoryItem: any) => categoryItem._id === groupItem.category?._id)
+                                                .flatMap((categoryItem: any) => categoryItem.property?.type)}
+                                              onChange={setFormState}
+                                            />
+                                            <Dropdown
+                                              name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.item.type`}
+                                              multiSelect={true}
+                                              label='Item Type'
+                                              value={groupItem.item?.type}
+                                              options={(items as unknown as DropdownOption[])
+                                                ?.filter((item: any) => (groupItem.category?._id ? item.category._id === groupItem.category?._id : item))
+                                                .filter((item: any) =>
+                                                  groupItem.property?.type?.length > 0
+                                                    ? item.property?.type?.length > 0 &&
+                                                      groupItem.property?.type?.every((groupProperty: any) =>
+                                                        item.property?.type?.some((itemProperty: any) => itemProperty._id === groupProperty._id)
                                                       )
-                                                      .flatMap(
-                                                        (categoryItem: any) =>
-                                                          categoryItem.property
-                                                      )}
-                                                    onChange={setFormState}
-                                                  />
-                                                  <Dropdown
-                                                    name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.type`}
-                                                    multiSelect={true}
-                                                    label='Item Type'
-                                                    value={equipmentItem.type}
-                                                    options={(
-                                                      items as unknown as DropdownOption[]
-                                                    )?.filter(
-                                                      (type) =>
-                                                        (!equipmentItem.category ||
-                                                          equipmentItem.category
-                                                            .length === 0 ||
-                                                          (equipmentItem
-                                                            .category?.length >
-                                                            0 &&
-                                                            equipmentItem.category.some(
-                                                              (
-                                                                categoryItem: any
-                                                              ) =>
-                                                                categoryItem.name ===
-                                                                type.category
-                                                                  ?.name
-                                                            ))) &&
-                                                        (!equipmentItem.property ||
-                                                          equipmentItem.property
-                                                            .length === 0 ||
-                                                          (equipmentItem
-                                                            .property?.length >
-                                                            0 &&
-                                                            type.property
-                                                              ?.length > 0 &&
-                                                            type.property.some(
-                                                              (
-                                                                propertyItem: any
-                                                              ) =>
-                                                                equipmentItem.property.some(
-                                                                  (
-                                                                    equipmentProperty: any
-                                                                  ) =>
-                                                                    equipmentProperty.name ===
-                                                                    propertyItem.name
-                                                                )
-                                                            )))
-                                                    )}
-                                                    onChange={setFormState}
-                                                  />
-                                                  {multipleOptions ? (
-                                                    <Input
-                                                      validation='num'
-                                                      name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.selectionCount`}
-                                                      label='# of Selections'
-                                                      autoComplete='off'
-                                                      value={
-                                                        equipmentItem.selectionCount
-                                                      }
-                                                      errorMsg='Must contain only numbers'
-                                                      required={true}
-                                                      onChange={setFormState}
-                                                    />
-                                                  ) : (
-                                                    <Input
-                                                      validation='num'
-                                                      name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.quantity`}
-                                                      label='Quantity'
-                                                      autoComplete='off'
-                                                      value={
-                                                        equipmentItem.quantity
-                                                      }
-                                                      errorMsg='Must contain only numbers'
-                                                      required={true}
-                                                      onChange={setFormState}
-                                                    />
-                                                  )}
-                                                </>
-                                              )}
-                                              {equipmentItem.category?.some(
-                                                (categoryItem: any) =>
-                                                  categoryItem.name ===
-                                                  'currency'
-                                              ) && (
-                                                <>
-                                                  <Input
-                                                    validation='num'
-                                                    name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.copper`}
-                                                    label='CP'
-                                                    autoComplete='off'
-                                                    value={equipmentItem.copper}
-                                                    errorMsg='Must contain only numbers'
-                                                    onChange={setFormState}
-                                                  />
-                                                  <Input
-                                                    validation='num'
-                                                    name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.silver`}
-                                                    label='SP'
-                                                    autoComplete='off'
-                                                    value={equipmentItem.silver}
-                                                    errorMsg='Must contain only numbers'
-                                                    onChange={setFormState}
-                                                  />
-                                                  <Input
-                                                    validation='num'
-                                                    name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.electrum`}
-                                                    label='EP'
-                                                    autoComplete='off'
-                                                    value={
-                                                      equipmentItem.electrum
-                                                    }
-                                                    errorMsg='Must contain only numbers'
-                                                    onChange={setFormState}
-                                                  />
-                                                  <Input
-                                                    validation='num'
-                                                    name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.gold`}
-                                                    label='GP'
-                                                    autoComplete='off'
-                                                    value={equipmentItem.gold}
-                                                    errorMsg='Must contain only numbers'
-                                                    onChange={setFormState}
-                                                  />
-                                                  <Input
-                                                    validation='num'
-                                                    name={`equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}.platinum`}
-                                                    label='PP'
-                                                    autoComplete='off'
-                                                    value={
-                                                      equipmentItem.platinum
-                                                    }
-                                                    errorMsg='Must contain only numbers'
-                                                    onChange={setFormState}
-                                                  />
-                                                </>
-                                              )}
-                                            </Grid>
-                                            <Button
-                                              variant='unstyled'
-                                              className={clsx(
-                                                form_remove_button,
-                                                equipment_sub_group_button
-                                              )}
-                                              onClick={() => {
-                                                if (
-                                                  optionItem.equipment
-                                                    .length === 1
-                                                ) {
-                                                  if (
-                                                    groupItem.option.length ===
-                                                    1
-                                                  ) {
-                                                    setFormState({
-                                                      type: 'removed',
-                                                      target: {
-                                                        name: `equipment.${groupIndex}`,
-                                                      },
-                                                    })
-                                                  } else {
-                                                    setFormState({
-                                                      type: 'removed',
-                                                      target: {
-                                                        name: `equipment.${groupIndex}.option.${optionIndex}`,
-                                                      },
-                                                    })
-                                                  }
-                                                } else {
-                                                  setFormState({
-                                                    type: 'removed',
-                                                    target: {
-                                                      name: `equipment.${groupIndex}.option.${optionIndex}.equipment.${equipmentIndex}`,
-                                                    },
-                                                  })
-                                                }
-                                              }}
-                                            >
-                                              <TbX />
-                                            </Button>
-                                            <Button
-                                              variant='unstyled'
-                                              className={clsx(
-                                                form_add_button,
-                                                equipment_sub_group_button
-                                              )}
-                                              onClick={() =>
-                                                setFormState({
-                                                  type: 'added',
-                                                  target: {
-                                                    name: `equipment.${groupIndex}.option.${optionIndex}.equipment`,
-                                                  },
-                                                })
-                                              }
-                                            >
-                                              <TbPlus />
-                                            </Button>
-                                          </Group>
-                                        )
-                                      }
-                                    )}
-                                  </>
-                                  {optionIndex !==
-                                    groupItem.option?.length - 1 && (
-                                    <Divider label={'OR'} />
-                                  )}
-                                </Fragment>
-                              )
-                            )}
-                        </Accordion.Content>
-                      </Accordion.Container>
-                    )
-                  }
-                )}
+                                                    : item
+                                                )}
+                                              onChange={setFormState}
+                                            />
+                                            {multipleOptions ? (
+                                              <Input
+                                                validation='num'
+                                                name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.selectionCount`}
+                                                label='# of Selections'
+                                                autoComplete='off'
+                                                value={groupItem.selectionCount}
+                                                errorMsg='Must contain only numbers'
+                                                required={true}
+                                                onChange={setFormState}
+                                              />
+                                            ) : (
+                                              <Input
+                                                validation='num'
+                                                name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.quantity`}
+                                                label='Quantity'
+                                                autoComplete='off'
+                                                value={groupItem.quantity}
+                                                errorMsg='Must contain only numbers'
+                                                required={true}
+                                                onChange={setFormState}
+                                              />
+                                            )}
+                                          </>
+                                        )}
+                                        {groupItem.category?.name === 'currency' && (
+                                          <>
+                                            <Input
+                                              validation='num'
+                                              name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.copper`}
+                                              label='CP'
+                                              autoComplete='off'
+                                              value={groupItem.copper}
+                                              errorMsg='Must contain only numbers'
+                                              onChange={setFormState}
+                                            />
+                                            <Input
+                                              validation='num'
+                                              name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.silver`}
+                                              label='SP'
+                                              autoComplete='off'
+                                              value={groupItem.silver}
+                                              errorMsg='Must contain only numbers'
+                                              onChange={setFormState}
+                                            />
+                                            <Input
+                                              validation='num'
+                                              name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.electrum`}
+                                              label='EP'
+                                              autoComplete='off'
+                                              value={groupItem.electrum}
+                                              errorMsg='Must contain only numbers'
+                                              onChange={setFormState}
+                                            />
+                                            <Input
+                                              validation='num'
+                                              name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.gold`}
+                                              label='GP'
+                                              autoComplete='off'
+                                              value={groupItem.gold}
+                                              errorMsg='Must contain only numbers'
+                                              onChange={setFormState}
+                                            />
+                                            <Input
+                                              validation='num'
+                                              name={`equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}.platinum`}
+                                              label='PP'
+                                              autoComplete='off'
+                                              value={groupItem.platinum}
+                                              errorMsg='Must contain only numbers'
+                                              onChange={setFormState}
+                                            />
+                                          </>
+                                        )}
+                                      </Grid>
+                                      <Button
+                                        variant='unstyled'
+                                        className={clsx(form_remove_button, equipment_sub_group_button)}
+                                        onClick={() => {
+                                          if (optionItem.equipment?.length === 1) {
+                                            if (equipmentItem.option.length === 1) {
+                                              setFormState({
+                                                type: 'removed',
+                                                target: {
+                                                  name: `equipment.${equipmentIndex}`,
+                                                },
+                                              })
+                                            } else {
+                                              setFormState({
+                                                type: 'removed',
+                                                target: {
+                                                  name: `equipment.${equipmentIndex}.option.${optionIndex}`,
+                                                },
+                                              })
+                                            }
+                                          } else {
+                                            setFormState({
+                                              type: 'removed',
+                                              target: {
+                                                name: `equipment.${equipmentIndex}.option.${optionIndex}.group.${groupIndex}`,
+                                              },
+                                            })
+                                          }
+                                        }}
+                                      >
+                                        <TbX />
+                                      </Button>
+                                      <Button
+                                        variant='unstyled'
+                                        className={clsx(form_add_button, equipment_sub_group_button)}
+                                        onClick={() =>
+                                          setFormState({
+                                            type: 'added',
+                                            target: {
+                                              name: `equipment.${equipmentIndex}.option.${optionIndex}.group`,
+                                            },
+                                          })
+                                        }
+                                      >
+                                        <TbPlus />
+                                      </Button>
+                                    </Group>
+                                  )
+                                })}
+                              </>
+                              {optionIndex !== equipmentItem.option?.length - 1 && <Divider label={'OR'} />}
+                            </Fragment>
+                          ))}
+                      </Accordion.Content>
+                    </Accordion.Container>
+                  )
+                })}
               </Accordion>
             )}
           </>

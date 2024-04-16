@@ -3,19 +3,23 @@ import { RootState } from '../../app/store'
 
 export const spellSlice = createSlice({
   name: 'spell',
-  initialState: { filters: {} },
+  initialState: { filters: {}, scrollPosition: null },
   reducers: {
-    setSpellFilter: (state, action: PayloadAction<any>) => {
+    setFilter: (state, action: PayloadAction<any>) => {
       state.filters = action.payload
     },
-    clearSpellFilter: (state) => {
+    clearFilter: (state) => {
       state.filters = {}
+    },
+    setScrollPosition: (state, action: PayloadAction<any>) => {
+      state.scrollPosition = action.payload
     },
   },
 })
-
-export const selectSpellsFilter = (state: RootState) => state.spell.filters
-
 export default spellSlice.reducer
 
-export const { setSpellFilter, clearSpellFilter } = spellSlice.actions
+export const { setFilter, clearFilter, setScrollPosition } = spellSlice.actions
+
+export const selectFilter = (state: RootState) => state.spell.filters
+export const getScrollPosition = (state: RootState) =>
+  state.spell.scrollPosition

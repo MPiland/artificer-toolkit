@@ -27,11 +27,7 @@ const formReducer = produce((draft: any, action: ReducerActionType) => {
         set(draft, path as PropertyPath, action.target.value)
       }
     } else {
-      set(
-        draft,
-        path as PropertyPath,
-        action.target.value ? action.target.value : [{}]
-      )
+      set(draft, path as PropertyPath, action.target.value ? action.target.value : [{}])
     }
   } else if (action?.type === 'removed') {
     if (path && path.length > 0) {
@@ -39,8 +35,7 @@ const formReducer = produce((draft: any, action: ReducerActionType) => {
       if (!isNumber(lastKey)) {
         const newPath = [...path]
         newPath.pop()
-        const object = get(draft, path)
-        if (path.length > 1 && object) {
+        if (path.length > 1) {
           const newObject = { ...get(draft, newPath) }
           delete newObject[path[path.length - 1]]
           set(draft, newPath, newObject)
@@ -54,9 +49,7 @@ const formReducer = produce((draft: any, action: ReducerActionType) => {
         set(
           draft,
           newPath,
-          get(draft, newPath).filter(
-            (_: any, index: number) => index !== Number(lastKey)
-          )
+          get(draft, newPath).filter((_: any, index: number) => index !== Number(lastKey))
         )
       }
     }

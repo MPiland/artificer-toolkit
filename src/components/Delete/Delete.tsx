@@ -20,7 +20,7 @@ const Delete = () => {
 
   const handleSubmit = () => {
     if (deleteState === 'DELETE') {
-      dispatch(confirmDelete({ status: true, data: location.state.data }))
+      dispatch(confirmDelete({ status: true }))
       navigate(-1)
     } else {
       input.classList.add('invalid')

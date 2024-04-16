@@ -1,4 +1,4 @@
-/* global use, db */
+/* global use, db, ObjectId */
 use('ATdb')
 
 function renameKey(data) {
@@ -6,37 +6,18 @@ function renameKey(data) {
     return data.map((item) => renameKey(item))
   } else if (typeof data === 'object' && data !== null) {
     for (let key in data) {
-      if (key === 'proficiency' && Array.isArray(data[key])) {
-        data[key].forEach((profObj) => {
-          if (profObj.area && profObj.area.name === 'itemType') {
-            profObj.area.name = 'item'
-            profObj.area.value = 'Item'
-          }
-          if (profObj.itemType) {
-            profObj.item = profObj.itemType
-            delete profObj.itemType
-          }
-        })
-      } else if (
-        key === 'itemType' ||
-        key === 'rangeType' ||
-        key === 'shapeType' ||
-        key === 'durationType' ||
-        key === 'addPerLevel'
-      ) {
-        data['type'] = data[key]
-        delete data[key]
-      } else if (key === 'damageType') {
-        data['primaryType'] = data[key]
-        delete data[key]
-      } else if (key === 'methodType') {
-        data['option'] = data[key]
-        delete data[key]
-      } else if (key === 'secondaryDamageType') {
-        data['secondaryType'] = data[key]
-        delete data[key]
-      } else if (typeof data[key] === 'object') {
-        data[key] = renameKey(data[key]) // Recursive call for nested objects
+      if (key === 'limitUse') {
+        if (data[key].limitBy) {
+          data.charge = { ...data.charge, limit: data[key].limitBy }
+        }
+        if (data[key].setValue) {
+          data.charge = { ...data.charge, setValue: data[key].setValue }
+        }
+        if (data[key].charge) {
+          data.charge = { ...data.charge, ...data[key].charge }
+        }
+      } else {
+        renameKey(data[key])
       }
     }
   }

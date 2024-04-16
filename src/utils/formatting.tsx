@@ -60,7 +60,15 @@ export const getValueFromState = (
             .join(' / ')
         }
       } else {
-        return shouldTruncate ? truncate(value, { length: truncateNum }) : value
+        if (value.value) {
+          return shouldTruncate
+            ? truncate(value.value, { length: truncateNum })
+            : value.value
+        } else {
+          return shouldTruncate
+            ? truncate(value, { length: truncateNum })
+            : value
+        }
       }
     }
   }

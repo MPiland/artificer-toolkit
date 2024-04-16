@@ -543,7 +543,7 @@ const Table = memo(
           scrollDirection={scrollable !== 'horizontal' ? 'vertical' : 'none'}
           scrollWrapperOverflow={scrollable === 'horizontal' ? 'off' : 'hidden'}
           className={clsx(table_body)}
-          id={bodyId}
+          id={id ?? bodyId}
         >
           {filteredItems?.map((valueItem: any, valueIndex: number) => (
             <Fragment key={valueIndex}>

@@ -1,21 +1,25 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '../../app/store'
 
 export const itemSlice = createSlice({
   name: 'item',
-  initialState: { filters: {} },
+  initialState: { filters: {}, scrollPosition: null },
   reducers: {
-    setItemFilter: (state, { payload }) => {
+    setItem: (state, { payload }) => {
       state.filters = payload
     },
-    clearItemFilter: (state) => {
+    clearFilter: (state) => {
       state.filters = {}
+    },
+    setScrollPosition: (state, action: PayloadAction<any>) => {
+      state.scrollPosition = action.payload
     },
   },
 })
 
-export const { setItemFilter, clearItemFilter } = itemSlice.actions
+export const { setItem, clearFilter, setScrollPosition } = itemSlice.actions
 
 export default itemSlice.reducer
 
-export const selectItemsFilter = (state: RootState) => state.item.filters
+export const selectFilter = (state: RootState) => state.item.filters
+export const getScrollPosition = (state: RootState) => state.item.scrollPosition

@@ -1,5 +1,5 @@
 import { apiSlice } from '../../app/api/apiSlice'
-import { setCredentials } from './authSlice'
+import { clearCredentials, setCredentials } from './authSlice'
 
 interface Credentials {
   username: string
@@ -56,7 +56,7 @@ export const authApiSlice = apiSlice.injectEndpoints({
         try {
           await queryFulfilled
           setTimeout(() => {
-            dispatch(apiSlice.util.resetApiState())
+            dispatch(clearCredentials())
           }, 300)
         } catch (err) {
           console.log(err)

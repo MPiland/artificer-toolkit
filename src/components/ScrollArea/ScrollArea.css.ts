@@ -9,9 +9,7 @@ export const scroll_area_wrapper = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
+      flex: 1,
 
       selectors: {
         '&.overflow_hidden': {

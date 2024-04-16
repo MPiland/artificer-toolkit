@@ -41,6 +41,7 @@ const ScrollArea = memo(
     scrollDirection,
     visibility = 'hidden',
     scrollWrapperOverflow = 'hidden',
+    id,
     ...props
   }: ScrollAreaProps) => {
     const md = useMediaQuery('(max-width: 1023px)')
@@ -276,6 +277,7 @@ const ScrollArea = memo(
             scroll_area[scrollDirection]
           )}
           {...props}
+          id={id}
         >
           {children}
         </div>

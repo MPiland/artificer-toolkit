@@ -3,24 +3,15 @@ import {
   useDeleteSpellMutation,
   useGetSpellsQuery,
 } from './spellApiSlice'
-import {
-  selectSpellsFilter,
-  setSpellFilter,
-  clearSpellFilter,
-} from './spellSlice'
+import { selectFilter, setFilter, clearFilter } from './spellSlice'
 import List from '../../components/List/List'
 import { RowHeader, RowInput } from '../../utils/types'
 
-interface SpellListProps {
-  scrollPosition: number
-}
-
-const SpellList = ({ scrollPosition }: SpellListProps) => {
+const SpellList = () => {
   const { spells } = useGetSpellsQuery(undefined, {
     selectFromResult: ({ data }) => ({
       spells: data && selectAllSpells(data),
     }),
-    refetchOnMountOrArgChange: true,
   })
 
   const [deleteSpell] = useDeleteSpellMutation()
@@ -48,7 +39,7 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       {
         name: {
           sortOn: 'action.value',
-          orderKey: 'action.actionType.value',
+          orderKey: 'action.type',
         },
         value: 'Casting Time',
         breakpoint: ['sm'],
@@ -56,7 +47,7 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       {
         name: {
           sortOn: 'duration.value',
-          orderKey: 'duration.durationType.value',
+          orderKey: 'duration.type',
         },
         value: 'Duration',
         breakpoint: ['sm', 'md'],
@@ -64,10 +55,10 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       {
         name: {
           sortOn: 'range.minRange',
-          orderKey: 'range.rangeType.name',
+          orderKey: 'range.type',
           subSort: {
             sortOn: 'shape.size',
-            orderKey: 'shape.shapeType.name',
+            orderKey: 'shape.type',
           },
         },
         value: 'Range (ft)/Area (ft)',
@@ -75,9 +66,9 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       },
       {
         name: {
-          sortOn: 'damage.damagType',
-          orderKey: 'damage.dice.diceShort',
-          subSort: { sortOn: 'condition' },
+          sortOn: 'damage.primary.type',
+          orderKey: 'damage.primary.diceShort',
+          subSort: { sortOn: 'condition.type' },
         },
         value: 'Damage/Effect',
       },
@@ -97,26 +88,31 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
         breakpoint: ['sm'],
       },
       {
-        name: ['action.value', 'action.actionType.value'],
+        name: ['action.value', 'action.type'],
         breakpoint: ['sm'],
       },
       {
-        name: ['duration.value', 'duration.durationType.value'],
+        name: ['duration.value', 'duration.type'],
         breakpoint: ['sm', 'md'],
       },
       {
         name: [
-          ['range.rangeType.value', 'range.minRange', 'range.unit.short'],
+          ['range.type', 'range.minRange'],
           ['range.maxRange', 'range.unit.short'],
-          ['shape.shapeType.value', 'shape.size', 'shape.unit.short'],
+          ['shape.type', 'shape.size', 'shape.unit.short'],
         ],
         breakpoint: ['sm', 'md'],
       },
       {
         name: [
-          ['damage.dice.diceShort', 'damage.dice.secDiceShort'],
-          ['damage.damageType', 'damage.secondaryDamageType'],
-          'condition',
+          [
+            'damage.primary.diceShort',
+            'damage.primary.setValue',
+            'damage.primary.pool.setValue',
+            'damage.primary.type',
+          ],
+          ['damage.secondary.diceShort', 'damage.secondary.type'],
+          'condition.type',
         ],
       },
     ],
@@ -128,10 +124,9 @@ const SpellList = ({ scrollPosition }: SpellListProps) => {
       context={{ title: 'spell' }}
       items={spells}
       deleteItem={deleteSpell}
-      scrollPosition={scrollPosition}
-      setFilter={setSpellFilter}
-      filterReset={clearSpellFilter}
-      selectFilter={selectSpellsFilter}
+      setFilter={setFilter}
+      filterReset={clearFilter}
+      selectFilter={selectFilter}
     />
   )
 }

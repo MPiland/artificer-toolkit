@@ -8,11 +8,7 @@ import { Fragment } from 'react'
 const Race = () => {
   const location: any = useLocation()
 
-  const {
-    race,
-    isLoading,
-    isFetching,
-  }: { race: any; isFetching: boolean; isLoading: boolean } = useGetRacesQuery(
+  const { race, isLoading, isFetching }: { race: any; isFetching: boolean; isLoading: boolean } = useGetRacesQuery(
     undefined,
     {
       selectFromResult: ({ data, isLoading, isFetching }) => ({
@@ -22,8 +18,6 @@ const Race = () => {
       }),
     }
   )
-
-  console.log({ race: race })
 
   const detail = (
     <>
@@ -62,11 +56,7 @@ const Race = () => {
       )}
       {race.feature?.length > 0 &&
         race.feature.map((featureItem: any, featureIndex: number) => (
-          <section
-            id={`${featureItem.name}`}
-            key={featureIndex}
-            className='pb-4'
-          >
+          <section id={`${featureItem.name}`} key={featureIndex} className='pb-4'>
             <h3>
               <strong>{featureItem.value}</strong>
             </h3>

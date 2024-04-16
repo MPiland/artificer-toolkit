@@ -64,67 +64,64 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
             />
             <Dropdown
               multiSelect={true}
-              name='damage.damageType'
-              label='Damage Type'
-              options={items?.map((item: DropdownOption) => {
-                if (item.damage && Array.isArray(item.damage.damageType)) {
-                  return item.damage.damageType
-                } else {
-                  return []
-                }
-              })}
-              value={listFilter?.damage?.damageType}
+              name='damage.primary.type'
+              label='Primary Damage Type'
+              options={[].concat(
+                items?.map(
+                  (item: DropdownOption) => item.damage?.primary?.type
+                ),
+                items?.map(
+                  (item: DropdownOption) => item.damage?.secondary?.type
+                )
+              )}
+              value={listFilter?.damage?.primary?.type}
               onChange={setListFilter}
             />
             <Dropdown
               multiSelect={true}
-              name='condition'
+              name='damage.secondary.type'
+              label='Secondary Damage Type'
+              options={[].concat(
+                items?.map(
+                  (item: DropdownOption) => item.damage?.primary?.type
+                ),
+                items?.map(
+                  (item: DropdownOption) => item.damage?.secondary?.type
+                )
+              )}
+              value={listFilter?.damage?.secondary?.type}
+              onChange={setListFilter}
+            />
+            <Dropdown
+              multiSelect={true}
+              name='condition.type'
               label='Condition Type'
               options={items?.flatMap((item: DropdownOption) => {
-                if (item.condition && Array.isArray(item.condition)) {
-                  return item.condition
+                if (item.condition && Array.isArray(item.condition.type)) {
+                  return item.condition.type
                 } else {
                   return []
                 }
               })}
-              value={listFilter?.damage?.damageType}
+              value={listFilter?.condition?.type}
               onChange={setListFilter}
             />
             <Dropdown
               multiSelect={true}
-              name='saveAbility.ability'
+              name='saveAbility.type'
               label='DC Ability'
-              options={items?.map((item: DropdownOption) => {
-                if (
-                  item.saveAbility?.ability &&
-                  Array.isArray(item.saveAbility?.ability)
-                ) {
-                  return item.saveAbility?.ability
-                } else {
-                  return []
-                }
-              })}
-              value={listFilter?.damage?.damageType}
+              options={items?.map(
+                (item: DropdownOption) => item.saveAbility?.type
+              )}
+              value={listFilter?.saveAbility?.type}
               onChange={setListFilter}
             />
             <Dropdown
               multiSelect={true}
-              name='action.actionType'
+              name='action.type'
               label='Casting Time'
-              options={items?.map(
-                (item: DropdownOption) => item.action?.actionType
-              )}
-              value={listFilter?.action?.actionType}
-              onChange={setListFilter}
-            />
-            <Dropdown
-              multiSelect={true}
-              name='action.actionType'
-              label='Casting Time'
-              options={items?.map(
-                (item: DropdownOption) => item.action?.actionType
-              )}
-              value={listFilter?.action?.actionType}
+              options={items?.map((item: DropdownOption) => item.action?.type)}
+              value={listFilter?.action?.type}
               onChange={setListFilter}
             />
             <Dropdown
@@ -141,9 +138,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
               multiSelect={true}
               name='range.type'
               label='Range'
-              options={items?.map(
-                (item: DropdownOption) => item.range?.type
-              )}
+              options={items?.map((item: DropdownOption) => item.range?.type)}
               value={listFilter?.range?.type}
               onChange={setListFilter}
             />
@@ -151,9 +146,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
               multiSelect={true}
               name='shape.type'
               label='Shape'
-              options={items?.map(
-                (item: DropdownOption) => item.shape?.type
-              )}
+              options={items?.map((item: DropdownOption) => item.shape?.type)}
               value={listFilter?.shape?.type}
               onChange={setListFilter}
             />
@@ -174,34 +167,24 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
             />
             <Dropdown
               multiSelect={true}
-              name='property'
+              name='property.type'
               label='Item Property'
               options={
-                items?.flatMap((item: any) => {
-                  if (item.property && Array.isArray(item.property)) {
-                    return item.property
-                  } else {
-                    return []
-                  }
-                }) as DropdownOption[]
+                items?.flatMap(
+                  (item: any) => item.property?.type
+                ) as DropdownOption[]
               }
-              value={listFilter?.property}
+              value={listFilter?.property?.type}
               onChange={setListFilter}
             />
             <Dropdown
               multiSelect={true}
-              name='damage.damageType'
+              name='damage.type'
               label='Damage Type'
-              options={
-                items?.flatMap((item: any) => {
-                  if (item.damage && Array.isArray(item.damage.damageType)) {
-                    return item.damage.damageType
-                  } else {
-                    return []
-                  }
-                }) as DropdownOption[]
-              }
-              value={listFilter?.damage?.damageType}
+              options={items?.flatMap(
+                (item: any) => item.damage?.primary?.type
+              )}
+              value={listFilter?.damage?.type}
               onChange={setListFilter}
             />
             <Dropdown

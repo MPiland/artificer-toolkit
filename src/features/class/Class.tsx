@@ -1,10 +1,6 @@
 import parse from 'html-react-parser'
 import { Fragment } from 'react'
-import {
-  selectClassById,
-  selectSubclassById,
-  useGetClassesQuery,
-} from './classApiSlice'
+import { selectClassById, selectSubclassById, useGetClassesQuery } from './classApiSlice'
 import { useLocation } from 'react-router-dom'
 import Spinner from '../../components/Spinner/Spinner'
 import { useSelector } from 'react-redux'
@@ -15,32 +11,26 @@ const Class = () => {
   const location: any = useLocation()
 
   const handlePreReq = (parentItem: any, childItem: any) => {
-    const parentLevel = parentItem.levelAvailable
+    const parentLevel = parentItem.levelAvailable.split(', ')
     const childLevel = childItem.levelAvailable
-    const childReq = childItem.attribute?.some(
-      (attributeItem: any) => attributeItem.name === 'hasRequirements'
-    )
+    const childReq = childItem.attribute?.some((attributeItem: any) => attributeItem.name === 'hasRequirements')
     const childReqsText = []
 
-    if (childLevel !== parentLevel) {
+    if (childLevel !== parentLevel[0]) {
       childReqsText.push(`Class level ${childLevel}`)
     }
 
     if (childReq) {
       const childReqOption = childItem.requirement
       if (childReqOption && childReqOption.option?.length > 0) {
-        if (
-          childReqOption.skillProficiency &&
-          childReqOption.skillProficiency?.skill?.length > 0
-        ) {
+        if (childReqOption.skillProficiency && childReqOption.skillProficiency?.skill?.length > 0) {
           childReqsText.push(
             `Skill(s) Proficiency: ${childReqOption.skillProficiency?.skill.map(
               (skillItem: any, skillIndex: number) => {
                 const skillName = skillItem.value
                 if (
                   childReqOption.skillProficiency?.skill?.length > 1 &&
-                  skillIndex !==
-                    childReqOption.skillProficiency?.skill?.length - 1
+                  skillIndex !== childReqOption.skillProficiency?.skill?.length - 1
                 ) {
                   return `${skillName}, `
                 } else {
@@ -50,98 +40,69 @@ const Class = () => {
             )}`
           )
         }
-        if (
-          childReqOption.abilityScore &&
-          childReqOption.abilityScore?.ability?.length > 0
-        ) {
+        if (childReqOption.abilityScore && childReqOption.abilityScore?.ability?.length > 0) {
           childReqsText.push(
-            `Ability Score: ${childReqOption.abilityScore?.ability.map(
-              (abilityItem: any, abilityIndex: number) => {
-                const abilityName = abilityItem.value
-                if (
-                  childReqOption.abilityScore?.ability?.length > 1 &&
-                  abilityIndex !==
-                    childReqOption.abilityScore?.ability?.length - 1
-                ) {
-                  return `(${childReqOption.abilityScore?.score}) ${abilityName}, `
-                } else {
-                  return `(${childReqOption.abilityScore?.score}) ${abilityName}`
-                }
-              }
-            )}`
-          )
-        }
-        if (
-          childReqOption.spellKnown &&
-          childReqOption.spellKnown?.spell?.length > 0
-        ) {
-          childReqsText.push(
-            `Spell(s) Known: ${childReqOption.spellKnown?.spell.map(
-              (spellItem: any, spellIndex: number) => {
-                const spellName = spellItem.value
-                if (
-                  childReqOption.abilityScore?.ability?.length > 1 &&
-                  spellIndex !==
-                    childReqOption.abilityScore?.ability?.length - 1
-                ) {
-                  return `${spellName}, `
-                } else {
-                  return `${spellName}`
-                }
-              }
-            )}`
-          )
-        }
-        if (
-          childReqOption.featureKnown &&
-          childReqOption.featureKnown?.feature?.length > 0
-        ) {
-          let featureText = ''
-          childReqOption.featureKnown?.feature?.map(
-            (reqFeatureItem: any, reqFeatureIndex: number) => {
-              featureText += `${reqFeatureItem.value}`
-              const featureLength = childReqOption.featureKnown?.feature.length
-              const classFeature = userClass.feature.find(
-                (classFeatureItem: any) =>
-                  reqFeatureItem._id === classFeatureItem._id
-              )
-              if (childReqOption.featureKnown?.option?.length > 0) {
-                childReqOption.featureKnown?.option?.map(
-                  (reqOptionItem: any, reqOptionIndex: any) => {
-                    const optionLength =
-                      childReqOption.featureKnown?.option?.length
-                    const classFeatureOption = classFeature.option?.find(
-                      (classFeatureOptionItem: any) =>
-                        classFeatureOptionItem._id === reqOptionItem._id
-                    )
-                    if (classFeatureOption) {
-                      if (
-                        featureLength > 1 &&
-                        reqOptionIndex !== optionLength - 1
-                      ) {
-                        featureText += `: ${reqOptionItem.value}, `
-                      } else {
-                        featureText += `: ${reqOptionItem.value}`
-                      }
-                    }
-                  }
-                )
+            `Ability Score: ${childReqOption.abilityScore?.ability.map((abilityItem: any, abilityIndex: number) => {
+              const abilityName = abilityItem.value
+              if (
+                childReqOption.abilityScore?.ability?.length > 1 &&
+                abilityIndex !== childReqOption.abilityScore?.ability?.length - 1
+              ) {
+                return `(${childReqOption.abilityScore?.score}) ${abilityName}, `
               } else {
-                if (
-                  featureLength > 1 &&
-                  reqFeatureIndex !== featureLength - 1
-                ) {
-                  featureText += '; '
+                return `(${childReqOption.abilityScore?.score}) ${abilityName}`
+              }
+            })}`
+          )
+        }
+        if (childReqOption.spellKnown && childReqOption.spellKnown?.spell?.length > 0) {
+          childReqsText.push(
+            `Spell(s) Known: ${childReqOption.spellKnown?.spell.map((spellItem: any, spellIndex: number) => {
+              const spellName = spellItem.value
+              if (
+                childReqOption.abilityScore?.ability?.length > 1 &&
+                spellIndex !== childReqOption.abilityScore?.ability?.length - 1
+              ) {
+                return `${spellName}, `
+              } else {
+                return `${spellName}`
+              }
+            })}`
+          )
+        }
+        if (childReqOption.featureKnown && childReqOption.featureKnown?.feature?.length > 0) {
+          let featureText = ''
+          childReqOption.featureKnown?.feature?.map((reqFeatureItem: any, reqFeatureIndex: number) => {
+            featureText += `${reqFeatureItem.value}`
+            const featureLength = childReqOption.featureKnown?.feature.length
+            const classFeature = userClass.feature.find(
+              (classFeatureItem: any) => reqFeatureItem._id === classFeatureItem._id
+            )
+            if (childReqOption.featureKnown?.option?.length > 0) {
+              childReqOption.featureKnown?.option?.map((reqOptionItem: any, reqOptionIndex: any) => {
+                const optionLength = childReqOption.featureKnown?.option?.length
+                const classFeatureOption = classFeature.option?.find(
+                  (classFeatureOptionItem: any) => classFeatureOptionItem._id === reqOptionItem._id
+                )
+                if (classFeatureOption) {
+                  if (featureLength > 1 && reqOptionIndex !== optionLength - 1) {
+                    featureText += `: ${reqOptionItem.value}, `
+                  } else {
+                    featureText += `: ${reqOptionItem.value}`
+                  }
                 }
+              })
+            } else {
+              if (featureLength > 1 && reqFeatureIndex !== featureLength - 1) {
+                featureText += '; '
               }
             }
-          )
+          })
           childReqsText.push(featureText)
         }
       }
     }
     if (childReqsText?.length > 0) {
-      console.log({ childReqsText: childReqsText })
       let reqText = 'Prerequisite(s) - '
       childReqsText.map((reqItem: any, reqIndex: number) => {
         if (childReqsText.length > 1 && reqIndex !== childReqsText.length - 1) {
@@ -156,11 +117,7 @@ const Class = () => {
     }
   }
 
-  const {
-    userClass,
-    isFetching,
-    isLoading,
-  }: { userClass: any; isFetching: boolean; isLoading: boolean } =
+  const { userClass, isFetching, isLoading }: { userClass: any; isFetching: boolean; isLoading: boolean } =
     useGetClassesQuery(undefined, {
       selectFromResult: ({ data, isFetching, isLoading }) => ({
         userClass: data && selectClassById(data, location.state.data.id),
@@ -169,9 +126,7 @@ const Class = () => {
       }),
     })
 
-  const subclass: any = useSelector((state) =>
-    selectSubclassById(state, location.state.data.id)
-  )
+  const subclass: any = useSelector((state) => selectSubclassById(state, location.state.data.id))
 
   const scrollToElement = (e: MouseEvent, id: string) => {
     const element = document.getElementById(`${id}`)
@@ -183,10 +138,12 @@ const Class = () => {
       })
   }
 
+  let resourceShown = false
+
   const detail = (
     <>
       <div id='quote'>
-        <em>{userClass.desc && parse(userClass.desc)}</em>
+        <em>{userClass?.desc && parse(userClass.desc)}</em>
       </div>
       {userClass.category?.name === 'base' ? (
         <>
@@ -201,36 +158,45 @@ const Class = () => {
                 {detailItem.desc && parse(detailItem.desc)}
                 {detailIndex === userClass.detail.length - 1 &&
                   userClass.feature?.length > 0 &&
-                  userClass.feature.map(
-                    (featureItem: any, featureIndex: number) => (
+                  userClass.feature.map((featureItem: any, featureIndex: number) => {
+                    const featureLevelArray = featureItem.levelAvailable.split(', ')
+                    const featureLevel = featureLevelArray[0]
+                    return (
                       <Fragment key={featureIndex}>
+                        {userClass.resource &&
+                          Number(featureLevel) >= userClass.resource?.levelAvailable &&
+                          !resourceShown && (
+                            <Fragment>
+                              <h3>
+                                <strong>{userClass.resource?.value}</strong>
+                              </h3>
+                              {userClass.resource?.desc && parse(userClass.resource?.desc)}
+                              {(resourceShown = true)}
+                            </Fragment>
+                          )}
                         <h3>
                           <strong>{featureItem.value}</strong>
                         </h3>
                         {featureItem.desc && parse(featureItem.desc)}
                         {featureItem.option?.length > 0 &&
-                          featureItem.option.map(
-                            (optionItem: any, optionIndex: number) => (
-                              <Fragment key={optionIndex}>
-                                <h4>
-                                  <strong>{optionItem.value}</strong>
-                                </h4>
-                                {handlePreReq(featureItem, optionItem) && (
-                                  <p>
-                                    <em className={sprinkles({ mb: 'size-3' })}>
-                                      <u>
-                                        {handlePreReq(featureItem, optionItem)}
-                                      </u>
-                                    </em>
-                                  </p>
-                                )}
-                                {optionItem.desc && parse(optionItem.desc)}
-                              </Fragment>
-                            )
-                          )}
+                          featureItem.option.map((optionItem: any, optionIndex: number) => (
+                            <Fragment key={optionIndex}>
+                              <h4>
+                                <strong>{optionItem.value}</strong>
+                              </h4>
+                              {handlePreReq(featureItem, optionItem) && (
+                                <p>
+                                  <em className={sprinkles({ mb: 'size-3' })}>
+                                    <u>{handlePreReq(featureItem, optionItem)}</u>
+                                  </em>
+                                </p>
+                              )}
+                              {optionItem.desc && parse(optionItem.desc)}
+                            </Fragment>
+                          ))}
                       </Fragment>
                     )
-                  )}
+                  })}
               </section>
             ))}
           {userClass.subclass && userClass.subclass?.name && (
@@ -245,6 +211,7 @@ const Class = () => {
           {subclass.length > 0 && (
             <>
               {subclass.map((subclassItem: any, subClassIndex: number) => {
+                let subclassResourceShown = false
                 return (
                   <section id={`${subclassItem.name}`} key={subClassIndex}>
                     <h2>
@@ -253,18 +220,45 @@ const Class = () => {
                     <hr />
                     {subclassItem.desc && parse(subclassItem.desc)}
                     {subclassItem.feature?.length > 0 &&
-                      subclassItem.feature.map(
-                        (featureItem: any, featureIndex: number) => {
-                          return (
-                            <Fragment key={featureIndex}>
-                              <h3>
-                                <strong>{featureItem.value}</strong>
-                              </h3>
-                              {featureItem.desc && parse(featureItem.desc)}
-                            </Fragment>
-                          )
-                        }
-                      )}
+                      subclassItem.feature.map((featureItem: any, featureIndex: number) => {
+                        const featureLevelArray = featureItem.levelAvailable.split(', ')
+                        const featureLevel = featureLevelArray[0]
+                        return (
+                          <Fragment key={featureIndex}>
+                            {subclassItem.resource &&
+                              Number(featureLevel) >= subclassItem.resource?.levelAvailable &&
+                              !subclassResourceShown && (
+                                <Fragment>
+                                  <h3>
+                                    <strong>{subclassItem.resource?.value}</strong>
+                                  </h3>
+                                  {subclassItem.resource?.desc && parse(subclassItem.resource?.desc)}
+                                  {(subclassResourceShown = true)}
+                                </Fragment>
+                              )}
+                            <h3>
+                              <strong>{featureItem.value}</strong>
+                            </h3>
+                            {featureItem.desc && parse(featureItem.desc)}
+                            {featureItem.option?.length > 0 &&
+                              featureItem.option.map((optionItem: any, optionIndex: number) => (
+                                <Fragment key={optionIndex}>
+                                  <h4>
+                                    <strong>{optionItem.value}</strong>
+                                  </h4>
+                                  {handlePreReq(featureItem, optionItem) && (
+                                    <p>
+                                      <em className={sprinkles({ mb: 'size-3' })}>
+                                        <u>{handlePreReq(featureItem, optionItem)}</u>
+                                      </em>
+                                    </p>
+                                  )}
+                                  {optionItem.desc && parse(optionItem.desc)}
+                                </Fragment>
+                              ))}
+                          </Fragment>
+                        )
+                      })}
                     {subClassIndex !== subclass.length - 1 && <hr />}
                   </section>
                 )
@@ -275,18 +269,45 @@ const Class = () => {
       ) : (
         <>
           {userClass.feature?.length > 0 &&
-            userClass.feature.map((featureItem: any, featureIndex: number) => (
-              <section
-                id={`${featureItem.name}`}
-                key={featureIndex}
-                className='pb-4'
-              >
-                <h3>
-                  <strong>{featureItem.value}</strong>
-                </h3>
-                {featureItem.desc && parse(featureItem.desc)}
-              </section>
-            ))}
+            userClass.feature.map((featureItem: any, featureIndex: number) => {
+              const featureLevelArray = featureItem.levelAvailable.split(', ')
+              const featureLevel = featureLevelArray[0]
+              return (
+                <Fragment key={featureIndex}>
+                  {userClass.resource &&
+                    Number(featureLevel) >= userClass.resource?.levelAvailable &&
+                    !resourceShown && (
+                      <Fragment>
+                        <h3>
+                          <strong>{userClass.resource?.value}</strong>
+                        </h3>
+                        {userClass.resource?.desc && parse(userClass.resource?.desc)}
+                        {(resourceShown = true)}
+                      </Fragment>
+                    )}
+                  <h3>
+                    <strong>{featureItem.value}</strong>
+                  </h3>
+                  {featureItem.desc && parse(featureItem.desc)}
+                  {featureItem.option?.length > 0 &&
+                    featureItem.option.map((optionItem: any, optionIndex: number) => (
+                      <Fragment key={optionIndex}>
+                        <h4>
+                          <strong>{optionItem.value}</strong>
+                        </h4>
+                        {handlePreReq(featureItem, optionItem) && (
+                          <p>
+                            <em className={sprinkles({ mb: 'size-3' })}>
+                              <u>{handlePreReq(featureItem, optionItem)}</u>
+                            </em>
+                          </p>
+                        )}
+                        {optionItem.desc && parse(optionItem.desc)}
+                      </Fragment>
+                    ))}
+                </Fragment>
+              )
+            })}
         </>
       )}
     </>
@@ -351,12 +372,7 @@ const Class = () => {
   return isFetching || isLoading || !userClass ? (
     <Spinner />
   ) : (
-    <Detail
-      detail={detail}
-      sidebar={{ list: sidebarList }}
-      location={location}
-      footerSpacing='end'
-    />
+    <Detail detail={detail} sidebar={{ list: sidebarList }} location={location} footerSpacing='end' />
   )
 }
 
