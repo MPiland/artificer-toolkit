@@ -1,5 +1,6 @@
-import { style, styleVariants, createVar } from '@vanilla-extract/css'
+import { style, styleVariants, createVar, globalStyle } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
+import { theme } from '../../css/global.css'
 
 export const thumb_height = createVar()
 
@@ -27,7 +28,7 @@ export const scroll_area_base = style({
       msOverflowStyle: 'none',
       position: 'relative',
       height: '100%',
-      width: '100%',
+      width: 'inherit',
       zIndex: 0,
 
       selectors: {
@@ -122,7 +123,7 @@ export const scroll_bar_horizontal = style({
       height: '.5rem',
       width: '100%',
       left: 0,
-      bottom: 0,
+      bottom: '.25rem',
       position: 'absolute',
       borderRadius: '.5rem',
       backgroundColor: 'transparent',
@@ -148,6 +149,40 @@ export const scroll_thumb_horizontal = style({
       opacity: '1',
       backgroundColor: 'rgba(0,0,0,.55)',
       zIndex: 11,
+    },
+  },
+})
+
+export const scroll_arrow = style({
+  '@layer': {
+    [app]: {
+      width: '1.25rem',
+      backgroundColor: theme.vars['app-background-color'],
+      height: '100%',
+      position: 'absolute',
+      display: 'flex',
+      alignItems: 'center',
+      zIndex: 2,
+
+      selectors: {
+        '&.left': {
+          top: 0,
+          left: 0,
+        },
+        '&.right': {
+          top: 0,
+          right: 0,
+        },
+      },
+    },
+  },
+})
+
+globalStyle(`${scroll_arrow} > svg`, {
+  '@layer': {
+    [app]: {
+      width: '100%',
+      height: 'auto',
     },
   },
 })

@@ -1,15 +1,7 @@
-import { FC, Fragment, useLayoutEffect, useRef, useState } from 'react'
-import {
-  progress_bar,
-  progress_empty,
-  progress_fill,
-  progress_step,
-  progress_width,
-  progress_step_wrapper,
-} from './ProgressBar.css'
+import { FC, useState, useEffect, useRef } from 'react'
+import { progress_tab, progress_step, progress_line, progress_step_container } from './ProgressBar.css'
 import clsx from 'clsx'
-import { assignInlineVars } from '@vanilla-extract/dynamic'
-import { useMediaQuery } from 'usehooks-ts'
+import ScrollArea from '../ScrollArea/ScrollArea'
 
 interface ProgressBarProps {
   steps: any[]
@@ -17,61 +9,76 @@ interface ProgressBarProps {
   handleStepChange: (arg: number) => void
 }
 
-const ProgressBar: FC<ProgressBarProps> = ({
-  steps,
-  currentStepIndex,
-  handleStepChange,
-}) => {
-  const [progressWidth, setProgressWidth] = useState<string>('0')
-  const progressBarRef = useRef<HTMLDivElement | null>(null)
+const ProgressBar: FC<ProgressBarProps> = ({ steps, currentStepIndex, handleStepChange }) => {
+  const [lineWidth, setLineWidth] = useState<number>(0)
+  const [lineLeft, setLineLeft] = useState<number>(0)
+  const stepsRefs = useRef<HTMLDivElement[]>([])
+  const containerRef = useRef<HTMLDivElement>(null)
+  const stepsContainerRef = useRef<HTMLDivElement>(null)
 
-  const sm = useMediaQuery('screen and (max-width: 567px)')
+  useEffect(() => {
+    const container = containerRef.current
+    const steps: HTMLDivElement[] = stepsRefs.current
+    const stepsContainer = stepsContainerRef.current
 
-  useLayoutEffect(() => {
-    if (currentStepIndex === 0) {
-      setProgressWidth('0')
-    } else if (currentStepIndex === steps.length - 1) {
-      setProgressWidth(`calc(100% - ${sm ? 0 : 2}rem)`)
-    } else {
-      setProgressWidth(
-        `calc((((100% - ${sm ? 0 : 2}rem) / ${
-          steps.length - 1
-        }) * ${currentStepIndex}))`
-      )
+    if (container && steps && stepsContainer) {
+      const updateLinePosition = (entries: Array<ResizeObserverEntry>) => {
+        entries.forEach(() => {
+          if (steps) {
+            const activeStep = steps.find((step: HTMLElement) => step.classList.contains('active'))
+            const stepWidth = activeStep?.offsetWidth ?? 0
+            const stepLeft = activeStep?.offsetLeft ?? 0
+
+            setLineWidth(stepWidth)
+            setLineLeft(stepLeft)
+          }
+        })
+      }
+
+      const resizeObserver = new ResizeObserver(updateLinePosition)
+
+      resizeObserver.observe(container)
+
+      return () => {
+        resizeObserver.disconnect()
+      }
     }
-  }, [currentStepIndex, steps.length, sm])
+  }, [currentStepIndex, steps, containerRef, stepsContainerRef])
 
   return (
-    <section className={progress_bar}>
-      <div
-        className={progress_empty}
-        style={assignInlineVars({
-          [progress_width]: `calc(100% - ${sm ? 4 : 6}rem)`,
-        })}
-        ref={progressBarRef}
-      />
-      <div
-        className={progress_fill}
-        style={assignInlineVars({
-          [progress_width]: progressWidth,
-        })}
-        ref={progressBarRef}
-      />
-      <div className={progress_step_wrapper}>
-        {steps.map((stepItem, stepIndex: number) => {
-          return (
-            <Fragment key={stepIndex}>
-              <div
-                className={clsx(progress_step, {
-                  ['active']: currentStepIndex >= stepIndex,
-                })}
-                data-atapp-step={stepItem}
-                onClick={() => handleStepChange(stepIndex)}
-              />
-            </Fragment>
-          )
-        })}
-      </div>
+    <section className={progress_tab} ref={containerRef}>
+      <ScrollArea
+        scrollDirection='horizontal'
+        visibility='hidden'
+        className={progress_step_container}
+        ref={stepsContainerRef}
+        arrows={true}
+      >
+        <div
+          className={progress_line}
+          style={{
+            width: `${lineWidth}px`,
+            left: `${lineLeft}px`,
+            transition: 'left 0.3s ease-in-out',
+          }}
+        />
+        {steps.map((stepItem, stepIndex: number) => (
+          <div
+            key={stepIndex}
+            className={clsx(progress_step, {
+              ['active']: currentStepIndex === stepIndex,
+            })}
+            onClick={() => handleStepChange(stepIndex)}
+            ref={(el) => {
+              if (el) {
+                stepsRefs.current[stepIndex] = el
+              }
+            }}
+          >
+            {stepItem}
+          </div>
+        ))}
+      </ScrollArea>
     </section>
   )
 }

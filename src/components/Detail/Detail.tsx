@@ -1,5 +1,5 @@
-import { FC, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { FC, useState, useRef, ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Grid from '../Grid/Grid'
 import { getValueFromState } from '../../utils/formatting'
 import Button from '../Button/Button'
@@ -28,37 +28,31 @@ type colType = {
 interface DetailProps {
   cols?: colType[]
   colsData?: any
-  detail: any
+  children: ReactNode
   footer?: any
   footerSpacing?: 'spaceBetween' | 'center' | 'end' | 'start' | undefined
   sidebar?: any
-  location: Location | any
 }
 
-const Detail: FC<DetailProps> = ({
-  cols,
-  colsData,
-  detail,
-  footer,
-  footerSpacing = 'spaceBetween',
-  sidebar,
-  location,
-}) => {
+const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpacing = 'spaceBetween', sidebar }) => {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [sidebarIsOpen, setSidebarIsOpen] = useState<boolean>(false)
 
   const form = location.state.form
-  const data = location.state.data
-  const name = location.state.data.name
+  const item = location.state.item
 
   const sidebarRef = useRef<HTMLDivElement>(null)
   const sidebarListRef = useRef<HTMLUListElement>(null)
   const hamburgerRef = useRef<HTMLDivElement>(null)
 
-  const onEditClicked = () => {
-    navigate(`/${form}/edit/${name}`, {
-      state: { data: data, previous: location },
+  const handleEdit = () => {
+    navigate(`/${form}/edit/${item.name}`, {
+      state: {
+        item: item,
+        formType: 'edit',
+      },
     })
   }
 
@@ -76,10 +70,7 @@ const Detail: FC<DetailProps> = ({
         let closestSection: HTMLElement | null = null
 
         // Adjust the range to determine if the section is active
-        const isActive =
-          scrollTop &&
-          scrollTop.top >= sectionRect.top - 50 &&
-          scrollTop.top <= sectionRect.bottom - 50
+        const isActive = scrollTop && scrollTop.top >= sectionRect.top - 50 && scrollTop.top <= sectionRect.bottom - 50
 
         if (isActive) {
           // Update the closest section if the current one is closer to the top
@@ -87,10 +78,7 @@ const Detail: FC<DetailProps> = ({
             closestSection === null ||
             (closestSection &&
               Math.abs(sectionRect.top - scrollTop.top) <
-                Math.abs(
-                  (closestSection as HTMLElement).getBoundingClientRect().top -
-                    scrollTop.top
-                ))
+                Math.abs((closestSection as HTMLElement).getBoundingClientRect().top - scrollTop.top))
           ) {
             closestSection = section
           }
@@ -100,10 +88,7 @@ const Detail: FC<DetailProps> = ({
           if (!section.classList.contains('active')) {
             section.classList.add('active')
           }
-          if (
-            filteredListItems &&
-            !filteredListItems[sectionIndex].classList.contains('active')
-          ) {
+          if (filteredListItems && !filteredListItems[sectionIndex].classList.contains('active')) {
             filteredListItems[sectionIndex].classList.add('active')
           }
         }
@@ -111,10 +96,7 @@ const Detail: FC<DetailProps> = ({
           if (section.classList.contains('active')) {
             section.classList.remove('active')
           }
-          if (
-            filteredListItems &&
-            filteredListItems[sectionIndex].classList.contains('active')
-          ) {
+          if (filteredListItems && filteredListItems[sectionIndex].classList.contains('active')) {
             filteredListItems[sectionIndex].classList.remove('active')
           }
         }
@@ -123,7 +105,7 @@ const Detail: FC<DetailProps> = ({
 
   return (
     <>
-      <Modal.Header title={location.state.title}>
+      <Modal.Header title={item.value}>
         {sidebar && (
           <>
             <Hamburger
@@ -137,17 +119,12 @@ const Detail: FC<DetailProps> = ({
       <Modal.Body>
         {colsData && cols && (
           <>
-            <Grid
-              cols={{ lg: 4, md: 3, base: 2 }}
-              className={sprinkles({ mb: 'size-2' })}
-            >
+            <Grid cols={{ lg: 4, md: 3, base: 2 }} className={sprinkles({ mb: 'size-2' })}>
               {cols?.map((colItem, colIndex) => {
                 return (
                   <div key={colIndex}>
                     <div className={detail_title}>{colItem.header}</div>
-                    <div>
-                      {getValueFromState(colItem, colsData, colItem?.truncate)}
-                    </div>
+                    <div>{getValueFromState(colItem, colsData, colItem?.truncate)}</div>
                   </div>
                 )
               })}
@@ -157,10 +134,7 @@ const Detail: FC<DetailProps> = ({
         )}
         <div className={clsx(detail_main, { ['active']: sidebarIsOpen })}>
           {sidebar && (
-            <aside
-              className={clsx({ ['active']: sidebarIsOpen }, detail_aside)}
-              ref={sidebarRef}
-            >
+            <aside className={clsx({ ['active']: sidebarIsOpen }, detail_aside)} ref={sidebarRef}>
               <ul className={detail_aside_list} ref={sidebarListRef}>
                 <p className={detail_aside_title}>NAVIGATION</p>
                 {sidebar.list}
@@ -173,18 +147,14 @@ const Detail: FC<DetailProps> = ({
             onScroll={() => sidebar && handleScroll()}
             id='detailBody'
           >
-            {detail}
+            {children}
           </ScrollArea>
         </div>
       </Modal.Body>
       <Modal.Footer>
-        <Group
-          justifyContentVariant={footerSpacing}
-          directionVariant='row'
-          alignItemsVariant='end'
-        >
+        <Group justifyContentVariant={footerSpacing} directionVariant='row' alignItemsVariant='end'>
           {footer}
-          <Button onClick={onEditClicked} variant='primary_outline'>
+          <Button onClick={handleEdit} variant='primary_outline'>
             Edit
           </Button>
         </Group>

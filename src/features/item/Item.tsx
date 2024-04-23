@@ -1,26 +1,12 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import { selectItemById, useGetItemsQuery } from './itemApiSlice'
 import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
 
 const Item = () => {
   const location = useLocation()
 
-  const {
-    item,
-    isLoading,
-    isFetching,
-  }: { item: any; isFetching: boolean; isLoading: boolean } = useGetItemsQuery(
-    'itemsList',
-    {
-      selectFromResult: ({ data, isLoading, isFetching }) => ({
-        item: data && selectItemById(data, location.state.data.id),
-        isLoading,
-        isFetching,
-      }),
-    }
-  )
+  const item = location.state.item
 
   const cols = [
     { header: 'CATEGORY', name: 'category.value' },
@@ -30,10 +16,7 @@ const Item = () => {
     },
     {
       header: 'DAMAGE TYPE',
-      name: [
-        ['damage.primary.diceShort', 'damage.versatile.diceShort'],
-        'damage.primary.type',
-      ],
+      name: [['damage.primary.diceShort', 'damage.versatile.diceShort'], 'damage.primary.type'],
     },
     { header: 'AC', name: 'armorClass' },
     {
@@ -42,19 +25,12 @@ const Item = () => {
     },
     { header: 'COST', name: ['cost.amount', 'cost.currency.type.short'] },
   ]
-
-  const detail = <div>{item?.desc && parse(item.desc)}</div>
-
-  return isLoading || !item || isFetching ? (
+  return !item ? (
     <Spinner />
   ) : (
-    <Detail
-      cols={cols}
-      location={location}
-      colsData={item}
-      detail={detail}
-      footerSpacing='end'
-    />
+    <Detail cols={cols} colsData={item} footerSpacing='end'>
+      <div>{item?.desc && parse(item.desc)}</div>
+    </Detail>
   )
 }
 

@@ -1,24 +1,12 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import { useGetSpellsQuery, selectSpellById } from './spellApiSlice'
 import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
 
 const Spell = () => {
   const location: any = useLocation()
 
-  const {
-    spell,
-    isLoading,
-    isFetching,
-  }: { spell: any; isFetching: boolean; isLoading: boolean } =
-    useGetSpellsQuery(undefined, {
-      selectFromResult: ({ data, isLoading, isFetching }) => ({
-        spell: data && selectSpellById(data, location.state.data.id),
-        isLoading,
-        isFetching,
-      }),
-    })
+  const spell = location.state.item
 
   const materialDesc = () => {
     if (spell && 'materialDesc' in spell) {
@@ -60,20 +48,14 @@ const Spell = () => {
     },
   ]
 
-  const detail = spell && spell.desc && <div>{parse(spell.desc)}</div>
-
   const footer = <span>{materialDesc()}</span>
 
-  return isLoading || !spell || isFetching ? (
+  return !spell  ? (
     <Spinner />
   ) : (
-    <Detail
-      cols={cols}
-      colsData={spell}
-      detail={detail}
-      footer={footer}
-      location={location}
-    />
+    <Detail cols={cols} colsData={spell} footer={footer}>
+      <div>{parse(spell.desc)}</div>
+    </Detail>
   )
 }
 

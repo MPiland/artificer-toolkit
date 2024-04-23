@@ -1,6 +1,5 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import { selectRaceById, useGetRacesQuery } from './raceApiSlice'
 import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
 import { Fragment } from 'react'
@@ -8,19 +7,12 @@ import { Fragment } from 'react'
 const Race = () => {
   const location: any = useLocation()
 
-  const { race, isLoading, isFetching }: { race: any; isFetching: boolean; isLoading: boolean } = useGetRacesQuery(
-    undefined,
-    {
-      selectFromResult: ({ data, isLoading, isFetching }) => ({
-        race: data && selectRaceById(data, location.state.data.id),
-        isLoading,
-        isFetching,
-      }),
-    }
-  )
+  const race = location.state.item
 
-  const detail = (
-    <>
+  return !race ? (
+    <Spinner />
+  ) : (
+    <Detail footerSpacing='end'>
       <div>{race?.quote && parse((race as any).quote)}</div>
       <div>{race?.desc && parse((race as any).desc)}</div>
       {race.detail &&
@@ -55,21 +47,15 @@ const Race = () => {
         </section>
       )}
       {race.feature?.length > 0 &&
-        race.feature.map((featureItem: any, featureIndex: number) => (
-          <section id={`${featureItem.name}`} key={featureIndex} className='pb-4'>
+        race.feature.map((feature: any, featureIndex: number) => (
+          <section id={`${feature.name}`} key={featureIndex} className='pb-4'>
             <h3>
-              <strong>{featureItem.value}</strong>
+              <strong>{feature.value}</strong>
             </h3>
-            {featureItem.desc && parse(featureItem.desc)}
+            {feature.desc && parse(feature.desc)}
           </section>
         ))}
-    </>
-  )
-
-  return isLoading || isFetching || !race ? (
-    <Spinner />
-  ) : (
-    <Detail detail={detail} location={location} footerSpacing='end' />
+    </Detail>
   )
 }
 

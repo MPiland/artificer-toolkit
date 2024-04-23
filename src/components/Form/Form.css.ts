@@ -3,6 +3,7 @@ import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
 import { theme } from '../../css/global.css'
 import palette from '../../css/colors.css'
+import { fontWeight } from '../../css/typography.css'
 
 export const form_wrapper = style({
   '@layer': {
@@ -27,8 +28,9 @@ export const form_header = style({
   '@layer': {
     [app]: {
       paddingTop: size['size-1'],
-      marginBottom: size['size-1'],
-      padding: `0 ${size['size-4']}`,
+      padding: `${size['size-3']} ${size['size-4']}`,
+      marginBottom: size['size-3'],
+      borderBottom: theme.vars['app-border-line-style'],
     },
   },
 })
@@ -131,45 +133,6 @@ export const feature_list = style({
   },
 })
 
-export const feature_card = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      width: 'auto',
-      height: 'auto',
-      borderRadius: theme['default-border-radius'],
-      border: theme.vars['app-border-line-style'],
-      margin: size['size-3'],
-      boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
-    },
-  },
-})
-
-export const feature_card_header = style({
-  '@layer': {
-    [app]: {
-      padding: `0 ${size['size-3']}`,
-      borderBottom: theme.vars['app-border-line-style'],
-      height: '3rem',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      backgroundColor: palette['gray-3'],
-      borderTopRightRadius: theme['default-border-radius'],
-      borderTopLeftRadius: theme['default-border-radius'],
-    },
-  },
-})
-
-export const feature_card_body = style({
-  '@layer': {
-    [app]: {
-      padding: size['size-3'],
-    },
-  },
-})
-
 export const feature_description = style({
   height: '100%',
 })
@@ -209,19 +172,66 @@ export const equipment_sub_group_button = style({
   },
 })
 
-export const subrace_collapse = style({
+export const form_detail_title = style({
   '@layer': {
     [app]: {
-      margin: `0 ${size['size-8']}`,
-      borderRadius: '0px',
-      borderTop: 'none',
+      fontWeight: fontWeight['font-weight-7'],
+    },
+  },
+})
 
-      selectors: {
-        '&:last-of-type': {
-          borderBottomLeftRadius: theme['default-border-radius'],
-          borderBottomRightRadius: theme['default-border-radius'],
-        },
-      },
+export const form_detail_main = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'row',
+      height: '100%',
+      width: '100%',
+      overflow: 'hidden',
+    },
+  },
+})
+
+export const form_detail_body = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      zIndex: 1,
+      padding: '0 .5rem',
+      flex: '1 1 0',
+      overflowY: 'auto',
+      height: '100%',
+    },
+  },
+})
+
+globalStyle(`${form_detail_body} td`, {
+  '@layer': {
+    [app]: {
+      verticalAlign: 'top',
+      padding: '0 .125rem',
+    },
+  },
+})
+
+globalStyle(`${form_detail_body} th`, {
+  '@layer': {
+    [app]: {
+      textAlign: 'start',
+      padding: '0 .125rem',
+    },
+  },
+})
+
+globalStyle(`${form_detail_body} blockquote`, {
+  '@layer': {
+    [app]: {
+      borderRadius: theme['default-border-radius'],
+      border: theme.vars['app-border-line-style'],
+      marginLeft: size['size-3'],
+      marginTop: size['size-2'],
+      padding: size['size-1'],
     },
   },
 })

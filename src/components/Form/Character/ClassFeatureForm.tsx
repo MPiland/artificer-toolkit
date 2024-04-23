@@ -1,21 +1,21 @@
 import parse from 'html-react-parser'
 import { Fragment, useEffect, useState } from 'react'
-import { getSectionNames } from '../../utils/formUtils'
-import { ReducerActionType, SectionName } from '../../utils/types'
-import Dropdown from '../Dropdown/Dropdown'
-import ScrollCategory from '../ScrollArea/ScrollArea'
+import { getSectionNames } from '../../../utils/formUtils'
+import { ReducerActionType, SectionName } from '../../../utils/types'
+import Dropdown from '../../Dropdown/Dropdown'
+import ScrollCategory from '../../ScrollArea/ScrollArea'
 import { get, isEqual } from 'lodash'
-import { sprinkles } from '../../css/sprinkles.css'
-import { feature_card, feature_card_body, feature_card_header } from './Form.css'
+import { sprinkles } from '../../../css/sprinkles.css'
+import { feature_card, feature_card_body, feature_card_header } from './Character.css'
 
-interface RaceFeatureFormProps {
+interface ClassFeatureFormProps {
   selectedRace: any
   setFormState: (arg: ReducerActionType) => void
   formState: any
   races: any
 }
 
-const RaceFeatureForm = ({ formState, selectedRace, setFormState, races }: RaceFeatureFormProps) => {
+const ClassFeatureForm = ({ formState, selectedRace, setFormState, races }: ClassFeatureFormProps) => {
   const [initialRace, setInitialRace] = useState<any>(null)
   const [formFeatures, setFormFeatures] = useState<any[]>([])
 
@@ -599,4 +599,4 @@ const RaceFeatureForm = ({ formState, selectedRace, setFormState, races }: RaceF
   )
 }
 
-export default RaceFeatureForm
+export default ClassFeatureForm

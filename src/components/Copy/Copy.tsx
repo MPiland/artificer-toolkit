@@ -12,14 +12,11 @@ import Dropdown from '../Dropdown/Dropdown'
 import { DropdownOption } from '../../utils/types'
 import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
-import { useDispatch } from 'react-redux'
-import { confirmCopy } from '../../app/modalSlice'
 
 const Copy = () => {
   const isLoading = useIsLoading()
   const navigate = useNavigate()
   const location = useLocation()
-  const dispatch = useDispatch()
 
   const [selection, setSelection] = useReducer(formReducer, {})
   const [features, setFeatures] = useState<any[]>()
@@ -77,10 +74,10 @@ const Copy = () => {
   }, [races, classes, items, selection.filter, features, selection.filterBy?.name, selection.feature])
 
   const handleSelect = () => {
-    dispatch(confirmCopy({ status: true }))
     navigate(location.state.background.pathname, {
       state: {
         feature: selectedFeature,
+        copy: true,
       },
     })
   }

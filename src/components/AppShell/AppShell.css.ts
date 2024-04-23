@@ -21,7 +21,7 @@ export const app_main = style({
   '@layer': {
     [app]: {
       'position': 'relative',
-      'padding': '0 calc(((100% - 80%) / 2))',
+      'margin': '0 calc(((100% - 80%) / 2))',
       'overflow': 'hidden',
       'backgroundColor': 'inherit',
       'height': `calc(100dvh - ${theme['header-height']})`,
@@ -30,10 +30,10 @@ export const app_main = style({
 
       '@media': {
         'screen and (min-width: 568px) and (max-width: 1024px)': {
-          padding: '0 calc(((100% - 90%) / 2))',
+          margin: '0 calc(((100% - 90%) / 2))',
         },
         'screen and (max-width: 567px)': {
-          padding: '0',
+          margin: '0 calc(((100% - 95%) / 2))',
         },
       },
 

@@ -19,40 +19,52 @@ const useSortableData = (
 ): UseSortableDataResult => {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(config)
 
-  const compareValues = useCallback(
-    (aValue: any, bValue: any, direction: SortConfig['direction']): number => {
-      if (aValue == null && bValue == null && bValue !== 0 && aValue !== 0)
-        return 0
-      if (aValue == null && aValue !== 0 && !!bValue)
-        return direction === 'ascending' ? -1 : 1
-      if (bValue == null && bValue !== 0 && !!bValue)
-        return direction === 'ascending' ? 1 : -1
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return direction === 'ascending'
-          ? aValue > bValue
-            ? 1
-            : aValue < bValue || !aValue
-            ? -1
-            : 0
-          : aValue < bValue
+  const compareValues = useCallback((aValue: any, bValue: any, direction: SortConfig['direction']): number => {
+    if (aValue == null && aValue !== 0 && bValue == null && bValue !== 0) {
+      return 0
+    }
+    if (aValue == null && aValue !== 0 && bValue) {
+      return direction === 'ascending' ? -1 : 1
+    }
+    if (bValue == null && bValue !== 0 && aValue) {
+      return direction === 'ascending' ? 1 : -1
+    }
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return direction === 'ascending'
+        ? aValue > bValue
           ? 1
-          : aValue > bValue || !aValue
+          : aValue < bValue || !aValue
           ? -1
           : 0
-      } else {
-        if (aValue != null && bValue == null) {
-          return direction === 'ascending' ? 1 : -1
-        } else if (aValue == null && bValue != null) {
-          return direction === 'ascending' ? -1 : 1
-        } else {
-          return direction === 'ascending'
-            ? String(aValue).localeCompare(String(bValue))
-            : String(bValue).localeCompare(String(aValue))
-        }
+        : aValue < bValue
+        ? 1
+        : aValue > bValue || !aValue
+        ? -1
+        : 0
+    }
+    if (isObject(aValue) && isObject(bValue)) {
+      if (Object.keys(aValue).length > 0 && !(Object.keys(bValue).length > 0)) {
+        return direction === 'ascending' ? 1 : -1
       }
-    },
-    []
-  )
+      if (Object.keys(bValue).length > 0 && !(Object.keys(bValue).length > 0)) {
+        return direction === 'ascending' ? -1 : 1
+      }
+      if (direction === 'ascending') {
+        return String((aValue as any).name).localeCompare(String((bValue as any).name))
+      } else {
+        return String((bValue as any).name).localeCompare(String((aValue as any).name))
+      }
+    }
+    if (aValue != null && bValue == null) {
+      return direction === 'ascending' ? 1 : -1
+    }
+    if (aValue == null && bValue != null) {
+      return direction === 'ascending' ? -1 : 1
+    }
+    return direction === 'ascending'
+      ? String(aValue).localeCompare(String(bValue))
+      : String(bValue).localeCompare(String(aValue))
+  }, [])
 
   const hierarchyOrderSort = useCallback(
     (order: any[], direction: SortConfig['direction']): any[] => {
@@ -66,23 +78,24 @@ const useSortableData = (
   )
 
   const recursiveSort = useCallback(
-    (
-      items: any[],
-      key: SortConfig['key'],
-      direction: SortConfig['direction']
-    ): any[] => {
+    (items: any[], key: SortConfig['key'], direction: SortConfig['direction']) => {
       let sortableItems: any[] = []
       let nullArray: any[] = []
       const { orderKey, order, sortOn, subSort } = key
 
       if (orderKey && order) {
         order.forEach((orderItem) => {
-          const filterKey = isObject(orderItem)
-            ? Object.values(orderItem)[0]
-            : orderItem
-          const filteredArray = items.filter(
-            (item) => get(item, orderKey) === filterKey
-          )
+          const filterKey = isObject(orderItem) ? Object.values(orderItem)[0] : orderItem
+          const filteredArray = items.filter((item) => {
+            const getValue = get(item, orderKey as PropertyPath)
+            if (getValue != null) {
+              if (getValue?.name) {
+                return getValue.name === filterKey
+              } else {
+                return getValue === filterKey
+              }
+            }
+          })
 
           nullArray = items.filter((item) => get(item, orderKey) == null)
           const lowerArray = filteredArray.sort((a, b) => {
@@ -101,18 +114,11 @@ const useSortableData = (
               }
 
               if (subSort.order) {
-                aSubIndex = subSort.order.findIndex(
-                  (orderItem) => orderItem === aValueSub
-                )
-                bSubIndex = subSort.order.findIndex(
-                  (orderItem) => orderItem === bValueSub
-                )
+                aSubIndex = subSort.order.findIndex((orderItem) => orderItem === aValueSub)
+                bSubIndex = subSort.order.findIndex((orderItem) => orderItem === bValueSub)
               }
 
-              if (
-                (aSubIndex === bSubIndex || (!aSubIndex && !bSubIndex)) &&
-                subSort.sortOn
-              ) {
+              if ((aSubIndex === bSubIndex || (!aSubIndex && !bSubIndex)) && subSort.sortOn) {
                 const aValueSortOn = get(a, subSort.sortOn)
                 const bValueSortOn = get(b, subSort.sortOn)
 
@@ -160,69 +166,69 @@ const useSortableData = (
         const { key, direction } = sortConfig
         if (key) {
           if (key?.orderKey) {
-            if (!key.order) {
-              key.order = uniq(
-                sortableItems.map((item) =>
-                  get(item, key.orderKey as PropertyPath)
-                )
+            if (!key.order || !(key?.order?.length > 0)) {
+              const orderArray = uniq(
+                sortableItems.map((item) => {
+                  const getValue = get(item, key.orderKey as PropertyPath)
+                  if (getValue != null) {
+                    if (getValue?.name) {
+                      return getValue.name
+                    } else {
+                      return getValue
+                    }
+                  }
+                })
               ).filter((orderItem) => orderItem != null)
-              if (key?.subSort && !key.subSort.order) {
+              key.order = orderArray
+              if (key?.subSort && (!key.subSort.order || !(key.subSort?.order?.length > 0))) {
                 key.subSort.order = uniq(
-                  sortableItems.map((item) =>
-                    get(item, key.subSort?.orderKey as PropertyPath)
-                  )
+                  sortableItems.map((item) => {
+                    const getValue = get(item, key.subSort?.orderKey as PropertyPath)
+                    if (getValue != null) {
+                      if (getValue?.name) {
+                        return getValue.name
+                      } else {
+                        return getValue
+                      }
+                    }
+                  })
                 ).filter((orderItem) => orderItem != null)
               }
-              key.subSort?.order &&
-                hierarchyOrderSort(key.subSort.order, direction)
+              key.subSort?.order && hierarchyOrderSort(key.subSort.order, direction)
             }
             hierarchyOrderSort(key.order, direction)
-            return (sortableItems = recursiveSort(
-              sortableItems,
-              key,
-              direction
-            ))
+            return (sortableItems = recursiveSort(sortableItems, key, direction))
           }
           sortableItems.sort((a, b) => {
             const aValue = get(a, key.sortOn)
             const bValue = get(b, key.sortOn)
 
             if (
-              ((!aValue && aValue !== 0) || aValue.length < 1) &&
-              ((!bValue && bValue !== 0) || bValue.length < 1)
+              ((!aValue && aValue !== 0) || (Array.isArray(aValue) && !(aValue.length > 0))) &&
+              ((!bValue && bValue !== 0) || (Array.isArray(bValue) && !(bValue.length > 0)))
             ) {
               return 0
             }
-            if (((!aValue && aValue !== 0) || aValue.length < 1) && bValue) {
+
+            if (((!aValue && aValue !== 0) || (Array.isArray(aValue) && !(aValue.length > 0))) && bValue) {
               return 1
             }
-            if (aValue && ((!bValue && bValue !== 0) || bValue.length < 1)) {
+
+            if (aValue && ((!bValue && bValue !== 0) || (Array.isArray(bValue) && !(bValue.length > 0)))) {
               return -1
             }
 
             if (Array.isArray(aValue) && Array.isArray(bValue)) {
               const sortedAValue =
                 aValue.length > 1
-                  ? aValue
-                      .slice()
-                      .sort((x, y) =>
-                        String(x.value).localeCompare(String(y.value))
-                      )
+                  ? aValue.slice().sort((x, y) => String(x.value).localeCompare(String(y.value)))
                   : aValue
               const sortedBValue =
                 bValue.length > 1
-                  ? bValue
-                      .slice()
-                      .sort((x, y) =>
-                        String(x.value).localeCompare(String(y.value))
-                      )
+                  ? bValue.slice().sort((x, y) => String(x.value).localeCompare(String(y.value)))
                   : bValue
 
-              for (
-                let i = 0;
-                i < Math.min(sortedAValue.length, sortedBValue.length);
-                i++
-              ) {
+              for (let i = 0; i < Math.min(sortedAValue.length, sortedBValue.length); i++) {
                 const comparisonResult =
                   sortedAValue[i].value === sortedBValue[i].value
                     ? 0
@@ -240,7 +246,8 @@ const useSortableData = (
 
               return sortedAValue.length - sortedBValue.length
             } else {
-              return compareValues(aValue, bValue, direction)
+              const value = compareValues(aValue, bValue, direction)
+              return value
             }
           })
         }
@@ -253,8 +260,7 @@ const useSortableData = (
     let direction: SortConfig['direction'] = 'ascending'
 
     if (sortConfig && sortConfig.key === key) {
-      direction =
-        sortConfig.direction === 'ascending' ? 'descending' : 'ascending'
+      direction = sortConfig.direction === 'ascending' ? 'descending' : 'ascending'
     }
     setSortConfig({ key, direction })
   }

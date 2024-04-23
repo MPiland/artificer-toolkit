@@ -77,7 +77,7 @@ const Dropdown = ({
       return () => dropdown.removeEventListener('setErrorState', (e: any) => setError(e.detail))
     }
   }, [])
-
+  
   const appMain = document.getElementById('app-main')
 
   const { refs, floatingStyles, context } = useFloating({

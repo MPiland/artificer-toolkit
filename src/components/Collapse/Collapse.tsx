@@ -23,8 +23,8 @@ interface CollapseProps {
     label: string
     function: () => void
   }[]
-
   className?: string | number | symbol | any
+  headerClassName?: string | number | symbol | any
   handleRemove?: () => void
 }
 
@@ -37,6 +37,7 @@ const Collapse = memo(
     className,
     handleRemove,
     headerButton,
+    headerClassName,
   }: CollapseProps) => {
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
 
@@ -60,13 +61,10 @@ const Collapse = memo(
       <div className={clsx(collapse_wrapper, { [className]: className })}>
         {!buttonDisabled && (
           <div
-            className={clsx(collapse_header, { ['collapsed']: isCollapsed })}
+            className={clsx(collapse_header, { ['collapsed']: isCollapsed }, { [headerClassName]: headerClassName })}
             onClick={handleButtonClick}
           >
-            <Group
-              justifyContentVariant='spaceBetween'
-              className={sprinkles({ width: 'full' })}
-            >
+            <Group justifyContentVariant='spaceBetween' className={sprinkles({ width: 'full' })}>
               <Group>
                 {handleRemove && (
                   <Button
@@ -96,8 +94,7 @@ const Collapse = memo(
                   }}
                   className={clsx(
                     {
-                      [sprinkles({ me: 'size-2' })]:
-                        buttonIndex !== headerButton.length - 1,
+                      [sprinkles({ me: 'size-2' })]: buttonIndex !== headerButton.length - 1,
                     },
                     collapse_optional_button
                   )}
@@ -106,9 +103,7 @@ const Collapse = memo(
                   {buttonItem.label}
                 </Button>
               ))}
-            <span className={collapse_header_icon}>
-              {isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}
-            </span>
+            <span className={collapse_header_icon}>{isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}</span>
           </div>
         )}
         <div
@@ -116,11 +111,7 @@ const Collapse = memo(
             ['collapsed']: isCollapsed,
           })}
         >
-          <div
-            className={clsx(collapse_content, { ['collapsed']: isCollapsed })}
-          >
-            {children}
-          </div>
+          <div className={clsx(collapse_content, { ['collapsed']: isCollapsed })}>{children}</div>
         </div>
       </div>
     )

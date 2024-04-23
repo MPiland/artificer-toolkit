@@ -24,10 +24,7 @@ export const itemApiSlice = apiSlice.injectEndpoints({
       },
       providesTags: (result) => {
         if (result?.ids) {
-          return [
-            'Item',
-            ...result.ids.map((id) => ({ type: 'Item' as const, id })),
-          ]
+          return ['Item', ...result.ids.map((id) => ({ type: 'Item' as const, id }))]
         } else return ['Item']
       },
     }),
@@ -45,7 +42,10 @@ export const itemApiSlice = apiSlice.injectEndpoints({
         method: 'PATCH',
         body: { ...data },
       }),
-      invalidatesTags: (_, __, arg) => [{ type: 'Item', id: arg._id }],
+      invalidatesTags: (_, __, arg) => [
+        { type: 'Item', id: arg._id },
+        { type: 'Item', id: 'LIST' },
+      ],
     }),
     deleteItem: builder.mutation({
       query: ({ id }) => ({
@@ -53,17 +53,15 @@ export const itemApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (_, __, arg) => ['Item', { type: 'Item', id: arg.id }],
+      invalidatesTags: (_, __, arg) => [
+        { type: 'Item', id: arg.id },
+        { type: 'Item', id: 'LIST' },
+      ],
     }),
   }),
 })
 
-export const {
-  useGetItemsQuery,
-  useAddNewItemMutation,
-  useUpdateItemMutation,
-  useDeleteItemMutation,
-} = itemApiSlice
+export const { useGetItemsQuery, useAddNewItemMutation, useUpdateItemMutation, useDeleteItemMutation } = itemApiSlice
 
 export const {
   selectAll: selectAllItems,

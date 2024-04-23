@@ -1,12 +1,12 @@
 import { useEffect, memo } from 'react'
-import Table from '../Table/Table'
+import Table from '../../Table/Table'
 import {
   useGetItemsQuery,
   selectAllItems,
-} from '../../features/item/itemApiSlice'
-import { ReducerActionType } from '../../utils/types'
-import ScrollArea from '../ScrollArea/ScrollArea'
-import { form_content } from './Form.css'
+} from '../../../features/item/itemApiSlice'
+import { ReducerActionType } from '../../../utils/types'
+import ScrollArea from '../../ScrollArea/ScrollArea'
+import { form_content } from '../Form.css'
 
 interface ContainsFormProps {
   formState: any

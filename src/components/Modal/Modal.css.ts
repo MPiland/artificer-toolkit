@@ -32,9 +32,22 @@ export const modal_dialogue = style({
       'borderRadius': '0.5rem',
       'overflow': 'hidden',
       'selectors': {
+        '&.sm': {
+          'width': '50dvw',
+          'maxHeight': '80dvh',
+
+          '@media': {
+            'screen and (max-width: 567px)': {
+              borderRadius: '0',
+              width: '100dvw',
+              height: '100dvh',
+              maxHeight: '100dvh',
+            },
+          },
+        },
         '&.md': {
           'width': '75dvw',
-          'maxHeight': '60dvh',
+          'maxHeight': '80dvh',
 
           '@media': {
             'screen and (max-width: 567px)': {

@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import Input from '../Input/Input'
-import { useDispatch } from 'react-redux'
-import { confirmDelete } from '../../app/modalSlice'
 import { useLocation } from 'react-router-dom'
 import Modal from '../Modal/Modal'
 import Button from '../Button/Button'
@@ -13,15 +11,20 @@ const Delete = () => {
   const [deleteState, setDeleteState] = useState<string>('')
 
   const navigate = useNavigate()
-  const dispatch = useDispatch()
   const location = useLocation()
 
   const input = document.getElementById('delete_input') as HTMLInputElement
 
+  console.log({ deleteLocation: location })
+
   const handleSubmit = () => {
     if (deleteState === 'DELETE') {
-      dispatch(confirmDelete({ status: true }))
-      navigate(-1)
+      navigate(`${location.state.background.pathname}`, {
+        state: {
+          delete: true,
+          item: location.state.item,
+        },
+      })
     } else {
       input.classList.add('invalid')
       input.dispatchEvent(

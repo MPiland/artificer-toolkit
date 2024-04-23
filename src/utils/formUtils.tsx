@@ -7,7 +7,7 @@ import {
   SpellContent,
   SectionContentProps,
   AncestryContent,
-} from '../components/Form/SectionContent'
+} from '../components/Form/Feature/SectionContent'
 import { SectionName } from './types'
 
 type TableContent = {

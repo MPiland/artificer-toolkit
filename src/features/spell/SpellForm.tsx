@@ -1,26 +1,18 @@
 import Form from '../../components/Form/Form'
+import { useAddNewSpellMutation, useUpdateSpellMutation } from './spellApiSlice'
+import { Step } from '../../utils/types'
 import { useLocation, useParams } from 'react-router-dom'
-import {
-  useAddNewSpellMutation,
-  useUpdateSpellMutation,
-} from './spellApiSlice'
-import { FormContext, Step } from '../../utils/types'
 
 const SpellForm = () => {
   const { context } = useParams()
   const location = useLocation()
 
+  console.log({ location, context })
+
   const steps: Step[] = ['Details', 'Attributes']
 
   return (
-    <Form
-      context={{ type: context, title: 'spell' } as FormContext}
-      steps={steps}
-      item={location.state.data}
-      location={location}
-      useAddNewItem={useAddNewSpellMutation}
-      useUpdateItem={useUpdateSpellMutation}
-    />
+    <Form context='spell' steps={steps} useAddNewItem={useAddNewSpellMutation} useUpdateItem={useUpdateSpellMutation} />
   )
 }
 export default SpellForm

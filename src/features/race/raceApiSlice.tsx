@@ -31,10 +31,7 @@ export const raceApiSlice = apiSlice.injectEndpoints({
       },
       providesTags: (result) => {
         if (result?.ids) {
-          return [
-            { type: 'Race' as const, id: 'LIST' },
-            ...result.ids.map((id) => ({ type: 'Race' as const, id })),
-          ]
+          return [{ type: 'Race' as const, id: 'LIST' }, ...result.ids.map((id) => ({ type: 'Race' as const, id }))]
         } else return [{ type: 'Race' as const, id: 'LIST' }]
       },
     }),
@@ -52,7 +49,10 @@ export const raceApiSlice = apiSlice.injectEndpoints({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (_, __, arg) => [{ type: 'Race', id: arg._id }],
+      invalidatesTags: (_, __, arg) => [
+        { type: 'Race', id: arg._id },
+        { type: 'Race', id: 'LIST' },
+      ],
     }),
     deleteRace: builder.mutation({
       query: ({ id }) => ({
@@ -60,17 +60,15 @@ export const raceApiSlice = apiSlice.injectEndpoints({
         method: 'DELETE',
         body: { id },
       }),
-      invalidatesTags: (_, __, arg) => [{ type: 'Race', id: arg.id }],
+      invalidatesTags: (_, __, arg) => [
+        { type: 'Race', id: arg.id },
+        { type: 'Race', id: 'LIST' },
+      ],
     }),
   }),
 })
 
-export const {
-  useGetRacesQuery,
-  useAddNewRaceMutation,
-  useUpdateRaceMutation,
-  useDeleteRaceMutation,
-} = raceApiSlice
+export const { useGetRacesQuery, useAddNewRaceMutation, useUpdateRaceMutation, useDeleteRaceMutation } = raceApiSlice
 
 export const {
   selectAll: selectAllRaces,

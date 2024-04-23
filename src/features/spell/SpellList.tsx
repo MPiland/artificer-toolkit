@@ -66,8 +66,8 @@ const SpellList = () => {
       },
       {
         name: {
-          sortOn: 'damage.primary.type',
-          orderKey: 'damage.primary.diceShort',
+          sortOn: 'damage.primary.diceShort',
+          orderKey: 'damage.primary.type',
           subSort: { sortOn: 'condition.type' },
         },
         value: 'Damage/Effect',

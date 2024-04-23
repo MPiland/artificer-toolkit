@@ -6,8 +6,6 @@ import { sprinkles } from '../../css/sprinkles.css'
 import { isEqual, startCase } from 'lodash'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { clearDelete } from '../../app/modalSlice'
-import { RootState } from '../../app/store'
 import useFilteredList from '../../hooks/useFilteredList'
 import Spinner from '../Spinner/Spinner'
 import { ActionCreatorWithPayload } from '@reduxjs/toolkit'
@@ -52,16 +50,10 @@ const List = ({
 
   const filterState = useSelector(selectFilter)
 
-  const deleteConfirmed = useSelector(
-    (state: RootState) => state.modal.delete.status
-  )
+  const deleteConfirmed = location.state?.delete
+  const itemToDelete = location.state?.item
 
-  const itemToDelete = useSelector(
-    (state: RootState) => state.modal.delete.data
-  )
-
-  const { listFilter, filteredItems, setListFilter, setFilteredItems } =
-    useFilteredList(items, filterState)
+  const { listFilter, filteredItems, setListFilter, setFilteredItems } = useFilteredList(items, filterState)
 
   const [errorMessage, setErrorMessage] = useState<string>()
 
@@ -71,9 +63,7 @@ const List = ({
   }
 
   useEffect(() => {
-    filterState != null &&
-      listFilter == null &&
-      setListFilter({ type: 'reset', target: { value: filterState } })
+    filterState != null && listFilter == null && setListFilter({ type: 'reset', target: { value: filterState } })
   }, [filterState, setListFilter, listFilter])
 
   useEffect(() => {
@@ -81,10 +71,7 @@ const List = ({
   }, [dispatch, listFilter, setFilter])
 
   useEffect(() => {
-    if (
-      !isEqual(items, filteredItems) &&
-      Object.keys(filterState).length === 0
-    ) {
+    if (!isEqual(items, filteredItems) && Object.keys(filterState).length === 0) {
       setFilteredItems(items)
     }
   }, [items, setFilteredItems, filteredItems, filterState])
@@ -97,7 +84,6 @@ const List = ({
       } catch (err: any) {
         setErrorMessage(err.data.message)
       }
-      dispatch(clearDelete())
     }
     if (deleteConfirmed) {
       handleDeleteConfirmed()
@@ -108,10 +94,9 @@ const List = ({
     navigate(`/${context.title}/${item.name}`, {
       state: {
         background: location,
-        form: context.title,
-        data: item,
+        item: item,
         size: 'lg',
-        title: item.value,
+        form: context.title,
       },
     })
   }
@@ -122,11 +107,9 @@ const List = ({
         return navigate(`/create/subclass`, {
           state: {
             background: location,
-            context: context.type,
+            formType: 'new',
             form: 'class',
-            data: items.filter(
-              (item: any) => item.category.name === 'subclass'
-            ),
+            item: items.filter((item: any) => item.category.name === 'subclass'),
             defaultCategory: 'subclass',
           },
         })
@@ -135,9 +118,9 @@ const List = ({
         return navigate(`/create/subrace`, {
           state: {
             background: location,
-            context: context.type,
+            formType: 'new',
             form: 'race',
-            data: items.filter((item: any) => item.category.name === 'subrace'),
+            item: items.filter((item: any) => item.category.name === 'subrace'),
             defaultCategory: 'subrace',
           },
         })
@@ -146,13 +129,11 @@ const List = ({
     navigate(`/create/${context.title}`, {
       state: {
         background: location,
-        context: context,
+        formType: 'new',
         form: context.title,
-        data: items.filter((item: any) =>
-          context.title === 'class' ? item.category.name === 'base' : item
-        ),
-        defaultCategory:
-          context.title === 'class' || context.title === 'race' ? 'base' : null,
+        item: items.filter((item: any) => (context.title === 'class' ? item.category.name === 'base' : item)),
+        defaultCategory: context.title === 'class' || context.title === 'race' ? 'base' : null,
+        items: items,
       },
     })
   }
@@ -162,7 +143,7 @@ const List = ({
       state: {
         background: location,
         title: item.value,
-        data: item,
+        item: item,
         size: 'sm',
         context: 'delete',
       },
@@ -174,58 +155,37 @@ const List = ({
   ) : (
     <>
       <Group className={sprinkles({ my: 'size-3' })}>
-        <h1>
-          {startCase(
-            `${context.title === 'class' ? 'classe' : context.title}s`
-          )}
-        </h1>
+        <h1>{startCase(`${context.title === 'class' ? 'classe' : context.title}s`)}</h1>
         <Grid
           cols={{
             lg: context.title === 'class' || context.title === 'race' ? 3 : 2,
             md: context.title === 'class' || context.title === 'race' ? 3 : 2,
-            base: context.title === 'class' || context.title === 'race' ? 3 : 2,
+            base: 2,
           }}
           className={sprinkles({ width: 'auto' })}
         >
           <Button type='button' variant='default' onClick={onFilterReset}>
             Clear Filters
           </Button>
-          <Button
-            type='button'
-            variant='default'
-            onClick={() => handleCreate()}
-          >
+          <Button type='button' variant='default' onClick={() => handleCreate()}>
             Create {context.title === 'item' ? 'an ' : 'a '}
             {startCase(context.title)}
           </Button>
           {(context.title === 'class' || context.title === 'race') && (
-            <Button
-              type='button'
-              variant='default'
-              onClick={() => handleCreate(true)}
-            >
+            <Button type='button' variant='default' onClick={() => handleCreate(true)}>
               Create a {context.title === 'class' ? 'Subclass' : 'Subrace'}
             </Button>
           )}
         </Grid>
       </Group>
       {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      <Filter
-        context={`${context.title}`}
-        items={items}
-        listFilter={listFilter}
-        setListFilter={setListFilter}
-      />
+      <Filter context={`${context.title}`} items={items} listFilter={listFilter} setListFilter={setListFilter} />
       <Table
         id={'list-table'}
         addRow={false}
         readOnly={true}
         sortable={true}
-        defaultSort={
-          tableColumns.headers.find(
-            (headerItem: any) => headerItem.defaultSort === true
-          ) ?? undefined
-        }
+        defaultSort={tableColumns.headers.find((headerItem: any) => headerItem.defaultSort === true) ?? undefined}
         collapse={subrow?.collapse}
         rows={{
           inputs: tableColumns.inputs,
@@ -237,9 +197,7 @@ const List = ({
               }
             : undefined,
           subrow: subrow?.collapse && {
-            data: items?.filter(
-              (item: any) => item.category.name === subrow.filter
-            ) as any[],
+            data: items?.filter((item: any) => item.category.name === subrow.filter) as any[],
             matchKey: subrow.matchKey,
           },
         }}

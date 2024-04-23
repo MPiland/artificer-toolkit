@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
-import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
-import { selectAllItems, useGetItemsQuery } from '../../features/item/itemApiSlice'
-import { getSectionNames } from '../../utils/formUtils'
-import Input from '../Input/Input'
-import Dropdown from '../Dropdown/Dropdown'
-import RichTextEditor from '../RichTextEditor/RichTextEditor'
-import Table from '../Table/Table'
-import Divider from '../Divider/Divider'
-import Collapse from '../Collapse/Collapse'
-import Spinner from '../Spinner/Spinner'
+import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
+import { selectAllItems, useGetItemsQuery } from '../../../features/item/itemApiSlice'
+import { getSectionNames } from '../../../utils/formUtils'
+import Input from '../../Input/Input'
+import Dropdown from '../../Dropdown/Dropdown'
+import RichTextEditor from '../../RichTextEditor/RichTextEditor'
+import Table from '../../Table/Table'
+import Divider from '../../Divider/Divider'
+import Collapse from '../../Collapse/Collapse'
+import Spinner from '../../Spinner/Spinner'
 import {
   DropdownOption,
   ReducerActionType,
@@ -19,27 +19,27 @@ import {
   SectionName,
   FormContext,
   Step,
-} from '../../utils/types'
-import Grid from '../Grid/Grid'
-import Select from '../Select/Select'
+} from '../../../utils/types'
+import Grid from '../../Grid/Grid'
+import Select from '../../Select/Select'
 import { isEqual, startCase } from 'lodash'
 import {
-  feature_description,
   feature_content_header,
   feature_list,
   form_content,
   form_add_button,
   form_remove_button,
   equipment_sub_group_button,
-} from './Form.css'
-import Accordion from '../Accordion/Accordion'
+} from '../Form.css'
+import { feature_description } from '../Form.css'
+import Accordion from '../../Accordion/Accordion'
 import parse from 'html-react-parser'
-import { sprinkles } from '../../css/sprinkles.css'
-import useIsLoading from '../../hooks/useIsLoading'
-import ScrollArea from '../ScrollArea/ScrollArea'
-import Group from '../Group/Group'
-import { selectAllSpells, useGetSpellsQuery } from '../../features/spell/spellApiSlice'
-import Button from '../Button/Button'
+import { sprinkles } from '../../../css/sprinkles.css'
+import useIsLoading from '../../../hooks/useIsLoading'
+import ScrollArea from '../../ScrollArea/ScrollArea'
+import Group from '../../Group/Group'
+import { selectAllSpells, useGetSpellsQuery } from '../../../features/spell/spellApiSlice'
+import Button from '../../Button/Button'
 import { TbPlus, TbX } from 'react-icons/tb'
 import clsx from 'clsx'
 

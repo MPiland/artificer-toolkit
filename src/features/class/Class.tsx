@@ -1,6 +1,6 @@
 import parse from 'html-react-parser'
 import { Fragment } from 'react'
-import { selectClassById, selectSubclassById, useGetClassesQuery } from './classApiSlice'
+import { selectSubclassById } from './classApiSlice'
 import { useLocation } from 'react-router-dom'
 import Spinner from '../../components/Spinner/Spinner'
 import { useSelector } from 'react-redux'
@@ -75,7 +75,7 @@ const Class = () => {
           childReqOption.featureKnown?.feature?.map((reqFeatureItem: any, reqFeatureIndex: number) => {
             featureText += `${reqFeatureItem.value}`
             const featureLength = childReqOption.featureKnown?.feature.length
-            const classFeature = userClass.feature.find(
+            const classFeature = uClass.feature.find(
               (classFeatureItem: any) => reqFeatureItem._id === classFeatureItem._id
             )
             if (childReqOption.featureKnown?.option?.length > 0) {
@@ -117,16 +117,9 @@ const Class = () => {
     }
   }
 
-  const { userClass, isFetching, isLoading }: { userClass: any; isFetching: boolean; isLoading: boolean } =
-    useGetClassesQuery(undefined, {
-      selectFromResult: ({ data, isFetching, isLoading }) => ({
-        userClass: data && selectClassById(data, location.state.data.id),
-        isFetching,
-        isLoading,
-      }),
-    })
+  const uClass = location.state.item
 
-  const subclass: any = useSelector((state) => selectSubclassById(state, location.state.data.id))
+  const subclass: any = useSelector((state) => selectSubclassById(state, location.state.item.id))
 
   const scrollToElement = (e: MouseEvent, id: string) => {
     const element = document.getElementById(`${id}`)
@@ -140,37 +133,95 @@ const Class = () => {
 
   let resourceShown = false
 
-  const detail = (
-    <>
+  const sidebarList =
+    uClass?.category?.name === 'base' ? (
+      <>
+        {uClass?.detail?.length > 0 &&
+          uClass.detail.map((detailItem: any, detailIndex: number) => (
+            <li
+              key={detailIndex}
+              onClick={(e: any) => {
+                scrollToElement(e, detailItem.name)
+              }}
+            >
+              <a href='/'>{detailItem?.value}</a>
+            </li>
+          ))}
+        {uClass.subclass && (
+          <li
+            onClick={(e: any) => {
+              scrollToElement(e, uClass.subclass.name)
+            }}
+          >
+            <a href='/'>{uClass.subclass.value}</a>
+          </li>
+        )}
+        {subclass.length > 0 &&
+          subclass.map((subclassItem: any, subclassIndex: number) => (
+            <li key={subclassIndex}>
+              <a
+                href='/'
+                onClick={(e: any) => {
+                  scrollToElement(e, subclassItem.name)
+                }}
+              >
+                {subclassItem.value}
+              </a>
+            </li>
+          ))}
+      </>
+    ) : (
+      <>
+        {uClass.feature?.length > 0 &&
+          uClass.feature.map((featureItem: any, featureIndex: number) => (
+            <li key={featureIndex}>
+              <a
+                href='/'
+                className='sidebar-link'
+                onClick={(e: any) => {
+                  scrollToElement(e, featureItem.name)
+                }}
+              >
+                {featureItem.value}
+              </a>
+            </li>
+          ))}
+      </>
+    )
+
+  return !uClass ? (
+    <Spinner />
+  ) : (
+    <Detail sidebar={{ list: sidebarList }} footerSpacing='end'>
       <div id='quote'>
-        <em>{userClass?.desc && parse(userClass.desc)}</em>
+        <em>{uClass?.desc && parse(uClass.desc)}</em>
       </div>
-      {userClass.category?.name === 'base' ? (
+      {uClass.category?.name === 'base' ? (
         <>
-          {userClass.detail &&
-            userClass.detail?.length > 0 &&
-            userClass.detail.map((detailItem: any, detailIndex: number) => (
+          {uClass.detail &&
+            uClass.detail?.length > 0 &&
+            uClass.detail.map((detailItem: any, detailIndex: number) => (
               <section id={`${detailItem.name}`} key={detailIndex}>
                 <strong>
                   <h2>{detailItem.value}</h2>
                 </strong>
                 <hr />
                 {detailItem.desc && parse(detailItem.desc)}
-                {detailIndex === userClass.detail.length - 1 &&
-                  userClass.feature?.length > 0 &&
-                  userClass.feature.map((featureItem: any, featureIndex: number) => {
+                {detailIndex === uClass.detail.length - 1 &&
+                  uClass.feature?.length > 0 &&
+                  uClass.feature.map((featureItem: any, featureIndex: number) => {
                     const featureLevelArray = featureItem.levelAvailable.split(', ')
                     const featureLevel = featureLevelArray[0]
                     return (
                       <Fragment key={featureIndex}>
-                        {userClass.resource &&
-                          Number(featureLevel) >= userClass.resource?.levelAvailable &&
+                        {uClass.resource &&
+                          Number(featureLevel) >= uClass.resource?.levelAvailable &&
                           !resourceShown && (
                             <Fragment>
                               <h3>
-                                <strong>{userClass.resource?.value}</strong>
+                                <strong>{uClass.resource?.value}</strong>
                               </h3>
-                              {userClass.resource?.desc && parse(userClass.resource?.desc)}
+                              {uClass.resource?.desc && parse(uClass.resource?.desc)}
                               {(resourceShown = true)}
                             </Fragment>
                           )}
@@ -199,13 +250,13 @@ const Class = () => {
                   })}
               </section>
             ))}
-          {userClass.subclass && userClass.subclass?.name && (
-            <section id={`${userClass.subclass.name}`}>
+          {uClass.subclass && uClass.subclass?.name && (
+            <section id={`${uClass.subclass.name}`}>
               <h2>
-                <strong>{userClass.subclass.value}</strong>
+                <strong>{uClass.subclass.value}</strong>
               </h2>
               <hr />
-              {userClass.subclass?.desc && parse(userClass.subclass.desc)}
+              {uClass.subclass?.desc && parse(uClass.subclass.desc)}
             </section>
           )}
           {subclass.length > 0 && (
@@ -268,23 +319,21 @@ const Class = () => {
         </>
       ) : (
         <>
-          {userClass.feature?.length > 0 &&
-            userClass.feature.map((featureItem: any, featureIndex: number) => {
+          {uClass.feature?.length > 0 &&
+            uClass.feature.map((featureItem: any, featureIndex: number) => {
               const featureLevelArray = featureItem.levelAvailable.split(', ')
               const featureLevel = featureLevelArray[0]
               return (
                 <Fragment key={featureIndex}>
-                  {userClass.resource &&
-                    Number(featureLevel) >= userClass.resource?.levelAvailable &&
-                    !resourceShown && (
-                      <Fragment>
-                        <h3>
-                          <strong>{userClass.resource?.value}</strong>
-                        </h3>
-                        {userClass.resource?.desc && parse(userClass.resource?.desc)}
-                        {(resourceShown = true)}
-                      </Fragment>
-                    )}
+                  {uClass.resource && Number(featureLevel) >= uClass.resource?.levelAvailable && !resourceShown && (
+                    <Fragment>
+                      <h3>
+                        <strong>{uClass.resource?.value}</strong>
+                      </h3>
+                      {uClass.resource?.desc && parse(uClass.resource?.desc)}
+                      {(resourceShown = true)}
+                    </Fragment>
+                  )}
                   <h3>
                     <strong>{featureItem.value}</strong>
                   </h3>
@@ -310,69 +359,7 @@ const Class = () => {
             })}
         </>
       )}
-    </>
-  )
-
-  const sidebarList =
-    userClass?.category?.name === 'base' ? (
-      <>
-        {userClass?.detail?.length > 0 &&
-          userClass.detail.map((detailItem: any, detailIndex: number) => (
-            <li
-              key={detailIndex}
-              onClick={(e: any) => {
-                scrollToElement(e, detailItem.name)
-              }}
-            >
-              <a href='/'>{detailItem?.value}</a>
-            </li>
-          ))}
-        {userClass.subclass && (
-          <li
-            onClick={(e: any) => {
-              scrollToElement(e, userClass.subclass.name)
-            }}
-          >
-            <a href='/'>{userClass.subclass.value}</a>
-          </li>
-        )}
-        {subclass.length > 0 &&
-          subclass.map((subclassItem: any, subclassIndex: number) => (
-            <li key={subclassIndex}>
-              <a
-                href='/'
-                onClick={(e: any) => {
-                  scrollToElement(e, subclassItem.name)
-                }}
-              >
-                {subclassItem.value}
-              </a>
-            </li>
-          ))}
-      </>
-    ) : (
-      <>
-        {userClass.feature?.length > 0 &&
-          userClass.feature.map((featureItem: any, featureIndex: number) => (
-            <li key={featureIndex}>
-              <a
-                href='/'
-                className='sidebar-link'
-                onClick={(e: any) => {
-                  scrollToElement(e, featureItem.name)
-                }}
-              >
-                {featureItem.value}
-              </a>
-            </li>
-          ))}
-      </>
-    )
-
-  return isFetching || isLoading || !userClass ? (
-    <Spinner />
-  ) : (
-    <Detail detail={detail} sidebar={{ list: sidebarList }} location={location} footerSpacing='end' />
+    </Detail>
   )
 }
 

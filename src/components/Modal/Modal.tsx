@@ -131,11 +131,7 @@ const Modal: FC & {
     <>
       <div className={clsx(modal, light)} onClick={handleClose}>
         <Dialogue size={location.state.size}>
-          <div
-            className={modal_content}
-            role='document'
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className={modal_content} role='document' onClick={(e) => e.stopPropagation()}>
             <Outlet />
           </div>
         </Dialogue>

@@ -1,33 +1,42 @@
 import Modal from '../Modal/Modal'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
-import { useDispatch } from 'react-redux'
-import { confirmBack, confirmForward, confirmStep } from '../../app/modalSlice'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 const Alert = () => {
+  console.log('alert')
   const navigate = useNavigate()
-  const dispatch = useDispatch()
   const location = useLocation()
 
-  const context: 'back' | 'forward' | 'step' | 'invalidForm' =
-    location.state.context
-  const message = location.state.message
-  const index = location.state.index
+  const alertType: 'back' | 'forward' | 'step' | 'invalidForm' = location.state?.alertType
+  const message = location.state?.message
+  const index = location.state?.index
+
+  console.log({ location })
 
   const handleConfirmBack = () => {
-    navigate(-1)
-    dispatch(confirmBack({ status: true }))
+    navigate(`${location.state?.background.state.background.pathname}`, {
+      state: {
+        confirmBack: true,
+      },
+    })
   }
 
   const handleConfirmForward = () => {
-    navigate(-1)
-    dispatch(confirmForward({ status: true }))
+    navigate(`${location.state?.background.pathname}`, {
+      state: {
+        confirmForward: true,
+      },
+    })
   }
 
   const handleConfirmStep = () => {
-    navigate(-1)
-    dispatch(confirmStep({ status: true, index: index }))
+    navigate(`${location.state?.background.pathname}`, {
+      state: {
+        confirmStep: true,
+        stepIndex: index,
+      },
+    })
   }
 
   const handleCancel = () => {
@@ -43,15 +52,15 @@ const Alert = () => {
       <Modal.Footer>
         <Group directionVariant='row' justifyContentVariant='spaceBetween'>
           <Button variant='default' onClick={handleCancel}>
-            {context === 'invalidForm' ? 'Ok' : 'Cancel'}
+            {alertType === 'invalidForm' ? 'Ok' : 'Cancel'}
           </Button>
-          {context !== 'invalidForm' && (
+          {alertType !== 'invalidForm' && (
             <Button
               variant='danger'
               onClick={() =>
-                context === 'forward'
+                alertType === 'forward'
                   ? handleConfirmForward()
-                  : context === 'step'
+                  : alertType === 'step'
                   ? handleConfirmStep()
                   : handleConfirmBack()
               }

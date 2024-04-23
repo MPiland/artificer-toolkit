@@ -32,6 +32,8 @@ import BackgroundList from './features/background/BackgroundList'
 import Background from './features/background/Background'
 import CharacterForm from './features/character/CharacterForm'
 import Copy from './components/Copy/Copy'
+import RaceShort from './features/race/RaceShort'
+import ClassShort from './features/class/ClassShort'
 
 const App = () => {
   const [theme] = useState('light')
@@ -119,12 +121,14 @@ const App = () => {
             <Route path='/feat/:id' element={<Feat />} />
             <Route path='/item/:id' element={<Item />} />
             <Route path='/race/:id' element={<Race />} />
+            <Route path='/race/:id/short' element={<RaceShort />} />
             <Route path='/class/:id' element={<Class />} />
+            <Route path='/class/:id/short' element={<ClassShort />} />
             <Route path='/background/:id' element={<Background />} />
             <Route path='/delete/:id' element={<Delete />} />
             <Route path='/create/:type' element={<Create />} />
             <Route path='/copy/feature' element={<Copy />} />
-            <Route path='*' element={<Alert />} />
+            <Route path=':id/alert' element={<Alert />} />
           </Route>
         </Routes>
       )}

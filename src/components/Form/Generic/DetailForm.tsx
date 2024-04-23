@@ -3,28 +3,28 @@ import {
   ReducerActionType,
   DropdownOption,
   FormContext,
-} from '../../utils/types'
-import Dropdown from '../Dropdown/Dropdown'
-import Input from '../Input/Input'
-import Grid from '../Grid/Grid'
-import RichTextEditor from '../RichTextEditor/RichTextEditor'
-import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
+} from '../../../utils/types'
+import Dropdown from '../../Dropdown/Dropdown'
+import Input from '../../Input/Input'
+import Grid from '../../Grid/Grid'
+import RichTextEditor from '../../RichTextEditor/RichTextEditor'
+import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
 import {
   selectAllClasses,
   useGetClassesQuery,
-} from '../../features/class/classApiSlice'
+} from '../../../features/class/classApiSlice'
 import {
   selectAllRaces,
   useGetRacesQuery,
-} from '../../features/race/raceApiSlice'
+} from '../../../features/race/raceApiSlice'
 import { startCase } from 'lodash'
-import Button from '../Button/Button'
-import Accordion from '../Accordion/Accordion'
-import { sprinkles } from '../../css/sprinkles.css'
-import { form_content } from './Form.css'
-import ScrollArea from '../ScrollArea/ScrollArea'
-import useIsLoading from '../../hooks/useIsLoading'
-import Spinner from '../Spinner/Spinner'
+import Button from '../../Button/Button'
+import Accordion from '../../Accordion/Accordion'
+import { sprinkles } from '../../../css/sprinkles.css'
+import { form_content } from '../Form.css'
+import ScrollArea from '../../ScrollArea/ScrollArea'
+import useIsLoading from '../../../hooks/useIsLoading'
+import Spinner from '../../Spinner/Spinner'
 
 interface DetailFormProps {
   context: FormContext
@@ -244,7 +244,7 @@ const DetailForm = memo(
                     <Dropdown
                       name='hitPoint.ability.type'
                       label='HP Modifier Ability'
-                      value={formState?.hitPoint.ability.type}
+                      value={formState?.hitPoint?.ability?.type}
                       options={builders.ability.type}
                       required={true}
                       onChange={setFormState}

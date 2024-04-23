@@ -78,15 +78,7 @@ export type FeatureContext = 'OptionContent' | 'OptionFeatureContent' | ''
 
 export type FeatureStepName = 'FeatureContent' | 'SectionContent' | ''
 
-export type SectionName =
-  | 'option'
-  | 'modifier'
-  | 'spell'
-  | 'proficiency'
-  | 'sense'
-  | 'feature'
-  | 'ancestry'
-  | ''
+export type SectionName = 'option' | 'modifier' | 'spell' | 'proficiency' | 'sense' | 'feature' | 'ancestry' | ''
 
 export type SelectOption = string | undefined
 
@@ -113,14 +105,6 @@ export type Step =
   | 'Background'
 
 export type FormContext = {
-  type?: 'new' | 'edit'
-  title?:
-    | 'class'
-    | 'spell'
-    | 'race'
-    | 'item'
-    | 'feat'
-    | 'option'
-    | 'background'
-    | 'character'
+  type?: 'new' | 'edit' | string
+  title?: 'class' | 'spell' | 'race' | 'item' | 'feat' | 'option' | 'background' | 'character'
 }

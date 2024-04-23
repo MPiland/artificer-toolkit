@@ -1,23 +1,20 @@
 import { useEffect, useState } from 'react'
 import parse from 'html-react-parser'
-import Button from '../Button/Button'
-import { ReducerActionType, FeatureStepName, FormContext, Step } from '../../utils/types'
-import { feature_description, feature_list, form_content } from './Form.css'
-import Accordion from '../Accordion/Accordion'
-import ScrollArea from '../ScrollArea/ScrollArea'
-import { getSectionNames } from '../../utils/formUtils'
-import Group from '../Group/Group'
+import Button from '../../Button/Button'
+import { ReducerActionType, FeatureStepName, FormContext, Step } from '../../../utils/types'
+import { feature_list, form_content, feature_description } from '../Form.css'
+import Accordion from '../../Accordion/Accordion'
+import ScrollArea from '../../ScrollArea/ScrollArea'
+import { getSectionNames } from '../../../utils/formUtils'
+import Group from '../../Group/Group'
 import { get, startCase } from 'lodash'
-import { sprinkles } from '../../css/sprinkles.css'
-import RichTextEditor from '../RichTextEditor/RichTextEditor'
-import Input from '../Input/Input'
-import Grid from '../Grid/Grid'
-import Collapse from '../Collapse/Collapse'
-import { selectAllRaces, useGetRacesQuery } from '../../features/race/raceApiSlice'
+import { sprinkles } from '../../../css/sprinkles.css'
+import RichTextEditor from '../../RichTextEditor/RichTextEditor'
+import Input from '../../Input/Input'
+import Grid from '../../Grid/Grid'
+import Collapse from '../../Collapse/Collapse'
+import { selectAllRaces, useGetRacesQuery } from '../../../features/race/raceApiSlice'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../../app/store'
-import { clearCopy } from '../../app/modalSlice'
 
 interface FeatureListProps {
   context: FormContext
@@ -45,9 +42,8 @@ const FeatureList = ({
 }: FeatureListProps) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const dispatch = useDispatch()
 
-  const copy = useSelector((state: RootState) => state.modal.copy.status)
+  const copy = location.state.copy
 
   const [activeIndex, setActiveIndex] = useState<number | null>(context.type !== 'new' ? null : 0)
   const [arrayName, setArrayName] = useState<any | any[]>(null)
@@ -108,7 +104,6 @@ const FeatureList = ({
       setFeatureState({ type: 'reset', target: { value: feature } })
       setOldFeatureState(feature)
       setFeatureStepName('FeatureContent')
-      dispatch(clearCopy())
     }
   }, [
     copy,
@@ -118,7 +113,6 @@ const FeatureList = ({
     setFeatureState,
     setOldFeatureState,
     setFeatureStepName,
-    dispatch,
   ])
 
   const toggle = (index: number) => {

@@ -24,16 +24,18 @@ const Create = () => {
 
   const handleCopy = () => {
     const dropdown = document.getElementById('create_dropdown')
-    if (dropdown?.getAttribute('data-atapp-dropdown') === 'false') {
+    if (dropdown?.getAttribute('data-atapp-options') === 'false') {
       dropdown.dispatchEvent(
         new CustomEvent('setErrorState', {
           detail: true,
         })
       )
     } else {
+      const item = location.state.items.find((item: any) => item._id === selection._id)
       navigate(`/${location.state.form}/new`, {
         state: {
-          data: selection,
+          item: item,
+          formType: 'new',
         },
       })
     }
@@ -43,6 +45,7 @@ const Create = () => {
     navigate(`/${location.state.form}/new`, {
       state: {
         defaultCategory: location.state.defaultCategory,
+        formType: 'new',
       },
     })
   }
@@ -55,7 +58,7 @@ const Create = () => {
       <Modal.Body>
         <Group directionVariant='row' alignItemsVariant='end'>
           <Dropdown
-            options={location.state.data}
+            options={location.state.items}
             label={`Copy Existing ${startCase(type)}`}
             onChange={handleSelect}
             name='copy'

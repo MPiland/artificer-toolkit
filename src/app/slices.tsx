@@ -1,7 +1,6 @@
 import { combineSlices } from '@reduxjs/toolkit'
 import { apiSlice } from './api/apiSlice'
 import { authSlice } from '../features/auth/authSlice'
-import { modalSlice } from './modalSlice'
 import { builderSlice } from '../features/builder/builderSlice'
 import { spellSlice } from '../features/spell/spellSlice'
 import { raceSlice } from '../features/race/raceSlice'
@@ -14,7 +13,6 @@ import { backgroundSlice } from '../features/background/backgroundSlice'
 export const rootReducer = combineSlices(
   apiSlice,
   authSlice,
-  modalSlice,
   builderSlice,
   spellSlice,
   raceSlice,
