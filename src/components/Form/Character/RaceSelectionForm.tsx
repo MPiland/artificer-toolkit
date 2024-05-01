@@ -3,7 +3,7 @@ import Spinner from '../../Spinner/Spinner'
 import { ReducerActionType } from '../../../utils/types'
 import { Fragment, useEffect } from 'react'
 import ScrollArea from '../../ScrollArea/ScrollArea'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import RaceFeatureForm from './RaceFeatureForm'
 import { card_group, card_header_title, main_card, subrace_card } from './Character.css'
 import { form_content } from '../Form.css'
@@ -17,7 +17,6 @@ interface RaceSelectionFormProps {
   setSelectedRace: (arg: any) => void
   changeRace: boolean
   setChangeRace: (arg: boolean) => void
-  handleShowDetail: (arg1: any, arg2: string) => void
 }
 
 const RaceSelectionForm = ({
@@ -27,15 +26,13 @@ const RaceSelectionForm = ({
   setSelectedRace,
   changeRace,
   setChangeRace,
-  handleShowDetail,
 }: RaceSelectionFormProps) => {
+  const navigate = useNavigate()
   const location = useLocation()
 
-  console.log({ location })
-
-  const raceSelected = location.state.selected
-  const formRace = location.state.selection.item
-  const context = location.state.selection.context
+  const raceSelected = location.state?.selected
+  const formRace = location.state?.selection?.item
+  const context = location.state?.selection?.context
 
   const { races } = useGetRacesQuery(undefined, {
     selectFromResult: ({ data }) => ({ races: data && selectAllRaces(data) }),
@@ -50,13 +47,24 @@ const RaceSelectionForm = ({
     }
   }, [context, formRace, raceSelected, selectedRace, setSelectedRace, changeRace, setChangeRace])
 
+  const handleShowDetail = (item: any, context: string) => {
+    navigate(`/${context}/${item.name}/short`, {
+      state: {
+        background: location,
+        item: item,
+        size: 'sm',
+        context: context,
+      },
+    })
+  }
+
   const subraces = races?.filter((race: any) => race.category.name === 'subrace') as any[]
 
   const baseRaces = races?.filter((race: any) => race.category.name === 'base') as any[]
 
   return !baseRaces ? (
     <Spinner />
-  ) : selectedRace !== null && changeRace === false ? (
+  ) : selectedRace !== null && !changeRace ? (
     <RaceFeatureForm selectedRace={selectedRace} setFormState={setFormState} formState={formState} races={races} />
   ) : (
     <ScrollArea scrollDirection='vertical' className={form_content}>

@@ -1,4 +1,4 @@
-import { TbSquareMinus, TbSquarePlus, TbX } from 'react-icons/tb'
+import { TbCaretDown, TbCaretUp, TbSquareMinus, TbSquarePlus, TbX } from 'react-icons/tb'
 import { useLayoutEffect, useState, ReactNode, memo } from 'react'
 import {
   collapse_header,
@@ -26,6 +26,7 @@ interface CollapseProps {
   className?: string | number | symbol | any
   headerClassName?: string | number | symbol | any
   handleRemove?: () => void
+  style?: 'border' | 'borderless'
 }
 
 const Collapse = memo(
@@ -38,6 +39,7 @@ const Collapse = memo(
     handleRemove,
     headerButton,
     headerClassName,
+    style = 'border',
   }: CollapseProps) => {
     const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
 
@@ -58,13 +60,16 @@ const Collapse = memo(
     }
 
     return (
-      <div className={clsx(collapse_wrapper, { [className]: className })}>
+      <div className={clsx(collapse_wrapper, { [className]: className }, { ['borderless']: style === 'borderless' })}>
         {!buttonDisabled && (
           <div
             className={clsx(collapse_header, { ['collapsed']: isCollapsed }, { [headerClassName]: headerClassName })}
             onClick={handleButtonClick}
           >
-            <Group justifyContentVariant='spaceBetween' className={sprinkles({ width: 'full' })}>
+            <Group
+              justifyContentVariant={style === 'border' ? 'spaceBetween' : 'start'}
+              className={sprinkles({ width: 'full' })}
+            >
               <Group>
                 {handleRemove && (
                   <Button
@@ -81,29 +86,35 @@ const Collapse = memo(
                 )}
                 <h3>{title}</h3>
               </Group>
+              <Group>
+                {headerButton &&
+                  headerButton.length > 0 &&
+                  headerButton?.map((buttonItem: any, buttonIndex: number) => (
+                    <Button
+                      variant='primary_outline'
+                      type='button'
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        buttonItem.function()
+                      }}
+                      className={clsx(
+                        {
+                          [sprinkles({ me: 'size-2' })]: buttonIndex !== headerButton.length - 1,
+                        },
+                        collapse_optional_button
+                      )}
+                      key={buttonIndex}
+                    >
+                      {buttonItem.label}
+                    </Button>
+                  ))}
+                {style === 'border' ? (
+                  <span className={collapse_header_icon}>{isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}</span>
+                ) : (
+                  <span className={collapse_header_icon}>{isCollapsed ? <TbCaretDown /> : <TbCaretUp />}</span>
+                )}
+              </Group>
             </Group>
-            {headerButton &&
-              headerButton.length > 0 &&
-              headerButton?.map((buttonItem: any, buttonIndex: number) => (
-                <Button
-                  variant='primary_outline'
-                  type='button'
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    buttonItem.function()
-                  }}
-                  className={clsx(
-                    {
-                      [sprinkles({ me: 'size-2' })]: buttonIndex !== headerButton.length - 1,
-                    },
-                    collapse_optional_button
-                  )}
-                  key={buttonIndex}
-                >
-                  {buttonItem.label}
-                </Button>
-              ))}
-            <span className={collapse_header_icon}>{isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}</span>
           </div>
         )}
         <div
@@ -111,7 +122,15 @@ const Collapse = memo(
             ['collapsed']: isCollapsed,
           })}
         >
-          <div className={clsx(collapse_content, { ['collapsed']: isCollapsed })}>{children}</div>
+          <div
+            className={clsx(
+              collapse_content,
+              { ['collapsed']: isCollapsed },
+              { ['borderless']: style === 'borderless' }
+            )}
+          >
+            {children}
+          </div>
         </div>
       </div>
     )

@@ -1,15 +1,9 @@
-import {
-  ReactNode,
-  FC,
-  useLayoutEffect,
-  useState,
-  Children,
-  isValidElement,
-} from 'react'
+import { ReactNode, FC, useLayoutEffect, useState, Children, isValidElement } from 'react'
 import { grid, grid_size } from './Grid.css'
 import clsx from 'clsx'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
 import { useMediaQuery } from 'usehooks-ts'
+import { size } from '../../css/size.css'
 
 type colsAuto = {
   start: number
@@ -60,20 +54,24 @@ const Grid: FC<GridProps> = ({ children, className, cols, onClick }) => {
       } else {
         // Handle colsSet
         if (lg) {
-          if (cols && cols.lg) {
+          if (cols.lg) {
             setGridSize(`repeat(${cols.lg}, minmax(3rem, 1fr))`)
+          } else if (cols.base) {
+            setGridSize(`repeat(${cols.base}, minmax(3rem, ${size['size-8']}))`)
           } else {
             setGridSize(`repeat(5, minmax(3rem, 1fr))`)
           }
         } else if (md) {
-          if (cols && cols.md) {
+          if (cols.md) {
             setGridSize(`repeat(${cols.md}, minmax(3rem, 1fr))`)
+          } else if (cols.base) {
+            setGridSize(`repeat(${cols.base}, minmax(3rem,  ${size['size-8']}))`)
           } else {
             setGridSize(`repeat(4, minmax(3rem, 1fr))`)
           }
         } else {
-          if (cols && cols.base) {
-            setGridSize(`repeat(${cols.base}, minmax(3rem, 1fr))`)
+          if (cols.base) {
+            setGridSize(`repeat(${cols.base}, minmax(3rem,  ${size['size-8']}))`)
           } else {
             setGridSize(`repeat(2, minmax(3rem, 1fr))`)
           }

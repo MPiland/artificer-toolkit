@@ -1,5 +1,5 @@
 import { error_message, form_header, form_wrapper, success_message } from './Form.css'
-import { useEffect, useReducer, useState, useRef, useMemo, useCallback } from 'react'
+import { useEffect, useReducer, useState, useRef, useMemo } from 'react'
 import { get, set, startCase } from 'lodash'
 import ProgressBar from './ProgressBar'
 import Spinner from '../Spinner/Spinner'
@@ -21,7 +21,6 @@ import FeatureList from './Feature/FeatureList'
 import FeatureContent from './Feature/FeatureContent'
 import SectionContent from './Feature/SectionContent'
 import { sprinkles } from '../../css/sprinkles.css'
-import { useGetBuildersQuery } from '../../features/builder/builderApiSlice'
 import RaceSelectionForm from './Character/RaceSelectionForm'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
@@ -44,10 +43,7 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { data: builders } = useGetBuildersQuery(undefined)
-
   const formItem = location.state?.item
-  const defaultCategory = location.state?.defaultCategory
   const formType = location.state?.formType
   const confirmBack = location.state?.confirmBack
   const confirmForward = location.state?.confirmForward
@@ -106,20 +102,6 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
     setSaving(false)
   }
 
-  const handleShowDetail = useCallback(
-    (item: any, context: string) => {
-      navigate(`/${context}/${item.name}/short`, {
-        state: {
-          background: location,
-          item: item,
-          size: 'sm',
-          context: context,
-        },
-      })
-    },
-    [location, navigate]
-  )
-
   const commonProps = useMemo(() => {
     return {
       context: { type: formType, title: context },
@@ -134,9 +116,9 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
       setSelectedClass,
       addClass,
       setAddClass,
-      handleShowDetail,
+      setOldFormState,
     }
-  }, [context, formType, formState, stepName, changeRace, selectedRace, selectedClass, addClass, handleShowDetail])
+  }, [context, formType, formState, stepName, changeRace, selectedRace, selectedClass, addClass])
 
   const featureProps = useMemo(() => {
     return {
@@ -224,6 +206,7 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
     ]
   }, [commonProps, featureProps])
 
+  // Set form name for progress bar
   useEffect(() => {
     if (formSteps) {
       setFormName(
@@ -242,49 +225,7 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
     }
   }, [formState, formSteps, stepFilter, stepIndex, steps])
 
-  // Set character defaults
-  useEffect(() => {
-    if (builders) {
-      let formClone = JSON.parse(JSON.stringify(formState))
-      if (context === 'character' && (!formState.ability || !(formState.ability.length > 0))) {
-        const abilityArray: any[] = []
-        builders.ability.type
-          .filter((ability: any) => ability.name !== 'spellAbility')
-          .forEach((ability: any) => abilityArray.push({ name: ability.name, value: ability.value, _id: ability._id }))
-        formClone = { ...formClone, ability: [...abilityArray] }
-
-        setFormState({
-          type: 'reset',
-          target: { value: formClone },
-        })
-      }
-
-      console.log({ formState })
-
-      if (context === 'character' && (!formState.skill || !(formState.skill.length > 0))) {
-        let formClone = JSON.parse(JSON.stringify(formState))
-        const skillArray: any[] = []
-        if (formClone.skill) {
-          builders.skill.type.forEach((skill: any) =>
-            skillArray.push({
-              name: skill.name,
-              value: skill.value,
-              _id: skill._id,
-              ability: skill.ability,
-            })
-          )
-        }
-        formClone = { ...formClone, skill: [...skillArray] }
-
-        setFormState({
-          type: 'reset',
-          target: { value: formClone },
-        })
-      }
-    }
-  }, [builders, context, formState])
-
-  // Set Valid default
+  // Set valid check default
   useEffect(() => {
     steps.forEach((step: string) => setValidForm((prev: any) => ({ ...prev, [`${step}`]: true })))
   }, [steps])
@@ -299,52 +240,6 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
     }
     setIsLoading(false)
   }, [isLoading, formItem, formType])
-
-  // Set base category dropdown value
-  useEffect(() => {
-    if ((context === 'race' || context === 'class') && !formState.category?.name && defaultCategory) {
-      setFormState({
-        target: {
-          name: 'category.name',
-          value: defaultCategory,
-        },
-      })
-    }
-
-    if (formState.category?.name && !formState.category?.value) {
-      let category = {}
-      if (context === 'class') {
-        category = builders?.class.category.find((categoryItem: any) => categoryItem.name === formState.category?.name)
-      }
-      if (context === 'race') {
-        category = {
-          ...builders?.race.category.find((categoryItem: any) => categoryItem.name === formState.category?.name),
-        }
-      }
-      const formClone = formItem ? JSON.parse(JSON.stringify(formItem)) : {}
-      set(formClone, 'category', category)
-      setFormState({
-        target: { name: 'category', value: category },
-      })
-      setOldFormState(formClone)
-    }
-  }, [
-    builders?.class.category,
-    builders?.race.category,
-    context,
-    formState.category?.name,
-    formState.category?.value,
-    setFormState,
-    defaultCategory,
-    formItem,
-  ])
-
-  // Inject form step based on attribute
-  useEffect(() => {
-    if (formItem?.attribute?.some((attributeItem: any) => attributeItem.name === 'containsItems')) {
-      steps.push('Contains')
-    }
-  })
 
   // Filter any steps as needed
   useEffect(() => {
@@ -1137,18 +1032,18 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
             {startCase(context)}
             {formState?.value && ` (${formState.value})`}
           </h1>
-          {selectedRace && stepName === 'Race' && !changeRace ? (
-            <Button
-              variant='warning'
-              onClick={() => {
-                setChangeRace(true)
-              }}
-            >
-              Change Race
-            </Button>
-          ) : (
-            selectedRace &&
-            stepName === 'Race' && (
+          {selectedRace &&
+            stepName === 'Race' &&
+            (!changeRace ? (
+              <Button
+                variant='warning'
+                onClick={() => {
+                  setChangeRace(true)
+                }}
+              >
+                Change Race
+              </Button>
+            ) : (
               <Button
                 variant='primary'
                 onClick={() => {
@@ -1157,18 +1052,28 @@ const Form = ({ context, steps, useAddNewItem, useUpdateItem, stepFilter }: Form
               >
                 Keep Race
               </Button>
-            )
-          )}
-          {selectedClass?.length > 0 && (
-            <Button
-              variant='warning'
-              onClick={() => {
-                setChangeRace(true)
-              }}
-            >
-              Add Class
-            </Button>
-          )}
+            ))}
+          {selectedClass?.length > 0 &&
+            stepName === 'Class' &&
+            (!addClass ? (
+              <Button
+                variant='warning'
+                onClick={() => {
+                  setAddClass(true)
+                }}
+              >
+                Add Class
+              </Button>
+            ) : (
+              <Button
+                variant='warning'
+                onClick={() => {
+                  setAddClass(false)
+                }}
+              >
+                Cancel Add Class
+              </Button>
+            ))}
         </Group>
         {errorMessage && <span className={error_message}>{errorMessage}</span>}
         {successMessage && <span className={success_message}>{successMessage}</span>}

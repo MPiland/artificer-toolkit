@@ -12,6 +12,13 @@ export const collapse_wrapper = style({
       borderRadius: theme['default-border-radius'],
       backgroundColor: theme.vars['app-background-color'],
       zIndex: 2,
+
+      selectors: {
+        '&.borderless': {
+          border: 'none',
+          borderRadius: '0',
+        },
+      },
     },
   },
 })
@@ -45,6 +52,10 @@ export const collapse_content = style({
       selectors: {
         '&.collapsed': {
           padding: `0 ${size['size-3']}`,
+        },
+        '&.borderless': {
+          paddingLeft: '0',
+          paddingRight: '0',
         },
       },
     },

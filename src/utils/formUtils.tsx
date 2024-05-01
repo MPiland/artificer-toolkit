@@ -38,9 +38,7 @@ export const tableContent: TableContent = {
 }
 
 export const getSectionNames = (): SectionName[] => {
-  const sectionNameArray: SectionName[] = Array.from(
-    Object.keys(tableContent)
-  ) as SectionName[]
+  const sectionNameArray: SectionName[] = Array.from(Object.keys(tableContent)) as SectionName[]
   sectionNameArray.push('option', 'feature')
   return sectionNameArray
 }

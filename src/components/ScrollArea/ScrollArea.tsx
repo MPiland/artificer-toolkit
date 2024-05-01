@@ -78,11 +78,9 @@ const ScrollArea = memo(
         const scrollWrapper = scrollWrapperRef.current
         const scrollArea = scrollAreaRef.current
         if (scrollArea && scrollWrapper) {
-          const { scrollLeft, scrollWidth, clientWidth, scrollHeight, clientHeight } = scrollArea
-          const scrollWrapperChildren = Array.from(scrollWrapper.children)
-          const scrollAreaChildren = Array.from(scrollArea.children)
           const handleResize = (entries: Array<ResizeObserverEntry>) => {
-            entries.forEach(() => {
+            entries.forEach((entry) => {
+              const { scrollLeft, scrollWidth, clientWidth, scrollHeight, clientHeight } = entry.target
               const hasHorizontalOverflow = scrollWidth > clientWidth
               const hasVerticalOverflow = scrollHeight > clientHeight
 
@@ -123,15 +121,8 @@ const ScrollArea = memo(
 
           const observer = new ResizeObserver(handleResize)
 
-          if (scrollWrapper && scrollArea) {
-            scrollWrapperChildren.forEach((wrapperChild) => {
-              if (wrapperChild === scrollArea) {
-                observer.observe(wrapperChild)
-              }
-            })
-            scrollAreaChildren.forEach((child) => {
-              observer.observe(child)
-            })
+          if (scrollArea) {
+            observer.observe(scrollArea)
           }
 
           return () => observer.disconnect()
@@ -279,7 +270,6 @@ const ScrollArea = memo(
       useEventListener('mouseover', handleMouseOver, scrollWrapperRef)
       useEventListener('mouseleave', handleMouseLeave, scrollWrapperRef)
 
-      console.log({ rightScroll })
       return (
         <div
           className={clsx(scroll_area_wrapper, {
