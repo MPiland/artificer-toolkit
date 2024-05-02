@@ -1,31 +1,18 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import {
-  selectBackgroundById,
-  useGetBackgroundsQuery,
-} from './backgroundApiSlice'
 import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
 import { Fragment } from 'react'
 
 const Background = () => {
-  const location: any = useLocation()
+  const location = useLocation()
 
-  const {
-    background,
-    isLoading,
-    isFetching,
-  }: { background: any; isFetching: boolean; isLoading: boolean } =
-    useGetBackgroundsQuery(undefined, {
-      selectFromResult: ({ data, isLoading, isFetching }) => ({
-        background: data && selectBackgroundById(data, location.state.data.id),
-        isLoading,
-        isFetching,
-      }),
-    })
+  const background = location.state.item
 
-  const detail = (
-    <>
+  return !background ? (
+    <Spinner />
+  ) : (
+    <Detail footerSpacing='end'>
       <div>{parse(background.desc)}</div>
       {background.feature?.length > 0 &&
         background.feature.map((featureItem: any, featureIndex: number) => (
@@ -45,13 +32,7 @@ const Background = () => {
             {detailItem.desc && parse(detailItem.desc)}
           </Fragment>
         ))}
-    </>
-  )
-
-  return isLoading || isFetching || !background ? (
-    <Spinner />
-  ) : (
-    <Detail detail={detail} location={location} footerSpacing='end' />
+    </Detail>
   )
 }
 
