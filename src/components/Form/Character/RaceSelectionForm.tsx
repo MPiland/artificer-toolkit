@@ -1,7 +1,6 @@
 import { selectAllRaces, useGetRacesQuery } from '../../../features/race/raceApiSlice'
 import Spinner from '../../Spinner/Spinner'
-import { ReducerActionType } from '../../../utils/types'
-import { Fragment, useEffect } from 'react'
+import { Fragment, useContext, useEffect } from 'react'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { useLocation, useNavigate } from 'react-router-dom'
 import RaceFeatureForm from './RaceFeatureForm'
@@ -9,26 +8,13 @@ import { card_group, card_header_title, main_card, subrace_card } from './Charac
 import { form_content } from '../Form.css'
 import clsx from 'clsx'
 import { isEqual } from 'lodash'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface RaceSelectionFormProps {
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-  selectedRace: any
-  setSelectedRace: (arg: any) => void
-  changeRace: boolean
-  setChangeRace: (arg: boolean) => void
-}
-
-const RaceSelectionForm = ({
-  formState,
-  setFormState,
-  selectedRace,
-  setSelectedRace,
-  changeRace,
-  setChangeRace,
-}: RaceSelectionFormProps) => {
+const RaceSelectionFormTest = () => {
   const navigate = useNavigate()
   const location = useLocation()
+
+  const { selectedRace, setSelectedRace, changeRace, setChangeRace } = useContext(FormStepsContext)
 
   const raceSelected = location.state?.selected
   const formRace = location.state?.selection?.item
@@ -65,7 +51,7 @@ const RaceSelectionForm = ({
   return !baseRaces ? (
     <Spinner />
   ) : selectedRace !== null && !changeRace ? (
-    <RaceFeatureForm selectedRace={selectedRace} setFormState={setFormState} formState={formState} races={races} />
+    <RaceFeatureForm />
   ) : (
     <ScrollArea scrollDirection='vertical' className={form_content}>
       {baseRaces.map((race: any, raceIndex: number) => {
@@ -107,4 +93,4 @@ const RaceSelectionForm = ({
   )
 }
 
-export default RaceSelectionForm
+export default RaceSelectionFormTest

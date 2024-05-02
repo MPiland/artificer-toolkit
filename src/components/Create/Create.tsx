@@ -32,20 +32,25 @@ const Create = () => {
       )
     } else {
       const item = location.state.items.find((item: any) => item._id === selection._id)
-      navigate(`/${location.state.form}/new`, {
+      const form = location.state.form
+      navigate(`/${form}/new`, {
         state: {
           item: item,
           formType: 'new',
+          form: form,
         },
       })
     }
   }
 
   const handleNew = () => {
-    navigate(`/${location.state.form}/new`, {
+    const form = location.state.form
+    const defaultCategory = location.state.defaultCategory
+    navigate(`/${form}/new`, {
       state: {
-        defaultCategory: location.state.defaultCategory,
+        defaultCategory: defaultCategory,
         formType: 'new',
+        form: form,
       },
     })
   }

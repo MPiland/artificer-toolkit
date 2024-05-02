@@ -1,5 +1,5 @@
-import { useEffect, memo, useState } from 'react'
-import { ReducerActionType, DropdownOption, RowHeader, RowInput, FormContext } from '../../../utils/types'
+import { useContext, useEffect } from 'react'
+import { DropdownOption, RowHeader, RowInput } from '../../../utils/types'
 import Grid from '../../Grid/Grid'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Dropdown from '../../Dropdown/Dropdown'
@@ -19,15 +19,12 @@ import Button from '../../Button/Button'
 import Group from '../../Group/Group'
 import clsx from 'clsx'
 import { TbPlus, TbX } from 'react-icons/tb'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface AttributeFormProps {
-  context: FormContext
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-}
-
-const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormProps) => {
+const AttributeFormTest = () => {
   const isLoading = useIsLoading()
+
+  const { context, formState, setFormState } = useContext(FormStepsContext)
 
   const { data: builders } = useGetBuildersQuery(undefined)
 
@@ -36,177 +33,6 @@ const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormP
       items: data && selectAllItems(data),
     }),
   })
-
-  const [damageTypes, setDamageTypes] = useState<Array<string>>(['primary'])
-  const [upcastTypes, setUpcastTypes] = useState<Array<string>>([])
-  const [upcastOptions, setUpcastOptions] = useState<Array<any>>(builders.spell.upcast.attribute)
-
-  // Set upcast options
-  useEffect(() => {
-    const options = [...builders.spell.upcast.attribute]
-    if (!formState.attribute?.some((attributeItem: any) => attributeItem.name === 'doesDamage')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'primaryDamage')
-    }
-
-    if (!formState.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'secondaryDamage')
-    }
-
-    if (!formState.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'bonusDamage')
-    }
-
-    if (!formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'limitedTargets')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'targets')
-    }
-
-    if (!formState?.range?.type) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'range')
-    }
-
-    if (!formState?.shape?.type) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'shape')
-    }
-
-    if (!formState?.duration?.type) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'duration')
-    }
-
-    setUpcastOptions(options)
-  }, [
-    formState?.range?.type,
-    formState?.shape?.type,
-    formState?.duration?.type,
-    builders.spell.upcast.attribute,
-    formState.attribute,
-    formState.damage?.attribute,
-  ])
-
-  // Set Damage Types (Bonus/Secondary) Array
-  useEffect(() => {
-    let types = [...damageTypes] // Create a copy of damageTypes array
-    if (formState?.damage?.attribute?.length > 0) {
-      // Handle secondary
-      if (formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage')) {
-        if (!types.includes('secondary')) {
-          types.push('secondary')
-
-          setDamageTypes(types)
-        }
-      } else if (types.includes('secondary')) {
-        types = types.filter((type) => type !== 'secondary')
-
-        setDamageTypes(types)
-      }
-
-      // Handle bonus damage
-      if (formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage')) {
-        if (!types.includes('bonus')) {
-          types.push('bonus')
-
-          setDamageTypes(types)
-        }
-      } else if (types.includes('bonus')) {
-        types = types.filter((type) => type !== 'bonus')
-
-        setDamageTypes(types)
-      }
-
-      if (formState.property?.some((propertyItem: any) => propertyItem.name === 'versatile')) {
-        if (!types.includes('versatile')) {
-          types.push('versatile')
-
-          setDamageTypes(types)
-        }
-      } else if (types.includes('versatile')) {
-        types = types.filter((type) => type !== 'versatile')
-
-        setDamageTypes(types)
-      }
-
-      if (
-        !formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage') &&
-        formState.damage?.secondary
-      ) {
-        setFormState({
-          type: 'removed',
-          target: { name: 'damage.secondary' },
-        })
-      }
-      if (
-        !formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage') &&
-        formState.damage?.bonus
-      ) {
-        setFormState({ type: 'removed', target: { name: 'damage.bonus' } })
-      }
-    } else {
-      if (!damageTypes.every((type) => type === 'primary')) {
-        types = types.filter((type) => type === 'primary')
-
-        setDamageTypes(types)
-      }
-    }
-  }, [
-    formState?.damage?.attribute,
-    formState.property,
-    damageTypes,
-    formState?.damage?.bonus,
-    formState?.damage?.secondary,
-    setFormState,
-  ])
-
-  // Set Upcast Types (Bonus/Secondary) Array
-  useEffect(() => {
-    if (formState?.upcast?.attribute?.length > 0) {
-      let types = [...upcastTypes] // Create a copy of damageTypes array
-      // Handle primary
-      if (
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'primaryDamage') ||
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
-      ) {
-        if (!types.includes('primary')) {
-          types.push('primary')
-          setUpcastTypes(types)
-        }
-      } else if (types.includes('primary')) {
-        types = types.filter((type) => type !== 'primary')
-
-        setUpcastTypes(types)
-      }
-
-      // Handle secondary
-      if (
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage') ||
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
-      ) {
-        if (!types.includes('secondary')) {
-          types.push('secondary')
-
-          setUpcastTypes(types)
-        }
-      } else if (types.includes('secondary')) {
-        types = types.filter((type) => type !== 'secondary')
-
-        setUpcastTypes(types)
-      }
-
-      // Handle bonus damage
-      if (
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage') ||
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
-      ) {
-        if (!types.includes('bonus')) {
-          types.push('bonus')
-
-          setUpcastTypes(types)
-        }
-      } else if (types.includes('bonus')) {
-        types = types.filter((type) => type !== 'bonus')
-
-        setUpcastTypes(types)
-      }
-    }
-  }, [formState?.upcast?.attribute, upcastTypes])
 
   // Add/remove Die Per Level table
   useEffect(() => {
@@ -231,7 +57,7 @@ const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormP
         },
       })
     }
-  }, [setFormState, formState.attribute, formState.damage, damageTypes])
+  }, [setFormState, formState.attribute, formState.damage])
 
   // Add/remove Set Per Level table
   useEffect(() => {
@@ -465,6 +291,133 @@ const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormP
     }
   }, [formState.attribute, setFormState, formState.requirement])
 
+  const damageTypes = () => {
+    let types = ['primary'] // Create a copy of damageTypes array
+    if (formState?.damage?.attribute?.length > 0) {
+      // Handle secondary
+      if (formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage')) {
+        if (!types.includes('secondary')) {
+          types.push('secondary')
+        }
+      } else if (types.includes('secondary')) {
+        types = types.filter((type) => type !== 'secondary')
+      }
+
+      // Handle bonus damage
+      if (formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage')) {
+        if (!types.includes('bonus')) {
+          types.push('bonus')
+        }
+      } else if (types.includes('bonus')) {
+        types = types.filter((type) => type !== 'bonus')
+      }
+
+      if (formState.property?.some((propertyItem: any) => propertyItem.name === 'versatile')) {
+        if (!types.includes('versatile')) {
+          types.push('versatile')
+        }
+      } else if (types.includes('versatile')) {
+        types = types.filter((type) => type !== 'versatile')
+      }
+
+      if (
+        !formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage') &&
+        formState.damage?.secondary
+      ) {
+        setFormState({
+          type: 'removed',
+          target: { name: 'damage.secondary' },
+        })
+      }
+      if (
+        !formState?.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage') &&
+        formState.damage?.bonus
+      ) {
+        setFormState({ type: 'removed', target: { name: 'damage.bonus' } })
+      }
+    } else {
+      types = ['primary']
+    }
+
+    return types
+  }
+
+  const upcastTypes = () => {
+    if (formState?.upcast?.attribute?.length > 0) {
+      let types: any[] = []
+      // Handle primary
+      if (
+        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'primaryDamage') ||
+        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+      ) {
+        if (!types.includes('primary')) {
+          types.push('primary')
+        }
+      } else if (types.includes('primary')) {
+        types = types.filter((type) => type !== 'primary')
+      }
+
+      // Handle secondary
+      if (
+        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage') ||
+        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+      ) {
+        if (!types.includes('secondary')) {
+          types.push('secondary')
+        }
+      } else if (types.includes('secondary')) {
+        types = types.filter((type) => type !== 'secondary')
+      }
+
+      // Handle bonus damage
+      if (
+        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage') ||
+        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+      ) {
+        if (!types.includes('bonus')) {
+          types.push('bonus')
+        }
+      } else if (types.includes('bonus')) {
+        types = types.filter((type) => type !== 'bonus')
+      }
+
+      return types
+    }
+  }
+
+  const upcastOptions = () => {
+    const options = [...builders.spell.upcast.attribute]
+    if (!formState.attribute?.some((attributeItem: any) => attributeItem.name === 'doesDamage')) {
+      options.filter((upcastItem: any) => upcastItem.name !== 'primaryDamage')
+    }
+
+    if (!formState.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage')) {
+      options.filter((upcastItem: any) => upcastItem.name !== 'secondaryDamage')
+    }
+
+    if (!formState.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage')) {
+      options.filter((upcastItem: any) => upcastItem.name !== 'bonusDamage')
+    }
+
+    if (!formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'limitedTargets')) {
+      options.filter((upcastItem: any) => upcastItem.name !== 'targets')
+    }
+
+    if (!formState?.range?.type) {
+      options.filter((upcastItem: any) => upcastItem.name !== 'range')
+    }
+
+    if (!formState?.shape?.type) {
+      options.filter((upcastItem: any) => upcastItem.name !== 'shape')
+    }
+
+    if (!formState?.duration?.type) {
+      options.filter((upcastItem: any) => upcastItem.name !== 'duration')
+    }
+
+    return options
+  }
+
   // Spell Upcast table data
   const upcastTableColumns = () => {
     const inputArray: Array<RowInput> = [
@@ -475,7 +428,7 @@ const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormP
         validation: 'num',
       },
     ]
-    upcastTypes.forEach((type: string) => {
+    upcastTypes()?.forEach((type: string) => {
       if (formState?.damage?.[type]?.attribute?.name === 'setValue') {
         inputArray.push({
           name: `damage.${type}.setValue`,
@@ -1472,7 +1425,7 @@ const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormP
             name='upcast.attribute'
             label='Upcast Attribute'
             value={formState?.upcast?.attribute}
-            options={upcastOptions}
+            options={upcastOptions()}
             multiSelect={true}
             onChange={setFormState}
           />
@@ -1500,7 +1453,7 @@ const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormP
                 onChange={setFormState}
               />
             </Grid>
-            {damageTypes.map((type: string, index: number) => {
+            {damageTypes().map((type: string, index: number) => {
               return (
                 <Grid key={index}>
                   {type !== 'versatile' && (
@@ -2086,8 +2039,6 @@ const AttributeForm = memo(({ context, formState, setFormState }: AttributeFormP
         )}
     </ScrollArea>
   )
-})
+}
 
-AttributeForm.displayName = 'AttributeForm'
-
-export default AttributeForm
+export default AttributeFormTest

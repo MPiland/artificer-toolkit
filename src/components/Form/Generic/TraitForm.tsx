@@ -1,23 +1,19 @@
-import { memo, useState } from 'react'
+import { useContext, useState } from 'react'
 import Grid from '../../Grid/Grid'
 import Dropdown from '../../Dropdown/Dropdown'
 import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
 import Input from '../../Input/Input'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { FormContext, ReducerActionType } from '../../../utils/types'
 import { form_content } from '../Form.css'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Button from '../../Button/Button'
 import Accordion from '../../Accordion/Accordion'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface TraitFormProps {
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-  context: FormContext
-}
+const TraitFormTest = () => {
+  const { context, formState, setFormState } = useContext(FormStepsContext)
 
-const TraitForm = memo(({ formState, setFormState, context }: TraitFormProps) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(context.type !== 'new' ? null : 0)
 
   const { data: builders } = useGetBuildersQuery(undefined)
@@ -145,8 +141,6 @@ const TraitForm = memo(({ formState, setFormState, context }: TraitFormProps) =>
       )}
     </ScrollArea>
   )
-})
+}
 
-TraitForm.displayName = 'TraitForm'
-
-export default TraitForm
+export default TraitFormTest

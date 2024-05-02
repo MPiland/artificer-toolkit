@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
 import { selectAllItems, useGetItemsQuery } from '../../../features/item/itemApiSlice'
 import { getSectionNames } from '../../../utils/formUtils'
@@ -9,17 +9,7 @@ import Table from '../../Table/Table'
 import Divider from '../../Divider/Divider'
 import Collapse from '../../Collapse/Collapse'
 import Spinner from '../../Spinner/Spinner'
-import {
-  DropdownOption,
-  ReducerActionType,
-  RowHeader,
-  RowInput,
-  FeatureContext,
-  FeatureStepName,
-  SectionName,
-  FormContext,
-  Step,
-} from '../../../utils/types'
+import { DropdownOption, RowHeader, RowInput, SectionName } from '../../../utils/types'
 import Grid from '../../Grid/Grid'
 import Select from '../../Select/Select'
 import { isEqual, startCase } from 'lodash'
@@ -42,49 +32,31 @@ import { selectAllSpells, useGetSpellsQuery } from '../../../features/spell/spel
 import Button from '../../Button/Button'
 import { TbPlus, TbX } from 'react-icons/tb'
 import clsx from 'clsx'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface FeatureContentProps {
-  formState?: any
-  context: FormContext
-  featureContext: FeatureContext
-  setFeatureContext: (arg: FeatureContext) => void
-  setFeatureStepName: (arg: FeatureStepName) => void
-  setSectionName: (arg: SectionName) => void
-  featureState: any
-  setFeatureState: (arg: ReducerActionType) => void
-  setOptionState?: (arg: ReducerActionType) => void
-  setSectionState: (arg: ReducerActionType) => void
-  setOptionIndex?: (arg: number) => void
-  setOldOptionState?: (arg: any) => void
-  setOldSectionState: (arg: any) => void
-  setSubFeatureState?: (arg: ReducerActionType) => void
-  setOldSubFeatureState?: (arg: any) => void
-  setSubFeatureIndex?: (arg: number) => void
-  setSectionIndex: (arg: number) => void
-  stepName: Step
-}
-
-const FeatureContent = ({
-  formState,
-  context,
-  setSectionName,
-  setFeatureStepName,
-  featureContext,
-  setFeatureContext,
-  featureState,
-  setFeatureState,
-  setOptionState,
-  setOldOptionState,
-  setOptionIndex,
-  setSectionState,
-  setOldSectionState,
-  setSectionIndex,
-  setOldSubFeatureState,
-  setSubFeatureIndex,
-  setSubFeatureState,
-  stepName,
-}: FeatureContentProps) => {
+const FeatureContentTest = () => {
   const isLoading = useIsLoading()
+
+  const {
+    setSectionName,
+    setFeatureStepName,
+    featureContext,
+    setFeatureContext,
+    featureState,
+    setFeatureState,
+    setOptionState,
+    setOldOptionState,
+    setOptionIndex,
+    setSectionState,
+    setOldSectionState,
+    setSectionIndex,
+    setOldSubFeatureState,
+    setSubFeatureIndex,
+    setSubFeatureState,
+    formState,
+    stepName,
+    context,
+  } = useContext(FormStepsContext)
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [subArray, setSubArray] = useState<'option' | 'feature' | ''>('')
@@ -1699,4 +1671,4 @@ const FeatureContent = ({
   )
 }
 
-export default FeatureContent
+export default FeatureContentTest

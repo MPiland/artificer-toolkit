@@ -1,12 +1,15 @@
 import Form from '../../components/Form/Form'
 import { useAddNewSpellMutation, useUpdateSpellMutation } from './spellApiSlice'
 import { Step } from '../../utils/types'
+import FormStepsProvider from '../../components/Form/FormStepsProvider'
 
 const SpellForm = () => {
   const steps: Step[] = ['Details', 'Attributes']
 
   return (
-    <Form context='spell' steps={steps} useAddNewItem={useAddNewSpellMutation} useUpdateItem={useUpdateSpellMutation} />
+    <FormStepsProvider steps={steps}>
+      <Form useAddNewItem={useAddNewSpellMutation} useUpdateItem={useUpdateSpellMutation} />
+    </FormStepsProvider>
   )
 }
 export default SpellForm

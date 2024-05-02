@@ -1,20 +1,96 @@
-import { useState } from 'react'
-import { FormContext, FeatureStepName } from '../../../utils/types'
 import FeatureList from './FeatureList'
+import { sprinkles } from '../../../css/sprinkles.css'
 import FeatureContent from './FeatureContent'
 import SectionContent from './SectionContent'
+import { useContext, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface FeatureProps {
-  context: FormContext
-}
+const Feature = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
 
-const Feature = ({ context }: FeatureProps) => {
-  const [featureStepName, setFeatureStepName] = useState<FeatureStepName>(context === 'feat' ? 'FeatureContent' : '')
+  const {
+    stepName,
+    isFirstStep,
+    isLastStep,
+    setStepIndex,
+    featureStepName,
+    featureState,
+    featureContext,
+    optionState,
+    subFeatureState,
+    subFeatureIndex,
+    setFeatureStepName,
+    setFeatureContext,
+  } = useContext(FormStepsContext)
+
+  const confirmBack = location.state?.confirmBack
+  const confirmForward = location.state?.confirmForward
+  const confirmStep = location.state?.confirmStep
+
+  // Confirm Alert back
+  useEffect(() => {
+    if (confirmBack === true) {
+      if (featureStepName !== '') {
+        if (featureStepName === 'SectionContent') {
+          setFeatureStepName('FeatureContent')
+        } else if (featureStepName === 'FeatureContent') {
+          if (featureContext === 'OptionFeatureContent') {
+            setFeatureContext('OptionContent')
+          } else if (featureContext === 'OptionContent') {
+            setFeatureContext('')
+          } else {
+            setFeatureStepName('')
+          }
+        }
+      }
+    }
+  }, [
+    confirmBack,
+    featureContext,
+    featureStepName,
+    isLastStep,
+    isFirstStep,
+    navigate,
+    setFeatureContext,
+    setFeatureStepName,
+    setStepIndex,
+  ])
+
+  // Confirm Alert forward
+  useEffect(() => {
+    if (confirmForward === true) {
+      if (featureStepName !== '') {
+        if (featureStepName === 'SectionContent') {
+          setFeatureStepName('FeatureContent')
+        } else if (featureStepName === 'FeatureContent') {
+          if (featureContext === 'OptionFeatureContent') {
+            setFeatureContext('OptionContent')
+          } else if (featureContext === 'OptionContent') {
+            setFeatureContext('')
+          } else {
+            setFeatureStepName('')
+          }
+        }
+      }
+    }
+  }, [confirmForward, featureContext, featureStepName, isLastStep, setFeatureStepName, setStepIndex, setFeatureContext])
+
+  // Confirm Alert step
+  useEffect(() => {
+    if (confirmStep === true) {
+      if (featureStepName !== '') {
+        setFeatureContext('')
+        setFeatureStepName('')
+      }
+    }
+  }, [confirmStep, featureStepName, setFeatureContext, setFeatureStepName])
 
   return (
     <>
       {featureStepName === '' ? (
-        <FeatureList {...commonProps} {...featureProps} />
+        <FeatureList />
       ) : (
         <>
           <h2 className={sprinkles({ mb: 'size-2', px: 'size-4' })}>
@@ -36,111 +112,7 @@ const Feature = ({ context }: FeatureProps) => {
                   : ''
               })`}
           </h2>
-          {featureStepName === 'FeatureContent' ? (
-            context === 'feat' ? (
-              <FeatureContent
-                formState={formState}
-                context={{ type: formType, title: context }}
-                setSectionName={setSectionName}
-                setFeatureStepName={setFeatureStepName}
-                featureContext={featureContext}
-                setFeatureContext={setFeatureContext}
-                featureState={formState}
-                setFeatureState={setFormState}
-                setSectionState={setSectionState}
-                setOldSectionState={setOldSectionState}
-                setSectionIndex={setSectionIndex}
-                stepName={stepName}
-              />
-            ) : featureContext === 'OptionFeatureContent' ? (
-              <FeatureContent
-                formState={formState}
-                context={{ type: formType, title: context }}
-                setSectionName={setSectionName}
-                setFeatureStepName={setFeatureStepName}
-                featureContext={featureContext}
-                setFeatureContext={setFeatureContext}
-                featureState={subFeatureState}
-                setFeatureState={setSubFeatureState}
-                setSubFeatureState={setSubFeatureState}
-                setOldSubFeatureState={setOldSubFeatureState}
-                setSubFeatureIndex={setSubFeatureIndex}
-                setSectionState={setSectionState}
-                setOldSectionState={setOldSectionState}
-                setSectionIndex={setSectionIndex}
-                stepName={stepName}
-              />
-            ) : featureContext === 'OptionContent' ? (
-              <FeatureContent
-                formState={formState}
-                context={{ type: formType, title: context }}
-                setSectionName={setSectionName}
-                setFeatureStepName={setFeatureStepName}
-                featureContext={featureContext}
-                setFeatureContext={setFeatureContext}
-                featureState={optionState}
-                setFeatureState={setOptionState}
-                setOptionState={setOptionState}
-                setOldOptionState={setOldOptionState}
-                setOptionIndex={setOptionIndex}
-                setSectionState={setSectionState}
-                setOldSectionState={setOldSectionState}
-                setSectionIndex={setSectionIndex}
-                setSubFeatureState={setSubFeatureState}
-                setOldSubFeatureState={setOldSubFeatureState}
-                setSubFeatureIndex={setSubFeatureIndex}
-                stepName={stepName}
-              />
-            ) : (
-              <FeatureContent
-                formState={formState}
-                context={{ type: formType, title: context }}
-                setSectionName={setSectionName}
-                setFeatureStepName={setFeatureStepName}
-                featureContext={featureContext}
-                setFeatureContext={setFeatureContext}
-                featureState={featureState}
-                setFeatureState={setFeatureState}
-                setOptionState={setOptionState}
-                setOldOptionState={setOldOptionState}
-                setOptionIndex={setOptionIndex}
-                setSectionState={setSectionState}
-                setOldSectionState={setOldSectionState}
-                setSectionIndex={setSectionIndex}
-                stepName={stepName}
-              />
-            )
-          ) : (
-            featureStepName === 'SectionContent' &&
-            (featureContext === 'OptionFeatureContent' ? (
-              <SectionContent
-                formState={formState}
-                sectionName={sectionName}
-                featureState={subFeatureState}
-                setSectionState={setSectionState}
-                sectionState={sectionState}
-                context={{ type: formType, title: context }}
-              />
-            ) : featureContext === 'OptionContent' ? (
-              <SectionContent
-                formState={formState}
-                sectionName={sectionName}
-                featureState={optionState}
-                setSectionState={setSectionState}
-                sectionState={sectionState}
-                context={{ type: formType, title: context }}
-              />
-            ) : (
-              <SectionContent
-                formState={formState}
-                sectionName={sectionName}
-                featureState={featureState}
-                setSectionState={setSectionState}
-                sectionState={sectionState}
-                context={{ type: formType, title: context }}
-              />
-            ))
-          )}
+          {featureStepName === 'FeatureContent' ? <FeatureContent /> : <SectionContent />}
         </>
       )}
     </>

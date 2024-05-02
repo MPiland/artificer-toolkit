@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { isEqual, startCase } from 'lodash'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
@@ -17,6 +17,7 @@ import { form_content } from '../Form.css'
 import { selectAllRaces, useGetRacesQuery } from '../../../features/race/raceApiSlice'
 import Collapse from '../../Collapse/Collapse'
 import { sprinkles } from '../../../css/sprinkles.css'
+import { FormStepsContext } from '../FormStepsContext'
 
 export interface SectionContentProps {
   sectionState: any
@@ -31,15 +32,6 @@ export interface SectionContentProps {
   setSectionState: (arg: ReducerActionType) => void
   optionGroups: boolean
   providesOptions: boolean
-  context: FormContext
-}
-
-interface SectionProps {
-  formState: any
-  sectionName: SectionName
-  featureState: any
-  setSectionState: (arg: ReducerActionType) => void
-  sectionState: any
   context: FormContext
 }
 
@@ -1211,14 +1203,10 @@ export const AncestryContent = ({
   )
 }
 
-const SectionContent = ({
-  formState,
-  sectionName,
-  featureState,
-  sectionState,
-  setSectionState,
-  context,
-}: SectionProps) => {
+const SectionContentTest = () => {
+  const { formState, context, sectionName, featureState, sectionState, setSectionState } =
+    useContext(FormStepsContext)
+
   const { data: builders } = useGetBuildersQuery(undefined)
 
   const { spells } = useGetSpellsQuery(undefined, {
@@ -1247,7 +1235,7 @@ const SectionContent = ({
     }),
   })
 
-  const ContentComponent = tableContent[sectionName]?.content
+  const ContentComponent = tableContent[sectionName as SectionName]?.content
 
   return !sectionState ? (
     <Spinner />
@@ -1264,7 +1252,7 @@ const SectionContent = ({
           feats={feats}
           classes={classes}
           races={races}
-          setSectionState={setSectionState}
+          setSectionState={setSectionState as (arg: ReducerActionType) => void}
           builders={builders}
           providesOptions={sectionState.attribute?.some(
             (attributeItem: any) => attributeItem.name === 'providesOptions'
@@ -1276,4 +1264,4 @@ const SectionContent = ({
   )
 }
 
-export default SectionContent
+export default SectionContentTest

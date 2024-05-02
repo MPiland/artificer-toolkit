@@ -52,6 +52,7 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
       state: {
         item: item,
         formType: 'edit',
+        form: form,
       },
     })
   }

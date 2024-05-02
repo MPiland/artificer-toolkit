@@ -1,12 +1,15 @@
 import Form from '../../components/Form/Form'
 import { useAddNewFeatMutation, useUpdateFeatMutation } from './featApiSlice'
 import { Step } from '../../utils/types'
+import FormStepsProvider from '../../components/Form/FormStepsProvider'
 
 const FeatForm = () => {
   const steps: Step[] = ['Features']
 
   return (
-    <Form context='feat' steps={steps} useAddNewItem={useAddNewFeatMutation} useUpdateItem={useUpdateFeatMutation} />
+    <FormStepsProvider steps={steps}>
+      <Form useAddNewItem={useAddNewFeatMutation} useUpdateItem={useUpdateFeatMutation} />
+    </FormStepsProvider>
   )
 }
 export default FeatForm

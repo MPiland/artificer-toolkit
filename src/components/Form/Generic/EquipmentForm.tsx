@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useContext, useEffect, useState } from 'react'
 import Grid from '../../Grid/Grid'
 import Button from '../../Button/Button'
 import Dropdown from '../../Dropdown/Dropdown'
@@ -6,8 +6,14 @@ import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
 import { selectAllItems, useGetItemsQuery } from '../../../features/item/itemApiSlice'
 import Input from '../../Input/Input'
 import useIsLoading from '../../../hooks/useIsLoading'
-import { DropdownOption, FormContext, ReducerActionType } from '../../../utils/types'
-import { equipment_form_sub_group, equipment_sub_group_button, form_add_button, form_content, form_remove_button } from '../Form.css'
+import { DropdownOption } from '../../../utils/types'
+import {
+  equipment_form_sub_group,
+  equipment_sub_group_button,
+  form_add_button,
+  form_content,
+  form_remove_button,
+} from '../Form.css'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import Divider from '../../Divider/Divider'
 import Spinner from '../../Spinner/Spinner'
@@ -16,15 +22,12 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import { TbPlus, TbX } from 'react-icons/tb'
 import clsx from 'clsx'
 import Accordion from '../../Accordion/Accordion'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface EquipmentProps {
-  formState: any
-  context: FormContext
-  setFormState: (arg: ReducerActionType) => void
-}
-
-const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => {
+const EquipmentFormTest = () => {
   const isLoading = useIsLoading()
+
+  const { context, formState, setFormState } = useContext(FormStepsContext)
 
   const [activequipmentIndex, setActivequipmentIndex] = useState<number | null>(context.type !== 'new' ? null : 0)
 
@@ -98,7 +101,9 @@ const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => 
           <>
             {context.title !== 'class' ? (
               formState.equipment?.map((groupItem: any, groupIndex: number) => {
-                const multipleOptions = groupItem.attribute?.some((attributequipmentItem: any) => attributequipmentItem.name === 'providesOptions')
+                const multipleOptions = groupItem.attribute?.some(
+                  (attributequipmentItem: any) => attributequipmentItem.name === 'providesOptions'
+                )
                 return (
                   <Grid
                     className={clsx({
@@ -132,7 +137,9 @@ const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => 
                           label='Item Property'
                           value={groupItem.property?.type}
                           options={builders.item.category
-                            .filter((bCategoryItem: any) => (groupItem.category?._id ? groupItem.category?._id === bCategoryItem._id : bCategoryItem))
+                            .filter((bCategoryItem: any) =>
+                              groupItem.category?._id ? groupItem.category?._id === bCategoryItem._id : bCategoryItem
+                            )
                             .flatMap((bCategoryItem: any) => bCategoryItem.property)}
                           onChange={setFormState}
                         />
@@ -150,7 +157,9 @@ const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => 
                                 (groupItem.property?.type?.length > 0 &&
                                   type.property?.length > 0 &&
                                   type.property.some((propertyItem: any) =>
-                                    groupItem.property?.type?.some((equipmentProperty: any) => equipmentProperty.name === propertyItem.name)
+                                    groupItem.property?.type?.some(
+                                      (equipmentProperty: any) => equipmentProperty.name === propertyItem.name
+                                    )
                                   )))
                           )}
                           onChange={setFormState}
@@ -308,7 +317,9 @@ const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => 
                                               label='Item Property'
                                               value={groupItem.property?.type}
                                               options={builders.item.category
-                                                .filter((categoryItem: any) => categoryItem._id === groupItem.category?._id)
+                                                .filter(
+                                                  (categoryItem: any) => categoryItem._id === groupItem.category?._id
+                                                )
                                                 .flatMap((categoryItem: any) => categoryItem.property?.type)}
                                               onChange={setFormState}
                                             />
@@ -318,12 +329,18 @@ const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => 
                                               label='Item Type'
                                               value={groupItem.item?.type}
                                               options={(items as unknown as DropdownOption[])
-                                                ?.filter((item: any) => (groupItem.category?._id ? item.category._id === groupItem.category?._id : item))
+                                                ?.filter((item: any) =>
+                                                  groupItem.category?._id
+                                                    ? item.category._id === groupItem.category?._id
+                                                    : item
+                                                )
                                                 .filter((item: any) =>
                                                   groupItem.property?.type?.length > 0
                                                     ? item.property?.type?.length > 0 &&
                                                       groupItem.property?.type?.every((groupProperty: any) =>
-                                                        item.property?.type?.some((itemProperty: any) => itemProperty._id === groupProperty._id)
+                                                        item.property?.type?.some(
+                                                          (itemProperty: any) => itemProperty._id === groupProperty._id
+                                                        )
                                                       )
                                                     : item
                                                 )}
@@ -470,4 +487,4 @@ const EquipmentForm = ({ formState, context, setFormState }: EquipmentProps) => 
   )
 }
 
-export default EquipmentForm
+export default EquipmentFormTest

@@ -19,21 +19,13 @@ interface ButtonProps {
   children: ReactNode
   variant?: ButtonVariants
   type?: 'button' | 'submit'
-  onClick?: (arg: any) => void | (() => void)
+  onClick?: ((arg: any) => void) | (() => void) | (() => Promise<void>)
   disabled?: boolean
   className?: string | number | symbol | any
   name?: string
 }
 
-const Button: FC<ButtonProps> = ({
-  variant,
-  type,
-  children,
-  onClick,
-  disabled,
-  className,
-  name,
-}) => {
+const Button: FC<ButtonProps> = ({ variant, type, children, onClick, disabled, className, name }) => {
   const variantType = disabled || !variant ? 'default' : variant
   return (
     <button

@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import parse from 'html-react-parser'
 import Button from '../../Button/Button'
-import { ReducerActionType, FeatureStepName, FormContext, Step } from '../../../utils/types'
 import { feature_list, form_content, feature_description } from '../Form.css'
 import Accordion from '../../Accordion/Accordion'
 import ScrollArea from '../../ScrollArea/ScrollArea'
@@ -15,33 +14,23 @@ import Grid from '../../Grid/Grid'
 import Collapse from '../../Collapse/Collapse'
 import { selectAllRaces, useGetRacesQuery } from '../../../features/race/raceApiSlice'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface FeatureListProps {
-  context: FormContext
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-  featureStepName: FeatureStepName
-  setFeatureStepName: (arg: FeatureStepName) => void
-  setFeatureState: (arg: ReducerActionType) => void
-  setOldFeatureState: (arg: any) => void
-  setFeatureIndex: (arg: number) => void
-  optionState: any
-  stepName: Step
-}
-
-const FeatureList = ({
-  context,
-  formState,
-  setFormState,
-  featureStepName,
-  setFeatureStepName,
-  setFeatureState,
-  setOldFeatureState,
-  setFeatureIndex,
-  stepName,
-}: FeatureListProps) => {
+const FeatureListTest = () => {
   const navigate = useNavigate()
   const location = useLocation()
+
+  const {
+    featureStepName,
+    setFeatureStepName,
+    setOldFeatureState,
+    setFeatureIndex,
+    setFeatureState,
+    formState,
+    setFormState,
+    stepName,
+    context,
+  } = useContext(FormStepsContext)
 
   const copy = location.state.copy
 
@@ -110,9 +99,9 @@ const FeatureList = ({
     featureArray,
     location.state.feature,
     setFeatureIndex,
-    setFeatureState,
     setOldFeatureState,
     setFeatureStepName,
+    setFeatureState,
   ])
 
   const toggle = (index: number) => {
@@ -266,4 +255,4 @@ const FeatureList = ({
   )
 }
 
-export default FeatureList
+export default FeatureListTest

@@ -1,7 +1,7 @@
 import parse from 'html-react-parser'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useContext, useEffect, useState } from 'react'
 import { getSectionNames } from '../../../utils/formUtils'
-import { ReducerActionType, SectionName } from '../../../utils/types'
+import { SectionName } from '../../../utils/types'
 import Dropdown from '../../Dropdown/Dropdown'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { get, isEqual, set } from 'lodash'
@@ -13,16 +13,12 @@ import Group from '../../Group/Group'
 import Input from '../../Input/Input'
 import Grid from '../../Grid/Grid'
 import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
+import { selectAllClasses, useGetClassesQuery } from '../../../features/class/classApiSlice'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface ClassFeatureFormProps {
-  selectedClass: any
-  setFormState: (arg: ReducerActionType) => void
-  formState: any
-  classes: any
-  setAddClass: (arg: any) => void
-}
+const ClassFeatureFormTest = () => {
+  const { formState, selectedClass, setFormState } = useContext(FormStepsContext)
 
-const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, setAddClass }: ClassFeatureFormProps) => {
   const [formFeatures, setFormFeatures] = useState<{
     [key: string]: {
       level: number
@@ -34,6 +30,12 @@ const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, set
   const sectionNames = getSectionNames()
 
   const { data: builders } = useGetBuildersQuery(undefined)
+
+  const { classes }: { classes: any } = useGetClassesQuery(undefined, {
+    selectFromResult: ({ data }) => ({
+      classes: data && selectAllClasses(data),
+    }),
+  })
 
   // Set classes
   useEffect(() => {
@@ -78,10 +80,10 @@ const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, set
   useEffect(() => {
     if (formState.class?.length > 0) {
       formState.class.map((uClass: any, index: number) => {
-        const fullClass = classes.find((classItem: any) => uClass._id === classItem._id)
+        const fullClass = classes?.find((classItem: any) => uClass._id === classItem._id)
         if (!uClass.hitPoint) {
-          const hitDiceCount = fullClass.hitPoint.diceCount
-          const hitDiceValue = fullClass.hitPoint.diceValue
+          const hitDiceCount = fullClass?.hitPoint.diceCount
+          const hitDiceValue = fullClass?.hitPoint.diceValue
           const hitDiceTotal = uClass.level
           const hitPoint = { total: hitDiceTotal, diceCount: hitDiceCount, diceValue: hitDiceValue }
           setFormState({
@@ -146,7 +148,7 @@ const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, set
 
   // Set/Remove Class Features
   useEffect(() => {
-    let formClone = JSON.parse(JSON.stringify(formState))
+    const formClone = JSON.parse(JSON.stringify(formState))
     if (formClone.class?.length > 0) {
       const cloneFeatures: any[] = []
       formClone.class?.map((uClass: any) => {
@@ -177,7 +179,7 @@ const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, set
           })
         }
         if (!isEqual(cloneFeatures, formClone.feature) && cloneFeatures?.length > 0) {
-          formClone = set(formClone, 'feature', cloneFeatures)
+          set(formClone, 'feature', cloneFeatures)
 
           setFormState({
             target: {
@@ -248,7 +250,7 @@ const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, set
 
   // Update sections from Class features
   useEffect(() => {
-    let formClone = JSON.parse(JSON.stringify(formState))
+    const formClone = JSON.parse(JSON.stringify(formState))
     sectionNames.forEach((sectionName: any) => {
       if (sectionName !== 'feature' && sectionName !== 'option' && sectionName !== 'ancestry') {
         let sectionObject: any = {}
@@ -298,7 +300,7 @@ const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, set
         }
         if (Object.keys(sectionObject).length > 0) {
           if (!isEqual(sectionObject, cloneObject)) {
-            formClone = set(formClone, sectionName, sectionObject)
+            set(formClone, sectionName, sectionObject)
           }
         }
         if (!isEqual(formClone, formState)) {
@@ -505,4 +507,4 @@ const ClassFeatureForm = ({ formState, selectedClass, setFormState, classes, set
   )
 }
 
-export default ClassFeatureForm
+export default ClassFeatureFormTest

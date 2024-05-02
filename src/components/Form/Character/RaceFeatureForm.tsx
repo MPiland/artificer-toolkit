@@ -1,7 +1,7 @@
 import parse from 'html-react-parser'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useContext, useEffect, useState } from 'react'
 import { getSectionNames } from '../../../utils/formUtils'
-import { ReducerActionType, SectionName } from '../../../utils/types'
+import { SectionName } from '../../../utils/types'
 import Dropdown from '../../Dropdown/Dropdown'
 import { get, isEqual, set } from 'lodash'
 import { sprinkles } from '../../../css/sprinkles.css'
@@ -10,21 +10,22 @@ import { option_dropdown } from './Character.css'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { form_content } from '../Form.css'
 import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
+import { selectAllRaces, useGetRacesQuery } from '../../../features/race/raceApiSlice'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface RaceFeatureFormProps {
-  selectedRace: any
-  setFormState: (arg: ReducerActionType) => void
-  formState: any
-  races: any
-}
+const RaceFeatureFormTest = () => {
+  const { formState, selectedRace, setFormState } = useContext(FormStepsContext)
 
-const RaceFeatureForm = ({ formState, selectedRace, setFormState, races }: RaceFeatureFormProps) => {
   const [formRaces, setFormRaces] = useState<{ item: any; type: 'race' | 'ancestry' }[]>([])
   const [formFeatures, setFormFeatures] = useState<any[] | null>(null)
 
   const sectionNames = getSectionNames()
 
   const { data: builders } = useGetBuildersQuery(undefined)
+
+  const { races }: { races: any } = useGetRacesQuery(undefined, {
+    selectFromResult: ({ data }) => ({ races: data && selectAllRaces(data) }),
+  })
 
   // Set initial Race
   useEffect(() => {
@@ -107,7 +108,88 @@ const RaceFeatureForm = ({ formState, selectedRace, setFormState, races }: RaceF
 
   // Set/Remove Race Features
   useEffect(() => {
-    let formClone = JSON.parse(JSON.stringify(formState))
+    const sectionData = (section: any, sectionObject: any, raceType: string, formRace: any, feature?: any) => {
+      const sectionArray: any[] = []
+      const categoryName = section.category?.name
+
+      if (!section.attribute?.some((attribute: any) => attribute.name === 'providesOptions')) {
+        if (categoryName) {
+          if (section[categoryName] != null && section[categoryName]?.type?.length > 0) {
+            if (sectionObject[categoryName]?.length > 0) {
+              const existArray = [...sectionObject[categoryName]]
+              sectionArray.push(...existArray)
+            }
+
+            //eslint-disable-next-line
+            const { _id, type, ...sectionFields } = section[categoryName]
+
+            type?.forEach((type: any) => {
+              if (!sectionArray.some((section: any) => section._id === type._id)) {
+                let typeObject: any = { ...type, [`${raceType}Id`]: formRace._id, ...sectionFields }
+                if (feature) {
+                  typeObject = { ...typeObject, featureId: feature._id }
+                }
+
+                sectionArray.push(typeObject)
+              }
+            })
+
+            if (sectionArray?.length > 0) {
+              sectionObject = {
+                ...sectionObject,
+                [categoryName]: [...sectionArray],
+              }
+            }
+          } else if (section[categoryName] != null) {
+            if (sectionObject[categoryName]?.length > 0) {
+              const existArray = [...sectionObject[categoryName]]
+              sectionArray.push(...existArray)
+            }
+
+            if (
+              !sectionArray.some(
+                (arrayItem: any) =>
+                  arrayItem._id === section[categoryName]?._id && arrayItem?.[`${raceType}Id`] === formRace._id
+              )
+            ) {
+              let typeObject: any = { ...section[categoryName], [`${raceType}Id`]: formRace._id }
+              if (feature) {
+                typeObject = { ...typeObject, featureId: feature._id }
+              }
+
+              sectionArray.push(typeObject)
+              if (sectionArray?.length > 0) {
+                sectionObject = {
+                  ...sectionObject,
+                  [categoryName]: [...sectionArray],
+                }
+              }
+            }
+          }
+        }
+        if (section.type?.length > 0) {
+          if (sectionObject?.length > 0) {
+            const existArray = sectionObject
+            sectionArray.push(...existArray)
+          }
+          section?.type?.map((type: any) => {
+            if (!sectionArray.some((section: any) => section._id === type._id)) {
+              const typeObject: any = { ...type, [`${raceType}Id`]: formRace._id, featureId: feature._id }
+
+              sectionArray.push(typeObject)
+            }
+          })
+
+          if (sectionArray?.length > 0) {
+            sectionObject = [...sectionArray]
+          }
+        }
+      }
+
+      return sectionObject
+    }
+
+    const formClone = JSON.parse(JSON.stringify(formState))
     if (formState.race && formRaces.length > 0) {
       const featureArray: any[] = []
       const cloneArray: any[] = get(formClone, 'feature')
@@ -124,172 +206,97 @@ const RaceFeatureForm = ({ formState, selectedRace, setFormState, races }: RaceF
         })
       }
 
-      if (formRaces?.length > 0) {
-        formRaces.forEach((raceObject: any) => {
-          const formRace = raceObject.item
-          const raceType = raceObject.type
-          if (formRace.feature?.length > 0) {
-            formRace.feature?.map((feature: any) => {
-              if (!feature.attribute?.some((attribute: any) => attribute.name === 'hideOnSheet')) {
-                featureArray.push({
-                  name: feature.name,
-                  value: feature.value,
-                  _id: feature._id,
-                  [`${raceType}Id`]: formRace._id,
-                })
-              }
-              if (!formFeatures?.some((formFeature: any) => formFeature._id === feature._id)) {
-                const stateArray = [...(formFeatures ?? [])]
-                stateArray.push({ ...feature, [`${raceType}Id`]: formRace._id })
-                setFormFeatures(stateArray)
-              }
-            })
-          }
-        })
-      }
-
-      if (!isEqual(featureArray, cloneArray)) {
-        formClone = set(formClone, 'feature', featureArray)
-      }
-
-      if (!isEqual(formClone, formState)) {
-        setFormState({
-          type: 'reset',
-          target: { value: formClone },
-        })
-      }
-    }
-  }, [selectedRace, races, formState, setFormState, formRaces, formFeatures])
-
-  const sectionData = (section: any, sectionObject: any, raceType: string, formRace: any, feature?: any) => {
-    const sectionArray: any[] = []
-    const categoryName = section.category?.name
-
-    if (!section.attribute?.some((attribute: any) => attribute.name === 'providesOptions')) {
-      if (categoryName) {
-        if (section[categoryName]?.type?.length > 0) {
-          if (sectionObject[categoryName]?.length > 0) {
-            const existArray = [...sectionObject[categoryName]]
-            sectionArray.push(...existArray)
-          }
-
-          //eslint-disable-next-line
-          const { _id, type, ...sectionFields } = section[categoryName]
-
-          type?.forEach((type: any) => {
-            if (!sectionArray.some((section: any) => section._id === type._id)) {
-              let typeObject: any = { ...type, [`${raceType}Id`]: formRace._id, ...sectionFields }
-              if (feature) {
-                typeObject = { ...typeObject, featureId: feature._id }
-              }
-
-              sectionArray.push(typeObject)
+      formRaces.forEach((raceObject: any) => {
+        const formRace = raceObject.item
+        const raceType = raceObject.type
+        if (formRace.feature?.length > 0) {
+          formRace.feature?.map((feature: any) => {
+            if (!feature.attribute?.some((attribute: any) => attribute.name === 'hideOnSheet')) {
+              featureArray.push({
+                name: feature.name,
+                value: feature.value,
+                _id: feature._id,
+                [`${raceType}Id`]: formRace._id,
+              })
             }
-          })
-
-          if (sectionArray?.length > 0) {
-            sectionObject = {
-              ...sectionObject,
-              [categoryName]: [...sectionArray],
+            if (!formFeatures?.some((formFeature: any) => formFeature._id === feature._id)) {
+              const stateArray = [...(formFeatures ?? [])]
+              stateArray.push({ ...feature, [`${raceType}Id`]: formRace._id })
+              setFormFeatures(stateArray)
             }
-          }
-        }
-      }
-      if (section.type?.length > 0) {
-        if (sectionObject?.type?.length > 0) {
-          const existArray = sectionObject?.type
-          sectionArray.push(...existArray)
-        }
-        section?.type?.map((type: any) => {
-          if (!sectionArray.some((section: any) => section._id === type._id)) {
-            const typeObject: any = { ...type, [`${raceType}Id`]: formRace._id, featureId: feature._id }
 
-            sectionArray.push(typeObject)
-          }
-        })
-
-        if (sectionArray?.length > 0) {
-          sectionObject = [...sectionArray]
-        }
-      }
-    }
-
-    return sectionObject
-  }
-
-  console.log({ formRaces })
-
-  // Update sections from Race features/Ancestry
-  useEffect(() => {
-    let formClone = JSON.parse(JSON.stringify(formState))
-    if (formState.race) {
-      sectionNames.forEach((sectionName: string) => {
-        if (sectionName !== 'feature' && sectionName !== 'option' && sectionName !== 'ancestry') {
-          let sectionObject: any = {}
-          const cloneObject: any = get(formState, `${sectionName}`)
-          if (cloneObject) {
-            if (!Array.isArray(cloneObject) && Object.keys(cloneObject)?.length > 0) {
-              Object.keys(cloneObject).forEach((key: string) => {
-                const section = cloneObject[key]
-                if (Array.isArray(section) && section?.length > 0) {
-                  section.forEach((sectionItem: any) => {
-                    if (
-                      (sectionItem.raceId == null ||
-                        formRaces.some((formRace: any) => formRace.item._id === sectionItem.raceId)) &&
-                      (sectionItem.ancestryId == null ||
-                        formRaces.some((formRace: any) => formRace.item._id === sectionItem.ancestryId))
-                    ) {
-                      if (sectionObject[key]?.length > 0) {
-                        sectionObject = { ...sectionObject, [key]: [...sectionObject[key], { ...sectionItem }] }
-                      } else {
-                        sectionObject = { ...sectionObject, [key]: [{ ...sectionItem }] }
+            sectionNames.forEach((sectionName: string) => {
+              if (sectionName !== 'feature' && sectionName !== 'option' && sectionName !== 'ancestry') {
+                let sectionObject: any = {}
+                const cloneObject: any = get(formState, `${sectionName}`)
+                if (cloneObject) {
+                  if (!Array.isArray(cloneObject) && Object.keys(cloneObject)?.length > 0) {
+                    Object.keys(cloneObject).forEach((key: string) => {
+                      const section = cloneObject[key]
+                      if (Array.isArray(section) && section?.length > 0) {
+                        section.forEach((sectionItem: any) => {
+                          if (
+                            (sectionItem.raceId == null ||
+                              formRaces.some((formRace: any) => formRace.item._id === sectionItem.raceId)) &&
+                            (sectionItem.ancestryId == null ||
+                              formRaces.some((formRace: any) => formRace.item._id === sectionItem.ancestryId))
+                          ) {
+                            if (sectionObject[key]?.length > 0) {
+                              sectionObject = { ...sectionObject, [key]: [...sectionObject[key], { ...sectionItem }] }
+                            } else {
+                              sectionObject = { ...sectionObject, [key]: [{ ...sectionItem }] }
+                            }
+                          }
+                        })
                       }
-                    }
-                  })
-                }
-              })
-            }
-            if (Array.isArray(cloneObject) && cloneObject.length > 0) {
-              cloneObject.forEach((section: any) => {
-                if (
-                  (section.raceId == null || formRaces.some((formRace: any) => formRace.item._id === section.raceId)) &&
-                  (section.ancestryId == null ||
-                    formRaces.some((formRace: any) => formRace.item._id === section.ancestryId))
-                ) {
-                  if (sectionObject?.length > 0) {
-                    sectionObject = [...sectionObject, { ...section }]
-                  } else {
-                    sectionObject = [{ ...section }]
-                  }
-                }
-              })
-            }
-          }
-          if (formRaces.length > 0) {
-            formRaces.forEach((raceObject: { item: any; type: string }) => {
-              const formRace = raceObject.item
-              const raceType = raceObject.type
-              if (formRace.feature?.length > 0) {
-                formRace.feature?.forEach((feature: any) => {
-                  if (feature[sectionName]?.length > 0) {
-                    feature[sectionName].forEach((section: any) => {
-                      sectionObject = sectionData(section, sectionObject, raceType, formRace, feature)
                     })
                   }
-                })
-              }
-              if (formRace[sectionName]?.length > 0) {
-                formRace[sectionName].forEach((section: any) => {
-                  sectionObject = sectionData(section, sectionObject, raceType, formRace)
-                })
+                  if (Array.isArray(cloneObject) && cloneObject.length > 0) {
+                    cloneObject.forEach((section: any) => {
+                      if (
+                        (section.raceId == null ||
+                          formRaces.some((formRace: any) => formRace.item._id === section.raceId)) &&
+                        (section.ancestryId == null ||
+                          formRaces.some((formRace: any) => formRace.item._id === section.ancestryId))
+                      ) {
+                        if (sectionObject?.length > 0) {
+                          sectionObject = [...sectionObject, { ...section }]
+                        } else {
+                          sectionObject = [{ ...section }]
+                        }
+                      }
+                    })
+                  }
+                }
+                if (feature[sectionName]?.length > 0) {
+                  feature[sectionName].forEach((section: any) => {
+                    sectionObject = sectionData(section, sectionObject, raceType, formRace, feature)
+                  })
+                }
+                if (formRace[sectionName]?.length > 0) {
+                  formRace[sectionName].forEach((section: any) => {
+                    sectionObject = sectionData(section, sectionObject, raceType, formRace)
+                  })
+                }
+                if (!isEqual(sectionObject, cloneObject)) {
+                  set(formClone, sectionName, sectionObject)
+                }
               }
             })
-          }
-          if (!isEqual(sectionObject, cloneObject)) {
-            formClone = set(formClone, sectionName, sectionObject)
-          }
+            if (!isEqual(formClone, formState)) {
+              setFormState({
+                type: 'reset',
+                target: { value: formClone },
+              })
+            }
+          })
         }
       })
+
+      if (!isEqual(featureArray, cloneArray)) {
+        set(formClone, 'feature', featureArray)
+      }
+
       if (!isEqual(formClone, formState)) {
         setFormState({
           type: 'reset',
@@ -297,7 +304,7 @@ const RaceFeatureForm = ({ formState, selectedRace, setFormState, races }: RaceF
         })
       }
     }
-  }, [formFeatures, sectionNames, setFormState, formState, races, formRaces])
+  }, [selectedRace, races, formState, setFormState, formRaces, formFeatures, sectionNames])
 
   return (
     <ScrollArea scrollDirection='vertical' className={form_content}>
@@ -503,4 +510,4 @@ const RaceFeatureForm = ({ formState, selectedRace, setFormState, races }: RaceF
   )
 }
 
-export default RaceFeatureForm
+export default RaceFeatureFormTest

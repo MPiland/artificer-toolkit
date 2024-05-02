@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useState, useContext } from 'react'
 import useIsLoading from '../../../hooks/useIsLoading'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { form_content } from '../Form.css'
@@ -6,7 +6,6 @@ import Accordion from '../../Accordion/Accordion'
 import { useGetBuildersQuery } from '../../../features/builder/builderApiSlice'
 import Grid from '../../Grid/Grid'
 import Dropdown from '../../Dropdown/Dropdown'
-import { FormContext, ReducerActionType } from '../../../utils/types'
 import Input from '../../Input/Input'
 import { selectAllItems, useGetItemsQuery } from '../../../features/item/itemApiSlice'
 import Spinner from '../../Spinner/Spinner'
@@ -14,14 +13,11 @@ import Button from '../../Button/Button'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Group from '../../Group/Group'
 import { startCase } from 'lodash'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface ProficiencyFormProps {
-  context: FormContext
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-}
+const ProficiencyFormTest = () => {
+  const { context, formState, setFormState } = useContext(FormStepsContext)
 
-const ProficiencyForm = memo(({ context, formState, setFormState }: ProficiencyFormProps) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(context.type !== 'new' ? null : 0)
   const isLoading = useIsLoading()
 
@@ -207,8 +203,6 @@ const ProficiencyForm = memo(({ context, formState, setFormState }: ProficiencyF
       </ScrollArea>
     </>
   )
-})
+}
 
-ProficiencyForm.displayName = 'ProficiencyForm'
-
-export default ProficiencyForm
+export default ProficiencyFormTest

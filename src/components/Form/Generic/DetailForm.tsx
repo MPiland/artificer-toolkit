@@ -1,5 +1,5 @@
-import { useState, memo, useEffect } from 'react'
-import { ReducerActionType, DropdownOption, FormContext } from '../../../utils/types'
+import { useState, useEffect, useContext } from 'react'
+import { DropdownOption } from '../../../utils/types'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import Grid from '../../Grid/Grid'
@@ -16,17 +16,13 @@ import ScrollArea from '../../ScrollArea/ScrollArea'
 import useIsLoading from '../../../hooks/useIsLoading'
 import Spinner from '../../Spinner/Spinner'
 import { useLocation } from 'react-router-dom'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface DetailFormProps {
-  context: FormContext
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-  setOldFormState: (arg: any) => void
-}
-
-const DetailForm = memo(({ context, formState, setFormState, setOldFormState }: DetailFormProps) => {
+const DetailFormTest = () => {
   const location = useLocation()
   const isLoading = useIsLoading()
+
+  const { context, formState, setFormState, setOldFormState } = useContext(FormStepsContext)
 
   const [activeIndex, setActiveIndex] = useState<number | null>(context.type !== 'new' ? null : 0)
 
@@ -48,23 +44,23 @@ const DetailForm = memo(({ context, formState, setFormState, setOldFormState }: 
 
   // Set character defaults
   useEffect(() => {
-    if (builders) {
-      let formClone = JSON.parse(JSON.stringify(formState))
-      if (context.title === 'character' && (!formState.ability || !(formState.ability.length > 0))) {
+    if (builders && context?.title === 'character') {
+      const formClone = JSON.parse(JSON.stringify(formState))
+      if (!formClone.ability || !(formClone.ability.length > 0)) {
         const abilityArray: any[] = []
         builders.ability.type
           .filter((ability: any) => ability.name !== 'spellAbility')
           .forEach((ability: any) => abilityArray.push({ name: ability.name, value: ability.value, _id: ability._id }))
-        formClone = { ...formClone, ability: [...abilityArray] }
+
+        set(formClone, 'ability', abilityArray)
 
         setFormState({
           type: 'reset',
           target: { value: formClone },
         })
       }
-
-      if (context.title === 'character' && (!formState.skill || !(formState.skill.length > 0))) {
-        let formClone = JSON.parse(JSON.stringify(formState))
+      if (!formClone.skill || !(formClone.skill.length > 0)) {
+        const formClone = JSON.parse(JSON.stringify(formState))
         const skillArray: any[] = []
         if (formClone.skill) {
           builders.skill.type.forEach((skill: any) =>
@@ -76,7 +72,7 @@ const DetailForm = memo(({ context, formState, setFormState, setOldFormState }: 
             })
           )
         }
-        formClone = { ...formClone, skill: [...skillArray] }
+        set(formClone, 'skill', skillArray)
 
         setFormState({
           type: 'reset',
@@ -88,26 +84,20 @@ const DetailForm = memo(({ context, formState, setFormState, setOldFormState }: 
 
   // Set base category dropdown value
   useEffect(() => {
-    if ((context.title === 'race' || context.title === 'class') && !formState.category?.name && defaultCategory) {
+    if (context.title === 'class' && !formState.category && defaultCategory != null && formState) {
+      const formClone = JSON.parse(JSON.stringify(formState))
+      const category = builders?.class.category.find((category: any) => category.name === defaultCategory)
+      set(formClone, 'category', category)
       setFormState({
-        target: {
-          name: 'category.name',
-          value: defaultCategory,
-        },
+        target: { name: 'category', value: get(formClone, 'category') },
       })
+      setOldFormState(formClone)
     }
-
-    if (formState.category?.name && !formState.category?.value) {
-      let category = {}
-      if (context.title === 'class') {
-        category = builders?.class.category.find((categoryItem: any) => categoryItem.name === formState.category?.name)
+    if (context.title === 'race' && !formState.category && defaultCategory != null && formState) {
+      const formClone = JSON.parse(JSON.stringify(formState))
+      const category = {
+        ...builders?.race.category.find((categoryItem: any) => categoryItem.name === defaultCategory),
       }
-      if (context.title === 'race') {
-        category = {
-          ...builders?.race.category.find((categoryItem: any) => categoryItem.name === formState.category?.name),
-        }
-      }
-      const formClone = formState ? JSON.parse(JSON.stringify(formState)) : {}
       set(formClone, 'category', category)
       setFormState({
         target: { name: 'category', value: get(formClone, 'category') },
@@ -542,8 +532,6 @@ const DetailForm = memo(({ context, formState, setFormState, setOldFormState }: 
       )}
     </ScrollArea>
   )
-})
+}
 
-DetailForm.displayName = 'DetailForm'
-
-export default DetailForm
+export default DetailFormTest

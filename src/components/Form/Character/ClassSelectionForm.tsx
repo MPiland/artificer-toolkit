@@ -1,6 +1,5 @@
 import Spinner from '../../Spinner/Spinner'
-import { ReducerActionType, FormContext } from '../../../utils/types'
-import { useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { selectAllClasses, useGetClassesQuery } from '../../../features/class/classApiSlice'
@@ -8,31 +7,17 @@ import { card_group, card_header_title, main_card } from './Character.css'
 import { form_content } from '../Form.css'
 import clsx from 'clsx'
 import ClassFeatureForm from './ClassFeatureForm'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface ClassSelectionFormProps {
-  context: FormContext
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-  selectedClass: any
-  setSelectedClass: (arg: any) => void
-  addClass: boolean
-  setAddClass: (arg: boolean) => void
-}
-
-const ClassSelectionForm = ({
-  formState,
-  setFormState,
-  selectedClass,
-  setSelectedClass,
-  addClass,
-  setAddClass,
-}: ClassSelectionFormProps) => {
+const ClassSelectionFormTest = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const { selectedClass, setSelectedClass, addClass, setAddClass } = useContext(FormStepsContext)
+
   const classSelected = location.state?.selected
   const formClass = location.state?.selection?.item
-  const context = location.state?.selection?.context
+  const creationContext = location.state?.selection?.context
 
   const { classes } = useGetClassesQuery(undefined, {
     selectFromResult: ({ data }) => ({
@@ -43,15 +28,15 @@ const ClassSelectionForm = ({
   useEffect(() => {
     if (
       classSelected &&
-      (!(selectedClass?.length > 0) || (!selectedClass.includes(formClass) && addClass)) &&
-      context === 'class'
+      (!(selectedClass?.length > 0) || (!selectedClass.includes(formClass as never) && addClass)) &&
+      creationContext === 'class'
     ) {
-      const classArray = selectedClass?.length > 0 ? [...selectedClass] : []
+      const classArray: any[] = selectedClass?.length > 0 ? [...selectedClass] : []
       classArray.push(formClass)
       setSelectedClass(classArray)
       setAddClass(false)
     }
-  }, [classSelected, selectedClass, setSelectedClass, context, addClass, setAddClass, formClass])
+  }, [classSelected, selectedClass, setSelectedClass, creationContext, addClass, setAddClass, formClass])
 
   const handleShowDetail = (item: any, context: string) => {
     navigate(`/${context}/${item.name}/short`, {
@@ -69,13 +54,7 @@ const ClassSelectionForm = ({
   return !baseClasses ? (
     <Spinner />
   ) : selectedClass?.length > 0 && !addClass ? (
-    <ClassFeatureForm
-      selectedClass={selectedClass}
-      classes={classes}
-      setFormState={setFormState}
-      formState={formState}
-      setAddClass={setAddClass}
-    />
+    <ClassFeatureForm />
   ) : (
     (!(selectedClass?.length > 0) || addClass === true) && (
       <ScrollArea scrollDirection='vertical' className={form_content}>
@@ -93,4 +72,4 @@ const ClassSelectionForm = ({
   )
 }
 
-export default ClassSelectionForm
+export default ClassSelectionFormTest

@@ -124,3 +124,37 @@ export const feature_card_body = style({
     },
   },
 })
+
+export const character_header_group = style({
+  '@layer': {
+    [app]: {
+      marginRight: size['size-3'],
+      width: 'auto',
+    },
+  },
+})
+
+export const character_header_group_label = style({
+  '@layer': {
+    [app]: {
+      textDecoration: 'underline',
+      marginBottom: size['size-2'],
+    },
+  },
+})
+
+export const character_header_item = style({
+  '@layer': {
+    [app]: {
+      marginRight: size['size-3'],
+    },
+  },
+})
+
+export const character_header_item_label = style({
+  '@layer': {
+    [app]: {
+      marginRight: size['size-1'],
+    },
+  },
+})

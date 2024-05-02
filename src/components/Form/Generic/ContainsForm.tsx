@@ -1,19 +1,13 @@
-import { useEffect, memo } from 'react'
+import { useContext, useEffect } from 'react'
 import Table from '../../Table/Table'
-import {
-  useGetItemsQuery,
-  selectAllItems,
-} from '../../../features/item/itemApiSlice'
-import { ReducerActionType } from '../../../utils/types'
+import { useGetItemsQuery, selectAllItems } from '../../../features/item/itemApiSlice'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { form_content } from '../Form.css'
+import { FormStepsContext } from '../FormStepsContext'
 
-interface ContainsFormProps {
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-}
+const ContainsFormTest = () => {
+  const { formState, setFormState } = useContext(FormStepsContext)
 
-const ContainsForm = memo(({ formState, setFormState }: ContainsFormProps) => {
   const { items } = useGetItemsQuery(undefined, {
     selectFromResult: ({ data }) => ({
       items: data && selectAllItems(data),
@@ -38,10 +32,7 @@ const ContainsForm = memo(({ formState, setFormState }: ContainsFormProps) => {
               type: 'select',
               options: items?.filter((item: any) =>
                 formState.containsFilter?.length > 0
-                  ? formState.containsFilter?.some(
-                      (categoryItem: any) =>
-                        categoryItem.name === item.categoryItem.name
-                    )
+                  ? formState.containsFilter?.some((categoryItem: any) => categoryItem.name === item.categoryItem.name)
                   : item
               ),
             },
@@ -66,8 +57,6 @@ const ContainsForm = memo(({ formState, setFormState }: ContainsFormProps) => {
       />
     </ScrollArea>
   )
-})
+}
 
-ContainsForm.displayName = 'ContainsForm'
-
-export default ContainsForm
+export default ContainsFormTest
