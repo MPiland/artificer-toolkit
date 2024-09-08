@@ -1,18 +1,22 @@
-import { divider, divider_line } from './Divider.css'
-import { FC } from 'react'
+import { divider, divider_label, divider_line } from './Divider.css'
 
 interface DividerProps {
-  label: string
+  label?: string
+  labelLocation?: 'left' | 'center' | 'right'
 }
 
-const Divider: FC<DividerProps> = ({ label }) => {
+const Divider = ({ label, labelLocation = 'center' }: DividerProps) => {
   return (
     <div className={divider}>
       <hr className={divider_line} />
-      <span>
-        <strong>{label}</strong>
-      </span>
-      <hr className={divider_line} />
+      {label && (
+        <>
+          <span className={divider_label} data-location={labelLocation}>
+            {label}
+          </span>
+          <hr className={divider_line} />
+        </>
+      )}
     </div>
   )
 }

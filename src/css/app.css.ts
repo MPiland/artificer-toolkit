@@ -1,20 +1,17 @@
 import { globalStyle } from '@vanilla-extract/css'
 import { app } from './layers.css'
-import { fontFamily, fontSize } from './typography.css'
+import { fontSize } from './typography.css'
 import { size } from './size.css'
 
-globalStyle(
-  '*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *))',
-  {
-    '@layer': {
-      [app]: {
-        fontFamily: fontFamily['sans-serif'],
-        margin: '0',
-        boxSizing: 'border-box',
-      },
+globalStyle('*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *))', {
+  '@layer': {
+    [app]: {
+      fontFamily: '"Roboto", sans-serif',
+      margin: '0',
+      boxSizing: 'border-box',
     },
-  }
-)
+  },
+})
 
 globalStyle(
   '*:where(:not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *):not(h1, h2, h3, h4, h5, h6, h1 *, h2 *, h3 *, h4 *, h5 *, h6 *))',

@@ -5,15 +5,9 @@ import { PropertyPath, get } from 'lodash'
 import Input from '../Input/Input'
 import Dropdown from '../Dropdown/Dropdown'
 import Spinner from '../Spinner/Spinner'
-import Grid from '../Grid/Grid'
+import Row from '../Row/Row'
 import Button from '../Button/Button'
-import {
-  SortConfig,
-  RowInput,
-  RowHeader,
-  DropdownOption,
-  ReducerActionType,
-} from '../../utils/types'
+import { SortConfigType, RowInputType, RowHeaderType, DropdownOptionType, ReducerActionType } from '../../utils/types'
 import {
   table,
   table_row,
@@ -30,12 +24,12 @@ import {
 import { TbCaretUpFilled, TbTrash, TbCirclePlus } from 'react-icons/tb'
 import clsx from 'clsx'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import useIsLoading from '../../hooks/useIsLoading'
 import { useMediaQuery } from 'usehooks-ts'
+import { useIsFetching } from '@tanstack/react-query'
 
 type RowData = {
-  inputs: RowInput[]
-  headers: RowHeader[]
+  inputs: RowInputType[]
+  headers: RowHeaderType[]
   filters?: {
     filterOn: string
     filterValue: string
@@ -50,14 +44,14 @@ type RowData = {
 
 interface SortState {
   valueItems: any[]
-  sortConfig: SortConfig
+  sortConfig: SortConfigType
 }
 
 interface TableHeaderProps {
-  headers: RowHeader[]
+  headers: RowHeaderType[]
   collapse?: boolean
   sortable?: boolean
-  requestSort: (key: SortConfig['key']) => void
+  requestSort: (key: SortConfigType['key']) => void
   getClassNames: (arg: string) => void
   deleteRow?: (arg: any) => void
   addRow?: boolean
@@ -108,12 +102,10 @@ const TableHeader = ({
   border,
 }: TableHeaderProps) => {
   const sm = useMediaQuery('screen and (max-width: 567px)')
-  const md = useMediaQuery(
-    'screen and (min-width: 568px) and (max-width: 1023px)'
-  )
+  const md = useMediaQuery('screen and (min-width: 568px) and (max-width: 1024px)')
 
   return (
-    <Grid
+    <Row
       cols={{
         start: collapse ? 1 : 0,
         end: addRow ? 2 : deleteRow ? 1 : 0,
@@ -121,11 +113,10 @@ const TableHeader = ({
       className={clsx(table_header_row, { ['borderless']: border === false })}
     >
       {collapse && <div className={table_header} />}
-      {headers?.map((headerItem: RowHeader, headerIndex: number) => {
+      {headers?.map((headerItem: RowHeaderType, headerIndex: number) => {
         return (
           !headerItem.breakpoint?.some(
-            (breakpointItem) =>
-              (breakpointItem === 'sm' && sm) || (breakpointItem === 'md' && md)
+            (breakpointItem) => (breakpointItem === 'sm' && sm) || (breakpointItem === 'md' && md)
           ) && (
             <Fragment key={headerIndex}>
               {
@@ -134,20 +125,13 @@ const TableHeader = ({
                     {
                       [`${
                         headerItem.name &&
-                        getClassNames(
-                          typeof headerItem.name === 'object'
-                            ? headerItem.name?.sortOn
-                            : headerItem.name
-                        )
+                        getClassNames(typeof headerItem.name === 'object' ? headerItem.name?.sortOn : headerItem.name)
                       }`]: headerItem.name,
                     },
                     { ['required']: headerItem.required },
                     table_header
                   )}
-                  onClick={() =>
-                    sortable &&
-                    requestSort(headerItem.name as SortConfig['key'])
-                  }
+                  onClick={() => sortable && requestSort(headerItem.name as SortConfigType['key'])}
                 >
                   {headerItem.value}
                 </div>
@@ -158,7 +142,7 @@ const TableHeader = ({
       })}
       {addRow && <div className={table_header} />}
       {deleteRow && <div className={table_header} />}
-    </Grid>
+    </Row>
   )
 }
 
@@ -178,9 +162,7 @@ const TableRow = ({
   const [collapsed, setCollapsed] = useState(true)
 
   const sm = useMediaQuery('screen and (max-width: 567px)')
-  const md = useMediaQuery(
-    'screen and (min-width: 568px) and (max-width: 1023px)'
-  )
+  const md = useMediaQuery('screen and (min-width: 568px) and (max-width: 1024px)')
 
   const subrows =
     rows.subrow &&
@@ -197,7 +179,7 @@ const TableRow = ({
 
   return (
     <>
-      <Grid
+      <Row
         cols={{
           start: collapse ? 1 : 0,
           end: addRow ? 2 : deleteRow ? 1 : 0,
@@ -223,7 +205,7 @@ const TableRow = ({
           >
             {collapse && subrows && subrows?.length > 0 && (
               <Button
-                variant='unstyled'
+                style='unstyled'
                 className={clsx(table_collapse_button, {
                   ['collapsed']: collapsed,
                 })}
@@ -233,16 +215,12 @@ const TableRow = ({
             )}
           </div>
         )}
-        {rows.inputs?.map((inputItem: RowInput, inputIndex: number) => {
+        {rows.inputs?.map((inputItem: RowInputType, inputIndex: number) => {
           const itemValue =
-            getValueFromState(inputItem, valueItem) !== null
-              ? getValueFromState(inputItem, valueItem)
-              : ''
+            getValueFromState(inputItem, valueItem) !== null ? getValueFromState(inputItem, valueItem) : ''
           return (
             !inputItem.breakpoint?.some(
-              (breakpointItem) =>
-                (breakpointItem === 'sm' && sm) ||
-                (breakpointItem === 'md' && md)
+              (breakpointItem) => (breakpointItem === 'sm' && sm) || (breakpointItem === 'md' && md)
             ) && (
               <Fragment key={inputIndex}>
                 {readOnly || inputItem.readOnly ? (
@@ -257,9 +235,18 @@ const TableRow = ({
                         placeholder={inputItem.placeholder}
                         value={get(valueItem, inputItem?.name as PropertyPath)}
                         required={inputItem.required}
-                        options={inputItem.options as DropdownOption[]}
-                        optionalKey={inputItem.optionalKey}
+                        options={inputItem.options as DropdownOptionType[]}
                         onChange={(e) => onChange && onChange(e)}
+                        filter={
+                          inputItem.filter && inputItem?.filter?.length > 0
+                            ? inputItem?.filter?.map((filter) => ({
+                                key: filter?.key,
+                                object: valueItem,
+                                type: filter?.type,
+                                mapKey: filter?.mapKey,
+                              }))
+                            : undefined
+                        }
                       />
                     ) : (
                       <Input
@@ -292,12 +279,7 @@ const TableRow = ({
                   })
               }}
             >
-              <Button
-                className={table_dynamic_button}
-                variant='unstyled'
-                type='button'
-                name={`${name}`}
-              >
+              <Button className={table_dynamic_button} style='unstyled' type='button' name={`${name}`}>
                 <TbCirclePlus />
               </Button>
             </div>
@@ -312,12 +294,7 @@ const TableRow = ({
                   })
                 }
               >
-                <Button
-                  className={table_dynamic_button}
-                  variant='unstyled'
-                  type='button'
-                  name={`${name}.${valueIndex}`}
-                >
+                <Button className={table_dynamic_button} style='unstyled' type='button' name={`${name}.${valueIndex}`}>
                   <TbTrash />
                 </Button>
               </div>
@@ -332,30 +309,22 @@ const TableRow = ({
               deleteRow && deleteRow(valueItem)
             }}
           >
-            <Button
-              className={table_dynamic_button}
-              variant='unstyled'
-              type='button'
-            >
+            <Button className={table_dynamic_button} style='unstyled' type='button'>
               <TbTrash />
             </Button>
           </div>
         )}
-      </Grid>
+      </Row>
       {rows?.subrow &&
         subrows &&
         subrows?.length > 0 &&
         subrows.map((subrowItem: any, subrowIndex: number) => (
-          <Grid
+          <Row
             cols={{
               start: collapse ? 1 : 0,
               end: addRow ? 2 : deleteRow ? 1 : 0,
             }}
-            className={clsx(
-              table_subrow,
-              { ['clickable']: onClick },
-              { ['collapsed']: collapsed }
-            )}
+            className={clsx(table_subrow, { ['clickable']: onClick }, { ['collapsed']: collapsed })}
             onClick={() => {
               onClick && onClick(subrowItem)
             }}
@@ -364,9 +333,7 @@ const TableRow = ({
             <div className={table_button_cell} />
             {rows.inputs?.map((inputItem: any, inputIndex: number) => {
               const itemValue =
-                getValueFromState(inputItem, subrowItem) !== null
-                  ? getValueFromState(inputItem, subrowItem)
-                  : ''
+                getValueFromState(inputItem, subrowItem) !== null ? getValueFromState(inputItem, subrowItem) : ''
               return (
                 !inputItem.breakpoint && (
                   <Fragment key={inputIndex}>
@@ -383,16 +350,12 @@ const TableRow = ({
                   deleteRow(subrowItem)
                 }}
               >
-                <Button
-                  className={table_dynamic_button}
-                  variant='unstyled'
-                  type='button'
-                >
+                <Button className={table_dynamic_button} style='unstyled' type='button'>
                   <TbTrash />
                 </Button>
               </div>
             )}
-          </Grid>
+          </Row>
         ))}
     </>
   )
@@ -415,7 +378,7 @@ const Table = memo(
     id,
     border,
   }: TableProps) => {
-    const isLoading = useIsLoading()
+    const isLoading = useIsFetching() > 0
 
     const [sortState, setSortState] = useState<SortState>()
     const [defaultSortRan, setDefaultSortRan] = useState(false)
@@ -440,13 +403,9 @@ const Table = memo(
             event.preventDefault()
 
             const currentRow = focusedElement.closest('.table_row')
-            const siblingRows = Array.from(
-              tableBody.querySelectorAll('.table_row')
-            )
+            const siblingRows = Array.from(tableBody.querySelectorAll('.table_row'))
             const currentRowIndex = siblingRows.indexOf(currentRow as Element)
-            const currentElements = (currentRow as Element).querySelectorAll(
-              'input'
-            )
+            const currentElements = (currentRow as Element).querySelectorAll('input')
             const currentIndex = Array.from(currentElements).findIndex(
               (element) => element.name === focusedElement.name
             )
@@ -462,14 +421,11 @@ const Table = memo(
               }
             } else {
               const rowIncrement = event.key === 'ArrowDown' ? 1 : -1
-              const nextRow =
-                siblingRows[(currentRowIndex as number) + rowIncrement]
+              const nextRow = siblingRows[(currentRowIndex as number) + rowIncrement]
               if (!nextRow) return
 
               const nextElements = nextRow.querySelectorAll('input')
-              const nextIndex = Array.from(nextElements).findIndex(
-                (_, index) => index === currentIndex
-              )
+              const nextIndex = Array.from(nextElements).findIndex((_, index) => index === currentIndex)
 
               if (nextIndex !== -1 && nextIndex !== siblingRows.length - 1) {
                 nextElements[nextIndex].focus()
@@ -501,17 +457,12 @@ const Table = memo(
       if (!sortState?.sortConfig) {
         return ''
       }
-      return sortState.sortConfig.key.sortOn === value
-        ? sortState.sortConfig.direction
-        : ''
+      return sortState.sortConfig.key.sortOn === value ? sortState.sortConfig.direction : ''
     }
 
     const filteredItems = rows?.filters
       ? items?.filter((item: any) => {
-          return (
-            get(item, rows.filters?.filterOn as PropertyPath) !==
-            rows.filters?.filterValue
-          )
+          return get(item, rows.filters?.filterOn as PropertyPath) !== rows.filters?.filterValue
         })
       : items
 
@@ -520,11 +471,7 @@ const Table = memo(
     ) : (
       <ScrollArea
         className={clsx(table, 'table')}
-        scrollDirection={
-          scrollable === 'horizontal' || scrollable === 'all'
-            ? 'horizontal'
-            : 'none'
-        }
+        scrollDirection={scrollable === 'horizontal' || scrollable === 'all' ? 'horizontal' : 'none'}
         id={id ?? undefined}
       >
         {rows?.headers && (

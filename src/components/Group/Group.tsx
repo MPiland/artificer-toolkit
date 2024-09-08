@@ -1,18 +1,8 @@
-import { FC, ReactNode } from 'react'
+import { ReactNode } from 'react'
 import { alignItems, direction, flexWrap, spacing } from './Group.css'
 import clsx from 'clsx'
 
-interface GroupProps {
-  children: ReactNode
-  directionVariant?: 'column' | 'row'
-  justifyContentVariant?: 'spaceBetween' | 'start' | 'end' | 'center'
-  alignItemsVariant?: 'center' | 'start' | 'end'
-  flexWrapVariant?: 'wrap' | 'nowrap'
-  className?: any
-  onClick?: () => void
-}
-
-const Group: FC<GroupProps> = ({
+const Group = ({
   children,
   directionVariant = 'row',
   justifyContentVariant = 'spaceBetween',
@@ -20,6 +10,14 @@ const Group: FC<GroupProps> = ({
   flexWrapVariant = 'wrap',
   className,
   onClick,
+}: {
+  children: ReactNode
+  directionVariant?: 'column' | 'row'
+  justifyContentVariant?: 'spaceBetween' | 'start' | 'end' | 'center' | 'spaceAround'
+  alignItemsVariant?: 'center' | 'start' | 'end'
+  flexWrapVariant?: 'wrap' | 'nowrap'
+  className?: any
+  onClick?: () => void
 }) => {
   return (
     <div

@@ -1,6 +1,7 @@
 import { style, styleVariants, createVar, globalStyle } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
-import { theme } from '../../css/global.css'
+import { theme } from '../../css/theme.css'
+import { size } from '../../css/size.css'
 
 export const thumb_height = createVar()
 
@@ -11,6 +12,8 @@ export const scroll_area_wrapper = style({
     [app]: {
       position: 'relative',
       flex: 1,
+      width: '100%',
+      padding: `0 ${size['size-3']}`,
 
       selectors: {
         '&.overflow_hidden': {
@@ -30,6 +33,7 @@ export const scroll_area_base = style({
       height: '100%',
       width: 'inherit',
       zIndex: 0,
+      overflow: 'hidden',
 
       selectors: {
         '&::webkit-scrollbar': {
@@ -75,7 +79,9 @@ export const scroll_area = styleVariants({
     scroll_area_base,
     {
       '@layer': {
-        [app]: {},
+        [app]: {
+          overflow: 'hidden',
+        },
       },
     },
   ],
@@ -157,7 +163,7 @@ export const scroll_arrow = style({
   '@layer': {
     [app]: {
       width: '1.25rem',
-      backgroundColor: theme.vars['app-background-color'],
+      backgroundColor: theme.vars.color,
       height: '100%',
       position: 'absolute',
       display: 'flex',

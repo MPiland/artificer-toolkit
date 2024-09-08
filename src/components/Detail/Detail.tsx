@@ -1,6 +1,6 @@
 import { FC, useState, useRef, ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import Grid from '../Grid/Grid'
+import Row from '../Row/Row'
 import { getValueFromState } from '../../utils/formatting'
 import Button from '../Button/Button'
 import Group from '../Group/Group'
@@ -17,6 +17,7 @@ import Modal from '../Modal/Modal'
 import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
+import { useForm } from '../../hooks/UseForm'
 
 type colType = {
   header: string
@@ -38,6 +39,8 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
   const navigate = useNavigate()
   const location = useLocation()
 
+  const { setContext, setFormState, setOldFormState, setStepIndex, stateReset } = useForm()
+
   const [sidebarIsOpen, setSidebarIsOpen] = useState<boolean>(false)
 
   const form = location.state.form
@@ -45,16 +48,27 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
 
   const sidebarRef = useRef<HTMLDivElement>(null)
   const sidebarListRef = useRef<HTMLUListElement>(null)
-  const hamburgerRef = useRef<HTMLDivElement>(null)
 
-  const handleEdit = () => {
-    navigate(`/${form}/edit/${item.name}`, {
-      state: {
-        item: item,
-        formType: 'edit',
-        form: form,
-      },
-    })
+  const handleEdit = async () => {
+    const title = form
+    try {
+      await stateReset()
+    } catch {
+      console.log('error resetting state')
+    } finally {
+      setStepIndex(0)
+      setContext({ title: title, type: 'edit' as string })
+      setFormState({
+        type: 'reset',
+        target: { value: item },
+      })
+      setOldFormState(item)
+      navigate(`/${form}/edit/${item.name}`, {
+        state: {
+          previous: location,
+        },
+      })
+    }
   }
 
   const handleScroll = () => {
@@ -63,7 +77,7 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
     const listItems = sidebarListRef.current?.children
     const filteredListItems = listItems && Array.from(listItems).slice(1)
 
-    if (scrollBody)
+    if (scrollBody) {
       sections.forEach((section, sectionIndex) => {
         const sectionRect = section.getBoundingClientRect()
         const scrollTop = scrollBody?.getBoundingClientRect()
@@ -89,78 +103,77 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
           if (!section.classList.contains('active')) {
             section.classList.add('active')
           }
-          if (filteredListItems && !filteredListItems[sectionIndex].classList.contains('active')) {
-            filteredListItems[sectionIndex].classList.add('active')
+          if (filteredListItems && !filteredListItems[sectionIndex]?.classList?.contains('active')) {
+            filteredListItems[sectionIndex]?.classList?.add('active')
           }
         }
         if (!isActive) {
           if (section.classList.contains('active')) {
             section.classList.remove('active')
           }
-          if (filteredListItems && filteredListItems[sectionIndex].classList.contains('active')) {
-            filteredListItems[sectionIndex].classList.remove('active')
+          if (filteredListItems && filteredListItems[sectionIndex]?.classList?.contains('active')) {
+            filteredListItems[sectionIndex]?.classList?.remove('active')
           }
         }
       })
+    }
   }
 
   return (
-    <>
-      <Modal.Header title={item.value}>
-        {sidebar && (
-          <>
-            <Hamburger
-              onClick={() => setSidebarIsOpen((prev) => !prev)}
-              isActive={sidebarIsOpen}
-              hamburgerRef={hamburgerRef}
-            />
-          </>
-        )}
-      </Modal.Header>
-      <Modal.Body>
-        {colsData && cols && (
-          <>
-            <Grid cols={{ lg: 4, md: 3, base: 2 }} className={sprinkles({ mb: 'size-2' })}>
-              {cols?.map((colItem, colIndex) => {
-                return (
-                  <div key={colIndex}>
-                    <div className={detail_title}>{colItem.header}</div>
-                    <div>{getValueFromState(colItem, colsData, colItem?.truncate)}</div>
-                  </div>
-                )
-              })}
-            </Grid>
-            <hr />
-          </>
-        )}
-        <div className={clsx(detail_main, { ['active']: sidebarIsOpen })}>
+    <Modal>
+      <Modal.Dialogue>
+        <Modal.Header title={item.value}>
           {sidebar && (
-            <aside className={clsx({ ['active']: sidebarIsOpen }, detail_aside)} ref={sidebarRef}>
-              <ul className={detail_aside_list} ref={sidebarListRef}>
-                <p className={detail_aside_title}>NAVIGATION</p>
-                {sidebar.list}
-              </ul>
-            </aside>
+            <>
+              <Hamburger collapsed={!sidebarIsOpen} onClick={() => setSidebarIsOpen((prev) => !prev)} />
+            </>
           )}
-          <ScrollArea
-            scrollDirection='vertical'
-            wrapperClassName={detail_body}
-            onScroll={() => sidebar && handleScroll()}
-            id='detailBody'
-          >
-            {children}
-          </ScrollArea>
-        </div>
-      </Modal.Body>
-      <Modal.Footer>
-        <Group justifyContentVariant={footerSpacing} directionVariant='row' alignItemsVariant='end'>
-          {footer}
-          <Button onClick={handleEdit} variant='primary_outline'>
-            Edit
-          </Button>
-        </Group>
-      </Modal.Footer>
-    </>
+        </Modal.Header>
+        <Modal.Content>
+          {colsData && cols && (
+            <>
+              <Row cols={{ lg: 4, md: 3, base: 2 }} className={sprinkles({ mb: 'space-2' })}>
+                {cols?.map((colItem, colIndex) => {
+                  return (
+                    <div key={colIndex}>
+                      <div className={detail_title}>{colItem.header}</div>
+                      <div>{getValueFromState(colItem, colsData, colItem?.truncate)}</div>
+                    </div>
+                  )
+                })}
+              </Row>
+              <hr />
+            </>
+          )}
+          <div className={clsx(detail_main, { ['active']: sidebarIsOpen })}>
+            {sidebar && (
+              <aside className={clsx({ ['active']: sidebarIsOpen }, detail_aside)} ref={sidebarRef}>
+                <ul className={detail_aside_list} ref={sidebarListRef}>
+                  <p className={detail_aside_title}>NAVIGATION</p>
+                  {sidebar.list}
+                </ul>
+              </aside>
+            )}
+            <ScrollArea
+              scrollDirection='vertical'
+              wrapperClassName={detail_body}
+              onScroll={() => sidebar && handleScroll()}
+              id='detailBody'
+            >
+              {children}
+            </ScrollArea>
+          </div>
+        </Modal.Content>
+        <Modal.Footer>
+          <Group justifyContentVariant={footerSpacing} directionVariant='row' alignItemsVariant='end'>
+            {footer}
+            <Button onClick={handleEdit} style='outline'>
+              Edit
+            </Button>
+          </Group>
+        </Modal.Footer>
+      </Modal.Dialogue>
+    </Modal>
   )
 }
 

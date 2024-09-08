@@ -1,86 +1,88 @@
-import { useEffect, useState } from 'react'
-import Group from '../Group/Group'
+import { useEffect, useState, ReactElement } from 'react'
 import Button from '../Button/Button'
-import Table from '../Table/Table'
-import { sprinkles } from '../../css/sprinkles.css'
-import { isEqual, startCase } from 'lodash'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
-import useFilteredList from '../../hooks/useFilteredList'
+import { startCase } from 'lodash'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import Spinner from '../Spinner/Spinner'
-import { ActionCreatorWithPayload } from '@reduxjs/toolkit'
-import Filter from './Filter'
-import useIsLoading from '../../hooks/useIsLoading'
-import Grid from '../Grid/Grid'
-import { FormContext, RowHeader, RowInput } from '../../utils/types'
+import {
+  list_button_container,
+  list_container,
+  list_footer_group,
+  list_footer_item,
+  list_loading,
+  list_title_button_container,
+  list_title_container,
+} from './List.css'
+import { useForm } from '../../hooks/UseForm'
+import Card from '../Card/Card'
+import ScrollArea from '../ScrollArea/ScrollArea'
+import Divider from '../Divider/Divider'
+import FilterIcon from '../../assets/Icons/IFilter'
+import CopyIcon from '../../assets/Icons/ICopy'
+import CreateIcon from '../../assets/Icons/ICreate'
+import GridIcon from '../../assets/Icons/IGrid'
+import ListIcon from '../../assets/Icons/IList'
+import { UseInfiniteQueryResult, UseMutationResult } from '@tanstack/react-query'
+import { clsx } from 'clsx'
+import { set } from 'lodash'
+import { ContextType } from '../../utils/types'
+import { getValueFromState } from '../../utils/formatting'
+import { useGetBuildersQuery } from '../../features/builders/buildersApi'
+import { useInView } from 'react-intersection-observer'
+import { CustomError } from '../../app/api/api'
 
 interface ListProps {
-  tableColumns: {
-    headers: RowHeader[]
-    inputs: RowInput[]
-  }
-  context: FormContext
-  items: any
-  deleteItem: (arg: { id: number }) => Promise<any>
-  setFilter: ActionCreatorWithPayload<any, string>
-  subrow?: {
-    collapse: boolean
-    filter: string
-    filterOn: string
-    matchKey: string
-  }
-  filterReset: () => void
-  selectFilter: (arg: any) => any
+  useGetItems: (arg?: { limit: number }) => UseInfiniteQueryResult
+  useDeleteItem: () => UseMutationResult<any, CustomError, string, unknown>
+  footerText?: { name: string | any[]; value: string; display?: string; icon?: ReactElement }[]
 }
 
-const List = ({
-  tableColumns,
-  context,
-  items,
-  deleteItem,
-  setFilter,
-  subrow,
-  filterReset,
-  selectFilter,
-}: ListProps) => {
+const List = ({ useGetItems, useDeleteItem, footerText }: ListProps) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const dispatch = useDispatch()
-  const isLoading = useIsLoading()
 
-  const filterState = useSelector(selectFilter)
+  const { ref: nextRef, inView: nextInView } = useInView()
+  const { ref: prevRef, inView: prevInView } = useInView()
+
+  const {
+    data,
+    fetchNextPage,
+    isFetchingNextPage,
+    hasNextPage,
+    hasPreviousPage,
+    fetchPreviousPage,
+    isFetchingPreviousPage,
+  } = useGetItems({ limit: 21 })
+
+  const { mutateAsync: deleteItem } = useDeleteItem()
+
+  const { data: builders } = useGetBuildersQuery()
+
+  const { setFormState, setOldFormState, setContext, stateReset, setStepIndex } = useForm()
+
+  const [view, setView] = useState<'list' | 'grid'>('list')
+  const [errorMessage, setErrorMessage] = useState<string>()
+
+  const form = location?.pathname?.split('/')[1] as ContextType['title']
 
   const deleteConfirmed = location.state?.delete
   const itemToDelete = location.state?.item
 
-  const { listFilter, filteredItems, setListFilter, setFilteredItems } = useFilteredList(items, filterState)
-
-  const [errorMessage, setErrorMessage] = useState<string>()
-
-  const onFilterReset = () => {
-    filterReset()
-    setListFilter({ type: 'reset', target: { value: {} } })
-  }
-
   useEffect(() => {
-    filterState != null && listFilter == null && setListFilter({ type: 'reset', target: { value: filterState } })
-  }, [filterState, setListFilter, listFilter])
-
-  useEffect(() => {
-    Object.keys(listFilter).length > 0 && dispatch(setFilter(listFilter))
-  }, [dispatch, listFilter, setFilter])
-
-  useEffect(() => {
-    if (!isEqual(items, filteredItems) && Object.keys(filterState).length === 0) {
-      setFilteredItems(items)
+    if (nextInView && !isFetchingNextPage) {
+      fetchNextPage()
     }
-  }, [items, setFilteredItems, filteredItems, filterState])
+  }, [fetchNextPage, nextInView, isFetchingNextPage])
+
+  useEffect(() => {
+    if (prevInView && !isFetchingPreviousPage) {
+      fetchPreviousPage()
+    }
+  }, [fetchPreviousPage, prevInView, isFetchingPreviousPage])
 
   useEffect(() => {
     const handleDeleteConfirmed = async () => {
       try {
-        await deleteItem({ id: itemToDelete.id })
-        setListFilter({ type: 'reset', target: { value: {} } })
+        await deleteItem(itemToDelete.id)
       } catch (err: any) {
         setErrorMessage(err.data.message)
       }
@@ -88,125 +90,161 @@ const List = ({
     if (deleteConfirmed) {
       handleDeleteConfirmed()
     }
-  }, [deleteConfirmed, itemToDelete, dispatch, deleteItem, setListFilter])
+  }, [deleteConfirmed, itemToDelete, deleteItem])
 
-  const handleShowDetail = (item: any) => {
-    navigate(`/${context.title}/${item.name}`, {
-      state: {
-        background: location,
-        item: item,
-        size: 'lg',
-        form: context.title,
-      },
-    })
-  }
-
-  const handleCreate = (secondary?: boolean) => {
-    if (secondary != null && secondary) {
-      if (context.title === 'class') {
-        return navigate(`/create/subclass`, {
-          state: {
-            background: location,
-            formType: 'new',
-            form: 'class',
-            item: items.filter((item: any) => item.category.name === 'subclass'),
-            defaultCategory: 'subclass',
-          },
-        })
+  const handleCreate = async (secondary?: boolean) => {
+    try {
+      await stateReset()
+    } catch {
+      console.error('error resetting state')
+    } finally {
+      const stateObject: any = {}
+      if (form === 'classes' || form === 'races') {
+        const category = builders?.[form]?.category.find((category: any) =>
+          category.name === 'classes'
+            ? secondary
+              ? 'subclass'
+              : 'base'
+            : form === 'races' && secondary
+              ? 'subrace'
+              : 'base'
+        )
+        set(stateObject, 'category', category)
       }
-      if (context.title === 'race') {
-        return navigate(`/create/subrace`, {
-          state: {
-            background: location,
-            formType: 'new',
-            form: 'race',
-            item: items.filter((item: any) => item.category.name === 'subrace'),
-            defaultCategory: 'subrace',
-          },
-        })
+      if (form === 'characters') {
+        const abilityScores: any[] = []
+        builders.abilities.type
+          .filter((ability: any) => ability.name !== 'spellAbility')
+          .forEach((ability: any) =>
+            abilityScores.push({
+              name: ability.name,
+              value: ability.value,
+              _id: ability._id,
+              baseScore: 0,
+              calculatedScore: 0,
+              raceScore: 0,
+              classScore: 0,
+            })
+          )
+        set(stateObject, 'abilities.scores', abilityScores)
       }
+      setContext({ title: form, type: 'new' as string })
+      setFormState({
+        type: 'reset',
+        target: { value: stateObject },
+      })
+      setOldFormState(stateObject)
+      navigate('new')
     }
-    navigate(`/create/${context.title}`, {
-      state: {
-        background: location,
-        formType: 'new',
-        form: context.title,
-        item: items.filter((item: any) => (context.title === 'class' ? item.category.name === 'base' : item)),
-        defaultCategory: context.title === 'class' || context.title === 'race' ? 'base' : null,
-        items: items,
-      },
-    })
   }
 
-  const handleDelete = (item: any) => {
-    navigate(`/delete/${item.name}`, {
+  const handleDelete = (e: Event, item: any) => {
+    e.stopPropagation()
+    navigate(`delete/${item.name}`, {
       state: {
-        background: location,
         title: item.value,
         item: item,
         size: 'sm',
-        context: 'delete',
       },
     })
   }
 
-  return isLoading || !filteredItems ? (
-    <Spinner />
-  ) : (
+  const handleEdit = async (e: Event, item: any) => {
+    e.stopPropagation()
+    const title = form
+    try {
+      await stateReset()
+    } catch {
+      console.log('error resetting state')
+    } finally {
+      setStepIndex(0)
+      setContext({ title: title, type: 'edit' as string })
+      setFormState({
+        type: 'reset',
+        target: { value: item },
+      })
+      setOldFormState(item)
+      navigate(`edit/${item.name}`, {
+        state: {
+          previous: location,
+        },
+      })
+    }
+  }
+
+  return (
     <>
-      <Group className={sprinkles({ my: 'size-3' })}>
-        <h1>{startCase(`${context.title === 'class' ? 'classe' : context.title}s`)}</h1>
-        <Grid
-          cols={{
-            lg: context.title === 'class' || context.title === 'race' ? 3 : 2,
-            md: context.title === 'class' || context.title === 'race' ? 3 : 2,
-            base: 2,
-          }}
-          className={sprinkles({ width: 'auto' })}
-        >
-          <Button type='button' variant='default' onClick={onFilterReset}>
-            Clear Filters
+      <div className={list_title_container}>
+        <h2>{startCase(`${form}`)}</h2>
+        <div className={list_title_button_container}>
+          <Button color='default' style='outline'>
+            {<FilterIcon />} Filter
           </Button>
-          <Button type='button' variant='default' onClick={() => handleCreate()}>
-            Create {context.title === 'item' ? 'an ' : 'a '}
-            {startCase(context.title)}
+          <Button color='default' style='outline'>
+            {<CopyIcon />} Copy
           </Button>
-          {(context.title === 'class' || context.title === 'race') && (
-            <Button type='button' variant='default' onClick={() => handleCreate(true)}>
-              Create a {context.title === 'class' ? 'Subclass' : 'Subrace'}
-            </Button>
-          )}
-        </Grid>
-      </Group>
+          <Button color='default' style='outline' onClick={() => handleCreate(form === 'classes' || form === 'races')}>
+            {<CreateIcon />} Create
+          </Button>
+        </div>
+      </div>
+      <Divider />
+      <div className={list_button_container}>
+        <Button color='default' style='outline' onClick={() => setView('grid')}>
+          {<GridIcon />}
+        </Button>
+        <Button color='default' style='outline' onClick={() => setView('list')}>
+          {<ListIcon />}
+        </Button>
+      </div>
       {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      <Filter context={`${context.title}`} items={items} listFilter={listFilter} setListFilter={setListFilter} />
-      <Table
-        id={'list-table'}
-        addRow={false}
-        readOnly={true}
-        sortable={true}
-        defaultSort={tableColumns.headers.find((headerItem: any) => headerItem.defaultSort === true) ?? undefined}
-        collapse={subrow?.collapse}
-        rows={{
-          inputs: tableColumns.inputs,
-          headers: tableColumns.headers,
-          filters: subrow
-            ? {
-                filterOn: subrow?.filterOn as string,
-                filterValue: subrow?.filter as string,
-              }
-            : undefined,
-          subrow: subrow?.collapse && {
-            data: items?.filter((item: any) => item.category.name === subrow.filter) as any[],
-            matchKey: subrow.matchKey,
-          },
-        }}
-        value={filteredItems as any[]}
-        clickable={true}
-        onClick={(item) => handleShowDetail(item)}
-        deleteRow={(item) => handleDelete(item)}
-        empty='---'
-      />
+      {!data || typeof useGetItems !== 'function' ? (
+        <Spinner />
+      ) : (
+        <ScrollArea>
+          {hasPreviousPage && (
+            <div ref={prevRef} className={list_loading}>
+              Loading more...
+            </div>
+          )}
+          {(data as any).pages.map((group: { currentPage: number; data: any[]; totalPages: number }, index: number) => (
+            <div className={clsx(list_container, view)} key={index}>
+              {group.data.map((item: any) => (
+                <Card key={item.id}>
+                  <Card.Header
+                    title={item.value}
+                    editable={(e) => handleEdit(e, item)}
+                    removable={(e) => handleDelete(e, item)}
+                    leftSide={item.level && `(${item.level})`}
+                    collapsible={true}
+                  />
+                  <Card.Content>{item.desc}</Card.Content>
+                  {footerText && footerText.length > 0 && (
+                    <Card.Footer>
+                      <div className={list_footer_group}>
+                        {footerText?.map(
+                          (footerItem, footerIndex) =>
+                            (!footerItem.display || footerItem.display === view) && (
+                              <div className={list_footer_item} key={footerIndex}>
+                                {footerItem.icon ?? footerItem.value} {getValueFromState(footerItem, item)}
+                              </div>
+                            )
+                        )}
+                      </div>
+                    </Card.Footer>
+                  )}
+                </Card>
+              ))}
+            </div>
+          ))}
+          {hasNextPage && (
+            <div ref={nextRef} className={list_loading}>
+              Loading more...
+            </div>
+          )}
+        </ScrollArea>
+      )}
+      <Outlet />
     </>
   )
 }

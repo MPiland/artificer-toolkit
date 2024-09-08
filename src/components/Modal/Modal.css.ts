@@ -1,4 +1,4 @@
-import { theme } from '../../css/global.css'
+import { theme } from '../../css/theme.css'
 import { style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
@@ -6,7 +6,7 @@ import { size } from '../../css/size.css'
 export const modal = style({
   '@layer': {
     [app]: {
-      position: 'absolute',
+      position: 'fixed',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
@@ -15,7 +15,7 @@ export const modal = style({
       width: '100dvw',
       height: '100dvh',
       backgroundColor: 'rgba(0, 0, 0, 0.541)',
-      zIndex: 2,
+      zIndex: 200,
     },
   },
 })
@@ -23,15 +23,31 @@ export const modal = style({
 export const modal_dialogue = style({
   '@layer': {
     [app]: {
-      'position': 'relative',
-      'display': 'flex',
-      'flexDirection': 'row',
-      'backgroundColor': theme.vars['app-background-color'],
-      'width': '400px',
-      'zIndex': 5,
-      'borderRadius': '0.5rem',
-      'overflow': 'hidden',
-      'selectors': {
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: theme.vars.backgroundColor.component,
+      width: '400px',
+      zIndex: 500,
+      borderRadius: '0.5rem',
+      overflow: 'hidden',
+      justifyContent: 'center',
+      borderColor: theme.vars.borderColor,
+
+      selectors: {
+        '&.xs': {
+          'width': '30dvw',
+          'maxHeight': '80dvh',
+
+          '@media': {
+            'screen and (max-width: 567px)': {
+              borderRadius: '0',
+              width: '100dvw',
+              height: '100dvh',
+              maxHeight: '100dvh',
+            },
+          },
+        },
         '&.sm': {
           'width': '50dvw',
           'maxHeight': '80dvh',
@@ -77,13 +93,6 @@ export const modal_dialogue = style({
           height: '100dvh',
         },
       },
-      '@media': {
-        'screen and (max-width: 567px)': {
-          borderRadius: '0',
-          width: '100dvw',
-          height: '100dvh',
-        },
-      },
     },
   },
 })
@@ -98,7 +107,7 @@ export const modal_content = style({
       'overflow': 'hidden',
       'zIndex': '10',
       'padding': `${size['size-7']} 0`,
-      'color': theme.vars['app-color'],
+      'color': theme.vars.color,
       'justifyContent': 'center',
 
       'selectors': {
@@ -152,7 +161,6 @@ export const modal_body = style({
 export const modal_title = style({
   '@layer': {
     [app]: {
-      fontSize: '2rem',
       fontWeight: 'bold',
       margin: 0,
     },

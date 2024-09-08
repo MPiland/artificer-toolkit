@@ -1,5 +1,5 @@
 import { style } from '@vanilla-extract/css'
-import { theme } from '../../css/global.css'
+import { theme } from '../../css/theme.css'
 import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
 
@@ -37,8 +37,9 @@ export const select_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      border: theme['input-border'],
-      borderRadius: theme['default-border-radius'],
+      borderBottom: theme.vars['app-border-line-style'],
+      borderRight: theme.vars['app-border-line-style'],
+      borderBottomRightRadius: theme['default-border-radius'],
       height: theme['input-height'],
       display: 'flex',
       flexDirection: 'row',

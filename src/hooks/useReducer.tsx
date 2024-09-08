@@ -1,4 +1,4 @@
-import { set, get, camelCase, PropertyPath } from 'lodash'
+import { set, get, camelCase, PropertyPath, merge } from 'lodash'
 import { produce } from 'immer'
 import { ReducerActionType } from '../utils/types'
 
@@ -56,7 +56,16 @@ const formReducer = produce((draft: any, action: ReducerActionType) => {
   } else if (action?.type === 'reset') {
     return action?.target?.value
   } else {
-    set(draft, path as PropertyPath, action?.target?.value)
+    let newData: any
+    if (typeof action?.target?.value === 'object') {
+      const currentData = get(draft, path as PropertyPath, {})
+      newData = merge(currentData, action?.target?.value)
+    }
+    if (typeof action?.target?.value === 'string') {
+      newData = action.target?.value
+    }
+    set(draft, path as PropertyPath, newData)
+
     if (path && path[path.length - 1] === 'value') {
       if (path.length === 1) {
         set(draft, 'name', camelCase(action?.target?.value))

@@ -1,38 +1,36 @@
-/* global use, db */
+/* global use, db, ObjectId */
 use('ATdb')
 
-function renameDetailsToDetail(data) {
+function updateObject(data) {
   if (Array.isArray(data)) {
-    return data.map((item) => renameDetailsToDetail(item))
+    return data.map((item) => updateObject(item))
   } else if (typeof data === 'object' && data !== null) {
-    let keyToDelete = null
     for (let key in data) {
-      if (key === 'details') {
-        data['detail'] = renameDetailsToDetail(data[key])
-        keyToDelete = key
+      if (key === 'currency') {
+        if (data[key].type && !Array.isArray(data[key].type)) {
+          const typeData = data[key].type
+          data[key] = typeData
+        }
       } else {
-        data[key] = renameDetailsToDetail(data[key])
+        data[key] = updateObject(data[key])
       }
-    }
-    // Delete the key outside the loop
-    if (keyToDelete !== null) {
-      delete data[keyToDelete]
     }
   }
   return data
 }
 
-const data = db.classes.find().toArray()
+const collection = 'items'
+
+const data = db[collection].find().toArray()
 
 const clearData = async (data) => {
-  data = renameDetailsToDetail(data)
   const bulkOperations = data.map((item) => ({
     updateOne: {
       filter: { _id: item._id },
-      update: { $set: renameDetailsToDetail(item) },
+      update: { $set: updateObject(item) },
     },
   }))
-  await db.classes.bulkWrite(bulkOperations)
+  await db[collection].bulkWrite(bulkOperations)
   // await db.tests.insertMany(data)
 }
 

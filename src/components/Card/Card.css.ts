@@ -1,7 +1,8 @@
-import { style } from '@vanilla-extract/css'
-import { theme } from '../../css/global.css'
+import { globalStyle, style } from '@vanilla-extract/css'
+import { theme } from '../../css/theme.css'
 import { size } from '../../css/size.css'
 import { app } from '../../css/layers.css'
+import { fontSize } from '../../css/typography.css'
 
 export const card = style({
   '@layer': {
@@ -9,13 +10,141 @@ export const card = style({
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      width: '100%',
+      width: 'inherit',
       height: 'auto',
-      borderRadius: theme['default-border-radius'],
-      border: theme.vars['app-border-line-style'],
-      marginBottom: size['size-2'],
-      boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
-      padding: '1rem 1rem',
+      borderRadius: theme.borderRadius,
+      border: `${theme.border} ${theme.vars.borderColor}`,
+      marginBottom: size['size-4'],
+      backgroundColor: theme.vars.backgroundColor.component,
+      color: theme.vars.color,
+    },
+  },
+})
+
+export const card_header = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
+      padding: `${size['size-4']} ${size['size-4']}`,
+      backgroundColor: theme.vars.card.header,
+      alignItems: 'center',
+    },
+  },
+})
+
+export const card_header_title_container = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      width: 'fit-content',
+      columnGap: size['size-2'],
+      alignItems: 'center',
+    },
+  },
+})
+
+export const card_header_title = style({
+  '@layer': {
+    [app]: {
+      textWrap: 'nowrap',
+    },
+  },
+})
+
+export const card_header_icon_container = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'row',
+      width: '100%',
+      height: '100%',
+      justifyContent: 'end',
+      cursor: 'pointer',
+    },
+  },
+})
+
+export const card_header_icon = style({
+  '@layer': {
+    [app]: {
+      height: '100%',
+      width: 'auto',
+      transition: 'rotate .3s ease-in-out',
+
+      selectors: {
+        '&.collapsed': {
+          rotate: '180deg',
+          transition: 'rotate .3s ease-in-out',
+        },
+      },
+    },
+  },
+})
+
+export const card_content_wrapper = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden',
+      padding: `${size['size-4']} ${size['size-4']}`,
+      height: '100%',
+    },
+  },
+})
+
+export const card_content = style({
+  '@layer': {
+    [app]: {
+      height: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+      overflow: 'hidden',
+    },
+  },
+})
+
+export const card_content_truncated = style({
+  '@layer': {
+    [app]: {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
+  },
+})
+
+export const card_footer = style({
+  '@layer': {
+    [app]: {
+      padding: `${size['size-2']} ${size['size-2']}`,
+      borderTop: `${theme.border} ${theme.vars.borderColor}`,
+    },
+  },
+})
+
+globalStyle(`${card_footer} *`, {
+  '@layer': {
+    [app]: {
+      fontSize: fontSize['font-size-00'],
+    },
+  },
+})
+
+globalStyle(`${card_content} p:last-of-type`, {
+  '@layer': {
+    [app]: {
+      marginBottom: 0,
+    },
+  },
+})
+
+globalStyle(`${card_content} p:first-of-type`, {
+  '@layer': {
+    [app]: {
+      marginTop: 0,
     },
   },
 })

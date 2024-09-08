@@ -1,4 +1,4 @@
-import { theme } from '../../css/global.css'
+import { theme } from '../../css/theme.css'
 import { style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
@@ -7,52 +7,11 @@ export const app_shell = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      flexDirection: 'column',
+      flexDirection: 'row',
       height: '100dvh',
       width: '100%',
       overflow: 'hidden',
-      backgroundColor: theme.vars['app-background-color'],
-      color: theme.vars['app-color'],
-    },
-  },
-})
-
-export const app_main = style({
-  '@layer': {
-    [app]: {
-      'position': 'relative',
-      'margin': '0 calc(((100% - 80%) / 2))',
-      'overflow': 'hidden',
-      'backgroundColor': 'inherit',
-      'height': `calc(100dvh - ${theme['header-height']})`,
-      'display': 'flex',
-      'flexDirection': 'column',
-
-      '@media': {
-        'screen and (min-width: 568px) and (max-width: 1024px)': {
-          margin: '0 calc(((100% - 90%) / 2))',
-        },
-        'screen and (max-width: 567px)': {
-          margin: '0 calc(((100% - 95%) / 2))',
-        },
-      },
-
-      'selectors': {
-        '&.sidebar_active::after': {
-          content: '',
-          position: 'absolute',
-          top: '0',
-          left: '0',
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(128, 128, 128, 0.5)',
-          zIndex: '10',
-        },
-
-        '&.sidebar_active': {
-          pointerEvents: 'none',
-        },
-      },
+      color: theme.vars.color,
     },
   },
 })
@@ -61,15 +20,73 @@ export const app_header = style({
   '@layer': {
     [app]: {
       position: 'sticky',
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: theme['header-height'],
+      top: 0,
+      right: 0,
+      width: 'auto',
+      height: theme.appShell.header.height,
       display: 'flex',
       flexDirection: 'row',
       border: 'none',
-      borderBottom: theme.vars['app-border-line-style'],
-      paddingLeft: size['size-5'],
+      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
+      padding: theme.appShell.header.padding,
+      backgroundColor: theme.vars.backgroundColor.content,
+      color: theme.vars.color,
+    },
+  },
+})
+
+export const app_sidebar = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      left: 0,
+      top: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      width: theme.appShell.sidebar.width,
+      backgroundColor: theme.vars.backgroundColor.sidebar,
+      color: 'white',
+      listStyleType: 'none',
+      transition: 'width .3s ease-in-out',
+      padding: theme.appShell.sidebar.padding,
+      rowGap: '1rem',
+      borderRight: `${theme.border} ${theme.vars.borderColor}`,
+
+      selectors: {
+        '&.collapsed': {
+          width: theme.appShell.sidebar['collapsed-width'],
+          overflow: 'hidden',
+        },
+      },
+    },
+  },
+})
+
+export const app_main = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      top: 0,
+      right: 0,
+      width: '100%',
+      overflow: 'hidden',
+      height: '100%',
+      backgroundColor: theme.vars.backgroundColor.content,
+      zIndex: 0,
+    },
+  },
+})
+
+export const app_content = style({
+  '@layer': {
+    [app]: {
+      padding: `${size['size-4']} 8rem`,
+      width: '100%',
+      height: `calc(100% - ${theme.appShell.header.height})`,
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
     },
   },
 })
@@ -77,14 +94,20 @@ export const app_header = style({
 export const hamburger_wrapper = style({
   '@layer': {
     [app]: {
-      margin: 'auto 1rem auto 0',
       display: 'flex',
+      flexDirection: 'row',
       cursor: 'pointer',
-      width: `${theme['hamburger-wrapper-width']}`,
-      height: `calc(${theme['hamburger-wrapper-width']} + 0.5rem)`,
-      alignItems: 'center',
       justifyContent: 'center',
-      order: 1,
+      alignContent: 'center',
+      flexWrap: 'wrap',
+      height: theme.hamburger.wrapper.height,
+      width: theme.hamburger.wrapper.width,
+
+      selectors: {
+        '&.collapsed': {
+          justifyContent: 'center',
+        },
+      },
     },
   },
 })
@@ -96,8 +119,8 @@ export const hamburger = style({
       flexDirection: 'column',
       justifyContent: 'space-between',
       cursor: 'pointer',
-      width: theme['hamburger-wrapper-width'],
-      height: theme['hamburger-wrapper-width'],
+      width: theme.hamburger.height,
+      height: theme.hamburger.height,
     },
   },
 })
@@ -106,58 +129,24 @@ export const hamburger_line = style({
   '@layer': {
     [app]: {
       width: '100%',
-      height: theme['hamburger-line-height'],
-      backgroundColor: '#333',
+      height: theme.hamburger.line.height,
+      backgroundColor: theme.vars.color,
       transition: 'transform .3s, opacity .3s',
       transformOrigin: 'center',
       vars: {
-        '--hamburger-line-margin': `calc((${theme['hamburger-wrapper-width']} - (${theme['hamburger-line-height']} * 3)) / 2)`,
-        '--hamburger-translateY': `calc(var(--hamburger-line-margin) + ${theme['hamburger-line-height']})`,
+        '--hamburger-line-margin': `calc((${theme.hamburger.height} - (${theme.hamburger.line.height} * 3)) / 2)`,
+        '--hamburger-translate-y': `calc(var(--hamburger-line-margin) + ${theme.hamburger.line.height})`,
       },
       selectors: {
-        '.active &:nth-of-type(1)': {
-          transform: `translateY(var(--hamburger-translateY)) rotate(45deg)`,
+        '.collapsed &:first-of-type': {
+          transform: `translateY(var(--hamburger-translate-y)) rotate(45deg)`,
         },
-        '.active &:nth-of-type(2)': {
+        '.collapsed &:nth-of-type(2)': {
           opacity: '0',
         },
-        '.active &:nth-of-type(3)': {
-          transform: `translateY(calc(-1 * var(--hamburger-translateY)))
+        '.collapsed &:last-of-type': {
+          transform: `translateY(calc(-1 * var(--hamburger-translate-y)))
       rotate(-45deg)`,
-        },
-      },
-    },
-  },
-})
-
-export const app_sidebar = style({
-  '@layer': {
-    [app]: {
-      'position': 'absolute',
-      'top': `${theme['header-height']}`,
-      'bottom': 0,
-      'left': 'calc(-1 * 25%)',
-      'width': '25%',
-      'zIndex': 3000,
-      'border': 'none',
-      'backgroundColor': 'inherit',
-      'transition': 'all .3s ease-in-out',
-
-      '@media': {
-        'screen and (max-width: 567px)': {
-          width: '50%',
-          left: 'calc(-1 * 50%)',
-        },
-        'screen and (min-width: 568px) and (max-width: 1023px)': {
-          width: '35%',
-          left: 'calc(-1 * 35%)',
-        },
-      },
-
-      'selectors': {
-        '&.active': {
-          left: '0',
-          borderRight: theme.vars['app-border-line-style'],
         },
       },
     },

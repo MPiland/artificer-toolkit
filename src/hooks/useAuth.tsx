@@ -1,22 +1,14 @@
-import { jwtDecode } from 'jwt-decode'
-import { useSelector } from 'react-redux'
-import { selectCurrentToken } from '../features/auth/authSlice'
+import { useEffect, useState } from 'react'
 
-interface AuthData {
-  active: boolean
-  id: string
-}
+const useAuth = (): [string, React.Dispatch<React.SetStateAction<string>>] => {
+  const tokenStorage = sessionStorage.getItem('accessToken') ?? ''
+  const [token, setToken] = useState<string>(tokenStorage ?? '')
 
-const useAuth = (): AuthData => {
-  const token: string | null = useSelector(selectCurrentToken)
+  useEffect(() => {
+    setToken(tokenStorage)
+  }, [tokenStorage])
 
-  if (token) {
-    const decoded: any = jwtDecode(token)
-    const { active, id }: { active: boolean; id: string } = decoded.UserInfo
-    return { active, id }
-  }
-
-  return { active: false, id: '' }
+  return [token, setToken]
 }
 
 export default useAuth

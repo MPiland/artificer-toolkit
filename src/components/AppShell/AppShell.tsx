@@ -1,5 +1,4 @@
-import { ReactNode, FC, RefObject } from 'react'
-import { light } from '../../css/global.css'
+import { ReactNode } from 'react'
 import {
   app_shell,
   app_main,
@@ -8,8 +7,10 @@ import {
   hamburger_wrapper,
   hamburger_line,
   app_sidebar,
+  app_content,
 } from './AppShell.css'
 import clsx from 'clsx'
+import { useTheme } from '../../hooks/useTheme'
 
 interface AppShellProps {
   children: ReactNode
@@ -17,7 +18,10 @@ interface AppShellProps {
 
 interface MainProps {
   children: ReactNode
-  sidebarActive: boolean
+}
+
+interface ContentProps {
+  children: ReactNode
 }
 
 interface HeaderProps {
@@ -26,26 +30,18 @@ interface HeaderProps {
 
 interface HamburgerProps {
   onClick: () => void
-  isActive: boolean
-  hamburgerRef: RefObject<HTMLDivElement>
+  collapsed: boolean
 }
 
 interface SidebarProps {
   children: ReactNode
-  isActive: boolean
-  sidebarRef: RefObject<HTMLDivElement>
+  collapsed: boolean
 }
 
-export const Hamburger: FC<HamburgerProps> = ({ onClick, isActive, hamburgerRef }) => {
+export const Hamburger = ({ onClick, collapsed = false }: HamburgerProps) => {
   return (
-    <div
-      className={hamburger_wrapper}
-      onClick={onClick}
-      ref={hamburgerRef}
-      tabIndex={0}
-      role="button"
-    >
-      <div className={clsx(hamburger, { ['active']: isActive })}>
+    <div className={clsx(hamburger_wrapper, { ['collapsed']: collapsed })} onClick={onClick} tabIndex={0} role='button'>
+      <div className={hamburger}>
         <span className={hamburger_line}></span>
         <span className={hamburger_line}></span>
         <span className={hamburger_line}></span>
@@ -54,42 +50,38 @@ export const Hamburger: FC<HamburgerProps> = ({ onClick, isActive, hamburgerRef 
   )
 }
 
-export const Header: FC<HeaderProps> = ({ children }) => {
+export const Header = ({ children }: HeaderProps) => {
   return <header className={app_header}>{children}</header>
 }
 
-export const Main: FC<MainProps> = ({ children, sidebarActive }) => {
+export const Main = ({ children }: MainProps) => {
   return (
-    <div
-      className={clsx(app_main, {
-        ['sidebar_active']: sidebarActive,
-      })}
-      id="app-main"
-    >
+    <div className={app_main} id='app-main'>
       {children}
     </div>
   )
 }
 
-export const Sidebar: FC<SidebarProps> = ({ children, isActive, sidebarRef }) => {
+export const Content = ({ children }: ContentProps) => {
   return (
-    <nav className={clsx(app_sidebar, { ['active']: isActive })} ref={sidebarRef}>
+    <div className={app_content} id='app-content'>
       {children}
-    </nav>
+    </div>
   )
 }
 
-const AppShell: FC<AppShellProps> & {
-  Header: FC<HeaderProps>
-  Main: FC<MainProps>
-  Sidebar: FC<SidebarProps>
-  Hamburger: FC<HamburgerProps>
-} = ({ children }) => {
-  return <div className={clsx(app_shell, light)}>{children}</div>
+export const Sidebar = ({ children, collapsed = false }: SidebarProps) => {
+  return <nav className={clsx(app_sidebar, { ['collapsed']: collapsed })}>{children}</nav>
+}
+
+const AppShell = ({ children }: AppShellProps) => {
+  const { themeVar } = useTheme()
+  return <div className={clsx(app_shell, themeVar)}>{children}</div>
 }
 
 AppShell.Header = Header
 AppShell.Main = Main
+AppShell.Content = Content
 AppShell.Sidebar = Sidebar
 AppShell.Hamburger = Hamburger
 

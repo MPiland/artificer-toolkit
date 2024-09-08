@@ -1,8 +1,6 @@
 import { createVar, globalStyle, style } from '@vanilla-extract/css'
-import { theme } from '../../css/global.css'
 import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
-import palette from '../../css/colors.css'
 
 export const height = createVar()
 
@@ -16,22 +14,18 @@ export const accordion = style({
   },
 })
 
-export const accordion_container = style({
+export const accordion_wrapper = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%',
-      height: 'auto',
-      borderRadius: theme['default-border-radius'],
-      border: theme.vars['app-border-line-style'],
-      marginBottom: size['size-2'],
+      position: 'relative',
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
-      backgroundColor: theme.vars['app-background-color'],
+      zIndex: 2,
+      marginBottom: size['size-3'],
 
       selectors: {
-        '&.dragging': {
-          backgroundColor: palette['blue-1'],
+        '&.borderless': {
+          border: 'none',
+          borderRadius: '0',
         },
       },
     },
@@ -39,19 +33,34 @@ export const accordion_container = style({
 })
 
 export const accordion_header = style({
+  width: '100%',
+  fontWeight: 'bold',
   display: 'flex',
   flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
   cursor: 'pointer',
   padding: `${size['size-2']} ${size['size-3']}`,
+  height: '2.5rem',
+  flexWrap: 'nowrap',
+  borderBottomLeftRadius: '0',
+  borderBottomRightRadius: '0',
+
+  selectors: {
+    [`${accordion_wrapper}.collapsed &`]: {
+      border: 'none',
+    },
+  },
 })
 
-export const accordion_header_button = style({
+export const accordion_header_icon = style({
   '@layer': {
     [app]: {
       height: '100%',
-      width: '1.25rem',
+      width: 'auto',
       alignItems: 'center',
       display: 'flex',
+      marginLeft: size['size-3'],
     },
   },
 })
@@ -61,32 +70,24 @@ export const accordion_remove_button = style({
     [app]: {
       width: '1.5rem',
       height: '1.5rem',
-      border: theme.vars['app-border-line-style'],
       borderRadius: '.5rem',
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: size['size-1'],
-
-      selectors: {
-        '&:hover': {
-          backgroundColor: palette['gray-3'],
-        },
-      },
     },
   },
 })
 
-export const accordion_body = style({
+export const accordion_content_wrapper = style({
   '@layer': {
     [app]: {
       display: 'grid',
       borderSpacing: 0,
       gridTemplateRows: '1fr',
-      transition:
-        'grid-template-rows 0.3s ease-in-out, margin 0.3s ease-in-out',
+      transition: 'grid-template-rows 0.3s ease-in-out',
 
       selectors: {
-        '&.collapsed': {
+        [`${accordion_wrapper}.collapsed &`]: {
           gridTemplateRows: '0fr',
         },
       },
@@ -100,12 +101,12 @@ export const accordion_content = style({
       width: '100%',
       height: 'auto',
       overflow: 'hidden',
-      transition: 'padding .3s ease-in-out',
-      padding: `${size['size-2']} ${size['size-2']}`,
+      padding: `${size['size-3']} ${size['size-3']}`,
+      transition: 'padding 0.3s ease-in-out',
 
       selectors: {
-        '&.collapsed': {
-          padding: `0 ${size['size-2']}`,
+        [`${accordion_wrapper}.collapsed &`]: {
+          padding: `0 ${size['size-3']}`,
         },
       },
     },
@@ -122,7 +123,11 @@ export const accordion_footer = style({
   },
 })
 
-globalStyle(`${accordion_header_button} > svg`, {
-  width: '100%',
-  height: 'auto',
+globalStyle(`${accordion_header_icon} svg`, {
+  '@layer': {
+    [app]: {
+      height: '60%',
+      width: 'auto',
+    },
+  },
 })

@@ -1,11 +1,4 @@
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useLayoutEffect,
-  memo,
-} from 'react'
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, memo } from 'react'
 import {
   input_wrapper,
   input_label,
@@ -13,6 +6,9 @@ import {
   input_left_section,
   input_right_section,
   input,
+  input_height,
+  input_border,
+  input_textAlign,
 } from './Input.css'
 import { ReducerActionType } from '../../utils/types'
 import clsx from 'clsx'
@@ -28,7 +24,7 @@ interface InputProps {
   autoComplete?: string
   required?: boolean
   errorMsg?: string
-  onChange: (arg: ReducerActionType) => void
+  onChange?: (arg: ReducerActionType) => void
   value: any | null
   readOnly?: boolean
   validation?: string
@@ -39,6 +35,10 @@ interface InputProps {
   leftSection?: any
   rightSection?: any
   id?: string
+  disabled?: boolean
+  height?: 'full' | 'auto' | 'default'
+  border?: 'none' | 'default'
+  textAlign?: 'center' | 'default'
 }
 
 const Input = memo(
@@ -59,6 +59,10 @@ const Input = memo(
     leftSection,
     rightSection,
     id,
+    disabled = false,
+    height = 'default',
+    border = 'default',
+    textAlign = 'default',
   }: InputProps) => {
     const [inputValue, setInputValue] = useState<string>(value ?? '')
     const [debouncing, setDebouncing] = useState(false)
@@ -70,10 +74,7 @@ const Input = memo(
       if (input) {
         input.addEventListener('setErrorState', (e: any) => setError(e.detail))
 
-        return () =>
-          input.removeEventListener('setErrorState', (e: any) =>
-            setError(e.detail)
-          )
+        return () => input.removeEventListener('setErrorState', (e: any) => setError(e.detail))
       }
     }, [])
 
@@ -87,7 +88,7 @@ const Input = memo(
     const debounceSave = useDebounceCallback(
       useCallback(
         (target: React.ChangeEvent<HTMLInputElement>['target']) => {
-          onChange({ target: { name: name, value: target.value } })
+          onChange && onChange({ target: { name: name, value: target.value } })
           setDebouncing(false)
         },
         [onChange, name]
@@ -128,26 +129,25 @@ const Input = memo(
         className={clsx(input_wrapper, {
           [`${className}`]: className,
         })}
-        error={error}
-        errorMsg={errorMsg}
+        opened={error}
+        label={errorMsg}
       >
         {label && (
-          <label
-            className={clsx(input_label, { ['required']: required })}
-            htmlFor={id ?? name}
-          >
+          <label className={clsx(input_label, { ['required']: required })} htmlFor={id ?? name}>
             {label}
           </label>
         )}
-        <div className={clsx(input_container)}>
-          {leftSection && (
-            <div className={input_left_section}>{leftSection}</div>
-          )}
+        <div
+          className={clsx(input_container, input_height[height], input_border[border], input_textAlign[textAlign], {
+            ['invalid']: error,
+          })}
+        >
+          {leftSection && <div className={input_left_section}>{leftSection}</div>}
           <input
             placeholder={placeholder}
             name={name}
             type={type}
-            className={clsx(input, { ['invalid']: error })}
+            className={input}
             required={required}
             autoFocus={autoFocus}
             autoComplete={autoComplete ?? 'off'}
@@ -158,10 +158,9 @@ const Input = memo(
             ref={inputRef}
             id={id ?? name}
             data-atapp-validation={validation}
+            disabled={disabled}
           />
-          {rightSection && (
-            <div className={input_right_section}>{rightSection}</div>
-          )}
+          {rightSection && <div className={input_right_section}>{rightSection}</div>}
         </div>
       </Tooltip>
     )

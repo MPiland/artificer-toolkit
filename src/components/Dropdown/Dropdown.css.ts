@@ -1,14 +1,12 @@
-import { theme } from '../../css/global.css'
 import { app } from '../../css/layers.css'
-import { style, globalStyle } from '@vanilla-extract/css'
+import { style, globalStyle, styleVariants } from '@vanilla-extract/css'
 import { size } from '../../css/size.css'
+import { theme } from '../../css/theme.css'
 
 export const dropdown = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      width: theme['input-width'],
-      color: theme.vars['app-color'],
 
       selectors: {
         '&:has(:focus-within)': {
@@ -40,8 +38,6 @@ export const dropdown_wrapper = style({
 export const dropdown_label = style({
   '@layer': {
     [app]: {
-      fontWeight: theme['input-label-font-weight'],
-
       selectors: {
         '&.required:after': {
           content: '*',
@@ -57,21 +53,14 @@ export const dropdown_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      border: theme['input-border'],
-      borderRadius: theme['default-border-radius'],
-      height: theme['input-height'],
+      // border: theme['input-border'],
+      // borderRadius: theme['default-border-radius'],
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       paddingLeft: size['size-3'],
       overflow: 'hidden',
       cursor: 'pointer',
-
-      selectors: {
-        '&.invalid': {
-          borderColor: theme.vars.input['input-error-color'],
-        },
-      },
     },
   },
 })
@@ -99,7 +88,6 @@ export const dropdown_input = style({
       border: 'none',
       backgroundColor: 'transparent',
       width: 'auto',
-      color: theme.vars['app-color'],
       userSelect: 'none',
       flexWrap: 'nowrap',
       overflow: 'hidden',
@@ -124,14 +112,10 @@ export const dropdown_menu = style({
     [app]: {
       display: 'flex',
       maxHeight: '10rem',
-      borderRadius: theme['default-border-radius'],
       zIndex: 1000,
-      backgroundColor: theme.vars['app-background-color'],
-      color: theme.vars['app-color'],
       boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
       listStyle: 'none',
       padding: `${size['size-0']} ${size['size-0']}`,
-      border: theme.vars['app-border-line-style'],
       height: 'fit-content',
     },
   },
@@ -172,7 +156,6 @@ export const dropdown_active_option = style({
     [app]: {
       backgroundImage: 'linear-gradient(rgb(0 0 0/10%) 0 0)',
       borderRadius: '.75rem',
-      border: theme.vars['app-border-line-style'],
       width: 'fit-content',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -187,6 +170,29 @@ globalStyle(`${dropdown_right_section} > span`, {
     [app]: {
       display: 'inline-block',
       maxHeight: 'fit-content',
+    },
+  },
+})
+
+export const dropdown_height = styleVariants({
+  default: { height: theme.input.height },
+  auto: { height: size['size-auto'] },
+  full: { height: size['size-full'] },
+})
+
+export const dropdown_border = styleVariants({
+  none: { border: 'none' },
+  default: {
+    border: `${theme.border} ${theme.vars.borderColor}`,
+    borderRadius: theme.borderRadius,
+
+    selectors: {
+      '&:focus-within': {
+        border: theme.color.focus,
+      },
+      '&.invalid': {
+        border: theme.color.error,
+      },
     },
   },
 })

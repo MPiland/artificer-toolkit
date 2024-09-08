@@ -1,6 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css'
 import { fontSize, fontWeight } from '../../css/typography.css'
-import { theme } from '../../css/global.css'
+import { theme } from '../../css/theme.css'
 import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
 
@@ -33,8 +33,8 @@ export const detail_aside = style({
       width: '0',
       padding: '0',
       margin: '0',
-      backgroundColor: theme.vars['app-background-color'],
-      color: theme.vars['app-color'],
+      backgroundColor: theme.vars.backgroundColor.content,
+      color: theme.vars.color,
       zIndex: 20,
       transition: 'all .3s ease-in-out',
       overflow: 'hidden',
@@ -43,7 +43,7 @@ export const detail_aside = style({
       selectors: {
         '&.active': {
           width: '13rem',
-          borderRight: theme.vars['app-border-line-style'],
+          borderRight: `${theme.border} ${theme.vars.borderColor}`,
           transition: 'all .3s ease-in-out',
           paddingRight: '1rem',
           marginRight: '.5rem',
@@ -60,8 +60,6 @@ export const detail_body = style({
       zIndex: 1,
       padding: '0 .5rem',
       flex: '1 1 0',
-      overflowY: 'auto',
-      height: '100%',
     },
   },
 })
@@ -114,7 +112,7 @@ globalStyle(`${detail_aside_list} > li > a`, {
     [app]: {
       fontSize: 'inherit',
       textDecoration: 'none',
-      color: theme.vars['app-color'],
+      color: theme.vars.color,
     },
   },
 })
@@ -140,8 +138,8 @@ globalStyle(`${detail_body} th`, {
 globalStyle(`${detail_body} blockquote`, {
   '@layer': {
     [app]: {
-      borderRadius: theme['default-border-radius'],
-      border: theme.vars['app-border-line-style'],
+      borderRadius: theme.borderRadius,
+      border: `${theme.border} ${theme.vars.borderColor}`,
       marginLeft: size['size-3'],
       marginTop: size['size-2'],
       padding: size['size-1'],

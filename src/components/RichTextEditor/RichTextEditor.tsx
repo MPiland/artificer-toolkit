@@ -10,7 +10,6 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import {
   editor_container,
-  editor_label,
   editor_content_container,
   editor_content,
   editor_table,
@@ -32,13 +31,7 @@ interface RichTextEditorProps {
   className?: string | number | symbol | any
 }
 
-const RichTextEditor: FC<RichTextEditorProps> = ({
-  onChange,
-  label,
-  name,
-  value,
-  className,
-}) => {
+const RichTextEditor: FC<RichTextEditorProps> = ({ onChange, label, name, value, className }) => {
   const [debouncing, setDebouncing] = useState<boolean>(false)
   const [inputValue, setInputValue] = useState<string>(value)
 
@@ -119,16 +112,10 @@ const RichTextEditor: FC<RichTextEditorProps> = ({
 
   return (
     <>
-      {label && <span className={editor_label}>{label}</span>}
-      <div
-        className={clsx(editor_container, { [className]: className })}
-        tabIndex={-1}
-      >
+      {label && <span>{label}</span>}
+      <div className={clsx(editor_container, { [className]: className })} tabIndex={-1}>
         <MenuBar editor={editor} />
-        <ScrollArea
-          scrollDirection='vertical'
-          wrapperClassName={sprinkles({ pb: 'size-3' })}
-        >
+        <ScrollArea scrollDirection='vertical' wrapperClassName={sprinkles({ pb: 'space-3' })}>
           <EditorContent editor={editor} className={editor_content_container} />
         </ScrollArea>
       </div>

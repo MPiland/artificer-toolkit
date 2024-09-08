@@ -1,0 +1,16 @@
+const IProps = () => {
+  return (
+    <svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+      <path
+        d='M14.1635 7.625H10.8314L9.59749 5.68086C9.41266 5.38828 9.6105 5 9.94371 5H15.0511C15.3843 5 15.5822 5.38828 15.3974 5.68086L14.1635 7.625ZM10.8314 8.5H14.1635C14.2624 8.56836 14.3743 8.64492 14.5019 8.72969C15.9779 9.72227 18.5 12.0355 18.5 16.55C18.5 17.9992 18.0422 19 16.6625 19H8.33234C6.95266 19 6.5 17.9992 6.5 16.55C6.5 12.0355 9.01698 9.72227 10.493 8.72969C10.6179 8.64492 10.7325 8.56836 10.8314 8.5Z'
+        fill='currentColor'
+      />
+      <path d='M17 9.5L18 9H19M5.5 17H4.5L4 16M9.5 8H6.5' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' />
+      <circle cx='3.5' cy='15' r='1.5' fill='currentColor' />
+      <circle cx='20' cy='9' r='1.5' fill='currentColor' />
+      <circle cx='6' cy='8' r='1.5' fill='currentColor' />
+    </svg>
+  )
+}
+
+export default IProps

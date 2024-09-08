@@ -1,10 +1,15 @@
-import { defineProperties, createSprinkles } from '@vanilla-extract/sprinkles'
-import palette from './colors.css'
+import { defineProperties, createSprinkles, createMapValueFn, ConditionalValue } from '@vanilla-extract/sprinkles'
 import { fontFamily, fontWeight, lineHeight, fontSize } from './typography.css'
 import { size, space, position } from './size.css'
 import { borderSize, borderRadius, shadows } from './border.css'
 
 const responsiveProperties = defineProperties({
+  conditions: {
+    mobile: {},
+    tablet: { '@media': 'screen and (min-width: 768px)' },
+    desktop: { '@media': 'screen and (min-width: 1024px)' },
+  },
+  defaultCondition: 'desktop',
   properties: {
     display: ['none', 'flex', 'block', 'inline', 'inline-flex'],
     flexDirection: ['row', 'column'],
@@ -17,6 +22,7 @@ const responsiveProperties = defineProperties({
       'flex-end',
       'space-around',
       'space-between',
+      'space-evenly',
     ],
     justifySelf: ['flex-start', 'center', 'flex-end'],
     alignItems: ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
@@ -37,7 +43,8 @@ const responsiveProperties = defineProperties({
     marginBottom: space,
     marginLeft: space,
     marginRight: space,
-    gap: space,
+    rowGap: space,
+    columnGap: space,
     width: { ...size, screen: '100dvw' },
     height: { ...size, screen: '100dvh' },
     top: position,
@@ -45,10 +52,21 @@ const responsiveProperties = defineProperties({
     bottom: position,
     right: position,
     objectFit: ['contain', 'cover', 'fill', 'none', 'scale-down'],
-    backgroundColor: palette,
     overflow: ['auto', 'hidden'],
     overflowX: ['auto', 'hidden'],
     overflowY: ['auto', 'hidden'],
+    fontFamily: fontFamily,
+    fontSize: fontSize,
+    fontWeight: fontWeight,
+    lineHeight: lineHeight,
+    borderRadius: borderRadius,
+    borderTopWidth: borderSize,
+    borderLeftWidth: borderSize,
+    borderBottomWidth: borderSize,
+    borderRightWidth: borderSize,
+    borderWidth: borderSize,
+    boxShadow: shadows,
+    textAlign: ['center', 'left', 'right', 'justify'],
   },
   shorthands: {
     p: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
@@ -67,40 +85,15 @@ const responsiveProperties = defineProperties({
     h: ['height'],
     placeItems: ['justifyContent', 'alignItems'],
     inset: ['top', 'left', 'right', 'bottom'],
-    bc: ['backgroundColor'],
-  },
-})
-
-const systemProperties = defineProperties({
-  conditions: {
-    lightMode: {},
-    darkMode: { '@media': '(prefers-color-scheme: dark)' },
-  },
-  defaultCondition: 'lightMode',
-  properties: {
-    color: palette,
-    background: palette,
-    borderColor: palette,
-    fontFamily: fontFamily,
-    fontSize: fontSize,
-    fontWeight: fontWeight,
-    lineHeight: lineHeight,
-    borderRadius: borderRadius,
-    borderTopWidth: borderSize,
-    borderLeftWidth: borderSize,
-    borderBottomWidth: borderSize,
-    borderRightWidth: borderSize,
-    borderWidth: borderSize,
-    boxShadow: shadows,
-    textAlign: ['center', 'left', 'right', 'justify'],
-  },
-  shorthands: {
     fs: ['fontSize'],
     ta: ['textAlign'],
   },
 })
 
-export const sprinkles = createSprinkles(responsiveProperties, systemProperties)
+export type ResponsiveValue<Value extends string | number> = ConditionalValue<typeof responsiveProperties, Value>
+export const mapResponsiveValue = createMapValueFn(responsiveProperties)
+
+export const sprinkles = createSprinkles(responsiveProperties)
 
 // It's a good idea to export the Sprinkles type too
 export type Sprinkles = Parameters<typeof sprinkles>[0]

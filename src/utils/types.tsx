@@ -1,15 +1,26 @@
 import { PropertyPath } from 'lodash'
 
-export type RowInput = {
+export type FilterType = {
+  key: string
+  array?: any[]
+  object?: any
+  mapKey?: string
+  type: 'equal' | 'notEqual'
+  value?: string | null
+  matchingKey?: string
+}
+
+export type RowInputType = {
   name?: string | any[]
   value?: string
   breakpoint?: string[]
   options?: any[]
-  validation?: string
+  validation?: 'num' | 'cur'
   errorMsg?: string
   label?: string
   readOnly?: boolean
   type?: 'input' | 'select'
+  filter?: FilterType[]
   multiple?: boolean
   required?: boolean
   optionalKey?: string
@@ -17,7 +28,7 @@ export type RowInput = {
   id?: string
 }
 
-export type RowHeader = {
+export type RowHeaderType = {
   name?:
     | string
     | {
@@ -39,7 +50,7 @@ export type RowHeader = {
   defaultSort?: boolean
 }
 
-export type SortConfig = {
+export type SortConfigType = {
   key: {
     orderKey?: string | PropertyPath
     order?: any[]
@@ -65,46 +76,120 @@ export type ReducerActionType = {
   }
 }
 
-export type Context = {
-  handleClose?: () => void
-  data:
-    | any
-    | {
-        value?: any
-      }
-}
-
-export type FeatureContext = 'OptionContent' | 'OptionFeatureContent' | ''
-
-export type FeatureStepName = 'FeatureContent' | 'SectionContent' | ''
-
-export type SectionName = 'option' | 'modifier' | 'spell' | 'proficiency' | 'sense' | 'feature' | 'ancestry' | ''
-
-export type SelectOption = string | undefined
-
-export type DropdownOption = {
-  name: string | null
-  value: string
+export type DropdownOptionType = {
+  name: string | number | null | undefined
+  value: string | number | null | undefined
   _id: number | string | null
   [key: string]: any
 }
 
-export type Step =
-  | 'Details'
-  | 'Class'
-  | 'Race'
-  | 'Abilities'
-  | 'Traits'
-  | 'Attributes'
-  | 'Features'
-  | 'FeaturesContent'
-  | 'Contains'
-  | 'Proficiencies'
-  | 'Equipment'
-  | 'Ancestry'
-  | 'Background'
+export type StepType = {
+  id:
+    | 'details'
+    | 'class'
+    | 'race'
+    | 'abilities'
+    | 'traits'
+    | 'attributes'
+    | 'features'
+    | 'contains'
+    | 'proficiencies'
+    | 'equipment'
+    | 'startingEquipment'
+    | 'ancestry'
+    | 'background'
+  name:
+    | 'Details'
+    | 'Class'
+    | 'Race'
+    | 'Abilities'
+    | 'Traits'
+    | 'Attributes'
+    | 'Features'
+    | 'FeaturesContent'
+    | 'Contains'
+    | 'Proficiencies'
+    | 'Equipment'
+    | 'Starting Equipment'
+    | 'Ancestry'
+    | 'Background'
+}
 
-export type FormContext = {
+export type ContextType = {
   type?: 'new' | 'edit' | string
-  title?: 'class' | 'spell' | 'race' | 'item' | 'feat' | 'option' | 'background' | 'character'
+  title?: 'classes' | 'spells' | 'races' | 'items' | 'feats' | 'options' | 'backgrounds' | 'characters'
+}
+
+export type SectionNameType =
+  | 'options'
+  | 'modifiers'
+  | 'spells'
+  | 'proficiencies'
+  | 'expertise'
+  | 'senses'
+  | 'features'
+  | 'ancestry'
+  | 'feats'
+  | ''
+
+export type FeatureStepType = 'feature' | 'option' | 'subfeature' | ''
+
+export type DiceConfigType = {
+  quantity: number
+  type: number
+  reduceType: 'kl' | 'kh' | 'dl' | 'dh' | null | undefined
+  reduceCount: number
+  rerollType: 'r' | 'ro' | null | undefined
+  rerollCondition: '<' | '>' | '===' | null | undefined
+  rerollValue: number
+}
+
+export type DiceResultType = {
+  type: number
+  value: number
+  id?: string
+}
+
+export type DiceRollsType = {
+  score: number | null
+  ability: any
+  rolling: boolean
+  rolled: DiceResultType[]
+  kept: DiceResultType[]
+  applied: boolean
+}
+
+export type SectionOptionsType = {
+  section: any
+  sectionName: SectionNameType
+  feature?: any
+  optionIndex: string
+  state: any
+  builders: any
+  feats?: any
+  spells?: any
+  items?: any
+  classes?: any
+  featureType: 'race' | 'class'
+  featureLevel?: number
+}
+
+export type Point = { x: number; y: number; z: number }
+
+export type FeatureArrayType = {
+  level: number
+  features: any[]
+}
+
+export type ClassProficiencyType = {
+  [key: string]: {
+    type: any[]
+    property?: any[]
+    selectionCount: number | null
+  }
+}
+
+export type ClassSpellType = {
+  level: number
+  spells: any[]
 }

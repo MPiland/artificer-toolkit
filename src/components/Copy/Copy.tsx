@@ -1,38 +1,30 @@
-import { useGetRacesQuery, selectAllRaces } from '../../features/race/raceApiSlice'
-import { useGetClassesQuery, selectAllClasses } from '../../features/class/classApiSlice'
-import { useGetItemsQuery, selectAllItems } from '../../features/item/itemApiSlice'
-import useIsLoading from '../../hooks/useIsLoading'
-import { useLocation, useNavigate } from 'react-router-dom'
-import Spinner from '../Spinner/Spinner'
+import { useGetRacesQuery } from '../../features/races/racesApi'
+import { useGetClassesQuery } from '../../features/classes/classesApi'
+import { useGetEquipmentQuery } from '../../features/equipment/equipmentApi'
+import { useNavigate } from 'react-router-dom'
 import Modal from '../Modal/Modal'
 import { useEffect, useReducer, useState } from 'react'
 import formReducer from '../../hooks/useReducer'
-import Grid from '../Grid/Grid'
+import Row from '../Row/Row'
 import Dropdown from '../Dropdown/Dropdown'
-import { DropdownOption } from '../../utils/types'
+import { DropdownOptionType } from '../../utils/types'
 import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
+import { useForm } from '../../hooks/UseForm'
 
 const Copy = () => {
-  const isLoading = useIsLoading()
+  const { formState, setFormState } = useForm()
   const navigate = useNavigate()
-  const location = useLocation()
 
   const [selection, setSelection] = useReducer(formReducer, {})
-  const [features, setFeatures] = useState<any[]>()
+
+  const [features, setFeatures] = useState<any[]>([])
+
   const [selectedFeature, setSelectedFeature] = useState<any>()
 
-  const { races } = useGetRacesQuery(undefined, {
-    selectFromResult: ({ data }) => ({ races: data && selectAllRaces(data) }),
-  })
-
-  const { classes } = useGetClassesQuery(undefined, {
-    selectFromResult: ({ data }) => ({ classes: data && selectAllClasses(data) }),
-  })
-
-  const { items } = useGetItemsQuery(undefined, {
-    selectFromResult: ({ data }) => ({ items: data && selectAllItems(data) }),
-  })
+  const { data: races } = useGetRacesQuery() as { data: any[] }
+  const { data: classes } = useGetClassesQuery() as { data: any[] }
+  const { data: items } = useGetEquipmentQuery() as { data: any[] }
 
   useEffect(() => {
     if (races && classes && items && !features) {
@@ -48,19 +40,20 @@ const Copy = () => {
 
       setFeatures(featureArray)
     }
+
     if (selection.filter) {
-      if (selection.filterBy?.name === 'race') {
-        const raceFeature: any[] = (races as any[])?.find((race: any) => race._id === selection.filter._id).feature
+      if (selection.filterBy?.name === 'races') {
+        const raceFeature: any[] = (races as any[])?.find((race: any) => race._id === selection.filter._id).features
 
         setFeatures(raceFeature)
       }
-      if (selection.filterBy?.name === 'item') {
-        const itemFeature: any[] = (items as any[])?.find((race: any) => race._id === selection.filter._id).feature
+      if (selection.filterBy?.name === 'items') {
+        const itemFeature: any[] = (items as any[])?.find((race: any) => race._id === selection.filter._id).features
 
         setFeatures(itemFeature)
       }
-      if (selection.filterBy?.name === 'class') {
-        const classFeature: any[] = (classes as any[])?.find((race: any) => race._id === selection.filter._id).feature
+      if (selection.filterBy?.name === 'classes') {
+        const classFeature: any[] = (classes as any[])?.find((race: any) => race._id === selection.filter._id).features
 
         setFeatures(classFeature)
       }
@@ -74,99 +67,101 @@ const Copy = () => {
   }, [races, classes, items, selection.filter, features, selection.filterBy?.name, selection.feature])
 
   const handleSelect = () => {
-    navigate(location.state.background.pathname, {
-      state: {
-        feature: selectedFeature,
-        copy: true,
+    const featureIndex = formState.features?.length ?? 0
+    setFormState({
+      target: {
+        name: `features.${featureIndex}`,
+        value: selectedFeature,
       },
     })
+    navigate(-1)
   }
 
-  return isLoading ? (
-    <Spinner />
-  ) : (
-    <>
-      <Modal.Header title='Copy Feature' />
-      <Modal.Body>
-        <Grid cols={{ base: 2, lg: 2, md: 2 }}>
-          <Dropdown
-            options={[
-              {
-                name: 'race',
-                value: 'Race',
-                _id: null,
-              },
-              {
-                name: 'class',
-                value: 'Class',
-                _id: null,
-              },
-              {
-                name: 'item',
-                value: 'item',
-                _id: null,
-              },
-            ]}
-            label='Filter by...'
-            onChange={setSelection}
-            name='filterBy'
-            value={selection?.filterBy}
-          />
-          {selection?.filterBy?.name === 'race' && (
+  return (
+    <Modal>
+      <Modal.Dialogue>
+        <Modal.Header title='Copy Feature' />
+        <Modal.Content>
+          <Row cols={{ base: 2, lg: 2, md: 2 }}>
             <Dropdown
-              options={races as unknown as DropdownOption[]}
-              label='Race'
+              options={[
+                {
+                  name: 'races',
+                  value: 'Races',
+                  _id: null,
+                },
+                {
+                  name: 'classes',
+                  value: 'Classes',
+                  _id: null,
+                },
+                {
+                  name: 'items',
+                  value: 'Items',
+                  _id: null,
+                },
+              ]}
+              label='Filter by...'
               onChange={setSelection}
-              name='filter'
-              value={selection.filter}
+              name='filterBy'
+              value={selection?.filterBy}
             />
-          )}
-          {selection?.filterBy?.name === 'class' && (
+            {selection?.filterBy?.name === 'races' && (
+              <Dropdown
+                options={races as unknown as DropdownOptionType[]}
+                label='Race'
+                onChange={setSelection}
+                name='filter'
+                value={selection.filter}
+              />
+            )}
+            {selection?.filterBy?.name === 'classes' && (
+              <Dropdown
+                options={classes as unknown as DropdownOptionType[]}
+                label='Class'
+                onChange={setSelection}
+                name='filter'
+                value={selection.filter}
+              />
+            )}
+            {selection?.filterBy?.name === 'items' && (
+              <Dropdown
+                options={items as unknown as DropdownOptionType[]}
+                label='Item'
+                onChange={setSelection}
+                name='filter'
+                value={selection.filter}
+              />
+            )}
             <Dropdown
-              options={classes as unknown as DropdownOption[]}
-              label='Class'
+              label='Feature'
               onChange={setSelection}
-              name='filter'
-              value={selection.filter}
+              name='feature'
+              value={selection.feature}
+              options={features
+                ?.filter((featureItem: any) =>
+                  selection.race
+                    ? selection.race.feature?.some((raceFeature: any) => raceFeature._id === featureItem._id)
+                    : featureItem
+                )
+                .filter((featureItem: any) =>
+                  selection.class
+                    ? selection.class.feature?.some((raceFeature: any) => raceFeature._id === featureItem._id)
+                    : featureItem
+                )}
             />
-          )}
-          {selection?.filterBy?.name === 'item' && (
-            <Dropdown
-              options={items as unknown as DropdownOption[]}
-              label='Item'
-              onChange={setSelection}
-              name='filter'
-              value={selection.filter}
-            />
-          )}
-          <Dropdown
-            label='Feature'
-            onChange={setSelection}
-            name='feature'
-            value={selection.feature}
-            options={features
-              ?.filter((featureItem: any) =>
-                selection.race
-                  ? selection.race.feature?.some((raceFeature: any) => raceFeature._id === featureItem._id)
-                  : featureItem
-              )
-              .filter((featureItem: any) =>
-                selection.class
-                  ? selection.class.feature?.some((raceFeature: any) => raceFeature._id === featureItem._id)
-                  : featureItem
-              )}
-          />
-        </Grid>
-        <Button
-          variant='primary'
-          onClick={() => handleSelect()}
-          className={sprinkles({ mt: 'size-3', width: 'full' })}
-          disabled={!selection.feature}
-        >
-          Copy
-        </Button>
-      </Modal.Body>
-    </>
+          </Row>
+          <Button
+            color='primary'
+            onClick={() => handleSelect()}
+            className={sprinkles({ mt: 'space-3', width: 'size-full' })}
+            disabled={!selection.feature}
+          >
+            Copy
+          </Button>
+        </Modal.Content>
+      </Modal.Dialogue>
+    </Modal>
   )
 }
 

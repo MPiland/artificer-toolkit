@@ -4,11 +4,17 @@
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:react-hooks/recommended",
-    "plugin:react/recommended"
+    "plugin:react/recommended",
+    "plugin:@react-three/recommended"
   ],
+  "plugins": ["@typescript-eslint", "react", "react-refresh", "@react-three"],
   "settings": {
     "react": {
       "version": "detect"
+    },
+    "import/extensions": [".js", ".jsx", ".ts", ".tsx"],
+    "import/parsers": {
+      "@typescript-eslint/parser": [".js", ".jsx", ".ts", ".tsx"]
     },
     "import/resolver": {
       "node": {
@@ -19,11 +25,11 @@
   },
   "ignorePatterns": ["dist"],
   "parser": "@typescript-eslint/parser",
-  "plugins": ["react-refresh"],
   "rules": {
     "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
-    "@typescript-eslint/no-explicit-any": "off"
+    "@typescript-eslint/no-explicit-any": "off",
+    "react/no-unknown-property": "off"
   }
 }

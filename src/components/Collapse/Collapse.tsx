@@ -1,142 +1,117 @@
-import { TbCaretDown, TbCaretUp, TbSquareMinus, TbSquarePlus, TbX } from 'react-icons/tb'
-import { useLayoutEffect, useState, ReactNode, memo } from 'react'
+import { TbCaretDown, TbCaretUp, TbSquareMinus, TbSquarePlus } from 'react-icons/tb'
+import { useState, ReactNode, useRef, useEffect } from 'react'
 import {
   collapse_header,
   collapse_body,
   collapse_wrapper,
   collapse_header_icon,
   collapse_content,
-  collapse_remove_button,
-  collapse_optional_button,
+  collapse_header_left,
+  collapse_header_right,
+  collapse_header_group,
 } from './Collapse.css'
-import Button from '../Button/Button'
 import clsx from 'clsx'
 import Group from '../Group/Group'
-import { sprinkles } from '../../css/sprinkles.css'
 
-interface CollapseProps {
-  startOpened?: boolean
+const Header = ({
+  startOpened,
+  title,
+  className,
+  leftSide,
+  rightSide,
+  children,
+}: {
   title?: string
-  children?: ReactNode
-  buttonDisabled?: boolean
-  headerButton?: {
-    label: string
-    function: () => void
-  }[]
   className?: string | number | symbol | any
-  headerClassName?: string | number | symbol | any
   handleRemove?: () => void
-  style?: 'border' | 'borderless'
-}
+  leftSide?: ReactNode
+  rightSide?: ReactNode
+  startOpened?: boolean
+  children?: ReactNode
+}) => {
+  const headerRef = useRef<HTMLDivElement>(null)
 
-const Collapse = memo(
-  ({
-    startOpened,
-    title,
-    children,
-    buttonDisabled,
-    className,
-    handleRemove,
-    headerButton,
-    headerClassName,
-    style = 'border',
-  }: CollapseProps) => {
-    const [isCollapsed, setIsCollapsed] = useState<boolean>(false)
+  const [borderless, setBorderless] = useState<boolean>(false)
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(true)
 
-    useLayoutEffect(() => {
-      if (startOpened) {
-        setIsCollapsed(false)
-      } else {
-        setIsCollapsed(true)
-      }
-    }, [startOpened])
+  useEffect(() => {
+    if (startOpened) {
+      setIsCollapsed(false)
+    } else {
+      setIsCollapsed(true)
+    }
+  }, [startOpened])
 
-    const handleButtonClick = () => {
-      if (isCollapsed) {
-        setIsCollapsed(false)
-      } else {
-        setIsCollapsed(true)
+  useEffect(() => {
+    const header = headerRef.current
+    if (header) {
+      const parent = header.parentElement
+
+      if (parent) {
+        const parentBorderless = parent.classList.contains('borderless')
+        const parentCollapsed = parent.classList.contains('collapsed')
+
+        if (parentBorderless) {
+          setBorderless(true)
+        } else if (borderless) {
+          setBorderless(false)
+        }
+
+        if ((parentCollapsed && !isCollapsed) || (!parentCollapsed && isCollapsed)) {
+          parent.classList.toggle('collapsed')
+        }
       }
     }
+  }, [borderless, isCollapsed])
 
-    return (
-      <div className={clsx(collapse_wrapper, { [className]: className }, { ['borderless']: style === 'borderless' })}>
-        {!buttonDisabled && (
-          <div
-            className={clsx(collapse_header, { ['collapsed']: isCollapsed }, { [headerClassName]: headerClassName })}
-            onClick={handleButtonClick}
-          >
-            <Group
-              justifyContentVariant={style === 'border' ? 'spaceBetween' : 'start'}
-              className={sprinkles({ width: 'full' })}
-            >
-              <Group>
-                {handleRemove && (
-                  <Button
-                    variant='unstyled'
-                    type='button'
-                    className={collapse_remove_button}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleRemove()
-                    }}
-                  >
-                    <TbX />
-                  </Button>
-                )}
-                <h3>{title}</h3>
-              </Group>
-              <Group>
-                {headerButton &&
-                  headerButton.length > 0 &&
-                  headerButton?.map((buttonItem: any, buttonIndex: number) => (
-                    <Button
-                      variant='primary_outline'
-                      type='button'
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        buttonItem.function()
-                      }}
-                      className={clsx(
-                        {
-                          [sprinkles({ me: 'size-2' })]: buttonIndex !== headerButton.length - 1,
-                        },
-                        collapse_optional_button
-                      )}
-                      key={buttonIndex}
-                    >
-                      {buttonItem.label}
-                    </Button>
-                  ))}
-                {style === 'border' ? (
-                  <span className={collapse_header_icon}>{isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}</span>
-                ) : (
-                  <span className={collapse_header_icon}>{isCollapsed ? <TbCaretDown /> : <TbCaretUp />}</span>
-                )}
-              </Group>
-            </Group>
-          </div>
-        )}
-        <div
-          className={clsx(collapse_body, {
-            ['collapsed']: isCollapsed,
-          })}
-        >
-          <div
-            className={clsx(
-              collapse_content,
-              { ['collapsed']: isCollapsed },
-              { ['borderless']: style === 'borderless' }
-            )}
-          >
-            {children}
-          </div>
-        </div>
-      </div>
-    )
+  const handleClick = () => {
+    setIsCollapsed((prev: any) => !prev)
   }
-)
 
-Collapse.displayName = 'Collapse'
+  return (
+    <div className={clsx(collapse_header, { [className]: className })} onClick={handleClick} ref={headerRef}>
+      <Group className={collapse_header_group}>
+        {leftSide && <span className={collapse_header_left}>{leftSide}</span>}
+        <h3>{title}</h3>
+        {rightSide && <span className={collapse_header_right}>{rightSide}</span>}
+      </Group>
+      <Group alignItemsVariant='end' className={collapse_header_group}>
+        {children}
+        {!borderless ? (
+          <span className={collapse_header_icon}>{isCollapsed ? <TbSquarePlus /> : <TbSquareMinus />}</span>
+        ) : (
+          <span className={collapse_header_icon}>{isCollapsed ? <TbCaretDown /> : <TbCaretUp />}</span>
+        )}
+      </Group>
+    </div>
+  )
+}
+
+const Body = ({ children, className }: { children?: ReactNode; className?: string | number | symbol | any }) => {
+  return (
+    <div className={clsx(collapse_body)}>
+      <div className={clsx(collapse_content, { [className]: className })}>{children}</div>
+    </div>
+  )
+}
+
+const Collapse = ({
+  children,
+  className,
+  style = 'border',
+}: {
+  children?: ReactNode
+  className?: string | number | symbol | any
+  style?: 'border' | 'borderless'
+}) => {
+  return (
+    <div className={clsx(collapse_wrapper, { [className]: className }, { ['borderless']: style === 'borderless' })}>
+      {children}
+    </div>
+  )
+}
+
+Collapse.Header = Header
+Collapse.Body = Body
 
 export default Collapse

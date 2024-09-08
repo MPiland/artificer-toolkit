@@ -1,47 +1,38 @@
-import { useEffect, useState } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
-import { useSelector } from 'react-redux'
-import { selectCurrentToken } from './features/auth/authSlice'
+import { useEffect } from 'react'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import RequireAuth from './features/auth/RequireAuth'
 import PersistLogin from './features/auth/PersistLogin'
-import Layout from './components/Layout/Layout'
-import Modal from './components/Modal/Modal'
-import Prefetch from './components/Prefetch/Prefetch'
+import Layout from './Layout/Layout'
 import SignIn from './features/auth/SignIn'
-import Delete from './components/Delete/Delete'
-import CharacterList from './features/character/CharacterList'
-import Class from './features/class/Class'
-import ClassList from './features/class/ClassList'
-import ClassForm from './features/class/ClassForm'
-import Race from './features/race/Race'
-import RaceList from './features/race/RaceList'
-import RaceForm from './features/race/RaceForm'
-import Spell from './features/spell/Spell'
-import SpellList from './features/spell/SpellList'
-import SpellForm from './features/spell/SpellForm'
-import Item from './features/item/Item'
-import ItemList from './features/item/ItemList'
-import ItemForm from './features/item/ItemForm'
-import Feat from './features/feat/Feat'
-import FeatList from './features/feat/FeatList'
-import FeatForm from './features/feat/FeatForm'
+import ErrorPage from './features/auth/ErrorPage'
+import CharactersList from './features/characters/CharactersList'
 import Create from './components/Create/Create'
+import Delete from './components/Delete/Delete'
+import CharacterForm from './features/characters/CharacterForm'
 import Alert from './components/Alert/Alert'
-import BackgroundForm from './features/background/BackgroundForm'
-import BackgroundList from './features/background/BackgroundList'
-import Background from './features/background/Background'
-import CharacterForm from './features/character/CharacterForm'
+import ClassesList from './features/classes/ClassesList'
+import ClassForm from './features/classes/ClassForm'
+import RacesList from './features/races/RacesList'
+import RaceForm from './features/races/RaceForm'
+import SpellsList from './features/spells/SpellsList'
+import SpellForm from './features/spells/SpellForm'
+import ItemsList from './features/equipment/EquipmentList'
+import ItemForm from './features/equipment/EquipmentForm'
+import FeatsList from './features/feats/FeatsList'
+import FeatForm from './features/feats/FeatForm'
+import BackgroundsList from './features/backgrounds/BackgroundsList'
+import BackgroundForm from './features/backgrounds/BackgroundForm'
+import Class from './features/classes/Class'
+import Race from './features/races/Race'
+import Feat from './features/feats/Feat'
+import Item from './features/equipment/Equipment'
+import Background from './features/backgrounds/Background'
 import Copy from './components/Copy/Copy'
-import RaceShort from './features/race/RaceShort'
-import ClassShort from './features/class/ClassShort'
+import ShortDetail from './components/Form/ShortDetail'
+import FormProvider from './components/Form/FormProvider'
+import FeatureProvider from './components/Form/Features/FeatureProvider'
 
 const App = () => {
-  const [theme] = useState('light')
-
-  useEffect(() => {
-    document.body.dataset.theme = theme
-  }, [theme])
-
   useEffect(() => {
     const documentHeight = () => {
       const doc = document.documentElement
@@ -54,88 +45,242 @@ const App = () => {
     }
   })
 
-  const token = useSelector(selectCurrentToken)
-  const location = useLocation()
-  const background = location.state?.background
+  const router = createBrowserRouter([
+    {
+      element: <PersistLogin />,
+      children: [
+        {
+          path: '/',
+          element: <Layout />,
+          errorElement: <ErrorPage />,
+          children: [
+            {
+              path: ':context',
+              element: <SignIn />,
+            },
+            {
+              element: <RequireAuth />,
+              children: [
+                {
+                  element: <FormProvider />,
+                  path: '',
+                  children: [
+                    {
+                      path: 'characters',
+                      children: [
+                        {
+                          path: '',
+                          element: <CharactersList />,
+                          children: [
+                            { path: 'create', element: <Create /> },
+                            { path: 'delete/:id', element: <Delete /> },
+                          ],
+                        },
+                        {
+                          path: ':type?/:id?',
+                          element: <CharacterForm />,
+                          children: [
+                            {
+                              path: 'alert/:alertType',
+                              element: (
+                                <FeatureProvider>
+                                  <Alert />
+                                </FeatureProvider>
+                              ),
+                            },
+                            { path: ':context/detail/short/:item', element: <ShortDetail /> },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      path: 'classes',
+                      children: [
+                        {
+                          path: '',
+                          element: <ClassesList />,
+                          children: [
+                            { path: 'detail/:item', element: <Class /> },
+                            { path: 'create', element: <Create /> },
+                            { path: 'delete/:id', element: <Delete /> },
+                          ],
+                        },
+                        {
+                          path: ':type?/:id?',
+                          element: <ClassForm />,
+                          children: [
+                            {
+                              path: 'alert/:alertType',
+                              element: (
+                                <FeatureProvider>
+                                  <Alert />
+                                </FeatureProvider>
+                              ),
+                            },
+                            { path: 'copy/feature', element: <Copy /> },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      path: 'races',
+                      children: [
+                        {
+                          path: '',
+                          element: <RacesList />,
+                          children: [
+                            { path: 'detail/:id', element: <Race /> },
+                            { path: 'create', element: <Create /> },
+                            { path: 'delete/:id', element: <Delete /> },
+                          ],
+                        },
+                        {
+                          path: ':type?/:id?',
+                          element: <RaceForm />,
+                          children: [
+                            {
+                              path: 'alert/:alertType',
+                              element: (
+                                <FeatureProvider>
+                                  <Alert />
+                                </FeatureProvider>
+                              ),
+                            },
+                            { path: 'copy/feature', element: <Copy /> },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      path: 'spells',
+                      children: [
+                        {
+                          path: '',
+                          element: <SpellsList />,
+                          children: [
+                            { path: 'create', element: <Create /> },
+                            { path: 'delete/:id', element: <Delete /> },
+                          ],
+                        },
+                        {
+                          path: ':type?/:id?',
+                          element: <SpellForm />,
+                          children: [
+                            {
+                              path: 'alert/:alertType',
+                              element: (
+                                <FeatureProvider>
+                                  <Alert />
+                                </FeatureProvider>
+                              ),
+                            },
+                            { path: 'copy/feature', element: <Copy /> },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      path: 'items',
+                      children: [
+                        {
+                          path: '',
+                          element: <ItemsList />,
+                          children: [
+                            { path: 'detail/:id', element: <Item /> },
+                            { path: 'create', element: <Create /> },
+                            { path: 'delete/:id', element: <Delete /> },
+                          ],
+                        },
+                        {
+                          path: ':type?/:id?',
+                          element: <ItemForm />,
+                          children: [
+                            {
+                              path: 'alert/:alertType',
+                              element: (
+                                <FeatureProvider>
+                                  <Alert />
+                                </FeatureProvider>
+                              ),
+                            },
+                            { path: 'copy/feature', element: <Copy /> },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      path: 'feats',
+                      children: [
+                        {
+                          path: '',
+                          element: <FeatsList />,
+                          children: [
+                            { path: 'detail/:id', element: <Feat /> },
+                            { path: 'create', element: <Create /> },
+                            { path: 'delete/:id', element: <Delete /> },
+                          ],
+                        },
+                        {
+                          path: ':type?/:id?',
+                          element: <FeatForm />,
+                          children: [
+                            {
+                              path: 'alert/:alertType',
+                              element: (
+                                <FeatureProvider>
+                                  <Alert />
+                                </FeatureProvider>
+                              ),
+                            },
+                            { path: 'copy/feature', element: <Copy /> },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      path: 'backgrounds',
+                      children: [
+                        {
+                          path: '',
+                          element: <BackgroundsList />,
+                          children: [
+                            { path: 'detail/:id', element: <Background /> },
+                            { path: 'create/:type', element: <Create /> },
+                            { path: 'delete/:id', element: <Delete /> },
+                          ],
+                        },
+                        {
+                          path: ':type?/:id?',
+                          element: <BackgroundForm />,
+                          children: [
+                            {
+                              path: 'alert/:alertType',
+                              element: (
+                                <FeatureProvider>
+                                  <Alert />
+                                </FeatureProvider>
+                              ),
+                            },
+                            { path: 'copy/feature', element: <Copy /> },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ])
 
-  const content = (
+  return (
     <>
-      <Routes location={background || location}>
-        <Route element={<PersistLogin />}>
-          <Route path='/' element={<Layout token={token} />}>
-            {/*Logged in*/}
-            <Route element={<RequireAuth />}>
-              <Route element={<Prefetch />}>
-                <Route path='character'>
-                  <Route index element={<CharacterList />} />
-                  <Route path=':context' element={<CharacterForm />}>
-                    <Route path=':id' element={<CharacterForm />} />
-                  </Route>
-                </Route>
-                <Route path='class'>
-                  <Route index element={<ClassList />} />
-                  <Route path=':context' element={<ClassForm />}>
-                    <Route path=':id' element={<ClassForm />} />
-                  </Route>
-                </Route>
-                <Route path='race'>
-                  <Route index element={<RaceList />} />
-                  <Route path=':context' element={<RaceForm />}>
-                    <Route path=':id' element={<RaceForm />} />
-                  </Route>
-                </Route>
-                <Route path='spell'>
-                  <Route index element={<SpellList />} />
-                  <Route path=':context' element={<SpellForm />}>
-                    <Route path=':id' element={<SpellForm />} />
-                  </Route>
-                </Route>
-                <Route path='item'>
-                  <Route index element={<ItemList />} />
-                  <Route path=':context' element={<ItemForm />}>
-                    <Route path=':id' element={<ItemForm />} />
-                  </Route>
-                </Route>
-                <Route path='feat'>
-                  <Route index element={<FeatList />} />
-                  <Route path=':context' element={<FeatForm />}>
-                    <Route path=':id' element={<FeatForm />} />
-                  </Route>
-                </Route>
-                <Route path='background'>
-                  <Route index element={<BackgroundList />} />
-                  <Route path=':context' element={<BackgroundForm />}>
-                    <Route path=':id' element={<BackgroundForm />} />
-                  </Route>
-                </Route>
-              </Route>
-            </Route>
-          </Route>
-        </Route>
-      </Routes>
-      {background && (
-        <Routes>
-          <Route element={<Modal />}>
-            <Route path='/:context' element={<SignIn />} />
-            <Route path='/spell/:id' element={<Spell />} />
-            <Route path='/feat/:id' element={<Feat />} />
-            <Route path='/item/:id' element={<Item />} />
-            <Route path='/race/:id' element={<Race />} />
-            <Route path='/race/:id/short' element={<RaceShort />} />
-            <Route path='/class/:id' element={<Class />} />
-            <Route path='/class/:id/short' element={<ClassShort />} />
-            <Route path='/background/:id' element={<Background />} />
-            <Route path='/delete/:id' element={<Delete />} />
-            <Route path='/create/:type' element={<Create />} />
-            <Route path='/copy/feature' element={<Copy />} />
-            <Route path=':id/alert' element={<Alert />} />
-          </Route>
-        </Routes>
-      )}
+      <RouterProvider router={router} />
     </>
   )
-
-  return content
 }
 
 export default App

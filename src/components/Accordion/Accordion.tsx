@@ -1,12 +1,12 @@
-import { ReactNode, useRef, memo } from 'react'
+import { ReactNode, useCallback, useRef } from 'react'
 import { TbSquarePlus, TbSquareMinus, TbEdit } from 'react-icons/tb'
 import {
   accordion,
   accordion_remove_button,
-  accordion_container,
-  accordion_body,
+  accordion_wrapper,
+  accordion_content_wrapper,
   accordion_header,
-  accordion_header_button,
+  accordion_header_icon,
   accordion_content,
   accordion_footer,
 } from './Accordion.css'
@@ -15,41 +15,12 @@ import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
 import Button from '../Button/Button'
 import { TbX } from 'react-icons/tb'
-import {
-  closestCenter,
-  DndContext,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
+import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ReducerActionType } from '../../utils/types'
-
-interface ContainerProps {
-  children: ReactNode
-  itemId: string
-}
-
-interface HeaderProps {
-  children: ReactNode
-  handleClick: () => void
-  handleRemove?: () => void
-  handleEdit?: () => void
-  active: boolean | null
-}
-
-interface ContentProps {
-  children: ReactNode
-  active: boolean
-}
+import AccordionProvider from './AccordionProvider'
+import { useAccordion } from '../../hooks/useAccordion'
 
 interface FooterProps {
   children: ReactNode
@@ -63,15 +34,8 @@ interface AccordionProps {
   disableSort?: boolean
 }
 
-const Container = memo(({ children, itemId }: ContainerProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+const Wrapper = ({ children, itemId }: { children: ReactNode; itemId: string }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
     disabled: !itemId,
   })
@@ -88,35 +52,50 @@ const Container = memo(({ children, itemId }: ContainerProps) => {
       {...attributes}
       {...listeners}
       style={style}
-      className={clsx(accordion_container, { ['dragging']: isDragging })}
+      className={clsx(accordion_wrapper, { ['dragging']: isDragging }, 'collapsed')}
     >
       {children}
     </div>
   )
-})
-
-Container.displayName = 'Container'
+}
 
 const Header = ({
   children,
-  handleClick,
-  active,
   handleRemove,
   handleEdit,
-}: HeaderProps) => {
+}: {
+  children: ReactNode
+  handleRemove?: () => void
+  handleEdit?: () => void
+}) => {
+  const { activeHeader, setActiveHeader } = useAccordion()
+
+  const headerRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = useCallback(() => {
+    // Find all other headers and collapse them
+    const headers = Array.from(document.getElementsByClassName(`${accordion_header}`))
+    headers.forEach((headerOther) => {
+      if (headerOther !== headerRef.current) {
+        headerOther.parentElement?.classList.add('collapsed')
+      } else {
+        headerRef.current?.parentElement?.classList?.toggle('collapsed')
+        if (activeHeader === headerRef.current) {
+          setActiveHeader(null)
+        } else {
+          setActiveHeader(headerRef.current)
+        }
+      }
+    })
+  }, [activeHeader, setActiveHeader])
+
   return (
-    <div
-      className={clsx(accordion_header, { ['collapsed']: !active })}
-      onClick={handleClick}
-    >
-      <Group
-        justifyContentVariant='spaceBetween'
-        className={sprinkles({ width: 'full' })}
-      >
+    <div className={clsx(accordion_header)} ref={headerRef} onClick={handleClick}>
+      <Group justifyContentVariant='spaceBetween' className={sprinkles({ width: 'size-full' })}>
         <Group>
           {handleRemove && (
             <Button
-              variant='unstyled'
+              style='unstyled'
               type='button'
               className={accordion_remove_button}
               onClick={(e) => {
@@ -129,7 +108,7 @@ const Header = ({
           )}
           {handleEdit && (
             <Button
-              variant='unstyled'
+              style='unstyled'
               type='button'
               className={accordion_remove_button}
               onClick={(e) => {
@@ -142,27 +121,20 @@ const Header = ({
           )}
           <h3>{children}</h3>
         </Group>
-        {active !== null && (
-          <span className={accordion_header_button}>
-            {active ? <TbSquareMinus /> : <TbSquarePlus />}
-          </span>
-        )}
+        <span className={accordion_header_icon}>
+          {activeHeader === headerRef.current ? <TbSquareMinus /> : <TbSquarePlus />}
+        </span>
       </Group>
     </div>
   )
 }
 
-const Content = ({ children, active = false }: ContentProps) => {
-  const content = useRef<HTMLDivElement | null>(null)
+const Content = ({ children }: { children: ReactNode }) => {
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   return (
-    <div
-      className={clsx(accordion_body, { ['collapsed']: !active })}
-      ref={content}
-    >
-      <div className={clsx(accordion_content, { ['collapsed']: !active })}>
-        {children}
-      </div>
+    <div className={clsx(accordion_content_wrapper)} ref={wrapperRef}>
+      <div className={clsx(accordion_content)}>{children}</div>
     </div>
   )
 }
@@ -171,13 +143,7 @@ const Footer = ({ children }: FooterProps) => {
   return <div className={accordion_footer}>{children}</div>
 }
 
-const Accordion = ({
-  children,
-  dataArray,
-  setState,
-  name,
-  disableSort = false,
-}: AccordionProps) => {
+const Accordion = ({ children, dataArray, setState, name, disableSort = false }: AccordionProps) => {
   const sensor = useSensors(
     useSensor(TouchSensor, {
       activationConstraint: {
@@ -210,25 +176,23 @@ const Accordion = ({
   }
 
   return (
-    <div className={accordion}>
-      <DndContext
-        collisionDetection={closestCenter}
-        sensors={sensor}
-        onDragEnd={onDragEnd}
-      >
-        <SortableContext
-          items={dataArray.map((_, dataIndex) => String(dataIndex))}
-          disabled={disableSort}
-          strategy={verticalListSortingStrategy}
-        >
-          {children}
-        </SortableContext>
-      </DndContext>
-    </div>
+    <AccordionProvider>
+      <div className={accordion}>
+        <DndContext collisionDetection={closestCenter} sensors={sensor} onDragEnd={onDragEnd}>
+          <SortableContext
+            items={dataArray.map((_, dataIndex) => String(dataIndex))}
+            disabled={disableSort}
+            strategy={verticalListSortingStrategy}
+          >
+            {children}
+          </SortableContext>
+        </DndContext>
+      </div>
+    </AccordionProvider>
   )
 }
 
-Accordion.Container = Container
+Accordion.Wrapper = Wrapper
 Accordion.Header = Header
 Accordion.Content = Content
 Accordion.Footer = Footer

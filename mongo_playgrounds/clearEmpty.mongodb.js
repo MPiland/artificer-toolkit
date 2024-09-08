@@ -30,7 +30,7 @@ function clean(object) {
   // Return modified object
   return object
 }
-const collection = 'spells'
+const collection = 'items'
 
 const data = db[collection].find().toArray()
 

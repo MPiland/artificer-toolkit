@@ -1,12 +1,11 @@
-import { theme } from '../../css/global.css'
-import { style, globalStyle } from '@vanilla-extract/css'
+import { style, globalStyle, styleVariants } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
+import { theme } from '../../css/theme.css'
+import { size } from '../../css/size.css'
 
 export const input_wrapper = style({
   '@layer': {
     [app]: {
-      width: theme['input-width'],
-      color: theme.vars['app-color'],
       height: 'fit-content',
       overflow: 'hidden',
       textWrap: 'nowrap',
@@ -18,8 +17,6 @@ export const input_wrapper = style({
 export const input_label = style({
   '@layer': {
     [app]: {
-      fontWeight: theme['input-label-font-weight'],
-
       selectors: {
         '&.required:after': {
           content: '*',
@@ -35,18 +32,9 @@ export const input_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      border: theme['input-border'],
-      borderRadius: theme['default-border-radius'],
-      height: theme['input-height'],
-      selectors: {
-        '&:has(:focus)': {
-          outline: theme.vars['focus-border'],
-          outlineOffset: '-2px',
-        },
-        '&:has(.invalid)': {
-          borderColor: theme.vars.input['input-error-color'],
-        },
-      },
+      fontSize: 'inherit',
+      height: theme.input.height,
+      padding: '0 .75rem',
     },
   },
 })
@@ -86,25 +74,28 @@ export const input_right_section = style({
 export const input = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      border: 'none',
-      backgroundColor: 'transparent',
-      padding: '0 .75rem',
-      width: '100%',
-      height: '100%',
-      color: theme.vars['app-color'],
+      'position': 'relative',
+      'backgroundColor': 'transparent',
+      'width': '100%',
+      'height': '100%',
+      'fontSize': 'inherit',
+      'fontWeight': 'inherit',
+      'border': 'none',
 
-      selectors: {
+      '@media': {
+        'screen and (max-width: 567px)': {
+          padding: '0 .25rem',
+        },
+      },
+
+      'selectors': {
         '&:focus': {
           outline: 'none',
         },
-        ['&.invalid']: {
-          color: theme.vars.input['input-error-color'],
-        },
-        [`${input_container}:has(${input_left_section}) > &`]: {
+        '&.left': {
           paddingLeft: '2rem',
         },
-        [`${input_container}:has(${input_right_section}) > &`]: {
+        '&.right': {
           paddingRight: '2rem',
         },
       },
@@ -134,6 +125,34 @@ globalStyle('.input_label > span > *', {
   '@layer': {
     [app]: {
       transform: 'scale(1.5)',
+    },
+  },
+})
+
+export const input_height = styleVariants({
+  default: { height: theme.input.height },
+  auto: { height: size['size-auto'] },
+  full: { height: size['size-full'] },
+})
+
+export const input_textAlign = styleVariants({
+  default: { textAlign: 'left' },
+  center: { textAlign: 'center' },
+})
+
+export const input_border = styleVariants({
+  none: { border: 'none' },
+  default: {
+    border: `${theme.border} ${theme.vars.borderColor}`,
+    borderRadius: theme.borderRadius,
+
+    selectors: {
+      '&:focus-within': {
+        border: theme.color.focus,
+      },
+      '&.invalid': {
+        border: theme.color.error,
+      },
     },
   },
 })

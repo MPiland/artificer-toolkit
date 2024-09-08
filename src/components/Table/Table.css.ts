@@ -1,5 +1,4 @@
 import { style } from '@vanilla-extract/css'
-import { theme } from '../../css/global.css'
 import { app } from '../../css/layers.css'
 
 export const table = style({
@@ -20,7 +19,6 @@ export const table_body = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      backgroundColor: theme.vars['app-background-color'],
       zIndex: 0,
       backgroundClip: 'border-box',
       borderTop: '0 solid transparent',
@@ -36,8 +34,6 @@ export const table_header_row = style({
       minWidth: '100%',
       textAlign: 'start',
       borderTop: '0px solid transparent',
-      borderBottom: theme.vars['app-border-line-style'],
-      backgroundColor: theme.vars['app-background-color'],
       zIndex: 2,
 
       selectors: {
@@ -52,13 +48,7 @@ export const table_header_row = style({
 export const table_row = style({
   '@layer': {
     [app]: {
-      minWidth: '100%',
       textAlign: 'start',
-      borderTop: theme.vars['app-border-line-style'],
-      borderLeft: theme.vars['app-border-line-style'],
-      borderRight: theme.vars['app-border-line-style'],
-      borderTopLeftRadius: theme['default-border-radius'],
-      borderTopRightRadius: theme['default-border-radius'],
       zIndex: 0,
 
       selectors: {
@@ -66,7 +56,6 @@ export const table_row = style({
           borderTop: 'none',
           borderLeft: 'none',
           borderRight: 'none',
-          borderBottom: theme.vars['app-border-line-style'],
         },
         '&:hover': {
           backgroundImage: 'linear-gradient(rgb(0 0 0/5%) 0 0)',
@@ -87,21 +76,18 @@ export const table_subrow = style({
     [app]: {
       minWidth: '100%',
       textAlign: 'start',
-      borderLeft: theme.vars['app-border-line-style'],
-      borderBottom: theme.vars['app-border-line-style'],
-      borderRight: theme.vars['app-border-line-style'],
-      borderBottomLeftRadius: theme['default-border-radius'],
-      borderBottomRightRadius: theme['default-border-radius'],
       maxHeight: '5rem',
       transform: 'scaleY(1)',
-      transition:
-        'max-height .3s ease-in-out, transform .3s ease-in-out, padding .3s ease-in-out',
+      transition: 'border .3s ease-in, transform .3s ease-in, max-height .3s ease-in',
 
       selectors: {
         '&.collapsed': {
-          border: 'none',
+          borderLeft: '1px solid transparent',
+          borderBottom: '1px solid transparent',
+          borderRight: '1px solid transparent',
           maxHeight: '0',
           transform: 'scaleY(0)',
+          transition: 'border .3s ease-out, transform .3s ease-out, max-height .3s ease-out',
         },
         '&:hover': {
           backgroundImage: 'linear-gradient(rgb(0 0 0/5%) 0 0)',
@@ -182,7 +168,6 @@ export const table_dynamic_button = style({
     [app]: {
       border: 'none',
       backgroundColor: 'inherit',
-      padding: '0 .5rem',
       height: '100%',
       width: '2.25rem',
       alignItems: 'center',
@@ -211,8 +196,7 @@ export const table_button_cell = style({
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      borderRadius: theme['default-border-radius'],
+      justifyContent: 'center',
       height: '100%',
       selectors: {
         '&:active': {
@@ -229,7 +213,7 @@ export const table_button_wrapper = style({
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      borderRadius: theme['default-border-radius'],
+      height: '100%',
     },
   },
 })

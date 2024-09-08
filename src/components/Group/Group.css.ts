@@ -4,10 +4,16 @@ import { app } from '../../css/layers.css'
 export const base = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center',
-      height: 'fit-content',
+      'position': 'relative',
+      'display': 'flex',
+      'alignItems': 'center',
+      'height': 'fit-content',
+
+      '@media': {
+        'screen and (max-width: 567px)': {
+          width: 'auto',
+        },
+      },
     },
   },
 })
@@ -72,6 +78,16 @@ export const spacing = styleVariants({
       '@layer': {
         [app]: {
           justifyContent: 'space-between',
+        },
+      },
+    },
+  ],
+  spaceAround: [
+    base,
+    {
+      '@layer': {
+        [app]: {
+          justifyContent: 'space-around',
         },
       },
     },

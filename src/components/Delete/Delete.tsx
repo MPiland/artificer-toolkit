@@ -15,8 +15,6 @@ const Delete = () => {
 
   const input = document.getElementById('delete_input') as HTMLInputElement
 
-  console.log({ deleteLocation: location })
-
   const handleSubmit = () => {
     if (deleteState === 'DELETE') {
       navigate(`${location.state.background.pathname}`, {
@@ -43,34 +41,35 @@ const Delete = () => {
     navigate(-1)
   }
 
-  const content = (
-    <>
-      <Modal.Header title={`Delete ${location.state.title}`} />
-      <Modal.Body>
-        <p className={sprinkles({ mb: 'size-2' })}>
-          {`Type`} <strong>{`DELETE`}</strong> {`and press 'Submit' to confirm`}
-        </p>
-        <Input
-          name='deleteItem'
-          onChange={handleChange}
-          value={deleteState}
-          errorMsg='Must type DELETE exactly'
-          id='delete_input'
-        />
-      </Modal.Body>
-      <Modal.Footer>
-        <Group directionVariant='row' justifyContentVariant='spaceBetween'>
-          <Button variant='default' type='button' onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Button variant='danger' type='button' onClick={handleSubmit}>
-            Submit
-          </Button>
-        </Group>
-      </Modal.Footer>
-    </>
+  return (
+    <Modal>
+      <Modal.Dialogue size='xs'>
+        <Modal.Header title={`Delete ${location.state.title}`} />
+        <Modal.Content>
+          <p className={sprinkles({ mb: 'space-2' })}>
+            {`Type`} <strong>{`DELETE`}</strong> {`and press 'Submit' to confirm`}
+          </p>
+          <Input
+            name='deleteItem'
+            onChange={handleChange}
+            value={deleteState}
+            errorMsg='Must type DELETE exactly'
+            id='delete_input'
+          />
+        </Modal.Content>
+        <Modal.Footer>
+          <Group directionVariant='row' justifyContentVariant='spaceBetween'>
+            <Button color='default' type='button' onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button color='danger' type='button' onClick={handleSubmit}>
+              Submit
+            </Button>
+          </Group>
+        </Modal.Footer>
+      </Modal.Dialogue>
+    </Modal>
   )
-  return content
 }
 
 export default Delete
