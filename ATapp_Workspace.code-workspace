@@ -4,5 +4,9 @@
 			"path": ".."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"reactSnippets.settings.importReactOnTop": false,
+		"reactSnippets.settings.prettierEnabled": true,
+		"reactSnippets.settings.typescriptPropsStatePrefix": "interface"
+	}
 }
