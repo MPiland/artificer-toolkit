@@ -1,25 +1,25 @@
 import { useState, useMemo, useCallback } from 'react'
 import { PropertyPath, get, isObject, uniq } from 'lodash'
-import { SortConfig } from '../utils/types'
+import { SortConfigType } from '../utils/types'
 
 interface UseSortableDataProps {
   items: any[]
-  config?: SortConfig | null
+  config?: SortConfigType | null
 }
 
 interface UseSortableDataResult {
   items: any
-  requestSort: (key: SortConfig['key']) => void
-  sortConfig: SortConfig | null
+  requestSort: (key: SortConfigType['key']) => void
+  sortConfig: SortConfigType | null
 }
 
 const useSortableData = (
   items: UseSortableDataProps['items'],
   config: UseSortableDataProps['config'] = null
 ): UseSortableDataResult => {
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(config)
+  const [sortConfig, setSortConfig] = useState<SortConfigType | null>(config)
 
-  const compareValues = useCallback((aValue: any, bValue: any, direction: SortConfig['direction']): number => {
+  const compareValues = useCallback((aValue: any, bValue: any, direction: SortConfigType['direction']): number => {
     if (aValue == null && aValue !== 0 && bValue == null && bValue !== 0) {
       return 0
     }
@@ -67,7 +67,7 @@ const useSortableData = (
   }, [])
 
   const hierarchyOrderSort = useCallback(
-    (order: any[], direction: SortConfig['direction']): any[] => {
+    (order: any[], direction: SortConfigType['direction']): any[] => {
       return order.sort((a, b) => {
         const aValue = isObject(a) ? Object.keys(a)[0] : a
         const bValue = isObject(b) ? Object.keys(b)[0] : b
@@ -78,7 +78,7 @@ const useSortableData = (
   )
 
   const recursiveSort = useCallback(
-    (items: any[], key: SortConfig['key'], direction: SortConfig['direction']) => {
+    (items: any[], key: SortConfigType['key'], direction: SortConfigType['direction']) => {
       let sortableItems: any[] = []
       let nullArray: any[] = []
       const { orderKey, order, sortOn, subSort } = key
@@ -256,8 +256,8 @@ const useSortableData = (
     return sortableItems
   }, [sortConfig, recursiveSort, compareValues, hierarchyOrderSort, items])
 
-  const requestSort = (key: SortConfig['key']) => {
-    let direction: SortConfig['direction'] = 'ascending'
+  const requestSort = (key: SortConfigType['key']) => {
+    let direction: SortConfigType['direction'] = 'ascending'
 
     if (sortConfig && sortConfig.key === key) {
       direction = sortConfig.direction === 'ascending' ? 'descending' : 'ascending'

@@ -1,7 +1,6 @@
 import { FC, useState, useRef } from 'react'
 import {
   select,
-  select_label,
   select_wrapper,
   select_container,
   select_input,
@@ -77,7 +76,7 @@ const Select: FC<SelectProps> = ({
   return (
     <div className={select}>
       <div className={select_wrapper}>
-        {label && <label className={select_label}>{label}</label>}
+        {label && <label>{label}</label>}
         <div
           className={select_container}
           ref={refs.setReference}

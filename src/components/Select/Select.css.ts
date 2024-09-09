@@ -7,8 +7,7 @@ export const select = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      width: theme['input-width'],
-      color: theme.vars['app-color'],
+      color: theme.vars.backgroundColor.component,
     },
   },
 })
@@ -16,19 +15,10 @@ export const select = style({
 export const select_wrapper = style({
   '@layer': {
     [app]: {
-      width: theme['input-width'],
-      color: theme.vars['app-color'],
+      color: theme.vars.color,
       height: 'fit-content',
       display: 'flex',
       flexDirection: 'column',
-    },
-  },
-})
-
-export const select_label = style({
-  '@layer': {
-    [app]: {
-      fontWeight: theme['input-label-font-weight'],
     },
   },
 })
@@ -37,10 +27,10 @@ export const select_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      borderBottom: theme.vars['app-border-line-style'],
-      borderRight: theme.vars['app-border-line-style'],
-      borderBottomRightRadius: theme['default-border-radius'],
-      height: theme['input-height'],
+      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
+      borderRight: `${theme.border} ${theme.vars.borderColor}`,
+      borderBottomRightRadius: theme.borderRadius,
+      height: theme.input.height,
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
@@ -58,7 +48,7 @@ export const select_input = style({
       border: 'none',
       backgroundColor: 'transparent',
       width: '100%',
-      color: theme.vars['app-color'],
+      color: theme.vars.color,
       userSelect: 'none',
       display: 'flex',
       flexDirection: 'row',
@@ -80,14 +70,14 @@ export const select_menu = style({
     [app]: {
       display: 'flex',
       maxHeight: '10rem',
-      borderRadius: theme['default-border-radius'],
+      borderRadius: theme.borderRadius,
       overflowY: 'auto',
       zIndex: 1000,
-      backgroundColor: theme.vars['app-background-color'],
-      color: theme.vars['app-color'],
+      backgroundColor: theme.vars.backgroundColor.content,
+      color: theme.vars.color,
       boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
       listStyle: 'none',
-      border: theme.vars['app-border-line-style'],
+      border: `${theme.border} ${theme.vars.borderColor}`,
       padding: `${size['size-0']} ${size['size-0']}`,
     },
   },
