@@ -6,10 +6,6 @@ type Credentials = {
   password: string
 }
 
-type GoogleCredentials = {
-  code: string
-}
-
 export const useRegister = () => {
   return useMutation({
     mutationFn: async (credentials: Credentials) => {
@@ -39,28 +35,6 @@ export const useLogin = () => {
         // Adjust login endpoint
         method: 'POST',
         body: JSON.stringify(credentials),
-      })
-
-      return result
-    },
-    onSuccess: async (result) => {
-      const data = await result.json()
-      sessionStorage.setItem('accessToken', data.accessToken)
-      return data
-    },
-    onError: (err) => {
-      console.error(err.data.message)
-      throw new Error(err.data.message)
-    },
-  })
-}
-
-export const useGoogleFetchLogin = () => {
-  return useMutation({
-    mutationFn: async (initialUserData: GoogleCredentials) => {
-      const result = await baseQueryWithReauth('/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ initialUserData }),
       })
 
       return result

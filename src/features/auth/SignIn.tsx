@@ -1,7 +1,6 @@
 import { useState, useReducer } from 'react'
 import usePersist from '../../hooks/usePersist'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useGoogleLogin } from '@react-oauth/google'
 import { validate } from '../../utils/form'
 import Input from '../../components/Input/Input'
 import Button from '../../components/Button/Button'
@@ -13,7 +12,7 @@ import Group from '../../components/Group/Group'
 import { sprinkles } from '../../css/sprinkles.css'
 import Modal from '../../components/Modal/Modal'
 import { startCase } from 'lodash'
-import { useLogin, useRegister, useGoogleFetchLogin } from './authApi'
+import { useLogin, useRegister } from './authApi'
 
 const SignIn = () => {
   const { context } = useParams()
@@ -22,7 +21,6 @@ const SignIn = () => {
   const formContext = startCase(context)
 
   const { isPending: isLoginPending, mutateAsync: login } = useLogin()
-  const { isPending: isGooglePending, mutateAsync: googleLogin } = useGoogleFetchLogin()
   const { isPending: isRegisterPending, mutateAsync: register } = useRegister()
 
   const [state, setState] = useReducer(formReducer, {})
@@ -56,19 +54,7 @@ const SignIn = () => {
     }
   }
 
-  const onGoogleLoginClicked = useGoogleLogin({
-    onSuccess: async ({ code }) => {
-      try {
-        await googleLogin({ code })
-        navigate('/')
-      } catch (err: any) {
-        setErrMsg(err.message)
-      }
-    },
-    flow: 'auth-code',
-  })
-
-  const isPending = isGooglePending || isLoginPending || isRegisterPending
+  const isPending = isLoginPending || isRegisterPending
 
   const content = (
     <Modal>
@@ -150,13 +136,7 @@ const SignIn = () => {
         <Modal.Footer>
           <h2 className={sprinkles({ pb: 'space-3' })}>Or use a third-party</h2>
           <Group directionVariant='column'>
-            <Button
-              color='primary'
-              type='button'
-              disabled={true}
-              onClick={onGoogleLoginClicked}
-              className={sprinkles({ width: 'size-full' })}
-            >
+            <Button color='primary' type='button' disabled={true} className={sprinkles({ width: 'size-full' })}>
               <FaGoogle />
               <span className={sprinkles({ ms: 'space-1' })}>{formContext} with Google</span>
             </Button>
