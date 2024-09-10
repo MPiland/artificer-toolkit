@@ -1,6 +1,6 @@
 import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import Input from '../../Input/Input'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { sprinkles } from '../../../css/sprinkles.css'
@@ -11,7 +11,7 @@ import { useForm } from '../../../hooks/UseForm'
 const Traits = () => {
   const { formState, setFormState } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   // Edit feature
   const handleRemove = (areaIndex: number) => {

@@ -7,7 +7,7 @@ import { startCase } from 'lodash'
 import { useForm } from '../../../../hooks/UseForm'
 import { DropdownOptionType, RowHeaderType, RowInputType } from '../../../../utils/types'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 import { useGetSpellsQuery } from '../../../../features/spells/spellsApi'
 import { useGetClassesQuery } from '../../../../features/classes/classesApi'
 
@@ -15,7 +15,7 @@ const Spells = () => {
   const { formState } = useForm()
   const { sectionState, setSectionState } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: spells } = useGetSpellsQuery() as { data: any[] }
   const { data: classes } = useGetClassesQuery() as { data: any[] }
 

@@ -5,14 +5,14 @@ import { startCase } from 'lodash'
 import { useForm } from '../../../../hooks/UseForm'
 import { DropdownOptionType } from '../../../../utils/types'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 import { useGetEquipmentQuery } from '../../../../features/equipment/equipmentApi'
 
 const Expertise = () => {
   const { formState } = useForm()
   const { sectionState, setSectionState } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: items } = useGetEquipmentQuery() as { data: any[] }
 
   const providesOptions = sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')

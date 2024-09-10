@@ -4,12 +4,12 @@ import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 
 const Multiclass = () => {
   const { formState, setFormState, context } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   return (
     formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'primaryAbility') && (
       <>

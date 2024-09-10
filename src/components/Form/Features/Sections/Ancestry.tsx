@@ -5,14 +5,14 @@ import { startCase } from 'lodash'
 import { DropdownOptionType } from '../../../../utils/types'
 import { useForm } from '../../../../hooks/UseForm'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 import { useGetRacesQuery } from '../../../../features/races/racesApi'
 
 const Ancestry = () => {
   const { formState } = useForm()
   const { sectionState, setSectionState } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: races } = useGetRacesQuery() as { data: any[] }
 
   const providesOptions = sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')

@@ -1,4 +1,4 @@
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
@@ -43,7 +43,7 @@ const Base = ({
     setSubfeatureIndex,
   } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   const selectSection = (sectionName: SectionNameType) => {
     if (state[sectionName]?.length > 0) {

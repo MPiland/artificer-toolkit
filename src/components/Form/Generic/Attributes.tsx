@@ -4,7 +4,7 @@ import Row from '../../Row/Row'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Dropdown from '../../Dropdown/Dropdown'
 import { startCase } from 'lodash'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
 import Divider from '../../Divider/Divider'
@@ -26,7 +26,7 @@ const AttributeForm = () => {
 
   const { context, formState, setFormState } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   // Add/Remove Subtypes table
   useEffect(() => {

@@ -1,11 +1,11 @@
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 import { useForm } from '../../../../hooks/UseForm'
 import Dropdown from '../../../Dropdown/Dropdown'
 
 const Equipment = () => {
   const { formState, setFormState } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   return (
     <>

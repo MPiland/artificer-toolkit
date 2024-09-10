@@ -11,7 +11,7 @@ import { sprinkles } from '../../../../css/sprinkles.css'
 import { excludeFields } from '../../../../utils/form'
 import { getSectionOptions, sectionData } from '../../../../utils/form'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 import { useGetClassesQuery } from '../../../../features/classes/classesApi'
 import { useGetFeatsQuery } from '../../../../features/feats/featsApi'
 import { useGetSpellsQuery } from '../../../../features/spells/spellsApi'
@@ -26,7 +26,7 @@ const ClassFeaturePanel = ({ uClass, classIndex, fullClass }: { uClass: any; cla
   const { formState, setFormState } = useForm()
 
   const { sectionNames } = useFeature()
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: classes } = useGetClassesQuery() as { data: any[] }
   const { data: feats } = useGetFeatsQuery() as { data: any[] }
   const { data: spells } = useGetSpellsQuery() as { data: any[] }

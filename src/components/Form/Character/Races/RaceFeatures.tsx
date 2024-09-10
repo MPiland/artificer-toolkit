@@ -10,7 +10,7 @@ import Collapse from '../../../Collapse/Collapse'
 import { useForm } from '../../../../hooks/UseForm'
 import { getSectionOptions, sectionData } from '../../../../utils/form'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 import { useGetSpellsQuery } from '../../../../features/spells/spellsApi'
 import { useGetFeatsQuery } from '../../../../features/feats/featsApi'
 import { useGetRacesQuery } from '../../../../features/races/racesApi'
@@ -20,7 +20,7 @@ const RaceFeatures = ({ race }: { race: any }) => {
 
   const { sectionNames } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: spells } = useGetSpellsQuery() as { data: any[] }
   const { data: feats } = useGetFeatsQuery() as { data: any[] }
   const { data: races } = useGetRacesQuery() as { data: any[] }

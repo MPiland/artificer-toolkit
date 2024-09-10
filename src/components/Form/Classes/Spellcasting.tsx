@@ -4,12 +4,12 @@ import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import Row from '../../Row/Row'
 import { useForm } from '../../../hooks/UseForm'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 
 const Spellcasting = () => {
   const { formState, setFormState, context } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   // Remove Spellcasting data
   useEffect(() => {

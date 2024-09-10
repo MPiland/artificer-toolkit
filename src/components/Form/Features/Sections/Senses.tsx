@@ -4,13 +4,13 @@ import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
 import { useForm } from '../../../../hooks/UseForm'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 
 const Senses = () => {
   const { formState } = useForm()
   const { sectionState, setSectionState } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   const providesOptions = sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')
 

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { ReducerActionType } from '../../../utils/types'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
@@ -12,7 +12,7 @@ import Table from '../../Table/Table'
 const LimitUse = ({ state, setState }: { state: any; setState: (arg: ReducerActionType) => void }) => {
   const { context } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   //Add/remove Limit Use table
   useEffect(() => {

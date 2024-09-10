@@ -26,7 +26,7 @@ import { clsx } from 'clsx'
 import { set } from 'lodash'
 import { ContextType } from '../../utils/types'
 import { getValueFromState } from '../../utils/formatting'
-import { useGetBuildersQuery } from '../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../features/systems/systemsApi'
 import { useInView } from 'react-intersection-observer'
 import { CustomError } from '../../app/api/api'
 
@@ -55,7 +55,7 @@ const List = ({ useGetItems, useDeleteItem, footerText }: ListProps) => {
 
   const { mutateAsync: deleteItem } = useDeleteItem()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   const { setFormState, setOldFormState, setContext, stateReset, setStepIndex } = useForm()
 

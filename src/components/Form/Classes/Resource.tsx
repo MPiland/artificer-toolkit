@@ -5,12 +5,12 @@ import Row from '../../Row/Row'
 import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 
 const Resource = () => {
   const { formState, setFormState, context } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   // Remove Resource if not needed
   useEffect(() => {

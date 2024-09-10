@@ -5,13 +5,13 @@ import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
 import Table from '../../Table/Table'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import { useForm } from '../../../hooks/UseForm'
 import { ReducerActionType, RowHeaderType, RowInputType } from '../../../utils/types'
 
 const Damage = ({ state, setState }: { state: any; setState: (arg: ReducerActionType) => void }) => {
   const { context } = useForm()
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   // Set Damage types for spells, weapons, items
   const damageTypes = useMemo(() => {

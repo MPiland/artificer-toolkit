@@ -3,7 +3,7 @@ import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import Row from '../../Row/Row'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import { useGetClassesQuery } from '../../../features/classes/classesApi'
 import { useGetRacesQuery } from '../../../features/races/racesApi'
 import { startCase } from 'lodash'
@@ -18,7 +18,7 @@ import { useIsFetching } from '@tanstack/react-query'
 const Details = () => {
   const { context, formState, setFormState } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: classes } = useGetClassesQuery() as { data: any[]; isPending: boolean }
   const { data: races } = useGetRacesQuery() as { data: any[]; isPending: boolean }
 

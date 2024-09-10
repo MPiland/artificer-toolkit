@@ -32,7 +32,7 @@ import {
   dice_roll_value_group,
 } from './Character.css'
 import Dropdown from '../../Dropdown/Dropdown'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import { ReducerActionType, DiceRollsType, DiceConfigType } from '../../../utils/types'
 import Collapse from '../../Collapse/Collapse'
 import { get, isEqual, set } from 'lodash'
@@ -75,7 +75,7 @@ const AbilitiesForm = () => {
   const { rollDice, isRolling, setIsRolling } = useDice()
   const [rollConfigurationInputs, setRollConfigurationInputs] = useState<DiceConfigType>(rollConfigurationInit)
   const [pointsLeft, setPointsLeft] = useState<number>()
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   const pointSystem = useMemo(() => formState.abilities?.selectedSystem, [formState.abilities?.selectedSystem])
 

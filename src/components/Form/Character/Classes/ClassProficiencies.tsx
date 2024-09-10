@@ -10,12 +10,12 @@ import { numberToWords } from '../../../../utils/formatting'
 import { getSectionOptions } from '../../../../utils/form'
 import { useGetClassesQuery } from '../../../../features/classes/classesApi'
 import { useGetEquipmentQuery } from '../../../../features/equipment/equipmentApi'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 
 const ClassProficiencies = ({ fullClass, uClass, classIndex }: { fullClass: any; uClass: any; classIndex: number }) => {
   const { formState, setFormState } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: classes } = useGetClassesQuery() as { data: any[] }
   const { data: items } = useGetEquipmentQuery() as { data: any[] }
 

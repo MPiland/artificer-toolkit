@@ -9,7 +9,7 @@ import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
 import Spinner from '../Spinner/Spinner'
 import { useForm } from '../../hooks/UseForm'
-import { useGetBuildersQuery } from '../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../features/systems/systemsApi'
 import { ContextType } from '../../utils/types'
 import { useIsFetching } from '@tanstack/react-query'
 
@@ -22,7 +22,7 @@ const Create = () => {
 
   const [selection, setSelection] = useState<any>()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   const form: ContextType['title'] = location.state.form
 

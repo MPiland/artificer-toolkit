@@ -8,7 +8,7 @@ import Collapse from '../../../Collapse/Collapse'
 import Table from '../../../Table/Table'
 import { useForm } from '../../../../hooks/UseForm'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
 import { useGetSpellsQuery } from '../../../../features/spells/spellsApi'
 
 type CategoryType =
@@ -44,7 +44,7 @@ const Modifiers = () => {
   const { formState, context } = useForm()
   const { sectionState, setSectionState } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: spells } = useGetSpellsQuery() as { data: any[] }
 
   const providesOptions = sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')

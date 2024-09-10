@@ -1,4 +1,4 @@
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import { useForm } from '../../../hooks/UseForm'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Row from '../../Row/Row'
@@ -21,7 +21,7 @@ const Requirements = ({ state, setState }: { state: any; setState: (arg: Reducer
   const { context, formState } = useForm()
   const { subContext } = useFeature()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
   const { data: spells } = useGetSpellsQuery() as { data: any[] }
   const { data: items } = useGetEquipmentQuery() as { data: any[] }
 

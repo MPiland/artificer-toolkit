@@ -10,7 +10,7 @@ import { Fragment } from 'react/jsx-runtime'
 import Row from '../../Row/Row'
 import Input from '../../Input/Input'
 import { TbX } from 'react-icons/tb'
-import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
 import { useGetEquipmentQuery } from '../../../features/equipment/equipmentApi'
 import { useIsFetching } from '@tanstack/react-query'
 
@@ -19,7 +19,7 @@ const BackgroundEquipment = () => {
 
   const { formState, setFormState } = useForm()
 
-  const { data: builders } = useGetBuildersQuery()
+  const { data: builders } = useGetSystemsQuery()
 
   const { data: items } = useGetEquipmentQuery() as { data: any[] }
 
