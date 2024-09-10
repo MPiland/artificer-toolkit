@@ -4,7 +4,7 @@ import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
 import { useForm } from '../../../../hooks/UseForm'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
 
 const Senses = () => {
   const { formState } = useForm()

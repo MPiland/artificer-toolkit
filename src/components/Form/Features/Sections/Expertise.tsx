@@ -5,7 +5,7 @@ import { startCase } from 'lodash'
 import { useForm } from '../../../../hooks/UseForm'
 import { DropdownOptionType } from '../../../../utils/types'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
 import { useGetEquipmentQuery } from '../../../../features/equipment/equipmentApi'
 
 const Expertise = () => {

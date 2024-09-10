@@ -1,91 +1,92 @@
 import { useMutation } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { signIn, signUp, confirmSignUp, autoSignIn, signOut } from 'aws-amplify/auth'
+import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
+import { defaultStorage, sessionStorage } from 'aws-amplify/utils'
 
 type Credentials = {
   username: string
   password: string
+  persist: boolean
 }
 
-export const useRegister = () => {
+type Confirm = {
+  username: string
+  confirmationCode: string
+}
+
+export const useSignUp = () => {
   return useMutation({
     mutationFn: async (credentials: Credentials) => {
-      const result = await baseQueryWithReauth('/auth/login', {
-        // Adjust login endpoint
-        method: 'POST',
-        body: JSON.stringify(credentials),
-      })
+      const { username, password, persist } = credentials
 
-      const data = await result.json()
-
-      if (!result.ok) {
-        console.error(data.message)
-        throw new Error(data.message) // Handle errors appropriately
+      if (persist) {
+        cognitoUserPoolsTokenProvider.setKeyValueStorage(defaultStorage)
+      } else {
+        cognitoUserPoolsTokenProvider.setKeyValueStorage(sessionStorage)
       }
 
-      sessionStorage.setItem('accessToken', data.accessToken) // Store token
-      return data
+      const result = await signUp({
+        username: username,
+        password: password,
+        options: {
+          userAttributes: {
+            email: username,
+          },
+          autoSignIn: true,
+        },
+      })
+
+      return result
     },
   })
 }
 
-export const useLogin = () => {
+export const useConfirmSignUp = () => {
+  return useMutation({
+    mutationFn: async (credentials: Confirm) => {
+      const { username, confirmationCode } = credentials
+
+      const { isSignUpComplete } = await confirmSignUp({
+        username: username,
+        confirmationCode: confirmationCode,
+      })
+
+      if (isSignUpComplete) {
+        const { isSignedIn } = await autoSignIn()
+
+        return isSignedIn
+      }
+    },
+  })
+}
+
+export const useSignIn = () => {
   return useMutation({
     mutationFn: async (credentials: Credentials) => {
-      const result = await baseQueryWithReauth('/auth/login', {
-        // Adjust login endpoint
-        method: 'POST',
-        body: JSON.stringify(credentials),
+      const { username, password, persist } = credentials
+
+      if (persist) {
+        cognitoUserPoolsTokenProvider.setKeyValueStorage(defaultStorage)
+      } else {
+        cognitoUserPoolsTokenProvider.setKeyValueStorage(sessionStorage)
+      }
+
+      const result = await signIn({
+        username: username,
+        password: password,
       })
 
       return result
     },
-    onSuccess: async (result) => {
-      const data = await result.json()
-      sessionStorage.setItem('accessToken', data.accessToken)
-      return data
-    },
-    onError: (err) => {
-      console.error(err.data.message)
-      throw new Error(err.data.message)
-    },
   })
 }
 
-export const useRefresh = () => {
+export const useSignOut = () => {
   return useMutation({
     mutationFn: async () => {
-      const result = await baseQueryWithReauth('/auth/refresh', {
-        method: 'GET',
-      })
+      const result = await signOut()
 
       return result
-    },
-    onSuccess: async (result) => {
-      const data = await result.json()
-      sessionStorage.setItem('accessToken', data.accessToken)
-      return data
-    },
-    onError: (err) => {
-      console.error(err.data.message)
-      throw new Error(err.data.message)
-    },
-  })
-}
-
-export const useLogout = () => {
-  return useMutation({
-    mutationFn: async () => {
-      await baseQueryWithReauth('/auth/logout', {
-        method: 'POST',
-      })
-    },
-    onSuccess: () => {
-      setTimeout(() => {
-        localStorage.removeItem('persist')
-      }, 300)
-    },
-    onError: (err) => {
-      console.error(err)
     },
   })
 }

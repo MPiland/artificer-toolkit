@@ -11,7 +11,7 @@ import Group from '../../Group/Group'
 import { isEqual, set, startCase } from 'lodash'
 import { useForm } from '../../../hooks/UseForm'
 import { DropdownOptionType } from '../../../utils/types'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 import { useGetEquipmentQuery } from '../../../features/equipment/equipmentApi'
 import { useIsFetching } from '@tanstack/react-query'
 

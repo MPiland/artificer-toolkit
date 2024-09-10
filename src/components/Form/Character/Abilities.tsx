@@ -32,7 +32,7 @@ import {
   dice_roll_value_group,
 } from './Character.css'
 import Dropdown from '../../Dropdown/Dropdown'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 import { ReducerActionType, DiceRollsType, DiceConfigType } from '../../../utils/types'
 import Collapse from '../../Collapse/Collapse'
 import { get, isEqual, set } from 'lodash'

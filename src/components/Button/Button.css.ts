@@ -1,4 +1,4 @@
-import { createVar, style, styleVariants } from '@vanilla-extract/css'
+import { createVar, globalStyle, style, styleVariants } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import { theme } from '../../css/theme.css'
 import { height } from '../../css/size.css'
@@ -21,15 +21,8 @@ export const button = style({
       justifyContent: 'center',
       zIndex: 0,
       padding: `${space['space-2']} ${space['space-4']}`,
-      width: 'fit-content',
       flexWrap: 'nowrap',
       textWrap: 'nowrap',
-
-      selectors: {
-        '&:active': {
-          backgroundImage: 'linear-gradient(rgb(0 0 0/40%) 0 0)',
-        },
-      },
     },
   },
 })
@@ -95,6 +88,18 @@ export const button_style = styleVariants({
     backgroundColor: 'transparent',
     color: theme.vars.color,
     border: 'none',
+
+    selectors: {
+      '&:active': {
+        backgroundColor: 'transparent',
+      },
+      '&:hover': {
+        backgroundColor: 'transparent',
+      },
+      '&:focus': {
+        backgroundColor: 'transparent',
+      },
+    },
   },
   filled: {
     color: 'white',
@@ -104,6 +109,9 @@ export const button_style = styleVariants({
     selectors: {
       '&:hover': {
         backgroundColor: button_filled_hover,
+      },
+      '&:active': {
+        backgroundImage: 'linear-gradient(rgb(0 0 0/40%) 0 0)',
       },
     },
   },
@@ -138,4 +146,13 @@ export const button_radius = styleVariants({
   md: { borderRadius: borderRadius['md'] },
   lg: { borderRadius: borderRadius['lg'] },
   xl: { borderRadius: borderRadius['xl'] },
+})
+
+globalStyle(`${button} svg`, {
+  '@layer': {
+    [app]: {
+      height: '100%',
+      width: 'auto',
+    },
+  },
 })

@@ -1,7 +1,5 @@
 import { useEffect } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
-import RequireAuth from './features/auth/RequireAuth'
-import PersistLogin from './features/auth/PersistLogin'
 import Layout from './Layout/Layout'
 import SignIn from './features/auth/SignIn'
 import ErrorPage from './features/auth/ErrorPage'
@@ -31,6 +29,7 @@ import Copy from './components/Copy/Copy'
 import ShortDetail from './components/Form/ShortDetail'
 import FormProvider from './components/Form/FormProvider'
 import FeatureProvider from './components/Form/Features/FeatureProvider'
+import SignUp from './features/auth/SignUp'
 
 const App = () => {
   useEffect(() => {
@@ -47,225 +46,219 @@ const App = () => {
 
   const router = createBrowserRouter([
     {
-      element: <PersistLogin />,
+      path: '/',
+      element: <Layout />,
+      errorElement: <ErrorPage />,
       children: [
         {
-          path: '/',
-          element: <Layout />,
-          errorElement: <ErrorPage />,
+          path: 'signin',
+          element: <SignIn />,
+        },
+        {
+          path: 'signup',
+          element: <SignUp />,
+        },
+        {
+          element: <FormProvider />,
+          path: '',
           children: [
             {
-              path: ':context',
-              element: <SignIn />,
-            },
-            {
-              element: <RequireAuth />,
+              path: 'characters',
               children: [
                 {
-                  element: <FormProvider />,
                   path: '',
+                  element: <CharactersList />,
+                  children: [
+                    { path: 'create', element: <Create /> },
+                    { path: 'delete/:id', element: <Delete /> },
+                  ],
+                },
+                {
+                  path: ':type?/:id?',
+                  element: <CharacterForm />,
                   children: [
                     {
-                      path: 'characters',
-                      children: [
-                        {
-                          path: '',
-                          element: <CharactersList />,
-                          children: [
-                            { path: 'create', element: <Create /> },
-                            { path: 'delete/:id', element: <Delete /> },
-                          ],
-                        },
-                        {
-                          path: ':type?/:id?',
-                          element: <CharacterForm />,
-                          children: [
-                            {
-                              path: 'alert/:alertType',
-                              element: (
-                                <FeatureProvider>
-                                  <Alert />
-                                </FeatureProvider>
-                              ),
-                            },
-                            { path: ':context/detail/short/:item', element: <ShortDetail /> },
-                          ],
-                        },
-                      ],
+                      path: 'alert/:alertType',
+                      element: (
+                        <FeatureProvider>
+                          <Alert />
+                        </FeatureProvider>
+                      ),
                     },
+                    { path: ':context/detail/short/:item', element: <ShortDetail /> },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'classes',
+              children: [
+                {
+                  path: '',
+                  element: <ClassesList />,
+                  children: [
+                    { path: 'detail/:item', element: <Class /> },
+                    { path: 'create', element: <Create /> },
+                    { path: 'delete/:id', element: <Delete /> },
+                  ],
+                },
+                {
+                  path: ':type?/:id?',
+                  element: <ClassForm />,
+                  children: [
                     {
-                      path: 'classes',
-                      children: [
-                        {
-                          path: '',
-                          element: <ClassesList />,
-                          children: [
-                            { path: 'detail/:item', element: <Class /> },
-                            { path: 'create', element: <Create /> },
-                            { path: 'delete/:id', element: <Delete /> },
-                          ],
-                        },
-                        {
-                          path: ':type?/:id?',
-                          element: <ClassForm />,
-                          children: [
-                            {
-                              path: 'alert/:alertType',
-                              element: (
-                                <FeatureProvider>
-                                  <Alert />
-                                </FeatureProvider>
-                              ),
-                            },
-                            { path: 'copy/feature', element: <Copy /> },
-                          ],
-                        },
-                      ],
+                      path: 'alert/:alertType',
+                      element: (
+                        <FeatureProvider>
+                          <Alert />
+                        </FeatureProvider>
+                      ),
                     },
+                    { path: 'copy/feature', element: <Copy /> },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'races',
+              children: [
+                {
+                  path: '',
+                  element: <RacesList />,
+                  children: [
+                    { path: 'detail/:id', element: <Race /> },
+                    { path: 'create', element: <Create /> },
+                    { path: 'delete/:id', element: <Delete /> },
+                  ],
+                },
+                {
+                  path: ':type?/:id?',
+                  element: <RaceForm />,
+                  children: [
                     {
-                      path: 'races',
-                      children: [
-                        {
-                          path: '',
-                          element: <RacesList />,
-                          children: [
-                            { path: 'detail/:id', element: <Race /> },
-                            { path: 'create', element: <Create /> },
-                            { path: 'delete/:id', element: <Delete /> },
-                          ],
-                        },
-                        {
-                          path: ':type?/:id?',
-                          element: <RaceForm />,
-                          children: [
-                            {
-                              path: 'alert/:alertType',
-                              element: (
-                                <FeatureProvider>
-                                  <Alert />
-                                </FeatureProvider>
-                              ),
-                            },
-                            { path: 'copy/feature', element: <Copy /> },
-                          ],
-                        },
-                      ],
+                      path: 'alert/:alertType',
+                      element: (
+                        <FeatureProvider>
+                          <Alert />
+                        </FeatureProvider>
+                      ),
                     },
+                    { path: 'copy/feature', element: <Copy /> },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'spells',
+              children: [
+                {
+                  path: '',
+                  element: <SpellsList />,
+                  children: [
+                    { path: 'create', element: <Create /> },
+                    { path: 'delete/:id', element: <Delete /> },
+                  ],
+                },
+                {
+                  path: ':type?/:id?',
+                  element: <SpellForm />,
+                  children: [
                     {
-                      path: 'spells',
-                      children: [
-                        {
-                          path: '',
-                          element: <SpellsList />,
-                          children: [
-                            { path: 'create', element: <Create /> },
-                            { path: 'delete/:id', element: <Delete /> },
-                          ],
-                        },
-                        {
-                          path: ':type?/:id?',
-                          element: <SpellForm />,
-                          children: [
-                            {
-                              path: 'alert/:alertType',
-                              element: (
-                                <FeatureProvider>
-                                  <Alert />
-                                </FeatureProvider>
-                              ),
-                            },
-                            { path: 'copy/feature', element: <Copy /> },
-                          ],
-                        },
-                      ],
+                      path: 'alert/:alertType',
+                      element: (
+                        <FeatureProvider>
+                          <Alert />
+                        </FeatureProvider>
+                      ),
                     },
+                    { path: 'copy/feature', element: <Copy /> },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'items',
+              children: [
+                {
+                  path: '',
+                  element: <ItemsList />,
+                  children: [
+                    { path: 'detail/:id', element: <Item /> },
+                    { path: 'create', element: <Create /> },
+                    { path: 'delete/:id', element: <Delete /> },
+                  ],
+                },
+                {
+                  path: ':type?/:id?',
+                  element: <ItemForm />,
+                  children: [
                     {
-                      path: 'items',
-                      children: [
-                        {
-                          path: '',
-                          element: <ItemsList />,
-                          children: [
-                            { path: 'detail/:id', element: <Item /> },
-                            { path: 'create', element: <Create /> },
-                            { path: 'delete/:id', element: <Delete /> },
-                          ],
-                        },
-                        {
-                          path: ':type?/:id?',
-                          element: <ItemForm />,
-                          children: [
-                            {
-                              path: 'alert/:alertType',
-                              element: (
-                                <FeatureProvider>
-                                  <Alert />
-                                </FeatureProvider>
-                              ),
-                            },
-                            { path: 'copy/feature', element: <Copy /> },
-                          ],
-                        },
-                      ],
+                      path: 'alert/:alertType',
+                      element: (
+                        <FeatureProvider>
+                          <Alert />
+                        </FeatureProvider>
+                      ),
                     },
+                    { path: 'copy/feature', element: <Copy /> },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'feats',
+              children: [
+                {
+                  path: '',
+                  element: <FeatsList />,
+                  children: [
+                    { path: 'detail/:id', element: <Feat /> },
+                    { path: 'create', element: <Create /> },
+                    { path: 'delete/:id', element: <Delete /> },
+                  ],
+                },
+                {
+                  path: ':type?/:id?',
+                  element: <FeatForm />,
+                  children: [
                     {
-                      path: 'feats',
-                      children: [
-                        {
-                          path: '',
-                          element: <FeatsList />,
-                          children: [
-                            { path: 'detail/:id', element: <Feat /> },
-                            { path: 'create', element: <Create /> },
-                            { path: 'delete/:id', element: <Delete /> },
-                          ],
-                        },
-                        {
-                          path: ':type?/:id?',
-                          element: <FeatForm />,
-                          children: [
-                            {
-                              path: 'alert/:alertType',
-                              element: (
-                                <FeatureProvider>
-                                  <Alert />
-                                </FeatureProvider>
-                              ),
-                            },
-                            { path: 'copy/feature', element: <Copy /> },
-                          ],
-                        },
-                      ],
+                      path: 'alert/:alertType',
+                      element: (
+                        <FeatureProvider>
+                          <Alert />
+                        </FeatureProvider>
+                      ),
                     },
+                    { path: 'copy/feature', element: <Copy /> },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'backgrounds',
+              children: [
+                {
+                  path: '',
+                  element: <BackgroundsList />,
+                  children: [
+                    { path: 'detail/:id', element: <Background /> },
+                    { path: 'create/:type', element: <Create /> },
+                    { path: 'delete/:id', element: <Delete /> },
+                  ],
+                },
+                {
+                  path: ':type?/:id?',
+                  element: <BackgroundForm />,
+                  children: [
                     {
-                      path: 'backgrounds',
-                      children: [
-                        {
-                          path: '',
-                          element: <BackgroundsList />,
-                          children: [
-                            { path: 'detail/:id', element: <Background /> },
-                            { path: 'create/:type', element: <Create /> },
-                            { path: 'delete/:id', element: <Delete /> },
-                          ],
-                        },
-                        {
-                          path: ':type?/:id?',
-                          element: <BackgroundForm />,
-                          children: [
-                            {
-                              path: 'alert/:alertType',
-                              element: (
-                                <FeatureProvider>
-                                  <Alert />
-                                </FeatureProvider>
-                              ),
-                            },
-                            { path: 'copy/feature', element: <Copy /> },
-                          ],
-                        },
-                      ],
+                      path: 'alert/:alertType',
+                      element: (
+                        <FeatureProvider>
+                          <Alert />
+                        </FeatureProvider>
+                      ),
                     },
+                    { path: 'copy/feature', element: <Copy /> },
                   ],
                 },
               ],

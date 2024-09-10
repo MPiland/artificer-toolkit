@@ -8,7 +8,7 @@ import Collapse from '../../../Collapse/Collapse'
 import Table from '../../../Table/Table'
 import { useForm } from '../../../../hooks/UseForm'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
 import { useGetSpellsQuery } from '../../../../features/spells/spellsApi'
 
 type CategoryType =

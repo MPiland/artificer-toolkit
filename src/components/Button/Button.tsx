@@ -2,9 +2,10 @@ import { ReactNode } from 'react'
 import { button, button_color, button_content, button_height, button_radius, button_style } from './Button.css'
 import clsx from 'clsx'
 import { ButtonColor } from '../../css/theme.css'
-import { Height } from '../../css/size.css'
+import { Height, Size } from '../../css/size.css'
 import { BorderRadius } from '../../css/border.css'
 import Box from '../Box/Box'
+import { sprinkles } from '../../css/sprinkles.css'
 
 const Button = ({
   type,
@@ -17,6 +18,7 @@ const Button = ({
   borderRadius = 'default',
   style = 'filled',
   color = 'primary',
+  width = 'size-auto',
   ...props
 }: {
   children: ReactNode
@@ -29,6 +31,7 @@ const Button = ({
   style?: 'filled' | 'outline' | 'unstyled'
   color?: ButtonColor
   type?: 'button' | 'submit' | 'reset'
+  width?: Size
 }) => {
   return (
     <Box
@@ -40,7 +43,10 @@ const Button = ({
         button_height[height],
         button_radius[borderRadius],
         button_color[color],
-        button_style[style]
+        button_style[style],
+        sprinkles({
+          width: width,
+        })
       )}
       disabled={disabled}
       onClick={onClick}

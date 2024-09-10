@@ -7,7 +7,7 @@ import Collapse from '../../Collapse/Collapse'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Divider from '../../Divider/Divider'
 import { startCase } from 'lodash'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 import { RowHeaderType, RowInputType } from '../../../utils/types'
 
 const Upcast = () => {

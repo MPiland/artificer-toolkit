@@ -4,7 +4,7 @@ import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 
 const Multiclass = () => {
   const { formState, setFormState, context } = useForm()

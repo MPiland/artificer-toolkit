@@ -5,7 +5,7 @@ import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
 import { DropdownOptionType } from '../../../../utils/types'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
 import { useGetFeatsQuery } from '../../../../features/feats/featsApi'
 
 const Feats = () => {

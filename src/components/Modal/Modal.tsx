@@ -1,4 +1,4 @@
-import { useEffect, useCallback, ReactNode } from 'react'
+import { useEffect, useCallback, ReactNode, forwardRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   modal,
@@ -50,9 +50,13 @@ export const Header = ({ title, children }: { title: string; children?: ReactNod
   )
 }
 
-export const Content = ({ children }: { children: ReactNode }) => {
-  return <div className={modal_body}>{children}</div>
-}
+export const Content = forwardRef<HTMLDivElement, { children: ReactNode }>(({ children }, ref) => {
+  return (
+    <div className={modal_body} ref={ref}>
+      {children}
+    </div>
+  )
+})
 
 export const Footer = ({ children }: { children: ReactNode }) => {
   return (
@@ -63,22 +67,25 @@ export const Footer = ({ children }: { children: ReactNode }) => {
   )
 }
 
-const Dialogue = ({ children, size = 'md' }: { children: ReactNode; size?: 'xs' | 'sm' | 'md' | 'lg' }) => {
-  return (
-    <div
-      className={clsx(modal_dialogue, {
-        [size]: size,
-      })}
-      tabIndex={-1}
-      role='dialog'
-      id='modal'
-    >
-      <div className={modal_content} onClick={(e) => e.stopPropagation()}>
-        {children}
+const Dialogue = forwardRef<HTMLDivElement, { children: ReactNode; size?: 'xs' | 'sm' | 'md' | 'lg' }>(
+  ({ children, size = 'md' }, ref) => {
+    return (
+      <div
+        className={clsx(modal_dialogue, {
+          [size]: size,
+        })}
+        tabIndex={-1}
+        role='dialog'
+        id='modal'
+        ref={ref}
+      >
+        <div className={modal_content} onClick={(e) => e.stopPropagation()}>
+          {children}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
+)
 
 const Modal = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate()
@@ -112,6 +119,9 @@ const Modal = ({ children }: { children: ReactNode }) => {
     </>
   )
 }
+
+Content.displayName = 'Content'
+Dialogue.displayName = 'Dialogue'
 
 Modal.Content = Content
 Modal.Dialogue = Dialogue

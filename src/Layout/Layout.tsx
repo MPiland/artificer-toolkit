@@ -15,16 +15,21 @@ import { useMediaQuery } from 'usehooks-ts'
 import CharactersIcon from '../assets/Icons/IChar'
 import ClassesIcon from '../assets/Icons/IClass'
 import RacesIcon from '../assets/Icons/IRaces'
-import { FaRegCircleUser } from 'react-icons/fa6'
-import { MdDarkMode, MdLightMode } from 'react-icons/md'
 import { useTheme } from '../hooks/useTheme'
 import Button from '../components/Button/Button'
 import ScrollIcon from '../assets/Icons/IScroll'
 import SackIcon from '../assets/Icons/ISack'
-import useAuth from '../hooks/useAuth'
+import { useAuth } from '../hooks/useAuth'
+import { sprinkles } from '../css/sprinkles.css'
+import clsx from 'clsx'
+import { useSignOut } from '../features/auth/authApi'
+import IDarkMode from '../assets/Icons/IDarkMode'
+import ILightMode from '../assets/Icons/ILightMode'
+import IUser from '../assets/Icons/IUser'
+import Spinner from '../components/Spinner/Spinner'
 
 const Layout = () => {
-  const [token] = useAuth()
+  const { user, isLoading } = useAuth()
   const location = useLocation()
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false)
@@ -32,7 +37,9 @@ const Layout = () => {
 
   const sm = useMediaQuery('screen and (max-width: 567px)')
 
-  const noTokenNavigation: { to: string; title: string }[] = [
+  const { mutateAsync: signOut } = useSignOut()
+
+  const noUserNavigation: { to: string; title: string }[] = [
     {
       to: '',
       title: 'Media',
@@ -50,12 +57,16 @@ const Layout = () => {
       title: 'Register',
     },
     {
-      to: 'login',
-      title: 'Login',
+      to: 'signin',
+      title: 'Sign In',
+    },
+    {
+      to: 'signup',
+      title: 'Sign Up',
     },
   ]
 
-  const tokenNavigation: { icon?: ReactNode; to: string; title: string }[] = [
+  const userNavigation: { icon?: ReactNode; to: string; title: string }[] = [
     { icon: <CharactersIcon />, to: 'characters', title: 'Characters' },
     {
       icon: <ClassesIcon />,
@@ -89,27 +100,29 @@ const Layout = () => {
     },
   ]
 
-  return (
+  return isLoading ? (
+    <Spinner />
+  ) : (
     <AppShell>
-      {(!token && sm) ||
-        (token && (
+      {(!user && sm) ||
+        (user && (
           <AppShell.Sidebar collapsed={sidebarCollapsed}>
             <div className={sidebar_header}>
               <AppShell.Hamburger onClick={() => setSidebarCollapsed((prev) => !prev)} collapsed={sidebarCollapsed} />
             </div>
             <div className={sidebar_item_group}>
-              {!token &&
+              {!user &&
                 sm &&
-                noTokenNavigation.map((noToken: { to: string; title: string }, index: number) => (
-                  <NavLink className={sidebar_item} to={noToken.to} key={index}>
-                    <span className={sidebar_item_title}>{noToken.title}</span>
+                noUserNavigation.map((noUser: { to: string; title: string }, index: number) => (
+                  <NavLink className={sidebar_item} to={noUser.to} key={index}>
+                    <span className={sidebar_item_title}>{noUser.title}</span>
                   </NavLink>
                 ))}
-              {token &&
-                tokenNavigation.map((token: { icon?: ReactNode; to: string; title: string }, index: number) => (
-                  <NavLink className={sidebar_item} to={token.to} key={index}>
-                    {token?.icon && <div className={sidebar_icon}>{token.icon}</div>}
-                    <span className={sidebar_item_title}>{token.title}</span>
+              {user &&
+                userNavigation.map((user: { icon?: ReactNode; to: string; title: string }, index: number) => (
+                  <NavLink className={sidebar_item} to={user.to} key={index}>
+                    {user?.icon && <div className={sidebar_icon}>{user.icon}</div>}
+                    <span className={sidebar_item_title}>{user.title}</span>
                   </NavLink>
                 ))}
             </div>
@@ -119,24 +132,31 @@ const Layout = () => {
         <AppShell.Header>
           <span className={header_title}>Artificer Toolkit</span>
           <div className={header_item_group}>
-            {!token &&
+            {!user ? (
               !sm &&
-              noTokenNavigation.map((noToken: { to: string; title: string }, index: number) => (
+              noUserNavigation.map((noUser: { to: string; title: string }, index: number) => (
                 <NavLink
                   className={header_item}
-                  to={noToken.to}
+                  to={noUser.to}
                   key={index}
-                  title={noToken.title}
-                  state={{ background: location, title: noToken.title }}
+                  title={noUser.title}
+                  state={{ background: location, title: noUser.title }}
                 >
-                  {noToken.title}
+                  {noUser.title}
                 </NavLink>
-              ))}
-            <div className={header_item}>
-              <FaRegCircleUser />
-            </div>
-            <Button type='button' style='unstyled' onClick={toggleTheme} className={header_item}>
-              {themeType === 'light' ? <MdDarkMode /> : <MdLightMode />}
+              ))
+            ) : (
+              <Button
+                style='unstyled'
+                onClick={signOut}
+                className={clsx(header_item, sprinkles({ me: 'space-1' }))}
+                width='size-7'
+              >
+                <IUser />
+              </Button>
+            )}
+            <Button style='unstyled' onClick={toggleTheme} className={header_item} width='size-7'>
+              {themeType === 'light' ? <IDarkMode /> : <ILightMode />}
             </Button>
           </div>
         </AppShell.Header>

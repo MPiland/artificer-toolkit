@@ -5,7 +5,7 @@ import Row from '../../Row/Row'
 import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 
 const Resource = () => {
   const { formState, setFormState, context } = useForm()

@@ -4,7 +4,7 @@ import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import Row from '../../Row/Row'
 import { useForm } from '../../../hooks/UseForm'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 
 const Spellcasting = () => {
   const { formState, setFormState, context } = useForm()

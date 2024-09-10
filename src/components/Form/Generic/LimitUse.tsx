@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { ReducerActionType } from '../../../utils/types'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'

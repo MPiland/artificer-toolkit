@@ -5,7 +5,7 @@ import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
 import Table from '../../Table/Table'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useGetBuildersQuery } from '../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../features/systems/systemsApi'
 import { useForm } from '../../../hooks/UseForm'
 import { ReducerActionType, RowHeaderType, RowInputType } from '../../../utils/types'
 

@@ -26,7 +26,7 @@ import { clsx } from 'clsx'
 import { set } from 'lodash'
 import { ContextType } from '../../utils/types'
 import { getValueFromState } from '../../utils/formatting'
-import { useGetBuildersQuery } from '../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../features/systems/systemsApi'
 import { useInView } from 'react-intersection-observer'
 import { CustomError } from '../../app/api/api'
 

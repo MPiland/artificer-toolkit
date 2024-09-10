@@ -5,7 +5,7 @@ import { startCase } from 'lodash'
 import { DropdownOptionType } from '../../../../utils/types'
 import { useForm } from '../../../../hooks/UseForm'
 import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetBuildersQuery } from '../../../../features/builders/buildersApi'
+import { useGetBuildersQuery } from '../../../../features/systems/systemsApi'
 import { useGetRacesQuery } from '../../../../features/races/racesApi'
 
 const Ancestry = () => {
