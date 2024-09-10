@@ -1,10 +1,9 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend'
-import { Ability } from './options'
-import { System } from './systems'
+import { Ability, System } from './systems'
 
 const schema = a.schema({
-  Ability: Ability,
   System: System,
+  Ability: Ability,
 })
 
 export type Schema = ClientSchema<typeof schema>
