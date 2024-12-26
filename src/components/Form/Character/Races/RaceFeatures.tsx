@@ -1,85 +1,91 @@
 import parse from 'html-react-parser'
-import { Fragment, useCallback, useEffect, useMemo } from 'react'
+import { Fragment, use, useCallback, useEffect, useMemo } from 'react'
 import Dropdown from '../../../Dropdown/Dropdown'
-import { get, isEqual, set } from 'lodash'
+import { isEqual } from 'lodash'
 import { sprinkles } from '../../../../css/sprinkles.css'
 import { feature_card, feature_card_body, feature_card_header } from '../Character.css'
 import { option_dropdown } from '../Character.css'
 import ScrollArea from '../../../ScrollArea/ScrollArea'
 import Collapse from '../../../Collapse/Collapse'
-import { useForm } from '../../../../hooks/UseForm'
-import { getSectionOptions, sectionData } from '../../../../utils/form'
-import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
-import { useGetSpellsQuery } from '../../../../features/spells/spellsApi'
-import { useGetFeatsQuery } from '../../../../features/feats/featsApi'
-import { useGetRacesQuery } from '../../../../features/races/racesApi'
+import {
+  AncestryFeature,
+  AncestryOption,
+  Character,
+  CharacterModifier,
+  CharacterProficiency,
+  Feature,
+  Race,
+  CharacterSense,
+  CharacterFeat,
+  CharacterExpertise,
+  CharacterFeature,
+} from '../../../../../amplify/API'
+import { SectionName, UpdateState } from '../../../../types/form'
+import FeatureContext from '../../Features/FeatureContext'
+import useGetSections from '../../../../hooks/useGetSectionState'
+import { Attributes } from '../../../../types/enums'
 
-const RaceFeatures = ({ race }: { race: any }) => {
-  const { formState, setFormState } = useForm()
+const RaceFeatures = ({
+  fullRace,
+  fullAncestry,
+  updateFormData,
+  formData,
+  raceLineages,
+}: {
+  fullRace: Race
+  fullAncestry: AncestryOption
+  updateFormData: (arg: UpdateState<Character>) => void
+  formData: Character
+  raceLineages: Race[]
+}) => {
+  const { sectionSteps } = use(FeatureContext)
+  const { getSectionOptions } = useGetSections({ state: formData })
 
-  const { sectionNames } = useFeature()
-
-  const { data: builders } = useGetSystemsQuery()
-  const { data: spells } = useGetSpellsQuery() as { data: any[] }
-  const { data: feats } = useGetFeatsQuery() as { data: any[] }
-  const { data: races } = useGetRacesQuery() as { data: any[] }
-
-  const fullRace = races.find((race: any) => race._id === formState.race._id)
-
-  const ancestry: any = formState.ancestry
-    ? fullRace?.ancestry?.options?.find((option: any) => option._id === formState?.ancestry?._id)
-    : null
-
-  const setFormRaces = useCallback((): { race: any; type: 'race' | 'ancestry' }[] => {
-    const racesArray: any[] = []
-    if (race) {
-      if (!racesArray.some((formRace: any) => formRace.race._id === race._id)) {
-        racesArray.push({ race: race, type: 'race' })
-      }
-      if (fullRace?.lineage?.length > 0) {
-        fullRace?.lineage?.forEach((lineage: any) => {
-          const lineageRace = races.find((stateRace: any) => stateRace._id === lineage._id)
-          if (!racesArray.some((formRace: any) => formRace.race._id === lineageRace._id)) {
-            racesArray.push({ race: lineageRace, type: 'race' })
-          }
-        })
-      }
-      if (ancestry) {
-        if (!racesArray.some((formRace: any) => formRace.race._id === ancestry._id)) {
-          racesArray.push({ race: ancestry, type: 'ancestry' })
-        }
-      }
+  const setFormRaces = useCallback(() => {
+    const racesArray: { race: Race | AncestryOption; type: 'race' | 'ancestry' }[] = []
+    if (fullRace) {
+      racesArray.push({ race: fullRace, type: 'race' })
+    }
+    if (raceLineages) {
+      raceLineages?.forEach((lineage) => {
+        racesArray.push({ race: lineage, type: 'race' })
+      })
+    }
+    if (fullAncestry) {
+      racesArray.push({ race: fullAncestry, type: 'ancestry' })
     }
 
     return racesArray
-  }, [races, ancestry, fullRace, race])
+  }, [fullAncestry, fullRace, raceLineages])
 
   const formRaces = useMemo(() => setFormRaces(), [setFormRaces])
 
-  const createFeatures = useCallback((): any[] => {
-    const featureArrayUpdated: any[] = []
+  const createFeatures = useCallback(() => {
+    const featureArrayUpdated: Array<
+      | (Feature & { raceId?: string; ancestryId?: string })
+      | (AncestryFeature & { raceId?: string; ancestryId?: string })
+    > = []
 
     formRaces.forEach((raceObject) => {
       /* Whether the feature is a lineage or base race, match it to the base race selected.
       If it's an ancestry, match it to itself based on the state */
-      const featureRace: any = raceObject.type === 'ancestry' ? ancestry : race
+      const featureRace = raceObject.type === 'ancestry' ? fullAncestry : fullRace
 
       // Default full features based off the raceObject
-      let fullFeatures: any[] = races.find((fRace: any) => fRace._id === raceObject.race._id)?.features
+      let fullFeatures = raceObject.race?.features
 
       if (raceObject.type === 'ancestry') {
-        // Use formstate race to get the ancestry options and then find the option based on the selected ancestry race
-        fullFeatures = ancestry.features
+        // Use formData race to get the ancestry options and then find the option based on the selected ancestry race
+        fullFeatures = fullAncestry.features
       }
 
       /* Inject feature into array based off type
       If lineage or base, use base race Id
       If ancestry, use the ancestry Id
       This will allow for removing erroneous features using unique identifiers */
-      fullFeatures?.forEach((feature: any) => {
-        if (!featureArrayUpdated.some((aFeature: any) => aFeature._id === feature._id)) {
-          featureArrayUpdated.push({ ...feature, [`${raceObject.type}Id`]: featureRace._id })
+      fullFeatures?.forEach((feature: Feature | AncestryFeature) => {
+        if (!featureArrayUpdated.some((aFeature) => aFeature.id === feature.id)) {
+          featureArrayUpdated.push({ ...feature, [`${raceObject.type}Id`]: featureRace.id })
         }
       })
     })
@@ -87,159 +93,228 @@ const RaceFeatures = ({ race }: { race: any }) => {
     featureArrayUpdated.sort((a, b) => a.value.localeCompare(b.value))
 
     return featureArrayUpdated
-  }, [races, formRaces, ancestry, race])
+  }, [fullAncestry, fullRace, formRaces])
 
   const features = useMemo(() => createFeatures(), [createFeatures])
 
-  const createRaceData = useCallback(() => {
-    const formStateUpdated: any = JSON.parse(JSON.stringify(formState))
+  // Memoize the feature sections
 
-    if (features && features?.length > 0) {
-      features?.forEach((feature) => {
-        const sectionRace = feature.ancestryId != null ? ancestry : race
-        sectionNames.forEach((sectionName) => {
-          if (sectionName !== 'features' && sectionName !== 'options' && sectionName !== 'ancestry') {
-            let sectionObject: any = {}
-            const sectionClone: any = get(formStateUpdated, `${sectionName}`)
-            if (sectionClone) {
-              if (!Array.isArray(sectionClone) && Object.keys(sectionClone)?.length > 0) {
-                Object.keys(sectionClone).forEach((key: string) => {
-                  const section = sectionClone[key]
-                  if (Array.isArray(section) && section?.length > 0) {
-                    section.forEach((sectionItem: any) => {
-                      if (
-                        (sectionItem.raceId == null ||
-                          formRaces.some((raceObject) => raceObject.race._id === sectionItem.raceId)) &&
-                        (sectionItem.ancestryId == null || formState.ancestry._id === sectionItem.ancestryId)
-                      ) {
-                        if (sectionObject[key]?.length > 0) {
-                          const exist = get(sectionObject, key)
-                          exist.push(sectionItem)
-                          set(sectionObject, key, exist)
-                        } else {
-                          set(sectionObject, key, [{ ...sectionItem }])
-                        }
-                      }
-                    })
+  // Update state sections
+  useEffect(() => {
+    let ancestryMapped: boolean = false
+    let characterData: Character = JSON.parse(JSON.stringify(formData))
+
+    // Create the data to store the sections into
+    const sections: {
+      feats: Array<CharacterFeat | null>
+      modifiers: Array<CharacterModifier | null>
+      proficiencies: Array<CharacterProficiency | null>
+      expertise: Array<CharacterExpertise | null>
+      senses: Array<CharacterSense | null>
+    } = {
+      feats: [],
+      modifiers: [],
+      proficiencies: [],
+      expertise: [],
+      senses: [],
+    }
+
+    // Store the current character sections for comparison at the end
+    const characterSections = {
+      feats: characterData.feats,
+      modifiers: characterData.modifiers,
+      proficiencies: characterData.proficiencies,
+      expertise: characterData.expertise,
+      senses: characterData.senses,
+    }
+
+    const createObject = (type?: 'ancestry', dataSectionObject?: Character) => {
+      if (dataSectionObject) {
+        characterData = dataSectionObject
+      }
+
+      const sectionRace = type === 'ancestry' ? fullAncestry : fullRace
+
+      if (features && features?.length > 0) {
+        features?.forEach((feature) => {
+          // Map through the different sections available for the character
+          // Senses, Feats, Proficiencies, Expertise, Skills, Saveabilities
+          sectionSteps.forEach((sectionStep) => {
+            if (sectionStep !== 'spells' && sectionStep !== 'ancestries') {
+              if (Array.isArray(characterSections[sectionStep]) && characterSections[sectionStep].length > 0) {
+                characterSections[sectionStep].forEach((section) => {
+                  if (
+                    section.classId == null ||
+                    characterData.classes.some((uClass) => uClass.id === section.classId)
+                  ) {
+                    if (sectionStep === 'feats') {
+                      sections.feats.push({
+                        ...section,
+                        __typename: 'CharacterFeat',
+                        featId: section.featId,
+                      })
+                    }
+                    if (sectionStep === 'proficiencies') {
+                      sections.proficiencies.push({
+                        ...section,
+                        __typename: 'CharacterProficiency',
+                        proficiencyId: (section as CharacterProficiency).proficiencyId,
+                      })
+                    }
+                    if (sectionStep === 'expertise') {
+                      sections.expertise.push({
+                        ...section,
+                        __typename: 'CharacterExpertise',
+                        expertiseId: (section as CharacterExpertise).expertiseId,
+                      })
+                    }
+                    if (sectionStep === 'modifiers') {
+                      sections.modifiers.push({
+                        ...section,
+                        __typename: 'CharacterModifier',
+                        modifierId: (section as CharacterModifier).modifierId,
+                      })
+                    }
+                    if (sectionStep === 'senses') {
+                      sections.senses.push({
+                        ...section,
+                        __typename: 'CharacterSense',
+                        senseId: (section as CharacterSense).senseId,
+                      })
+                    }
                   }
                 })
               }
-              if (Array.isArray(sectionClone) && sectionClone.length > 0) {
-                sectionClone.forEach((section: any) => {
-                  if (
-                    (section.raceId == null ||
-                      formRaces.some((raceObject) => raceObject.race._id === section.raceId)) &&
-                    (section.ancestryId == null || ancestry._id === section.ancestryId)
-                  ) {
-                    if (sectionObject?.length > 0) {
-                      sectionObject = [...sectionObject, { ...section }]
-                    } else {
-                      sectionObject = [{ ...section }]
+              if (feature?.[sectionStep]?.length > 0) {
+                feature?.[sectionStep]?.forEach((fSection) => {
+                  if (!fSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+                    if (
+                      !sections[sectionStep].find(
+                        (section) =>
+                          ((section.__typename === 'CharacterFeat' && section.featId === fSection.id) ||
+                            (section.__typename === 'CharacterModifier' && section.modifierId === fSection.id) ||
+                            (section.__typename === 'CharacterSense' && section.senseId === fSection.id) ||
+                            (section.__typename === 'CharacterExpertise' && section.expertiseId === fSection.id) ||
+                            (section.__typename === 'CharacterProficiency' && section.proficiencyId === fSection.id)) &&
+                          section.raceId === sectionRace.id &&
+                          section.featureId === feature.id
+                      )
+                    ) {
+                      if (sectionStep === 'feats') {
+                        sections.feats.push({
+                          __typename: 'CharacterFeat',
+                          featId: fSection.id,
+                          featureId: feature.id,
+                        })
+                      }
+                      if (sectionStep === 'proficiencies') {
+                        sections.proficiencies.push({
+                          __typename: 'CharacterProficiency',
+                          proficiencyId: fSection.id,
+                          featureId: feature.id,
+                        })
+                      }
+                      if (sectionStep === 'expertise') {
+                        sections.expertise.push({
+                          __typename: 'CharacterExpertise',
+                          expertiseId: fSection.id,
+                          featureId: feature.id,
+                        })
+                      }
+                      if (sectionStep === 'modifiers') {
+                        sections.modifiers.push({
+                          __typename: 'CharacterModifier',
+                          modifierId: fSection.id,
+                          featureId: feature.id,
+                        })
+                      }
+                      if (sectionStep === 'senses') {
+                        sections.senses.push({
+                          __typename: 'CharacterSense',
+                          senseId: fSection.id,
+                          featureId: feature.id,
+                        })
+                      }
                     }
                   }
                 })
               }
             }
-            if (feature[sectionName]?.length > 0) {
-              feature[sectionName].forEach((section: any) => {
-                if (!section.attribute?.some((attribute: any) => attribute.name === 'providesOptions')) {
-                  sectionObject = sectionData({
-                    section,
-                    sectionObject,
-                    item: sectionRace,
-                    itemType: 'race',
-                    feature,
-                    builders,
-                  })
-                }
-              })
-            }
-            if (sectionRace[sectionName]?.length > 0) {
-              sectionRace[sectionName].forEach((section: any) => {
-                if (!section.attribute?.some((attribute: any) => attribute.name === 'providesOptions')) {
-                  sectionObject = sectionData({
-                    section,
-                    sectionObject,
-                    item: sectionRace,
-                    itemType: 'race',
-                    feature,
-                    builders,
-                  })
-                }
-              })
-            }
-            if (sectionName === 'spells' || sectionName === 'feats') {
-              if (!Array.isArray(sectionObject) && Object.keys(sectionObject).length === 0) {
-                sectionObject = []
-              }
-            }
-            if (Object.keys(sectionObject).length > 0) {
-              if (!isEqual(sectionObject, sectionClone)) {
-                set(formStateUpdated, sectionName, sectionObject)
-              }
-            } else if (sectionClone && Object.keys(sectionClone).length > 0) {
-              set(formStateUpdated, sectionName, undefined)
-            }
-          }
+          })
         })
-      })
+      }
     }
 
-    return formStateUpdated
-  }, [features, formState, builders, sectionNames, formRaces, ancestry, race])
+    createObject()
 
-  // Memoize the feature sections
-  const formStateUpdated = useMemo(() => createRaceData(), [createRaceData])
+    if (formData.ancestry && !ancestryMapped) {
+      ancestryMapped = true
+      createObject('ancestry', characterData)
+    }
 
-  // Update state sections
-  useEffect(() => {
-    if (!isEqual(formState, formStateUpdated)) {
-      setFormState({
+    if (!isEqual(sections, characterSections)) {
+      Object.keys(sections).forEach((key: keyof typeof sections) => {
+        if (sections[key].length > 0) {
+          characterData = {
+            ...characterData,
+            [key]: sections[key],
+          }
+        }
+      })
+      updateFormData({
         type: 'reset',
-        target: {
-          value: formStateUpdated,
-        },
+        value: characterData,
       })
     }
-  }, [formState, setFormState, formStateUpdated])
+  }, [features, formData, fullAncestry, fullRace, sectionSteps, updateFormData])
 
   // Update race features
   useEffect(() => {
-    const formClone = JSON.parse(JSON.stringify(formState))
+    const formClone: Character = JSON.parse(JSON.stringify(formData))
 
     features?.forEach((feature) => {
+      const characterFeatures: CharacterFeature[] = formClone.features || []
       if (feature.ancestryId) {
-        const ancestryFeatures = get(formClone, 'ancestry.features') ?? []
-        if (!ancestryFeatures.some((aFeature: any) => aFeature._id === feature._id)) {
-          ancestryFeatures.push(feature)
-          set(formClone, 'ancestry.features', ancestryFeatures)
+        if (!characterFeatures.some((cFeature) => cFeature.ancestryId === feature.ancestryId)) {
+          formClone.features.push({ id: feature.id, ancestryId: feature.ancestryId, __typename: 'CharacterFeature' })
         }
       }
       if (feature.raceId) {
-        const raceFeatures = get(formClone, 'race.features') ?? []
-        if (!raceFeatures.some((aFeature: any) => aFeature._id === feature._id)) {
-          raceFeatures.push(feature)
-          set(formClone, 'race.features', raceFeatures)
+        if (!characterFeatures.some((cFeature) => cFeature.raceId === feature.raceId)) {
+          formClone.features.push({ id: feature.id, raceId: feature.raceId, __typename: 'CharacterFeature' })
         }
       }
     })
 
-    if (!isEqual(formClone, formState)) {
-      setFormState({
-        type: 'reset',
-        target: {
-          value: formClone,
-        },
+    if (!isEqual(formClone.features, formData.features)) {
+      updateFormData({
+        type: 'update',
+        path: 'features',
+        value: formClone.features,
       })
     }
-  }, [features, formState, setFormState])
+  }, [features, formData, updateFormData])
+
+  const handleAncestryChange = (e: UpdateState<Character>) => {
+    if (e.type === 'update') {
+      const ancestryId = e.value
+      const ancestry = fullRace.ancestry.options.find((option) => option.id === ancestryId)
+      if (ancestry) {
+        updateFormData({
+          type: 'update',
+          path: 'ancestry',
+          value: { id: ancestryId, raceId: fullRace.id },
+        })
+      }
+    }
+  }
 
   return (
     <>
-      {formState.race?.lineage?.length > 0 &&
-        formState.race?.lineage?.forEach(
-          (lineage: any, index: number) =>
-            lineage?.ancestry?.option?.length > 0 && (
+      {raceLineages?.length > 0 &&
+        raceLineages?.forEach(
+          (lineage, index) =>
+            lineage?.ancestry?.options?.length > 0 && (
               <div className={feature_card} key={index}>
                 <div className={feature_card_header}>
                   <h2>{lineage?.ancestry.value}</h2>
@@ -248,21 +323,19 @@ const RaceFeatures = ({ race }: { race: any }) => {
                   {lineage?.ancestry.desc && parse(lineage?.ancestry.desc)}
                   <div className={option_dropdown}>
                     <Dropdown
-                      name={`ancestry`}
+                      name={`ancestry.id`}
                       label='Ancestry Option'
-                      options={lineage?.ancestry.option.map((option: any) => ({
-                        name: option.name,
+                      options={lineage?.ancestry.options.map((option) => ({
+                        label: option.label,
                         value: option.value,
                         desc: option.desc,
-                        _id: option._id,
-                        raceId: lineage._id,
+                        id: option.id,
+                        raceId: lineage.id,
                       }))}
-                      onChange={setFormState}
-                      value={formState.ancestry}
+                      onChange={updateFormData}
+                      value={formData.ancestry.id}
                     />
-                    {formState?.ancestry && (
-                      <strong>{formState.ancestry.desc && parse(formState.ancestry.desc)}</strong>
-                    )}
+                    {formData?.ancestry && <strong>{fullAncestry.desc && parse(fullAncestry.desc)}</strong>}
                   </div>
                 </div>
               </div>
@@ -276,86 +349,71 @@ const RaceFeatures = ({ race }: { race: any }) => {
           <ScrollArea scrollDirection='horizontal' className={feature_card_body}>
             {fullRace.ancestry.desc && parse(fullRace.ancestry.desc)}
             <div className={option_dropdown}>
-              <Dropdown
-                name='ancestry'
+              <Dropdown<Character>
+                name='ancestry.id'
                 label='Ancestry Option'
-                options={fullRace.ancestry.options.map((option: any) => ({
-                  name: option.name,
-                  value: option.value,
-                  _id: option._id,
-                  desc: option.desc,
-                }))}
-                onChange={setFormState}
-                value={formState.ancestry}
+                options={fullRace.ancestry.options}
+                value={formData.ancestry.id}
+                onChange={(e) => handleAncestryChange(e)}
               />
-              {formState?.ancestry && <strong>{formState.ancestry.desc && parse(formState.ancestry.desc)}</strong>}
+              {fullAncestry && <strong>{fullAncestry?.desc && parse(fullAncestry?.desc)}</strong>}
             </div>
           </ScrollArea>
         </div>
       )}
       {features &&
         features?.length > 0 &&
-        features?.map((feature: any, featureIndex: number) => {
-          if (!feature.attribute?.some((attribute: any) => attribute.name === 'hideInBuilder')) {
-            return (
-              <Collapse key={featureIndex}>
-                <Collapse.Header title={feature.value} className={feature_card_header} />
-                <Collapse.Body>
-                  <ScrollArea scrollDirection='horizontal' className={feature_card_body}>
-                    {feature.desc && parse(feature.desc)}
-                    {sectionNames.map((sectionName, nameIndex: number) => (
-                      <Fragment key={nameIndex}>
-                        {feature[sectionName]?.length > 0 &&
-                          feature[sectionName].map((section: any) => {
-                            if (
-                              section.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')
-                            ) {
-                              // Check if selectionCount exists and is greater than 0
-                              const selectionCount = section.selectionCount || 1
+        features?.map((feature, featureIndex) => {
+          return (
+            <Collapse key={featureIndex}>
+              <Collapse.Header title={feature.value} className={feature_card_header} />
+              <Collapse.Body>
+                <ScrollArea scrollDirection='horizontal' className={feature_card_body}>
+                  {feature.desc && parse(feature.desc)}
+                  {sectionSteps.map((sectionStep: Exclude<SectionName, 'ancestries'>, nameIndex: number) => (
+                    <Fragment key={nameIndex}>
+                      {feature[sectionStep]?.length > 0 &&
+                        feature[sectionStep].map((section) => {
+                          if (section.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+                            // Check if selectionCount exists and is greater than 0
+                            const selectionCount = section.selectionCount || 1
 
-                              // Repeat Dropdown component based on selectionCount
-                              const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                                const optionIndex = `${index}` + `${featureIndex}`
+                            // Repeat Dropdown component based on selectionCount
+                            const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
+                              const optionIndex = index & featureIndex
 
-                                const { options, label, inputPathName, exist } = getSectionOptions({
-                                  section,
-                                  sectionName,
-                                  feature,
-                                  optionIndex,
-                                  state: formState,
-                                  builders,
-                                  feats,
-                                  spells,
-                                  featureType: 'race',
-                                })
-
-                                // Render the Dropdown component inside the loop
-                                return (
-                                  <Dropdown
-                                    key={index}
-                                    name={`${inputPathName}`}
-                                    className={sprinkles({
-                                      mx: 'space-15',
-                                      width: 'size-auto',
-                                    })}
-                                    label={`${label} Option`}
-                                    options={options}
-                                    onChange={setFormState}
-                                    value={exist}
-                                  />
-                                )
+                              const { options, label, path, exist } = getSectionOptions({
+                                section,
+                                sectionStep,
+                                optionIndex,
                               })
 
-                              return dropdowns
-                            }
-                          })}
-                      </Fragment>
-                    ))}
-                  </ScrollArea>
-                </Collapse.Body>
-              </Collapse>
-            )
-          }
+                              // Render the Dropdown component inside the loop
+                              return (
+                                <Dropdown
+                                  key={index}
+                                  name={path}
+                                  className={sprinkles({
+                                    mx: 'space-15',
+                                    width: 'size-auto',
+                                  })}
+                                  label={`${label} Option`}
+                                  options={options}
+                                  onChange={updateFormData}
+                                  value={exist}
+                                />
+                              )
+                            })
+
+                            return dropdowns
+                          }
+                        })}
+                    </Fragment>
+                  ))}
+                </ScrollArea>
+              </Collapse.Body>
+            </Collapse>
+          )
         })}
     </>
   )

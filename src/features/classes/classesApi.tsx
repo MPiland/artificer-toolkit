@@ -1,92 +1,66 @@
-import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { generateClient } from 'aws-amplify/data'
+import { listClasses } from '../../../amplify/graphql/queries'
+import { createClass, deleteClass, updateClass } from '../../../amplify/graphql/mutations'
+import { ClassInput, Class } from '../../../amplify/API'
+import useSystemPref from '../../hooks/useSystemPref'
+
+const client = generateClient()
 
 const classesKeys = {
   all: ['classes'] as const,
   lists: () => [...classesKeys.all, 'list'] as const,
+  single: (id: string) => [...classesKeys.all, 'single', id] as const,
 }
 
-export const useGetClassesQuery = ({ limit, filters, id }: { limit?: number; filters?: any; id?: string } = {}) => {
-  return useInfiniteQuery({
-    queryKey: [...classesKeys.all, limit],
-    queryFn: async ({ pageParam }) => {
-      // 1. Construct the base URL
-      let url = '/classes'
+export const useListClassesQuery = () => {
+  const [systemPref] = useSystemPref()
 
-      // 2. Create URLSearchParams object
-      const searchParams = new URLSearchParams()
+  const query = useSuspenseQuery({
+    queryKey: classesKeys.lists(),
+    queryFn: async () => {
+      try {
+        const {
+          data: {
+            listClasses: { items },
+          },
+        } = await client.graphql({
+          query: listClasses,
+          variables: {
+            systemId: systemPref,
+          },
+        })
 
-      // 3. Append limit parameters
-      if (limit) {
-        searchParams.append('page', pageParam.toString())
-        searchParams.append('limit', limit.toString())
+        return items
+      } catch (err) {
+        console.log({ err })
       }
-
-      // 4. Append filter parameters
-      if (filters) {
-        for (const key in filters) {
-          if (filters[key]) {
-            searchParams.append(key, filters[key])
-          }
-        }
-      }
-
-      // 5. Append search parameters to the URL
-      if (Array.from(searchParams).length > 0) {
-        url += `?${searchParams.toString()}`
-      }
-
-      const result = await baseQueryWithReauth(url, {
-        method: 'GET',
-      })
-
-      const {
-        classes: data,
-        totalPages,
-        currentPage,
-      }: { classes: any; totalPages: number; currentPage: number } = await result.json() // Assuming your API returns total pages
-
-      return { data, totalPages, currentPage }
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
-    },
-    getPreviousPageParam: (firstPage) => {
-      return firstPage.currentPage > 1 ? firstPage.currentPage - 1 : undefined
-    },
-    maxPages: 2,
-    select: (data) => {
-      if (!limit) {
-        const dataArray = data.pages.flatMap((page) => page.data)
-        if (id) {
-          return dataArray.find((item) => item._id === id)
-        }
-        return dataArray
-      }
-      return data
     },
   })
+
+  return query
 }
 
 export const useAddNewClassMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (uClass: any) => {
-      const result = await baseQueryWithReauth('/classes', {
-        method: 'POST',
-        body: JSON.stringify(uClass),
+    mutationFn: async (uClass: ClassInput) => {
+      const {
+        data: { createClass: newClass },
+      } = await client.graphql({
+        query: createClass,
+        variables: {
+          input: uClass,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return newClass
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(classesKeys.all, (previous: any) => {
-        if (!previous) return [...data]
-        return [...previous, data]
+    onSuccess: (uClass: Class) => {
+      queryClient.setQueryData(classesKeys.all, (previous: Class[]) => {
+        if (!previous) return [uClass]
+        return [...previous, uClass]
       })
     },
   })
@@ -96,19 +70,20 @@ export const useUpdateClassMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (uClass: any) => {
-      const result = await baseQueryWithReauth('/classes', {
-        method: 'POST',
-        body: JSON.stringify(uClass),
+    mutationFn: async (uClass: ClassInput) => {
+      const {
+        data: { updateClass: updatedClass },
+      } = await client.graphql({
+        query: updateClass,
+        variables: {
+          input: uClass,
+        },
       })
-
-      const data = await result.json()
-
-      return data
+      return updatedClass
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(classesKeys.all, (previous: any[]) =>
-        previous.map((uClass) => (uClass._id === data._id ? data : uClass))
+    onSuccess: (uClass: Class) => {
+      queryClient.setQueryData(classesKeys.all, (previous: Class[]) =>
+        previous.map((classKey) => (classKey.id === uClass.id ? uClass : classKey))
       )
     },
   })
@@ -119,18 +94,21 @@ export const useDeleteClassMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await baseQueryWithReauth('/classes', {
-        method: 'DELETE',
-        body: JSON.stringify(id),
+      const {
+        data: { deleteClass: deletedId },
+      } = await client.graphql({
+        query: deleteClass,
+        variables: {
+          id,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return deletedId
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(classesKeys.all, (previous: any[]) => {
-        return previous.filter((uClass) => uClass._id !== data._id)
+    onSuccess: (id: string) => {
+      queryClient.setQueryData(classesKeys.all, (previous: Class[]) => {
+        const uClass = previous.find((classKey) => classKey.id === id)
+        return previous.filter((classKey) => classKey.id !== uClass.id)
       })
     },
   })

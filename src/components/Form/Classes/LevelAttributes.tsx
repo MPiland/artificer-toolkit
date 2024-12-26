@@ -1,128 +1,125 @@
-import { useEffect, useMemo } from 'react'
-import { useForm } from '../../../hooks/UseForm'
+import { ReactNode, useEffect } from 'react'
 import Collapse from '../../Collapse/Collapse'
-import Table from '../../Table/Table'
-import { RowHeaderType, RowInputType } from '../../../utils/types'
+import { UpdateState } from '../../../types/form'
+import { Class } from '../../../../amplify/API'
+import { Attributes } from '../../../types/enums'
+import { use } from 'react'
+import FormContext from '../FormContext'
+import Row from '../../Row/Row'
+import Input from '../../Input/Input'
 
-const LevelAttributes = () => {
-  const { formState, setFormState, context } = useForm()
-
+const LevelAttributes = ({
+  formData,
+  updateFormData,
+}: {
+  formData: Class
+  updateFormData: (arg: UpdateState<Class>) => void
+}) => {
+  const { context } = use(FormContext)
   // Add level attribute table
   useEffect(() => {
     if (
-      !formState.levelAttribute &&
-      context.title === 'classes' &&
-      (formState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellCaster') ||
-        (formState.attribute?.some((attributeItem: any) => attributeItem.name === 'resource') &&
-          formState.resource?.method?.name === 'setPerLevel'))
+      !formData.levelAttributes &&
+      (formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) ||
+        (formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) &&
+          formData.resource?.method === Attributes.setPerLevel))
     ) {
-      setFormState({
-        type: 'added',
-        target: { name: 'levelAttribute' },
-      })
-    } else if (
-      formState.levelAttribute &&
-      (context.title !== 'classes' ||
-        (!formState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellCaster') &&
-          (!formState.attribute?.some((attributeItem: any) => attributeItem.name === 'resource') ||
-            formState.resource?.method?.name !== 'setPerLevel')))
-    ) {
-      setFormState({
-        type: 'removed',
-        target: { name: 'levelAttribute' },
+      updateFormData({
+        type: 'add',
+        path: 'levelAttributes',
       })
     }
-  }, [
-    formState.levelAttribute,
-    setFormState,
-    context.title,
-    formState.category?.name,
-    formState.attribute,
-    formState.resource?.method?.name,
-  ])
+  }, [formData.levelAttributes, updateFormData, formData.category, formData.attributes, formData.resource?.method])
 
-  // Class level table data
-  const levelTableColumns = useMemo(() => {
-    const spellCaster = formState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellCaster')
-
-    const resource =
-      formState.attribute?.some((attributeItem: any) => attributeItem.name === 'resource') &&
-      formState?.resource?.method?.name === 'setPerLevel'
-    const inputArray: RowInputType[] = [
-      {
-        name: 'level',
-        value: 'Level',
-        errorMsg: 'Must contain only numbers',
-        validation: 'num',
-        required: true,
-      },
-    ]
-
-    if (resource) {
-      inputArray.push({
-        name: 'resourcePoints',
-        value: `${formState.resource?.value ?? 'Resource'} Points`,
-        validation: 'num',
-        errorMsg: 'Must contain only numbers',
-      })
+  const spellSlots = (index?: number) => {
+    const labels: ReactNode[] = []
+    const inputs: ReactNode[] = []
+    for (let i = 0; i < formData.spellcasting?.maxSpellLevel; i++) {
+      labels.push(<span>`${i + 1}`</span>)
+      inputs.push(
+        <Input
+          name={`spellSlots.${i}.count`}
+          value={formData.levelAttributes[index].spellSlots[i].count}
+          validation='num'
+          required={true}
+        />
+      )
     }
 
-    if (spellCaster) {
-      inputArray.push({
-        name: 'cantripsKnown',
-        value: 'Cantrips Known',
-        errorMsg: 'Must contain only numbers',
-        validation: 'num',
-      })
-      if (formState.spellcasting?.attribute?.some((attributeItem: any) => attributeItem.name === 'limitKnownSpells')) {
-        inputArray.push({
-          name: 'spellsKnown',
-          value: 'Spells Known',
-          errorMsg: 'Must contain only numbers',
-          validation: 'num',
-        })
-      }
-      if (formState.spellcasting?.maxSpellLevel) {
-        for (let i = 0; i < formState.spellcasting?.maxSpellLevel; i++) {
-          inputArray.push({
-            name: `spellSlots.${i}.slotCount`,
-            value: `${i + 1}`,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          })
-        }
-      }
-    }
-
-    const headerArray: RowHeaderType[] = inputArray.map((inputItem) => ({
-      value: inputItem.value,
-      required: true,
-    }))
-
-    return { inputs: inputArray, headers: headerArray }
-  }, [formState.attribute, formState?.resource, formState?.spellcasting])
+    return { labels, inputs }
+  }
 
   return (
-    (formState.attribute?.some((attributeItem: any) => attributeItem.name === 'spellCaster') ||
-      (formState.attribute?.some((attributeItem: any) => attributeItem.name === 'resource') &&
-        formState.resource?.method?.name === 'setPerLevel')) &&
-    context.title === 'classes' && (
+    (formData.attributes?.some((attributeItem: any) => attributeItem.name === 'spellCaster') ||
+      (formData.attributes?.some((attributeItem: any) => attributeItem.name === 'resource') &&
+        formData.resource?.method === Attributes.setPerLevel)) && (
       <>
         <Collapse>
           <Collapse.Header title={'Level Attributes'} startOpened={context.type === 'new'} />
           <Collapse.Body>
-            <Table
-              name='levelAttribute'
-              rows={{
-                inputs: levelTableColumns.inputs,
-                headers: levelTableColumns.headers,
-              }}
-              value={formState?.levelAttribute}
-              onChange={setFormState}
-              addRow={true}
-              scrollable='horizontal'
-              border={false}
-            />
+            <Row spacing='spaceBetween' cellSize='auto'>
+              <span>Level</span>
+              {formData.attributes?.some((attributeItem: any) => attributeItem.name === 'resource') && (
+                <span>`${formData.resource?.label ?? 'Resource'} Points`</span>
+              )}
+              {formData.attributes?.some((attributeItem: any) => attributeItem.name === 'spellCaster') && (
+                <>
+                  <span>Cantrips Known</span>
+                  {formData.spellcasting?.attributes?.some(
+                    (attribute) => attribute === Attributes.limitKnownSpells
+                  ) && <span>Spells Known</span>}
+
+                  {formData.spellcasting?.maxSpellLevel && spellSlots().labels.map((label) => label)}
+                </>
+              )}
+            </Row>
+            {formData?.levelAttributes?.map((setLevel, index) => (
+              <Row key={index} spacing='spaceBetween' cellSize='auto'>
+                <Input
+                  name={`levelAttributes.${index}.level`}
+                  value={setLevel.level}
+                  validation='num'
+                  errorMsg='Please enter a whole number'
+                  onChange={updateFormData}
+                  required={true}
+                />
+                {formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) && (
+                  <Input
+                    name={`levelAttributes.${index}.resourcePoints`}
+                    value={setLevel.resourcePoints}
+                    validation='num'
+                    errorMsg='Please enter a whole number'
+                    onChange={updateFormData}
+                    required={true}
+                  />
+                )}
+                {formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) && (
+                  <>
+                    <Input
+                      name={`levelAttributes.${index}.cantripsKnownLimit`}
+                      value={setLevel.cantripsKnownLimit}
+                      validation='num'
+                      errorMsg='Please enter a whole number'
+                      onChange={updateFormData}
+                      required={true}
+                    />
+                    {formData.spellcasting?.attributes?.some(
+                      (attribute) => attribute === Attributes.limitKnownSpells
+                    ) && (
+                      <Input
+                        name={`levelAttributes.${index}.spellsKnownLimit`}
+                        value={setLevel.spellsKnownLimit}
+                        validation='num'
+                        errorMsg='Please enter a whole number'
+                        onChange={updateFormData}
+                        required={true}
+                      />
+                    )}
+                    {formData.spellcasting?.maxSpellLevel && spellSlots(index).inputs.map((input) => input)}
+                  </>
+                )}
+              </Row>
+            ))}
           </Collapse.Body>
         </Collapse>
       </>

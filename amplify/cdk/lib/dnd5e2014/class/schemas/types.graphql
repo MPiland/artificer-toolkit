@@ -1,0 +1,110 @@
+type Hitpoint implements DieFields {
+  ability: ID
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+}
+
+type StartingGold implements DieFields {
+  multiplier: Int!
+  currency: ID!
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+}
+
+type EquipmentOption {
+  groups: [EquipmentGroup]
+}
+
+type StartingEquipment {
+  options: [EquipmentOption]
+}
+
+type PrepareLimitLevel {
+  measurement: ID
+  rounding: ID
+}
+
+type PrepareLimit {
+  methods: [ID]
+  level: PrepareLimitLevel
+}
+
+type Spellcasting {
+  magicName: String
+  ability: ID
+  maxSpellLevel: Int
+  attributes: [ID]
+  charges: Charge
+  prepareLimit: PrepareLimit
+}
+
+type SpellSlot {
+  level: Int
+  count: Int
+}
+
+type LevelAttribute {
+  level: Int
+  spellSlots: [SpellSlot]
+  resourcePoints: Int
+  spellsKnownLimit: Int
+  cantripsKnownLimit: Int
+}
+
+type Resource {
+  label: String
+  value: String
+  levelAvailable: Int
+  charges: Charge
+  method: ID
+  desc: String
+}
+
+type MulticlassAbility {
+  id: ID
+  minAmount: Int
+}
+
+type Multiclass {
+  primaryAbility: MulticlassAbility
+  secondaryAbility: MulticlassAbility
+  optionalAbility: MulticlassAbility
+}
+
+type Subtype {
+  id: ID!
+  label: String!
+  value: String!
+}
+
+type Class implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  attributes: [ID]
+  category: ID!
+  details: [Detail]
+  hitpoint: Hitpoint
+  startingGold: StartingGold
+  equipment: [StartingEquipment]
+  proficiencies: [FeatureProficiency!]
+  spellcasting: Spellcasting
+  levelAttributes: [LevelAttribute]
+  resource: Resource
+  multiclass: Multiclass
+  parentClass: ID
+  subtypes: [Subtype]
+  features: [Feature]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type ClassConnection {
+  items: [Class!]
+  nextToken: String
+  message: String
+}

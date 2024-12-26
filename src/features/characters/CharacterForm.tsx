@@ -1,34 +1,32 @@
+import { useEffect, use } from 'react'
 import Form from '../../components/Form/Form'
-import { StepType } from '../../utils/types'
+import { Step } from '../../types/form'
 import { useAddNewCharacterMutation, useUpdateCharacterMutation } from './charactersApi'
-import { useEffect, useMemo } from 'react'
-import { useForm } from '../../hooks/UseForm'
 import { Outlet } from 'react-router-dom'
+import FormContext from '../../components/Form/FormContext'
+
+const stepsArray = [
+  { id: 'details', label: 'Details' },
+  { id: 'race', label: 'Race' },
+  { id: 'class', label: 'Class' },
+  { id: 'abilities', label: 'Abilities' },
+  { id: 'equipment', label: 'Equipment' },
+  { id: 'background', label: 'Background' },
+] satisfies Step[]
 
 const CharacterForm = () => {
-  const { setSteps } = useForm()
-
-  const stepsArray: StepType[] = useMemo(
-    () => [
-      { id: 'details', name: 'Details' },
-      { id: 'race', name: 'Race' },
-      { id: 'class', name: 'Class' },
-      { id: 'abilities', name: 'Abilities' },
-      { id: 'equipment', name: 'Equipment' },
-      { id: 'background', name: 'Background' },
-    ],
-    []
-  )
+  const { setSteps } = use(FormContext)
 
   useEffect(() => {
     setSteps(stepsArray)
-  }, [setSteps, stepsArray])
+  }, [setSteps])
 
   return (
     <>
-      <Form useUpdateItem={useUpdateCharacterMutation} useAddNewItem={useAddNewCharacterMutation} />
+      <Form useUpdateItemMutation={useUpdateCharacterMutation} useAddNewItemMutation={useAddNewCharacterMutation} />
       <Outlet />
     </>
   )
 }
+
 export default CharacterForm

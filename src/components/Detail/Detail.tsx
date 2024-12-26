@@ -1,4 +1,4 @@
-import { FC, useState, useRef, ReactNode } from 'react'
+import { FC, useState, useRef, ReactNode, use } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Row from '../Row/Row'
 import { getValueFromState } from '../../utils/formatting'
@@ -17,7 +17,7 @@ import Modal from '../Modal/Modal'
 import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import { useForm } from '../../hooks/UseForm'
+import FormContext from '../Form/FormContext'
 
 type colType = {
   header: string
@@ -39,7 +39,7 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { setContext, setFormState, setOldFormState, setStepIndex, stateReset } = useForm()
+  const { setContext, updateFormData, setStepIndex, stateReset } = use(FormContext)
 
   const [sidebarIsOpen, setSidebarIsOpen] = useState<boolean>(false)
 
@@ -58,11 +58,8 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
     } finally {
       setStepIndex(0)
       setContext({ title: title, type: 'edit' as string })
-      setFormState({
-        type: 'reset',
-        target: { value: item },
-      })
-      setOldFormState(item)
+      updateFormData({ type: 'reset', value: item })
+      updateFormData({ type: 'initialReset', value: item })
       navigate(`/${form}/edit/${item.name}`, {
         state: {
           previous: location,
@@ -137,7 +134,9 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
                   return (
                     <div key={colIndex}>
                       <div className={detail_title}>{colItem.header}</div>
-                      <div>{getValueFromState(colItem, colsData, colItem?.truncate)}</div>
+                      <div>
+                        {getValueFromState({ input: colItem, state: colsData, truncateNum: colItem?.truncate })}
+                      </div>
                     </div>
                   )
                 })}

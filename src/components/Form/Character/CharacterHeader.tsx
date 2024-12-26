@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useMemo, useEffect } from 'react'
+import { Fragment, useEffect } from 'react'
 import Group from '../../Group/Group'
 import { sprinkles } from '../../../css/sprinkles.css'
 import {
@@ -9,82 +9,107 @@ import {
   character_header_item_label,
 } from './Character.css'
 import Collapse from '../../Collapse/Collapse'
-import { useForm } from '../../../hooks/UseForm'
-import { isEqual, set } from 'lodash'
+import { isEqual } from 'lodash'
+import { Character, Class, FeatureModifier } from '../../../../amplify/API'
+import { Context } from '../../../types/form'
+import { ModifierCategories, ModifierMethods, ModifierTypes } from '../../../types/enums'
+import { useListRacesQuery } from '../../../features/races/racesApi'
+import { useListClassesQuery } from '../../../features/classes/classesApi'
+import { UpdateState } from '../../../types/form'
+import { use } from 'react'
+import FormContext from '../FormContext'
 
 const CharacterHeader = () => {
-  const { formState, setFormState, context } = useForm()
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: Character
+    updateFormData: (state: UpdateState<Character>) => void
+    context: Context
+  }
 
-  const setAbilityScores = useCallback(() => {
-    if (context.title === 'characters') {
-      const abilityScores = JSON.parse(JSON.stringify(formState?.abilities?.scores ?? []))
-      const modifier = formState.modifiers?.abilities
+  const { data: races } = useListRacesQuery()
+  const { data: classes } = useListClassesQuery()
 
-      formState.abilities?.scores?.forEach((ability: any, index: number) => {
-        // Set the calculated score
+  const race = races.find((aRace) => aRace.id === formData.race)
 
-        let calculatedScore: number = Number(ability.baseScore) ?? 0
-        let raceScore: number = 0
-        let classScore: number = 0
+  // Apply ability modifiers
+  useEffect(() => {
+    const setAbilityScores = () => {
+      if (formData.__typename === 'Character') {
+        const abilityScores = JSON.parse(
+          JSON.stringify(formData?.abilities?.scores ?? [])
+        ) as Character['abilities']['scores']
+        const race = races.find((sRace) => sRace.id === formData.race)
+        const charClasses: Class[] = formData.classes.map((uClass) => classes.find((sClass) => sClass.id === uClass.id))
+        const modifiers = [
+          ...race.features.flatMap((feature) => feature.modifiers),
+          ...charClasses.flatMap((uClass) => uClass.features.flatMap((feature) => feature.modifiers)),
+        ]
 
-        // Set modifers on ability scores
-        modifier?.forEach((modAbility: any, modIndex: number) => {
-          if (
-            !formState.class?.some((uClass: any) => modAbility.classId === uClass._id) &&
-            formState.race?._id !== modAbility.raceId &&
-            formState.ancestryId !== formState?.ancestry?._id
-          ) {
-            return setFormState({
-              type: 'removed',
-              target: {
-                name: `modifier.abilities.${modIndex}`,
-              },
-            })
-          }
+        const characterModifiers = formData.modifiers
 
-          if (modAbility._id === ability._id) {
-            const method = modAbility.method
-            const mode = modAbility.mode
+        abilityScores?.forEach((score, index) => {
+          // Set the calculated score
 
-            if (mode?.name === 'bonus') {
-              if (method?.name === 'setValue') {
-                if (modAbility.raceId != null) {
-                  raceScore += modAbility.setValue
-                }
-                if (modAbility.classId != null) {
-                  classScore += modAbility.setValue
+          let calculatedScore: number = Number(score.baseScore) || 0
+          let raceScore: number = 0
+          let classScore: number = 0
+          let modifierScore: number = 0
+
+          // Set modifers on ability scores
+          modifiers?.forEach((modifier) => {
+            if (!characterModifiers?.some((cModifier) => cModifier.modifierId === modifier.id)) {
+              return (abilityScores[index].modifierScore = 0)
+            }
+
+            const characterModifier = characterModifiers?.find((cModifier) => cModifier.modifierId === modifier.id)
+
+            let method: FeatureModifier['method']
+            let type: FeatureModifier['type']
+            if (!characterModifier && modifier.category === ModifierCategories.abilityScores) {
+              method = modifier.method
+              type = modifier.type
+
+              if (type === ModifierTypes.bonus) {
+                if (method === ModifierMethods.setGlobally) {
+                  if (score.ability === characterModifier.optionId) {
+                    if (characterModifier.classId != null) {
+                      classScore += modifier.setAmount
+                      modifierScore += modifier.setAmount
+                    }
+                    if (characterModifier.raceId != null) {
+                      raceScore += modifier.setAmount
+                      modifierScore += modifier.setAmount
+                    }
+                  }
                 }
               }
+            }
+          })
+
+          calculatedScore += raceScore
+          calculatedScore += classScore
+
+          if (calculatedScore !== score.calculatedScore || !score.calculatedScore) {
+            abilityScores[index] = {
+              ...score,
+              calculatedScore: calculatedScore,
+              raceScore: raceScore,
+              classScore: classScore,
+              modifierScore: modifierScore,
             }
           }
         })
 
-        calculatedScore += raceScore
-        calculatedScore += classScore
-
-        if (calculatedScore !== ability.calculatedScore || !ability.calculatedScore) {
-          const abilityClone = {
-            ...ability,
-            calculatedScore: calculatedScore,
-            raceScore: raceScore,
-            classScore: classScore,
-          }
-          set(abilityScores, `${index}`, abilityClone)
-        }
-      })
-
-      return abilityScores
+        return abilityScores
+      }
     }
-  }, [context.title, formState, setFormState])
 
-  const abilityScores = useMemo(() => setAbilityScores(), [setAbilityScores])
+    const abilityScores = setAbilityScores()
 
-  // Apply ability modifiers
-  useEffect(() => {
-    if (!isEqual(abilityScores, formState?.abilities?.scores)) {
-      setFormState({ target: { name: 'abilities.scores', value: abilityScores } })
+    if (!isEqual(abilityScores, formData?.abilities?.scores)) {
+      updateFormData({ type: 'update', path: 'abilities.scores', value: abilityScores })
     }
-  }, [formState, setFormState, abilityScores])
+  }, [formData, updateFormData, races, classes])
 
   return (
     <>
@@ -95,37 +120,40 @@ const CharacterHeader = () => {
             <Group>
               <Group className={character_header_item}>
                 <span className={character_header_item_label}>Name:</span>
-                {formState.value ?? '--'}
+                {formData.value ?? '--'}
                 <span className={character_header_item_divier}>|</span>
               </Group>
               <Group className={character_header_item}>
                 <span className={character_header_item_label}>Race: </span>
-                {formState.race?.value ?? '---'}
+                {race?.value || '---'}
                 <span className={character_header_item_divier}>|</span>
               </Group>
               <Group className={character_header_item}>
                 <span className={character_header_item_label}>Class(es): </span>
-                {formState.class?.length > 0
-                  ? formState.class?.map((uClass: any, index: number) => (
-                      <Fragment key={index}>
-                        {`${uClass.value} (Lvl. ${uClass.level})`}
-                        {index !== formState.class.length - 1 && formState.class.length > 1 && ' / '}
-                      </Fragment>
-                    ))
+                {formData.classes?.length > 0
+                  ? formData.classes?.map((uClass, index) => {
+                      const fullClass = classes.find((aClass) => aClass.id === uClass.id)
+                      return (
+                        <Fragment key={index}>
+                          {`${fullClass.value} (Lvl. ${uClass.level})`}
+                          {index !== formData.classes.length - 1 && formData.classes.length > 1 && ' / '}
+                        </Fragment>
+                      )
+                    })
                   : '---'}
               </Group>
             </Group>
           </Group>
           <Group directionVariant='column' alignItemsVariant='start' className={character_header_group}>
             <Group justifyContentVariant='spaceBetween'>
-              {formState.abilities?.scores?.map((ability: any, index: number) => {
+              {formData.abilities?.scores?.map((ability: any, index: number) => {
                 return (
                   <Group className={character_header_item} key={index} justifyContentVariant='start'>
                     <span className={character_header_item_label}>{`${ability.value.slice(0, 3)}:`}</span>
                     {ability.calculatedScore > 0 || ability.baseScore > 0
                       ? ability.calculatedScore ?? ability.baseScore
                       : '--'}
-                    {index !== formState.abilities?.scores?.length - 1 && (
+                    {index !== formData.abilities?.scores?.length - 1 && (
                       <span className={character_header_item_divier}>|</span>
                     )}
                   </Group>

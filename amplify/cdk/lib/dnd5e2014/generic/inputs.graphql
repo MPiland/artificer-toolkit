@@ -1,0 +1,330 @@
+input DamageFieldsInput {
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePoolInput
+}
+
+## Basic Types
+input DetailInput {
+  label: String!
+  value: String!
+  desc: String
+}
+
+input SaveAbilityInput {
+  id: ID!
+  minAmount: Int
+  attributes: [ID]
+  abilityModifier: ID
+}
+
+input EquipmentGroupInput {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  copper: Int
+  silver: Int
+  electrum: Int
+  gold: Int
+  platinum: Int
+}
+
+## Damage Related
+input DamagePoolInput {
+  attribute: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  ability: ID
+  option: ID
+}
+
+input SetPerLevelInput {
+  level: String
+  amount: Int
+}
+
+input DicePerLevelInput {
+  level: String
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+}
+
+input DamageInput {
+  attributes: [ID]
+  damageSave: [ID]
+  setPerLevel: [SetPerLevelInput]
+  dicePerLevel: [DicePerLevelInput]
+  primary: DamageFieldsInput
+  secondary: DamageFieldsInput
+  bonus: DamageFieldsInput
+  versatile: DamageFieldsInput
+}
+
+## Charges
+input UsesPerLevelInput {
+  level: Int
+  uses: Int
+}
+
+input ChargeInput {
+  reset: ID
+  limit: ID
+  ability: ID
+  skill: ID
+  usesPerLevel: [UsesPerLevelInput]
+  minAmount: Int
+  addAmount: Int
+  setAmount: Int
+  multiplier: Int
+  resourcePoints: Int
+}
+
+## Prerequisites
+input EquipPrerequisiteInput {
+  numberEquipped: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+}
+
+input AbilityScoreInput {
+  abilities: [ID]
+  score: Int
+}
+
+input PrerequisiteInput {
+  options: [ID]
+  skillProficiencies: [ID]
+  equipmentProficiencies: [EquipPrerequisiteInput]
+  equipped: [EquipPrerequisiteInput]
+  notEquipped: [EquipPrerequisiteInput]
+  abilityScore: AbilityScoreInput
+  spellsKnown: [ID]
+  featuresKnown: [ID]
+  optionsKnown: [ID]
+  size: [ID]
+}
+
+## Feature Related
+input FeatureFeatInput {
+  id: ID!
+  attributes: [ID]
+  feats: [ID]
+  selectionCount: Int
+  subtype: ID
+}
+
+input FeatureModifierInput {
+  id: ID!
+  subtype: ID
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  type: ID
+  method: ID
+  methodAbility: ID
+  methodSkill: ID
+  multiplier: Int
+  maxAmount: Int
+  minAmount: Int
+  setAmount: Int
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+  feature: ID
+  dicePerLevel: [DicePerLevelInput]
+  setPerLevel: [SetPerLevelInput]
+  skills: [ID]
+  saveAbilities: [ID]
+  abilities: [ID]
+  speeds: [ID]
+  charge: ChargeInput
+  range: ID
+  shape: ID
+  size: Int
+  duration: ID
+  unit: ID
+  conditions: [ID]
+  damageTypes: [ID]
+  spell: ID
+  spellCategory: ID
+}
+
+input ProficiencyPropertiesInput {
+  ids: [ID]
+  category: ID
+  properties: [ID]
+}
+
+input FeatureProficiencyInput {
+  id: ID!
+  subtype: ID
+  attributes: [ID]
+  selectionCount: Int
+  category: ID!
+  level: ID
+  rounding: ID
+  saveAbilities: [ID]
+  skills: [ID]
+  languages: [ID]
+  properties: ProficiencyPropertiesInput
+  equipment: ProficiencyPropertiesInput
+}
+
+input FeatureExpertiseInput {
+  id: ID!
+  subtype: ID
+  attributes: [ID]
+  selectionCount: Int
+  category: ID!
+  saveAbilities: [ID]
+  skills: [ID]
+  languages: [ID]
+  properties: ProficiencyPropertiesInput
+  equipment: ProficiencyPropertiesInput
+}
+
+input FeatureSenseInput {
+  id: ID!
+  attributes: [ID]
+  selectionCount: Int
+  subtype: ID
+  senses: [ID]
+}
+
+input SpellsByLevelInput {
+  spells: [ID]
+  level: Int
+  spellLevel: Int
+}
+
+input FeatureSpellInput {
+  id: ID!
+  spells: [ID]
+  attributes: [ID]
+  selectionCount: Int
+  classLimit: [ID]
+  levelLimit: Int
+  attributeLimit: [ID]
+  ability: ID
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevelInput]
+  subtype: ID
+}
+
+input FeatureAncestryInput {
+  id: ID!
+  attributes: [ID]
+  origin: ID
+  options: [ID]
+  selectionCount: Int
+  subtype: ID
+}
+
+input ActionPropertyInput {
+  id: ID
+  amount: Int
+}
+
+input ActionGroupInput {
+  primary: ActionPropertyInput
+  secondary: ActionPropertyInput
+}
+
+input SubfeatureInput {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestry: [FeatureAncestryInput]
+  attributes: [ID]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [FeatureFeatInput]
+  modifiers: [FeatureModifierInput]
+  proficiencies: [FeatureProficiencyInput]
+  expertise: [FeatureExpertiseInput]
+  senses: [FeatureSenseInput]
+  spells: [FeatureSpellInput]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  selectionCount: Int
+  levelAvailable: String
+}
+
+input FeatureOptionInput {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestry: [FeatureAncestryInput]
+  attributes: [ID]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [FeatureFeatInput]
+  modifiers: [FeatureModifierInput]
+  proficiencies: [FeatureProficiencyInput]
+  expertise: [FeatureExpertiseInput]
+  senses: [FeatureSenseInput]
+  spells: [FeatureSpellInput]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  selectionCount: Int
+  levelAvailable: String
+  subfeatures: [SubfeatureInput]
+}
+
+input FeatureInput {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestry: [FeatureAncestryInput]
+  attributes: [ID]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [FeatureFeatInput]
+  modifiers: [FeatureModifierInput]
+  proficiencies: [FeatureProficiencyInput]
+  expertise: [FeatureExpertiseInput]
+  senses: [FeatureSenseInput]
+  spells: [FeatureSpellInput]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  selectionCount: Int
+  levelAvailable: String
+  subfeatures: [SubfeatureInput]
+  options: [FeatureOptionInput]
+}

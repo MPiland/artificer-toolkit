@@ -1,51 +1,47 @@
-import { useMemo, useEffect } from 'react'
-import { useForm } from '../../../hooks/UseForm'
+import { useMemo, useEffect, ReactNode } from 'react'
+import { use } from 'react'
+import FormContext from '../FormContext'
 import Dropdown from '../../Dropdown/Dropdown'
 import Row from '../../Row/Row'
-import Table from '../../Table/Table'
 import Collapse from '../../Collapse/Collapse'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Divider from '../../Divider/Divider'
 import { startCase } from 'lodash'
-import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
-import { RowHeaderType, RowInputType } from '../../../utils/types'
+import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { DamageEnum, SpellEnum, Spell } from '../../../../amplify/API'
+import { Attributes } from '../../../types/enums'
+import { UpdateState } from '../../../types/form'
+import Input from '../../Input/Input'
 
-const Upcast = () => {
-  const { setFormState, formState, context } = useForm()
+const Upcast = ({
+  formData,
+  updateFormData,
+}: {
+  formData: Spell
+  updateFormData: (arg: UpdateState<Spell>) => void
+}) => {
+  const { context } = use(FormContext)
 
-  const { data: builders } = useGetSystemsQuery()
+  const { data: system } = useGetSystemQuery()
 
   // Add/remove Upcast table
   useEffect(() => {
-    if (
-      formState.attribute?.some((attributeItem: any) => attributeItem.name === 'canUpcast') &&
-      formState.upcast?.attribute?.length > 0 &&
-      !formState.upcast?.levelAttribute
-    ) {
-      setFormState({
-        type: 'added',
-        target: { name: 'upcast.levelAttribute' },
+    if (formData.upcast?.attributes?.length > 0 && !formData.upcast?.levels) {
+      updateFormData({
+        type: 'add',
+        path: 'upcast.levels',
       })
     }
-    if (
-      !formState.attribute?.some((attributeItem: any) => attributeItem.name === 'canUpcast') &&
-      formState.upcast?.levelAttribute != null
-    ) {
-      setFormState({
-        type: 'removed',
-        target: { name: 'upcast.levelAttribute' },
-      })
-    }
-  }, [setFormState, formState])
+  }, [updateFormData, formData])
 
   // Set upcast types based on user selection
   const upcastTypes = useMemo(() => {
-    if (formState?.upcast?.attribute?.length > 0) {
-      let types: any[] = []
+    if (formData?.upcast?.attributes?.length > 0) {
+      let types: ('primary' | 'secondary' | 'bonus')[] = []
       // Handle primary
       if (
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'primaryDamage') ||
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+        formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.primaryDamage) ||
+        formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
       ) {
         if (!types.includes('primary')) {
           types.push('primary')
@@ -56,8 +52,8 @@ const Upcast = () => {
 
       // Handle secondary
       if (
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage') ||
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+        formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.secondaryDamage) ||
+        formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
       ) {
         if (!types.includes('secondary')) {
           types.push('secondary')
@@ -68,8 +64,8 @@ const Upcast = () => {
 
       // Handle bonus damage
       if (
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage') ||
-        formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+        formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.bonusDamage) ||
+        formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
       ) {
         if (!types.includes('bonus')) {
           types.push('bonus')
@@ -80,310 +76,359 @@ const Upcast = () => {
 
       return types
     }
-  }, [formState?.upcast?.attribute])
+  }, [formData?.upcast?.attributes])
 
   // Set upcast options based on the upcast types
   const upcastOptions = useMemo(() => {
-    const options = [...builders.spells.upcast.attribute]
-    if (!formState.attribute?.some((attributeItem: any) => attributeItem.name === 'doesDamage')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'primaryDamage')
+    const options = [...system.attributes.filter((attribute) => attribute?.spells.includes(SpellEnum.upcast))]
+    if (!formData.attributes?.some((attribute) => attribute === Attributes.doesDamage)) {
+      options.filter((option) => option.id !== Attributes.primaryDamage)
     }
 
-    if (!formState.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryDamage')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'secondaryDamage')
+    if (!formData.damage?.attributes?.some((attribute) => attribute === Attributes.secondaryDamage)) {
+      options.filter((option) => option.id !== Attributes.secondaryDamage)
     }
 
-    if (!formState.damage?.attribute?.some((attributeItem: any) => attributeItem.name === 'bonusDamage')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'bonusDamage')
+    if (!formData.damage?.attributes?.some((attribute) => attribute === Attributes.bonusDamage)) {
+      options.filter((option) => option.id !== Attributes.bonusDamage)
     }
 
-    if (!formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'limitedTargets')) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'targets')
+    if (!formData?.attributes?.some((attribute) => attribute === Attributes.limitTargets)) {
+      options.filter((option) => option.id !== Attributes.targets)
     }
 
-    if (!formState?.range?.type) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'range')
+    if (!formData?.range) {
+      options.filter((option) => option.id !== Attributes.range)
     }
 
-    if (!formState?.shape?.type) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'shape')
+    if (!formData?.shape) {
+      options.filter((option) => option.id !== Attributes.shape)
     }
 
-    if (!formState?.duration?.type) {
-      options.filter((upcastItem: any) => upcastItem.name !== 'duration')
+    if (!formData?.duration) {
+      options.filter((option) => option.id !== Attributes.duration)
     }
 
     return options
   }, [
-    formState.attribute,
-    formState.shape?.type,
-    formState.duration?.type,
-    formState.damage?.attribute,
-    formState.range?.type,
-    builders.spells.upcast.attribute,
+    formData.attributes,
+    formData.shape,
+    formData.duration,
+    formData.damage?.attributes,
+    formData.range,
+    system.attributes,
   ])
 
-  // Spell Upcast table data
-  const upcastTableColumns = useMemo(() => {
-    const inputArray: RowInputType[] = [
-      {
-        name: 'level',
-        value: 'Level',
-        errorMsg: 'Must contain only numbers',
-        validation: 'num',
-      },
+  // Spell Upcast table formData
+  const upcastFields = (index?: number) => {
+    const headers: Array<ReactNode> = [<span>Level</span>]
+    const inputs: Array<ReactNode> = [
+      <Input
+        name={`upcast.levels.${index}.level`}
+        validation='num'
+        errorMsg='Must contain only numbers'
+        value={formData?.upcast?.levels[index]?.level}
+        onChange={updateFormData}
+      />,
     ]
-    upcastTypes?.forEach((type: string) => {
-      if (formState?.damage?.[type]?.attribute?.name === 'setValue') {
-        inputArray.push({
-          name: `damage.${type}.setValue`,
-          value: `${startCase(type)} Dmg. Value`,
-          errorMsg: 'Must contain only numbers',
-          required: true,
-          validation: 'num',
-        })
-      } else if (
-        formState?.damage?.[type]?.attribute?.name === 'ability' ||
-        formState?.damage?.[type]?.attribute?.name === 'spellcastingAbility' ||
-        formState?.damage?.[type]?.attribute?.name === 'proficiency'
-      ) {
-        if (formState?.damage?.[type]?.attribute?.name === 'ability') {
-          inputArray.push({
-            name: `damage.${type}.ability.type`,
-            value: `${startCase(type)} Dmg. Ability`,
-            type: 'select',
-            required: true,
-            options: builders.spells.damage.pool.attribute,
-          })
-        }
-        inputArray.push(
-          {
-            name: `damage.${type}.minValue`,
-            value: `${startCase(type)} Dmg. Min. Value`,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          },
-          {
-            name: `damage.${type}.maxValue`,
-            value: `${startCase(type)} Dmg. Max Value`,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          },
-          {
-            name: `damage.${type}.multiplier`,
-            value: `${startCase(type)} Dmg. Multiplier`,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          }
+    upcastTypes?.forEach((type) => {
+      if (formData?.damage?.[type]?.attribute === Attributes.setAmount) {
+        headers.push(`${startCase(type)} Dmg. Value`)
+        inputs.push(
+          <Input
+            name={`upcast.levels.${index}.damage.${type}.setAmount`}
+            validation='num'
+            errorMsg='Must contain only numbers'
+            value={formData?.upcast?.levels[index]?.damage[type]?.setAmount}
+            onChange={updateFormData}
+          />
         )
-      } else if (formState?.damage?.[type]?.attribute?.name === 'damagePool') {
-        inputArray.push({
-          name: `damage.${type}.pool.option`,
-          value: `${startCase(type)} Dmg. Pool Options`,
-          type: 'select',
-          required: true,
-          options: builders.spells.damage.pool.attribute,
-        })
+      } else if (
+        formData?.damage?.[type]?.attribute === Attributes.ability ||
+        formData?.damage?.[type]?.attribute === Attributes.spellcastingAbility ||
+        formData?.damage?.[type]?.attribute === Attributes.proficiency
+      ) {
+        if (formData?.damage?.[type]?.attribute === Attributes.ability) {
+          headers.push(
+            <span>`${startCase(type)} Dmg. Ability`</span>,
+            <span> `${startCase(type)} Dmg. Min. Value`</span>,
+            <span>`${startCase(type)} Dmg. Max Value`</span>,
+            <span>`${startCase(type)} Dmg. Multiplier`</span>
+          )
+          inputs.push(
+            <Dropdown
+              name={`upcast.levels.${index}.damage.${type}.ability`}
+              value={formData?.upcast?.levels[index]?.damage[type]?.ability}
+              options={system.attributes.filter((attribute) => attribute.damage.includes(DamageEnum.pool))}
+              required={true}
+              errorMsg='Please select an ability.'
+              onChange={updateFormData}
+            />
+          )
+        }
+        inputs.push(
+          <Input
+            name={`upcast.levels.${index}.damage.${type}.minAmount`}
+            validation='num'
+            errorMsg='Must contain only numbers'
+            value={formData?.upcast?.levels[index]?.damage[type]?.minAmount}
+            onChange={updateFormData}
+          />,
+          <Input
+            name={`upcast.levels.${index}.damage.${type}.maxAmount`}
+            validation='num'
+            errorMsg='Must contain only numbers'
+            value={formData?.upcast?.levels[index]?.damage[type]?.maxAmount}
+            onChange={updateFormData}
+          />,
+          <Input
+            name={`upcast.levels.${index}.damage.${type}.multiplier`}
+            validation='num'
+            errorMsg='Must contain only numbers'
+            value={formData?.upcast?.levels[index]?.damage[type]?.multiplier}
+            onChange={updateFormData}
+          />
+        )
+      } else if (formData?.damage?.[type]?.attribute === Attributes.damagePool) {
+        headers.push(<span>`${startCase(type)} Dmg. Pool Options`</span>)
+        inputs.push(
+          <Dropdown
+            name={`upcast.levels.${index}.damage.${type}.pool.option`}
+            value={formData?.upcast?.levels[index]?.damage[type]?.pool.option}
+            options={system.attributes.filter((attribute) => attribute.damage.includes(DamageEnum.pool))}
+            required={true}
+            errorMsg='Please select an ability.'
+            onChange={updateFormData}
+          />
+        )
         if (
-          formState?.damage?.[type]?.pool?.attribute?.name === 'level' ||
-          formState.damage?.[type]?.pool?.attribute?.name === 'ability' ||
-          formState?.damage?.[type]?.attribute?.name === 'spellcastingAbility' ||
-          formState?.damage?.[type]?.attribute?.name === 'proficiency'
+          formData?.damage?.[type]?.pool?.attribute === Attributes.level ||
+          formData.damage?.[type]?.pool?.attribute === Attributes.ability ||
+          formData?.damage?.[type]?.pool?.attribute === Attributes.spellcastingAbility ||
+          formData?.damage?.[type]?.pool?.attribute === Attributes.proficiency
         ) {
           if (
-            formState.damage?.[type]?.pool?.attribute?.name === 'ability' ||
-            formState?.damage?.[type]?.attribute?.name === 'spellcastingAbility'
+            formData.damage?.[type]?.pool?.attribute === Attributes.ability ||
+            formData?.damage?.[type]?.pool?.attribute === Attributes.spellcastingAbility
           ) {
-            if (formState.damage?.[type]?.pool?.attribute?.name === 'ability') {
-              inputArray.push({
-                name: `damage.${type}.pool.ability.type`,
-                value: `${startCase(type)} Dmg. Ability`,
-                type: 'select',
-                required: true,
-                options: builders.abilities.type,
-              })
+            if (formData.damage?.[type]?.pool?.attribute === Attributes.ability) {
+              headers.push(<span>`${startCase(type)} Dmg. Ability`</span>)
+              inputs.push(
+                <Dropdown
+                  name={`upcast.levels.${index}.damage.${type}.pool.ability`}
+                  value={formData?.upcast?.levels[index]?.damage[type]?.pool.ability}
+                  options={system.abilities}
+                  required={true}
+                  errorMsg='Please select an ability.'
+                  onChange={updateFormData}
+                />
+              )
             }
-            inputArray.push({
-              name: `damage.${type}.pool.minValue`,
-              value: `${startCase(type)} Dmg. Min Value`,
-              errorMsg: 'Must contain only numbers',
-              validation: 'num',
-            })
+            headers.push(<span>`${startCase(type)} Dmg. Min Value`</span>)
+            inputs.push(
+              <Input
+                name={`upcast.levels.${index}.damage.${type}.pool.minAmount`}
+                validation='num'
+                errorMsg='Must contain only numbers'
+                value={formData?.upcast?.levels[index]?.damage[type]?.pool.minAmount}
+                onChange={updateFormData}
+              />
+            )
           }
-          inputArray.push({
-            name: `damage.${type}.pool.maxValue`,
-            value: `${startCase(type)} Dmg. Max Value`,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          })
-          inputArray.push({
-            name: `damage.${type}.pool.multiplier`,
-            value: `${startCase(type)} Dmg. Multiplier`,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          })
+          headers.push(
+            <span>`${startCase(type)} Dmg. Max Value`</span>,
+            <span>`${startCase(type)} Dmg. Multiplier`</span>
+          )
+          inputs.push(
+            <Input
+              name={`upcast.levels.${index}.damage.${type}.pool.maxAmount`}
+              validation='num'
+              errorMsg='Must contain only numbers'
+              value={formData?.upcast?.levels[index]?.damage[type]?.pool.maxAmount}
+              onChange={updateFormData}
+            />,
+            <Input
+              name={`upcast.levels.${index}.damage.${type}.pool.multiplier`}
+              validation='num'
+              errorMsg='Must contain only numbers'
+              value={formData?.upcast?.levels[index]?.damage[type]?.pool.multiplier}
+              onChange={updateFormData}
+            />
+          )
         }
-        if (formState?.damage?.[type]?.pool?.attribute?.name === 'setValue') {
-          inputArray.push({
-            name: `damage.${type}.pool.setValue`,
-            value: `${startCase(type)} Dmg. Pool Total`,
-            required: true,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          })
+        if (formData?.damage?.[type]?.pool?.attribute === Attributes.setAmount) {
+          headers.push(<span>`${startCase(type)} Dmg. Pool Total`</span>)
+          inputs.push(
+            <Input
+              name={`upcast.levels.${index}.damage.${type}.pool.setAmount`}
+              validation='num'
+              errorMsg='Must contain only numbers'
+              value={formData?.upcast?.levels[index]?.damage[type]?.pool.setAmount}
+              onChange={updateFormData}
+            />
+          )
         }
       } else {
-        inputArray.push(
-          {
-            name: `damage.${type}.diceCount`,
-            value: `${startCase(type)} Dmg. Dice Count`,
-            required: true,
-            errorMsg: 'Must contain only numbers',
-            validation: 'num',
-          },
-          {
-            name: `damage.${type}.diceValue`,
-            value: `${startCase(type)} Dmg. Dice Value`,
-            required: true,
-            type: 'select',
-            options: builders.system.dice,
-          }
+        headers.push(
+          <span>`${startCase(type)} Dmg. Dice Count`</span>,
+          <span>`${startCase(type)} Dmg. Dice Value`</span>
+        )
+        inputs.push(
+          <Input
+            name={`upcast.levels.${index}.damage.${type}.dieCount`}
+            validation='num'
+            errorMsg='Must contain only numbers'
+            value={formData?.upcast?.levels[index]?.damage[type]?.dieCount}
+            onChange={updateFormData}
+          />,
+          <Input
+            name={`upcast.levels.${index}.damage.${type}.dieValue`}
+            validation='num'
+            errorMsg='Must contain only numbers'
+            value={formData?.upcast?.levels[index]?.damage[type]?.dieValue}
+            onChange={updateFormData}
+          />
         )
       }
     })
     if (
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'duration') ||
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+      formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.duration) ||
+      formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      inputArray.push(
-        {
-          name: 'duration.type',
-          value: 'Duration',
-          type: 'select',
-          options: builders.spells.duration.type,
-        },
-        {
-          name: 'duration.value',
-          value: 'Duration Increment',
-          errorMsg: 'Must contain only numbers',
-          validation: 'num',
-        }
+      headers.push(<span>Duration</span>, <span>Duration Increment</span>)
+      inputs.push(
+        <Dropdown
+          name={`upcast.levels.${index}.duration.id`}
+          value={formData?.upcast?.levels[index]?.duration.id}
+          options={system.spells.durations}
+          required={true}
+          errorMsg='Please select a duration.'
+          onChange={updateFormData}
+        />,
+        <Input
+          name={`upcast.levels.${index}.duration.amount`}
+          validation='num'
+          errorMsg='Must contain only numbers'
+          value={formData?.upcast?.levels[index]?.duration.amount}
+          onChange={updateFormData}
+        />
       )
     }
     if (
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'range') ||
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+      formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.range) ||
+      formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      inputArray.push(
-        {
-          name: 'range.type',
-          value: 'Duration',
-          type: 'select',
-          options: builders.spells.range.type,
-        },
-        {
-          name: 'range.minRange',
-          value: 'Min. Range',
-          errorMsg: 'Must contain only numbers',
-          validation: 'num',
-        },
-        {
-          name: 'range.maxRange',
-          value: 'Max Range',
-          errorMsg: 'Must contain only numbers',
-          validation: 'num',
-        },
-        {
-          name: 'range.unit',
-          value: 'UoM',
-          type: 'select',
-          options: Object.values(builders.unit.imperial).flatMap((item) => item),
-          optionalKey: 'short',
-        }
+      headers.push(<span>Range</span>, <span>Min. Range</span>, <span>Max Range</span>, <span>UoM</span>)
+      inputs.push(
+        <Dropdown
+          name={`upcast.levels.${index}.range.id`}
+          value={formData?.upcast?.levels[index]?.range.id}
+          options={system.spells.ranges}
+          required={true}
+          errorMsg='Please select a range.'
+          onChange={updateFormData}
+        />,
+        <Input
+          name={`upcast.levels.${index}.range.minRange`}
+          validation='num'
+          errorMsg='Must contain only numbers'
+          value={formData?.upcast?.levels[index]?.range.minRange}
+          onChange={updateFormData}
+        />,
+        <Input
+          name={`upcast.levels.${index}.range.maxRange`}
+          validation='num'
+          errorMsg='Must contain only numbers'
+          value={formData?.upcast?.levels[index]?.range.maxRange}
+          onChange={updateFormData}
+        />,
+        <Dropdown
+          name={`upcast.levels.${index}.range.unit`}
+          value={formData?.upcast?.levels[index]?.range.unit}
+          options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
+          required={true}
+          errorMsg='Please select a range.'
+          onChange={updateFormData}
+        />
       )
     }
     if (
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'shape') ||
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+      formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.shape) ||
+      formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      inputArray.push(
-        {
-          name: 'shape.type',
-          value: 'Shape Type',
-          type: 'select',
-          options: builders.spells.shape.type,
-        },
-        {
-          name: 'shape.size',
-          value: 'Shape Size',
-          errorMsg: 'Must contain only numbers',
-          validation: 'num',
-        },
-        {
-          name: 'shape.unit',
-          value: 'UoM',
-          type: 'select',
-          options: Object.values(builders.unit.imperial).flatMap((item) => item),
-          optionalKey: 'short',
-        }
+      headers.push(<span>Shape</span>, <span>Shape Size</span>, <span>UoM</span>)
+      inputs.push(
+        <Dropdown
+          name={`upcast.levels.${index}.shape.id`}
+          value={formData?.upcast?.levels[index]?.shape.id}
+          options={system.spells.shapes}
+          required={true}
+          errorMsg='Please select a shape.'
+          onChange={updateFormData}
+        />,
+        <Input
+          name={`upcast.levels.${index}.shape.size`}
+          validation='num'
+          errorMsg='Must contain only numbers'
+          value={formData?.upcast?.levels[index]?.shape.size}
+          onChange={updateFormData}
+        />,
+        <Dropdown
+          name={`upcast.levels.${index}.shape.unit`}
+          value={formData?.upcast?.levels[index]?.shape.unit}
+          options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
+          required={true}
+          errorMsg='Please select a shape.'
+          onChange={updateFormData}
+        />
       )
     }
     if (
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'targets') ||
-      formState?.upcast?.attribute?.some((attributeItem: any) => attributeItem.name === 'all')
+      formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.targets) ||
+      formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      inputArray.push({
-        name: 'targets',
-        value: '# of Targets',
-        errorMsg: 'Must contain only numbers',
-        validation: 'num',
-        required: true,
-      })
+      headers.push(<span>Targets</span>)
+      inputs.push(
+        <Input
+          name={`upcast.levels.${index}.targets`}
+          validation='num'
+          errorMsg='Must contain only numbers'
+          value={formData?.upcast?.levels[index]?.targets}
+          required={true}
+          onChange={updateFormData}
+        />
+      )
     }
-
-    const headerArray: RowHeaderType[] = inputArray.map((inputItem) => ({
-      value: inputItem.value,
-    }))
-
-    return { inputs: inputArray, headers: headerArray }
-  }, [builders, formState?.damage, formState?.upcast?.attribute, upcastTypes])
+    return { inputs, headers }
+  }
 
   return (
-    formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'canUpcast') && (
-      <>
-        <Divider label='Upcast Options' />
-        <Row className={sprinkles({ mb: 'space-3' })}>
-          <Dropdown
-            name='upcast.attribute'
-            label='Upcast Attribute'
-            value={formState?.upcast?.attribute}
-            options={upcastOptions}
-            multiSelect={true}
-            onChange={setFormState}
-          />
-        </Row>
-        {formState?.upcast?.attribute?.length > 0 && (
-          <>
-            <Collapse className={sprinkles({ mt: 'space-3' })}>
-              <Collapse.Header title='Upcast Table' startOpened={context.type === 'new'} />
-              <Collapse.Body>
-                <Table
-                  rows={{
-                    inputs: upcastTableColumns.inputs,
-                    headers: upcastTableColumns.headers,
-                  }}
-                  name='upcast.levelAttribute'
-                  value={formState?.upcast?.levelAttribute}
-                  onChange={setFormState}
-                  addRow={true}
-                  scrollable='horizontal'
-                />
-              </Collapse.Body>
-            </Collapse>
-          </>
-        )}
-      </>
-    )
+    <>
+      <Divider label='Upcast Options' />
+      <Row className={sprinkles({ mb: 'space-3' })}>
+        <Dropdown
+          name='upcast.attributes'
+          label='Upcast Attribute'
+          value={formData?.upcast?.attributes}
+          options={upcastOptions}
+          multiSelect={true}
+          onChange={updateFormData}
+        />
+      </Row>
+      {formData?.upcast?.attributes?.length > 0 && (
+        <>
+          <Collapse className={sprinkles({ mt: 'space-3' })}>
+            <Collapse.Header title='Upcast Table' startOpened={context.type === 'new'} />
+            <Collapse.Body>
+              <Row>{upcastFields().headers.map((header) => header)}</Row>
+              {formData.upcast?.levels?.map((_, index) => (
+                <Row key={index}>{upcastFields(index).inputs.map((input) => input)}</Row>
+              ))}
+            </Collapse.Body>
+          </Collapse>
+        </>
+      )}
+    </>
   )
 }
 

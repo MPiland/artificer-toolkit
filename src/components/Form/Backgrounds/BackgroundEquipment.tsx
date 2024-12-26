@@ -4,47 +4,43 @@ import ScrollArea from '../../ScrollArea/ScrollArea'
 import Spinner from '../../Spinner/Spinner'
 import Group from '../../Group/Group'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useForm } from '../../../hooks/UseForm'
 import Dropdown from '../../Dropdown/Dropdown'
 import { Fragment } from 'react/jsx-runtime'
 import Row from '../../Row/Row'
 import Input from '../../Input/Input'
 import { TbX } from 'react-icons/tb'
-import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
-import { useGetEquipmentQuery } from '../../../features/equipment/equipmentApi'
+import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
 import { useIsFetching } from '@tanstack/react-query'
+import { Background, EquipmentEnum } from '../../../../amplify/API'
+import { Attributes } from '../../../types/enums'
+import { UpdateState } from '../../../types/form'
+import { use } from 'react'
+import FormContext from '../FormContext'
 
 const BackgroundEquipment = () => {
   const isLoading = useIsFetching() > 0
 
-  const { formState, setFormState } = useForm()
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: Background
+    updateFormData: (state: UpdateState<Background>) => void
+  }
 
-  const { data: builders } = useGetSystemsQuery()
+  const { data: system } = useGetSystemQuery()
 
-  const { data: items } = useGetEquipmentQuery() as { data: any[] }
+  const { data: equipment } = useListEquipmentQuery()
 
-  return isLoading || !builders || !items ? (
+  return isLoading || !system || !equipment ? (
     <Spinner />
   ) : (
     <>
       <ScrollArea scrollDirection='vertical' className={form_content}>
         <Group className={sprinkles({ mb: 'space-3', px: 'space-3' })}>
-          <Button
-            color='primary'
-            style='outline'
-            onClick={() =>
-              setFormState({
-                type: 'added',
-                target: {
-                  name: 'equipment',
-                },
-              })
-            }
-          >
+          <Button color='primary' style='outline' onClick={() => updateFormData({ type: 'add', path: 'equipment' })}>
             Add Equipment
           </Button>
         </Group>
-        {formState?.equipment?.map((equipment: any, index: any) => (
+        {formData?.equipment?.map((equipmentGroup, index) => (
           <Fragment key={index}>
             <Row
               className={sprinkles({ mb: 'space-3', alignItems: 'flex-end' })}
@@ -54,88 +50,96 @@ const BackgroundEquipment = () => {
               }}
             >
               <Dropdown
-                name={`equipment.${index}.attribute`}
-                value={equipment.attribute}
+                name={`equipment.${index}.attributes`}
+                value={equipmentGroup.attributes}
                 label='Equipment Attribute(s)'
-                options={builders.section.items.attribute}
+                options={system.attributes.filter((attribute) => attribute.equipment.includes(EquipmentEnum.all))}
                 multiSelect={true}
-                onChange={setFormState}
+                onChange={updateFormData}
               />
               <Dropdown
                 name={`equipment.${index}.category`}
-                value={equipment.category}
+                value={equipmentGroup.category}
                 label='Item Category'
-                options={builders.items.category.map((category: any) => ({
-                  name: category.name,
+                options={system.equipment.categories.map((category) => ({
+                  label: category.label,
                   value: category.value,
-                  _id: category._id,
+                  id: category.id,
                 }))}
-                onChange={setFormState}
+                onChange={updateFormData}
               />
               <Dropdown
-                name={`equipment.${index}.properties.type`}
-                value={equipment.properties?.type}
+                name={`equipment.${index}.properties`}
+                value={equipmentGroup.properties}
                 label='Item Properties'
-                options={items}
+                options={equipment.map((equipment) => ({
+                  label: equipment.label,
+                  value: equipment.value,
+                  id: equipment.id,
+                }))}
                 multiSelect={true}
-                filter={[
+                filters={[
                   {
-                    key: 'category._id',
-                    object: equipment,
+                    key: 'category',
+                    dataObject: equipmentGroup,
                     type: 'equal',
-                    mapKey: 'properties.type',
+                    mapKey: 'properties',
                   },
                 ]}
-                onChange={setFormState}
+                onChange={updateFormData}
               />
               <Dropdown
-                name={`equipment.${index}.item.type`}
-                value={equipment.item?.type}
+                name={`equipment.${index}.equipment`}
+                value={equipmentGroup.equipment}
                 label='Item(s)'
-                options={items}
+                options={equipment.map((equipment) => {
+                  return {
+                    label: equipment.label,
+                    value: equipment.value,
+                    id: equipment.id,
+                  }
+                })}
                 multiSelect={true}
-                filter={[
+                filters={[
                   {
                     key: 'category._id',
-                    object: equipment,
+                    dataObject: equipmentGroup,
                     type: 'equal',
                   },
                   {
                     key: 'properties.type',
-                    object: equipment,
+                    dataObject: equipmentGroup,
                     type: 'equal',
                   },
                 ]}
-                onChange={setFormState}
+                onChange={updateFormData}
               />
-              {equipment.attribute?.some((attribute: any) => attribute.name === 'providesOptions') ? (
+              {equipmentGroup.attributes?.some((attribute) => attribute === Attributes.providesOptions) ? (
                 <Input
                   name={`equipment.${index}.selectionCount`}
                   label='Selection Count'
-                  value={equipment.selectionCount}
+                  value={equipmentGroup.selectionCount}
                   errorMsg='Please enter numbers only'
                   validation='num'
-                  onChange={setFormState}
+                  onChange={updateFormData}
                 />
               ) : (
                 <Input
                   name={`equipment.${index}.quantity`}
                   label='Quantity'
-                  value={equipment.quantity}
+                  value={equipmentGroup.quantity}
                   errorMsg='Please enter numbers only'
                   validation='num'
-                  onChange={setFormState}
+                  onChange={updateFormData}
                 />
               )}
               <Button
                 color='danger'
                 style='outline'
                 onClick={() =>
-                  setFormState({
-                    type: 'removed',
-                    target: {
-                      name: `equipment.${index}`,
-                    },
+                  updateFormData({
+                    type: 'remove',
+                    path: `equipment.${index}`,
                   })
                 }
               >
@@ -150,45 +154,45 @@ const BackgroundEquipment = () => {
             name={`currency.copper`}
             label='CP'
             autoComplete='off'
-            value={formState?.currency?.copper}
+            value={formData?.currency?.copper}
             errorMsg='Must contain only numbers'
-            onChange={setFormState}
+            onChange={updateFormData}
           />
           <Input
             validation='num'
             name={`currency.silver`}
             label='SP'
             autoComplete='off'
-            value={formState?.currency?.silver}
+            value={formData?.currency?.silver}
             errorMsg='Must contain only numbers'
-            onChange={setFormState}
+            onChange={updateFormData}
           />
           <Input
             validation='num'
             name={`currency.electrum`}
             label='EP'
             autoComplete='off'
-            value={formState?.currency?.electrum}
+            value={formData?.currency?.electrum}
             errorMsg='Must contain only numbers'
-            onChange={setFormState}
+            onChange={updateFormData}
           />
           <Input
             validation='num'
             name={`currency.gold`}
             label='GP'
             autoComplete='off'
-            value={formState?.currency?.gold}
+            value={formData?.currency?.gold}
             errorMsg='Must contain only numbers'
-            onChange={setFormState}
+            onChange={updateFormData}
           />
           <Input
             validation='num'
             name={`currency.platinum`}
             label='PP'
             autoComplete='off'
-            value={formState?.currency?.platinum}
+            value={formData?.currency?.platinum}
             errorMsg='Must contain only numbers'
-            onChange={setFormState}
+            onChange={updateFormData}
           />
         </Row>
       </ScrollArea>

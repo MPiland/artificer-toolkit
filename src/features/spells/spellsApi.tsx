@@ -1,88 +1,66 @@
-import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { generateClient } from 'aws-amplify/data'
+import { listSpells } from '../../../amplify/graphql/queries'
+import { createSpell, deleteSpell, updateSpell } from '../../../amplify/graphql/mutations'
+import { SpellInput, Spell } from '../../../amplify/API'
+import useSystemPref from '../../hooks/useSystemPref'
+
+const client = generateClient()
 
 const spellsKeys = {
   all: ['spells'] as const,
   lists: () => [...spellsKeys.all, 'list'] as const,
+  single: (id: string) => [...spellsKeys.all, 'single', id] as const,
 }
 
-export const useGetSpellsQuery = ({ limit, filters }: { limit?: number; filters?: any } = {}) => {
-  return useInfiniteQuery({
-    queryKey: [...spellsKeys.all, limit],
-    queryFn: async ({ pageParam }) => {
-      // 1. Construct the base URL
-      let url = '/spells'
+export const useListSpellsQuery = () => {
+  const [systemPref] = useSystemPref()
 
-      // 2. Create URLSearchParams object
-      const searchParams = new URLSearchParams()
+  const query = useSuspenseQuery({
+    queryKey: spellsKeys.lists(),
+    queryFn: async () => {
+      try {
+        const {
+          data: {
+            listSpells: { items },
+          },
+        } = await client.graphql({
+          query: listSpells,
+          variables: {
+            systemId: systemPref,
+          },
+        })
 
-      // 3. Append limit parameters
-      if (limit) {
-        searchParams.append('page', pageParam.toString())
-        searchParams.append('limit', limit.toString())
+        return items
+      } catch (err) {
+        console.log({ err })
       }
-
-      // 4. Append filter parameters
-      if (filters) {
-        for (const key in filters) {
-          if (filters[key]) {
-            searchParams.append(key, filters[key])
-          }
-        }
-      }
-
-      // 5. Append search parameters to the URL
-      if (Array.from(searchParams).length > 0) {
-        url += `?${searchParams.toString()}`
-      }
-
-      const result = await baseQueryWithReauth(url, {
-        method: 'GET',
-      })
-
-      const {
-        spells: data,
-        totalPages,
-        currentPage,
-      }: { spells: any; totalPages: number; currentPage: number } = await result.json() // Assuming your API returns total pages
-
-      return { data, totalPages, currentPage }
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
-    },
-    getPreviousPageParam: (firstPage) => {
-      return firstPage.currentPage > 1 ? firstPage.currentPage - 1 : undefined
-    },
-    maxPages: 2,
-    select: (data) => {
-      if (!limit) {
-        return data.pages.flatMap((page) => page.data)
-      }
-      return data
     },
   })
+
+  return query
 }
 
 export const useAddNewSpellMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (spell: any) => {
-      const result = await baseQueryWithReauth('/spells', {
-        method: 'POST',
-        body: JSON.stringify(spell),
+    mutationFn: async (spell: SpellInput) => {
+      const {
+        data: { createSpell: newSpell },
+      } = await client.graphql({
+        query: createSpell,
+        variables: {
+          input: spell,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return newSpell
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(spellsKeys.all, (previous: any) => {
-        if (!previous) return [...data]
-        return [...previous, data]
+    onSuccess: (spell: Spell) => {
+      queryClient.setQueryData(spellsKeys.all, (previous: Spell[]) => {
+        if (!previous) return [spell]
+        return [...previous, spell]
       })
     },
   })
@@ -92,19 +70,20 @@ export const useUpdateSpellMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (spell: any) => {
-      const result = await baseQueryWithReauth('/spells', {
-        method: 'POST',
-        body: JSON.stringify(spell),
+    mutationFn: async (spell: SpellInput) => {
+      const {
+        data: { updateSpell: updatedSpell },
+      } = await client.graphql({
+        query: updateSpell,
+        variables: {
+          input: spell,
+        },
       })
-
-      const data = await result.json()
-
-      return data
+      return updatedSpell
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(spellsKeys.all, (previous: any[]) =>
-        previous.map((spell) => (spell._id === data._id ? data : spell))
+    onSuccess: (spell: Spell) => {
+      queryClient.setQueryData(spellsKeys.all, (previous: Spell[]) =>
+        previous.map((spellKey) => (spellKey.id === spell.id ? spell : spellKey))
       )
     },
   })
@@ -115,18 +94,21 @@ export const useDeleteSpellMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await baseQueryWithReauth('/spells', {
-        method: 'DELETE',
-        body: JSON.stringify(id),
+      const {
+        data: { deleteSpell: deletedId },
+      } = await client.graphql({
+        query: deleteSpell,
+        variables: {
+          id,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return deletedId
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(spellsKeys.all, (previous: any[]) => {
-        return previous.filter((spell) => spell._id !== data._id)
+    onSuccess: (id: string) => {
+      queryClient.setQueryData(spellsKeys.all, (previous: Spell[]) => {
+        const spell = previous.find((spellKey) => spellKey.id === id)
+        return previous.filter((spellKey) => spellKey.id !== spell.id)
       })
     },
   })

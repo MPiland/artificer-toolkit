@@ -1,252 +1,568 @@
-import { useEffect, useState, ReactElement } from 'react'
-import Button from '../Button/Button'
-import { startCase } from 'lodash'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import Spinner from '../Spinner/Spinner'
 import {
-  list_button_container,
+  useCallback,
+  useRef,
+  useState,
+  MouseEvent as ReactMouseEvent,
+  memo,
+  ComponentPropsWithoutRef,
+  useEffect,
+  ReactElement,
+  useLayoutEffect,
+  useReducer,
+  Ref,
+  use,
+} from 'react'
+import clsx from 'clsx'
+import {
+  list,
   list_container,
+  list_container_wrapper,
   list_footer_group,
   list_footer_item,
-  list_loading,
+  list_button_container,
   list_title_button_container,
   list_title_container,
 } from './List.css'
-import { useForm } from '../../hooks/UseForm'
+import { useEventListener } from 'usehooks-ts'
+import Scrollbar from '../Scrollbar/Scrollbar'
+import { UseMutationResult, UseSuspenseQueryResult } from '@tanstack/react-query'
+import { getValueFromState } from '../../utils/formatting'
+import { useGetSystemQuery } from '../../features/systems/systemsApi'
+import { useListClassesQuery } from '../../features/classes/classesApi'
 import Card from '../Card/Card'
-import ScrollArea from '../ScrollArea/ScrollArea'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Context as AppContext, FormDataType, FormInputType } from '../../types/form'
+import { useDebounceCallback } from 'usehooks-ts'
+import { scrollReducer } from '../../utils/virtualScroll'
+import { set, startCase } from 'lodash'
 import Divider from '../Divider/Divider'
+import Button from '../Button/Button'
 import FilterIcon from '../../assets/Icons/IFilter'
 import CopyIcon from '../../assets/Icons/ICopy'
 import CreateIcon from '../../assets/Icons/ICreate'
 import GridIcon from '../../assets/Icons/IGrid'
 import ListIcon from '../../assets/Icons/IList'
-import { UseInfiniteQueryResult, UseMutationResult } from '@tanstack/react-query'
-import { clsx } from 'clsx'
-import { set } from 'lodash'
-import { ContextType } from '../../utils/types'
-import { getValueFromState } from '../../utils/formatting'
-import { useGetSystemsQuery } from '../../features/systems/systemsApi'
-import { useInView } from 'react-intersection-observer'
-import { CustomError } from '../../app/api/api'
+import {
+  CharacterInput,
+  ClassInput,
+  EquipmentInput,
+  FeatInput,
+  RaceInput,
+  ScoresInput,
+  SpellInput,
+} from '../../../amplify/API'
+import { v4 as uuid } from 'uuid'
+import AuthContext from '../../features/auth/AuthContext'
+import FormContext from '../Form/FormContext'
 
-interface ListProps {
-  useGetItems: (arg?: { limit: number }) => UseInfiniteQueryResult
-  useDeleteItem: () => UseMutationResult<any, CustomError, string, unknown>
+/* TODO
+  - Add drag functionality
+  - Remember collapse, uncollapse state
+*/
+
+interface ListProps extends ComponentPropsWithoutRef<'div'> {
+  className?: string
+  visibility?: 'hidden' | 'visible' | 'always'
+  useListItems: () => UseSuspenseQueryResult<any[]>
+  useDeleteItem: () => UseMutationResult<any, Error, string, unknown>
   footerText?: { name: string | any[]; value: string; display?: string; icon?: ReactElement }[]
+  ref?: Ref<HTMLDivElement> | null | ((arg: Element) => void)
 }
 
-const List = ({ useGetItems, useDeleteItem, footerText }: ListProps) => {
-  const navigate = useNavigate()
-  const location = useLocation()
+const SCROLL_BOX_MIN_SIZE = 20
 
-  const { ref: nextRef, inView: nextInView } = useInView()
-  const { ref: prevRef, inView: prevInView } = useInView()
+type ThumbState = {
+  size: number
+  isDragging: boolean
+  startPosition: number
+}
 
-  const {
-    data,
-    fetchNextPage,
-    isFetchingNextPage,
-    hasNextPage,
-    hasPreviousPage,
-    fetchPreviousPage,
-    isFetchingPreviousPage,
-  } = useGetItems({ limit: 21 })
+const List = memo(
+  ({ className, visibility = 'visible', useListItems, useDeleteItem, footerText, ref, ...props }: ListProps) => {
+    const navigate = useNavigate()
+    const location = useLocation()
+    const { mutateAsync: deleteItem } = useDeleteItem()
+    const { data: system } = useGetSystemQuery()
+    const { data: classes } = useListClassesQuery()
+    const { data } = useListItems()
+    const { updateFormData, setContext, stateReset, setStepIndex } = use(FormContext)
+    const { user } = use(AuthContext)
 
-  const { mutateAsync: deleteItem } = useDeleteItem()
+    const containerRef = useRef<HTMLDivElement>(null)
+    const containerWrapperRef = useRef<HTMLDivElement>(null)
+    const listRef = useRef<HTMLDivElement>(null)
+    const itemRef = useRef<HTMLDivElement>(null)
+    const documentRef = useRef<Document>(document)
 
-  const { data: builders } = useGetSystemsQuery()
-
-  const { setFormState, setOldFormState, setContext, stateReset, setStepIndex } = useForm()
-
-  const [view, setView] = useState<'list' | 'grid'>('list')
-  const [errorMessage, setErrorMessage] = useState<string>()
-
-  const form = location?.pathname?.split('/')[1] as ContextType['title']
-
-  const deleteConfirmed = location.state?.delete
-  const itemToDelete = location.state?.item
-
-  useEffect(() => {
-    if (nextInView && !isFetchingNextPage) {
-      fetchNextPage()
-    }
-  }, [fetchNextPage, nextInView, isFetchingNextPage])
-
-  useEffect(() => {
-    if (prevInView && !isFetchingPreviousPage) {
-      fetchPreviousPage()
-    }
-  }, [fetchPreviousPage, prevInView, isFetchingPreviousPage])
-
-  useEffect(() => {
-    const handleDeleteConfirmed = async () => {
-      try {
-        await deleteItem(itemToDelete.id)
-      } catch (err: any) {
-        setErrorMessage(err.data.message)
-      }
-    }
-    if (deleteConfirmed) {
-      handleDeleteConfirmed()
-    }
-  }, [deleteConfirmed, itemToDelete, deleteItem])
-
-  const handleCreate = async (secondary?: boolean) => {
-    try {
-      await stateReset()
-    } catch {
-      console.error('error resetting state')
-    } finally {
-      const stateObject: any = {}
-      if (form === 'classes' || form === 'races') {
-        const category = builders?.[form]?.category.find((category: any) =>
-          category.name === 'classes'
-            ? secondary
-              ? 'subclass'
-              : 'base'
-            : form === 'races' && secondary
-              ? 'subrace'
-              : 'base'
-        )
-        set(stateObject, 'category', category)
-      }
-      if (form === 'characters') {
-        const abilityScores: any[] = []
-        builders.abilities.type
-          .filter((ability: any) => ability.name !== 'spellAbility')
-          .forEach((ability: any) =>
-            abilityScores.push({
-              name: ability.name,
-              value: ability.value,
-              _id: ability._id,
-              baseScore: 0,
-              calculatedScore: 0,
-              raceScore: 0,
-              classScore: 0,
-            })
-          )
-        set(stateObject, 'abilities.scores', abilityScores)
-      }
-      setContext({ title: form, type: 'new' as string })
-      setFormState({
-        type: 'reset',
-        target: { value: stateObject },
-      })
-      setOldFormState(stateObject)
-      navigate('new')
-    }
-  }
-
-  const handleDelete = (e: Event, item: any) => {
-    e.stopPropagation()
-    navigate(`delete/${item.name}`, {
-      state: {
-        title: item.value,
-        item: item,
-        size: 'sm',
-      },
+    const [view, setView] = useState<'list' | 'grid'>('list')
+    const [scrollState, dispatch] = useReducer(scrollReducer, {
+      scrollTop: 0,
+      startIndex: 0,
+      thumbPosition: 0,
+      scrollHeight: 0,
+      renderedNodesCount: 0,
     })
-  }
+    const [itemHeight, setItemHeight] = useState<number>(0)
+    const [active, setActive] = useState<boolean>(false)
+    const [thumbState, setThumbState] = useState<ThumbState>({
+      size: SCROLL_BOX_MIN_SIZE,
+      isDragging: false,
+      startPosition: 0,
+    })
+    const [errorMessage, setErrorMessage] = useState<string>()
 
-  const handleEdit = async (e: Event, item: any) => {
-    e.stopPropagation()
-    const title = form
-    try {
-      await stateReset()
-    } catch {
-      console.log('error resetting state')
-    } finally {
-      setStepIndex(0)
-      setContext({ title: title, type: 'edit' as string })
-      setFormState({
-        type: 'reset',
-        target: { value: item },
+    const form = location?.pathname?.split('/')[1] as AppContext['title']
+    const deleteConfirmed = location.state?.delete
+    const itemToDelete = location.state?.item
+
+    const debouncedScrollEnd = useDebounceCallback(() => {
+      if (!thumbState.isDragging && visibility !== 'always') {
+        setActive(false)
+      }
+    }, 750)
+
+    const updateSizes = useCallback(() => {
+      const wrapper = containerWrapperRef.current
+      if (!wrapper || !itemHeight || itemHeight === 0) return
+
+      const itemsPerRow = view === 'grid' ? 3 : 1
+      const totalRows = Math.ceil((data?.length || 0) / itemsPerRow)
+
+      dispatch({
+        type: 'UPDATE_LAYOUT',
+        itemHeight,
+        totalItems: totalRows,
+        clientHeight: wrapper.clientHeight,
       })
-      setOldFormState(item)
-      navigate(`edit/${item.name}`, {
-        state: {
-          previous: location,
-        },
-      })
+    }, [data?.length, itemHeight, view])
+
+    useEffect(() => {
+      const handleDeleteConfirmed = async () => {
+        try {
+          await deleteItem(itemToDelete.id)
+        } catch (err) {
+          setErrorMessage(err.data.message)
+        }
+      }
+      if (deleteConfirmed) {
+        handleDeleteConfirmed()
+      }
+    }, [deleteConfirmed, itemToDelete, deleteItem])
+
+    useLayoutEffect(() => {
+      const item = itemRef?.current
+      const wrapper = containerWrapperRef?.current
+      if (wrapper && item && data?.length > 0 && (itemHeight === 0 || !itemHeight)) {
+        const itemRect = item.getBoundingClientRect()
+        setItemHeight(itemRect.height)
+        const itemsPerRow = view === 'grid' ? 3 : 1
+        const totalRows = Math.ceil((data?.length || 0) / itemsPerRow)
+        dispatch({
+          type: 'UPDATE_LAYOUT',
+          itemHeight: item.clientHeight,
+          totalItems: totalRows,
+          clientHeight: wrapper.clientHeight,
+        })
+      }
+    }, [data?.length, itemHeight, itemRef, view])
+
+    const handleDelete = useCallback(
+      (e: Event, item: FormDataType) => {
+        e.stopPropagation()
+        navigate(`delete/${item.value}`, {
+          state: {
+            title: item.label,
+            item: item,
+            size: 'sm',
+          },
+        })
+      },
+      [navigate]
+    )
+
+    const handleEdit = useCallback(
+      async (e: Event, item: FormInputType & { __typename: FormDataType['__typename'] }) => {
+        e.stopPropagation()
+        const title = form
+        try {
+          await stateReset()
+        } catch {
+          console.log('error resetting state')
+        } finally {
+          setStepIndex(0)
+          setContext({ title: title, type: 'edit' as string })
+          updateFormData({
+            type: 'reset',
+            value: item,
+          })
+          updateFormData({
+            type: 'initialReset',
+            value: item,
+          })
+          navigate(`edit/${item.value}`, {
+            state: {
+              previous: location,
+            },
+          })
+        }
+      },
+      [form, location, navigate, stateReset, setStepIndex, setContext, updateFormData]
+    )
+
+    const handleCreate = async (secondary?: boolean) => {
+      let stateObject: FormInputType & { __typename: FormDataType['__typename'] } = {
+        id: undefined,
+        ownerId: undefined,
+        systemId: undefined,
+        __typename: undefined,
+      }
+      try {
+        await stateReset()
+        switch (form) {
+          case 'classes': {
+            const category = system?.categories.find((category) =>
+              category.classes && secondary ? 'subclass' : 'base'
+            ).id
+
+            const classObject: ClassInput & { __typename: 'Class' } = {
+              id: uuid(),
+              ownerId: user?.userId,
+              systemId: system.id,
+              label: undefined,
+              value: undefined,
+              category: category,
+              __typename: 'Class',
+            }
+            stateObject = classObject
+            break
+          }
+          case 'spells': {
+            const spellObject: SpellInput & { __typename: 'Spell' } = {
+              id: uuid(),
+              ownerId: user?.userId,
+              systemId: system.id,
+              label: undefined,
+              value: undefined,
+              school: undefined,
+              level: undefined,
+              classes: undefined,
+              range: undefined,
+              duration: undefined,
+              __typename: 'Spell',
+            }
+            stateObject = spellObject
+            break
+          }
+          case 'equipment': {
+            const equipmentObject: EquipmentInput & { __typename: 'Equipment' } = {
+              id: uuid(),
+              ownerId: user?.userId,
+              systemId: system.id,
+              label: undefined,
+              value: undefined,
+              category: undefined,
+              __typename: 'Equipment',
+            }
+            stateObject = equipmentObject
+            break
+          }
+          case 'feats': {
+            const featObject: FeatInput & { __typename: 'Feat' } = {
+              id: uuid(),
+              ownerId: user?.userId,
+              systemId: system.id,
+              label: undefined,
+              value: undefined,
+              category: undefined,
+              __typename: 'Feat',
+            }
+            stateObject = featObject
+            break
+          }
+          case 'backgrounds':
+            set(stateObject, '__typename', 'Background')
+            break
+          case 'characters': {
+            const abilityScores: Array<ScoresInput> = []
+            system.abilities.forEach((ability) =>
+              abilityScores.push({
+                ability: ability.id,
+                baseScore: 0,
+                calculatedScore: 0,
+                raceScore: 0,
+                classScore: 0,
+              })
+            )
+            const characterObject: CharacterInput & { __typename: 'Character' } = {
+              id: uuid(),
+              ownerId: user?.userId,
+              systemId: system.id,
+              label: undefined,
+              value: undefined,
+              abilities: {
+                scores: abilityScores,
+              },
+              __typename: 'Character',
+            }
+            stateObject = characterObject
+            break
+          }
+          case 'races': {
+            const category = system?.categories.find((category) =>
+              category.races && secondary ? 'subrace' : 'base'
+            ).id
+            const raceObject: RaceInput & { __typename: 'Race' } = {
+              id: uuid(),
+              ownerId: user?.userId,
+              systemId: system.id,
+              label: undefined,
+              value: undefined,
+              category: category,
+              playable: undefined,
+              __typename: 'Race',
+            }
+            stateObject = raceObject
+            break
+          }
+        }
+        updateFormData({
+          type: 'reset',
+          value: stateObject,
+        })
+        updateFormData({
+          type: 'initialReset',
+          value: stateObject,
+        })
+        setContext({ title: form, type: 'new' as string })
+        navigate('new')
+      } catch {
+        console.error('error resetting state')
+      }
     }
-  }
 
-  return (
-    <>
-      <div className={list_title_container}>
-        <h2>{startCase(`${form}`)}</h2>
-        <div className={list_title_button_container}>
-          <Button color='default' style='outline'>
-            {<FilterIcon />} Filter
+    const getSourceData = useCallback(
+      (sourceType: string) => {
+        switch (sourceType) {
+          case 'system':
+            return system
+          case 'classes':
+            return classes
+          // Add other data types as needed
+          default:
+            return null
+        }
+      },
+      [classes, system]
+    )
+
+    const generateRows = useCallback(() => {
+      if (!(data?.length > 0)) return
+
+      if (itemHeight === 0) {
+        return [data[0]]
+      }
+
+      const itemsPerRow = view === 'grid' ? 3 : 1
+      const startRow = scrollState.startIndex
+      const endRow = scrollState.startIndex + scrollState.renderedNodesCount
+
+      const startIndex = startRow * itemsPerRow
+      const endIndex = Math.min(endRow * itemsPerRow, data.length)
+
+      return data.slice(startIndex, endIndex)
+    }, [data, scrollState.startIndex, scrollState.renderedNodesCount, itemHeight, view])
+
+    const debouncedUpdateSizes = useDebounceCallback(updateSizes, 16)
+
+    useEffect(() => {
+      const wrapper = containerWrapperRef.current
+      if (wrapper) {
+        const observer = new ResizeObserver(debouncedUpdateSizes)
+        observer.observe(wrapper)
+        return () => observer.disconnect()
+      }
+    }, [debouncedUpdateSizes])
+
+    const handleScroll = useCallback(
+      (e: WheelEvent) => {
+        requestAnimationFrame(() => {
+          const wrapper = containerWrapperRef.current
+          if (!wrapper) return
+
+          debouncedScrollEnd.cancel()
+          setActive(true)
+
+          dispatch({
+            type: 'SCROLL',
+            deltaY: e.deltaY,
+            clientHeight: wrapper.clientHeight,
+            itemHeight,
+            thumbSize: thumbState.size,
+          })
+        })
+      },
+      [debouncedScrollEnd, itemHeight, thumbState.size]
+    )
+
+    const handleScrollEnd = () => {
+      if (!thumbState.isDragging) {
+        debouncedScrollEnd()
+      }
+    }
+
+    const handleMouseOver = () => {
+      setActive(true)
+    }
+
+    const handleMouseLeave = () => {
+      if (visibility !== 'always' && !thumbState.isDragging) {
+        setActive(false)
+      }
+    }
+
+    // const handleMouseMove = useCallback(
+    //   (e: MouseEvent) => {
+    //     if (thumbState.isDragging) {
+    //       const wrapper = containerWrapperRef.current
+    //       if (!wrapper) return
+
+    //       console.log({ thumbState })
+
+    //       const { clientHeight } = wrapper
+    //       const deltaY = e.clientY - thumbState.startPosition
+    //       const scrollPercentage = deltaY / (clientHeight - thumbState.size)
+    //       const newScrollTop = Math.max(
+    //         0,
+    //         Math.min(scrollPercentage * scrollState.scrollHeight, scrollState.scrollHeight - clientHeight)
+    //       )
+
+    //       dispatch({
+    //         type: 'DRAG',
+    //         newScrollTop,
+    //         clientHeight: clientHeight,
+    //         itemHeight,
+    //         thumbSize: thumbState.size,
+    //       })
+    //     }
+    //   },
+    //   [thumbState, scrollState.scrollHeight, itemHeight]
+    // )
+
+    const handleMouseUp = () => {
+      setThumbState((prev) => ({ ...prev, isDragging: false }))
+    }
+
+    const handleThumbMouseDown = (e: ReactMouseEvent) => {
+      e.preventDefault()
+      setThumbState((prev) => ({
+        ...prev,
+        isDragging: true,
+        startPosition: e.clientY,
+      }))
+    }
+
+    useEventListener('scroll', handleScroll, listRef)
+    useEventListener('scrollend', handleScrollEnd, listRef)
+    useEventListener('wheel', handleScroll, listRef, { passive: true })
+    // useEventListener('mousemove', handleMouseMove, documentRef)
+    useEventListener('mouseup', handleMouseUp, documentRef)
+    useEventListener('mouseover', handleMouseOver, listRef)
+    useEventListener('mouseleave', handleMouseLeave, listRef)
+
+    return (
+      <>
+        <div className={list_title_container}>
+          <h2>{startCase(`${form}`)}</h2>
+          <div className={list_title_button_container}>
+            <Button color='main' style='outline'>
+              {<FilterIcon />} Filter
+            </Button>
+            <Button color='main' style='outline'>
+              {<CopyIcon />} Copy
+            </Button>
+            <Button color='main' style='outline' onClick={() => handleCreate(form === 'classes' || form === 'races')}>
+              {<CreateIcon />} Create
+            </Button>
+          </div>
+        </div>
+        <Divider />
+        <div className={list_button_container}>
+          <Button color='main' style='outline' onClick={() => setView('grid')}>
+            {<GridIcon />}
           </Button>
-          <Button color='default' style='outline'>
-            {<CopyIcon />} Copy
-          </Button>
-          <Button color='default' style='outline' onClick={() => handleCreate(form === 'classes' || form === 'races')}>
-            {<CreateIcon />} Create
+          <Button color='main' style='outline' onClick={() => setView('list')}>
+            {<ListIcon />}
           </Button>
         </div>
-      </div>
-      <Divider />
-      <div className={list_button_container}>
-        <Button color='default' style='outline' onClick={() => setView('grid')}>
-          {<GridIcon />}
-        </Button>
-        <Button color='default' style='outline' onClick={() => setView('list')}>
-          {<ListIcon />}
-        </Button>
-      </div>
-      {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      {!data || typeof useGetItems !== 'function' ? (
-        <Spinner />
-      ) : (
-        <ScrollArea>
-          {hasPreviousPage && (
-            <div ref={prevRef} className={list_loading}>
-              Loading more...
-            </div>
-          )}
-          {(data as any).pages.map((group: { currentPage: number; data: any[]; totalPages: number }, index: number) => (
-            <div className={clsx(list_container, view)} key={index}>
-              {group.data.map((item: any) => (
-                <Card key={item.id}>
+        {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
+        <div className={list} ref={listRef}>
+          <div
+            className={list_container_wrapper}
+            ref={containerWrapperRef}
+            style={{ height: `${scrollState.scrollHeight}px` }}
+          >
+            <div
+              ref={(el) => {
+                containerRef.current = el
+                if (ref) {
+                  if (typeof ref === 'function') {
+                    ref(el)
+                  } else {
+                    ref.current = el
+                  }
+                }
+              }}
+              className={clsx({ [className]: className }, list_container, view)}
+              style={{
+                transform: `translateY(${scrollState.startIndex * itemHeight}px)`,
+              }}
+              {...props}
+            >
+              {generateRows()?.map((item, index) => (
+                <Card className='card' key={index + scrollState.startIndex} ref={itemRef} itemId={item.id}>
                   <Card.Header
-                    title={item.value}
+                    title={item.label}
                     editable={(e) => handleEdit(e, item)}
                     removable={(e) => handleDelete(e, item)}
-                    leftSide={item.level && `(${item.level})`}
+                    leftSide={(item.level || item.level === 0) && `(${item.level})`}
                     collapsible={true}
                   />
                   <Card.Content>{item.desc}</Card.Content>
-                  {footerText && footerText.length > 0 && (
+                  {footerText && (
                     <Card.Footer>
                       <div className={list_footer_group}>
-                        {footerText?.map(
-                          (footerItem, footerIndex) =>
-                            (!footerItem.display || footerItem.display === view) && (
+                        {footerText.map((footerItem, footerIndex) => {
+                          if ((view && footerItem.display === view) || !footerItem.display) {
+                            return (
                               <div className={list_footer_item} key={footerIndex}>
-                                {footerItem.icon ?? footerItem.value} {getValueFromState(footerItem, item)}
+                                {footerItem.icon ?? footerItem.value}
+                                {getValueFromState({ input: footerItem, state: item, getSourceData })}
                               </div>
                             )
-                        )}
+                          }
+                        })}
                       </div>
                     </Card.Footer>
                   )}
                 </Card>
               ))}
             </div>
-          ))}
-          {hasNextPage && (
-            <div ref={nextRef} className={list_loading}>
-              Loading more...
-            </div>
+          </div>
+          {visibility !== 'hidden' && (
+            <Scrollbar
+              active={active || visibility === 'always'}
+              size={thumbState.size}
+              position={scrollState.thumbPosition}
+              onMouseDown={handleThumbMouseDown}
+              scrollDirection='vertical'
+            />
           )}
-        </ScrollArea>
-      )}
-      <Outlet />
-    </>
-  )
-}
+        </div>
+      </>
+    )
+  }
+)
+
+List.displayName = 'List'
 
 export default List

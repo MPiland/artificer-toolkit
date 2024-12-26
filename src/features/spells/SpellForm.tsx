@@ -1,24 +1,21 @@
+import { useEffect, use } from 'react'
 import { useAddNewSpellMutation, useUpdateSpellMutation } from './spellsApi'
-import { StepType } from '../../utils/types'
-import { useEffect, useMemo } from 'react'
-import { useForm } from '../../hooks/UseForm'
+import { Step } from '../../types/form'
 import Form from '../../components/Form/Form'
+import FormContext from '../../components/Form/FormContext'
 
 const SpellForm = () => {
-  const { setSteps } = useForm()
+  const { setSteps } = use(FormContext)
 
-  const stepsArray: StepType[] = useMemo(
-    () => [
-      { id: 'details', name: 'Details' },
-      { id: 'attributes', name: 'Attributes' },
-    ],
-    []
-  )
+  const stepsArray = [
+    { id: 'details', label: 'Details' },
+    { id: 'attributes', label: 'Attributes' },
+  ] satisfies Step[]
 
   useEffect(() => {
     setSteps(stepsArray)
   }, [setSteps, stepsArray])
 
-  return <Form useAddNewItem={useAddNewSpellMutation} useUpdateItem={useUpdateSpellMutation} />
+  return <Form useAddNewItemMutation={useAddNewSpellMutation} useUpdateItemMutation={useUpdateSpellMutation} />
 }
 export default SpellForm

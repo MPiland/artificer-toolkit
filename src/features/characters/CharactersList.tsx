@@ -1,8 +1,8 @@
 import List from '../../components/List/List'
-import { useGetCharactersQuery, useDeleteCharacterMutation } from './charactersApi'
+import { useListCharactersQuery, useDeleteCharacterMutation } from './charactersApi'
 
 const CharacterList = () => {
-  return <List useGetItems={useGetCharactersQuery} useDeleteItem={useDeleteCharacterMutation} />
+  return <List useListItems={useListCharactersQuery} useDeleteItem={useDeleteCharacterMutation} />
 }
 
 export default CharacterList

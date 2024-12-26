@@ -1,7 +1,7 @@
 import List from '../../components/List/List'
-import { useGetRacesQuery, useDeleteRaceMutation } from './racesApi'
+import { useListRacesQuery, useDeleteRaceMutation } from './racesApi'
 
 const RacesList = () => {
-  return <List useGetItems={useGetRacesQuery} useDeleteItem={useDeleteRaceMutation} />
+  return <List useListItems={useListRacesQuery} useDeleteItem={useDeleteRaceMutation} />
 }
 export default RacesList

@@ -1,30 +1,37 @@
 import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
-import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import Input from '../../Input/Input'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Button from '../../Button/Button'
 import Accordion from '../../Accordion/Accordion'
-import { useForm } from '../../../hooks/UseForm'
+import { use } from 'react'
+import FormContext from '../FormContext'
+import { Race } from '../../../../amplify/API'
+import { Categories } from '../../../types/enums'
+import { UpdateState } from '../../../types/form'
 
 const Traits = () => {
-  const { formState, setFormState } = useForm()
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: Race
+    updateFormData: (state: UpdateState<Race>) => void
+  }
 
-  const { data: builders } = useGetSystemsQuery()
+  const { data: system } = useGetSystemQuery()
 
   // Edit feature
-  const handleRemove = (areaIndex: number) => {
-    if (areaIndex === 0 && formState.trait?.area?.length === 1) {
-      return setFormState({
-        type: 'removed',
-        target: { name: `trait` },
+  const handleRemove = (index: number) => {
+    if (index === 0 && formData.traits?.area?.length === 1) {
+      return updateFormData({
+        type: 'remove',
+        path: `traits`,
       })
     }
-    if (areaIndex >= 0) {
-      setFormState({
-        type: 'removed',
-        target: { name: `trait.area.${areaIndex}` },
+    if (index >= 0) {
+      updateFormData({
+        type: 'remove',
+        path: `traits.area.${index}`,
       })
     }
   }
@@ -33,7 +40,7 @@ const Traits = () => {
     <>
       <Button
         onClick={() => {
-          setFormState({ type: 'added', target: { name: 'trait.area' } })
+          updateFormData({ type: 'add', path: 'traits.area' })
         }}
         color='primary'
         style='outline'
@@ -41,29 +48,29 @@ const Traits = () => {
       >
         Add Trait
       </Button>
-      {formState?.trait?.area?.length > 0 && (
-        <Accordion dataArray={formState?.trait?.area} setState={setFormState} name='trait.area'>
-          {formState.trait.area.map((areaItem: any, areaIndex: number) => (
-            <Accordion.Wrapper key={areaIndex} itemId={String(areaIndex)}>
-              <Accordion.Header handleRemove={() => handleRemove(areaIndex)}>
-                {areaItem.value ?? `Trait ${areaIndex}`}
+      {formData?.traits?.area?.length > 0 && (
+        <Accordion dataArray={formData?.traits?.area} onChange={updateFormData} name='traits.area'>
+          {formData.traits.area.map((area, index) => (
+            <Accordion.Wrapper key={index} itemId={String(index)}>
+              <Accordion.Header handleRemove={() => handleRemove(index)}>
+                {area.value ?? `Trait ${index}`}
               </Accordion.Header>
               <Accordion.Content>
                 <Row>
                   <Input
-                    name={`trait.area.${areaIndex}.value`}
+                    name={`traits.area.${index}.value`}
                     label='Trait Name'
                     errorMsg='Must contain only numbers'
-                    value={areaItem?.value}
-                    onChange={setFormState}
+                    value={area?.value}
+                    onChange={updateFormData}
                     className={sprinkles({ mb: 'space-3' })}
                   />
                 </Row>
                 <RichTextEditor
-                  name={`trait.area.${areaIndex}.desc`}
-                  value={areaItem?.desc}
+                  name={`traits.area.${index}.desc`}
+                  value={area?.desc}
                   label={'Traits Description'}
-                  onChange={setFormState}
+                  onChange={updateFormData}
                   className={sprinkles({ mb: 'space-3' })}
                 />
               </Accordion.Content>
@@ -71,50 +78,50 @@ const Traits = () => {
           ))}
         </Accordion>
       )}
-      {formState?.category?.name === 'base' && (
+      {formData?.category === Categories.base && (
         <Row>
           <Dropdown
-            name='trait.size'
+            name='traits.size'
             label='Size'
-            value={formState.trait?.size}
-            options={builders.races.size}
+            value={formData.traits?.size}
+            options={system.sizes}
             required={true}
-            onChange={setFormState}
+            onChange={updateFormData}
           />
           <Input
             validation='num'
-            name='trait.speed.walking'
+            name='traits.speeds.walking'
             label='Walking Speed'
             errorMsg='Must contain only numbers'
-            value={formState.trait?.speed?.walking}
-            onChange={setFormState}
+            value={formData.traits?.speeds?.walking}
+            onChange={updateFormData}
             placeholder='0'
           />
           <Input
             validation='num'
-            name='trait.speed.climbing'
+            name='traits.speeds.climbing'
             label='Climbing Speed'
             errorMsg='Must contain only numbers'
-            value={formState.trait?.speed?.climbing}
-            onChange={setFormState}
+            value={formData.traits?.speeds?.climbing}
+            onChange={updateFormData}
             placeholder='0'
           />
           <Input
             validation='num'
-            name='trait.speed.swimming'
+            name='traits.speeds.swimming'
             label='Swimming Speed'
             errorMsg='Must contain only numbers'
-            value={formState.trait?.speed?.swimming}
-            onChange={setFormState}
+            value={formData.traits?.speeds?.swimming}
+            onChange={updateFormData}
             placeholder='0'
           />
           <Input
             validation='num'
-            name='trait.speed.flying'
+            name='traits.speeds.flying'
             label='Flying Speed'
             errorMsg='Must contain only numbers'
-            value={formState.trait?.speed?.flying}
-            onChange={setFormState}
+            value={formData.traits?.speeds?.flying}
+            onChange={updateFormData}
             placeholder='0'
           />
         </Row>

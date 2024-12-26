@@ -1,12 +1,12 @@
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { RapierRigidBody, RigidBody, Vector3Tuple, useRapier } from '@react-three/rapier'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, use } from 'react'
 import { Mesh, MeshStandardMaterial, Vector4Like } from 'three'
 import { Vector } from 'three/examples/jsm/Addons.js'
-import { useDice } from '../../hooks/UseDice'
+import { DiceContext } from './DiceContext'
 
-interface DiceProps {
+export interface DiceProps {
   type: number
   position?: Vector3Tuple
   linearVelocity?: Vector3Tuple
@@ -38,7 +38,7 @@ const Dice = ({
   const { nodes } = useDiceModel(type)
   const rigidBodyRef = useRef<RapierRigidBody>(null)
   const [diceValue, setDiceValue] = useState<number | null>(null)
-  const { updateDiceResult } = useDice()
+  const { updateDiceResult } = use(DiceContext)
 
   useEffect(() => {
     if (diceValue != null) {

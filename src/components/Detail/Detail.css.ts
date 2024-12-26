@@ -33,8 +33,8 @@ export const detail_aside = style({
       width: '0',
       padding: '0',
       margin: '0',
-      backgroundColor: theme.vars.backgroundColor.content,
-      color: theme.vars.color,
+      backgroundColor: theme.vars.component.content.backgroundColor.main,
+      color: theme.vars.typography.color.main,
       zIndex: 20,
       transition: 'all .3s ease-in-out',
       overflow: 'hidden',
@@ -43,7 +43,7 @@ export const detail_aside = style({
       selectors: {
         '&.active': {
           width: '13rem',
-          borderRight: `${theme.border} ${theme.vars.borderColor}`,
+          borderRight: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
           transition: 'all .3s ease-in-out',
           paddingRight: '1rem',
           marginRight: '.5rem',
@@ -112,7 +112,7 @@ globalStyle(`${detail_aside_list} > li > a`, {
     [app]: {
       fontSize: 'inherit',
       textDecoration: 'none',
-      color: theme.vars.color,
+      color: theme.vars.typography.color.main,
     },
   },
 })
@@ -138,8 +138,8 @@ globalStyle(`${detail_body} th`, {
 globalStyle(`${detail_body} blockquote`, {
   '@layer': {
     [app]: {
-      borderRadius: theme.borderRadius,
-      border: `${theme.border} ${theme.vars.borderColor}`,
+      borderRadius: theme.border.radius,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       marginLeft: size['size-3'],
       marginTop: size['size-2'],
       padding: size['size-1'],

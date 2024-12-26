@@ -1,244 +1,235 @@
-import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
-import { useForm } from '../../../hooks/UseForm'
+import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
 import Divider from '../../Divider/Divider'
 import Input from '../../Input/Input'
-import { DropdownOptionType, ReducerActionType } from '../../../utils/types'
-import { useGetSpellsQuery } from '../../../features/spells/spellsApi'
-import { useGetEquipmentQuery } from '../../../features/equipment/equipmentApi'
+import { DropdownOption } from '../../../types/components'
+import { useListSpellsQuery } from '../../../features/spells/spellsApi'
+import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
 import Group from '../../Group/Group'
 import Button from '../../Button/Button'
 import { form_add_button, equipment_sub_group_button, form_remove_button } from '../Form.css'
 import clsx from 'clsx'
 import { TbPlus, TbX } from 'react-icons/tb'
-import { useEffect } from 'react'
+import { use, useEffect } from 'react'
 import Collapse from '../../Collapse/Collapse'
-import { useFeature } from '../../../hooks/UseFeature'
+import { Character, Feat, FeatureEnum, Spell } from '../../../../amplify/API'
+import { Attributes, Prerequisites as PrerequisitesEnum } from '../../../types/enums'
+import { FeatureDataType, FormDataType, UpdateState } from '../../../types/form'
+import FeatureContext from '../Features/FeatureContext'
 
-const Requirements = ({ state, setState }: { state: any; setState: (arg: ReducerActionType) => void }) => {
-  const { context, formState } = useForm()
-  const { subContext } = useFeature()
+const Prerequisites = ({
+  formData,
+  updateFormData,
+}: {
+  formData: FeatureDataType | Feat
+  updateFormData: (state: UpdateState<FormDataType | FeatureDataType>) => void
+}) => {
+  const { featureStep } = use(FeatureContext)
 
-  const { data: builders } = useGetSystemsQuery()
-  const { data: spells } = useGetSpellsQuery() as { data: any[] }
-  const { data: items } = useGetEquipmentQuery() as { data: any[] }
+  const { data: system } = useGetSystemQuery()
+  const { data: spells } = useListSpellsQuery()
+  const { data: equipment } = useListEquipmentQuery()
 
-  // Add/Remove requirements array
+  // Add/Remove prerequisites array
   useEffect(() => {
-    if (
-      !(state.attribute?.length > 0) ||
-      (!state.attribute?.some((attributeItem: any) => attributeItem.name === 'hasRequirements') &&
-        state.requirements &&
-        context.title !== 'spells')
-    ) {
-      setState({
-        type: 'removed',
-        target: { name: 'requirements' },
-      })
-    }
-
-    if (state.attribute?.some((attributeItem: any) => attributeItem.name === 'hasRequirements')) {
+    if (formData.attributes?.some((attribute: any) => attribute === Attributes.prerequisites)) {
       if (
-        state.requirements?.options?.some((optionItem: any) => optionItem.name === 'itemProficiency') &&
-        !(state.requirements?.itemProficiency?.length > 0)
+        formData.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipmentProficiency) &&
+        !(formData.prerequisites?.equipmentProficiencies?.length > 0)
       ) {
-        setState({
-          type: 'added',
-          target: { name: 'requirements.itemProficiency' },
+        updateFormData({
+          type: 'add',
+          path: 'prerequisites.equipmentProficiencies',
         })
       }
 
       if (
-        !state.requirements?.options?.some((optionItem: any) => optionItem.name === 'itemProficiency') &&
-        state.requirements?.itemProficiency?.length > 0
+        formData.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipped) &&
+        !(formData.prerequisites?.equipped?.length > 0)
       ) {
-        setState({
-          type: 'removed',
-          target: { name: 'requirements.itemProficiency' },
+        updateFormData({
+          type: 'add',
+          path: 'prerequisites.equipped',
         })
       }
 
       if (
-        state.requirements?.options?.some((optionItem: any) => optionItem.name === 'equipped') &&
-        !(state.requirements?.equipped?.length > 0)
+        formData.prerequisites?.options?.some((option) => option === PrerequisitesEnum.notEquipped) &&
+        !(formData.prerequisites?.notEquipped?.length > 0)
       ) {
-        setState({
-          type: 'added',
-          target: { name: 'requirements.equipped' },
-        })
-      }
-
-      if (
-        !state.requirements?.options?.some((optionItem: any) => optionItem.name === 'equipped') &&
-        state.requirements?.equipped?.length > 0
-      ) {
-        setState({
-          type: 'removed',
-          target: { name: 'requirements.equipped' },
-        })
-      }
-
-      if (
-        state.requirements?.options?.some((optionItem: any) => optionItem.name === 'notEquipped') &&
-        !(state.requirements?.notEquipped?.length > 0)
-      ) {
-        setState({
-          type: 'added',
-          target: { name: 'requirements.notEquipped' },
-        })
-      }
-
-      if (
-        !state.requirements?.options?.some((optionItem: any) => optionItem.name === 'notEquipped') &&
-        state.requirements?.notEquipped?.length > 0
-      ) {
-        setState({
-          type: 'removed',
-          target: { name: 'requirements.notEquipped' },
+        updateFormData({
+          type: 'add',
+          path: 'prerequisites.notEquipped',
         })
       }
     }
-  }, [state?.attribute, setState, state.requirements, context.title])
+  }, [formData?.attributes, updateFormData, formData.prerequisites])
 
   return (
-    state?.attribute?.some((attributeItem: any) => attributeItem?.name === 'hasRequirements') && (
+    formData?.attributes?.some((attribute: any) => attribute === Attributes.prerequisites) && (
       <Collapse>
-        <Collapse.Header title='Requirements' />
+        <Collapse.Header title='Prerequisites' />
         <Collapse.Body>
           <Row className={sprinkles({ mb: 'space-3' })}>
-            <Dropdown
+            <Dropdown<typeof formData>
               multiSelect={true}
-              name={`requirements.options`}
+              name='prerequisites.options'
               label='Requirement'
-              options={[].concat(
-                builders.features.requirements,
-                context.title &&
-                  builders.features[context.title]?.requirements?.length > 0 &&
-                  builders.features[context.title]?.requirements,
-                subContext === 'option' && builders.features.options.requirements
+              options={system.prerequisites.filter(
+                (prerequisite) =>
+                  prerequisite?.features.includes(FeatureEnum.all) &&
+                  (featureStep === 'option' ? prerequisite?.features.includes(FeatureEnum.options) : true)
               )}
-              value={state?.requirements?.options}
+              value={formData?.prerequisites?.options}
               required={true}
-              onChange={setState}
+              onChange={updateFormData}
             />
-            {state?.requirements?.options?.some((requirementItem: any) => requirementItem.name === 'spellKnown') && (
-              <Dropdown
+            {formData?.prerequisites?.options?.some(
+              (prerequisite) => prerequisite === PrerequisitesEnum.spellsKnown
+            ) && (
+              <Dropdown<typeof formData>
                 multiSelect={true}
-                name={`requirements.spellKnown.spell`}
-                value={state?.requirements?.spellKnown?.spell}
+                name='prerequisites.spellsKnown'
+                value={formData?.prerequisites.spellsKnown}
                 label='Spell'
-                options={spells as DropdownOptionType[]}
-                onChange={setState}
+                options={spells as DropdownOption[]}
+                onChange={updateFormData}
               />
             )}
-            {state?.requirements?.options?.some((requirementItem: any) => requirementItem.name === 'featureKnown') && (
+            {formData?.prerequisites?.options?.some(
+              (prerequisite) => prerequisite === PrerequisitesEnum.featuresKnown
+            ) && (
               <>
-                <Dropdown
+                <Dropdown<typeof formData>
                   multiSelect={true}
-                  name={`requirements.featureKnown.feature`}
-                  value={state?.requirements?.featureKnown?.feature}
+                  name='prerequisites.featuresKnown'
+                  value={formData?.prerequisites?.featuresKnown}
                   label='Feature'
-                  options={formState.features as DropdownOptionType[]}
-                  onChange={setState}
+                  options={(formData as Exclude<FormDataType, Spell | Character>).features.map((feature) => {
+                    return {
+                      label: feature.label,
+                      value: feature.value,
+                      id: feature.id,
+                    }
+                  })}
+                  onChange={updateFormData}
                 />
-                {state?.requirements?.featureKnown?.features?.some(
-                  (featureItem: any) => featureItem.options?.length > 0
+                {formData?.prerequisites?.featuresKnown?.some(
+                  (feature: any) =>
+                    (formData as Exclude<FormDataType, Spell | Character>).features.find(
+                      (sFeature) => sFeature.id === feature
+                    ).options?.length > 0
                 ) && (
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     multiSelect={true}
-                    name={`requirements.featureKnown.options`}
-                    value={state?.requirements?.featureKnown?.options}
+                    name='prerequisites.optionsKnown'
+                    value={formData?.prerequisites?.optionsKnown}
                     label='Feature Option'
-                    options={state?.requirements?.featureKnown?.features?.flatMap(
-                      (featureItem: any) => featureItem.options?.length > 0 && featureItem.options
+                    options={formData?.prerequisites?.featuresKnown?.flatMap(
+                      (feature: any) =>
+                        (formData as Exclude<FormDataType, Spell | Character>).features.find(
+                          (sFeature) => sFeature.id === feature
+                        ).options
                     )}
-                    onChange={setState}
+                    onChange={updateFormData}
                   />
                 )}
               </>
             )}
-            {state?.requirements?.options?.some((state: any) => state.name === 'skillProficiency') && (
-              <Dropdown
+            {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.skillProficiency) && (
+              <Dropdown<typeof formData>
                 multiSelect={true}
-                name={`requirements.skillProficiency.type`}
+                name='prerequisites.skillProficiencies'
                 label='Skill Proficiency'
-                value={state?.requirements?.skillProficiency?.type}
-                options={builders.skills.type}
-                onChange={setState}
+                value={formData?.prerequisites?.skillProficiencies}
+                options={system.skills}
+                onChange={updateFormData}
               />
             )}
-            {state?.requirements?.options?.some((state: any) => state.name === 'abilityScore') && (
+            {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.abilityScore) && (
               <>
-                <Dropdown
+                <Dropdown<typeof formData>
                   multiSelect={true}
-                  name={`requirements.abilityScore.type`}
-                  value={state?.requirements?.abilityScore?.type}
+                  name='prerequisites.abilityScore.abilities'
+                  value={formData?.prerequisites?.abilityScore?.abilities}
                   label='Ability'
-                  options={builders.abilities.type}
+                  options={system.abilities}
                   required={true}
-                  onChange={setState}
+                  onChange={updateFormData}
                 />
-                <Input
-                  name={`requirements.abilityScore.score`}
-                  value={state?.requirements?.abilityScore?.score}
+                <Input<typeof formData>
+                  name='prerequisites.abilityScore.score'
+                  value={formData?.prerequisites?.abilityScore?.score}
                   label='Score'
                   required={true}
                   validation='num'
                   errorMsg='Must contain only numbers'
-                  onChange={setState}
+                  onChange={updateFormData}
                 />
               </>
             )}
           </Row>
-          {state?.requirements?.options?.some((requirementItem: any) => requirementItem.name === 'itemProficiency') && (
+          {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipmentProficiency) && (
             <>
               <Divider label='Item Proficiency' />
-              {state?.requirements?.itemProficiency?.map((requirementItem: any, requirementIndex: number) => (
-                <Row className={sprinkles({ mb: 'space-3' })} key={requirementIndex}>
-                  <Dropdown
-                    name={`requirements.itemProficiency.${requirementIndex}.category`}
-                    value={requirementItem?.category}
+              {formData?.prerequisites?.equipmentProficiencies?.map((equipmentProficieny, index) => (
+                <Row className={sprinkles({ mb: 'space-3' })} key={index}>
+                  <Dropdown<typeof formData>
+                    name={`prerequisites.equipmentProficiencies.${index}.category`}
+                    value={equipmentProficieny.category}
                     label='Item Category'
-                    options={builders.items.category}
-                    onChange={setState}
+                    options={system.equipment.categories}
+                    onChange={updateFormData}
                   />
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     multiSelect={true}
-                    name={`requirements.itemProficiency.${requirementIndex}.properties.type`}
-                    value={requirementItem?.properties?.type}
+                    name={`prerequisites.equipmentProficiencies.${index}.properties`}
+                    value={equipmentProficieny.properties}
                     label='Item Property'
-                    options={items as DropdownOptionType[]}
-                    filter={[
+                    options={equipment.map((equipment) => {
+                      return {
+                        label: equipment.label,
+                        value: equipment.value,
+                        id: equipment.id,
+                      }
+                    })}
+                    filters={[
                       {
-                        key: 'category._id',
-                        object: requirementItem,
+                        key: 'category',
+                        dataObject: equipmentProficieny,
                         type: 'equal',
-                        mapKey: 'property.type',
+                        mapKey: 'properties',
                       },
                     ]}
-                    onChange={setState}
+                    onChange={updateFormData}
                   />
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     multiSelect={true}
-                    name={`requirements.itemProficiency.${requirementIndex}.items.type`}
+                    name={`prerequisites.equipmentProficiencies.${index}.equipment`}
                     label='Item type'
-                    value={requirementItem?.items?.type}
-                    options={items as DropdownOptionType[]}
-                    filter={[
+                    value={equipmentProficieny?.equipment}
+                    options={equipment.map((equipment) => {
+                      return {
+                        label: equipment.label,
+                        value: equipment.value,
+                        id: equipment.id,
+                      }
+                    })}
+                    filters={[
                       {
-                        key: 'category._id',
-                        object: requirementItem,
+                        key: 'category.id',
+                        dataObject: equipmentProficieny,
                         type: 'equal',
                       },
                       {
-                        key: 'property.type',
-                        object: requirementItem,
+                        key: 'properties',
+                        dataObject: equipmentProficieny,
                         type: 'equal',
                       },
                     ]}
-                    onChange={setState}
+                    onChange={updateFormData}
                   />
                   <Group
                     className={sprinkles({ height: 'size-full' })}
@@ -249,26 +240,22 @@ const Requirements = ({ state, setState }: { state: any; setState: (arg: Reducer
                       style='unstyled'
                       className={clsx(form_add_button, equipment_sub_group_button)}
                       onClick={() =>
-                        setState({
-                          type: 'added',
-                          target: {
-                            name: `requirements.itemProficiency`,
-                          },
+                        updateFormData({
+                          type: 'add',
+                          path: `prerequisites.equipmentProficiencies`,
                         })
                       }
                     >
                       <TbPlus />
                     </Button>
-                    {requirementIndex !== 0 && (
+                    {index !== 0 && (
                       <Button
                         style='unstyled'
                         className={clsx(form_remove_button, equipment_sub_group_button)}
                         onClick={() => {
-                          setState({
-                            type: 'removed',
-                            target: {
-                              name: `requirements.itemProficiency.${requirementIndex}`,
-                            },
+                          updateFormData({
+                            type: 'remove',
+                            path: `prerequisites.equipmentProficiencies.${index}`,
                           })
                         }}
                       >
@@ -280,59 +267,71 @@ const Requirements = ({ state, setState }: { state: any; setState: (arg: Reducer
               ))}
             </>
           )}
-          {state?.requirements?.options?.some((requirementItem: any) => requirementItem.name === 'equipped') && (
+          {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipped) && (
             <>
               <Divider label='Equipped' />
-              {state?.requirements?.equipped?.map((requirementItem: any, requirementIndex: number) => (
-                <Row className={sprinkles({ mb: 'space-3' })} key={requirementIndex}>
-                  <Dropdown
-                    name={`requirements.equipped.${requirementIndex}.category`}
-                    value={requirementItem?.category}
+              {formData?.prerequisites?.equipped?.map((equipPrerequisite, index) => (
+                <Row className={sprinkles({ mb: 'space-3' })} key={index}>
+                  <Dropdown<typeof formData>
+                    name={`prerequisites.equipped.${index}.category`}
+                    value={equipPrerequisite.category}
                     label='Item Category'
-                    options={builders.items.category}
-                    onChange={setState}
+                    options={system.equipment.categories}
+                    onChange={updateFormData}
                   />
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     multiSelect={true}
-                    name={`requirements.equipped.${requirementIndex}.properties.type`}
-                    value={requirementItem?.properties?.type}
+                    name={`prerequisites.equipped.${index}.properties`}
+                    value={equipPrerequisite.properties}
                     label='Item Property'
-                    options={items as DropdownOptionType[]}
-                    filter={[
+                    options={equipment.map((equipment) => {
+                      return {
+                        label: equipment.label,
+                        value: equipment.value,
+                        id: equipment.id,
+                      }
+                    })}
+                    filters={[
                       {
-                        key: 'category._id',
-                        object: requirementItem,
+                        key: 'category',
+                        dataObject: equipPrerequisite,
                         type: 'equal',
-                        mapKey: 'property.type',
+                        mapKey: 'properties',
                       },
                     ]}
-                    onChange={setState}
+                    onChange={updateFormData}
                   />
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     multiSelect={true}
-                    name={`requirements.equipped.${requirementIndex}.items.type`}
+                    name={`prerequisites.equipped.${index}.equipment`}
                     label='Item type'
-                    value={requirementItem?.items?.type}
-                    options={items as DropdownOptionType[]}
-                    filter={[
+                    value={equipPrerequisite.equipment}
+                    options={equipment.map((equipment) => {
+                      return {
+                        label: equipment.label,
+                        value: equipment.value,
+                        id: equipment.id,
+                      }
+                    })}
+                    filters={[
                       {
-                        key: 'category._id',
-                        object: requirementItem,
+                        key: 'category',
+                        dataObject: equipPrerequisite,
                         type: 'equal',
                       },
                       {
-                        key: 'property.type',
-                        object: requirementItem,
+                        key: 'property',
+                        dataObject: equipPrerequisite,
                         type: 'equal',
                       },
                     ]}
-                    onChange={setState}
+                    onChange={updateFormData}
                   />
-                  <Input
-                    name={`requirements.equipped.${requirementIndex}.numberEquipped`}
+                  <Input<typeof formData>
+                    name={`prerequisites.equipped.${index}.numberEquipped`}
                     label='Number Equipped'
-                    value={requirementItem?.numberEquipped}
-                    onChange={setState}
+                    value={equipPrerequisite.numberEquipped}
+                    onChange={updateFormData}
                   />
                   <Group
                     className={sprinkles({ height: 'size-full' })}
@@ -343,26 +342,22 @@ const Requirements = ({ state, setState }: { state: any; setState: (arg: Reducer
                       style='unstyled'
                       className={clsx(form_add_button, equipment_sub_group_button)}
                       onClick={() =>
-                        setState({
-                          type: 'added',
-                          target: {
-                            name: `requirements.equipped`,
-                          },
+                        updateFormData({
+                          type: 'add',
+                          path: `prerequisites.equipped`,
                         })
                       }
                     >
                       <TbPlus />
                     </Button>
-                    {requirementIndex !== 0 && (
+                    {index !== 0 && (
                       <Button
                         style='unstyled'
                         className={clsx(form_remove_button, equipment_sub_group_button)}
                         onClick={() => {
-                          setState({
-                            type: 'removed',
-                            target: {
-                              name: `requirements.equipped.${requirementIndex}`,
-                            },
+                          updateFormData({
+                            type: 'remove',
+                            path: `prerequisites.equipped.${index}`,
                           })
                         }}
                       >
@@ -374,53 +369,65 @@ const Requirements = ({ state, setState }: { state: any; setState: (arg: Reducer
               ))}
             </>
           )}
-          {state?.requirements?.options?.some((requirementItem: any) => requirementItem.name === 'notEquipped') && (
+          {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.notEquipped) && (
             <>
               <Divider label={'Not Equipped'} />
-              {state?.requirements?.notEquipped?.map((requirementItem: any, requirementIndex: number) => (
-                <Row className={sprinkles({ mb: 'space-3' })} key={requirementIndex}>
-                  <Dropdown
-                    name={`requirements.notEquipped.${requirementIndex}.category`}
-                    value={requirementItem?.category}
+              {formData?.prerequisites?.notEquipped?.map((equipPrerequisite, index) => (
+                <Row className={sprinkles({ mb: 'space-3' })} key={index}>
+                  <Dropdown<typeof formData>
+                    name={`prerequisites.notEquipped.${index}.category`}
+                    value={equipPrerequisite.category}
                     label='Item Category'
-                    options={builders.items.category}
-                    onChange={setState}
+                    options={system.equipment.categories}
+                    onChange={updateFormData}
                   />
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     multiSelect={true}
-                    name={`requirements.notEquipped.${requirementIndex}.properties.type`}
-                    value={requirementItem?.properties?.type}
+                    name={`prerequisites.notEquipped.${index}.properties`}
+                    value={equipPrerequisite.properties}
                     label='Item Property'
-                    options={items as DropdownOptionType[]}
-                    filter={[
+                    options={equipment.map((equipment) => {
+                      return {
+                        label: equipment.label,
+                        value: equipment.value,
+                        id: equipment.id,
+                      }
+                    })}
+                    filters={[
                       {
-                        key: 'category._id',
-                        object: requirementItem,
+                        key: 'category',
+                        dataObject: equipPrerequisite,
                         type: 'equal',
-                        mapKey: 'property.type',
+                        mapKey: 'properties',
                       },
                     ]}
-                    onChange={setState}
+                    onChange={updateFormData}
                   />
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     multiSelect={true}
-                    name={`requirements.notEquipped.${requirementIndex}.items.type`}
+                    name={`prerequisites.notEquipped.${index}.equipment`}
                     label='Item type'
-                    value={requirementItem?.items?.type}
-                    options={items as DropdownOptionType[]}
-                    filter={[
+                    value={equipPrerequisite.equipment}
+                    options={equipment.map((equipment) => {
+                      return {
+                        label: equipment.label,
+                        value: equipment.value,
+                        id: equipment.id,
+                      }
+                    })}
+                    filters={[
                       {
-                        key: 'category._id',
-                        object: requirementItem,
+                        key: 'category.id',
+                        dataObject: equipPrerequisite,
                         type: 'equal',
                       },
                       {
-                        key: 'property.type',
-                        object: requirementItem,
+                        key: 'properties',
+                        dataObject: equipPrerequisite,
                         type: 'equal',
                       },
                     ]}
-                    onChange={setState}
+                    onChange={updateFormData}
                   />
                   <Group
                     className={sprinkles({ height: 'size-full' })}
@@ -431,26 +438,22 @@ const Requirements = ({ state, setState }: { state: any; setState: (arg: Reducer
                       style='unstyled'
                       className={clsx(form_add_button, equipment_sub_group_button)}
                       onClick={() =>
-                        setState({
-                          type: 'added',
-                          target: {
-                            name: `requirements.notEquipped`,
-                          },
+                        updateFormData({
+                          type: 'add',
+                          path: `prerequisites.notEquipped`,
                         })
                       }
                     >
                       <TbPlus />
                     </Button>
-                    {requirementIndex !== 0 && (
+                    {index !== 0 && (
                       <Button
                         style='unstyled'
                         className={clsx(form_remove_button, equipment_sub_group_button)}
                         onClick={() => {
-                          setState({
-                            type: 'removed',
-                            target: {
-                              name: `requirements.notEquipped.${requirementIndex}`,
-                            },
+                          updateFormData({
+                            type: 'remove',
+                            path: `prerequisites.notEquipped.${index}`,
                           })
                         }}
                       >
@@ -468,4 +471,4 @@ const Requirements = ({ state, setState }: { state: any; setState: (arg: Reducer
   )
 }
 
-export default Requirements
+export default Prerequisites

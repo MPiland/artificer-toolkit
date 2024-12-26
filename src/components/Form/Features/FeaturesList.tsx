@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, use } from 'react'
 import parse from 'html-react-parser'
 import Button from '../../Button/Button'
 import { feature_list, feature_description } from '../Form.css'
@@ -12,54 +12,63 @@ import Input from '../../Input/Input'
 import Row from '../../Row/Row'
 import Collapse from '../../Collapse/Collapse'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useForm } from '../../../hooks/UseForm'
-import { useFeature } from '../../../hooks/UseFeature'
+import FormContext from '../FormContext'
+import FeatureContext from './FeatureContext'
+import { Race } from '../../../../amplify/API'
 
 const FeaturesList = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { formState, setFormState, context, stepIndex, steps } = useForm()
+  const { formData, updateFormData, context, stepIndex, steps } = use(FormContext)
 
-  const { setSubContext, setOldFeatureState, setFeatureIndex, setFeatureState, sectionNames, sectionName } =
-    useFeature()
+  const { setFeatureStep, updateFeatureData, sectionSteps } = use(FeatureContext)
 
   const arrayName = useMemo(
     () => (context.title === 'feats' ? '' : steps[stepIndex].id === 'ancestry' ? ['ancestry', 'options'] : 'features'),
     [context.title, steps, stepIndex]
   )
 
-  const featureArray = useMemo(() => get(formState, arrayName) ?? [], [arrayName, formState])
+  const featureArray = useMemo(() => get(formData, arrayName) ?? [], [arrayName, formData])
 
   // Add feature
   const handleAdd = () => {
     if (featureArray.length > 0) {
-      setFeatureIndex(featureArray?.length)
+      updateFeatureData({ type: 'index', value: featureArray?.length })
     } else {
-      setFeatureIndex(0)
+      updateFeatureData({ type: 'index', value: 0 })
     }
-    setFeatureState({ type: 'reset', target: { value: {} } })
-    setOldFeatureState({})
-    setSubContext('feature')
+    updateFeatureData({ type: 'reset', value: {} })
+    updateFeatureData({ type: 'initialReset', value: {} })
+    setFeatureStep('feature')
   }
 
   // Delete feature
   const handleRemove = (featureIndex: number) => {
-    setFormState({
-      type: 'removed',
-      target: { name: `${arrayName}.${featureIndex}` },
-    })
+    if (context.title !== 'feats') {
+      if (steps[stepIndex].id === 'ancestry') {
+        updateFormData({
+          type: 'remove',
+          path: `ancestry.options.${featureIndex}`,
+        })
+      } else {
+        updateFormData({
+          type: 'remove',
+          path: `features.${featureIndex}`,
+        })
+      }
+    }
   }
 
   // Edit feature
   const handleEdit = (featureIndex: number) => {
-    setFeatureIndex(featureIndex)
-    setFeatureState({
+    updateFeatureData({ type: 'index', value: featureIndex })
+    updateFeatureData({
       type: 'reset',
-      target: { value: featureArray[featureIndex] },
+      value: featureArray[featureIndex],
     })
-    setOldFeatureState(featureArray[featureIndex])
-    setSubContext('feature')
+    updateFeatureData({ type: 'initialReset', value: featureArray[featureIndex] })
+    setFeatureStep('feature')
   }
 
   // Copy feature
@@ -74,23 +83,23 @@ const FeaturesList = () => {
   return (
     <>
       <Group directionVariant='column' alignItemsVariant='start' className={sprinkles({ px: 'space-4' })}>
-        {steps[stepIndex].id === 'ancestry' && sectionName === '' && formState?.ancestry && (
+        {steps[stepIndex].id === 'ancestry' && formData.__typename === 'Race' && formData?.ancestry && (
           <>
             <Row className={sprinkles({ mb: 'space-3' })}>
-              <Input
+              <Input<Race>
                 name='ancestry.value'
                 autoComplete='off'
                 label='Ancestry Name'
-                required={formState?.ancestry?.desc !== '' && formState?.ancestry?.desc != null}
-                value={formState?.ancestry?.value}
+                required={formData?.ancestry?.desc !== '' && formData?.ancestry?.desc != null}
+                value={formData?.ancestry?.value}
                 errorMsg='Name must not be blank'
-                onChange={setFormState}
+                onChange={updateFormData}
               />
             </Row>
             <Collapse className={sprinkles({ width: 'size-full' })}>
               <Collapse.Header title='Ancestry Description' startOpened={context.type === 'new'} />
               <Collapse.Body>
-                <RichTextEditor name='ancestry.desc' onChange={setFormState} value={formState?.ancestry?.desc} />
+                <RichTextEditor<Race> name='ancestry.desc' onChange={updateFormData} value={formData?.ancestry?.desc} />
               </Collapse.Body>
             </Collapse>
           </>
@@ -109,7 +118,7 @@ const FeaturesList = () => {
       <ScrollArea scrollDirection='vertical'>
         {featureArray.length > 0 && (
           <div className={feature_list}>
-            <Accordion dataArray={featureArray} setState={setFormState} name='features'>
+            <Accordion<typeof formData> dataArray={featureArray} onChange={updateFormData} name='features'>
               {featureArray?.map((featureItem: any, featureIndex: number) => (
                 <Accordion.Wrapper key={featureIndex} itemId={String(featureIndex)}>
                   <Accordion.Header
@@ -140,15 +149,15 @@ const FeaturesList = () => {
                   <hr />
                   <Accordion.Footer>
                     <Group justifyContentVariant='start'>
-                      {sectionNames.map((sectionName, sectionIndex: number) => {
+                      {sectionSteps.map((sectionStep, sectionIndex) => {
                         return (
                           <span key={sectionIndex} className={sprinkles({ me: 'space-2' })}>
-                            {featureItem[sectionName]?.length > 0 ? (
+                            {featureItem[sectionStep]?.length > 0 ? (
                               <strong>
-                                {startCase(sectionName.charAt(0))}: {featureItem[sectionName]?.length}
+                                {startCase(sectionStep.charAt(0))}: {featureItem[sectionStep]?.length}
                               </strong>
                             ) : (
-                              `${startCase(sectionName.charAt(0))}: 0`
+                              `${startCase(sectionStep.charAt(0))}: 0`
                             )}
                           </span>
                         )

@@ -1,0 +1,5 @@
+type Query {
+  listMasterSpells: [Spell!]
+  getSpell(id: ID!): Spell
+  listSpells(limit: Int, nextToken: String, systemId: String!): SpellConnection!
+}

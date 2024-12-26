@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
+    "value": "armor",
+    "label": "Armor"
+  },
+  {
+    "id": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+    "value": "weapon",
+    "label": "Weapon"
+  },
+  {
+    "id": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+    "value": "adventuringGear",
+    "label": "Adventuring Gear"
+  },
+  {
+    "id": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
+    "value": "tool",
+    "label": "Tool"
+  },
+  {
+    "id": "81990afe-e34a-48cb-aece-5e7c46088615",
+    "value": "shield",
+    "label": "Shield"
+  },
+  {
+    "id": "c246e38a-8247-45ef-b7d9-65f0f74d261c",
+    "value": "waterVehicle",
+    "label": "Water Vehicle"
+  },
+  {
+    "id": "5af95ce6-0c76-4673-bc56-5c3d1df03bad",
+    "value": "mount",
+    "label": "Mount"
+  },
+  {
+    "id": "00e0cca8-b2a4-4b48-bf54-d7db7d0ed5da",
+    "value": "currency",
+    "label": "Currency"
+  }
+]

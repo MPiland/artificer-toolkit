@@ -1,88 +1,66 @@
-import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { generateClient } from 'aws-amplify/data'
+import { listFeats } from '../../../amplify/graphql/queries'
+import { createFeat, deleteFeat, updateFeat } from '../../../amplify/graphql/mutations'
+import { FeatInput, Feat } from '../../../amplify/API'
+import useSystemPref from '../../hooks/useSystemPref'
+
+const client = generateClient()
 
 const featsKeys = {
   all: ['feats'] as const,
   lists: () => [...featsKeys.all, 'list'] as const,
+  single: (id: string) => [...featsKeys.all, 'single', id] as const,
 }
 
-export const useGetFeatsQuery = ({ limit, filters }: { limit?: number; filters?: any } = {}) => {
-  return useInfiniteQuery({
-    queryKey: [...featsKeys.all, limit],
-    queryFn: async ({ pageParam }) => {
-      // 1. Construct the base URL
-      let url = '/feats'
+export const useListFeatsQuery = () => {
+  const [systemPref] = useSystemPref()
 
-      // 2. Create URLSearchParams object
-      const searchParams = new URLSearchParams()
+  const query = useSuspenseQuery({
+    queryKey: featsKeys.lists(),
+    queryFn: async () => {
+      try {
+        const {
+          data: {
+            listFeats: { items },
+          },
+        } = await client.graphql({
+          query: listFeats,
+          variables: {
+            systemId: systemPref,
+          },
+        })
 
-      // 3. Append limit parameters
-      if (limit) {
-        searchParams.append('page', pageParam.toString())
-        searchParams.append('limit', limit.toString())
+        return items
+      } catch (err) {
+        console.log({ err })
       }
-
-      // 4. Append filter parameters
-      if (filters) {
-        for (const key in filters) {
-          if (filters[key]) {
-            searchParams.append(key, filters[key])
-          }
-        }
-      }
-
-      // 5. Append search parameters to the URL
-      if (Array.from(searchParams).length > 0) {
-        url += `?${searchParams.toString()}`
-      }
-
-      const result = await baseQueryWithReauth(url, {
-        method: 'GET',
-      })
-
-      const {
-        feats: data,
-        totalPages,
-        currentPage,
-      }: { feats: any; totalPages: number; currentPage: number } = await result.json() // Assuming your API returns total pages
-
-      return { data, totalPages, currentPage }
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
-    },
-    getPreviousPageParam: (firstPage) => {
-      return firstPage.currentPage > 1 ? firstPage.currentPage - 1 : undefined
-    },
-    maxPages: 2,
-    select: (data) => {
-      if (!limit) {
-        return data.pages.flatMap((page) => page.data)
-      }
-      return data
     },
   })
+
+  return query
 }
 
 export const useAddNewFeatMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (feat: any) => {
-      const result = await baseQueryWithReauth('/feats', {
-        method: 'POST',
-        body: JSON.stringify(feat),
+    mutationFn: async (feat: FeatInput) => {
+      const {
+        data: { createFeat: newFeat },
+      } = await client.graphql({
+        query: createFeat,
+        variables: {
+          input: feat,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return newFeat
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(featsKeys.all, (previous: any) => {
-        if (!previous) return [...data]
-        return [...previous, data]
+    onSuccess: (feat: Feat) => {
+      queryClient.setQueryData(featsKeys.all, (previous: Feat[]) => {
+        if (!previous) return [feat]
+        return [...previous, feat]
       })
     },
   })
@@ -92,19 +70,20 @@ export const useUpdateFeatMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (feat: any) => {
-      const result = await baseQueryWithReauth('/feats', {
-        method: 'POST',
-        body: JSON.stringify(feat),
+    mutationFn: async (feat: FeatInput) => {
+      const {
+        data: { updateFeat: updatedFeat },
+      } = await client.graphql({
+        query: updateFeat,
+        variables: {
+          input: feat,
+        },
       })
-
-      const data = await result.json()
-
-      return data
+      return updatedFeat
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(featsKeys.all, (previous: any[]) =>
-        previous.map((feat) => (feat._id === data._id ? data : feat))
+    onSuccess: (feat: Feat) => {
+      queryClient.setQueryData(featsKeys.all, (previous: Feat[]) =>
+        previous.map((featKey) => (featKey.id === feat.id ? feat : featKey))
       )
     },
   })
@@ -115,18 +94,21 @@ export const useDeleteFeatMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await baseQueryWithReauth('/feats', {
-        method: 'DELETE',
-        body: JSON.stringify(id),
+      const {
+        data: { deleteFeat: deletedId },
+      } = await client.graphql({
+        query: deleteFeat,
+        variables: {
+          id,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return deletedId
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(featsKeys.all, (previous: any[]) => {
-        return previous.filter((feat) => feat._id !== data._id)
+    onSuccess: (id: string) => {
+      queryClient.setQueryData(featsKeys.all, (previous: Feat[]) => {
+        const feat = previous.find((featKey) => featKey.id === id)
+        return previous.filter((featKey) => featKey.id !== feat.id)
       })
     },
   })

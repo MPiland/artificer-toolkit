@@ -1,18 +1,32 @@
-import Spinner from '../../../Spinner/Spinner'
 import RaceFeatures from './RaceFeatures'
-import { useForm } from '../../../../hooks/UseForm'
 import RaceSelection from './RaceSelection'
-import { useIsFetching } from '@tanstack/react-query'
+import { use } from 'react'
+import FormContext from '../../FormContext'
+import { Character } from '../../../../../amplify/API'
+import { useListRacesQuery } from '../../../../features/races/racesApi'
+import { UpdateState } from '../../../../types/form'
 
 const Races = () => {
-  const isLoading = useIsFetching() > 0
+  const { formData, updateFormData, changeRace } = use(FormContext) as {
+    formData: Character
+    changeRace: boolean
+    updateFormData: (arg: UpdateState<Character>) => void
+  }
 
-  const { formState, changeRace } = useForm()
+  const { data: races } = useListRacesQuery()
 
-  return isLoading ? (
-    <Spinner />
-  ) : formState?.race != null && !changeRace ? (
-    <RaceFeatures race={formState?.race} />
+  const fullRace = races.find((race) => race.id === formData.race)
+  const raceLineages = races.filter((race) => fullRace.lineage.map((lineage) => race.id === lineage))
+  const fullAncestry = fullRace?.ancestry?.options?.find((option) => option.id === formData?.ancestry.id)
+
+  return formData?.race != null && !changeRace ? (
+    <RaceFeatures
+      formData={formData}
+      fullRace={fullRace}
+      raceLineages={raceLineages}
+      fullAncestry={fullAncestry}
+      updateFormData={updateFormData}
+    />
   ) : (
     <RaceSelection />
   )

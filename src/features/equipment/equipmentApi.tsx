@@ -1,88 +1,66 @@
-import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { generateClient } from 'aws-amplify/data'
+import { listEquipment } from '../../../amplify/graphql/queries'
+import { createEquipment, deleteEquipment, updateEquipment } from '../../../amplify/graphql/mutations'
+import { EquipmentInput, Equipment } from '../../../amplify/API'
+import useSystemPref from '../../hooks/useSystemPref'
 
-const itemsKeys = {
-  all: ['items'] as const,
-  lists: () => [...itemsKeys.all, 'list'] as const,
+const client = generateClient()
+
+const equipmentKeys = {
+  all: ['equipment'] as const,
+  lists: () => [...equipmentKeys.all, 'list'] as const,
+  single: (id: string) => [...equipmentKeys.all, 'single', id] as const,
 }
 
-export const useGetEquipmentQuery = ({ limit, filters }: { limit?: number; filters?: any } = {}) => {
-  return useInfiniteQuery({
-    queryKey: [...itemsKeys.all, limit],
-    queryFn: async ({ pageParam }) => {
-      // 1. Construct the base URL
-      let url = '/equipment'
+export const useListEquipmentQuery = () => {
+  const [systemPref] = useSystemPref()
 
-      // 2. Create URLSearchParams object
-      const searchParams = new URLSearchParams()
+  const query = useSuspenseQuery({
+    queryKey: equipmentKeys.lists(),
+    queryFn: async () => {
+      try {
+        const {
+          data: {
+            listEquipment: { items },
+          },
+        } = await client.graphql({
+          query: listEquipment,
+          variables: {
+            systemId: systemPref,
+          },
+        })
 
-      // 3. Append limit parameters
-      if (limit) {
-        searchParams.append('page', pageParam.toString())
-        searchParams.append('limit', limit.toString())
+        return items
+      } catch (err) {
+        console.log({ err })
       }
-
-      // 4. Append filter parameters
-      if (filters) {
-        for (const key in filters) {
-          if (filters[key]) {
-            searchParams.append(key, filters[key])
-          }
-        }
-      }
-
-      // 5. Append search parameters to the URL
-      if (Array.from(searchParams).length > 0) {
-        url += `?${searchParams.toString()}`
-      }
-
-      const result = await baseQueryWithReauth(url, {
-        method: 'GET',
-      })
-
-      const {
-        items: data,
-        totalPages,
-        currentPage,
-      }: { items: any; totalPages: number; currentPage: number } = await result.json() // Assuming your API returns total pages
-
-      return { data, totalPages, currentPage }
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
-    },
-    getPreviousPageParam: (firstPage) => {
-      return firstPage.currentPage > 1 ? firstPage.currentPage - 1 : undefined
-    },
-    maxPages: 2,
-    select: (data) => {
-      if (!limit) {
-        return data.pages.flatMap((page) => page.data)
-      }
-      return data
     },
   })
+
+  return query
 }
 
 export const useAddNewEquipmentMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (item: any) => {
-      const result = await baseQueryWithReauth('/equipment', {
-        method: 'POST',
-        body: JSON.stringify(item),
+    mutationFn: async (equipment: EquipmentInput) => {
+      const {
+        data: { createEquipment: newEquipment },
+      } = await client.graphql({
+        query: createEquipment,
+        variables: {
+          input: equipment,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return newEquipment
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(itemsKeys.all, (previous: any) => {
-        if (!previous) return [...data]
-        return [...previous, data]
+    onSuccess: (equipment: Equipment) => {
+      queryClient.setQueryData(equipmentKeys.all, (previous: Equipment[]) => {
+        if (!previous) return [equipment]
+        return [...previous, equipment]
       })
     },
   })
@@ -92,19 +70,20 @@ export const useUpdateEquipmentMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (item: any) => {
-      const result = await baseQueryWithReauth('/equipment', {
-        method: 'POST',
-        body: JSON.stringify(item),
+    mutationFn: async (equipment: EquipmentInput) => {
+      const {
+        data: { updateEquipment: updatedEquipment },
+      } = await client.graphql({
+        query: updateEquipment,
+        variables: {
+          input: equipment,
+        },
       })
-
-      const data = await result.json()
-
-      return data
+      return updatedEquipment
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(itemsKeys.all, (previous: any[]) =>
-        previous.map((item) => (item._id === data._id ? data : item))
+    onSuccess: (equipment: Equipment) => {
+      queryClient.setQueryData(equipmentKeys.all, (previous: Equipment[]) =>
+        previous.map((equipmentKey) => (equipmentKey.id === equipment.id ? equipment : equipmentKey))
       )
     },
   })
@@ -115,18 +94,21 @@ export const useDeleteEquipmentMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await baseQueryWithReauth('/equipment', {
-        method: 'DELETE',
-        body: JSON.stringify(id),
+      const {
+        data: { deleteEquipment: deletedId },
+      } = await client.graphql({
+        query: deleteEquipment,
+        variables: {
+          id,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return deletedId
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(itemsKeys.all, (previous: any[]) => {
-        return previous.filter((item) => item._id !== data._id)
+    onSuccess: (id: string) => {
+      queryClient.setQueryData(equipmentKeys.all, (previous: Equipment[]) => {
+        const equipment = previous.find((equipmentKey) => equipmentKey.id === id)
+        return previous.filter((equipmentKey) => equipmentKey.id !== equipment.id)
       })
     },
   })

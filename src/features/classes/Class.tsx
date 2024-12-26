@@ -1,6 +1,6 @@
 import parse from 'html-react-parser'
 import { Fragment } from 'react'
-import { useGetClassesQuery } from './classesApi'
+import { useListClassesQuery } from './classesApi'
 import { useLocation } from 'react-router-dom'
 import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
@@ -118,7 +118,7 @@ const Class = () => {
 
   const uClass = location.state.item
 
-  const { data: subclass } = useGetClassesQuery(location.state?.item?.id)
+  const { data: subclass } = useListClassesQuery(location.state?.item?.id)
 
   const scrollToElement = (e: MouseEvent, id: string) => {
     const element = document.getElementById(`${id}`)

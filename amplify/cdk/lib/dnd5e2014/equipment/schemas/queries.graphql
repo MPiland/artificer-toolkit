@@ -1,0 +1,5 @@
+type Query {
+  listMasterEquipment: [Equipment!]
+  getEquipment(id: ID!): Equipment
+  listEquipment(limit: Int, nextToken: String, systemId: String!): EquipmentConnection!
+}

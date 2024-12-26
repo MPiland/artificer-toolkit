@@ -59,7 +59,7 @@ const Delete = () => {
         </Modal.Content>
         <Modal.Footer>
           <Group directionVariant='row' justifyContentVariant='spaceBetween'>
-            <Button color='default' type='button' onClick={handleCancel}>
+            <Button color='main' type='button' onClick={handleCancel}>
               Cancel
             </Button>
             <Button color='danger' type='button' onClick={handleSubmit}>

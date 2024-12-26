@@ -1,80 +1,110 @@
-import { useGetRacesQuery } from '../../features/races/racesApi'
-import { useGetClassesQuery } from '../../features/classes/classesApi'
-import { useGetEquipmentQuery } from '../../features/equipment/equipmentApi'
+import { useListRacesQuery } from '../../features/races/racesApi'
+import { useListClassesQuery } from '../../features/classes/classesApi'
+import { useListEquipmentQuery } from '../../features/equipment/equipmentApi'
 import { useNavigate } from 'react-router-dom'
 import Modal from '../Modal/Modal'
-import { useEffect, useReducer, useState } from 'react'
-import formReducer from '../../hooks/useReducer'
+import { useEffect, useState, use } from 'react'
 import Row from '../Row/Row'
 import Dropdown from '../Dropdown/Dropdown'
-import { DropdownOptionType } from '../../utils/types'
 import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
-import { useForm } from '../../hooks/UseForm'
+import FormContext from '../Form/FormContext'
+import { Class, Equipment, Feature, Race } from '../../../amplify/API'
+import { FormDataType, UpdateState } from '../../types/form'
+
+type CopySelection = {
+  filter: Race['id'] | Class['id'] | Equipment['id']
+  filterBy: string
+  feature: Feature['id']
+}
 
 const Copy = () => {
-  const { formState, setFormState } = useForm()
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: FormDataType
+    updateFormData: (arg: UpdateState<FormDataType>) => void
+  }
   const navigate = useNavigate()
 
-  const [selection, setSelection] = useReducer(formReducer, {})
-
+  const [selection, setSelection] = useState<CopySelection>(null)
   const [features, setFeatures] = useState<any[]>([])
-
   const [selectedFeature, setSelectedFeature] = useState<any>()
 
-  const { data: races } = useGetRacesQuery() as { data: any[] }
-  const { data: classes } = useGetClassesQuery() as { data: any[] }
-  const { data: items } = useGetEquipmentQuery() as { data: any[] }
+  const { data: races } = useListRacesQuery()
+  const { data: classes } = useListClassesQuery()
+  const { data: equipment } = useListEquipmentQuery()
 
   useEffect(() => {
-    if (races && classes && items && !features) {
-      const racesFeatures: any[] = races.flatMap((race: any) => race.feature.map((featureItem: any) => featureItem))
-      const classesFeatures: any[] = classes.flatMap((uClass: any) =>
-        uClass.feature.map((featureItem: any) => featureItem)
-      )
-      const itemsFeatures: any[] = items.flatMap((item: any) =>
-        item.feature ? item.feature.map((featureItem: any) => featureItem) : []
+    if (races && classes && equipment && !features) {
+      const racesFeatures = races.flatMap((race) => race.features.map((feature) => feature))
+      const classesFeatures = classes.flatMap((uClass) => uClass.features.map((feature) => feature))
+      const equipmentFeatures = equipment.flatMap((equipment) =>
+        equipment.features ? equipment.features.map((feature) => feature) : []
       )
 
-      const featureArray: any[] = ([] as any[]).concat(racesFeatures, classesFeatures, itemsFeatures)
+      const featureArray = ([] as Feature[]).concat(racesFeatures, classesFeatures, equipmentFeatures)
 
       setFeatures(featureArray)
     }
 
     if (selection.filter) {
-      if (selection.filterBy?.name === 'races') {
-        const raceFeature: any[] = (races as any[])?.find((race: any) => race._id === selection.filter._id).features
+      if (selection.filterBy === 'races') {
+        const raceFeature = races?.find((race) => race.id === selection.filter).features
 
         setFeatures(raceFeature)
       }
-      if (selection.filterBy?.name === 'items') {
-        const itemFeature: any[] = (items as any[])?.find((race: any) => race._id === selection.filter._id).features
+      if (selection.filterBy === 'equipment') {
+        const equipmentFeature = equipment?.find((equipment) => equipment.id === selection.filter).features
 
-        setFeatures(itemFeature)
+        setFeatures(equipmentFeature)
       }
-      if (selection.filterBy?.name === 'classes') {
-        const classFeature: any[] = (classes as any[])?.find((race: any) => race._id === selection.filter._id).features
+      if (selection.filterBy === 'classes') {
+        const classFeature = classes?.find((uClass) => uClass.id === selection.filter).features
 
         setFeatures(classFeature)
       }
     }
 
     if (selection.feature) {
-      const feature = features?.find((feature: any) => feature._id === selection.feature._id)
+      const feature = features?.find((feature) => feature._id === selection.feature)
 
       setSelectedFeature(feature)
     }
-  }, [races, classes, items, selection.filter, features, selection.filterBy?.name, selection.feature])
+  }, [races, classes, equipment, selection.filter, features, selection.filterBy, selection.feature])
+
+  const handleSetFilterBy = (e: UpdateState<CopySelection>) => {
+    if (e.type === 'update') {
+      setSelection((prev) => ({ ...prev, filterBy: e.value }))
+    }
+  }
+
+  const handleSetFilter = (e: UpdateState<CopySelection>) => {
+    if (e.type === 'update') {
+      setSelection((prev) => ({ ...prev, filter: e.value }))
+    }
+  }
+
+  const handleSetFeature = (e: UpdateState<CopySelection>) => {
+    if (e.type === 'update') {
+      setSelection((prev) => ({ ...prev, feature: e.value }))
+    }
+  }
 
   const handleSelect = () => {
-    const featureIndex = formState.features?.length ?? 0
-    setFormState({
-      target: {
-        name: `features.${featureIndex}`,
+    if (
+      formData.__typename === 'Equipment' ||
+      formData.__typename === 'Race' ||
+      formData.__typename === 'Feat' ||
+      formData.__typename === 'Class' ||
+      formData.__typename === 'Background'
+    ) {
+      const featureIndex = formData.features?.length ?? 0
+      updateFormData({
+        type: 'update',
+        path: `features.${featureIndex}`,
         value: selectedFeature,
-      },
-    })
-    navigate(-1)
+      })
+      navigate(-1)
+    }
   }
 
   return (
@@ -83,72 +113,62 @@ const Copy = () => {
         <Modal.Header title='Copy Feature' />
         <Modal.Content>
           <Row cols={{ base: 2, lg: 2, md: 2 }}>
-            <Dropdown
+            <Dropdown<CopySelection>
               options={[
                 {
-                  name: 'races',
-                  value: 'Races',
-                  _id: null,
+                  value: 'races',
+                  label: 'Races',
+                  id: 'races',
                 },
                 {
-                  name: 'classes',
-                  value: 'Classes',
-                  _id: null,
+                  value: 'classes',
+                  label: 'Classes',
+                  id: 'classes',
                 },
                 {
-                  name: 'items',
-                  value: 'Items',
-                  _id: null,
+                  value: 'equipment',
+                  label: 'Equipment',
+                  id: 'equipment',
                 },
               ]}
               label='Filter by...'
-              onChange={setSelection}
+              onChange={handleSetFilterBy}
               name='filterBy'
               value={selection?.filterBy}
             />
-            {selection?.filterBy?.name === 'races' && (
+            {selection?.filterBy === 'races' && (
               <Dropdown
-                options={races as unknown as DropdownOptionType[]}
+                options={races}
                 label='Race'
-                onChange={setSelection}
+                onChange={handleSetFilter}
                 name='filter'
                 value={selection.filter}
               />
             )}
-            {selection?.filterBy?.name === 'classes' && (
+            {selection?.filterBy === 'classes' && (
               <Dropdown
-                options={classes as unknown as DropdownOptionType[]}
+                options={classes}
                 label='Class'
-                onChange={setSelection}
+                onChange={handleSetFilter}
                 name='filter'
                 value={selection.filter}
               />
             )}
-            {selection?.filterBy?.name === 'items' && (
+            {selection?.filterBy === 'equipment' && (
               <Dropdown
-                options={items as unknown as DropdownOptionType[]}
-                label='Item'
-                onChange={setSelection}
+                options={equipment}
+                label='Equipment'
+                onChange={handleSetFilter}
                 name='filter'
                 value={selection.filter}
               />
             )}
             <Dropdown
               label='Feature'
-              onChange={setSelection}
+              onChange={handleSetFeature}
               name='feature'
               value={selection.feature}
-              options={features
-                ?.filter((featureItem: any) =>
-                  selection.race
-                    ? selection.race.feature?.some((raceFeature: any) => raceFeature._id === featureItem._id)
-                    : featureItem
-                )
-                .filter((featureItem: any) =>
-                  selection.class
-                    ? selection.class.feature?.some((raceFeature: any) => raceFeature._id === featureItem._id)
-                    : featureItem
-                )}
+              options={features}
             />
           </Row>
           <Button

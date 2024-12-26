@@ -1,40 +1,41 @@
+import { use } from 'react'
 import FeaturesList from './FeaturesList'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useFeature } from '../../../hooks/UseFeature'
+import FeatureContext from './FeatureContext'
 
 const FeatureWrapper = () => {
   const {
-    featureState,
-    subContext,
-    optionState,
-    subfeatureState,
+    featureData,
+    featureStep,
+    optionData,
+    subfeatureData,
     subfeatureIndex,
-    sectionName,
-    sectionSteps,
+    sectionStep,
+    sectionStepComponent,
     featureSteps,
-  } = useFeature()
+  } = use(FeatureContext)
 
   const featureTitle =
-    featureState.value != null &&
-    featureState.value !== '' &&
-    `${subContext === 'subfeature' ? 'Sub-feature' : subContext} (${
-      subContext === 'option' ? (optionState?.value ?? '') : ((subContext === 'feature' && featureState?.value) ?? '')
+    featureData.value != null &&
+    featureData.value !== '' &&
+    `${featureStep === 'subfeature' ? 'Subfeature' : featureStep} (${
+      featureStep === 'option' ? optionData?.value ?? '' : (featureStep === 'feature' && featureData?.value) ?? ''
     }${
-      subContext === 'subfeature'
-        ? subfeatureState.value
-          ? ` - ${subfeatureState.value}`
+      featureStep === 'subfeature'
+        ? subfeatureData.value
+          ? ` - ${subfeatureData.value}`
           : ` - Sub-feature ${subfeatureIndex + 1}`
         : ''
     })`
 
   return (
     <>
-      {subContext === '' ? (
+      {featureStep == null ? (
         <FeaturesList />
       ) : (
         <>
           <h2 className={sprinkles({ mb: 'space-2', px: 'space-4' })}>{featureTitle}</h2>
-          {sectionName !== '' ? sectionSteps[sectionName] : featureSteps[subContext]}
+          {sectionStep != null ? sectionStepComponent[sectionStep] : featureSteps[featureStep]}
         </>
       )}
     </>

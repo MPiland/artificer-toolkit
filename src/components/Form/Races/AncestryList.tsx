@@ -2,106 +2,105 @@ import Accordion from '../../Accordion/Accordion'
 import Group from '../../Group/Group'
 import Input from '../../Input/Input'
 import Button from '../../Button/Button'
-import { useForm } from '../../../hooks/UseForm'
+import { use } from 'react'
+import FormContext from '../FormContext'
 import Collapse from '../../Collapse/Collapse'
 import Row from '../../Row/Row'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { sprinkles } from '../../../css/sprinkles.css'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { useMemo } from 'react'
-import { get, startCase } from 'lodash'
+import { startCase } from 'lodash'
 import { feature_description, feature_list } from '../Form.css'
 import parse from 'html-react-parser'
-import { useFeature } from '../../../hooks/UseFeature'
+import { Race } from '../../../../amplify/API'
+import { Context, SectionName, UpdateState } from '../../../types/form'
+import FeatureContext from '../Features/FeatureContext'
 
 const AncestryList = () => {
-  const { setFormState, formState, context } = useForm()
+  const { updateFormData, formData, context } = use(FormContext) as {
+    formData: Race
+    updateFormData: (state: UpdateState<Race>) => void
+    context: Context
+  }
 
-  const { setFeatureIndex, setFeatureState, setOldFeatureState, setSubContext, sectionNames } = useFeature()
+  const { updateAncestryData, setFeatureStep, sectionSteps } = use(FeatureContext)
 
   // Add feature
   const handleAddAncestry = () => {
-    setFormState({
-      target: {
-        name: 'ancestry',
-        value: {},
-      },
+    updateFormData({
+      type: 'update',
+      path: 'ancestry',
+      value: {},
     })
   }
 
-  const optionArray = useMemo(() => get(formState, 'ancestry.options'), [formState])
+  const optionArray = useMemo(() => formData.ancestry.options, [formData])
 
   // Add feature
   const handleAddOption = () => {
     if (optionArray && optionArray.length > 0) {
-      setFeatureIndex(optionArray?.length)
+      updateAncestryData({ type: 'index', value: optionArray?.length })
     } else {
-      setFeatureIndex(0)
+      updateAncestryData({ type: 'index', value: 0 })
     }
-    setFeatureState({ type: 'reset', target: { value: {} } })
-    setOldFeatureState({})
-    setSubContext('feature')
+    updateAncestryData({ type: 'reset', value: {} })
+    updateAncestryData({ type: 'initialReset', value: {} })
+    setFeatureStep('feature')
   }
 
   // Delete feature
   const handleRemoveOption = (optionIndex: number) => {
-    setFormState({
-      type: 'removed',
-      target: { name: `ancestry.options.${optionIndex}` },
+    updateFormData({
+      type: 'remove',
+      path: `ancestry.options.${optionIndex}`,
     })
   }
 
   // Edit feature
   const handleEditOption = (optionIndex: number) => {
     if (optionArray) {
-      setFeatureIndex(optionIndex)
-      setFeatureState({
+      updateAncestryData({ type: 'index', value: optionIndex })
+      updateAncestryData({
         type: 'reset',
-        target: { value: optionArray[optionIndex] },
+        value: optionArray[optionIndex],
       })
-      setOldFeatureState(optionArray[optionIndex])
-      setSubContext('feature')
+      updateAncestryData({
+        type: 'initialReset',
+        value: optionArray[optionIndex],
+      })
+      setFeatureStep('feature')
     }
   }
 
   return (
     <>
       <Group directionVariant='column' alignItemsVariant='start' className={sprinkles({ px: 'space-4' })}>
-        {!formState?.ancestry && (
-          <Button
-            color='primary'
-            style='outline'
-            onClick={handleAddAncestry}
-            className={sprinkles({ mb: 'space-3' })}
-          >
+        {!formData?.ancestry && (
+          <Button color='primary' style='outline' onClick={handleAddAncestry} className={sprinkles({ mb: 'space-3' })}>
             Add Ancestry
           </Button>
         )}
-        {formState?.ancestry && (
+        {formData?.ancestry && (
           <>
             <Row className={sprinkles({ mb: 'space-3' })}>
               <Input
                 name='ancestry.value'
                 autoComplete='off'
                 label='Ancestry Name'
-                required={formState?.ancestry?.desc !== '' && formState?.ancestry?.desc != null}
-                value={formState?.ancestry?.value}
+                required={formData?.ancestry?.desc !== '' && formData?.ancestry?.desc != null}
+                value={formData?.ancestry?.value}
                 errorMsg='Name must not be blank'
-                onChange={setFormState}
+                onChange={updateFormData}
               />
             </Row>
             <Collapse className={sprinkles({ width: 'size-full' })}>
               <Collapse.Header title='Ancestry Description' startOpened={context.type === 'new'} />
               <Collapse.Body>
-                <RichTextEditor name='ancestry.desc' onChange={setFormState} value={formState?.ancestry?.desc} />
+                <RichTextEditor name='ancestry.desc' onChange={updateFormData} value={formData?.ancestry?.desc} />
               </Collapse.Body>
             </Collapse>
-            <Button
-              color='primary'
-              style='outline'
-              onClick={handleAddOption}
-              className={sprinkles({ mb: 'space-3' })}
-            >
+            <Button color='primary' style='outline' onClick={handleAddOption} className={sprinkles({ mb: 'space-3' })}>
               Add Option
             </Button>
           </>
@@ -110,8 +109,8 @@ const AncestryList = () => {
       <ScrollArea scrollDirection='vertical'>
         {optionArray && optionArray.length > 0 && (
           <div className={feature_list}>
-            <Accordion dataArray={optionArray} setState={setFormState} name='options'>
-              {optionArray?.map((option: any, optionIndex: number) => (
+            <Accordion dataArray={optionArray} onChange={updateFormData} name='ancestry.options'>
+              {optionArray?.map((option, optionIndex) => (
                 <Accordion.Wrapper key={optionIndex} itemId={String(optionIndex)}>
                   <Accordion.Header
                     handleRemove={() => handleRemoveOption(optionIndex)}
@@ -129,19 +128,19 @@ const AncestryList = () => {
                   <hr />
                   <Accordion.Footer>
                     <Group justifyContentVariant='start'>
-                      {sectionNames.map((sectionName, sectionIndex: number) => {
-                        return (
-                          <span key={sectionIndex} className={sprinkles({ me: 'space-2' })}>
-                            {option[sectionName]?.length > 0 ? (
+                      {option.features.map((feature, index) =>
+                        sectionSteps.map((sectionStep: Exclude<SectionName, 'ancestries'>, sectionIndex) => (
+                          <span key={`${sectionIndex}` && `${index}`} className={sprinkles({ me: 'space-2' })}>
+                            {feature[sectionStep]?.length > 0 ? (
                               <strong>
-                                {startCase(sectionName.charAt(0))}: {option[sectionName]?.length}
+                                {startCase(sectionStep.charAt(0))}: {feature[sectionStep]?.length}
                               </strong>
                             ) : (
-                              `${startCase(sectionName.charAt(0))}: 0`
+                              `${startCase(sectionStep.charAt(0))}: 0`
                             )}
                           </span>
-                        )
-                      })}
+                        ))
+                      )}
                     </Group>
                   </Accordion.Footer>
                 </Accordion.Wrapper>

@@ -2,23 +2,24 @@ import Modal from '../Modal/Modal'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useForm } from '../../hooks/UseForm'
-import { useFeature } from '../../hooks/UseFeature'
+import FormContext from '../Form/FormContext'
+import { use } from 'react'
+import FeatureContext from '../Form/Features/FeatureContext'
 
 const Alert = () => {
   const { alertType } = useParams()
-  const { isFirstStep, isLastStep, setStepIndex, stepIndex, oldFormState } = useForm()
+  const { isFirstStep, isLastStep, setStepIndex, stepIndex, initialFormData } = use(FormContext)
 
   const {
-    subContext,
-    setSubContext,
-    featureStateReset,
-    optionStateReset,
-    subfeatureStateReset,
-    sectionStateReset,
-    sectionName,
-    setSectionName,
-  } = useFeature()
+    featureStep,
+    setFeatureStep,
+    featureDataReset,
+    optionDataReset,
+    subfeatureDataReset,
+    sectionDataReset,
+    sectionStep,
+    setSectionStep,
+  } = use(FeatureContext)
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -27,20 +28,20 @@ const Alert = () => {
 
   const handleConfirmBack = () => {
     if (!isFirstStep) {
-      if (subContext === '') {
+      if (featureStep == null) {
         setStepIndex(stepIndex - 1)
-      } else if (sectionName !== '') {
-        sectionStateReset()
-        setSectionName('')
-      } else if (subContext === 'subfeature') {
-        subfeatureStateReset()
-        setSubContext('option')
-      } else if (subContext === 'option') {
-        optionStateReset()
-        setSubContext('feature')
+      } else if (sectionStep != null) {
+        sectionDataReset()
+        setSectionStep(null)
+      } else if (featureStep === 'subfeature') {
+        subfeatureDataReset()
+        setFeatureStep('option')
+      } else if (featureStep === 'option') {
+        optionDataReset()
+        setFeatureStep('feature')
       } else {
-        featureStateReset()
-        setSubContext('')
+        featureDataReset()
+        setFeatureStep(null)
       }
       return navigate(-1)
     } else {
@@ -48,7 +49,7 @@ const Alert = () => {
       const previousPathname = previousState.pathname
       navigate(`${previousPathname}`, {
         state: {
-          item: oldFormState,
+          item: initialFormData,
           background: previousState.state.background,
           size: 'lg',
         },
@@ -58,20 +59,20 @@ const Alert = () => {
 
   const handleConfirmForward = () => {
     if (!isLastStep) {
-      if (subContext === '') {
+      if (featureStep == null) {
         setStepIndex(stepIndex - 1)
-      } else if (sectionName !== '') {
-        sectionStateReset()
-        setSectionName('')
-      } else if (subContext === 'subfeature') {
-        subfeatureStateReset()
-        setSubContext('option')
-      } else if (subContext === 'option') {
-        optionStateReset()
-        setSubContext('feature')
+      } else if (sectionStep != null) {
+        sectionDataReset()
+        setSectionStep(null)
+      } else if (featureStep === 'subfeature') {
+        subfeatureDataReset()
+        setFeatureStep('option')
+      } else if (featureStep === 'option') {
+        optionDataReset()
+        setFeatureStep('feature')
       } else {
-        featureStateReset()
-        setSubContext('')
+        featureDataReset()
+        setFeatureStep(null)
       }
       setStepIndex(stepIndex + 1)
     }
@@ -91,7 +92,7 @@ const Alert = () => {
         </Modal.Content>
         <Modal.Footer>
           <Group directionVariant='row' justifyContentVariant='spaceBetween'>
-            <Button color='default' onClick={handleCancel}>
+            <Button color='main' onClick={handleCancel}>
               {alertType === 'invalidForm' ? 'Ok' : 'Cancel'}
             </Button>
             {alertType !== 'invalidForm' && (

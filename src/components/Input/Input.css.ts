@@ -1,7 +1,7 @@
-import { style, globalStyle, styleVariants } from '@vanilla-extract/css'
+import { style, styleVariants } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import { theme } from '../../css/theme.css'
-import { size } from '../../css/size.css'
+import { size, space } from '../../css/size.css'
 
 export const input_wrapper = style({
   '@layer': {
@@ -22,6 +22,7 @@ export const input_label = style({
           content: '*',
           color: 'red',
           right: 0,
+          transform: 'scale(1.5)',
         },
       },
     },
@@ -33,8 +34,11 @@ export const input_container = style({
     [app]: {
       position: 'relative',
       fontSize: 'inherit',
-      height: theme.input.height,
+      height: theme.component.input.height,
       padding: '0 .75rem',
+      borderRadius: theme.border.radius,
+      backgroundColor: theme.vars.component.input.backgroundColor,
+      marginTop: space['space-2'],
     },
   },
 })
@@ -55,7 +59,7 @@ export const input_left_section = style({
   },
 })
 
-export const input_right_section = style({
+export const input_endAdornment = style({
   '@layer': {
     [app]: {
       zIndex: '1',
@@ -81,6 +85,7 @@ export const input = style({
       'fontSize': 'inherit',
       'fontWeight': 'inherit',
       'border': 'none',
+      'color': theme.vars.typography.color.main,
 
       '@media': {
         'screen and (max-width: 567px)': {
@@ -98,60 +103,35 @@ export const input = style({
         '&.right': {
           paddingRight: '2rem',
         },
+        '&:-webkit-autofill, &:-webkit-autofill:hover, &:-webkit-autofill:focus, &:-webkit-autofill:active': {
+          WebkitBoxShadow: `0 0 0 30px ${theme.vars.component.input.backgroundColor} inset !important`,
+          WebkitTextFillColor: `${theme.vars.typography.color.main} !important`,
+        },
       },
     },
   },
 })
 
-globalStyle(`${input_left_section} > span`, {
-  '@layer': {
-    [app]: {
-      display: 'inline-block',
-      maxHeight: 'fit-content',
-    },
-  },
-})
-
-globalStyle(`${input_right_section} > span`, {
-  '@layer': {
-    [app]: {
-      display: 'inline-block',
-      maxHeight: 'fit-content',
-    },
-  },
-})
-
-globalStyle('.input_label > span > *', {
-  '@layer': {
-    [app]: {
-      transform: 'scale(1.5)',
-    },
-  },
-})
-
 export const input_height = styleVariants({
-  default: { height: theme.input.height },
   auto: { height: size['size-auto'] },
   full: { height: size['size-full'] },
 })
 
 export const input_textAlign = styleVariants({
-  default: { textAlign: 'left' },
   center: { textAlign: 'center' },
 })
 
 export const input_border = styleVariants({
   none: { border: 'none' },
   default: {
-    border: `${theme.border} ${theme.vars.borderColor}`,
-    borderRadius: theme.borderRadius,
+    border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
 
     selectors: {
       '&:focus-within': {
-        border: theme.color.focus,
+        border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
       },
       '&.invalid': {
-        border: theme.color.error,
+        border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
       },
     },
   },

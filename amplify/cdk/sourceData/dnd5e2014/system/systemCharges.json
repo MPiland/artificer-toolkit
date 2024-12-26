@@ -1,0 +1,90 @@
+{
+  "resets": [
+    {
+      "label": "Long Rest",
+      "value": "longRest",
+      "id": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+      "features": ["all"],
+      "classes": ["spellcaster"]
+    },
+    {
+      "label": "Short Rest",
+      "value": "shortRest",
+      "id": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
+      "features": ["all"],
+      "classes": ["spellcaster"]
+    },
+    {
+      "label": "Manual",
+      "value": "manual",
+      "id": "97f4a2d5-c88b-43d8-8255-330e5aa04684",
+      "features": ["all"]
+    },
+    {
+      "label": "None",
+      "value": "none",
+      "id": "e9538ede-8a61-4901-bc56-507257189712",
+      "features": ["all"]
+    }
+  ],
+  "limits": [
+    {
+      "value": "proficiency",
+      "id": "b014c7d9-8a98-48a9-91f2-aa55345c93c9",
+      "label": "Proficiency",
+      "features": ["all"]
+    },
+    {
+      "value": "skill",
+      "id": "b8a4152b-ed51-4fe4-a6fc-a9a16fcb2aa6",
+      "label": "Skill",
+      "features": ["all"]
+    },
+    {
+      "value": "abilityScoreModifier",
+      "id": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
+      "label": "Ability Score Modifier",
+      "features": ["all"],
+      "classes": ["resources"]
+    },
+    {
+      "value": "setAmount",
+      "id": "f21220f9-96db-4369-ba11-88c87d631fac",
+      "label": "Set Amount",
+      "features": ["all"],
+      "classes": ["resources"]
+    },
+    {
+      "value": "poolAmount",
+      "label": "Pool Amount",
+      "id": "ce085d90-e051-4d80-855c-b9c421b6ed8b",
+      "features": ["all"]
+    },
+    {
+      "value": "resourcePoints",
+      "label": "Resource Points",
+      "id": "c6b4ecb8-9246-4235-8e8a-4648d63a7ebe",
+      "features": ["all"]
+    },
+    {
+      "value": "setPerLevel",
+      "label": "Set Per Level",
+      "id": "0a010337-44d9-491e-9fb2-bc94961fe2a2",
+      "features": ["all"],
+      "classes": ["resources"]
+    },
+    {
+      "id": "19d5f00e-c246-4478-9eb9-7b7ec2b942ed",
+      "value": "usesPerLevel",
+      "label": "Uses Per Level",
+      "features": ["all"],
+      "classes": ["all"]
+    },
+    {
+      "value": "ability",
+      "label": "Ability",
+      "id": "12ea359b-7b7c-4d7f-89b1-465ac9e5048e",
+      "classes": ["resources"]
+    }
+  ]
+}

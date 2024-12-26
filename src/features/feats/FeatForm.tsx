@@ -1,18 +1,18 @@
+import { useEffect, use } from 'react'
 import Form from '../../components/Form/Form'
 import { useAddNewFeatMutation, useUpdateFeatMutation } from './featsApi'
-import { StepType } from '../../utils/types'
-import { useEffect, useMemo } from 'react'
-import { useForm } from '../../hooks/UseForm'
+import { Step } from '../../types/form'
+import FormContext from '../../components/Form/FormContext'
 
 const FeatForm = () => {
-  const { setSteps } = useForm()
+  const { setSteps } = use(FormContext)
 
-  const stepsArray: StepType[] = useMemo(() => [{ id: 'features', name: 'Features' }], [])
+  const stepsArray = [{ id: 'features', label: 'Features' }] satisfies Step[]
 
   useEffect(() => {
     setSteps(stepsArray)
   }, [setSteps, stepsArray])
 
-  return <Form useAddNewItem={useAddNewFeatMutation} useUpdateItem={useUpdateFeatMutation} />
+  return <Form useAddNewItemMutation={useAddNewFeatMutation} useUpdateItemMutation={useUpdateFeatMutation} />
 }
 export default FeatForm

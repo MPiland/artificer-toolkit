@@ -2,7 +2,7 @@ import HTMLDOMParser from '../htmlParser/html-to-dom'
 import domToReact from './reactParser'
 import type { HTMLReactParserOptions } from './types'
 import type { DOMNode } from '../htmlParser/types'
-import { ReactNode, isValidElement, cloneElement } from 'react'
+import { ReactNode, isValidElement, cloneElement, ReactElement } from 'react'
 
 export type { Comment, Element, ProcessingInstruction, Text } from 'domhandler'
 
@@ -37,9 +37,11 @@ export default function HTMLReactParser(
         if (replacedNode === false || replacedNode === null || replacedNode === undefined) {
           return null // Skip the node
         } else if (isValidElement(replacedNode)) {
-          if (typeof replacedNode.props.children === 'object') {
+          if (typeof (replacedNode as ReactElement<{ children: ReactNode }>).props.children === 'object') {
             //validate children are not valid react elements and if not turn them into valid react elements and recreate the original react node
-            const childrenArray = createChildArray(replacedNode.props.children)
+            const childrenArray = createChildArray(
+              (replacedNode as ReactElement<{ children: ReactNode }>).props.children
+            )
             return cloneElement(replacedNode, replacedNode.props, ...processChildren(childrenArray, options))
           }
           return replacedNode // Use the returned React element directly
@@ -63,7 +65,7 @@ export default function HTMLReactParser(
   } else if (isValidElement(content)) {
     // If it's a React element, recursively process its children
     // Create children into an array first before processing
-    const childrenArray = createChildArray(content.props.children)
+    const childrenArray = createChildArray((content as ReactElement<{ children: ReactNode }>).props.children)
     return [cloneElement(content, content.props, ...processChildren(childrenArray, options))]
   } else if (Array.isArray(content)) {
     return content.flatMap((child) => HTMLReactParser(child, options))
@@ -76,22 +78,17 @@ export default function HTMLReactParser(
 function processChildren(children: (ReactNode | DOMNode)[], options: HTMLReactParserOptions = {}): ReactNode[] {
   const processedChildren = children.map((child, index) => {
     if (typeof child === 'string') {
-      // Found a string, parse it and return the result
       return HTMLReactParser(child, options, index)
     } else if (isValidElement(child)) {
-      // Recursively process nested elements
-      const childrenArray = createChildArray(child.props.children)
+      const childrenArray = createChildArray((child as ReactElement<{ children: ReactNode }>).props.children)
       return cloneElement(child, child.props, ...processChildren(childrenArray, options))
     } else if (child && typeof child === 'object' && 'type' in child) {
-      // If it's a DOMNode, process it with domToReact
       return domToReact({ nodes: [child as DOMNode], nodeIndex: index })
     }
-    // For other content types, return as is
     return child
   })
 
-  // Ensure a valid ReactNode[] is returned:
-  return processedChildren || []
+  return processedChildren.filter((child): child is ReactNode => child !== undefined && child !== null)
 }
 
 // Create child array

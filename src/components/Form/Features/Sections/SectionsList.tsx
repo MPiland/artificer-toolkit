@@ -1,111 +1,126 @@
-import { ReducerActionType, SectionNameType } from '../../../../utils/types'
+import { use } from 'react'
+import { FeatureDataType, SectionDataType, SectionName, UpdateState } from '../../../../types/form'
 import Accordion from '../../../Accordion/Accordion'
 import Group from '../../../Group/Group'
 import { sprinkles } from '../../../../css/sprinkles.css'
 import { startCase } from 'lodash'
 import { feature_description } from '../../Form.css'
 import parse from 'html-react-parser'
-import { useFeature } from '../../../../hooks/UseFeature'
+import FeatureContext from '../FeatureContext'
+import { sectionSteps } from '../../../../types/form'
+import { Feature, FeatureOption, Subfeature } from '../../../../../amplify/API'
 
-const SectionsList = ({ state, setState }: { state: any; setState: (arg: ReducerActionType) => void }) => {
-  const {
-    subContext,
-    setSubContext,
-    setSubfeatureState,
-    setSubfeatureIndex,
-    setOldSubfeatureState,
-    sectionNames,
-    setSectionIndex,
-    setSectionName,
-    setSectionState,
-    setOldSectionState,
-    setOptionState,
-    setOldOptionState,
-    setOptionIndex,
-  } = useFeature()
+const SectionsList = ({
+  featureData,
+  updateFeatureData,
+}: {
+  featureData: FeatureDataType
+  updateFeatureData: (state: UpdateState<FeatureDataType>) => void
+}) => {
+  const { featureStep, setFeatureStep, setSectionStep, updateSectionData, updateOptionData, updateSubfeatureData } =
+    use(FeatureContext)
 
-  const handleRemove = (sectionName: SectionNameType, sectionIndex: number) => {
-    setState({
-      type: 'removed',
-      target: { name: `${sectionName}.${sectionIndex}` },
+  const handleRemove = (sectionStep: SectionName, sectionIndex: number) => {
+    updateFeatureData({
+      type: 'remove',
+      path: `${sectionStep}.${sectionIndex}`,
     })
   }
 
-  const handleEdit = (sectionName: SectionNameType, sectionIndex: number, sectionItem: any) => {
-    setSectionIndex(sectionIndex)
-    if (sectionName === 'options' || sectionName === 'features') {
-      if (subContext === 'option') {
-        setSubfeatureState({
-          type: 'reset',
-          target: { value: sectionItem },
-        })
-        setSubfeatureIndex(sectionIndex)
-        setOldSubfeatureState(sectionItem)
-        return setSubContext('subfeature')
-      }
-      setOptionState({
+  const handleEdit = (
+    sectionStep: SectionName,
+    sectionIndex: number,
+    sectionItem: SectionDataType | FeatureOption | Subfeature
+  ) => {
+    updateSectionData({ type: 'index', value: sectionIndex })
+    if (featureStep === 'subfeature') {
+      updateSubfeatureData({
         type: 'reset',
-        target: { value: sectionItem },
+        value: sectionItem,
       })
-      setOptionIndex(sectionIndex)
-      setOldOptionState(sectionItem)
-      return setSubContext('option')
+      updateSubfeatureData({ type: 'index', value: sectionIndex })
+      updateSubfeatureData({ type: 'initialReset', value: sectionItem })
+      return setFeatureStep('subfeature')
+    } else if (featureStep === 'option') {
+      updateOptionData({
+        type: 'reset',
+        value: sectionItem,
+      })
+      updateOptionData({ type: 'index', value: sectionIndex })
+      updateOptionData({ type: 'initialReset', value: sectionItem })
+      return setFeatureStep('option')
     }
-    setSectionName(sectionName)
-    setSectionState({
+    setSectionStep(sectionStep)
+    updateSectionData({
       type: 'reset',
-      target: { value: sectionItem },
+      value: sectionItem,
     })
-    console.log({ sectionItem })
-    setOldSectionState(sectionItem)
+    updateSectionData({ type: 'initialReset', value: sectionItem })
   }
 
   return (
     <>
-      {sectionNames.map((sectionName, sectionNameIndex: number) => {
+      {sectionSteps.map((sectionStep, index) => {
+        let sections: SectionDataType[] | FeatureOption[] | Subfeature[]
+        if (featureData.__typename === 'AncestryFeature') {
+          sections =
+            featureData[sectionStep as Exclude<SectionName, 'ancestries'>] ||
+            featureData?.options ||
+            featureData?.subfeatures
+        } else {
+          sections =
+            featureData[sectionStep] ||
+            (featureData as Feature)?.options ||
+            (featureData as Feature | FeatureOption)?.subfeatures
+        }
         return (
-          state[sectionName]?.length > 0 && (
-            <Accordion
-              key={sectionNameIndex}
-              dataArray={state[sectionName]}
-              setState={setState}
-              name={sectionName}
-              disableSort={sectionName !== 'options' && sectionName !== 'features'}
+          sections?.length > 0 && (
+            <Accordion<FeatureDataType>
+              key={index}
+              dataArray={sections}
+              onChange={updateFeatureData}
+              name={sectionStep}
+              disableSort={featureStep !== 'option' && featureStep !== 'subfeature'}
             >
-              {state[sectionName]?.map((sectionItem: any, sectionIndex: number) => {
+              {sections?.map((section, sIndex) => {
                 return (
-                  <Accordion.Wrapper key={sectionIndex} itemId={String(sectionIndex)}>
+                  <Accordion.Wrapper key={sIndex} itemId={String(sIndex)}>
                     <Accordion.Header
-                      key={sectionIndex}
-                      handleRemove={() => handleRemove(sectionName, sectionIndex)}
-                      handleEdit={() => handleEdit(sectionName, sectionIndex, sectionItem)}
+                      key={sIndex}
+                      handleRemove={() => handleRemove(sectionStep, sIndex)}
+                      handleEdit={() => handleEdit(sectionStep, sIndex, section)}
                     >
-                      {sectionName !== 'features' && `${startCase(sectionName)} ${sectionIndex + 1}`}
-                      {sectionItem?.value != null && sectionItem?.value !== '' && sectionName === 'options'
-                        ? ` (${sectionItem?.value})`
-                        : sectionItem?.value}
+                      {featureStep !== 'subfeature' && `${startCase(sectionStep)} ${sIndex + 1}`}
+                      {(section.__typename === 'FeatureOption' || section.__typename === 'Subfeature') &&
+                        section?.value != null &&
+                        section?.value}
                     </Accordion.Header>
-                    {(sectionName === 'options' || sectionName === 'features') && (
+                    {(featureStep === 'option' || featureStep === 'subfeature') && (
                       <>
                         <Accordion.Content>
-                          <div className={feature_description}>{sectionItem?.desc && parse(sectionItem?.desc)}</div>
+                          <div className={feature_description}>
+                            {(section.__typename === 'FeatureOption' || section.__typename === 'Subfeature') &&
+                              section?.desc &&
+                              parse(section?.desc)}
+                          </div>
                         </Accordion.Content>
                         <Accordion.Footer>
                           <Group justifyContentVariant='start'>
-                            {sectionNames.map((footerSectionName: string, footerSectionIndex: number) => {
+                            {sectionSteps.map((fSectionStep, fSIndex) => {
                               return (
                                 <span
-                                  key={footerSectionIndex}
+                                  key={fSIndex}
                                   className={sprinkles({
                                     me: 'space-3',
                                   })}
                                 >
-                                  {sectionItem[footerSectionName]?.length > 0 ? (
-                                    <strong key={footerSectionIndex}>
-                                      {startCase(footerSectionName.charAt(0))}:{sectionItem[footerSectionName]?.length}
+                                  {(section.__typename === 'FeatureOption' || section.__typename === 'Subfeature') &&
+                                  section[fSectionStep]?.length > 0 ? (
+                                    <strong key={fSIndex}>
+                                      {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
                                     </strong>
                                   ) : (
-                                    `${startCase(footerSectionName.charAt(0))}: 0`
+                                    `${startCase(fSectionStep.charAt(0))}: 0`
                                   )}
                                 </span>
                               )

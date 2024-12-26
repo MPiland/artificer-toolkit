@@ -6,8 +6,8 @@ import { size } from '../../css/size.css'
 export const editor_container = style({
   '@layer': {
     [app]: {
-      'borderRadius': theme.borderRadius,
-      'border': `${theme.border} ${theme.vars.borderColor}`,
+      'borderRadius': theme.border.radius,
+      'border': `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       'overflow': 'hidden',
       'resize': 'vertical',
       'backgroundColor': 'transparent',
@@ -17,7 +17,7 @@ export const editor_container = style({
 
       'selectors': {
         '&:focus-within': {
-          outline: theme.vars.input.focusBorder,
+          outline: theme.vars.component.input.border.color.focus,
         },
       },
 
@@ -34,7 +34,7 @@ export const editor_menu_bar = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       width: '100%',
       minHeight: '3rem',
       flexWrap: 'wrap',
@@ -83,18 +83,18 @@ export const editor_button = style({
       width: '1.875rem',
       display: 'flex',
       alignItems: 'center',
-      border: `${theme.border} ${theme.vars.borderColor}`,
-      backgroundColor: theme.vars.backgroundColor.component,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      backgroundColor: theme.vars.component.input.backgroundColor,
       cursor: 'pointer',
 
       selectors: {
         [`${editor_button_group} > &:first-of-type`]: {
-          borderTopLeftRadius: theme.borderRadius,
-          borderBottomLeftRadius: theme.borderRadius,
+          borderTopLeftRadius: theme.border.radius,
+          borderBottomLeftRadius: theme.border.radius,
         },
         [`${editor_button_group} > &:last-of-type`]: {
-          borderTopRightRadius: theme.borderRadius,
-          borderBottomRightRadius: theme.borderRadius,
+          borderTopRightRadius: theme.border.radius,
+          borderBottomRightRadius: theme.border.radius,
         },
         '&.active': {
           filter: 'invert(1)',
@@ -107,8 +107,8 @@ export const editor_button = style({
 export const editor_blockquote = style({
   '@layer': {
     [app]: {
-      borderRadius: theme.borderRadius,
-      border: `${theme.border} ${theme.vars.borderColor}`,
+      borderRadius: theme.border.radius,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       marginLeft: size['size-3'],
       marginTop: size['size-3'],
       padding: size['size-1'],
@@ -131,7 +131,7 @@ export const editor_table = style({
 export const editor_table_th = style({
   '@layer': {
     [app]: {
-      border: `${theme.border} ${theme.vars.borderColor}`,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       backgroundColor: 'lightgrey',
       borderBottomWidth: '2px',
       fontWeight: 'bold',
@@ -146,7 +146,7 @@ export const editor_table_th = style({
 export const editor_table_td = style({
   '@layer': {
     [app]: {
-      border: `${theme.border} ${theme.vars.borderColor}`,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       padding: '3px 5px',
       verticalAlign: 'top',
       backgroundColor: 'inherit',

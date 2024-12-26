@@ -1,0 +1,55 @@
+type UpcastLevel {
+  level: Int
+  damage: Damage
+  duration: Duration
+  range: Range
+  shape: Shape
+  targets: Int
+}
+
+type Upcast {
+  attributes: [ID]
+  levels: [UpcastLevel]
+}
+
+type Shape {
+  id: ID!
+  size: Float
+  unit: ID
+}
+
+type Duration {
+  id: ID!
+  amount: Int
+}
+
+type Spell implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  level: Int
+  school: ID!
+  classes: [ID]!
+  attributes: [ID]
+  upcast: Upcast
+  actions: ActionGroup
+  targets: Int
+  saveAbility: SaveAbility
+  conditions: [ID]
+  requirements: [ID]
+  range: Range!
+  shape: Shape
+  duration: Duration!
+  damage: Damage
+  materialDesc: String
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type SpellConnection {
+  items: [Spell!]
+  nextToken: String
+  message: String
+}

@@ -1,88 +1,66 @@
-import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { generateClient } from 'aws-amplify/data'
+import { listBackgrounds } from '../../../amplify/graphql/queries'
+import { createBackground, deleteBackground, updateBackground } from '../../../amplify/graphql/mutations'
+import { BackgroundInput, Background } from '../../../amplify/API'
+import useSystemPref from '../../hooks/useSystemPref'
+
+const client = generateClient()
 
 const backgroundsKeys = {
   all: ['backgrounds'] as const,
   lists: () => [...backgroundsKeys.all, 'list'] as const,
+  single: (id: string) => [...backgroundsKeys.all, 'single', id] as const,
 }
 
-export const useGetBackgroundsQuery = ({ limit, filters }: { limit?: number; filters?: any } = {}) => {
-  return useInfiniteQuery({
-    queryKey: [...backgroundsKeys.all, limit],
-    queryFn: async ({ pageParam }) => {
-      // 1. Construct the base URL
-      let url = '/backgrounds'
+export const useListBackgroundsQuery = () => {
+  const [systemPref] = useSystemPref()
 
-      // 2. Create URLSearchParams object
-      const searchParams = new URLSearchParams()
+  const query = useSuspenseQuery({
+    queryKey: backgroundsKeys.lists(),
+    queryFn: async () => {
+      try {
+        const {
+          data: {
+            listBackgrounds: { items },
+          },
+        } = await client.graphql({
+          query: listBackgrounds,
+          variables: {
+            systemId: systemPref,
+          },
+        })
 
-      // 3. Append limit parameters
-      if (limit) {
-        searchParams.append('page', pageParam.toString())
-        searchParams.append('limit', limit.toString())
+        return items
+      } catch (err) {
+        console.log({ err })
       }
-
-      // 4. Append filter parameters
-      if (filters) {
-        for (const key in filters) {
-          if (filters[key]) {
-            searchParams.append(key, filters[key])
-          }
-        }
-      }
-
-      // 5. Append search parameters to the URL
-      if (Array.from(searchParams).length > 0) {
-        url += `?${searchParams.toString()}`
-      }
-
-      const result = await baseQueryWithReauth(url, {
-        method: 'GET',
-      })
-
-      const {
-        backgrounds: data,
-        totalPages,
-        currentPage,
-      }: { backgrounds: any; totalPages: number; currentPage: number } = await result.json() // Assuming your API returns total pages
-
-      return { data, totalPages, currentPage }
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
-    },
-    getPreviousPageParam: (firstPage) => {
-      return firstPage.currentPage > 1 ? firstPage.currentPage - 1 : undefined
-    },
-    maxPages: 2,
-    select: (data) => {
-      if (!limit) {
-        return data.pages.flatMap((page) => page.data)
-      }
-      return data
     },
   })
+
+  return query
 }
 
 export const useAddNewBackgroundMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (background: any) => {
-      const result = await baseQueryWithReauth('/backgrounds', {
-        method: 'POST',
-        body: JSON.stringify(background),
+    mutationFn: async (background: BackgroundInput) => {
+      const {
+        data: { createBackground: newBackground },
+      } = await client.graphql({
+        query: createBackground,
+        variables: {
+          input: background,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return newBackground
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(backgroundsKeys.all, (previous: any) => {
-        if (!previous) return [...data]
-        return [...previous, data]
+    onSuccess: (background: Background) => {
+      queryClient.setQueryData(backgroundsKeys.all, (previous: Background[]) => {
+        if (!previous) return [background]
+        return [...previous, background]
       })
     },
   })
@@ -92,19 +70,20 @@ export const useUpdateBackgroundMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (background: any) => {
-      const result = await baseQueryWithReauth('/backgrounds', {
-        method: 'POST',
-        body: JSON.stringify(background),
+    mutationFn: async (background: BackgroundInput) => {
+      const {
+        data: { updateBackground: updatedBackground },
+      } = await client.graphql({
+        query: updateBackground,
+        variables: {
+          input: background,
+        },
       })
-
-      const data = await result.json()
-
-      return data
+      return updatedBackground
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(backgroundsKeys.all, (previous: any[]) =>
-        previous.map((background) => (background._id === data._id ? data : background))
+    onSuccess: (background: Background) => {
+      queryClient.setQueryData(backgroundsKeys.all, (previous: Background[]) =>
+        previous.map((backgroundKey) => (backgroundKey.id === background.id ? background : backgroundKey))
       )
     },
   })
@@ -115,18 +94,21 @@ export const useDeleteBackgroundMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await baseQueryWithReauth('/backgrounds', {
-        method: 'DELETE',
-        body: JSON.stringify(id),
+      const {
+        data: { deleteBackground: deletedId },
+      } = await client.graphql({
+        query: deleteBackground,
+        variables: {
+          id,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return deletedId
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(backgroundsKeys.all, (previous: any[]) => {
-        return previous.filter((background) => background._id !== data._id)
+    onSuccess: (id: string) => {
+      queryClient.setQueryData(backgroundsKeys.all, (previous: Background[]) => {
+        const background = previous.find((backgroundKey) => backgroundKey.id === id)
+        return previous.filter((backgroundKey) => backgroundKey.id !== background.id)
       })
     },
   })

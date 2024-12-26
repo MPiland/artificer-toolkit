@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, use } from 'react'
 import {
   app_shell,
   app_main,
@@ -10,7 +10,7 @@ import {
   app_content,
 } from './AppShell.css'
 import clsx from 'clsx'
-import { useTheme } from '../../hooks/useTheme'
+import { ThemeContext } from '../../theme/ThemeContext'
 
 interface AppShellProps {
   children: ReactNode
@@ -75,7 +75,7 @@ export const Sidebar = ({ children, collapsed = false }: SidebarProps) => {
 }
 
 const AppShell = ({ children }: AppShellProps) => {
-  const { themeVar } = useTheme()
+  const { themeVar } = use(ThemeContext)
   return <div className={clsx(app_shell, themeVar)}>{children}</div>
 }
 

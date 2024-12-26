@@ -64,7 +64,7 @@ export function setStyleProp(style: string, props: Props): void {
 
   try {
     props.style = StyleToJS(style, styleOptions)
-  } catch (error) {
+  } catch {
     props.style = {}
   }
 }

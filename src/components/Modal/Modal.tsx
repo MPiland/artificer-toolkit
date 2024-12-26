@@ -1,5 +1,5 @@
 import { useEffect, useCallback, ReactNode, forwardRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Location, useNavigate } from 'react-router-dom'
 import {
   modal,
   modal_dialogue,
@@ -15,13 +15,24 @@ import Button from '../Button/Button'
 import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
 import Group from '../Group/Group'
-import { ButtonColor } from '../../css/theme.css'
 
-export const Header = ({ title, children }: { title: string; children?: ReactNode; buttonColor?: ButtonColor }) => {
+export const Header = ({
+  title,
+  children,
+  location,
+}: {
+  title?: string
+  children?: ReactNode
+  location?: Location<any>
+}) => {
   const navigate = useNavigate()
 
   const handleClose = () => {
-    navigate(-1)
+    if (location && location.pathname === '/') {
+      navigate('/')
+    } else {
+      navigate(-1)
+    }
   }
 
   return (
@@ -87,12 +98,16 @@ const Dialogue = forwardRef<HTMLDivElement, { children: ReactNode; size?: 'xs' |
   }
 )
 
-const Modal = ({ children }: { children: ReactNode }) => {
+const Modal = ({ children, handleCloseFn }: { children: ReactNode; handleCloseFn?: () => void }) => {
   const navigate = useNavigate()
 
   const handleClose = useCallback(() => {
-    navigate(-1)
-  }, [navigate])
+    if (handleCloseFn) {
+      handleCloseFn()
+    } else {
+      navigate(-1)
+    }
+  }, [navigate, handleCloseFn])
 
   // Closes modal when Escape is pressed
   const handleEscKey = useCallback(

@@ -323,7 +323,7 @@ export const ability_group = style({
   },
 })
 
-export const ability_value = style({
+export const ability_label = style({
   '@layer': {
     [app]: {
       width: 'auto',

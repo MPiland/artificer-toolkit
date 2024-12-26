@@ -1,88 +1,66 @@
-import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { generateClient } from 'aws-amplify/data'
+import { listRaces } from '../../../amplify/graphql/queries'
+import { createRace, deleteRace, updateRace } from '../../../amplify/graphql/mutations'
+import { RaceInput, Race } from '../../../amplify/API'
+import useSystemPref from '../../hooks/useSystemPref'
+
+const client = generateClient()
 
 const racesKeys = {
   all: ['races'] as const,
   lists: () => [...racesKeys.all, 'list'] as const,
+  single: (id: string) => [...racesKeys.all, 'single', id] as const,
 }
 
-export const useGetRacesQuery = ({ limit, filters }: { limit?: number; filters?: any } = {}) => {
-  return useInfiniteQuery({
-    queryKey: [...racesKeys.all, limit],
-    queryFn: async ({ pageParam }) => {
-      // 1. Construct the base URL
-      let url = '/races'
+export const useListRacesQuery = () => {
+  const [systemPref] = useSystemPref()
 
-      // 2. Create URLSearchParams object
-      const searchParams = new URLSearchParams()
+  const query = useSuspenseQuery({
+    queryKey: racesKeys.lists(),
+    queryFn: async () => {
+      try {
+        const {
+          data: {
+            listRaces: { items },
+          },
+        } = await client.graphql({
+          query: listRaces,
+          variables: {
+            systemId: systemPref,
+          },
+        })
 
-      // 3. Append limit parameters
-      if (limit) {
-        searchParams.append('page', pageParam.toString())
-        searchParams.append('limit', limit.toString())
+        return items
+      } catch (err) {
+        console.log({ err })
       }
-
-      // 4. Append filter parameters
-      if (filters) {
-        for (const key in filters) {
-          if (filters[key]) {
-            searchParams.append(key, filters[key])
-          }
-        }
-      }
-
-      // 5. Append search parameters to the URL
-      if (Array.from(searchParams).length > 0) {
-        url += `?${searchParams.toString()}`
-      }
-
-      const result = await baseQueryWithReauth(url, {
-        method: 'GET',
-      })
-
-      const {
-        races: data,
-        totalPages,
-        currentPage,
-      }: { races: any; totalPages: number; currentPage: number } = await result.json() // Assuming your API returns total pages
-
-      return { data, totalPages, currentPage }
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
-    },
-    getPreviousPageParam: (firstPage) => {
-      return firstPage.currentPage > 1 ? firstPage.currentPage - 1 : undefined
-    },
-    maxPages: 2,
-    select: (data) => {
-      if (!limit) {
-        return data.pages.flatMap((page) => page.data)
-      }
-      return data
     },
   })
+
+  return query
 }
 
 export const useAddNewRaceMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (race: any) => {
-      const result = await baseQueryWithReauth('/races', {
-        method: 'POST',
-        body: JSON.stringify(race),
+    mutationFn: async (race: RaceInput) => {
+      const {
+        data: { createRace: newRace },
+      } = await client.graphql({
+        query: createRace,
+        variables: {
+          input: race,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return newRace
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(racesKeys.all, (previous: any) => {
-        if (!previous) return [...data]
-        return [...previous, data]
+    onSuccess: (race: Race) => {
+      queryClient.setQueryData(racesKeys.all, (previous: Race[]) => {
+        if (!previous) return [race]
+        return [...previous, race]
       })
     },
   })
@@ -92,19 +70,20 @@ export const useUpdateRaceMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (race: any) => {
-      const result = await baseQueryWithReauth('/races', {
-        method: 'POST',
-        body: JSON.stringify(race),
+    mutationFn: async (race: RaceInput) => {
+      const {
+        data: { updateRace: updatedRace },
+      } = await client.graphql({
+        query: updateRace,
+        variables: {
+          input: race,
+        },
       })
-
-      const data = await result.json()
-
-      return data
+      return updatedRace
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(racesKeys.all, (previous: any[]) =>
-        previous.map((race) => (race._id === data._id ? data : race))
+    onSuccess: (race: Race) => {
+      queryClient.setQueryData(racesKeys.all, (previous: Race[]) =>
+        previous.map((raceKey) => (raceKey.id === race.id ? race : raceKey))
       )
     },
   })
@@ -115,18 +94,21 @@ export const useDeleteRaceMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await baseQueryWithReauth('/races', {
-        method: 'DELETE',
-        body: JSON.stringify(id),
+      const {
+        data: { deleteRace: deletedId },
+      } = await client.graphql({
+        query: deleteRace,
+        variables: {
+          id,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return deletedId
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(racesKeys.all, (previous: any[]) => {
-        return previous.filter((race) => race._id !== data._id)
+    onSuccess: (id: string) => {
+      queryClient.setQueryData(racesKeys.all, (previous: Race[]) => {
+        const race = previous.find((raceKey) => raceKey.id === id)
+        return previous.filter((raceKey) => raceKey.id !== race.id)
       })
     },
   })

@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Row from '../Row/Row'
 import { getValueFromState } from '../../utils/formatting'
 import Button from '../Button/Button'
@@ -6,10 +6,13 @@ import { form_detail_body, form_detail_main, form_detail_title } from './Form.cs
 import Modal from '../Modal/Modal'
 import { sprinkles } from '../../css/sprinkles.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import { set, startCase } from 'lodash'
+import { startCase } from 'lodash'
 import ClassShort from '../../features/classes/ClassShort'
 import RaceShort from '../../features/races/RaceShort'
-import { useForm } from '../../hooks/UseForm'
+import { use } from 'react'
+import FormContext from './FormContext'
+import { Race, Class, Character } from '../../../amplify/API'
+import { UpdateState } from '../../types/form'
 
 type colType = {
   header: string
@@ -26,63 +29,36 @@ interface FormDetailProps {
 }
 
 const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
-  const { context } = useParams()
-  const { formState, setChangeRace, setAddClass, setFormState } = useForm()
+  const { formData, setChangeRace, setAddClass, updateFormData } = use(FormContext) as {
+    formData: Character
+    setChangeRace: (arg: boolean) => void
+    setAddClass: (arg: boolean) => void
+    updateFormData: (arg: UpdateState<Character>) => void
+  }
   const navigate = useNavigate()
   const location = useLocation()
 
-  const item = location.state.item
+  const item = location.state.item as Race | Class
 
   const handleSelect = () => {
-    if (context === 'race') {
-      const raceOject = {
-        name: item?.name,
-        value: item?.value,
-        _id: item?._id,
-        ancestry: {
-          name: item?.ancestry?.name,
-          value: item?.ancestry?.value,
-          _id: item?.ancestry?._id,
-          desc: item?.ancestry?.desc,
-        },
-      }
-      setFormState({
-        target: {
-          name: 'race',
-          value: raceOject,
-        },
+    if (item.__typename === 'Race') {
+      updateFormData({
+        type: 'update',
+        path: 'race',
+        value: item.id,
       })
       setChangeRace(false)
     }
-    if (context === 'class') {
-      const classes: any[] = formState?.classes ?? []
-      const classOject = {
-        name: item?.name,
-        value: item?.value,
-        _id: item?._id,
-        level: 1,
-        levelAttribute: item.levelAttribute,
-        hitpoint: {
-          total: 1,
-          diceCount: item?.hitpoint.diceCount,
-          diceValue: item?.hitpoint.diceValue,
-          diceShort: item?.hitpoint.diceShort,
-          ability: item?.hitpoint.ability,
-        },
-      }
-      if (item.spellcasting != null) {
-        set(classOject, 'spellcasting', item.spellcasting)
-      }
-      if (item.resource != null) {
-        set(classOject, 'spellcasting', item.resource)
-      }
+    if (item.__typename === 'Class') {
+      const classIndex = formData?.classes?.length || 0
 
-      classes.push(classOject)
-      setFormState({
-        target: {
-          name: 'class',
-          value: classes,
-        },
+      updateFormData({
+        type: 'update',
+        path: `classes.${classIndex}`,
+        value: {
+          id: item?.id,
+          level: 1,
+        }
       })
       setAddClass(false)
     }
@@ -101,7 +77,9 @@ const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
                   return (
                     <div key={colIndex}>
                       <div className={form_detail_title}>{colItem.header}</div>
-                      <div>{getValueFromState(colItem, colsData, colItem?.truncate)}</div>
+                      <div>
+                        {getValueFromState({ input: colItem, state: colsData, truncateNum: colItem?.truncate })}
+                      </div>
                     </div>
                   )
                 })}
@@ -111,12 +89,12 @@ const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
           )}
           <div className={form_detail_main}>
             <ScrollArea scrollDirection='vertical' wrapperClassName={form_detail_body} id='detailBody'>
-              {context === 'class' ? <ClassShort /> : <RaceShort />}
+              {item.__typename === 'Class' ? <ClassShort /> : <RaceShort />}
             </ScrollArea>
           </div>
         </Modal.Content>
         <Modal.Footer>
-          <Button color='primary' onClick={handleSelect}>{`Select ${startCase(context)}`}</Button>
+          <Button color='primary' onClick={handleSelect}>{`Select ${startCase(item.__typename)}`}</Button>
         </Modal.Footer>
       </Modal.Dialogue>
     </Modal>

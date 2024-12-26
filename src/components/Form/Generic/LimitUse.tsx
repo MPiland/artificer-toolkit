@@ -1,189 +1,172 @@
 import { useEffect } from 'react'
-import { ReducerActionType } from '../../../utils/types'
-import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useForm } from '../../../hooks/UseForm'
 import Collapse from '../../Collapse/Collapse'
-import Table from '../../Table/Table'
+import { AllEnum, Feat, FeatureEnum } from '../../../../amplify/API'
+import { ChargesLimits } from '../../../types/enums'
+import { FeatureDataType, FormDataType, UpdateState } from '../../../types/form'
 
-const LimitUse = ({ state, setState }: { state: any; setState: (arg: ReducerActionType) => void }) => {
-  const { context } = useForm()
-
-  const { data: builders } = useGetSystemsQuery()
+const LimitUse = ({
+  formData,
+  updateFormData,
+}: {
+  formData: FeatureDataType | Feat
+  updateFormData: (state: UpdateState<FormDataType | FeatureDataType>) => void
+}) => {
+  const { data: system } = useGetSystemQuery()
 
   //Add/remove Limit Use table
   useEffect(() => {
-    if (
-      !state.charge?.level &&
-      state?.charge?.limit?.name === 'level' &&
-      state.attribute?.some((attributeItem: any) => attributeItem.name === 'limitUse')
-    ) {
-      setState({
-        type: 'added',
-        target: { name: `charge.level` },
+    if (!(formData.charges?.usesPerLevel?.length > 0) && formData?.charges?.limit === ChargesLimits.usesPerLevel) {
+      updateFormData({
+        type: 'add',
+        path: 'charges.usesPerLevel',
       })
     }
-    if (!(state.charge?.limit?.name === 'level') && state.charge?.level) {
-      setState({
-        type: 'removed',
-        target: { name: `charge.level` },
+    if (!(formData.charges?.limit === ChargesLimits.usesPerLevel) && formData.charges?.usesPerLevel?.length > 0) {
+      updateFormData({
+        type: 'remove',
+        path: 'charges.usesPerLevel',
       })
     }
-    if (!state.attribute?.some((attributeItem: any) => attributeItem?.name === 'limitUse') && state.charge) {
-      setState({
-        type: 'removed',
-        target: {
-          name: `charge`,
-        },
-      })
-    }
-  }, [state, setState])
+  }, [formData, updateFormData])
 
   return (
-    state?.attribute?.some((attributeItem: any) => attributeItem?.name === 'limitUse') && (
-      <>
-        <Row className={sprinkles({ mb: 'space-3' })}>
-          <Dropdown
-            name={`charge.limit`}
-            label='Limit Option'
-            value={state?.charge?.limit}
-            options={[].concat(
-              builders.features.charge.limit,
-              context.title && builders.features[context.title]?.charge?.limit
-            )}
-            required={true}
-            onChange={setState}
-          />
-          {state?.charge?.limit?.name === 'ability' ? (
-            <>
-              <Dropdown
-                name={`charge.ability.type`}
-                label='Ability'
-                value={state?.charge?.ability?.type}
-                options={builders.abilities.type}
-                required={true}
-                onChange={setState}
-              />
-            </>
-          ) : state.charge?.limit?.name === 'skill' ? (
-            <Dropdown
-              name={`charge.skill.type`}
-              label='Skill'
-              value={state?.charge?.skill?.type}
-              options={builders.skills.type}
+    <>
+      <Row className={sprinkles({ mb: 'space-3' })}>
+        <Dropdown<typeof formData>
+          name='charges.limit'
+          label='Limit Option'
+          value={formData?.charges?.limit}
+          options={system.charges.limits.filter(
+            (limit) => limit?.features.includes(FeatureEnum.all) || limit?.feats.includes(AllEnum.all)
+          )}
+          required={true}
+          onChange={updateFormData}
+        />
+        {formData?.charges?.limit === ChargesLimits.ability ? (
+          <>
+            <Dropdown<typeof formData>
+              name='charges.ability'
+              label='Ability'
+              value={formData?.charges?.ability}
+              options={system.abilities}
               required={true}
-              onChange={setState}
+              onChange={updateFormData}
             />
-          ) : state.charge?.limit?.name === 'setValue' ? (
-            <Input
+          </>
+        ) : formData.charges?.limit === ChargesLimits.skill ? (
+          <Dropdown<typeof formData>
+            name='charges.skill'
+            label='Skill'
+            value={formData?.charges?.skill}
+            options={system.skills}
+            required={true}
+            onChange={updateFormData}
+          />
+        ) : formData.charges?.limit === ChargesLimits.setAmount ? (
+          <Input<typeof formData>
+            validation='num'
+            type='text'
+            name='charges.setAmount'
+            errorMsg='Must contain only numbers'
+            label='Use Amount'
+            value={formData?.charges?.setAmount}
+            required={true}
+            onChange={updateFormData}
+          />
+        ) : (
+          formData.charges?.limit === ChargesLimits.resourcePoints && (
+            <Input<typeof formData>
               validation='num'
               type='text'
-              name={`charge.setValue`}
+              name='charges.resourcePoints'
               errorMsg='Must contain only numbers'
               label='Use Amount'
-              value={state?.charge?.setValue}
+              value={formData?.charges?.resourcePoints}
               required={true}
-              onChange={setState}
+              onChange={updateFormData}
             />
-          ) : (
-            state.charge?.limit?.name === 'resourcePoints' && (
-              <Input
-                validation='num'
-                type='text'
-                name={`charge.resourcePoints`}
-                errorMsg='Must contain only numbers'
-                label='Use Amount'
-                value={state?.charge?.resourcePoints}
-                required={true}
-                onChange={setState}
-              />
-            )
-          )}
-          {state?.charge?.limit &&
-            state.charge?.limit?.name !== 'setValue' &&
-            state.charge?.limit?.name !== 'level' &&
-            state?.charge?.limit?.name !== 'resourcePoints' && (
-              <>
-                <Input
-                  name={`charge.multiplier`}
-                  autoComplete='off'
-                  validation='num'
-                  errorMsg='Must contain whole numbers only'
-                  label='Multiplier'
-                  value={state?.charge?.multiplier}
-                  onChange={setState}
-                />
-                <>
-                  <Input
-                    name={`charge.addValue`}
-                    autoComplete='off'
-                    label='Additional Amount'
-                    value={state?.charge?.addValue}
-                    onChange={setState}
-                  />
-                  <Input
-                    name={`charge.minValue`}
-                    autoComplete='off'
-                    label='Min. Value'
-                    value={state?.charge?.minValue}
-                    onChange={setState}
-                  />
-                </>
-              </>
-            )}
-          {state?.charge?.limit?.name !== 'resourcePoints' && (
-            <Dropdown
-              name={`charge.reset`}
-              label='Reset Option'
-              value={state?.charge?.reset}
-              options={builders.features.charge.reset}
-              required={true}
-              onChange={setState}
-            />
-          )}
-        </Row>
-        {state.attribute?.some((attributeItem: any) => attributeItem?.name === 'limitUse') && (
-          <>
-            <Collapse>
-              <Collapse.Header title={'Limit Use Table'} />
-              <Collapse.Body>
-                <Table
-                  rows={{
-                    inputs: [
-                      {
-                        name: 'value',
-                        errorMsg: 'Must contain only numbers',
-                        validation: 'num',
-                      },
-                      {
-                        name: 'useNum',
-                        errorMsg: 'Must contain only numbers',
-                        validation: 'num',
-                      },
-                    ],
-                    headers: [
-                      {
-                        value: 'Level',
-                      },
-                      {
-                        value: 'Uses',
-                      },
-                    ],
-                  }}
-                  name={`charge.level`}
-                  value={state?.charge?.level}
-                  onChange={setState}
-                  addRow={true}
-                />
-              </Collapse.Body>
-            </Collapse>
-          </>
+          )
         )}
-      </>
-    )
+        {formData?.charges?.limit != null &&
+          formData.charges?.limit !== ChargesLimits.setAmount &&
+          formData.charges?.limit !== ChargesLimits.usesPerLevel &&
+          formData?.charges?.limit !== ChargesLimits.resourcePoints && (
+            <>
+              <Input<typeof formData>
+                name='charges.multiplier'
+                autoComplete='off'
+                validation='num'
+                errorMsg='Must contain whole numbers only'
+                label='Multiplier'
+                value={formData?.charges?.multiplier}
+                onChange={updateFormData}
+              />
+              <>
+                <Input<typeof formData>
+                  name='charges.addAmount'
+                  autoComplete='off'
+                  label='Additional Amount'
+                  value={formData?.charges?.addAmount}
+                  onChange={updateFormData}
+                />
+                <Input<typeof formData>
+                  name='charges.minAmount'
+                  autoComplete='off'
+                  label='Min. Value'
+                  value={formData?.charges?.minAmount}
+                  onChange={updateFormData}
+                />
+              </>
+            </>
+          )}
+        {formData?.charges?.limit !== ChargesLimits.resourcePoints && (
+          <Dropdown<typeof formData>
+            name='charges.reset'
+            label='Reset Option'
+            value={formData?.charges?.reset}
+            options={system.charges.resets.filter((reset) => reset.features.includes(FeatureEnum.all))}
+            required={true}
+            onChange={updateFormData}
+          />
+        )}
+      </Row>
+      {formData.charges.limit === ChargesLimits.usesPerLevel && (
+        <Collapse>
+          <Collapse.Header title={'Limit Use Table'} />
+          <Collapse.Body>
+            <Row spacing='spaceBetween' cellSize='auto'>
+              <span>Level</span>
+              <span>Uses</span>
+            </Row>
+            {formData?.charges?.usesPerLevel?.map((setLevel, index) => (
+              <Row key={index} spacing='spaceBetween' cellSize='auto'>
+                <Input
+                  name={`charges.usesPerLevel.${index}.level`}
+                  value={setLevel.level}
+                  validation='num'
+                  errorMsg='Please enter a whole number'
+                  onChange={updateFormData}
+                  required={true}
+                />
+                <Input
+                  name={`charges.usesPerLevel.${index}.uses`}
+                  value={setLevel.uses}
+                  validation='num'
+                  errorMsg='Please enter a whole number'
+                  onChange={updateFormData}
+                  required={true}
+                />
+              </Row>
+            ))}
+          </Collapse.Body>
+        </Collapse>
+      )}
+    </>
   )
 }
 

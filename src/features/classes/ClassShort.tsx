@@ -6,19 +6,19 @@ import { feature_header } from './ClassShort.css'
 import { useCallback, useMemo } from 'react'
 import { set, startCase, uniqBy } from 'lodash'
 import { numberToWords } from '../../utils/formatting'
-import { useGetEquipmentQuery } from '../equipment/equipmentApi'
-import { FeatureArrayType, ClassProficiencyType } from '../../utils/types'
+import { useListEquipmentQuery } from '../equipment/equipmentApi'
+import { FeatureArray, ClassProficiency } from '../../types/components'
 
 const ClassShort = () => {
   const location: any = useLocation()
 
-  const { data: items } = useGetEquipmentQuery() as { data: any[] }
+  const { data: items } = useListEquipmentQuery() as { data: any[] }
 
   const uClass = location.state.item
 
   const createFeatures = useCallback(
-    (featureArray?: FeatureArrayType[]) => {
-      let featureArrayUpdated: FeatureArrayType[] = []
+    (featureArray?: FeatureArray[]) => {
+      let featureArrayUpdated: FeatureArray[] = []
 
       if (featureArray && featureArray.length > 0) {
         featureArrayUpdated = [...featureArray]
@@ -81,7 +81,7 @@ const ClassShort = () => {
 
     const fullProficiencies = uClass.proficiencies
 
-    let proficiencyObject: ClassProficiencyType = {}
+    let proficiencyObject: ClassProficiency = {}
 
     fullProficiencies?.forEach((proficiency: any) => {
       const categoryName: string = proficiency.category?.name

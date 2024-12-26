@@ -1,0 +1,28 @@
+type BackgroundCurrency {
+  copper: Int
+  silver: Int
+  electrum: Int
+  gold: Int
+  platinum: Int
+}
+
+type Background implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  details: [Detail!]
+  equipment: [EquipmentGroup]
+  currency: BackgroundCurrency
+  proficiencies: [FeatureProficiency]
+  features: [Feature]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type BackgroundConnection {
+  items: [Background!]
+  nextToken: String
+  message: String
+}

@@ -1,8 +1,8 @@
 import List from '../../components/List/List'
-import { useGetFeatsQuery, useDeleteFeatMutation } from './featsApi'
+import { useListFeatsQuery, useDeleteFeatMutation } from './featsApi'
 
 const FeatList = () => {
-  return <List useGetItems={useGetFeatsQuery} useDeleteItem={useDeleteFeatMutation} />
+  return <List useListItems={useListFeatsQuery} useDeleteItem={useDeleteFeatMutation} />
 }
 
 export default FeatList

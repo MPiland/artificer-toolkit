@@ -1,0 +1,79 @@
+type AncestryFeature implements BaseFields {
+  id: ID!
+  label: String
+  value: String
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [FeatureFeat]
+  modifiers: [FeatureModifier]
+  proficiencies: [FeatureProficiency]
+  expertise: [FeatureExpertise]
+  senses: [FeatureSense]
+  spells: [FeatureSpell]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  selectionCount: Int
+  levelAvailable: String
+  subfeatures: [Subfeature]
+  options: [FeatureOption]
+}
+
+type AncestryOption {
+  id: ID!
+  value: String!
+  label: String!
+  desc: String
+  features: [AncestryFeature]
+}
+
+type Ancestry implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  options: [AncestryOption!]
+}
+
+type RaceSpeed {
+  walking: Int
+  swimming: Int
+  flying: Int
+  climbing: Int
+}
+
+type Traits {
+  area: [Detail]
+  size: ID
+  speeds: RaceSpeed
+}
+
+type Race implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  playable: String
+  category: ID!
+  lineage: [ID!]
+  ancestry: Ancestry
+  details: [Detail]
+  traits: Traits
+  features: [Feature]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type RaceConnection {
+  items: [Race!]
+  nextToken: String
+  message: String
+}

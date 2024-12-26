@@ -47,37 +47,37 @@ export const button_content = style({
 export const button_color = styleVariants({
   primary: {
     vars: {
-      [button_background_color]: theme.vars.button.primary.backgroundColor,
-      [button_filled_hover]: theme.vars.button.primary.hoverBackgroundColor,
-      [button_outline_hover]: theme.vars.button.primary.outlineHoverBackgroundColor,
+      [button_background_color]: theme.vars.component.button.backgroundColor.primary.main,
+      [button_filled_hover]: theme.vars.component.button.backgroundColor.primary.hover,
+      [button_outline_hover]: theme.vars.component.button.backgroundColor.primary.outlineHover,
     },
   },
   warning: {
     vars: {
-      [button_background_color]: theme.vars.button.warning.backgroundColor,
-      [button_filled_hover]: theme.vars.button.warning.hoverBackgroundColor,
-      [button_outline_hover]: theme.vars.button.warning.outlineHoverBackgroundColor,
+      [button_background_color]: theme.vars.component.button.backgroundColor.warning.main,
+      [button_filled_hover]: theme.vars.component.button.backgroundColor.warning.hover,
+      [button_outline_hover]: theme.vars.component.button.backgroundColor.warning.outlineHover,
     },
   },
   danger: {
     vars: {
-      [button_background_color]: theme.vars.button.danger.backgroundColor,
-      [button_filled_hover]: theme.vars.button.danger.hoverBackgroundColor,
-      [button_outline_hover]: theme.vars.button.danger.outlineHoverBackgroundColor,
+      [button_background_color]: theme.vars.component.button.backgroundColor.danger.main,
+      [button_filled_hover]: theme.vars.component.button.backgroundColor.danger.hover,
+      [button_outline_hover]: theme.vars.component.button.backgroundColor.danger.outlineHover,
     },
   },
   update: {
     vars: {
-      [button_background_color]: theme.vars.button.update.backgroundColor,
-      [button_filled_hover]: theme.vars.button.update.hoverBackgroundColor,
-      [button_outline_hover]: theme.vars.button.update.outlineHoverBackgroundColor,
+      [button_background_color]: theme.vars.component.button.backgroundColor.update.main,
+      [button_filled_hover]: theme.vars.component.button.backgroundColor.update.hover,
+      [button_outline_hover]: theme.vars.component.button.backgroundColor.update.outlineHover,
     },
   },
-  default: {
+  main: {
     vars: {
-      [button_background_color]: theme.vars.button.default.backgroundColor,
-      [button_filled_hover]: theme.vars.button.default.hoverBackgroundColor,
-      [button_outline_hover]: theme.vars.button.default.outlineHoverBackgroundColor,
+      [button_background_color]: theme.vars.component.button.backgroundColor.main.main,
+      [button_filled_hover]: theme.vars.component.button.backgroundColor.main.hover,
+      [button_outline_hover]: theme.vars.component.button.backgroundColor.main.outlineHover,
     },
   },
 })
@@ -86,7 +86,7 @@ export const button_style = styleVariants({
   unstyled: {
     padding: 0,
     backgroundColor: 'transparent',
-    color: theme.vars.color,
+    color: theme.vars.typography.color.main,
     border: 'none',
 
     selectors: {
@@ -116,7 +116,7 @@ export const button_style = styleVariants({
     },
   },
   outline: {
-    color: theme.vars.color,
+    color: theme.vars.typography.color.main,
     backgroundColor: 'transparent',
     border: `${theme.border} ${button_background_color}`,
 
@@ -129,7 +129,7 @@ export const button_style = styleVariants({
 })
 
 export const button_height = styleVariants({
-  default: { height: theme.button.height },
+  default: { height: theme.component.button.height },
   auto: { height: height['auto'] },
   full: { height: height['full'] },
   xs: { height: height['xs'] },
@@ -140,7 +140,7 @@ export const button_height = styleVariants({
 })
 
 export const button_radius = styleVariants({
-  default: { borderRadius: theme.borderRadius },
+  default: { borderRadius: theme.border.radius },
   xs: { borderRadius: borderRadius['xs'] },
   sm: { borderRadius: borderRadius['sm'] },
   md: { borderRadius: borderRadius['md'] },
@@ -151,8 +151,8 @@ export const button_radius = styleVariants({
 globalStyle(`${button} svg`, {
   '@layer': {
     [app]: {
-      height: '100%',
-      width: 'auto',
+      height: 'auto',
+      width: '100%',
     },
   },
 })

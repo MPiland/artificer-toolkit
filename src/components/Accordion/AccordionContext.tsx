@@ -1,8 +1,14 @@
-import { createContext } from 'react'
+import { createContext, useState } from 'react'
 
-export interface AccordionContextProps {
-  activeHeader: HTMLDivElement | null
-  setActiveHeader: (header: HTMLDivElement | null) => void
+export const AccordionOptions = () => {
+  const [activeHeader, setActiveHeader] = useState<HTMLDivElement | null>(null)
+
+  return {
+    activeHeader,
+    setActiveHeader,
+  }
 }
 
-export const AccordionContext = createContext<AccordionContextProps | undefined>(undefined)
+type AccordionOptionsType = ReturnType<typeof AccordionOptions> | null
+
+export const AccordionContext = createContext<AccordionOptionsType>(undefined)

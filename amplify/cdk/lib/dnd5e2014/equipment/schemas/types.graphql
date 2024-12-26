@@ -1,0 +1,66 @@
+type Speed {
+  amount: Int
+  unit: ID!
+}
+
+type Weight {
+  amount: Float
+  unit: ID!
+}
+
+type Capacity {
+  amount: Float
+  unit: ID!
+}
+
+type Cost {
+  amount: Int
+  currency: ID!
+}
+
+type Contains {
+  id: ID!
+  quantity: Int!
+  contains: [Contains]  
+  currencies: [Currency]
+}
+
+type Equipment implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  quote: String
+  cost: Cost
+  weight: Weight
+  capacity: Capacity
+  maxStack: Int
+  quantity: Int
+  properties: [ID]
+  category: ID!
+  equipmentRank: Int
+  rarity: ID
+  attributes: [ID]
+  damage: Damage
+  saveAbility: SaveAbility
+  primaryAbility: ID
+  secondaryAbility: ID
+  optionalAbility: ID
+  maxBonus: Int
+  armorClass: Int
+  prerequisities: Prerequisite
+  speed: Speed
+  range: Range
+  contains: [Contains]
+  features: [Feature]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+  rank: Int
+}
+
+type EquipmentConnection {
+  items: [Equipment!]
+  nextToken: String
+  message: String
+}

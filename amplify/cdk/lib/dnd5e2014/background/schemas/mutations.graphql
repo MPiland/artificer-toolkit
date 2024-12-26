@@ -1,0 +1,6 @@
+type Mutation {
+  createBackground(input: BackgroundInput!): Background!
+  updateBackground(input: BackgroundInput!): Background!
+  deleteBackground(id: ID!): ID!
+  batchCreateBackgrounds(input: [BatchBackgroundsInput!]!): [Background!]!
+}

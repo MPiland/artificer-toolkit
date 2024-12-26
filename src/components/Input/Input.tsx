@@ -1,136 +1,147 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect, memo } from 'react'
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
 import {
   input_wrapper,
   input_label,
   input_container,
-  input_left_section,
-  input_right_section,
+  input_endAdornment,
   input,
   input_height,
   input_border,
   input_textAlign,
 } from './Input.css'
-import { ReducerActionType } from '../../utils/types'
 import clsx from 'clsx'
-import { useDebounceCallback } from 'usehooks-ts'
-import Tooltip from '../Tooltip/Tooltip'
+import { useDebounceCallback, useEventListener } from 'usehooks-ts'
+import Floating from '../Floating/Floating'
+import { DeepKeyOf, UpdateState } from '../../types/form'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
+const DIE_REGEX = /^(?:1|4|6|8|10|12|20|100)$/
 
-interface InputProps {
+interface InputProps<T> {
   label?: string | boolean
-  name: string
   autoComplete?: string
   required?: boolean
   errorMsg?: string
-  onChange?: (arg: ReducerActionType) => void
+  onChange?: (state: UpdateState<T>) => void
   value: any | null
   readOnly?: boolean
-  validation?: string
+  validation?: 'num' | 'cur' | 'die' | 'user' | 'pwd'
   autoFocus?: boolean
   className?: string | number | symbol | any
   type?: string
   placeholder?: string
-  leftSection?: any
-  rightSection?: any
+  endAdornment?: any
   id?: string
   disabled?: boolean
-  height?: 'full' | 'auto' | 'default'
+  height?: 'full' | 'auto'
   border?: 'none' | 'default'
-  textAlign?: 'center' | 'default'
+  textAlign?: 'center'
+  name: DeepKeyOf<T>
 }
 
-const Input = memo(
-  ({
-    label,
-    placeholder,
-    name,
-    autoComplete,
-    required,
-    onChange,
-    errorMsg,
-    value,
-    readOnly,
-    validation,
-    autoFocus,
-    className,
-    type,
-    leftSection,
-    rightSection,
-    id,
-    disabled = false,
-    height = 'default',
-    border = 'default',
-    textAlign = 'default',
-  }: InputProps) => {
-    const [inputValue, setInputValue] = useState<string>(value ?? '')
-    const [debouncing, setDebouncing] = useState(false)
-    const [error, setError] = useState<boolean>(false)
+const Input = <T,>({
+  label,
+  placeholder,
+  name,
+  autoComplete,
+  required,
+  onChange,
+  errorMsg,
+  value,
+  readOnly,
+  validation,
+  autoFocus,
+  className,
+  type,
+  endAdornment,
+  id,
+  disabled = false,
+  height = 'auto',
+  border = 'default',
+  textAlign,
+}: InputProps<T>) => {
+  const [inputValue, setInputValue] = useState<string>(value ?? '')
+  const [debouncing, setDebouncing] = useState(false)
+  const [error, setError] = useState<boolean>(false)
+  const [open, setOpen] = useState<boolean>(false)
 
-    const inputRef = useRef<HTMLInputElement | null>(null)
-    useEffect(() => {
-      const input = inputRef.current
-      if (input) {
-        input.addEventListener('setErrorState', (e: any) => setError(e.detail))
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const documentRef = useRef<Document>(document)
 
-        return () => input.removeEventListener('setErrorState', (e: any) => setError(e.detail))
-      }
-    }, [])
+  useEffect(() => {
+    const input = inputRef.current
+    if (input) {
+      input.addEventListener('setErrorState', (e: any) => {
+        setError(e.detail)
+        setOpen(e.detail)
+      })
 
-    useLayoutEffect(() => {
-      if (value !== inputValue && !debouncing) {
-        setError(false)
-        setInputValue(value)
-      }
-    }, [inputValue, value, debouncing])
+      return () => input.removeEventListener('setErrorState', (e: any) => setError(e.detail))
+    }
+  }, [])
 
-    const debounceSave = useDebounceCallback(
-      useCallback(
-        (target: React.ChangeEvent<HTMLInputElement>['target']) => {
-          onChange && onChange({ target: { name: name, value: target.value } })
-          setDebouncing(false)
-        },
-        [onChange, name]
-      ),
-      0.3 * 1000
-    ) // every 3 seconds max
+  useLayoutEffect(() => {
+    if (value !== inputValue && !debouncing) {
+      setError(false)
+      setInputValue(value)
+    }
+  }, [inputValue, value, debouncing])
 
-    const handleChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        debounceSave.cancel()
-        const target = e.target
-        setInputValue(target.value)
+  useEventListener('click', () => setOpen(false), documentRef)
 
-        if (validation) {
-          if (validation === 'num') {
-            if (NUM_REGEX.test(target.value) === false && target.value !== '') {
-              setError(true)
-            } else {
-              setError(false)
-            }
-          } else if (validation === 'cur') {
-            if (CUR_REGEX.test(target.value) === false && target.value !== '') {
-              setError(true)
-            } else {
-              setError(false)
-            }
-          }
-        }
-        setError(false)
-        setDebouncing(true)
-        debounceSave(target)
+  const debounceSave = useDebounceCallback(
+    useCallback(
+      (target: React.ChangeEvent<HTMLInputElement>['target']) => {
+        onChange({ type: 'update', path: name, value: target.value })
+        setDebouncing(false)
       },
-      [debounceSave, validation]
-    )
+      [name, onChange]
+    ),
+    0.3 * 1000
+  ) // every 3 seconds max
 
-    const content = (
-      <Tooltip
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      debounceSave.cancel()
+      const target = e.target
+      setInputValue(target.value)
+
+      if (validation) {
+        if (validation === 'num') {
+          if (NUM_REGEX.test(target.value) === false && target.value !== '') {
+            setError(true)
+          } else {
+            setError(false)
+          }
+        } else if (validation === 'cur') {
+          if (CUR_REGEX.test(target.value) === false && target.value !== '') {
+            setError(true)
+          } else {
+            setError(false)
+          }
+        } else if (validation === 'die') {
+          if (DIE_REGEX.test(target.value) === false && target.value !== '') {
+            setError(true)
+          } else {
+            setError(false)
+          }
+        } else {
+          setError(false)
+        }
+      }
+      setDebouncing(true)
+      debounceSave(target)
+    },
+    [debounceSave, validation]
+  )
+
+  const content = (
+    <Floating>
+      <Floating.Anchor
         className={clsx(input_wrapper, {
           [`${className}`]: className,
         })}
-        opened={error}
-        label={errorMsg}
       >
         {label && (
           <label className={clsx(input_label, { ['required']: required })} htmlFor={id ?? name}>
@@ -138,16 +149,21 @@ const Input = memo(
           </label>
         )}
         <div
-          className={clsx(input_container, input_height[height], input_border[border], input_textAlign[textAlign], {
-            ['invalid']: error,
-          })}
+          className={clsx(
+            input_container,
+            input_height[height],
+            input_border[border],
+            { [input_textAlign[textAlign]]: textAlign != null },
+            {
+              ['invalid']: error,
+            }
+          )}
         >
-          {leftSection && <div className={input_left_section}>{leftSection}</div>}
           <input
             placeholder={placeholder}
             name={name}
             type={type}
-            className={input}
+            className={clsx(input, className)}
             required={required}
             autoFocus={autoFocus}
             autoComplete={autoComplete ?? 'off'}
@@ -160,14 +176,22 @@ const Input = memo(
             data-atapp-validation={validation}
             disabled={disabled}
           />
-          {rightSection && <div className={input_right_section}>{rightSection}</div>}
+          {endAdornment && <div className={input_endAdornment}>{endAdornment}</div>}
         </div>
-      </Tooltip>
-    )
-    return content
-  }
-)
-
-Input.displayName = 'Input'
+      </Floating.Anchor>
+      <Floating.Tooltip
+        className={'invalid'}
+        boundary='form'
+        open={open}
+        onOpenChange={setOpen}
+        showArrow={true}
+        role='tooltip'
+      >
+        {errorMsg}
+      </Floating.Tooltip>
+    </Floating>
+  )
+  return content
+}
 
 export default Input

@@ -14,7 +14,7 @@ export const modal = style({
       left: 0,
       width: '100dvw',
       height: '100dvh',
-      backgroundColor: 'rgba(0, 0, 0, 0.541)',
+      backgroundColor: theme.vars.component.modal.backgroundColor.overlay,
       zIndex: 200,
     },
   },
@@ -26,17 +26,18 @@ export const modal_dialogue = style({
       position: 'relative',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: theme.vars.backgroundColor.component,
+      backgroundColor: theme.vars.component.content.backgroundColor.main,
       width: '400px',
       zIndex: 500,
       borderRadius: '0.5rem',
       overflow: 'hidden',
       justifyContent: 'center',
-      borderColor: theme.vars.borderColor,
+      borderColor: theme.vars.component.content.border.color.main,
 
       selectors: {
         '&.xs': {
-          'width': '30dvw',
+          'width': '20dvw',
+          minWidth: '20rem',
           'maxHeight': '80dvh',
 
           '@media': {
@@ -107,7 +108,7 @@ export const modal_content = style({
       'overflow': 'hidden',
       'zIndex': '10',
       'padding': `${size['size-7']} 0`,
-      'color': theme.vars.color,
+      'color': theme.vars.typography.color.main,
       'justifyContent': 'center',
 
       'selectors': {

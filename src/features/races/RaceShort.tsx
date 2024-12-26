@@ -1,6 +1,6 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import { useGetRacesQuery } from './racesApi'
+import { useListRacesQuery } from './racesApi'
 import Spinner from '../../components/Spinner/Spinner'
 import Collapse from '../../components/Collapse/Collapse'
 import { useEffect, useState } from 'react'
@@ -17,7 +17,7 @@ const RaceShort = () => {
     data: races,
     isFetching,
     isPending,
-  } = useGetRacesQuery() as { data: any[]; isFetching: boolean; isPending: boolean }
+  } = useListRacesQuery() as { data: any[]; isFetching: boolean; isPending: boolean }
   const race = location.state.item
 
   useEffect(() => {

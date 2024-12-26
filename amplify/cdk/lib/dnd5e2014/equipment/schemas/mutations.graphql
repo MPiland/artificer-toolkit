@@ -1,0 +1,6 @@
+type Mutation {
+  createEquipment(input: EquipmentInput!): Equipment!
+  updateEquipment(input: EquipmentInput!): Equipment!
+  deleteEquipment(id: ID!): ID!
+  batchCreateEquipment(input: [BatchEquipmentInput!]!): [Equipment!]!
+}

@@ -1,0 +1,27 @@
+input BackgroundCurrencyInput {
+  copper: Int
+  silver: Int
+  electrum: Int
+  gold: Int
+  platinum: Int
+}
+
+input BackgroundInput {
+  id: ID
+  label: String!
+  value: String!
+  desc: String
+  details: [DetailInput!]
+  equipment: [EquipmentGroupInput]
+  currency: BackgroundCurrencyInput
+  proficiencies: [FeatureProficiencyInput]
+  features: [FeatureInput]
+  ownerId: String
+  systemId: ID!
+  masterId: String
+}
+
+input BatchBackgroundsInput {
+  tableName: String!
+  data: BackgroundInput!
+}

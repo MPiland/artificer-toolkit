@@ -7,9 +7,9 @@ export const collapse_wrapper = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      border: theme.vars.backgroundColor.component,
-      borderRadius: theme.borderRadius,
-      backgroundColor: theme.vars.backgroundColor.component,
+      border: `${theme.border.size.main} ${theme.border.radius} ${theme.vars.component.collapse.border.color.main}`,
+      borderRadius: theme.border.radius,
+      backgroundColor: theme.vars.component.collapse.backgroundColor.main,
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
       zIndex: 0,
       marginBottom: size['size-3'],
@@ -30,7 +30,7 @@ export const collapse_header = style({
     [app]: {
       width: '100%',
       fontWeight: 'bold',
-      backgroundColor: theme.vars.backgroundColor.component,
+      backgroundColor: theme.vars.component.collapse.backgroundColor.main,
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
@@ -39,17 +39,17 @@ export const collapse_header = style({
       padding: `${size['size-1']} ${size['size-3']}`,
       height: '2.5rem',
       flexWrap: 'nowrap',
-      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       borderBottomLeftRadius: '0',
       borderBottomRightRadius: '0',
-      borderTopLeftRadius: theme.borderRadius,
-      borderTopRightRadius: theme.borderRadius,
+      borderTopLeftRadius: theme.border.radius,
+      borderTopRightRadius: theme.border.radius,
 
       selectors: {
         [`${collapse_wrapper}.collapsed &`]: {
           border: 'none',
-          borderBottomLeftRadius: theme.borderRadius,
-          borderBottomRightRadius: theme.borderRadius,
+          borderBottomLeftRadius: theme.border.radius,
+          borderBottomRightRadius: theme.border.radius,
         },
       },
     },

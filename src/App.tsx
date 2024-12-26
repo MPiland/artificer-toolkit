@@ -1,10 +1,8 @@
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Layout from './Layout/Layout'
-import SignIn from './features/auth/SignIn'
 import ErrorPage from './features/auth/ErrorPage'
 import CharactersList from './features/characters/CharactersList'
-import Create from './components/Create/Create'
 import Delete from './components/Delete/Delete'
 import CharacterForm from './features/characters/CharacterForm'
 import Alert from './components/Alert/Alert'
@@ -14,8 +12,8 @@ import RacesList from './features/races/RacesList'
 import RaceForm from './features/races/RaceForm'
 import SpellsList from './features/spells/SpellsList'
 import SpellForm from './features/spells/SpellForm'
-import ItemsList from './features/equipment/EquipmentList'
-import ItemForm from './features/equipment/EquipmentForm'
+import EquipmentList from './features/equipment/EquipmentList'
+import EquipmentForm from './features/equipment/EquipmentForm'
 import FeatsList from './features/feats/FeatsList'
 import FeatForm from './features/feats/FeatForm'
 import BackgroundsList from './features/backgrounds/BackgroundsList'
@@ -23,13 +21,18 @@ import BackgroundForm from './features/backgrounds/BackgroundForm'
 import Class from './features/classes/Class'
 import Race from './features/races/Race'
 import Feat from './features/feats/Feat'
-import Item from './features/equipment/Equipment'
+import Equipment from './features/equipment/Equipment'
 import Background from './features/backgrounds/Background'
 import Copy from './components/Copy/Copy'
 import ShortDetail from './components/Form/ShortDetail'
-import FormProvider from './components/Form/FormProvider'
-import FeatureProvider from './components/Form/Features/FeatureProvider'
-import SignUp from './features/auth/SignUp'
+import FeatureContext, { FeatureOptions } from './components/Form/Features/FeatureContext'
+import Auth from './features/auth/Auth'
+import RequireAuth from './features/auth/RequireAuth'
+import ConfirmSignUp from './features/auth/ConfirmSignUp'
+import AuthContext, { AuthOptions } from './features/auth/AuthContext'
+import LoadingContext, { LoadingOptions } from './components/Loading/LoadingContext'
+import Loading from './components/Loading/Loading'
+import FormContext, { FormOptions } from './components/Form/FormContext'
 
 const App = () => {
   useEffect(() => {
@@ -44,221 +47,232 @@ const App = () => {
     }
   })
 
+  const featureOptions = FeatureOptions()
+
   const router = createBrowserRouter([
     {
       path: '/',
-      element: <Layout />,
+      element: (
+        <AuthContext value={AuthOptions()}>
+          <LoadingContext value={LoadingOptions()}>
+            <Layout />
+          </LoadingContext>
+        </AuthContext>
+      ),
       errorElement: <ErrorPage />,
       children: [
         {
-          path: 'signin',
-          element: <SignIn />,
+          path: 'sign-in',
+          element: <Auth />,
         },
         {
-          path: 'signup',
-          element: <SignUp />,
+          path: 'sign-up',
+          element: <Auth />,
         },
         {
-          element: <FormProvider />,
+          path: ':signType/confirm-sign-up',
+          element: <ConfirmSignUp />,
+        },
+        {
           path: '',
+          element: <RequireAuth />,
           children: [
             {
-              path: 'characters',
+              element: (
+                <Suspense fallback={<Loading />}>
+                  <FormContext value={FormOptions()} />
+                </Suspense>
+              ),
+              path: '',
               children: [
                 {
-                  path: '',
-                  element: <CharactersList />,
-                  children: [
-                    { path: 'create', element: <Create /> },
-                    { path: 'delete/:id', element: <Delete /> },
-                  ],
-                },
-                {
-                  path: ':type?/:id?',
-                  element: <CharacterForm />,
+                  path: 'characters',
                   children: [
                     {
-                      path: 'alert/:alertType',
-                      element: (
-                        <FeatureProvider>
-                          <Alert />
-                        </FeatureProvider>
-                      ),
+                      path: '',
+                      element: <CharactersList />,
+                      children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
-                    { path: ':context/detail/short/:item', element: <ShortDetail /> },
+                    {
+                      path: ':type?/:id?',
+                      element: <CharacterForm />,
+                      children: [
+                        {
+                          path: 'alert/:alertType',
+                          element: (
+                            <FeatureContext value={featureOptions}>
+                              <Alert />
+                            </FeatureContext>
+                          ),
+                        },
+                        { path: ':context/detail/short/:item', element: <ShortDetail /> },
+                      ],
+                    },
                   ],
                 },
-              ],
-            },
-            {
-              path: 'classes',
-              children: [
                 {
-                  path: '',
-                  element: <ClassesList />,
-                  children: [
-                    { path: 'detail/:item', element: <Class /> },
-                    { path: 'create', element: <Create /> },
-                    { path: 'delete/:id', element: <Delete /> },
-                  ],
-                },
-                {
-                  path: ':type?/:id?',
-                  element: <ClassForm />,
+                  path: 'classes',
                   children: [
                     {
-                      path: 'alert/:alertType',
-                      element: (
-                        <FeatureProvider>
-                          <Alert />
-                        </FeatureProvider>
-                      ),
+                      path: '',
+                      element: <ClassesList />,
+                      children: [
+                        { path: 'detail/:item', element: <Class /> },
+                        { path: 'delete/:id', element: <Delete /> },
+                      ],
                     },
-                    { path: 'copy/feature', element: <Copy /> },
+                    {
+                      path: ':type?/:id?',
+                      element: <ClassForm />,
+                      children: [
+                        {
+                          path: 'alert/:alertType',
+                          element: (
+                            <FeatureContext value={featureOptions}>
+                              <Alert />
+                            </FeatureContext>
+                          ),
+                        },
+                        { path: 'copy/feature', element: <Copy /> },
+                      ],
+                    },
                   ],
                 },
-              ],
-            },
-            {
-              path: 'races',
-              children: [
                 {
-                  path: '',
-                  element: <RacesList />,
-                  children: [
-                    { path: 'detail/:id', element: <Race /> },
-                    { path: 'create', element: <Create /> },
-                    { path: 'delete/:id', element: <Delete /> },
-                  ],
-                },
-                {
-                  path: ':type?/:id?',
-                  element: <RaceForm />,
+                  path: 'races',
                   children: [
                     {
-                      path: 'alert/:alertType',
-                      element: (
-                        <FeatureProvider>
-                          <Alert />
-                        </FeatureProvider>
-                      ),
+                      path: '',
+                      element: <RacesList />,
+                      children: [
+                        { path: 'detail/:id', element: <Race /> },
+                        { path: 'delete/:id', element: <Delete /> },
+                      ],
                     },
-                    { path: 'copy/feature', element: <Copy /> },
+                    {
+                      path: ':type?/:id?',
+                      element: <RaceForm />,
+                      children: [
+                        {
+                          path: 'alert/:alertType',
+                          element: (
+                            <FeatureContext value={featureOptions}>
+                              <Alert />
+                            </FeatureContext>
+                          ),
+                        },
+                        { path: 'copy/feature', element: <Copy /> },
+                      ],
+                    },
                   ],
                 },
-              ],
-            },
-            {
-              path: 'spells',
-              children: [
                 {
-                  path: '',
-                  element: <SpellsList />,
-                  children: [
-                    { path: 'create', element: <Create /> },
-                    { path: 'delete/:id', element: <Delete /> },
-                  ],
-                },
-                {
-                  path: ':type?/:id?',
-                  element: <SpellForm />,
+                  path: 'spells',
                   children: [
                     {
-                      path: 'alert/:alertType',
-                      element: (
-                        <FeatureProvider>
-                          <Alert />
-                        </FeatureProvider>
-                      ),
+                      path: '',
+                      element: <SpellsList />,
+                      children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
-                    { path: 'copy/feature', element: <Copy /> },
+                    {
+                      path: ':type?/:id?',
+                      element: <SpellForm />,
+                      children: [
+                        {
+                          path: 'alert/:alertType',
+                          element: (
+                            <FeatureContext value={featureOptions}>
+                              <Alert />
+                            </FeatureContext>
+                          ),
+                        },
+                        { path: 'copy/feature', element: <Copy /> },
+                      ],
+                    },
                   ],
                 },
-              ],
-            },
-            {
-              path: 'items',
-              children: [
                 {
-                  path: '',
-                  element: <ItemsList />,
-                  children: [
-                    { path: 'detail/:id', element: <Item /> },
-                    { path: 'create', element: <Create /> },
-                    { path: 'delete/:id', element: <Delete /> },
-                  ],
-                },
-                {
-                  path: ':type?/:id?',
-                  element: <ItemForm />,
+                  path: 'Equipment',
                   children: [
                     {
-                      path: 'alert/:alertType',
-                      element: (
-                        <FeatureProvider>
-                          <Alert />
-                        </FeatureProvider>
-                      ),
+                      path: '',
+                      element: <EquipmentList />,
+                      children: [
+                        { path: 'detail/:id', element: <Equipment /> },
+                        { path: 'delete/:id', element: <Delete /> },
+                      ],
                     },
-                    { path: 'copy/feature', element: <Copy /> },
+                    {
+                      path: ':type?/:id?',
+                      element: <EquipmentForm />,
+                      children: [
+                        {
+                          path: 'alert/:alertType',
+                          element: (
+                            <FeatureContext value={featureOptions}>
+                              <Alert />
+                            </FeatureContext>
+                          ),
+                        },
+                        { path: 'copy/feature', element: <Copy /> },
+                      ],
+                    },
                   ],
                 },
-              ],
-            },
-            {
-              path: 'feats',
-              children: [
                 {
-                  path: '',
-                  element: <FeatsList />,
-                  children: [
-                    { path: 'detail/:id', element: <Feat /> },
-                    { path: 'create', element: <Create /> },
-                    { path: 'delete/:id', element: <Delete /> },
-                  ],
-                },
-                {
-                  path: ':type?/:id?',
-                  element: <FeatForm />,
+                  path: 'feats',
                   children: [
                     {
-                      path: 'alert/:alertType',
-                      element: (
-                        <FeatureProvider>
-                          <Alert />
-                        </FeatureProvider>
-                      ),
+                      path: '',
+                      element: <FeatsList />,
+                      children: [
+                        { path: 'detail/:id', element: <Feat /> },
+                        { path: 'delete/:id', element: <Delete /> },
+                      ],
                     },
-                    { path: 'copy/feature', element: <Copy /> },
+                    {
+                      path: ':type?/:id?',
+                      element: <FeatForm />,
+                      children: [
+                        {
+                          path: 'alert/:alertType',
+                          element: (
+                            <FeatureContext value={featureOptions}>
+                              <Alert />
+                            </FeatureContext>
+                          ),
+                        },
+                        { path: 'copy/feature', element: <Copy /> },
+                      ],
+                    },
                   ],
                 },
-              ],
-            },
-            {
-              path: 'backgrounds',
-              children: [
                 {
-                  path: '',
-                  element: <BackgroundsList />,
-                  children: [
-                    { path: 'detail/:id', element: <Background /> },
-                    { path: 'create/:type', element: <Create /> },
-                    { path: 'delete/:id', element: <Delete /> },
-                  ],
-                },
-                {
-                  path: ':type?/:id?',
-                  element: <BackgroundForm />,
+                  path: 'backgrounds',
                   children: [
                     {
-                      path: 'alert/:alertType',
-                      element: (
-                        <FeatureProvider>
-                          <Alert />
-                        </FeatureProvider>
-                      ),
+                      path: '',
+                      element: <BackgroundsList />,
+                      children: [
+                        { path: 'detail/:id', element: <Background /> },
+                        { path: 'delete/:id', element: <Delete /> },
+                      ],
                     },
-                    { path: 'copy/feature', element: <Copy /> },
+                    {
+                      path: ':type?/:id?',
+                      element: <BackgroundForm />,
+                      children: [
+                        {
+                          path: 'alert/:alertType',
+                          element: (
+                            <FeatureContext value={featureOptions}>
+                              <Alert />
+                            </FeatureContext>
+                          ),
+                        },
+                        { path: 'copy/feature', element: <Copy /> },
+                      ],
+                    },
                   ],
                 },
               ],
@@ -269,11 +283,7 @@ const App = () => {
     },
   ])
 
-  return (
-    <>
-      <RouterProvider router={router} />
-    </>
-  )
+  return <RouterProvider router={router} />
 }
 
 export default App

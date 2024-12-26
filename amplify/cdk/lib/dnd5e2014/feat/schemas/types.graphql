@@ -1,0 +1,40 @@
+type Feat implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestry: [FeatureAncestry]
+  attributes: [ID]
+  actions: ActionGroup
+  primaryDamage: Damage
+  secondaryDamage: Damage
+  bonusDamage: Damage
+  charges: Charge
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [FeatureFeat]
+  modifiers: [FeatureModifier]
+  proficiencies: [FeatureProficiency]
+  expertise: [FeatureProficiency]
+  senses: [FeatureSense]
+  spells: [FeatureSpell]
+  spellcasting: [FeatureSpell]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  selectionCount: Int
+  levelAvailable: String
+  features: [Feature]
+  options: [FeatureOption]
+  ownerId: String!
+  systemId: ID!
+  masterId: String
+}
+
+type FeatConnection {
+  items: [Feat!]
+  nextToken: String
+  message: String
+}

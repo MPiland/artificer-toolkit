@@ -1,20 +1,21 @@
 import AncestryList from './AncestryList'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { useFeature } from '../../../hooks/UseFeature'
+import FeatureContext from '../Features/FeatureContext'
+import { use } from 'react'
 
 const AncestryWrapper = () => {
-  const { subContext, featureState, sectionSteps, sectionName, featureSteps } = useFeature()
+  const { featureStep, featureData, sectionStepComponent, sectionStep, featureSteps } = use(FeatureContext)
 
   return (
     <>
-      {subContext === '' ? (
+      {featureStep == null ? (
         <AncestryList />
       ) : (
         <>
           <h2 className={sprinkles({ mb: 'space-2', px: 'space-4' })}>{`Ancestry Option ${
-            featureState.value ? `(${featureState.value})` : ''
+            featureData.value ? `(${featureData.value})` : ''
           }`}</h2>
-          {sectionName !== '' ? sectionSteps[sectionName] : featureSteps[subContext]}
+          {sectionStep != null ? sectionStepComponent[sectionStep] : featureSteps[featureStep]}
         </>
       )}
     </>

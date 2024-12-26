@@ -1,0 +1,351 @@
+## Base Interfaces
+interface BaseFields {
+  label: String
+  value: String
+  desc: String
+}
+
+interface DieFields {
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+}
+
+type DamageFields implements DieFields {
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePool
+}
+
+## Basic Types
+type Detail implements BaseFields {
+  label: String!
+  value: String!
+  desc: String
+}
+
+type SaveAbility {
+  id: ID!
+  minAmount: Int
+  attributes: [ID]
+  abilityModifier: ID
+}
+
+type Range {
+  id: ID
+  minRange: Int
+  maxRange: Int
+  distance: Int
+  unit: ID
+}
+
+type EquipmentGroup {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  copper: Int
+  silver: Int
+  electrum: Int
+  gold: Int
+  platinum: Int
+}
+
+## Damage Related
+type DamagePool {
+  attribute: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  ability: ID
+  option: ID
+}
+
+type SetPerLevel {
+  level: String
+  amount: Int
+}
+
+type DicePerLevel implements DieFields {
+  level: String
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+}
+
+type Damage {
+  attributes: [ID]
+  damageSave: [ID]
+  setPerLevel: [SetPerLevel]
+  dicePerLevel: [DicePerLevel]
+  primary: DamageFields
+  secondary: DamageFields
+  bonus: DamageFields
+  versatile: DamageFields
+}
+
+## Charges
+type UsesPerLevel {
+  level: Int
+  uses: Int
+}
+
+type Charge {
+  reset: ID
+  limit: ID
+  ability: ID
+  skill: ID
+  usesPerLevel: [UsesPerLevel]
+  minAmount: Int
+  addAmount: Int
+  setAmount: Int
+  multiplier: Int
+  resourcePoints: Int
+}
+
+## Prerequisites
+type EquipPrerequisite {
+  numberEquipped: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+}
+
+type AbilityScore {
+  abilities: [ID]
+  score: Int
+}
+
+type Prerequisite {
+  options: [ID]
+  skillProficiencies: [ID]
+  equipmentProficiencies: [EquipPrerequisite]
+  equipped: [EquipPrerequisite]
+  notEquipped: [EquipPrerequisite]
+  abilityScore: AbilityScore
+  spellsKnown: [ID]
+  featuresKnown: [ID]
+  optionsKnown: [ID]
+  size: [ID]
+}
+
+## Feature Related
+type FeatureFeat {
+  id: ID!
+  attributes: [ID]
+  feats: [ID]
+  selectionCount: Int
+  subtype: ID
+}
+
+type FeatureModifier implements DieFields {
+  id: ID!
+  subtype: ID
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  type: ID
+  method: ID
+  methodAbility: ID
+  methodSkill: ID
+  multiplier: Int
+  maxAmount: Int
+  minAmount: Int
+  setAmount: Int
+  dieCount: Int
+  dieValue: Int
+  dieShort: String
+  feature: ID
+  dicePerLevel: [DicePerLevel]
+  setPerLevel: [SetPerLevel]
+  skills: [ID]
+  saveAbilities: [ID]
+  abilities: [ID]
+  speeds: [ID]
+  charge: Charge
+  range: ID
+  shape: ID
+  size: Int
+  duration: ID
+  unit: ID
+  conditions: [ID]
+  damageTypes: [ID]
+  spell: ID
+  spellCategory: ID
+}
+
+type ProficiencyProperties {
+  ids: [ID]
+  category: ID
+  properties: [ID]
+}
+
+type FeatureProficiency {
+  id: ID!
+  subtype: ID
+  attributes: [ID]
+  selectionCount: Int
+  category: ID!
+  level: ID!
+  rounding: ID
+  saveAbilities: [ID]
+  skills: [ID]
+  languages: [ID]
+  properties: ProficiencyProperties
+  equipment: ProficiencyProperties
+}
+
+type FeatureExpertise {
+  id: ID!
+  subtype: ID
+  attributes: [ID]
+  selectionCount: Int
+  category: ID!
+  saveAbilities: [ID]
+  skills: [ID]
+  languages: [ID]
+  properties: ProficiencyProperties
+  equipment: ProficiencyProperties
+}
+
+type FeatureSense {
+  id: ID!
+  attributes: [ID]
+  selectionCount: Int
+  subtype: ID
+  senses: [ID]
+}
+
+type SpellsByLevel {
+  spells: [ID]
+  level: Int
+  spellLevel: Int
+}
+
+type FeatureSpell {
+  id: ID!
+  spells: [ID]
+  attributes: [ID]
+  selectionCount: Int
+  classLimit: [ID]
+  levelLimit: Int
+  attributeLimit: [ID]
+  ability: ID
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevel]
+  subtype: ID
+}
+
+type FeatureAncestry {
+  id: ID!
+  attributes: [ID]
+  origin: ID
+  options: [ID]
+  selectionCount: Int
+  subtype: ID
+}
+
+type ActionProperty {
+  id: ID
+  amount: Int
+}
+
+type ActionGroup {
+  primary: ActionProperty
+  secondary: ActionProperty
+}
+
+type Subfeature implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestries: [FeatureAncestry]
+  attributes: [ID]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [FeatureFeat]
+  modifiers: [FeatureModifier]
+  proficiencies: [FeatureProficiency]
+  expertise: [FeatureExpertise]
+  senses: [FeatureSense]
+  spells: [FeatureSpell]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  selectionCount: Int
+  levelAvailable: String
+}
+
+type FeatureOption implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestries: [FeatureAncestry]
+  attributes: [ID]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [FeatureFeat]
+  modifiers: [FeatureModifier]
+  proficiencies: [FeatureProficiency]
+  expertise: [FeatureExpertise]
+  senses: [FeatureSense]
+  spells: [FeatureSpell]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  selectionCount: Int
+  levelAvailable: String
+  subfeatures: [Subfeature]
+}
+
+type Feature implements BaseFields {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestries: [FeatureAncestry]
+  attributes: [ID]
+  actions: ActionGroup
+  damage: Damage
+  charges: Charge
+  range: Range
+  shape: Shape
+  targets: Int
+  feats: [FeatureFeat]
+  modifiers: [FeatureModifier]
+  proficiencies: [FeatureProficiency]
+  expertise: [FeatureExpertise]
+  senses: [FeatureSense]
+  spells: [FeatureSpell]
+  prerequisites: Prerequisite
+  saveAbility: SaveAbility
+  selectionCount: Int
+  levelAvailable: String
+  subfeatures: [Subfeature]
+  options: [FeatureOption]
+}

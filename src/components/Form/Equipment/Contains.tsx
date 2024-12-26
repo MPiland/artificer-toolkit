@@ -1,54 +1,53 @@
-import { useEffect } from 'react'
-import Table from '../../Table/Table'
-import { useGetEquipmentQuery } from '../../../features/equipment/equipmentApi'
-import { useForm } from '../../../hooks/UseForm'
+import { useEffect, use } from 'react'
+import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
+import { Equipment } from '../../../../amplify/API'
+import { UpdateState } from '../../../types/form'
+import FormContext from '../FormContext'
+import Row from '../../Row/Row'
+import Input from '../../Input/Input'
+import Dropdown from '../../Dropdown/Dropdown'
 
 const ContainsForm = () => {
-  const { formState, setFormState } = useForm()
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: Equipment
+    updateFormData: (state: UpdateState<Equipment>) => void
+  }
 
-  const { data: items } = useGetEquipmentQuery() as { data: any[] }
+  const { data: equipment } = useListEquipmentQuery()
 
-  //Create contains data for table
+  //Create contains formData for table
   useEffect(() => {
-    if (!formState.contains) {
-      setFormState({ type: 'added', target: { name: 'contains' } })
+    if (!formData.contains) {
+      updateFormData({ type: 'add', path: 'contains' })
     }
-  }, [setFormState, formState.contains])
+  }, [updateFormData, formData.contains])
 
   return (
     <>
-      <Table
-        name='contains'
-        rows={{
-          inputs: [
-            {
-              name: 'item',
-              type: 'select',
-              options: items?.filter((item: any) =>
-                formState.containsFilter?.length > 0
-                  ? formState.containsFilter?.some((categoryItem: any) => categoryItem.name === item.categoryItem.name)
-                  : item
-              ),
-            },
-            {
-              name: 'quantity',
-              validation: 'num',
-              errorMsg: 'Must be whole numbers only',
-            },
-          ],
-          headers: [
-            {
-              value: 'Item',
-            },
-            {
-              value: 'Quantity',
-            },
-          ],
-        }}
-        value={formState.contains}
-        addRow={true}
-        onChange={setFormState}
-      />
+      <Row spacing='flexStart' cellSize='auto'>
+        <span>Equipment</span>
+        <span>Quantity</span>
+      </Row>
+      {formData.contains?.map((contain, index) => (
+        <Row key={index} spacing='flexStart' cellSize='auto'>
+          <Dropdown
+            name={`contains.${index}.id`}
+            value={contain.id}
+            required={true}
+            options={equipment}
+            errorMsg='Please enter a whole number'
+            onChange={updateFormData}
+          />
+          <Input
+            name={`contains.${index}.quantity`}
+            value={contain.quantity}
+            validation='num'
+            errorMsg='Please enter a whole number'
+            required={true}
+            onChange={updateFormData}
+          />
+        </Row>
+      ))}
     </>
   )
 }

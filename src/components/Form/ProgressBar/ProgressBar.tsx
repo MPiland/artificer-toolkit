@@ -4,9 +4,11 @@ import clsx from 'clsx'
 import ScrollArea from '../../ScrollArea/ScrollArea'
 import { validate } from '../../../utils/form'
 import { isEqual } from 'lodash'
-import { useForm } from '../../../hooks/UseForm'
-import { useFeature } from '../../../hooks/UseFeature'
+import { use } from 'react'
+import FormContext from '../FormContext'
 import { useIsFetching } from '@tanstack/react-query'
+import { Attributes } from '../../../types/enums'
+import FeatureContext from '../Features/FeatureContext'
 
 const ProgressBar = () => {
   const [lineWidth, setLineWidth] = useState<number>(0)
@@ -20,33 +22,36 @@ const ProgressBar = () => {
     setValidForm,
     steps,
     setStepIndex,
-    formState,
-    setFormState,
-    oldFormState,
+    formData,
+    updateFormData,
+    initialFormData,
     stepIndex,
     setSteps,
     setAddClass,
     setChangeRace,
     context,
-  } = useForm()
+  } = use(FormContext)
 
-  const { setSectionName, subContext, setSubContext, handleSaveFeatures } = useFeature()
+  const { setSectionStep, featureStep, setFeatureStep, handleSaveFeatures } = use(FeatureContext)
 
   const isLoading = useIsFetching() > 0
 
   const stepsArray = useMemo(() => {
     let updatedSteps = [...steps]
 
-    if (formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'containsItems')) {
-      if (!updatedSteps.includes({ id: 'contains', name: 'Contains' })) {
-        updatedSteps.push({ id: 'contains', name: 'Contains' })
+    if (
+      formData.__typename === 'Equipment' &&
+      formData?.attributes?.some((attribute) => attribute === Attributes.containsItems)
+    ) {
+      if (!updatedSteps.includes({ id: 'contains', label: 'Contains' })) {
+        updatedSteps.push({ id: 'contains', label: 'Contains' })
       }
     } else {
-      updatedSteps = updatedSteps.filter((step: any) => step.name !== 'Contains')
+      updatedSteps = updatedSteps.filter((step) => step.label !== 'Contains')
     }
 
     return updatedSteps
-  }, [formState, steps])
+  }, [formData, steps])
 
   useEffect(() => {
     if (!isEqual(stepsArray, steps)) {
@@ -90,26 +95,26 @@ const ProgressBar = () => {
   const handleStepChange = async (progressStepIndex: number) => {
     setAddClass(false)
     setChangeRace(false)
-    let formClone = JSON.parse(JSON.stringify(formState))
+    let formClone = JSON.parse(JSON.stringify(formData))
     const isValid = validate()
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (isEqual(formState, oldFormState) && subContext === '') {
+      if (isEqual(formData, initialFormData) && featureStep == null) {
         return setStepIndex(progressStepIndex)
       }
       if (
-        subContext === 'subfeature' ||
-        subContext === 'option' ||
-        (subContext === 'feature' && context.title !== 'feats')
+        featureStep === 'subfeature' ||
+        featureStep === 'option' ||
+        (featureStep === 'feature' && context.title !== 'feats')
       ) {
-        formClone = await handleSaveFeatures({ type: subContext, state: formClone })
+        formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }
-      setFormState({
+      updateFormData({
         type: 'reset',
-        target: { value: formClone },
+        value: formClone,
       })
-      setSubContext('')
-      setSectionName('')
+      setFeatureStep(null)
+      setSectionStep(null)
     }
     if (!isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: false })
@@ -136,7 +141,7 @@ const ProgressBar = () => {
             transition: 'left 0.3s ease-in-out',
           }}
         />
-        {stepsArray.map((step, index: number) => (
+        {stepsArray.map((step, index) => (
           <div
             key={index}
             className={clsx(progress_step, {
@@ -150,7 +155,7 @@ const ProgressBar = () => {
               }
             }}
           >
-            {step.name}
+            {step.label}
           </div>
         ))}
       </ScrollArea>

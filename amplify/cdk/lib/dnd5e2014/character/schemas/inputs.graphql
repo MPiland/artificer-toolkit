@@ -1,0 +1,257 @@
+input CharacterModifierInput {
+  modifierId: ID!
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+input CharacterSenseInput {
+  senseId: ID
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+input CharacterFeatInput {
+  featId: ID
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+input CharacterProficiencyInput {
+  proficiencyId: ID!
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+input CharacterExpertiseInput {
+  expertiseId: ID!
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+input CharacterSpellInput {
+  id: ID!
+  level: Int!
+  ability: ID
+  isRitual: Boolean
+  countAsKnown: Boolean
+  usesSlot: Boolean
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  requiresConcentration: Boolean
+  optionalAbility: Boolean
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionIndex: Int
+}
+
+input CharacterFeatureInput {
+  id: ID
+  option: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionIndex: Int
+}
+
+## Ability ScoresInput
+
+input RollInput {
+  die: Int!
+  value: Int!
+  id: String
+}
+
+input RollTypeInput {
+  score: Int!
+  ability: ID!
+  rolling: Boolean!
+  applied: Boolean!
+  rolled: [RollInput]!
+  kept: [RollInput]!
+}
+
+input RollGroupInput {
+  rolls: [RollTypeInput]
+}
+
+input ManualInput {
+  ability: ID
+  score: Int
+}
+
+input ManualRolledInput {
+  configuration: String!
+  rollGroups: [RollGroupInput]
+  manual: [ManualInput]
+}
+
+input DistributedInput {
+  ability: ID!
+  id: ID!
+}
+
+input PointBuyInput {
+  pointsLeft: Int
+  distributed: [DistributedInput]
+}
+
+input StandardArrayInput {
+  ability: ID
+  score: ID
+}
+
+input ScoresInput {
+  ability: ID!
+  baseScore: Int
+  raceScore: Int
+  classScore: Int
+  calculatedScore: Int
+  ModifierScore: Int
+}
+
+input CharacterAbilitiesInput {
+  manualRolled: ManualRolledInput
+  pointBuy: PointBuyInput
+  standardArray: [StandardArrayInput]
+  selectedSystem: ID
+  scores: [ScoresInput]
+}
+
+## CharacterAncestryInput
+
+input LineageInput {
+  id: ID
+  raceId: ID
+}
+
+input CharacterAncestryInput {
+  id: ID
+  raceId: ID
+  lineage: [LineageInput]
+}
+
+## Class
+
+## SubclassInput
+
+input SubclassInput {
+  id: ID
+  subtype: ID
+}
+
+## SpellListInput
+
+input ClassSpellInput {
+  id: ID!
+  classId: ID
+  ability: ID
+  isRitual: Boolean
+  countAsKnown: Boolean
+  usesSlot: Boolean
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  requiresConcentration: Boolean
+  optionalAbility: Boolean
+}
+
+input ClassSpellListInput {
+  level: Int!
+  spells: [ClassSpellInput]
+}
+
+input CharacterSpellSlotsInputs {
+  level: Int!
+  used: Int!
+  classId: ID!
+}
+
+input CharacterSpellcastingInput {
+  prepared: [ClassSpellListInput]
+  known: [ClassSpellListInput]
+  additional: [CharacterSpellInput]
+  spellSlots: [CharacterSpellSlotsInputs]
+}
+
+input CharacterClassInput {
+  id: ID
+  subclass: SubclassInput
+  level: Int
+}
+
+input CharacterStartingEquipmentInput {
+  option: ID!
+  totalGold: Int
+  remainingGold: Int
+}
+
+input CharacterInput {
+  id: ID!
+  value: String
+  label: String
+  desc: String
+  advancement: ID
+  hitpoint: ID
+  abilities: CharacterAbilitiesInput
+  race: ID
+  ancestry: CharacterAncestryInput
+  classes: [CharacterClassInput]
+  spellcasting: CharacterSpellcastingInput
+  startingEquipment: CharacterStartingEquipmentInput
+  equipment: [ContainsInput]
+  features: [CharacterFeatureInput]
+  feats: [CharacterFeatInput]
+  proficiencies: CharacterProficiencyInput
+  expertise: CharacterExpertiseInput
+  modifiers: CharacterModifierInput
+  senses: [CharacterSenseInput]
+  ownerId: String
+  systemId: String!
+}

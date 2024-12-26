@@ -60,7 +60,7 @@ export const scroll_area = styleVariants({
     {
       '@layer': {
         [app]: {
-          overflowY: 'auto',
+          overflowY: 'hidden',
         },
       },
     },
@@ -87,83 +87,11 @@ export const scroll_area = styleVariants({
   ],
 })
 
-export const scroll_bar_vertical = style({
-  '@layer': {
-    [app]: {
-      width: '.5rem',
-      height: '100%',
-      right: 0,
-      top: 0,
-      position: 'absolute',
-      borderRadius: '.5rem',
-      backgroundColor: 'transparent',
-      opacity: 0,
-      transition: 'opacity .2s ease-in-out',
-      zIndex: 10,
-
-      selectors: {
-        '&.active': {
-          opacity: 1,
-        },
-      },
-    },
-  },
-})
-
-export const scroll_thumb_vertical = style({
-  '@layer': {
-    [app]: {
-      width: '.5rem',
-      position: 'absolute',
-      borderRadius: '.5rem',
-      opacity: '1',
-      backgroundColor: 'rgba(0,0,0,.55)',
-      zIndex: 11,
-    },
-  },
-})
-
-export const scroll_bar_horizontal = style({
-  '@layer': {
-    [app]: {
-      height: '.5rem',
-      width: '100%',
-      left: 0,
-      bottom: '.25rem',
-      position: 'absolute',
-      borderRadius: '.5rem',
-      backgroundColor: 'transparent',
-      opacity: 0,
-      transition: 'opacity .2s ease-in-out',
-      zIndex: 10,
-
-      selectors: {
-        '&.active': {
-          opacity: 1,
-        },
-      },
-    },
-  },
-})
-
-export const scroll_thumb_horizontal = style({
-  '@layer': {
-    [app]: {
-      height: '.5rem',
-      position: 'absolute',
-      borderRadius: '.5rem',
-      opacity: '1',
-      backgroundColor: 'rgba(0,0,0,.55)',
-      zIndex: 11,
-    },
-  },
-})
-
 export const scroll_arrow = style({
   '@layer': {
     [app]: {
       width: '1.25rem',
-      backgroundColor: theme.vars.color,
+      backgroundColor: theme.vars.typography.color.main,
       height: '100%',
       position: 'absolute',
       display: 'flex',

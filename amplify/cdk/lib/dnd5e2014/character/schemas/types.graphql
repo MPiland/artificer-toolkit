@@ -1,0 +1,258 @@
+type CharacterModifier {
+  modifierId: ID!
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+type CharacterSense {
+  senseId: ID
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+type CharacterFeat {
+  featId: ID
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+type CharacterProficiency {
+  proficiencyId: ID!
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+type CharacterExpertise {
+  expertiseId: ID!
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionId: ID
+  optionIndex: Int
+}
+
+type CharacterSpell {
+  id: ID!
+  level: Int!
+  ability: ID
+  isRitual: Boolean
+  countAsKnown: Boolean
+  usesSlot: Boolean
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  requiresConcentration: Boolean
+  optionalAbility: Boolean
+  featureId: ID
+  featureOptionId: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionIndex: Int
+}
+
+type CharacterFeature {
+  id: ID
+  option: ID
+  classId: ID
+  raceId: ID
+  ancestryId: ID
+  equipmentId: ID
+  backgroundId: ID
+  featId: ID
+  optionIndex: Int
+}
+
+## Ability Scores
+
+type Roll {
+  die: Int!
+  value: Int!
+  id: String
+}
+
+type RollType {
+  score: Int!
+  ability: ID!
+  rolling: Boolean!
+  applied: Boolean!
+  rolled: [Roll]!
+  kept: [Roll]!
+}
+
+type RollGroup {
+  rolls: [RollType]
+}
+
+type Manual {
+  ability: ID
+  score: Int
+}
+
+type ManualRolled {
+  configuration: String!
+  rollGroups: [RollGroup]
+  manual: [Manual]
+}
+
+type Distributed {
+  ability: ID
+  id: ID
+}
+
+type PointBuy {
+  pointsLeft: Int
+  distributed: [Distributed]
+}
+
+type StandardArray {
+  ability: ID
+  score: ID
+}
+
+type Scores {
+  ability: ID!
+  baseScore: Int
+  raceScore: Int
+  classScore: Int
+  calculatedScore: Int
+  modifierScore: Int
+}
+
+type CharacterAbilities {
+  manualRolled: ManualRolled
+  pointBuy: PointBuy
+  standardArray: [StandardArray]
+  selectedSystem: ID
+  scores: [Scores]
+}
+
+## CharacterAncestry
+
+type CharacterAncestry {
+  id: ID
+  raceId: ID
+  lineages: [ID]
+}
+
+## Class
+
+## Subclass
+
+type Subclass {
+  id: ID
+  subtype: ID
+}
+
+## SpellList
+
+type ClassSpell {
+  id: ID!
+  classId: ID!
+  ability: ID
+  isRitual: Boolean
+  countAsKnown: Boolean
+  usesSlot: Boolean
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  requiresConcentration: Boolean
+  optionalAbility: Boolean
+}
+
+type ClassSpellList {
+  level: Int!
+  spells: [ClassSpell]
+}
+
+type CharacterSpellSlots {
+  level: Int!
+  used: Int!
+  classId: ID!
+}
+
+type CharacterSpellcasting {
+  prepared: [ClassSpellList]
+  known: [ClassSpellList]
+  additional: [CharacterSpell]
+  spellSlots: [CharacterSpellSlots]
+}
+
+type CharacterClass {
+  id: ID
+  subclass: Subclass
+  level: Int
+}
+
+type CharacterStartingEquipment {
+  option: ID!
+  totalGold: Int
+  remainingGold: Int
+}
+
+type Character {
+  id: ID!
+  value: String
+  label: String
+  desc: String
+  advancement: ID
+  hitpoint: ID
+  abilities: CharacterAbilities
+  race: ID
+  ancestry: CharacterAncestry
+  classes: [CharacterClass]
+  spellcasting: CharacterSpellcasting
+  startingEquipment: CharacterStartingEquipment
+  equipment: [Contains]
+  features: [CharacterFeature]
+  feats: [CharacterFeat]
+  proficiencies: [CharacterProficiency]
+  expertise: [CharacterExpertise]
+  modifiers: [CharacterModifier]
+  senses: [CharacterSense]
+  ownerId: String!
+  systemId: String!
+}
+
+type CharacterConnection {
+  items: [Character!]
+  nextToken: String
+  message: String
+}

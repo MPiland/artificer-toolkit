@@ -2,105 +2,106 @@ import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
-import { useForm } from '../../../../hooks/UseForm'
-import { DropdownOptionType } from '../../../../utils/types'
-import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
-import { useGetEquipmentQuery } from '../../../../features/equipment/equipmentApi'
+import { use } from 'react'
+import FormContext from '../../FormContext'
+import FeatureContext from '../FeatureContext'
+import { DropdownOption } from '../../../../types/components'
+import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
+import { useListEquipmentQuery } from '../../../../features/equipment/equipmentApi'
+import { Attributes, Categories, ProficiencyCategories } from '../../../../types/enums'
+import { Class, ClassesEnum, FeatureProficiency, SectionEnum } from '../../../../../amplify/API'
+import { UpdateState } from '../../../../types/form'
+
+type CategoryType = 'skills' | 'equipment' | 'abilities' | 'saveAbilities' | 'properties' | 'languages'
 
 const Expertise = () => {
-  const { formState } = useForm()
-  const { sectionState, setSectionState } = useFeature()
+  const { formData } = use(FormContext)
+  const { sectionData, updateSectionData } = use(FeatureContext) as {
+    sectionData: FeatureProficiency
+    updateSectionData: (arg: UpdateState<FeatureProficiency>) => void
+  }
 
-  const { data: builders } = useGetSystemsQuery()
-  const { data: items } = useGetEquipmentQuery() as { data: any[] }
+  const { data: system } = useGetSystemQuery()
+  const { data: items } = useListEquipmentQuery()
 
-  const providesOptions = sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')
+  const providesOptions = sectionData.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
-  const categoryName: 'skills' | 'saveAbility' | 'property' | 'item' | 'languages' | 'initiative' =
-    sectionState?.category?.name
+  const sectionCategory = system.proficiencies.categories.find((category) => category.id === sectionData.category)
+
+  const categoryName = sectionCategory?.value as CategoryType
+
   return (
     <Row>
       <Dropdown
         multiSelect={true}
-        name={'attribute'}
-        options={[].concat(
-          builders.section.attribute,
-          formState.category?.name === 'subclass' && builders.section.subclass.attribute
+        name='attributes'
+        options={system.attributes.filter(
+          (attribute) =>
+            attribute.sections.includes(SectionEnum.all) &&
+            formData.__typename === 'Class' &&
+            formData.category === Categories.subclass &&
+            attribute.classes.includes(ClassesEnum.subclass)
         )}
         label={`${startCase('proficiency')} Attributes`}
-        value={sectionState.attribute}
-        onChange={setSectionState}
+        value={sectionData.attributes}
+        onChange={updateSectionData}
       />
       <Dropdown
         name={`category`}
         label='Proficiency Category'
-        value={sectionState.category}
-        options={builders.proficiencies.category}
+        value={sectionData.category}
+        options={system.proficiencies.categories}
         required={true}
-        onChange={setSectionState}
+        onChange={updateSectionData}
       />
-      {categoryName != null &&
-        (categoryName !== 'property' && categoryName !== 'item' && categoryName !== 'initiative' ? (
+      {sectionCategory.id !== null &&
+        (sectionCategory.id !== ProficiencyCategories.properties &&
+        sectionCategory.id !== ProficiencyCategories.equipment &&
+        sectionCategory.id !== ProficiencyCategories.initiative ? (
           <Dropdown
-            name={`${categoryName}.type`}
+            name={`${categoryName as 'skills' | 'saveAbilities' | 'languages'}`}
             multiSelect={true}
-            label={`${startCase(sectionState.category.value)} Type`}
-            value={sectionState[categoryName]?.type}
-            options={categoryName === 'saveAbility' ? builders.abilities.type : builders[categoryName]?.type}
+            label={`${startCase(categoryName)} Type`}
+            value={sectionData[categoryName as 'skills' | 'saveAbilities' | 'languages']}
+            options={
+              categoryName === 'saveAbilities' ? system.abilities : system[categoryName as 'skills' | 'languages']
+            }
             required={true}
-            onChange={setSectionState}
+            onChange={updateSectionData}
           />
         ) : (
           <>
-            {(categoryName === 'property' || categoryName === 'item') && (
+            {(sectionData.category === ProficiencyCategories.properties ||
+              sectionData.category !== ProficiencyCategories.equipment) && (
               <>
                 <Dropdown
-                  name={`${categoryName}.category`}
+                  name={`${categoryName as 'properties' | 'equipment'}.category`}
                   label='Item Category'
-                  value={sectionState[categoryName]?.category}
-                  options={builders.items.category}
+                  value={sectionData[categoryName as 'properties' | 'equipment']?.category}
+                  options={system.equipment.categories}
                   required={true}
-                  onChange={setSectionState}
+                  onChange={updateSectionData}
                 />
                 <Dropdown
-                  name={`${categoryName}.${categoryName === 'item' ? 'property.type' : 'type'}`}
+                  name={`${categoryName as 'properties' | 'equipment'}.${
+                    categoryName === 'equipment' ? 'properties' : 'ids'
+                  }`}
                   multiSelect={true}
                   label='Item Property'
-                  value={sectionState[categoryName]?.properties?.type}
-                  options={items as DropdownOptionType[]}
-                  filter={[
-                    {
-                      key: 'category._id',
-                      object: sectionState[categoryName],
-                      mapKey: 'property.type',
-                      type: 'equal',
-                    },
-                  ]}
-                  onChange={setSectionState}
-                  required={categoryName === 'item' ? false : true}
+                  value={sectionData[categoryName as 'properties' | 'equipment']?.properties}
+                  options={items as DropdownOption[]}
+                  onChange={updateSectionData}
+                  required={categoryName === 'equipment' ? false : true}
                 />
-                {categoryName === 'item' && (
+                {categoryName === 'equipment' && (
                   <>
                     <Dropdown
-                      name={`${categoryName}.type`}
+                      name={`${categoryName}`}
                       multiSelect={true}
-                      label='Item'
-                      value={sectionState[categoryName]?.type}
-                      options={items as DropdownOptionType[]}
-                      filter={[
-                        {
-                          key: 'category._id',
-                          object: sectionState[categoryName],
-                          type: 'equal',
-                        },
-                        {
-                          key: 'property.type',
-                          object: sectionState[categoryName],
-                          type: 'equal',
-                        },
-                      ]}
-                      onChange={setSectionState}
+                      label='Equipment'
+                      value={sectionData[categoryName].ids}
+                      options={items as DropdownOption[]}
+                      onChange={updateSectionData}
                       required={true}
                     />
                   </>
@@ -109,16 +110,17 @@ const Expertise = () => {
             )}
           </>
         ))}
-      {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') &&
-        categoryName != null && (
+      {sectionData.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+        formData.__typename === 'Class' &&
+        formData.category === Categories.subclass && (
           <Dropdown
-            name={`${categoryName}.subtype`}
+            name='subtype'
             multiSelect={true}
             label='Subclass Subtype'
-            value={sectionState[categoryName]?.subtype}
-            options={formState?.subtype}
+            value={sectionData?.subtype}
+            options={(formData as Class)?.subtype}
             required={true}
-            onChange={setSectionState}
+            onChange={updateSectionData}
           />
         )}
       {providesOptions && (
@@ -127,10 +129,10 @@ const Expertise = () => {
           name={`selectionCount`}
           label='# of Selections'
           autoComplete='off'
-          value={sectionState.selectionCount}
+          value={sectionData.selectionCount}
           errorMsg='Must contain only numbers'
           required={true}
-          onChange={setSectionState}
+          onChange={updateSectionData}
         />
       )}
     </Row>

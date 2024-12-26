@@ -1,5 +1,5 @@
-import { useState, useEffect, FC, useCallback } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useState, useEffect, useCallback } from 'react'
+import { useEditor, EditorContent, Editor } from '@tiptap/react'
 import MenuBar from './MenuBar'
 import CustomTableHeader from './CustomTableHeader'
 import CustomTableCell from './CustomTableCell'
@@ -18,27 +18,27 @@ import {
   editor_blockquote,
 } from './RichTextEditor.css'
 import clsx from 'clsx'
-import { ReducerActionType } from '../../utils/types'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { useDebounceCallback } from 'usehooks-ts'
 import { sprinkles } from '../../css/sprinkles.css'
+import { DeepKeyOf, UpdateState } from '../../types/form'
 
-interface RichTextEditorProps {
-  onChange: (arg: ReducerActionType) => void
+interface RichTextEditorProps<T> {
+  onChange: (arg: UpdateState<T>) => void
   label?: string
-  name: string
+  name: DeepKeyOf<T>
   value: any
   className?: string | number | symbol | any
 }
 
-const RichTextEditor: FC<RichTextEditorProps> = ({ onChange, label, name, value, className }) => {
+const RichTextEditor = <T,>({ onChange, label, name, value, className }: RichTextEditorProps<T>) => {
   const [debouncing, setDebouncing] = useState<boolean>(false)
   const [inputValue, setInputValue] = useState<string>(value)
 
   const debounceSave = useDebounceCallback(
     useCallback(
       (content) => {
-        onChange({ target: { name: name, value: content } })
+        onChange({ type: 'update', path: name, value: content })
         setDebouncing(false)
       },
       [name, onChange]
@@ -47,7 +47,7 @@ const RichTextEditor: FC<RichTextEditorProps> = ({ onChange, label, name, value,
   )
 
   const handleChanges = useCallback(
-    (editor: any) => {
+    (editor: Editor) => {
       debounceSave.cancel()
       const content = editor.getHTML()
       setInputValue(content)

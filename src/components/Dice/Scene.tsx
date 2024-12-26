@@ -1,11 +1,12 @@
 import { Canvas } from '@react-three/fiber'
 import { scene_overlay } from './Scene.css'
 import DiceTray from './DiceTray'
-import { useDice } from '../../hooks/UseDice'
 import { useCallback, useEffect } from 'react'
+import { DiceContext } from './DiceContext'
+import { use } from 'react'
 
 const Scene = () => {
-  const { resetState } = useDice()
+  const { resetState } = use(DiceContext)
 
   const handleClick = useCallback(() => {
     resetState()

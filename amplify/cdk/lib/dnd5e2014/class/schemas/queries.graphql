@@ -1,0 +1,5 @@
+type Query {
+  listMasterClasses: [Class!]
+  getClass(id: ID!): Class
+  listClasses(limit: Int, nextToken: String, systemId: String!): ClassConnection!
+}

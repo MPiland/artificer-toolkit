@@ -1,0 +1,5 @@
+type Query {
+  listMasterRaces: [Race!]
+  getRace(id: ID!): Race
+  listRaces(limit: Int, nextToken: String, systemId: String!): RaceConnection!
+}

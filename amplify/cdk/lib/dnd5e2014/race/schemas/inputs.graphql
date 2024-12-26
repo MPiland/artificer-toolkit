@@ -1,0 +1,78 @@
+input AncestryFeatureInput {
+  id: ID!
+  label: String
+  value: String
+  desc: String
+  detail: String
+  category: ID
+  attributes: [ID]
+  actions: ActionGroupInput
+  damage: DamageInput
+  charges: ChargeInput
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [FeatureFeatInput]
+  modifiers: [FeatureModifierInput]
+  proficiencies: [FeatureProficiencyInput]
+  expertise: [FeatureExpertiseInput]
+  senses: [FeatureSenseInput]
+  spells: [FeatureSpellInput]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  selectionCount: Int
+  levelAvailable: String
+  subfeatures: [SubfeatureInput]
+  options: [FeatureOptionInput]
+}
+
+input AncestryOptionInput {
+  id: ID!
+  value: String!
+  label: String!
+  desc: String
+  features: [AncestryFeatureInput]
+}
+
+input AncestryInput {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  options: [AncestryOptionInput!]
+}
+
+input RaceSpeedInput {
+  walking: Int
+  swimming: Int
+  flying: Int
+  climbing: Int
+}
+
+input TraitsInput {
+  area: [DetailInput]
+  size: ID
+  speeds: RaceSpeedInput
+}
+
+input RaceInput {
+  id: ID
+  label: String!
+  value: String!
+  desc: String
+  playable: String!
+  category: ID!
+  lineage: [ID!]
+  ancestry: AncestryInput
+  details: [DetailInput]
+  traits: TraitsInput
+  features: [FeatureInput]
+  ownerId: ID
+  systemId: ID!
+  masterId: String
+}
+
+input BatchRacesInput {
+  tableName: String!
+  data: RaceInput!
+}

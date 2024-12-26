@@ -2,15 +2,20 @@ import { defineProperties, createSprinkles, createMapValueFn, ConditionalValue }
 import { fontFamily, fontWeight, lineHeight, fontSize } from './typography.css'
 import { size, space, position } from './size.css'
 import { borderSize, borderRadius, shadows } from './border.css'
+import { layer } from '@vanilla-extract/css'
+
+export const sprinklesLayer = layer()
 
 const responsiveProperties = defineProperties({
-  conditions: {
-    mobile: {},
-    tablet: { '@media': 'screen and (min-width: 768px)' },
-    desktop: { '@media': 'screen and (min-width: 1024px)' },
+  '@layer': sprinklesLayer,
+  'conditions': {
+    mobile: { '@media': 'screen and (max-width: 767px)' },
+    tablet: { '@media': 'screen and (max-width: 1023px)' },
+    desktop: { '@media': 'screen and (max-width: 1920px)' },
   },
-  defaultCondition: 'desktop',
-  properties: {
+  'defaultCondition': 'desktop',
+  'responsiveArray': ['desktop', 'tablet', 'mobile'],
+  'properties': {
     display: ['none', 'flex', 'block', 'inline', 'inline-flex'],
     flexDirection: ['row', 'column'],
     justifyContent: [
@@ -68,7 +73,7 @@ const responsiveProperties = defineProperties({
     boxShadow: shadows,
     textAlign: ['center', 'left', 'right', 'justify'],
   },
-  shorthands: {
+  'shorthands': {
     p: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
     px: ['paddingLeft', 'paddingRight'],
     py: ['paddingTop', 'paddingBottom'],
@@ -91,9 +96,9 @@ const responsiveProperties = defineProperties({
 })
 
 export type ResponsiveValue<Value extends string | number> = ConditionalValue<typeof responsiveProperties, Value>
+
 export const mapResponsiveValue = createMapValueFn(responsiveProperties)
 
 export const sprinkles = createSprinkles(responsiveProperties)
 
-// It's a good idea to export the Sprinkles type too
 export type Sprinkles = Parameters<typeof sprinkles>[0]

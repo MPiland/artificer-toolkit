@@ -5,7 +5,7 @@ export const rowBase = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      justifyContent: 'space-between  ',
+      justifyContent: 'space-between',
       flexWrap: 'wrap',
     },
   },

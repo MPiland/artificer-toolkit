@@ -1,88 +1,66 @@
-import { useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import baseQueryWithReauth from '../../app/api/api'
+import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { generateClient } from 'aws-amplify/data'
+import useSystemPref from '../../hooks/useSystemPref'
+import { listCharacters } from '../../../amplify/graphql/queries'
+import { createCharacter, deleteCharacter, updateCharacter } from '../../../amplify/graphql/mutations'
+import { CharacterInput, Character } from '../../../amplify/API'
+
+const client = generateClient()
 
 const charactersKeys = {
   all: ['characters'] as const,
   lists: () => [...charactersKeys.all, 'list'] as const,
+  single: (id: string) => [...charactersKeys.all, 'single', id] as const,
 }
 
-export const useGetCharactersQuery = ({ limit, filters }: { limit?: number; filters?: any } = {}) => {
-  return useInfiniteQuery({
-    queryKey: [...charactersKeys.all, limit],
-    queryFn: async ({ pageParam }) => {
-      // 1. Construct the base URL
-      let url = '/characters'
+export const useListCharactersQuery = () => {
+  const [systemPref] = useSystemPref()
 
-      // 2. Create URLSearchParams object
-      const searchParams = new URLSearchParams()
+  const query = useSuspenseQuery({
+    queryKey: charactersKeys.lists(),
+    queryFn: async () => {
+      try {
+        const {
+          data: {
+            listCharacters: { items },
+          },
+        } = await client.graphql({
+          query: listCharacters,
+          variables: {
+            systemId: systemPref,
+          },
+        })
 
-      // 3. Append limit parameters
-      if (limit) {
-        searchParams.append('page', pageParam.toString())
-        searchParams.append('limit', limit.toString())
+        return items
+      } catch (err) {
+        console.log({ err })
       }
-
-      // 4. Append filter parameters
-      if (filters) {
-        for (const key in filters) {
-          if (filters[key]) {
-            searchParams.append(key, filters[key])
-          }
-        }
-      }
-
-      // 5. Append search parameters to the URL
-      if (Array.from(searchParams).length > 0) {
-        url += `?${searchParams.toString()}`
-      }
-
-      const result = await baseQueryWithReauth(url, {
-        method: 'GET',
-      })
-
-      const {
-        characters: data,
-        totalPages,
-        currentPage,
-      }: { characters: any; totalPages: number; currentPage: number } = await result.json() // Assuming your API returns total pages
-
-      return { data, totalPages, currentPage }
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => {
-      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
-    },
-    getPreviousPageParam: (firstPage) => {
-      return firstPage.currentPage > 1 ? firstPage.currentPage - 1 : undefined
-    },
-    maxPages: 2,
-    select: (data) => {
-      if (!limit) {
-        return data.pages.flatMap((page) => page.data)
-      }
-      return data
     },
   })
+
+  return query
 }
 
 export const useAddNewCharacterMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (character: any) => {
-      const result = await baseQueryWithReauth('/characters', {
-        method: 'POST',
-        body: JSON.stringify(character),
+    mutationFn: async (character: CharacterInput) => {
+      const {
+        data: { createCharacter: newCharacter },
+      } = await client.graphql({
+        query: createCharacter,
+        variables: {
+          input: character,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return newCharacter
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(charactersKeys.all, (previous: any) => {
-        if (!previous) return [...data]
-        return [...previous, data]
+    onSuccess: (character: Character) => {
+      queryClient.setQueryData(charactersKeys.all, (previous: Character[]) => {
+        if (!previous) return [character]
+        return [...previous, character]
       })
     },
   })
@@ -92,19 +70,20 @@ export const useUpdateCharacterMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (character: any) => {
-      const result = await baseQueryWithReauth('/characters', {
-        method: 'POST',
-        body: JSON.stringify(character),
+    mutationFn: async (character: CharacterInput) => {
+      const {
+        data: { updateCharacter: updatedCharacter },
+      } = await client.graphql({
+        query: updateCharacter,
+        variables: {
+          input: character,
+        },
       })
-
-      const data = await result.json()
-
-      return data
+      return updatedCharacter
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(charactersKeys.all, (previous: any[]) =>
-        previous.map((character) => (character._id === data._id ? data : character))
+    onSuccess: (character: Character) => {
+      queryClient.setQueryData(charactersKeys.all, (previous: Character[]) =>
+        previous.map((characterKey) => (characterKey.id === character.id ? character : characterKey))
       )
     },
   })
@@ -115,18 +94,21 @@ export const useDeleteCharacterMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const result = await baseQueryWithReauth('/characters', {
-        method: 'DELETE',
-        body: JSON.stringify(id),
+      const {
+        data: { deleteCharacter: deletedId },
+      } = await client.graphql({
+        query: deleteCharacter,
+        variables: {
+          id,
+        },
       })
 
-      const data = await result.json()
-
-      return data
+      return deletedId
     },
-    onSuccess: (data: any) => {
-      queryClient.setQueryData(charactersKeys.all, (previous: any[]) => {
-        return previous.filter((character) => character._id !== data._id)
+    onSuccess: (id: string) => {
+      queryClient.setQueryData(charactersKeys.all, (previous: Character[]) => {
+        const character = previous.find((characterKey) => characterKey.id === id)
+        return previous.filter((characterKey) => characterKey.id !== character.id)
       })
     },
   })

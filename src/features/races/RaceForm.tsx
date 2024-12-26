@@ -1,26 +1,23 @@
+import { useEffect, use } from 'react'
 import { useAddNewRaceMutation, useUpdateRaceMutation } from './racesApi'
 import Form from '../../components/Form/Form'
-import { StepType } from '../../utils/types'
-import { useEffect, useMemo } from 'react'
-import { useForm } from '../../hooks/UseForm'
+import { Step } from '../../types/form'
+import FormContext from '../../components/Form/FormContext'
 
 const RaceForm = () => {
-  const { setSteps } = useForm()
+  const { setSteps } = use(FormContext)
 
-  const stepsArray: StepType[] = useMemo(
-    () => [
-      { id: 'details', name: 'Details' },
-      { id: 'traits', name: 'Traits' },
-      { id: 'ancestry', name: 'Ancestry' },
-      { id: 'features', name: 'Features' },
-    ],
-    []
-  )
+  const stepsArray = [
+    { id: 'details', label: 'Details' },
+    { id: 'traits', label: 'Traits' },
+    { id: 'ancestry', label: 'Ancestry' },
+    { id: 'features', label: 'Features' },
+  ] satisfies Step[]
 
   useEffect(() => {
     setSteps(stepsArray)
   }, [setSteps, stepsArray])
 
-  return <Form useUpdateItem={useUpdateRaceMutation} useAddNewItem={useAddNewRaceMutation} />
+  return <Form useUpdateItemMutation={useUpdateRaceMutation} useAddNewItemMutation={useAddNewRaceMutation} />
 }
 export default RaceForm

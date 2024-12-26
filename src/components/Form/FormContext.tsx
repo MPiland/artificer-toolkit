@@ -1,33 +1,171 @@
-import { createContext, Dispatch, ReactElement, SetStateAction } from 'react'
-import { ReducerActionType, ContextType, StepType } from '../../utils/types'
+import { useState, ReactElement, useMemo, useCallback, createContext } from 'react'
+import FeatureWrapper from './Features/FeatureWrapper'
+import Details from './Generic/Details'
+import Traits from './Races/Traits'
+import Contains from './Equipment/Contains'
+import Proficiencies from './Classes/Proficiencies'
+import Races from './Character/Races/Races'
+import Attributes from './Generic/Attributes'
+import Abilities from './Character/Abilities'
+import StartingEquipment from './Classes/StartingEquipment'
+import { Context as AppContext, FormDataType, FormSteps, Step, UpdateState } from '../../types/form'
+import CharacterClasses from './Character/Classes/CharacterClasses'
+import BackgroundEquipment from './Backgrounds/BackgroundEquipment'
+import Equipment from './Character/Equipment'
+import AncestryWrapper from './Races/AncestryWrapper'
+import { useStore } from '../../store/useStore'
+import { DiceContext, DiceOptions } from '../Dice/DiceContext'
 
-export interface FormContextProps {
-  context: ContextType
-  setContext: Dispatch<SetStateAction<ContextType>>
-  formState: any
-  setFormState: (arg: ReducerActionType) => void
-  oldFormState: any
-  setOldFormState: (arg: any) => void
-  saving: boolean
-  setSaving: (arg: boolean) => void
-  stepIndex: number
-  setStepIndex: (arg: number) => void
-  successMessage: string | null
-  setSuccessMessage: (arg: string | null) => void
-  errorMessage: string | null
-  setErrorMessage: (arg: string | null) => void
-  validForm: { [key: string]: boolean } | Record<string, never>
-  setValidForm: (arg: { [key: string]: boolean }) => void
-  addClass: boolean
-  setAddClass: (arg: boolean) => void
-  changeRace: boolean
-  setChangeRace: (arg: boolean) => void
-  formSteps: { [key: string]: ReactElement }
-  steps: StepType[]
-  setSteps: (arg: StepType[]) => void
-  stateReset: () => Promise<void>
-  isFirstStep: boolean
-  isLastStep: boolean
+export const FormOptions = () => {
+  // Generic form states
+  const [context, setContext] = useState<AppContext>({ title: undefined, type: undefined })
+  const [saving, setSaving] = useState<boolean>(false)
+  const [stepIndex, setStepIndex] = useState<number>(0)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [steps, setSteps] = useState<Step[]>([])
+  const [validForm, setValidForm] = useState<{ [key: string]: boolean }>({})
+
+  // Character builder states
+  const [addClass, setAddClass] = useState<boolean>(false)
+  const [changeRace, setChangeRace] = useState<boolean>(false)
+
+  const { formData, initialFormData, updateFormField, addFormField, removeFormField, formReset, initialFormReset } =
+    useStore()
+
+  const updateFormData = useCallback(
+    <T extends FormDataType>(state: UpdateState<T>) => {
+      switch (state.type) {
+        case 'add': {
+          if (state.value) {
+            addFormField({ path: state.path, value: state.value })
+          } else {
+            addFormField({ path: state.path })
+          }
+          break
+        }
+        case 'update':
+          updateFormField({ path: state.path, value: state.value })
+          break
+        case 'remove':
+          removeFormField({ path: state.path })
+          break
+        case 'reset':
+          formReset({ value: state.value })
+          break
+        case 'initialReset':
+          initialFormReset({ value: state.value })
+          break
+      }
+    },
+    [addFormField, formReset, initialFormReset, removeFormField, updateFormField]
+  )
+
+  // Standard possible form steps
+  const formSteps: Record<FormSteps, ReactElement> = useMemo(
+    () => ({
+      details: <Details />,
+      attributes: <Attributes />,
+      traits: <Traits />,
+      ancestry: <AncestryWrapper />,
+      features: <FeatureWrapper />,
+      contains: <Contains />,
+      proficiencies: <Proficiencies />,
+      equipment: context.title === 'backgrounds' ? <BackgroundEquipment /> : <Equipment />,
+      startingEquipment: <StartingEquipment />,
+      race: <Races />,
+      class: <CharacterClasses />,
+      abilities: (
+        <DiceContext value={DiceOptions()}>
+          <Abilities />
+        </DiceContext>
+      ),
+      background: <></>,
+    }),
+    [context.title]
+  )
+
+  const isFirstStep = useMemo(() => {
+    if (stepIndex === 0) {
+      return true
+    } else {
+      return false
+    }
+  }, [stepIndex])
+
+  const isLastStep = useMemo(() => {
+    if (stepIndex === steps?.length - 1) {
+      return true
+    } else {
+      return false
+    }
+  }, [stepIndex, steps])
+
+  const stateReset = () => {
+    setContext({ title: undefined, type: undefined })
+    setSaving(false)
+    setStepIndex(0)
+    setSuccessMessage(null)
+    setErrorMessage(null)
+    setValidForm({})
+    setAddClass(false)
+    setChangeRace(false)
+
+    return Promise.resolve()
+  }
+
+  return useMemo(
+    () => ({
+      formSteps,
+      initialFormData,
+      saving,
+      setSaving,
+      stepIndex,
+      setStepIndex,
+      context,
+      setContext,
+      successMessage,
+      setSuccessMessage,
+      errorMessage,
+      setErrorMessage,
+      validForm,
+      setValidForm,
+      addClass,
+      setAddClass,
+      changeRace,
+      setChangeRace,
+      steps,
+      setSteps,
+      stateReset,
+      isFirstStep,
+      isLastStep,
+      formData,
+      updateFormData,
+    }),
+    [
+      addClass,
+      changeRace,
+      context,
+      errorMessage,
+      formSteps,
+      isFirstStep,
+      isLastStep,
+      initialFormData,
+      saving,
+      stepIndex,
+      successMessage,
+      steps,
+      validForm,
+      formData,
+      updateFormData,
+    ]
+  )
 }
 
-export const FormContext = createContext<FormContextProps | undefined>(undefined)
+export type FormOptionsType = ReturnType<typeof FormOptions> | null
+
+const FormContext = createContext<FormOptionsType>(null)
+
+export default FormContext
+
+export type UpdateFormData = FormOptionsType['updateFormData']

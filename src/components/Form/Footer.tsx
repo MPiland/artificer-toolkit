@@ -5,18 +5,19 @@ import { validate } from '../../utils/form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { isEqual, startCase } from 'lodash'
 import { useEffect } from 'react'
-import { useForm } from '../../hooks/UseForm'
-import { SectionNameType } from '../../utils/types'
-import { useFeature } from '../../hooks/UseFeature'
+import { SectionName } from '../../types/form'
 import { UseMutationResult } from '@tanstack/react-query'
-import { CustomError } from '../../app/api/api'
+import { FormDataType, FormInputType } from '../../types/form'
+import { use } from 'react'
+import FormContext from './FormContext'
+import FeatureContext from './Features/FeatureContext'
 
-interface FooterProps {
-  useAddNewItem: () => UseMutationResult<any, CustomError, string, unknown>
-  useUpdateItem: () => UseMutationResult<any, CustomError, string, unknown>
+interface FooterProps<T extends FormDataType> {
+  useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
+  useUpdateItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
 }
 
-const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
+const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FooterProps<T>) => {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -26,10 +27,9 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
     steps,
     setStepIndex,
     context,
-    formState,
-    setFormState,
-    setOldFormState,
-    oldFormState,
+    formData,
+    updateFormData,
+    initialFormData,
     setSaving,
     setSuccessMessage,
     setErrorMessage,
@@ -38,48 +38,56 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
     isLastStep,
     setAddClass,
     setChangeRace,
-  } = useForm()
+  } = use(FormContext)
 
   const {
-    featureState,
-    setFeatureState,
-    oldFeatureState,
+    featureData,
+    updateFeatureData,
+    initialFeatureData,
     featureIndex,
-    optionState,
-    setOptionState,
-    oldOptionState,
+    ancestryData,
+    updateAncestryData,
+    initialAncestryData,
+    ancestryIndex,
+    optionData,
+    updateOptionData,
+    initialOptionData,
     optionIndex,
-    subfeatureState,
-    setSubfeatureState,
-    oldSubfeatureState,
+    subfeatureData,
+    updateSubfeatureData,
+    initialSubfeatureData,
     subfeatureIndex,
-    sectionState,
-    setSectionState,
-    oldSectionState,
-    setOldSectionState,
+    sectionData,
+    updateSectionData,
+    initialSectionData,
     sectionIndex,
-    sectionName,
-    setSectionName,
-    subContext,
-    setSubContext,
+    sectionStep,
+    setSectionStep,
+    featureStep,
+    setFeatureStep,
     handleSaveFeatures,
-  } = useFeature()
+  } = use(FeatureContext)
 
-  const { mutateAsync: addNewItem, isSuccess: addIsSuccess, isError: addIsError, error: addError } = useAddNewItem()
+  const {
+    mutateAsync: addNewItem,
+    isSuccess: addIsSuccess,
+    isError: addIsError,
+    error: addError,
+  } = useAddNewItemMutation()
 
   const {
     mutateAsync: updateItem,
     isSuccess: updateIsSuccess,
     isError: updateIsError,
     error: updateError,
-  } = useUpdateItem()
+  } = useUpdateItemMutation()
 
   const forwardLabel = isLastStep
-    ? subContext !== ''
+    ? featureStep != null
       ? 'Finish'
       : context.type === 'edit'
-        ? 'Update'
-        : 'Create'
+      ? 'Update'
+      : 'Create'
     : 'Next'
 
   const backLabel = isFirstStep ? 'Cancel' : 'Back'
@@ -87,10 +95,10 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
   // Sucess Message
   useEffect(() => {
     if (updateIsSuccess) {
-      setSuccessMessage(`${startCase(context.title)} updated successfully!`)
+      setSuccessMessage(`${startCase(formData.__typename)} updated successfully!`)
       setErrorMessage(null)
     }
-  }, [updateIsSuccess, context.title, setErrorMessage, setSuccessMessage])
+  }, [updateIsSuccess, formData.__typename, setErrorMessage, setSuccessMessage])
 
   // Error Message
   useEffect(() => {
@@ -115,8 +123,8 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
 
   const handleNavigateEdit = (item: any) => {
     const form = context.title
-    navigate(`/${form}/edit/${formState.name}`, {
-      state: { data: item, previous: `/${form}` },
+    navigate(`/${form}/edit/${formData.value}`, {
+      state: { formData: item, previous: `/${form}` },
     })
     setStepIndex(0)
     setSaving(false)
@@ -133,108 +141,125 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
 
   // Save feature hierachy and clear states
   const handleSave = () => {
-    if (sectionName !== '') {
-      if (subContext === 'subfeature') {
-        setSubfeatureState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
+    if (sectionStep != null) {
+      if (featureStep === 'subfeature') {
+        updateSubfeatureData({
+          type: 'update',
+          path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
+          value: sectionData,
         })
-      } else if (subContext === 'option') {
-        setOptionState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
+      } else if (featureStep === 'option') {
+        updateOptionData({
+          type: 'update',
+          path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
+          value: sectionData,
         })
       } else {
-        if (context.title === 'feats') {
-          setFormState({
-            target: {
-              name: `${sectionName}.${sectionIndex}`,
-              value: sectionState,
-            },
+        if (formData.__typename === 'Feat') {
+          updateFormData({
+            type: 'update',
+            path: `${sectionStep as Exclude<SectionName, 'subfeatures' | 'ancestries'> & 'ancestry'}.${sectionIndex}`,
+            value: sectionData,
           })
+        } else {
+          if (steps[stepIndex].id === 'ancestry') {
+            updateAncestryData({
+              type: 'update',
+              path: `${sectionStep as Exclude<SectionName, 'ancestries'>}.${sectionIndex}`,
+              value: sectionData,
+            })
+          } else {
+            updateFeatureData({
+              type: 'update',
+              path: `${sectionStep}.${sectionIndex}`,
+              value: sectionData,
+            })
+          }
         }
-        setFeatureState({
-          target: {
-            name: `${sectionName}.${sectionIndex}`,
-            value: sectionState,
-          },
-        })
       }
-      setOldSectionState(sectionState)
+      updateSectionData({ type: 'initialReset', value: sectionData })
       if (steps && steps?.length > 0) {
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
       }
-      return setSectionName('')
+      return setSectionStep(null)
     }
-    if (subContext === 'subfeature') {
-      setOptionState({
-        target: {
-          name: `features.${subfeatureIndex}`,
-          value: subfeatureState,
-        },
+    if (featureStep === 'subfeature') {
+      updateOptionData({
+        type: 'update',
+        path: `subfeatures.${subfeatureIndex}`,
+        value: subfeatureData,
       })
-      return setSubContext('option')
+      return setFeatureStep('option')
     }
-    if (subContext === 'option') {
-      const parentName: SectionNameType = steps[stepIndex].id === 'ancestry' ? 'features' : 'options'
-      if (context.title === 'feats') {
-        setFormState({
-          target: {
-            name: `options.${optionIndex}`,
-            value: optionState,
-          },
+    if (featureStep === 'option') {
+      if (formData.__typename === 'Feat') {
+        updateFormData<typeof formData>({
+          type: 'update',
+          path: `options.${optionIndex}`,
+          value: optionData,
         })
-        /* Form Saving */
-        setOldFormState(formState)
+        updateFormData<typeof formData>({
+          type: 'initialReset',
+          value: optionData,
+        })
+      } else {
+        if (steps[stepIndex].id === 'ancestry') {
+          updateAncestryData({
+            type: 'update',
+            path: `options.${optionIndex}`,
+            value: optionData,
+          })
+        } else {
+          updateFeatureData({
+            type: 'update',
+            path: `options.${optionIndex}`,
+            value: optionData,
+          })
+        }
       }
-      setFeatureState({
-        target: {
-          name: `${parentName}.${optionIndex}`,
-          value: optionState,
-        },
-      })
-      setSubContext('')
-      return setSectionName('')
+      setFeatureStep(null)
+      return setSectionStep(null)
     }
-    if (sectionName === '' && context.title !== 'feats') {
-      const parentName = steps[stepIndex].id === 'ancestry' ? 'ancestry.option' : 'features'
-      setFormState({
-        target: {
-          name: `${parentName}.${featureIndex}`,
-          value: featureState,
-        },
-      })
-      return setSubContext('')
+    if (sectionStep == null && formData.__typename !== 'Feat') {
+      if (steps[stepIndex].id === 'ancestry') {
+        updateFormData({
+          type: 'update',
+          path: `ancestry.options.${ancestryIndex}`,
+          value: ancestryData,
+        })
+      } else {
+        updateFormData({
+          type: 'update',
+          path: `features.${featureIndex}`,
+          value: featureData,
+        })
+      }
+      return setFeatureStep(null)
     }
-    /* Form Saving */
-    setOldFormState(formState)
+    updateFormData({ type: 'initialReset', value: formData })
   }
 
   const handleForward = async () => {
     const isValid = validate()
-    if ((!isLastStep || (isLastStep && subContext !== '')) && context.title !== 'feats') {
+    if ((!isLastStep || (isLastStep && featureStep != null)) && formData.__typename !== 'Feat') {
       if (isValid) {
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-        if (subContext !== '') {
+        if (featureStep != null) {
           setValidForm({ ...validForm, [steps[stepIndex].id]: true })
           return handleSave()
         }
-        setOldFormState(formState)
+        updateFormData({ type: 'initialReset', value: formData })
         return setStepIndex(stepIndex + 1)
       }
       setValidForm({ ...validForm, [steps[stepIndex].id]: false })
-      if (subContext != '') {
+      if (featureStep != null) {
         return handleAlert({
           alertType: 'forward',
           message: 'Some required fields are missing. Current form step will not be saved.',
         })
       }
     }
-    if ((isLastStep && subContext === '') || (context.title === 'feats' && sectionName === '')) {
+    if ((isLastStep && featureStep == null) || (formData.__typename === 'Feat' && sectionStep == null)) {
       if (isValid) {
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
         if (Object.values(validForm).length > 0 && !Object.values(validForm).every((value) => value === true)) {
@@ -244,11 +269,11 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
           })
         }
         setSaving(true)
-        const payload: any = await addNewItem(formState)
+        const payload: any = await addNewItem(formData as FormInputType)
         if (payload) {
-          return handleNavigateEdit(payload.data.item)
+          return handleNavigateEdit(payload.formData.item)
         } else {
-          return setErrorMessage('No data returned')
+          return setErrorMessage('No formData returned')
         }
       }
     }
@@ -256,7 +281,7 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
 
   const handleBack = () => {
     if (isFirstStep) {
-      if (!isEqual(oldFormState, formState)) {
+      if (!isEqual(initialFormData, formData)) {
         return handleAlert({
           alertType: 'back',
           message:
@@ -272,13 +297,13 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
     const isValid = validate()
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (subContext !== '') {
+      if (featureStep != null) {
         return handleSave()
       }
     } else {
       setValidForm({ ...validForm, [steps[stepIndex].id]: false })
     }
-    if (subContext != '') {
+    if (featureStep != null) {
       return handleAlert({
         alertType: 'back',
         message: 'Some required fields are missing. Current form step will not be saved.',
@@ -295,24 +320,27 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
     setAddClass(false)
     setChangeRace(false)
     const isValid = validate()
-    let formClone = JSON.parse(JSON.stringify(formState))
+    let formClone = JSON.parse(JSON.stringify(formData))
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
       if (
-        subContext === 'subfeature' ||
-        subContext === 'option' ||
-        (subContext === 'feature' && context.title !== 'feats')
+        featureStep === 'subfeature' ||
+        featureStep === 'option' ||
+        (featureStep === 'feature' && context.title !== 'feats')
       ) {
-        formClone = await handleSaveFeatures({ type: subContext, state: formClone })
+        formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
       if (!(Object.values(validForm).length > 0) || Object.values(validForm).every((value) => value === true)) {
         try {
           await updateItem(formClone)
-          setOldFormState(formClone)
-          return setFormState({
+          updateFormData({
+            type: 'initialReset',
+            value: formClone,
+          })
+          return updateFormData({
             type: 'reset',
-            target: { value: formClone },
+            value: formClone,
           })
         } catch (err: any) {
           console.log({ err })
@@ -327,40 +355,46 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
   }
 
   const handleReset = () => {
-    if (sectionName !== '') {
-      return setSectionState({
+    if (sectionStep != null) {
+      return updateSectionData({
         type: 'reset',
-        target: { value: oldSectionState },
+        value: initialSectionData,
       })
     }
-    if (subContext === 'subfeature') {
-      return setSubfeatureState({
+    if (featureStep === 'subfeature') {
+      return updateSubfeatureData({
         type: 'reset',
-        target: { value: oldSubfeatureState },
+        value: initialSubfeatureData,
       })
     }
-    if (subContext === 'option') {
-      return setOptionState({
+    if (featureStep === 'option') {
+      return updateOptionData({
         type: 'reset',
-        target: { value: oldOptionState },
+        value: initialOptionData,
       })
     }
-    if (subContext === 'feature') {
-      return setFeatureState({
+    if (featureStep === 'feature') {
+      if (steps[stepIndex].id === 'ancestry') {
+        return updateAncestryData({
+          type: 'reset',
+          value: initialAncestryData,
+        })
+      }
+      return updateFeatureData({
         type: 'reset',
-        target: { value: oldFeatureState },
+        value: initialFeatureData,
       })
     }
-    setFormState({
+    updateFormData({
       type: 'reset',
-      target: { value: oldFormState },
+      value: initialFormData,
     })
   }
 
   return (
     <Group className={form_footer} justifyContentVariant={'spaceBetween'}>
       <Group>
-        <Button color='default' type='button' onClick={handleBack}>
+        <Button color='main' type='button' onClick={handleBack}>
           {backLabel}
         </Button>
         <Button color='warning' type='button' onClick={handleReset}>
@@ -368,7 +402,7 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
         </Button>
       </Group>
       <Group>
-        {context.type === 'edit' && (!isLastStep || (isLastStep && subContext !== '')) && (
+        {context.type === 'edit' && (!isLastStep || (isLastStep && featureStep != null)) && (
           <Button color='update' type='button' onClick={handleUpdate}>
             Update
           </Button>
@@ -376,7 +410,9 @@ const Footer = ({ useAddNewItem, useUpdateItem }: FooterProps) => {
         <Button
           color={forwardLabel === 'Update' ? 'update' : 'primary'}
           type='button'
-          onClick={() => (isLastStep && subContext === '' && context.type !== 'new' ? handleUpdate() : handleForward())}
+          onClick={() =>
+            isLastStep && featureStep == null && context.type !== 'new' ? handleUpdate() : handleForward()
+          }
         >
           {forwardLabel}
         </Button>

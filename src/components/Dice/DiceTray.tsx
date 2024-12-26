@@ -1,11 +1,12 @@
 import { Physics } from '@react-three/rapier'
 import Boundary from './Boundary'
 import { Suspense, useEffect } from 'react'
-import { useDice } from '../../hooks/UseDice'
 import { useThree } from '@react-three/fiber'
+import { DiceContext } from './DiceContext'
+import { use } from 'react'
 
 const DiceTray = () => {
-  const { renderDice, diceInstances, setCanvasHeight, setCanvasWidth } = useDice()
+  const { renderDice, diceInstances, setCanvasHeight, setCanvasWidth } = use(DiceContext)
   const { width, height } = useThree((state) => state.viewport)
 
   useEffect(() => {
@@ -24,9 +25,9 @@ const DiceTray = () => {
 
   return (
     <>
-      <directionalLight position={[-20, -20, 8]} intensity={5} />
-      <directionalLight position={[30, 10, 12]} intensity={1} />
       <Suspense>
+        <directionalLight position={[-20, -20, 8]} intensity={5} />
+        <directionalLight position={[30, 10, 12]} intensity={1} />
         <Physics gravity={[0, 0, -9.81]} colliders={'hull'}>
           <Boundary position={[0, 0, 0]} args={[width, height, wallThickness]} color='grey' transparent={true} />
           <Boundary

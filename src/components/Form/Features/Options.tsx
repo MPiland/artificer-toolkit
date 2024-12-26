@@ -1,21 +1,17 @@
-import { useFeature } from '../../../hooks/UseFeature'
-import { useForm } from '../../../hooks/UseForm'
 import Base from './Base'
+import { use } from 'react'
+import FormContext from '../FormContext'
+import FeatureContext from './FeatureContext'
 
 const Options = () => {
-  const { context, steps, stepIndex } = useForm()
-  const { optionState, setOptionState, sectionNames } = useFeature()
-
-  const filteredSectionNames = sectionNames.filter(
-    (sectionName) => sectionName !== 'options' && context.title !== 'classes' && sectionName !== 'ancestry'
-  )
+  const { steps, stepIndex } = use(FormContext)
+  const { optionData, updateOptionData} = use(FeatureContext)
 
   return (
     <Base
-      state={optionState}
-      setState={setOptionState}
-      valueLabel={steps[stepIndex].id === 'ancestry' ? 'ancestry Feature' : 'Option'}
-      filteredSectionNames={filteredSectionNames}
+      featureData={optionData}
+      updateFeatureData={updateOptionData}
+      valueLabel={steps[stepIndex].id === 'ancestry' ? 'Ancestry Feature' : 'Option'}
     />
   )
 }

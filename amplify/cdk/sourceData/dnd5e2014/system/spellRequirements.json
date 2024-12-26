@@ -1,0 +1,17 @@
+[
+  {
+    "value": "verbal",
+    "id": "462168cd-ad9c-4150-8a28-8854ff22ea3e",
+    "label": "Verbal"
+  },
+  {
+    "value": "somatic",
+    "id": "cd128433-b9c4-464a-a534-14a7e572a831",
+    "label": "Somatic"
+  },
+  {
+    "value": "material",
+    "id": "53d3d905-7caf-4d03-95d2-738b175dafd1",
+    "label": "Material"
+  }
+]

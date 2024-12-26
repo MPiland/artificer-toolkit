@@ -1,65 +1,75 @@
-import { useForm } from '../../../../hooks/UseForm'
+import { use } from 'react'
+import FormContext from '../../FormContext'
 import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
-import { DropdownOptionType } from '../../../../utils/types'
-import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
-import { useGetFeatsQuery } from '../../../../features/feats/featsApi'
+import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
+import { useListFeatsQuery } from '../../../../features/feats/featsApi'
+import FeatureContext from '../FeatureContext'
+import { Attributes, Categories } from '../../../../types/enums'
+import { Class, FeatureFeat, SectionEnum } from '../../../../../amplify/API'
+import { UpdateState } from '../../../../types/form'
 
 const Feats = () => {
-  const { formState } = useForm()
-  const { sectionState, setSectionState } = useFeature()
+  const { formData } = use(FormContext)
+  const { sectionData, updateSectionData } = use(FeatureContext) as {
+    sectionData: FeatureFeat
+    updateSectionData: (arg: UpdateState<FeatureFeat>) => void
+  }
 
-  const { data: builders } = useGetSystemsQuery()
-  const { data: feats } = useGetFeatsQuery() as { data: any[] }
+  const { data: system } = useGetSystemQuery()
+  const { data: feats } = useListFeatsQuery()
 
-  const providesOptions = sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')
+  const providesOptions = sectionData.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
   return (
     <>
       <Row>
         <Dropdown
           multiSelect={true}
-          name={`attribute`}
-          options={[].concat(
-            builders.section.attribute,
-            formState.category?.name === 'subclass' && builders.section.subclass.attribute
+          name='attributes'
+          options={system.attributes.filter(
+            (attribute) =>
+              attribute.sections.includes(SectionEnum.all) &&
+              (formData as Class).category === Categories.subclass &&
+              attribute.sections.includes(SectionEnum.subclasses)
           )}
           label={`${startCase('feat')} Attributes`}
-          value={sectionState.attribute}
-          onChange={setSectionState}
+          value={sectionData.attributes}
+          onChange={updateSectionData}
         />
         <Dropdown
-          name={`type`}
+          name='feats'
           multiSelect={true}
           label='Feat'
-          value={sectionState.type}
-          options={feats as DropdownOptionType[]}
+          value={sectionData.feats}
+          options={feats}
           required={true}
-          onChange={setSectionState}
+          onChange={updateSectionData}
         />
-        {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') && (
-          <Dropdown
-            name={`subtype`}
-            label='Subtype'
-            value={sectionState.subtype}
-            options={formState?.subtype}
-            required={true}
-            onChange={setSectionState}
-          />
-        )}
+        {sectionData.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+          formData.__typename === 'Class' &&
+          formData.category === Categories.subclass && (
+            <Dropdown
+              name='subtype'
+              label='Subtype'
+              value={sectionData.subtype}
+              options={formData?.subtype}
+              required={true}
+              onChange={updateSectionData}
+            />
+          )}
         {providesOptions && (
           <Input
             validation='num'
-            name={`selectionCount`}
+            name='selectionCount'
             label='# of Selections'
             autoComplete='off'
-            value={sectionState.selectionCount}
+            value={sectionData.selectionCount}
             errorMsg='Must contain only numbers'
             required={true}
-            onChange={setSectionState}
+            onChange={updateSectionData}
           />
         )}
       </Row>

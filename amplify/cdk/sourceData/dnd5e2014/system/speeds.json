@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ae1dbc1f-edd2-4404-b1a9-33c6b6a64258",
+    "label": "Climbing",
+    "value": "climbing"
+  },
+  {
+    "id": "90475eca-c659-4556-9c5c-35f322788ed0",
+    "label": "Walking",
+    "value": "walking"
+  },
+  {
+    "id": "f317a924-5dfd-46a1-ba1e-9e2ad0f7b8b5",
+    "label": "Flying",
+    "value": "flying"
+  },
+  {
+    "id": "81cb34b6-0466-44f7-b6e2-dd3386bb1d8c",
+    "label": "Swimming",
+    "value": "swimming"
+  }
+]

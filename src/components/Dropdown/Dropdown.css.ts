@@ -1,6 +1,6 @@
 import { app } from '../../css/layers.css'
 import { style, globalStyle, styleVariants } from '@vanilla-extract/css'
-import { size } from '../../css/size.css'
+import { size, space } from '../../css/size.css'
 import { theme } from '../../css/theme.css'
 
 export const dropdown = style({
@@ -53,14 +53,25 @@ export const dropdown_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      // border: theme['input-border'],
-      // borderRadius: theme['default-border-radius'],
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
       paddingLeft: size['size-3'],
       overflow: 'hidden',
       cursor: 'pointer',
+      height: theme.component.input.height,
+      borderRadius: theme.border.radius,
+      backgroundColor: theme.vars.component.input.backgroundColor,
+      marginTop: space['space-2'],
+
+      selectors: {
+        '&:focus-within': {
+          border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
+        },
+        '&.invalid': {
+          border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
+        },
+      },
     },
   },
 })
@@ -117,6 +128,9 @@ export const dropdown_menu = style({
       listStyle: 'none',
       padding: `${size['size-0']} ${size['size-0']}`,
       height: 'fit-content',
+      backgroundColor: theme.vars.component.input.backgroundColor,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
+      borderRadius: theme.border.radius,
     },
   },
 })
@@ -134,9 +148,11 @@ export const dropdown_option = style({
         '&:focus': {
           outline: 'none',
           backgroundColor: 'rgb(118, 184, 255)',
+          borderRadius: theme.border.radius,
         },
         '&:hover': {
           backgroundColor: 'rgb(118, 184, 255)',
+          borderRadius: theme.border.radius,
         },
       },
     },
@@ -175,7 +191,6 @@ globalStyle(`${dropdown_right_section} > span`, {
 })
 
 export const dropdown_height = styleVariants({
-  default: { height: theme.input.height },
   auto: { height: size['size-auto'] },
   full: { height: size['size-full'] },
 })
@@ -183,15 +198,13 @@ export const dropdown_height = styleVariants({
 export const dropdown_border = styleVariants({
   none: { border: 'none' },
   default: {
-    border: `${theme.border} ${theme.vars.borderColor}`,
-    borderRadius: theme.borderRadius,
-
+    border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
     selectors: {
       '&:focus-within': {
-        border: theme.color.focus,
+        border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
       },
       '&.invalid': {
-        border: theme.color.error,
+        border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
       },
     },
   },

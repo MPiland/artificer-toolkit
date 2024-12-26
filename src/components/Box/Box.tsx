@@ -1,4 +1,4 @@
-import { AllHTMLAttributes, ElementType, ReactNode, Ref } from 'react'
+import { AllHTMLAttributes, CSSProperties, ElementType, ReactNode, forwardRef } from 'react'
 import type { Sprinkles } from '../../css/sprinkles.css'
 import { ClassValue } from 'clsx'
 
@@ -8,17 +8,18 @@ export interface BoxProps
   children?: ReactNode
   as?: ElementType
   className?: ClassValue
-  ref?: Ref<HTMLElement>
+  style?: CSSProperties
 }
 
-const Box = ({ as: Element = 'div', className, ref, ...props }: BoxProps) => {
+const Box = forwardRef<HTMLElement, BoxProps>(function Box({ as: Element = 'div', className, style, ...props }, ref) {
   const nativeProps: Record<string, unknown> = {}
 
   for (const key in props) {
     nativeProps[key] = props[key as keyof typeof props]
   }
 
-  return <Element ref={ref} className={className} {...nativeProps} />
-}
+  // Attach the ref to the rendered element
+  return <Element ref={ref} className={className} style={style} {...nativeProps} />
+})
 
 export default Box

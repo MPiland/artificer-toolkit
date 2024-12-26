@@ -1,23 +1,21 @@
-import { style, globalStyle } from '@vanilla-extract/css'
+import { style, createVar, globalStyle } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
+import { size } from '../../css/size.css'
 import { space } from '../../css/size.css'
-import { fontSize } from '../../css/typography.css'
 
-export const list_container = style({
+export const thumb_height = createVar()
+
+export const thumb_top = createVar()
+
+export const list = style({
   '@layer': {
     [app]: {
       display: 'flex',
       flexDirection: 'column',
+      width: '100%',
+      height: '100%',
+      overflow: 'hidden',
       position: 'relative',
-
-      selectors: {
-        '&.grid': {
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          width: '100%',
-          gap: space['space-3'],
-        },
-      },
     },
   },
 })
@@ -58,27 +56,42 @@ export const list_button_container = style({
   },
 })
 
-export const list_header_title = style({
+export const list_container_wrapper = style({
   '@layer': {
     [app]: {
-      'width': 'fit-content',
+      position: 'relative',
+      flex: 1,
+      width: '100%',
+      padding: `0 ${size['size-3']}`,
+      overflowY: 'scroll',
+      height: '100%',
+      willChange: 'transform',
 
-      '@media': {
-        'screen and (max-width: 567px)': {
-          width: '100%',
-          marginBottom: space['space-1'],
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
+      selectors: {
+        '&::webkit-listbar': {
+          display: 'none',
         },
       },
     },
   },
 })
 
-export const list_loading = style({
+export const list_container = style({
   '@layer': {
     [app]: {
-      width: '100%',
-      fontSize: fontSize['font-size-2'],
-      textAlign: 'center',
+      position: 'relative',
+      width: 'inherit',
+
+      selectors: {
+        '&.grid': {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          width: '100%',
+          columnGap: space['space-3'],
+        },
+      },
     },
   },
 })
@@ -104,7 +117,7 @@ export const list_footer_item = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      flexDirection: 'row',
+      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       width: 'fit-content',

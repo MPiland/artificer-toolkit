@@ -59,7 +59,6 @@ const parseFromHTML = (html: string, tagName?: string): Document => {
  */
 const template = typeof document === 'object' && document.createElement('template')
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let parseFromTemplate: (html: string) => NodeList
 
 if (template && template.content) {

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "1e2044d0-639d-4537-b3d0-edf4cfee3e3a",
+    "value": "sphere",
+    "label": "Sphere"
+  },
+  {
+    "id": "b17d04fe-411e-4bef-96c1-4d88cbc35261",
+    "value": "cone",
+    "label": "Cone"
+  },
+  {
+    "id": "dab56229-deac-4dbd-87e0-a2fac9cb137b",
+    "value": "cube",
+    "label": "Cube"
+  },
+  {
+    "id": "db8561cd-ba0b-4c8f-b162-8c5acc524b66",
+    "value": "beam",
+    "label": "Beam"
+  },
+  {
+    "id": "043a6c80-e33a-41b6-b31d-3c04dbdb5042",
+    "value": "weapon",
+    "label": "Weapon"
+  },
+  {
+    "id": "fbda8bf2-d2fe-4ac3-8c23-bbb9e42b8500",
+    "value": "none",
+    "label": "None"
+  },
+  {
+    "id": "8166a305-6091-4f77-907e-36ea9833739f",
+    "value": "wall",
+    "label": "Wall"
+  },
+  {
+    "id": "a2a01a4f-a95a-4b76-8367-cb4eeb779c1c",
+    "value": "cylinder",
+    "label": "Cylinder"
+  },
+  {
+    "id": "62b4316f-0b73-4f54-8d60-ba825f0f6b3d",
+    "value": "circle",
+    "label": "Circle"
+  },
+  {
+    "id": "0777087a-7aef-4465-96a8-18a10871bde5",
+    "value": "square",
+    "label": "Square"
+  }
+]

@@ -1,16 +1,14 @@
 import { useEffect } from 'react'
-import { DropdownOptionType } from '../../../utils/types'
 import Row from '../../Row/Row'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Dropdown from '../../Dropdown/Dropdown'
 import { startCase } from 'lodash'
-import { useGetSystemsQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
 import Divider from '../../Divider/Divider'
-import Table from '../../Table/Table'
-import Spinner from '../../Spinner/Spinner'
-import { useForm } from '../../../hooks/UseForm'
+import { use } from 'react'
+import FormContext from '../FormContext'
 import Requirements from './Requirements'
 import Damage from './Damage'
 import Upcast from '../Spells/Upcast'
@@ -19,360 +17,505 @@ import Spellcasting from '../Classes/Spellcasting'
 import Resource from '../Classes/Resource'
 import LimitUse from './LimitUse'
 import Multiclass from '../Classes/Multiclass'
-import { useIsFetching } from '@tanstack/react-query'
+import {
+  Actions,
+  Attributes,
+  Durations,
+  EquipmentCategories,
+  EquipmentProperties,
+  Prerequisites,
+  Ranges,
+  Shapes,
+} from '../../../types/enums'
+import {
+  AllEnum,
+  ClassesEnum,
+  Equipment,
+  EquipmentEnum,
+  Feat,
+  FeatureEnum,
+  Spell,
+} from '../../../../amplify/API'
+import { UpdateState } from '../../../types/form'
 
 const AttributeForm = () => {
-  const isLoading = useIsFetching() > 0
+  const { context, formData, updateFormData } = use(FormContext)
 
-  const { context, formState, setFormState } = useForm()
+  const { data: system } = useGetSystemQuery()
 
-  const { data: builders } = useGetSystemsQuery()
-
-  // Add/Remove Subtypes table
   useEffect(() => {
-    if (formState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypes') && !formState.subtype) {
-      setFormState({
-        type: 'added',
-        target: { name: 'subtype' },
-      })
-    }
     if (
-      !formState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypes') &&
-      formState.subtype != null
+      ((formData.__typename === 'Equipment' &&
+        (formData?.category !== EquipmentCategories.weapon ||
+          formData?.properties?.some((property: any) => property === EquipmentProperties.special))) ||
+        formData.__typename === 'Spell') &&
+      !formData?.attributes?.some((attribute) => attribute === Attributes.doesDamage) &&
+      formData?.damage
     ) {
-      setFormState({
-        type: 'removed',
-        target: { name: 'subtype' },
+      updateFormData<typeof formData>({
+        type: 'remove',
+        path: 'damage',
       })
     }
-  }, [formState, setFormState])
+  }, [formData, updateFormData])
 
-  return isLoading || !builders ? (
-    <Spinner />
-  ) : (
+  useEffect(() => {
+    if (
+      formData.__typename === 'Spell' &&
+      !formData.attributes?.some((attribute) => attribute === Attributes.canUpcast) &&
+      formData.upcast
+    ) {
+      updateFormData<typeof formData>({
+        type: 'remove',
+        path: 'upcast',
+      })
+    }
+  })
+
+  useEffect(() => {
+    if (formData.__typename === 'Class') {
+      if (
+        !formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) &&
+        formData.spellcasting != null
+      ) {
+        updateFormData<typeof formData>({
+          type: 'remove',
+          path: 'spellcasting',
+        })
+        formData.levelAttributes?.map((_, index) => {
+          updateFormData<typeof formData>({
+            type: 'remove',
+            path: `levelAttributes.${index}.spellSlots`,
+          })
+        })
+      }
+      if (
+        formData.levelAttributes &&
+        !formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) &&
+        (!formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) ||
+          formData.resource?.method !== Attributes.setPerLevel)
+      ) {
+        updateFormData<typeof formData>({
+          type: 'remove',
+          path: 'levelAttributes',
+        })
+      }
+
+      if (!formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) && formData.resource) {
+        updateFormData<typeof formData>({ type: 'remove', path: 'resource' })
+      }
+    }
+  }, [formData, updateFormData])
+
+  useEffect(() => {
+    if (formData.__typename === 'Feat') {
+      if (
+        !formData.prerequisites?.options?.some((option) => option === Prerequisites.equipmentProficiency) &&
+        formData.prerequisites?.equipmentProficiencies?.length > 0
+      ) {
+        updateFormData<typeof formData>({
+          type: 'remove',
+          path: 'prerequisites.equipmentProficiencies',
+        })
+      }
+
+      if (
+        !formData.prerequisites?.options?.some((option) => option === Prerequisites.equipped) &&
+        formData.prerequisites?.equipped?.length > 0
+      ) {
+        updateFormData<typeof formData>({
+          type: 'remove',
+          path: 'prerequisites.equipped',
+        })
+      }
+
+      if (
+        !formData.prerequisites?.options?.some((option) => option === Prerequisites.notEquipped) &&
+        formData.prerequisites?.notEquipped?.length > 0
+      ) {
+        updateFormData<typeof formData>({
+          type: 'remove',
+          path: 'prerequisites.notEquipped',
+        })
+      }
+
+      if (
+        !formData.attributes?.some((attribute: any) => attribute === Attributes.prerequisites) &&
+        formData.prerequisites
+      ) {
+        updateFormData<typeof formData>({
+          type: 'remove',
+          path: 'prerequisites',
+        })
+      }
+    }
+  }, [formData, updateFormData])
+
+  const formType = () => {
+    switch (formData.__typename) {
+      case 'Equipment':
+        return 'equipment'
+      case 'Race':
+        return 'races'
+      case 'Class':
+        return 'classes'
+      case 'Background':
+        return 'backgrounds'
+      case 'Spell':
+        return 'spells'
+      case 'Feat':
+        return 'feats'
+      case 'Character':
+        return 'characters'
+    }
+  }
+
+  return (
     <>
       <Row className={sprinkles({ mb: 'space-3' })}>
-        {context.title && (
-          <Dropdown
-            multiSelect={true}
-            name='attribute'
-            label={`${startCase(context.title)} Attributes`}
-            value={formState?.attribute}
-            options={builders[context.title].attribute
-              .filter((attributeItem: any) =>
-                formState.category?.name === 'armor' || formState.category?.name === 'weapon'
-                  ? attributeItem.name !== 'doesDamage'
-                  : attributeItem.name !== 'maxBonus'
-              )
-              .filter(
-                (attributeItem: any) =>
-                  (formState.category?.name === 'base'
-                    ? attributeItem
-                    : attributeItem.name !== 'primaryAbility' && attributeItem.name !== 'secondaryAbility') &&
-                  (formState.attribute?.some((attributeItem: any) => attributeItem.name === 'primaryAbility')
-                    ? attributeItem
-                    : attributeItem.name !== 'optionalAbility')
+        {formData.__typename !== 'Race' &&
+          formData.__typename !== 'Background' &&
+          formData.__typename !== 'Character' && (
+            <>
+              <Dropdown<typeof formData>
+                multiSelect={true}
+                name='attributes'
+                label={`${startCase(formData.__typename)} Attributes`}
+                value={formData?.attributes}
+                options={system.attributes.filter((attribute) =>
+                  ((formData.__typename === 'Equipment' &&
+                    (attribute.equipment.includes(EquipmentEnum.armors) ||
+                      attribute.equipment.includes(EquipmentEnum.adventuringGear) ||
+                      attribute.equipment.includes(EquipmentEnum.weapons) ||
+                      attribute.equipment.includes(EquipmentEnum.all))) ||
+                    (formData.__typename === 'Class' &&
+                      (attribute.classes.includes(ClassesEnum.base) ||
+                        attribute.classes.includes(ClassesEnum.subclass) ||
+                        attribute.classes.includes(ClassesEnum.all))) ||
+                    (formData.__typename === 'Feat' && attribute.feats.includes(AllEnum.all))) &&
+                  formData.attributes?.some((attribute) => attribute === Attributes.primaryAbility)
+                    ? attribute
+                    : attribute.id !== Attributes.optionalAbility
+                )}
+                onChange={updateFormData}
+              />
+              {formData.__typename === 'Equipment' &&
+                formData.attributes?.some((attribute) => attribute === Attributes.stackable) && (
+                  <Input<typeof formData>
+                    validation={'num'}
+                    type='text'
+                    name='maxStack'
+                    errorMsg='Must contain only numbers'
+                    label='Max Stack Size'
+                    autoComplete='off'
+                    value={formData?.maxStack}
+                    onChange={updateFormData}
+                  />
+                )}
+            </>
+          )}
+        {(formData.__typename === 'Spell' || formData.__typename === 'Feat') &&
+          formData.attributes?.some((attribute) => attribute === Attributes.isAction) && (
+            <>
+              <Dropdown<typeof formData>
+                name={'actions.primary.id'}
+                label={formData.__typename === 'Spell' ? 'Casting Time' : 'Action Type'}
+                value={formData?.actions.primary.id}
+                options={system.actions.filter((action) => action[formType() as 'classes' | 'equipment' | 'feats'])}
+                required={true}
+                onChange={updateFormData}
+              />
+              {formData.actions.primary.id !== Actions.special && (
+                <Input<typeof formData>
+                  validation='num'
+                  name='actions.primary.amount'
+                  label='Casting Increment'
+                  value={formData?.actions.primary.amount}
+                  required={true}
+                  onChange={updateFormData}
+                />
               )}
-            onChange={setFormState}
-          />
-        )}
-        {formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'stackable') && (
-          <Input
-            validation={'num'}
-            type='text'
-            name='maxStack'
-            errorMsg='Must contain only numbers'
-            label='Max Stack Size'
-            autoComplete='off'
-            value={formState?.maxStack}
-            onChange={setFormState}
-          />
-        )}
-        {formState.attribute?.some((attributeItem: any) => attributeItem.name === 'isAction') ||
-          (context.title === 'spells' && (
-            <Dropdown
-              name={'action.type'}
-              label={context.title === 'spells' ? 'Casting Time' : 'Action Type'}
-              value={formState?.action?.type}
-              options={[].concat(builders.action.type, builders[context.title].action.type)}
-              required={true}
-              onChange={setFormState}
-            />
-          ))}
-        {context.title === 'spells' && (
+            </>
+          )}
+        {formData.__typename === 'Spell' && (
           <>
-            {formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'secondaryAction') && (
+            {formData?.attributes?.some((attribute) => attribute === Attributes.secondaryAction) && (
               <>
-                <Dropdown
-                  name='secondaryAction.type'
+                <Dropdown<typeof formData>
+                  name='actions.secondary.id'
                   label='Sec. Action'
-                  value={formState?.secondaryAction?.type}
-                  options={[].concat(builders.action.type, builders[context.title].action.type)}
+                  value={formData?.actions.secondary?.id}
+                  options={system.actions.filter((action) => action[formType() as 'classes' | 'equipment' | 'feats'])}
                   required={true}
-                  onChange={setFormState}
+                  onChange={updateFormData}
                 />
-                <Input
-                  validation={'num'}
-                  name='secondaryAction.value'
-                  label='Sec. Increment'
-                  value={formState?.secondaryAction?.value}
-                  required={true}
-                  onChange={setFormState}
-                />
+                {formData.actions.secondary.id !== Actions.special && (
+                  <Input<typeof formData>
+                    validation='num'
+                    name='actions.secondary.amount'
+                    label='Sec. Increment'
+                    value={formData?.actions.secondary.amount}
+                    required={true}
+                    onChange={updateFormData}
+                  />
+                )}
               </>
             )}
-            {formState?.action && formState.action?.type?.name !== 'special' && (
-              <Input
-                validation='num'
-                name='action.value'
-                label='Casting Increment'
-                value={formState?.action?.value}
-                required={true}
-                onChange={setFormState}
-              />
-            )}
-            <Dropdown
-              name='duration.type'
+            <Dropdown<typeof formData>
+              name='duration'
               label='Duration'
-              value={formState?.duration?.type}
-              options={builders.spells.duration.type}
+              value={formData?.duration.id}
+              options={system.spells.durations}
               required={true}
-              onChange={setFormState}
+              onChange={updateFormData}
             />
-            {formState?.duration &&
-              formState.duration?.type?.name !== 'instantaneous' &&
-              formState.duration?.type?.name !== 'untilDispelled' &&
-              formState.duration?.type?.name !== 'special' && (
-                <Input
-                  validation={'num'}
-                  name='duration.value'
+            {formData?.duration &&
+              formData.duration?.id !== Durations.instantaneous &&
+              formData.duration?.id !== Durations.untilDispelled &&
+              formData.duration?.id !== Durations.special && (
+                <Input<typeof formData>
+                  validation='num'
+                  name='duration.amount'
                   errorMsg='Must contain only numbers'
                   label='Duration Increment'
                   autoComplete='off'
                   required={true}
-                  value={formState?.duration?.value}
-                  onChange={setFormState}
+                  value={formData?.duration?.id}
+                  onChange={updateFormData}
                 />
               )}
-            <Dropdown
-              name='range.type'
+            <Dropdown<typeof formData>
+              name='range.id'
               label='Range'
-              value={formState?.range?.type}
-              options={builders.spells.range.type}
+              value={formData?.range?.id}
+              options={system.spells.ranges}
               required={true}
-              onChange={setFormState}
+              onChange={updateFormData}
             />
-            {formState?.range?.type?.name !== 'touch' &&
-              formState.range?.type?.name !== 'sight' &&
-              formState.range?.type?.name !== 'unlimited' &&
-              formState.range?.type && (
+            {formData?.range?.id !== Ranges.touch &&
+              formData.range?.id !== Ranges.sight &&
+              formData.range?.id !== Ranges.unlimited && (
                 <>
-                  <Input
-                    validation={'num'}
+                  <Input<typeof formData>
+                    validation='num'
                     name='range.minRange'
                     errorMsg='Please enter a valid number greater than 0'
                     label='Min. Range'
                     autoComplete='off'
-                    required={formState.range?.type?.name === 'distance' ? true : false}
-                    value={formState?.range?.minRange}
-                    onChange={setFormState}
+                    required={formData.range?.id === Ranges.distance ? true : false}
+                    value={formData?.range?.minRange}
+                    onChange={updateFormData}
                   />
-                  <Input
-                    validation={'num'}
+                  <Input<typeof formData>
+                    validation='num'
                     name='range.maxRange'
                     errorMsg='Please enter a valid number greater than 0'
                     label='Max Range'
                     autoComplete='off'
-                    required={formState.range?.type?.name === 'distance' ? true : false}
-                    value={formState?.range?.maxRange}
-                    onChange={setFormState}
+                    required={formData.range?.id === Ranges.distance ? true : false}
+                    value={formData?.range?.maxRange}
+                    onChange={updateFormData}
                   />
-                  <Dropdown
+                  <Dropdown<typeof formData>
                     name='range.unit'
                     label='UoM'
-                    value={formState?.range?.unit}
-                    options={Object.values(builders.unit.imperial).flatMap((item) => item) as DropdownOptionType[]}
-                    required={formState.range?.type?.name === 'distance' ? true : false}
-                    onChange={setFormState}
+                    value={formData?.range?.unit}
+                    options={Object.values(system.rules.measurements.imperial).flatMap(
+                      (rule) => Array.isArray(rule) && rule
+                    )}
+                    onChange={updateFormData}
                   />
                 </>
               )}
-            <Dropdown
-              name='shape.type'
+            <Dropdown<typeof formData>
+              name='shape.id'
               label='Shape'
-              options={builders.spells.shape.type}
-              value={formState?.shape?.type}
-              onChange={setFormState}
+              options={system.spells.shapes}
+              value={formData?.shape?.id}
+              onChange={updateFormData}
             />
-            {formState?.shape?.type?.name &&
-              formState.shape?.type?.name !== 'none' &&
-              formState.shape?.type?.name !== 'weapon' && (
-                <>
-                  <Input
-                    validation={'cur'}
-                    name='shape.size'
-                    errorMsg='Please enter a valid number (can inlude decimals)'
-                    label='Shape Size'
-                    autoComplete='off'
-                    required={true}
-                    value={formState?.shape?.size}
-                    onChange={setFormState}
-                  />
-                  <Dropdown
-                    name='shape.unit'
-                    label='UoM'
-                    value={formState?.shape?.unit}
-                    options={Object.values(builders.unit.imperial).flatMap((item) => item) as DropdownOptionType[]}
-                    required={true}
-                    onChange={setFormState}
-                  />
-                </>
-              )}
-            {context.title === 'spells' && (
-              <Input
-                name='targets'
-                value={formState?.targets}
-                label='# of Targets'
-                validation='num'
-                errorMsg='Enter a valid number greater than 0'
-                onChange={setFormState}
-                placeholder='1'
-              />
-            )}
-            {formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'appliesCondition') && (
-              <Dropdown
-                name='condition.type'
-                label='Condition'
-                value={formState?.condition?.type}
-                options={builders.condition.type}
-                multiSelect={true}
-                required={true}
-                onChange={setFormState}
-              />
-            )}
-          </>
-        )}
-        {formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'requireSave') && (
-          <>
-            {context.title !== 'spells' && (
-              <Dropdown
-                name={`saveAbility.attribute`}
-                multiSelect={true}
-                label='Save Attribute'
-                value={formState?.saveAbility?.attribute}
-                options={builders.features.saveAbility.attribute}
-                onChange={setFormState}
-              />
-            )}
-            <Dropdown
-              name={'saveAbility.type'}
-              label='DC Ability'
-              value={formState?.saveAbility?.type}
-              options={builders.abilities.type}
-              required={true}
-              onChange={setFormState}
-            />
-            {context.title !== 'spells' && (
+            {formData?.shape?.id && formData.shape?.id !== Shapes.none && formData.shape?.id !== Shapes.weapon && (
               <>
-                {formState?.saveAbility?.attribute?.some(
-                  (attributeItem: any) => attributeItem.name === 'addAbilityModifier'
-                ) && (
-                  <Dropdown
-                    name={`saveAbility.abilityModifier.type`}
-                    label='Modifier Ability'
-                    value={formState?.saveAbility?.abilityModifier?.type}
-                    options={builders.abilities.type}
-                    required={true}
-                    onChange={setFormState}
-                  />
-                )}
-                <Input
-                  validation='num'
-                  name={`saveAbility.minValue`}
+                <Input<typeof formData>
+                  validation='cur'
+                  name='shape.size'
+                  errorMsg='Please enter a valid number (can inlude decimals)'
+                  label='Shape Size'
                   autoComplete='off'
-                  label='Base Value'
                   required={true}
-                  errorMsg='Must contain only numbers'
-                  value={formState?.saveAbility?.minValue}
-                  onChange={setFormState}
+                  value={formData?.shape?.size}
+                  onChange={updateFormData}
+                />
+                <Dropdown<typeof formData>
+                  name='shape.unit'
+                  label='UoM'
+                  value={formData?.shape?.unit}
+                  options={Object.values(system.rules.measurements.imperial).flatMap(
+                    (rule) => Array.isArray(rule) && rule
+                  )}
+                  required={true}
+                  onChange={updateFormData}
                 />
               </>
             )}
+            {formData.__typename === 'Spell' && (
+              <Input<typeof formData>
+                name='targets'
+                label='# of Targets'
+                validation='num'
+                value={formData?.targets}
+                errorMsg='Enter a valid number greater than 0'
+                onChange={updateFormData}
+                placeholder='1'
+              />
+            )}
+            {formData?.attributes?.some((attribute) => attribute === Attributes.appliesCondition) && (
+              <Dropdown<typeof formData>
+                name='conditions'
+                label='Condition'
+                value={formData?.conditions}
+                options={system.conditions}
+                multiSelect={true}
+                required={true}
+                onChange={updateFormData}
+              />
+            )}
           </>
         )}
+        {formData.__typename !== 'Race' &&
+          formData.__typename !== 'Background' &&
+          formData.__typename !== 'Character' &&
+          formData?.attributes?.some((attribute) => attribute === Attributes.requiresSave) && (
+            <>
+              {formData.__typename === 'Spell' && (
+                <Dropdown<typeof formData>
+                  name='saveAbility.attributes'
+                  multiSelect={true}
+                  label='Save Attribute'
+                  value={formData?.saveAbility?.attributes}
+                  options={system.attributes.filter((attribute) =>
+                    attribute.features.includes(FeatureEnum.saveAbilities)
+                  )}
+                  onChange={updateFormData}
+                />
+              )}
+              {formData.__typename !== 'Class' && (
+                <>
+                  <Dropdown<typeof formData>
+                    name='saveAbility'
+                    label='DC Ability'
+                    value={formData?.saveAbility.id}
+                    options={system.abilities}
+                    required={true}
+                    onChange={updateFormData}
+                  />
+                  {formData?.saveAbility?.attributes.some(
+                    (attribute) => attribute === Attributes.addAbilityModifier
+                  ) && (
+                    <Dropdown<typeof formData>
+                      name='saveAbility.abilityModifier'
+                      label='Modifier Ability'
+                      value={formData?.saveAbility?.abilityModifier}
+                      options={system.abilities}
+                      required={true}
+                      onChange={updateFormData}
+                    />
+                  )}
+                  <Input<typeof formData>
+                    validation='num'
+                    name={`saveAbility.minAmount`}
+                    autoComplete='off'
+                    label='Base Value'
+                    required={true}
+                    errorMsg='Must contain only numbers'
+                    value={formData?.saveAbility?.minAmount}
+                    onChange={updateFormData}
+                  />
+                </>
+              )}
+            </>
+          )}
       </Row>
-      <Multiclass />
-      <Resource />
-      <Spellcasting />
-      <LevelAttributes />
-      {formState?.subtype?.length > 0 && (
+      {formData.__typename === 'Class' && (
+        <>
+          {formData?.attributes?.some((attribute) => attribute === Attributes.primaryAbility) && (
+            <Multiclass formData={formData} updateFormData={updateFormData} />
+          )}
+          {formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) && (
+            <Resource formData={formData} updateFormData={updateFormData} />
+          )}
+          {formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) && (
+            <Spellcasting formData={formData} updateFormData={updateFormData} />
+          )}
+          {(formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) ||
+            (formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) &&
+              formData.resource?.method === Attributes.setPerLevel)) && (
+            <LevelAttributes formData={formData} updateFormData={updateFormData} />
+          )}
+        </>
+      )}
+      {formData.__typename === 'Class' && formData?.subtypes?.length > 0 && (
         <>
           <Collapse>
             <Collapse.Header title={'Subtypes'} startOpened={context.type === 'new'} />
             <Collapse.Body>
-              <Table
-                name='subtype'
-                rows={{
-                  inputs: [
-                    {
-                      name: 'value',
-                    },
-                  ],
-                  headers: [
-                    {
-                      value: 'Name',
-                    },
-                  ],
-                }}
-                value={formState?.subtype}
-                addRow={true}
-                onChange={setFormState}
-              />
+              <Row cellSize='auto'>
+                <span>Name</span>
+              </Row>
+              {formData.subtypes?.map((subtype, index) => (
+                <Row key={index} cellSize='auto'>
+                  <Input<typeof formData>
+                    name={`subtypes.${index}.value`}
+                    value={subtype.value}
+                    onChange={updateFormData}
+                  />
+                </Row>
+              ))}
             </Collapse.Body>
           </Collapse>
         </>
       )}
-      <Damage state={formState} setState={setFormState} />
-      {formState?.category?.name === 'armor' ||
-        (formState?.category?.name === 'shield' && (
+      {(formData.__typename === 'Spell' || formData.__typename === 'Equipment') &&
+        formData?.attributes?.some((attribute) => attribute === Attributes.doesDamage) && (
+          <Damage
+            formData={formData}
+            updateFormData={updateFormData as (state: UpdateState<Spell | Equipment>) => void}
+          />
+        )}
+      {formData.__typename === 'Equipment' &&
+        (formData?.category === EquipmentCategories.armor || formData?.category === EquipmentCategories.shield) && (
           <>
-            <Divider label={'Armor Stats'} />
+            <Divider label='Armor Stats' />
             <Row className={sprinkles({ mb: 'space-3' })}>
-              <Input
-                validation={'num'}
+              <Input<typeof formData>
+                validation='num'
                 name='armorClass'
                 errorMsg='Must contain only numbers'
                 label='Armor Value'
                 required={true}
-                value={formState?.armorClass}
-                onChange={setFormState}
+                value={formData?.armorClass}
+                onChange={updateFormData}
               />
-              {formState?.category?.name === 'armor' && (
-                <Dropdown
-                  name='primaryAbility.type'
+              {formData?.category === EquipmentCategories.armor && (
+                <Dropdown<typeof formData>
+                  name='primaryAbility'
                   label='Primary Ability'
-                  value={formState?.primaryAbility.type}
-                  options={builders.abilities.type}
-                  onChange={setFormState}
-                />
-              )}
-              {formState?.attribute?.some((attributeItem: any) => attributeItem.name === 'maxBonus') && (
-                <Input
-                  validation='num'
-                  name='maxBonus'
-                  errorMsg='Must contain only numbers'
-                  label='Max Bonus'
-                  required={true}
-                  value={formState?.maxBonus}
-                  onChange={setFormState}
+                  value={formData?.primaryAbility}
+                  options={system.abilities}
+                  onChange={updateFormData}
                 />
               )}
             </Row>
           </>
-        ))}
-      <Upcast />
-      <LimitUse state={formState} setState={setFormState} />
-      <Requirements state={formState} setState={setFormState} />
+        )}
+      {formData.__typename === 'Spell' && <Upcast formData={formData} updateFormData={updateFormData} />}
+      {formData.__typename === 'Feat' && formData.attributes.map((attribute) => attribute === Attributes.limitUse) && (
+        <LimitUse formData={formData} updateFormData={updateFormData} />
+      )}
+      {formData.__typename === 'Feat' &&
+        formData.attributes?.some((attribute) => attribute === Attributes.prerequisites) && (
+          <Requirements formData={formData} updateFormData={updateFormData as (state: UpdateState<Feat>) => void} />
+        )}
     </>
   )
 }

@@ -2,106 +2,107 @@ import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
-import { useForm } from '../../../../hooks/UseForm'
-import { DropdownOptionType } from '../../../../utils/types'
-import { useFeature } from '../../../../hooks/UseFeature'
-import { useGetSystemsQuery } from '../../../../features/systems/systemsApi'
-import { useGetEquipmentQuery } from '../../../../features/equipment/equipmentApi'
+import { use } from 'react'
+import FormContext from '../../FormContext'
+import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
+import { useListEquipmentQuery } from '../../../../features/equipment/equipmentApi'
+import FeatureContext from '../FeatureContext'
+import { Class, FeatureProficiency, SectionEnum } from '../../../../../amplify/API'
+import { UpdateState } from '../../../../types/form'
+import { Attributes, Categories, ProficiencyCategories, ProficiencyLevels } from '../../../../types/enums'
+import { getKeyFromId } from '../../../../utils/form'
 
 const Proficiencies = () => {
-  const { formState } = useForm()
-  const { sectionState, setSectionState } = useFeature()
+  const { formData } = use(FormContext)
+  const { sectionData, updateSectionData } = use(FeatureContext) as {
+    sectionData: FeatureProficiency
+    updateSectionData: (arg: UpdateState<FeatureProficiency>) => void
+  }
 
-  const { data: builders } = useGetSystemsQuery()
-  const { data: items } = useGetEquipmentQuery() as { data: any[] }
+  const { data: system } = useGetSystemQuery()
+  const { data: equipment } = useListEquipmentQuery()
 
-  const providesOptions = sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'providesOptions')
+  const sectionCategory = system.modifiers.categories.find((category) => category.id === sectionData.category)
 
-  const categoryName: 'skill' | 'saveAbility' | 'properties' | 'item' | 'language' | 'initiative' =
-    sectionState?.category?.name
+  const path = getKeyFromId(sectionData.category, ProficiencyCategories)
+
+  const providesOptions = sectionData.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
   return (
     <Row>
       <Dropdown
         multiSelect={true}
-        name={'attribute'}
-        options={[].concat(
-          builders.section.attribute,
-          formState.category?.name === 'subclass' && builders.section.subclass.attribute
+        name='attributes'
+        options={system.attributes.filter(
+          (attribute) =>
+            attribute.sections.includes(SectionEnum.all) &&
+            (formData as Class).category === Categories.subclass &&
+            attribute.sections.includes(SectionEnum.subclasses)
         )}
         label={`${startCase('proficiency')} Attributes`}
-        value={sectionState.attribute}
-        onChange={setSectionState}
+        value={sectionData.attributes}
+        onChange={updateSectionData}
       />
       <Dropdown
-        name={`category`}
+        name='category'
         label='Proficiency Category'
-        value={sectionState.category}
-        options={builders.proficiencies.category}
+        value={sectionData.category}
+        options={system.proficiencies.categories}
         required={true}
-        onChange={setSectionState}
+        onChange={updateSectionData}
       />
-      {categoryName != null &&
-        (categoryName !== 'properties' && categoryName !== 'item' && categoryName !== 'initiative' ? (
+      {sectionCategory != null &&
+        (path !== 'equipment' && path !== 'properties' && path !== 'initiative' ? (
           <Dropdown
-            name={`${categoryName}.type`}
+            name={`${path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>}`}
             multiSelect={true}
-            label={`${startCase(sectionState.category.value)} Type`}
-            value={sectionState[categoryName]?.type}
-            options={categoryName === 'saveAbility' ? builders.abilities.type : builders[categoryName]?.type}
+            label={`${sectionCategory.label} Type`}
+            value={sectionData[path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>]}
+            options={
+              path === 'saveAbilities'
+                ? system.abilities
+                : system[path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>]
+            }
             required={true}
-            onChange={setSectionState}
+            onChange={updateSectionData}
           />
         ) : (
           <>
-            {(categoryName === 'properties' || categoryName === 'item') && (
+            {(sectionCategory.id === ProficiencyCategories.properties ||
+              sectionCategory.id === ProficiencyCategories.equipment) && (
               <>
                 <Dropdown
-                  name={`${categoryName}.category`}
+                  name={`${path as 'properties' | 'equipment'}.category`}
                   label='Item Category'
-                  value={sectionState[categoryName]?.category}
-                  options={builders.items.category}
+                  value={sectionData[path as 'properties' | 'equipment']?.category}
+                  options={system.equipment.categories}
                   required={true}
-                  onChange={setSectionState}
+                  onChange={updateSectionData}
                 />
                 <Dropdown
-                  name={`${categoryName}.${categoryName === 'item' ? 'properties.type' : 'type'}`}
+                  name={`${path as 'properties' | 'equipment'}.${
+                    sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
+                  }`}
                   multiSelect={true}
                   label='Item Property'
-                  value={sectionState[categoryName]?.[categoryName === 'item' ? 'properties.type' : 'type']}
-                  options={items as DropdownOptionType[]}
-                  filter={[
-                    {
-                      key: 'category._id',
-                      object: sectionState[categoryName],
-                      mapKey: 'properties.type',
-                      type: 'equal',
-                    },
-                  ]}
-                  onChange={setSectionState}
-                  required={categoryName === 'item' ? false : true}
+                  value={
+                    sectionData[path as 'properties' | 'equipment']?.[
+                      sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
+                    ]
+                  }
+                  options={equipment}
+                  onChange={updateSectionData}
+                  required={sectionCategory.id === ProficiencyCategories.equipment ? false : true}
                 />
-                {categoryName === 'item' && (
+                {sectionCategory.id === ProficiencyCategories.equipment && (
                   <>
                     <Dropdown
-                      name={`${categoryName}.type`}
+                      name={`${path as 'equipment'}.ids`}
                       multiSelect={true}
                       label='Item'
-                      value={sectionState[categoryName]?.type}
-                      options={items as DropdownOptionType[]}
-                      filter={[
-                        {
-                          key: 'category._id',
-                          object: sectionState[categoryName],
-                          type: 'equal',
-                        },
-                        {
-                          key: 'properties.type',
-                          object: sectionState[categoryName],
-                          type: 'equal',
-                        },
-                      ]}
-                      onChange={setSectionState}
+                      value={sectionData?.equipment?.ids}
+                      options={equipment}
+                      onChange={updateSectionData}
                       required={true}
                     />
                   </>
@@ -111,33 +112,34 @@ const Proficiencies = () => {
           </>
         ))}
       <Dropdown
-        name={`${categoryName}.level`}
+        name='level'
         label='Proficiency Level'
-        value={sectionState[categoryName]?.level}
-        options={builders.proficiencies.level}
+        value={sectionData?.level}
+        options={system.proficiencies.levels}
         required={true}
-        onChange={setSectionState}
+        onChange={updateSectionData}
       />
-      {sectionState[categoryName]?.level?.name === 'half' && (
+      {sectionData?.level === ProficiencyLevels.halfProficiency && (
         <Dropdown
-          name={`${categoryName}.rounding`}
+          name='rounding'
           label='Rounding Type'
-          value={sectionState[categoryName]?.rounding}
-          options={builders.system.rules.rounding}
+          value={sectionData?.rounding}
+          options={system.rules.measurements.rounding}
           required={true}
-          onChange={setSectionState}
+          onChange={updateSectionData}
         />
       )}
-      {sectionState.attribute?.some((attributeItem: any) => attributeItem.name === 'subtypeSpecific') &&
-        categoryName != null && (
+      {sectionData.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+        formData.__typename === 'Class' &&
+        sectionCategory != null && (
           <Dropdown
-            name={`${categoryName}.subtype`}
+            name='subtype'
             multiSelect={true}
             label='Subclass Subtype'
-            value={sectionState[categoryName]?.subtype}
-            options={formState?.subtype}
+            value={sectionData?.subtype}
+            options={formData?.subtype}
             required={true}
-            onChange={setSectionState}
+            onChange={updateSectionData}
           />
         )}
       {providesOptions && (
@@ -146,10 +148,10 @@ const Proficiencies = () => {
           name={`selectionCount`}
           label='# of Selections'
           autoComplete='off'
-          value={sectionState.selectionCount}
+          value={sectionData.selectionCount}
           errorMsg='Must contain only numbers'
           required={true}
-          onChange={setSectionState}
+          onChange={updateSectionData}
         />
       )}
     </Row>

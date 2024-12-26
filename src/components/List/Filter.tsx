@@ -3,14 +3,14 @@ import Row from '../Row/Row'
 import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import { useMediaQuery } from 'usehooks-ts'
-import { DropdownOptionType, ReducerActionType } from '../../utils/types'
+import { DropdownOption, ReducerAction } from '../../types/components'
 import { startCase } from 'lodash'
 
 interface FilterProps {
   context: string
   items: any
   listFilter: any
-  setListFilter: (arg: ReducerActionType) => void
+  setListFilter: (arg: ReducerAction) => void
 }
 
 const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
@@ -34,7 +34,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='level'
                 label='Level'
-                options={items?.map((item: DropdownOptionType) => ({
+                options={items?.map((item: DropdownOption) => ({
                   value: item?.level,
                   name: item?.level,
                   id: null,
@@ -47,7 +47,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='classes'
                 label='Classes'
-                options={items?.flatMap((item: DropdownOptionType) => (item.classes?.length > 0 ? item.classes : []))}
+                options={items?.flatMap((item: DropdownOption) => (item.classes?.length > 0 ? item.classes : []))}
                 value={listFilter?.classes}
                 all={false}
                 onChange={setListFilter}
@@ -56,7 +56,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='school'
                 label='Spell School'
-                options={items?.map((item: DropdownOptionType) => item.school)}
+                options={items?.map((item: DropdownOption) => item.school)}
                 value={listFilter?.school}
                 all={false}
                 onChange={setListFilter}
@@ -66,8 +66,8 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 name='damage.primary.type'
                 label='Primary Damage Type'
                 options={[].concat(
-                  items?.map((item: DropdownOptionType) => item.damage?.primary?.type),
-                  items?.map((item: DropdownOptionType) => item.damage?.secondary?.type)
+                  items?.map((item: DropdownOption) => item.damage?.primary?.type),
+                  items?.map((item: DropdownOption) => item.damage?.secondary?.type)
                 )}
                 value={listFilter?.damage?.primary?.type}
                 all={false}
@@ -78,8 +78,8 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 name='damage.secondary.type'
                 label='Secondary Damage Type'
                 options={[].concat(
-                  items?.map((item: DropdownOptionType) => item.damage?.primary?.type),
-                  items?.map((item: DropdownOptionType) => item.damage?.secondary?.type)
+                  items?.map((item: DropdownOption) => item.damage?.primary?.type),
+                  items?.map((item: DropdownOption) => item.damage?.secondary?.type)
                 )}
                 value={listFilter?.damage?.secondary?.type}
                 all={false}
@@ -89,7 +89,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='condition.type'
                 label='Condition Type'
-                options={items?.flatMap((item: DropdownOptionType) => {
+                options={items?.flatMap((item: DropdownOption) => {
                   if (item.condition && Array.isArray(item.condition.type)) {
                     return item.condition.type
                   } else {
@@ -104,7 +104,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='saveAbility.type'
                 label='DC Ability'
-                options={items?.map((item: DropdownOptionType) => item.saveAbility?.type)}
+                options={items?.map((item: DropdownOption) => item.saveAbility?.type)}
                 value={listFilter?.saveAbility?.type}
                 all={false}
                 onChange={setListFilter}
@@ -113,7 +113,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='action.type'
                 label='Casting Time'
-                options={items?.map((item: DropdownOptionType) => item.action?.type)}
+                options={items?.map((item: DropdownOption) => item.action?.type)}
                 value={listFilter?.action?.type}
                 all={false}
                 onChange={setListFilter}
@@ -122,7 +122,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='duration.type'
                 label='Duration'
-                options={items?.map((item: DropdownOptionType) => item.duration?.type)}
+                options={items?.map((item: DropdownOption) => item.duration?.type)}
                 value={listFilter?.duration?.type}
                 all={false}
                 onChange={setListFilter}
@@ -131,7 +131,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='range.type'
                 label='Range'
-                options={items?.map((item: DropdownOptionType) => item.range?.type)}
+                options={items?.map((item: DropdownOption) => item.range?.type)}
                 value={listFilter?.range?.type}
                 all={false}
                 onChange={setListFilter}
@@ -140,7 +140,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='shape.type'
                 label='Shape'
-                options={items?.map((item: DropdownOptionType) => item.shape?.type)}
+                options={items?.map((item: DropdownOption) => item.shape?.type)}
                 value={listFilter?.shape?.type}
                 onChange={setListFilter}
               />
@@ -153,7 +153,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 name='category'
                 label='Item Category'
                 placeholder='Select...'
-                options={items?.map((item: any) => item.category) as DropdownOptionType[]}
+                options={items?.map((item: any) => item.category) as DropdownOption[]}
                 value={listFilter?.category}
                 all={false}
                 onChange={setListFilter}
@@ -162,7 +162,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 multiSelect={true}
                 name='properties.type'
                 label='Item Property'
-                options={items?.flatMap((item: any) => item.properties?.type) as DropdownOptionType[]}
+                options={items?.flatMap((item: any) => item.properties?.type) as DropdownOption[]}
                 value={listFilter?.properties?.type}
                 all={false}
                 onChange={setListFilter}
@@ -183,7 +183,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
                 options={
                   items?.map((item: any) => ({
                     value: item.armorClass,
-                  })) as DropdownOptionType[]
+                  })) as DropdownOption[]
                 }
                 value={listFilter.armorClass}
                 all={false}

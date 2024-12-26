@@ -33,7 +33,8 @@ const flattenChildren = (children: ReactNode): ReactNode[] => {
   Children.forEach(children, (child) => {
     if (isValidElement(child)) {
       if (child.type === Fragment) {
-        childrenArray.push(...flattenChildren(child.props.children))
+        const fragmentChild = child as React.ReactElement<{ children: ReactNode }>
+        childrenArray.push(...flattenChildren(fragmentChild.props.children))
       } else {
         childrenArray.push(child)
       }
@@ -57,7 +58,7 @@ const Row = ({
   const rowRef = useRef<HTMLDivElement>(null)
 
   const lg = useMediaQuery('(min-width: 1300px)')
-  const md = useMediaQuery('(min-width: 568px) and (max-width: 1300px)')
+  const md = useMediaQuery('(min-width: 762px) and (max-width: 1300px)')
 
   const childElements = useMemo(() => flattenChildren(children), [children])
 
@@ -81,7 +82,7 @@ const Row = ({
       const colSet = cols as ColsSetType
       if (lg) {
         if (colSet.lg) {
-          columnWidth = `calc((100% - ${columnGap * colSet.lg}px) / ${colSet.lg})`
+          columnWidth = `calc((100% - ${columnGap * (colSet.lg - 1)}px) / ${colSet.lg})`
         } else if (colSet.md) {
           console.log({ colSet: colSet.md })
           columnWidth = `calc((100% - ${columnGap * colSet.md}px) / ${colSet.md})`

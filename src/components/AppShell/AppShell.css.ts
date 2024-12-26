@@ -11,7 +11,7 @@ export const app_shell = style({
       height: '100dvh',
       width: '100%',
       overflow: 'hidden',
-      color: theme.vars.color,
+      color: theme.vars.typography.color.main,
     },
   },
 })
@@ -23,14 +23,13 @@ export const app_header = style({
       top: 0,
       right: 0,
       width: 'auto',
-      height: theme.appShell.header.height,
+      height: theme.component.appShell.header.spacing.height,
       display: 'flex',
       flexDirection: 'row',
       border: 'none',
-      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
-      padding: theme.appShell.header.padding,
-      backgroundColor: theme.vars.backgroundColor.content,
-      color: theme.vars.color,
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      padding: theme.component.appShell.header.spacing.padding,
+      backgroundColor: theme.vars.component.content.backgroundColor.main,
     },
   },
 })
@@ -44,18 +43,18 @@ export const app_sidebar = style({
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      width: theme.appShell.sidebar.width,
-      backgroundColor: theme.vars.backgroundColor.sidebar,
+      width: theme.component.appShell.sidebar.spacing.width.main,
+      backgroundColor: theme.vars.component.appShell.sidebar.backgroundColor,
       color: 'white',
       listStyleType: 'none',
       transition: 'width .3s ease-in-out',
-      padding: theme.appShell.sidebar.padding,
+      padding: theme.component.appShell.sidebar.spacing.padding,
       rowGap: '1rem',
-      borderRight: `${theme.border} ${theme.vars.borderColor}`,
+      borderRight: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
 
       selectors: {
         '&.collapsed': {
-          width: theme.appShell.sidebar['collapsed-width'],
+          width: theme.component.appShell.sidebar['collapsed-width'],
           overflow: 'hidden',
         },
       },
@@ -72,7 +71,7 @@ export const app_main = style({
       width: '100%',
       overflow: 'hidden',
       height: '100%',
-      backgroundColor: theme.vars.backgroundColor.content,
+      backgroundColor: theme.vars.component.content.backgroundColor.main,
       zIndex: 0,
     },
   },
@@ -83,7 +82,7 @@ export const app_content = style({
     [app]: {
       padding: `${size['size-4']} 8rem`,
       width: '100%',
-      height: `calc(100% - ${theme.appShell.header.height})`,
+      height: `calc(100% - ${theme.component.appShell.header.spacing.height})`,
       overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
@@ -100,8 +99,8 @@ export const hamburger_wrapper = style({
       justifyContent: 'center',
       alignContent: 'center',
       flexWrap: 'wrap',
-      height: theme.hamburger.wrapper.height,
-      width: theme.hamburger.wrapper.width,
+      height: theme.component.appShell.hamburger.wrapper.height,
+      width: theme.component.appShell.hamburger.wrapper.width,
 
       selectors: {
         '&.collapsed': {
@@ -119,8 +118,8 @@ export const hamburger = style({
       flexDirection: 'column',
       justifyContent: 'space-between',
       cursor: 'pointer',
-      width: theme.hamburger.height,
-      height: theme.hamburger.height,
+      width: theme.component.appShell.hamburger.height,
+      height: theme.component.appShell.hamburger.height,
     },
   },
 })
@@ -129,13 +128,13 @@ export const hamburger_line = style({
   '@layer': {
     [app]: {
       width: '100%',
-      height: theme.hamburger.line.height,
-      backgroundColor: theme.vars.color,
+      height: theme.component.appShell.hamburger.line.height,
+      backgroundColor: theme.vars.component.appShell.sidebar.backgroundColor,
       transition: 'transform .3s, opacity .3s',
       transformOrigin: 'center',
       vars: {
-        '--hamburger-line-margin': `calc((${theme.hamburger.height} - (${theme.hamburger.line.height} * 3)) / 2)`,
-        '--hamburger-translate-y': `calc(var(--hamburger-line-margin) + ${theme.hamburger.line.height})`,
+        '--hamburger-line-margin': `calc((${theme.component.appShell.hamburger.height} - (${theme.component.appShell.hamburger.line.height} * 3)) / 2)`,
+        '--hamburger-translate-y': `calc(var(--hamburger-line-margin) + ${theme.component.appShell.hamburger.line.height})`,
       },
       selectors: {
         '.collapsed &:first-of-type': {

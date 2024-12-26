@@ -24,7 +24,7 @@ interface PanelProps {
 }
 
 interface TabsProps {
-  children?: ReactNode
+  children?: ReactNode | ReactNode[]
   className?: string | number | symbol | any
   style?: 'border' | 'borderless'
 }
@@ -97,7 +97,7 @@ const Tabs = ({ children, className, style = 'border' }: TabsProps) => {
 
   const childrenArray = Children.toArray(children) as ReactElement[]
   const header = childrenArray.find((child: any) => child.type.name === 'Header')
-  const tabs = Children.toArray((header as ReactElement)?.props.children).filter(
+  const tabs = Children.toArray((header as ReactElement<{ children: ReactNode }>)?.props.children).filter(
     (child: any) => child.type.name === 'Tab'
   )
   const panels = childrenArray.filter((child: any) => child.type.name === 'Panel')
@@ -105,11 +105,12 @@ const Tabs = ({ children, className, style = 'border' }: TabsProps) => {
   return (
     <div className={clsx(tabs_wrapper, { [className]: className }, { ['borderless']: style === 'borderless' })}>
       {header &&
-        cloneElement(header, {
+        cloneElement(header as ReactElement<{ children: ReactNode }>, {
           children: tabs.map((tab: any, index: number) =>
             cloneElement(tab, { index, isActive: index === activeIndex, onClick: () => handleTabClick(index), style })
           ),
         })}
+
       {panels[activeIndex as number]}
     </div>
   )

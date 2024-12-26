@@ -1,0 +1,39 @@
+input FeatInput {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  category: ID
+  ancestry: [FeatureAncestryInput]
+  attributes: [ID]
+  actions: ActionGroupInput
+  primaryDamage: DamageInput
+  secondaryDamage: DamageInput
+  bonusDamage: DamageInput
+  charges: ChargeInput
+  range: RangeInput
+  shape: ShapeInput
+  targets: Int
+  feats: [FeatureFeatInput]
+  modifiers: [FeatureModifierInput]
+  proficiencies: [FeatureProficiencyInput]
+  expertise: [FeatureProficiencyInput]
+  senses: [FeatureSenseInput]
+  spells: [FeatureSpellInput]
+  spellcasting: [FeatureSpellInput]
+  prerequisites: PrerequisiteInput
+  saveAbility: SaveAbilityInput
+  selectionCount: Int
+  levelAvailable: String
+  features: [FeatureInput]
+  options: [FeatureOptionInput]
+  ownerId: String!
+  systemId: ID!
+  masterId: String
+}
+
+input BatchFeatInput {
+  tableName: String!
+  data: FeatInput!
+}

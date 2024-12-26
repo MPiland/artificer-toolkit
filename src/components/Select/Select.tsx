@@ -1,12 +1,5 @@
 import { FC, useState, useRef } from 'react'
-import {
-  select,
-  select_wrapper,
-  select_container,
-  select_input,
-  select_menu,
-  select_option,
-} from './Select.css'
+import { select, select_wrapper, select_container, select_input, select_menu, select_option } from './Select.css'
 import { startCase } from 'lodash'
 import {
   autoUpdate,
@@ -25,17 +18,12 @@ import ScrollArea from '../ScrollArea/ScrollArea'
 
 interface SelectProps {
   label: string
-  options: Array<string>
+  options: ReadonlyArray<string> | Array<string>
   handleChange: (arg: string) => void
   placeholder: string
 }
 
-const Select: FC<SelectProps> = ({
-  label,
-  options,
-  handleChange,
-  placeholder,
-}) => {
+const Select: FC<SelectProps> = ({ label, options, handleChange, placeholder }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
@@ -69,36 +57,25 @@ const Select: FC<SelectProps> = ({
     loop: true,
   })
 
-  const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions(
-    [click, listNavigation, typeahead, dismiss]
-  )
+  const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
+    click,
+    listNavigation,
+    typeahead,
+    dismiss,
+  ])
 
   return (
     <div className={select}>
       <div className={select_wrapper}>
         {label && <label>{label}</label>}
-        <div
-          className={select_container}
-          ref={refs.setReference}
-          {...getReferenceProps()}
-          tabIndex={0}
-        >
+        <div className={select_container} ref={refs.setReference} {...getReferenceProps()} tabIndex={0}>
           <span className={select_input}>{placeholder}</span>
         </div>
       </div>
       {isOpen && (
         <FloatingPortal root={appMain} preserveTabOrder={true}>
-          <FloatingFocusManager
-            context={context}
-            closeOnFocusOut={true}
-            modal={false}
-          >
-            <div
-              className={select_menu}
-              ref={refs.setFloating}
-              style={floatingStyles}
-              {...getFloatingProps()}
-            >
+          <FloatingFocusManager context={context} closeOnFocusOut={true} modal={false}>
+            <div className={select_menu} ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}>
               <ScrollArea scrollDirection='vertical'>
                 {options.map((optionItem: string, optionIndex: number) => (
                   <div
@@ -117,8 +94,7 @@ const Select: FC<SelectProps> = ({
                     tabIndex={activeIndex === optionIndex ? 0 : -1}
                     ref={(node) => {
                       listItemsRef.current[optionIndex] = node
-                      listContentRef.current[optionIndex] =
-                        node?.textContent ?? null
+                      listContentRef.current[optionIndex] = node?.textContent ?? null
                     }}
                   >
                     {startCase(optionItem as string)}

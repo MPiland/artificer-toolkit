@@ -1,37 +1,38 @@
+import { useEffect, use } from 'react'
 import Form from '../../components/Form/Form'
 import { useAddNewClassMutation, useUpdateClassMutation } from './classesApi'
-import { StepType } from '../../utils/types'
-import { useCallback, useEffect, useMemo } from 'react'
-import { useForm } from '../../hooks/UseForm'
+import { useGetSystemQuery } from '../systems/systemsApi'
+import { Step } from '../../types/form'
+import FormContext from '../../components/Form/FormContext'
 
 const ClassForm = () => {
-  const { setSteps, formState } = useForm()
+  const { setSteps, formData } = use(FormContext)
+  const { data: system } = useGetSystemQuery()
 
-  const createStepsArray = useCallback((): StepType[] => {
-    if (formState?.category?.name === 'subclass') {
-      return [
-        { id: 'details', name: 'Details' },
-        { id: 'proficiencies', name: 'Proficiencies' },
-        { id: 'attributes', name: 'Attributes' },
-        { id: 'features', name: 'Features' },
-      ]
-    } else {
-      return [
-        { id: 'details', name: 'Details' },
-        { id: 'proficiencies', name: 'Proficiencies' },
-        { id: 'startingEquipment', name: 'Starting Equipment' },
-        { id: 'attributes', name: 'Attributes' },
-        { id: 'features', name: 'Features' },
-      ]
-    }
-  }, [formState?.category?.name])
+  const baseStepArray = [
+    { id: 'details', label: 'Details' },
+    { id: 'proficiencies', label: 'Proficiencies' },
+    { id: 'startingEquipment', label: 'Starting Equipment' },
+    { id: 'attributes', label: 'Attributes' },
+    { id: 'features', label: 'Features' },
+  ] satisfies Step[]
 
-  const stepsArray: StepType[] = useMemo(() => createStepsArray(), [createStepsArray])
+  const subclassStepArray = [
+    { id: 'details', label: 'Details' },
+    { id: 'proficiencies', label: 'Proficiencies' },
+    { id: 'attributes', label: 'Attributes' },
+    { id: 'features', label: 'Features' },
+  ] satisfies Step[]
 
   useEffect(() => {
-    setSteps(stepsArray)
-  }, [setSteps, stepsArray])
+    if (formData.__typename === 'Class') {
+      if (system.categories.find((sCategory) => sCategory.id === formData.category).value === 'subclass') {
+        return setSteps(subclassStepArray)
+      }
+      return setSteps(baseStepArray)
+    }
+  }, [setSteps, formData, system.categories, baseStepArray, subclassStepArray])
 
-  return <Form useAddNewItem={useAddNewClassMutation} useUpdateItem={useUpdateClassMutation} />
+  return <Form useAddNewItemMutation={useAddNewClassMutation} useUpdateItemMutation={useUpdateClassMutation} />
 }
 export default ClassForm

@@ -16,7 +16,7 @@ export const column = style({
           marginLeft: 0,
         },
         '&:last-of-type': {
-          marginLeft: 0,
+          marginRight: 0,
         },
       },
     },

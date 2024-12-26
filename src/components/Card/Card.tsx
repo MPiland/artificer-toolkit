@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, createElement } from 'react'
+import { ReactNode, useEffect, createElement, CSSProperties, use, RefObject } from 'react'
 import {
   card,
   card_header_title,
@@ -10,17 +10,16 @@ import {
   card_header_icon,
   card_header_icon_container,
   card_content_truncated,
+  card_content_collapsed_height,
 } from './Card.css'
 import { MdDelete, MdExpandMore, MdModeEdit } from 'react-icons/md'
-import Box from '../Box/Box'
 import clsx from 'clsx'
 import useMeasure from 'react-use-measure'
 import HTMLReactParser from '../../utils/reactParser/dom-to-react'
-import CardProvider from './CardProvider'
-import { useCard } from '../../hooks/useCard'
 import { Text, Element } from '../../utils/reactParser/dom-to-react'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
 import Button from '../Button/Button'
+import CardContext, { CardOptions } from './CardContext'
 
 const Header = ({
   title,
@@ -37,7 +36,7 @@ const Header = ({
   collapsible?: boolean
   startCollapsed?: boolean
 }) => {
-  const { collapsed, setCollapsed } = useCard()
+  const { collapsed, setCollapsed } = use(CardContext)
 
   useEffect(() => {
     if (!startCollapsed) {
@@ -51,12 +50,12 @@ const Header = ({
         {leftSide && <div>{leftSide}</div>}
         <h4 className={card_header_title}>{title}</h4>
         {editable && (
-          <Button style='unstyled' onClick={editable}>
+          <Button style='unstyled' width='size-4' onClick={editable}>
             <MdModeEdit />
           </Button>
         )}
         {removable && (
-          <Button style='unstyled' onClick={removable}>
+          <Button style='unstyled' width='size-4' onClick={removable}>
             <MdDelete />
           </Button>
         )}
@@ -71,19 +70,16 @@ const Header = ({
 }
 
 const Content = ({ children }: { children?: ReactNode | string }) => {
-  const { collapsed } = useCard()
+  const { collapsed } = use(CardContext)
 
   const [measureRef, { height }] = useMeasure()
 
   return (
     <div className={card_content_wrapper}>
       <div
-        style={{
-          transition: 'height .3s ease-in-out',
-          ...assignInlineVars({
-            height: collapsed ? '1rem' : `${height}px`,
-          }),
-        }}
+        style={assignInlineVars({
+          [card_content_collapsed_height]: `${height}px`,
+        })}
         className={clsx(card_content, { ['collapsed']: collapsed })}
       >
         <div ref={measureRef} className='heightdiv'>
@@ -91,17 +87,13 @@ const Content = ({ children }: { children?: ReactNode | string }) => {
             replace: (node, index) => {
               if (collapsed) {
                 if (index === 0 && node && 'children' in node) {
-                  const TagName = node.name || 'p'
+                  const tagName = node.name || 'p'
                   const data: string =
                     node.name === 'blockquote'
                       ? ((node.children[0] as Element).children[0] as Text).data
                       : (node.children[0] as Text).data
 
-                  return createElement(
-                    TagName, // Use the tag name directly
-                    { key: index, className: card_content_truncated },
-                    data
-                  )
+                  return createElement(tagName, { key: index, className: card_content_truncated }, data)
                 }
               } else {
                 return node
@@ -118,15 +110,26 @@ const Footer = ({ children }: { children: ReactNode }) => {
   return <div className={card_footer}>{children}</div>
 }
 
-const Card = ({ children }: { children: ReactNode }) => {
+type CardComponent = {
+  children: ReactNode
+  className?: string
+  style?: CSSProperties
+  itemId: string
+  ref: RefObject<HTMLDivElement>
+}
+
+const Card = ({ children, className, style, itemId, ref }: CardComponent) => {
+  const cardOptions = CardOptions(itemId)
   return (
-    <CardProvider>
-      <Box as='div' className={card}>
+    <CardContext value={cardOptions}>
+      <div className={clsx(card, className)} ref={ref} style={style}>
         {children}
-      </Box>
-    </CardProvider>
+      </div>
+    </CardContext>
   )
 }
+
+Card.displayName = 'Card'
 
 Card.Header = Header
 Card.Content = Content

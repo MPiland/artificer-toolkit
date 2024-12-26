@@ -1,8 +1,10 @@
-import { globalStyle, style } from '@vanilla-extract/css'
+import { createVar, globalStyle, style } from '@vanilla-extract/css'
 import { theme } from '../../css/theme.css'
 import { size } from '../../css/size.css'
 import { app } from '../../css/layers.css'
 import { fontSize } from '../../css/typography.css'
+
+export const card_content_collapsed_height = createVar()
 
 export const card = style({
   '@layer': {
@@ -12,11 +14,11 @@ export const card = style({
       flexDirection: 'column',
       width: 'inherit',
       height: 'auto',
-      borderRadius: theme.borderRadius,
-      border: `${theme.border} ${theme.vars.borderColor}`,
+      borderRadius: theme.border.radius,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       marginBottom: size['size-4'],
-      backgroundColor: theme.vars.backgroundColor.component,
-      color: theme.vars.color,
+      backgroundColor: theme.vars.component.card.backgroundColor.main,
+      color: theme.vars.typography.color.main,
     },
   },
 })
@@ -27,9 +29,9 @@ export const card_header = style({
       display: 'flex',
       flexDirection: 'row',
       justifyContent: 'space-between',
-      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       padding: `${size['size-4']} ${size['size-4']}`,
-      backgroundColor: theme.vars.card.header,
+      backgroundColor: theme.vars.component.card.backgroundColor.header,
       alignItems: 'center',
     },
   },
@@ -97,11 +99,20 @@ export const card_content_wrapper = style({
 export const card_content = style({
   '@layer': {
     [app]: {
-      height: 'auto',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
       overflow: 'hidden',
+      height: card_content_collapsed_height,
+      transition: 'height .3s ease-in-out',
+      contain: 'style',
+
+      selectors: {
+        '&.collapsed': {
+          height: '1rem',
+          transition: 'height .3s ease-in-out',
+        },
+      },
     },
   },
 })
@@ -120,7 +131,7 @@ export const card_footer = style({
   '@layer': {
     [app]: {
       padding: `${size['size-2']} ${size['size-2']}`,
-      borderTop: `${theme.border} ${theme.vars.borderColor}`,
+      borderTop: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
     },
   },
 })

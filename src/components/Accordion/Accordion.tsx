@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useRef } from 'react'
+import { ReactNode, useCallback, useRef, use } from 'react'
 import { TbSquarePlus, TbSquareMinus, TbEdit } from 'react-icons/tb'
 import {
   accordion,
@@ -18,19 +18,18 @@ import { TbX } from 'react-icons/tb'
 import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ReducerActionType } from '../../utils/types'
-import AccordionProvider from './AccordionProvider'
-import { useAccordion } from '../../hooks/useAccordion'
+import { DeepKeyOf, UpdateState } from '../../types/form'
+import { AccordionContext, AccordionOptions } from './AccordionContext'
 
 interface FooterProps {
   children: ReactNode
 }
 
-interface AccordionProps {
+interface AccordionProps<T> {
   dataArray: any[]
   children: ReactNode
-  setState?: (arg: ReducerActionType) => void
-  name?: string
+  onChange: (state: UpdateState<T>) => void
+  name?: DeepKeyOf<T>
   disableSort?: boolean
 }
 
@@ -68,7 +67,7 @@ const Header = ({
   handleRemove?: () => void
   handleEdit?: () => void
 }) => {
-  const { activeHeader, setActiveHeader } = useAccordion()
+  const { activeHeader, setActiveHeader } = use(AccordionContext)
 
   const headerRef = useRef<HTMLDivElement>(null)
 
@@ -143,7 +142,7 @@ const Footer = ({ children }: FooterProps) => {
   return <div className={accordion_footer}>{children}</div>
 }
 
-const Accordion = ({ children, dataArray, setState, name, disableSort = false }: AccordionProps) => {
+const Accordion = <T,>({ children, dataArray, onChange, name, disableSort = false }: AccordionProps<T>) => {
   const sensor = useSensors(
     useSensor(TouchSensor, {
       activationConstraint: {
@@ -170,13 +169,13 @@ const Accordion = ({ children, dataArray, setState, name, disableSort = false }:
     const oldIndex = Number(active.id)
     const newIndex = Number(over?.id)
     const newArray = arrayMove(oldArray, oldIndex, newIndex)
-    if (setState) {
-      setState({ target: { name: name, value: newArray } })
-    }
+    onChange({ type: 'update', path: name, value: newArray })
   }
 
+  const accordionOptions = AccordionOptions()
+
   return (
-    <AccordionProvider>
+    <AccordionContext value={accordionOptions}>
       <div className={accordion}>
         <DndContext collisionDetection={closestCenter} sensors={sensor} onDragEnd={onDragEnd}>
           <SortableContext
@@ -188,7 +187,7 @@ const Accordion = ({ children, dataArray, setState, name, disableSort = false }:
           </SortableContext>
         </DndContext>
       </div>
-    </AccordionProvider>
+    </AccordionContext>
   )
 }
 

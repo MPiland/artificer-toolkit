@@ -1,0 +1,107 @@
+input HitpointInput {
+  ability: ID
+  dieCount: Int
+  dieValue: Int
+}
+
+input StartingGoldInput {
+  multiplier: Int!
+  currency: ID!
+  dieCount: Int
+  dieValue: Int
+}
+
+input EquipmentOptionInput {
+  groups: [EquipmentGroupInput]
+}
+
+input StartingEquipmentInput {
+  options: [EquipmentOptionInput]
+}
+
+input PrepareLimitLevelInput {
+  measurement: ID
+  rounding: ID
+}
+
+input PrepareLimitInput {
+  methods: [ID]
+  level: PrepareLimitLevelInput
+}
+
+input SpellcastingInput {
+  magicName: String
+  ability: ID
+  maxSpellLevel: Int
+  attributes: [ID]
+  charges: ChargeInput
+  prepareLimit: PrepareLimitInput
+}
+
+input SpellSlotInput {
+  level: Int
+  count: Int
+}
+
+input LevelAttributeInput {
+  level: Int
+  spellSlots: [SpellSlotInput]
+  resourcePoints: Int
+  spellsKnownLimit: Int
+  cantripsKnownLimit: Int
+}
+
+input ResourceInput {
+  label: String
+  value: String
+  levelAvailable: Int
+  charges: ChargeInput
+  method: ID
+  desc: String
+}
+
+input MulticlassAbilityInput {
+  id: ID
+  minAmount: Int
+}
+
+input MulticlassInput {
+  primaryAbility: MulticlassAbilityInput
+  secondaryAbility: MulticlassAbilityInput
+  optionalAbility: MulticlassAbilityInput
+}
+
+input SubtypeInput {
+  id: ID!
+  label: String!
+  value: String!
+}
+
+input ClassInput {
+  id: ID
+  label: String!
+  value: String!
+  desc: String
+  category: ID!
+  attributes: [ID]
+  details: [DetailInput]
+  hitpoint: HitpointInput
+  startingGold: StartingGoldInput
+  equipment: [StartingEquipmentInput]
+  proficiencies: [FeatureProficiencyInput!]
+  spellcasting: SpellcastingInput
+  levelAttributes: [LevelAttributeInput]
+  resource: ResourceInput
+  multiclass: MulticlassInput
+  parentClass: ID
+  subtypes: [SubtypeInput]
+  features: [FeatureInput]
+  ownerId: String
+  systemId: ID!
+  masterId: String
+}
+
+input BatchClassesInput {
+  tableName: String!
+  data: ClassInput!
+}

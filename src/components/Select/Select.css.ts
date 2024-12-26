@@ -7,7 +7,7 @@ export const select = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      color: theme.vars.backgroundColor.component,
+      color: theme.vars.component.input.backgroundColor,
     },
   },
 })
@@ -15,7 +15,7 @@ export const select = style({
 export const select_wrapper = style({
   '@layer': {
     [app]: {
-      color: theme.vars.color,
+      color: theme.vars.typography.color.main,
       height: 'fit-content',
       display: 'flex',
       flexDirection: 'column',
@@ -27,10 +27,10 @@ export const select_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      borderBottom: `${theme.border} ${theme.vars.borderColor}`,
-      borderRight: `${theme.border} ${theme.vars.borderColor}`,
-      borderBottomRightRadius: theme.borderRadius,
-      height: theme.input.height,
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      borderRight: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      borderBottomRightRadius: theme.border.radius,
+      height: theme.component.input.height,
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
@@ -48,7 +48,7 @@ export const select_input = style({
       border: 'none',
       backgroundColor: 'transparent',
       width: '100%',
-      color: theme.vars.color,
+      color: theme.vars.typography.color.main,
       userSelect: 'none',
       display: 'flex',
       flexDirection: 'row',
@@ -70,14 +70,14 @@ export const select_menu = style({
     [app]: {
       display: 'flex',
       maxHeight: '10rem',
-      borderRadius: theme.borderRadius,
+      borderRadius: theme.border.radius,
       overflowY: 'auto',
       zIndex: 1000,
-      backgroundColor: theme.vars.backgroundColor.content,
-      color: theme.vars.color,
+      backgroundColor: theme.vars.component.content.backgroundColor.main,
+      color: theme.vars.typography.color.main,
       boxShadow: '0px 8px 16px 0px rgba(0,0,0,0.2)',
       listStyle: 'none',
-      border: `${theme.border} ${theme.vars.borderColor}`,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       padding: `${size['size-0']} ${size['size-0']}`,
     },
   },
