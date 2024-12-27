@@ -143,7 +143,7 @@ const Spells = () => {
               name='subtype'
               label='Subtype'
               value={sectionData.subtype}
-              options={formData?.subtype}
+              options={formData?.subtypes}
               required={true}
               onChange={updateSectionData}
             />

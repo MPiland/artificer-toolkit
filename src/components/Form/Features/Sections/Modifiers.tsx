@@ -449,7 +449,7 @@ const Modifiers = () => {
               name='subtype'
               label='Subclass Subtype'
               value={sectionData?.subtype}
-              options={formData?.subtype}
+              options={formData?.subtypes}
               required={true}
               onChange={updateSectionData}
             />

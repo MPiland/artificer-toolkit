@@ -115,10 +115,9 @@ const Expertise = () => {
         formData.category === Categories.subclass && (
           <Dropdown
             name='subtype'
-            multiSelect={true}
-            label='Subclass Subtype'
+            label='Subclass Subtypes'
             value={sectionData?.subtype}
-            options={(formData as Class)?.subtype}
+            options={(formData as Class)?.subtypes}
             required={true}
             onChange={updateSectionData}
           />

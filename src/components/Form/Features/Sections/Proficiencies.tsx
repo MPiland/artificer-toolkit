@@ -134,10 +134,9 @@ const Proficiencies = () => {
         sectionCategory != null && (
           <Dropdown
             name='subtype'
-            multiSelect={true}
             label='Subclass Subtype'
             value={sectionData?.subtype}
-            options={formData?.subtype}
+            options={formData?.subtypes}
             required={true}
             onChange={updateSectionData}
           />
