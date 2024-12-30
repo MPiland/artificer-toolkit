@@ -9,21 +9,21 @@ import { height, space } from './size.css'
 const colorTokens = {
   content: {
     background: {
-      main: 'slate1',
-      error: 'red1',
+      main: 'slate1' as keyof typeof lightColors,
+      error: 'red1' as keyof typeof lightColors,
     },
   },
   component: {
     background: {
-      main: 'slate2',
-      header: 'slate4',
-      error: 'red3',
+      main: 'slate2' as keyof typeof lightColors,
+      header: 'slate4' as keyof typeof lightColors,
+      error: 'red3' as keyof typeof lightColors,
     },
   },
   border: {
-    main: 'slate7',
-    error: 'red7',
-    focus: 'blue7',
+    main: 'slate7' as keyof typeof lightColors,
+    error: 'red7' as keyof typeof lightColors,
+    focus: 'blue7' as keyof typeof lightColors,
   },
 }
 

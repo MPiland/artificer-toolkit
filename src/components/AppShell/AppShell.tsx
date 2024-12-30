@@ -10,7 +10,7 @@ import {
   app_content,
 } from './AppShell.css'
 import clsx from 'clsx'
-import { ThemeContext } from '../../theme/ThemeContext'
+import ThemeContext from '../../theme/ThemeContext'
 
 interface AppShellProps {
   children: ReactNode

@@ -54,7 +54,7 @@ export const app_sidebar = style({
 
       selectors: {
         '&.collapsed': {
-          width: theme.component.appShell.sidebar['collapsed-width'],
+          width: theme.component.appShell.sidebar.spacing.width.collapsed,
           overflow: 'hidden',
         },
       },

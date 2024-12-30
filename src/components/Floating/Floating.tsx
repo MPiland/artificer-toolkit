@@ -22,7 +22,6 @@ import {
 } from '@floating-ui/react'
 import { FloatingContext } from './FloatingContext'
 import { FloatingOptions, FloatingOptionsProps } from './FloatingContext'
-import Box from '../Box/Box'
 import { floating_arrow, floating_content, floating_option, floating_option_right_side } from './Floating.css'
 import clsx from 'clsx'
 import { TbCheck } from 'react-icons/tb'
@@ -37,7 +36,6 @@ const Floating = ({ children }: { children: ReactNode } & FloatingOptionsProps) 
 const Anchor = function FloatingAnchor({
   children,
   asChild = false,
-  as = 'div',
   className,
   ref: propRef,
   ...props
@@ -64,9 +62,9 @@ const Anchor = function FloatingAnchor({
   }
 
   return (
-    <Box ref={ref} as={as} className={className} {...context.getReferenceProps(props)}>
+    <div ref={ref} className={className} {...context.getReferenceProps(props)}>
       {children}
-    </Box>
+    </div>
   )
 }
 

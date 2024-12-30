@@ -192,7 +192,7 @@ const Proficiencies = () => {
                           name={`proficiencies.${index}.subtype`}
                           label='Subtype'
                           value={proficiency?.subtype}
-                          options={formData.subtype}
+                          options={formData.subtypes}
                           required={true}
                           onChange={updateFormData}
                         />

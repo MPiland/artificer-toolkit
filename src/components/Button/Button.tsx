@@ -4,7 +4,6 @@ import clsx from 'clsx'
 import { ButtonColor } from '../../css/theme.css'
 import { Height, Size } from '../../css/size.css'
 import { BorderRadius } from '../../css/border.css'
-import Box from '../Box/Box'
 import { sprinkles } from '../../css/sprinkles.css'
 
 const Button = ({
@@ -34,9 +33,8 @@ const Button = ({
   width?: Size
 }) => {
   return (
-    <Box
-      as={'button'}
-      type={type ?? 'button'}
+    <button
+      type={type || 'button'}
       className={clsx(
         { [className]: className },
         button,
@@ -54,7 +52,7 @@ const Button = ({
       {...props}
     >
       <span className={button_content}>{children}</span>
-    </Box>
+    </button>
   )
 }
 

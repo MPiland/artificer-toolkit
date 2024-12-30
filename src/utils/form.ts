@@ -6,8 +6,6 @@ const DEL_REGEX: RegExp = /^DELETE$/
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
 
-import { get, set } from 'lodash'
-
 export const getModifierProperties = ({
   category,
 }: {
@@ -116,102 +114,4 @@ export const excludeFields = (obj: any, ...fields: any) => {
     delete newObj[field]
   })
   return newObj
-}
-
-export const sectionData = ({
-  section,
-  sectionObject,
-  item,
-  itemType,
-  system,
-  feature,
-}: {
-  section: any
-  sectionObject: any
-  item: any
-  itemType: 'race' | 'ancestry' | 'class'
-  system: any
-  feature?: any
-}): { section: any; sectionObject: any; item: any; itemType: 'race' | 'ancestry' | 'class'; feature?: any } => {
-  const sectionArray: any[] = []
-  const categoryName = section?.category?.name
-
-  if (categoryName && section[categoryName] != null) {
-    if (section[categoryName]?.type?.length > 0) {
-      const exist = get(sectionObject, categoryName)
-      if (exist?.length > 0) {
-        sectionArray.push(...exist)
-      }
-
-      const { _id, type, ...sectionFields } = section[categoryName]
-
-      if (type?.some((oType: any) => oType.name === 'all')) {
-        system[categoryName]?.type.forEach((oType: any) => {
-          if (!sectionArray.some((sectionItem: any) => sectionItem._id === oType._id)) {
-            const typeObject: any = { ...oType, [`${itemType}Id`]: item?._id, ...sectionFields, sectionId: _id }
-            if (feature) {
-              set(typeObject, 'featureId', feature?._id)
-            }
-
-            sectionArray.push(typeObject)
-          }
-        })
-      } else {
-        type?.forEach((oType: any) => {
-          if (
-            !sectionArray.some((sectionItem: any) => sectionItem.sectionId === _id && sectionItem._id === oType._id)
-          ) {
-            const typeObject: any = { ...oType, [`${itemType}Id`]: item?._id, ...sectionFields, sectionId: _id }
-            if (feature) {
-              set(typeObject, 'featureId', feature?._id)
-            }
-
-            sectionArray.push(typeObject)
-          }
-        })
-      }
-
-      if (sectionArray?.length > 0) {
-        set(sectionObject, categoryName, sectionArray)
-      }
-    } else {
-      const exist = sectionObject[categoryName]
-      if (exist?.length > 0) {
-        sectionArray.push(...exist)
-      }
-
-      if (
-        !sectionArray.some(
-          (arrayItem: any) => arrayItem._id === section[categoryName]?._id && arrayItem?.[`${itemType}Id`] === item?._id
-        )
-      ) {
-        const typeObject: any = { ...section[categoryName], [`${itemType}Id`]: item?._id }
-        if (feature) {
-          set(typeObject, 'featureId', feature?._id)
-        }
-
-        sectionArray.push(typeObject)
-        if (sectionArray?.length > 0) {
-          set(sectionObject, categoryName, sectionArray)
-        }
-      }
-    }
-  }
-  if (section.type?.length > 0) {
-    const exist = sectionObject
-    if (exist?.length > 0) {
-      sectionArray.push(...exist)
-    }
-    section?.type?.map((oType: any) => {
-      if (!sectionArray.some((section: any) => section._id === oType._id)) {
-        const typeObject: any = { ...oType, [`${itemType}Id`]: item?._id, featureId: feature?._id }
-
-        sectionArray.push(typeObject)
-      }
-    })
-
-    sectionObject = [...sectionArray]
-  }
-
-  return sectionObject
 }
