@@ -14,7 +14,7 @@ import BackgroundEquipment from './Backgrounds/BackgroundEquipment'
 import Equipment from './Character/Equipment'
 import AncestryWrapper from './Races/AncestryWrapper'
 import { useStore } from '../../store/useStore'
-import { DiceContext, DiceOptions } from '../Dice/DiceContext'
+import DiceContext, { DiceOptions } from '../Dice/DiceContext'
 
 export const FormOptions = () => {
   // Generic form states
