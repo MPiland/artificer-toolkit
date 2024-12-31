@@ -6,16 +6,18 @@ export const ThemeOptions = () => {
   const [themeType, setThemeType] = useState<'light' | 'dark'>()
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem('theme')) {
-        setThemeType(e.matches ? 'dark' : 'light')
+    if (!themeType) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      const handleChange = (e: MediaQueryListEvent) => {
+        if (!localStorage.getItem('theme')) {
+          setThemeType(e.matches ? 'dark' : 'light')
+        }
       }
-    }
 
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [])
+      mediaQuery.addEventListener('change', handleChange)
+      return () => mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [themeType])
 
   const toggleTheme = () => {
     const newTheme = themeType === 'light' ? 'dark' : 'light'
