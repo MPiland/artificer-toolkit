@@ -1,12 +1,12 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
+import { Equipment as EquipmentState } from '../../../amplify/API'
 
-const Item = () => {
+const Equipment = () => {
   const location = useLocation()
 
-  const item = location.state.item
+  const equipment: EquipmentState = location.state.equipment
 
   const cols = [
     { header: 'CATEGORY', name: 'category.value' },
@@ -25,13 +25,11 @@ const Item = () => {
     },
     { header: 'COST', name: ['cost.amount', 'cost.currency.type.short'] },
   ]
-  return !item ? (
-    <Spinner />
-  ) : (
-    <Detail cols={cols} colsData={item} footerSpacing='end'>
-      <div>{item?.desc && parse(item.desc)}</div>
+  return (
+    <Detail cols={cols} colsData={equipment} footerSpacing='end'>
+      <div>{equipment?.desc && parse(equipment.desc)}</div>
     </Detail>
   )
 }
 
-export default Item
+export default Equipment

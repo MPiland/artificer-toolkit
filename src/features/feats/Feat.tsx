@@ -1,16 +1,14 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
+import { Feat as FeatState } from '../../../amplify/API'
 
 const Feat = () => {
-  const location: any = useLocation()
+  const location = useLocation()
 
-  const feat = location.state.item
+  const feat: FeatState = location.state.item
 
-  return !feat ? (
-    <Spinner />
-  ) : (
+  return (
     <Detail footerSpacing='end'>
       <div>{parse(feat.desc)}</div>
     </Detail>

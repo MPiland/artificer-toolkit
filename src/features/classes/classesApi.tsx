@@ -1,6 +1,6 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listClasses } from '../../../amplify/graphql/queries'
+import { listClasses, getClass } from '../../../amplify/graphql/queries'
 import { createClass, deleteClass, updateClass } from '../../../amplify/graphql/mutations'
 import { ClassInput, Class } from '../../../amplify/API'
 import useSystemPref from '../../hooks/useSystemPref'
@@ -32,6 +32,29 @@ export const useListClassesQuery = () => {
         })
 
         return items
+      } catch (err) {
+        console.log({ err })
+      }
+    },
+  })
+
+  return query
+}
+
+export const useGetClassQuery = (id: string) => {
+  const query = useSuspenseQuery({
+    queryKey: classesKeys.single(id),
+    queryFn: async () => {
+      try {
+        const {
+          data: { getClass: userClass },
+        } = await client.graphql({
+          query: getClass,
+          variables: {
+            id,
+          },
+        })
+        return userClass
       } catch (err) {
         console.log({ err })
       }

@@ -107,13 +107,7 @@ const Prerequisites = ({
                   name='prerequisites.featuresKnown'
                   value={formData?.prerequisites?.featuresKnown}
                   label='Feature'
-                  options={(formData as Exclude<FormDataType, Spell | Character>).features.map((feature) => {
-                    return {
-                      label: feature.label,
-                      value: feature.value,
-                      id: feature.id,
-                    }
-                  })}
+                  options={(formData as Exclude<FormDataType, Spell | Character>).features}
                   onChange={updateFormData}
                 />
                 {formData?.prerequisites?.featuresKnown?.some(

@@ -1,41 +1,39 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
 import { Fragment } from 'react'
+import { Race as RaceState } from '../../../amplify/API'
 
 const Race = () => {
-  const location: any = useLocation()
+  const location = useLocation()
 
-  const race = location.state.item
+  const race: RaceState = location.state.item
 
-  return !race ? (
-    <Spinner />
-  ) : (
+  return (
     <Detail footerSpacing='end'>
-      <div>{race?.quote && parse((race as any).quote)}</div>
-      <div>{race?.desc && parse((race as any).desc)}</div>
-      {race.detail &&
-        race.detail?.length > 0 &&
-        race.detail.map((detailItem: any, detailIndex: number) => (
-          <section id={`${detailItem.name}`} key={detailIndex}>
+      <div>{race?.quote && parse(race.quote)}</div>
+      <div>{race?.desc && parse(race.desc)}</div>
+      {race.details &&
+        race.details?.length > 0 &&
+        race.details.map((detail, index) => (
+          <section id={`${detail.value}`} key={index}>
             <strong>
-              <h2>{detailItem.value}</h2>
+              <h2>{detail.label}</h2>
             </strong>
             <hr />
-            {detailItem.desc && parse(detailItem.desc)}
+            {detail.desc && parse(detail.desc)}
           </section>
         ))}
-      {race?.trait?.area?.length > 0 && (
+      {race?.traits?.details?.length > 0 && (
         <section>
           <h2>Traits</h2>
           <hr />
-          {race.trait.area.map((areaItem: any, areaIndex: number) => (
-            <Fragment key={areaIndex}>
+          {race.traits.details.map((detail, index) => (
+            <Fragment key={index}>
               <h3>
-                <strong>{areaItem.value}</strong>
+                <strong>{detail.label}</strong>
               </h3>
-              {areaItem.desc && parse(areaItem.desc)}
+              {detail.desc && parse(detail.desc)}
             </Fragment>
           ))}
         </section>
@@ -47,8 +45,8 @@ const Race = () => {
         </section>
       )}
       {race.features?.length > 0 &&
-        race.features.map((feature: any, featureIndex: number) => (
-          <section id={`${feature.name}`} key={featureIndex} className='pb-4'>
+        race.features.map((feature, index) => (
+          <section id={`${feature.value}`} key={index} className='pb-4'>
             <h3>
               <strong>{feature.value}</strong>
             </h3>

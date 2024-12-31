@@ -50,7 +50,7 @@ input RaceSpeedInput {
 }
 
 input TraitsInput {
-  area: [DetailInput]
+  details: [DetailInput]
   size: ID
   speeds: RaceSpeedInput
 }
@@ -59,6 +59,7 @@ input RaceInput {
   id: ID
   label: String!
   value: String!
+  quote: String
   desc: String
   playable: String!
   category: ID!

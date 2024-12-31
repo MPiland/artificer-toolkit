@@ -2400,6 +2400,7 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
     id
     label
     value
+    quote
     desc
     playable
     category
@@ -3062,7 +3063,7 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
       __typename
     }
     traits {
-      area {
+      details {
         label
         value
         desc
@@ -4496,6 +4497,7 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
     id
     label
     value
+    quote
     desc
     playable
     category
@@ -5158,7 +5160,7 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
       __typename
     }
     traits {
-      area {
+      details {
         label
         value
         desc
@@ -6599,6 +6601,7 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
     id
     label
     value
+    quote
     desc
     playable
     category
@@ -7261,7 +7264,7 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
       __typename
     }
     traits {
-      area {
+      details {
         label
         value
         desc

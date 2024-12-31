@@ -2349,6 +2349,7 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
     id
     label
     value
+    quote
     desc
     playable
     category
@@ -3011,7 +3012,7 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
       __typename
     }
     traits {
-      area {
+      details {
         label
         value
         desc
@@ -4445,6 +4446,7 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
     id
     label
     value
+    quote
     desc
     playable
     category
@@ -5107,7 +5109,7 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
       __typename
     }
     traits {
-      area {
+      details {
         label
         value
         desc
@@ -6539,6 +6541,7 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
       id
       label
       value
+      quote
       desc
       playable
       category
@@ -6739,7 +6742,7 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
         __typename
       }
       traits {
-        area {
+        details {
           label
           value
           desc

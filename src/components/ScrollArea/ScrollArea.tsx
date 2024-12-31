@@ -15,7 +15,7 @@ import { TbChevronLeft, TbChevronRight } from 'react-icons/tb'
 import Scrollbar from '../Scrollbar/Scrollbar'
 
 interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
-  children: ReactNode
+  children?: ReactNode | ReactNode[]
   className?: string | number | symbol | any
   wrapperClassName?: string | number | symbol | any
   scrollDirection: 'horizontal' | 'vertical' | 'all' | 'none'

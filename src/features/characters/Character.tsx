@@ -1,43 +1,27 @@
-import { memo } from 'react'
+import { Character as CharacterState } from '../../../amplify/API'
+import { useListClassesQuery } from '../classes/classesApi'
+import { useListRacesQuery } from '../races/racesApi'
 
-const Character = ({ character } : {character: any}) => {
-  const numClass = character.class.length
-  const charName = character.name
+const Character = ({ character }: { character: CharacterState }) => {
+  const { data: classes } = useListClassesQuery()
+  const { data: races } = useListRacesQuery()
 
-  let charRace = ''
+  const charRace = races.find((race) => race.id === character.race)
   let charClass = ''
   let totalLevel = 0
 
-  if (numClass === 1) {
-    totalLevel = character.totalLevel
-    if (character.class[0].subclass.name !== '') {
-      charClass = `${character.class[0].name} / ${character.class[0].subclass.name}`
-    } else {
-      charClass = `${character.class[0].name}`
+  character.classes.forEach((cClass, index) => {
+    const uClass = classes?.find((sClass) => sClass.id === cClass.id)
+    totalLevel += cClass.level
+    charClass = `(${cClass.level}) ${uClass.label}`
+    if (cClass.subclass.id != null) {
+      const subclass = classes?.find((sClass) => sClass.id === cClass.subclass.id)
+      charClass += ` / ${subclass.label}`
     }
-  } else {
-    for (let i = 0; i < numClass; i++) {
-      totalLevel += character.class[i].level
-      const level = character.class[i].level
-      const className = character.class[i].name
-      if (character.class[i].subclass.name !== '') {
-        if (character.class[0].subclass.name !== '') {
-          charClass += `(${level}) ${className} ${character.class[i].subclass.name}`
-        } else {
-          charClass += `(${level}) ${className}`
-        }
-      }
-      if (i !== numClass - 1) {
-        charClass += ' / '
-      }
+    if (index > 0) {
+      charClass += ' / '
     }
-  }
-
-  if (character.race.subrace !== '') {
-    charRace = character.race.subrace
-  } else {
-    charRace = character.race.name
-  }
+  })
 
   return (
     <div className='col'>
@@ -59,8 +43,8 @@ const Character = ({ character } : {character: any}) => {
           </div>
           <div className='col m-1'>
             <div className='card-body'>
-              <h5 className='card-title'>{charName}</h5>
-              <p className='card-text'>{charRace}</p>
+              <h5 className='card-title'>{character.label}</h5>
+              <p className='card-text'>{charRace.label}</p>
               <p className='card-text'>{`Level ${totalLevel} - ${charClass}`}</p>
             </div>
           </div>
@@ -69,6 +53,5 @@ const Character = ({ character } : {character: any}) => {
     </div>
   )
 }
-const memoizedCharacter = memo(Character)
 
-export default memoizedCharacter
+export default Character

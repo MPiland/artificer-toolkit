@@ -563,6 +563,7 @@ export type Race = {
   id: string,
   label: string,
   value: string,
+  quote?: string | null,
   desc?: string | null,
   playable?: string | null,
   category: string,
@@ -804,7 +805,7 @@ export type Detail = {
 
 export type Traits = {
   __typename: "Traits",
-  area?:  Array<Detail | null > | null,
+  details?:  Array<Detail | null > | null,
   size?: string | null,
   speeds?: RaceSpeed | null,
 };
@@ -1521,6 +1522,7 @@ export type RaceInput = {
   id?: string | null,
   label: string,
   value: string,
+  quote?: string | null,
   desc?: string | null,
   playable: string,
   category: string,
@@ -1798,7 +1800,7 @@ export type DetailInput = {
 };
 
 export type TraitsInput = {
-  area?: Array< DetailInput | null > | null,
+  details?: Array< DetailInput | null > | null,
   size?: string | null,
   speeds?: RaceSpeedInput | null,
 };
@@ -5077,6 +5079,7 @@ export type CreateRaceMutation = {
     id: string,
     label: string,
     value: string,
+    quote?: string | null,
     desc?: string | null,
     playable?: string | null,
     category: string,
@@ -5740,7 +5743,7 @@ export type CreateRaceMutation = {
     } | null > | null,
     traits?:  {
       __typename: "Traits",
-      area?:  Array< {
+      details?:  Array< {
         __typename: "Detail",
         label: string,
         value: string,
@@ -7174,6 +7177,7 @@ export type UpdateRaceMutation = {
     id: string,
     label: string,
     value: string,
+    quote?: string | null,
     desc?: string | null,
     playable?: string | null,
     category: string,
@@ -7837,7 +7841,7 @@ export type UpdateRaceMutation = {
     } | null > | null,
     traits?:  {
       __typename: "Traits",
-      area?:  Array< {
+      details?:  Array< {
         __typename: "Detail",
         label: string,
         value: string,
@@ -9279,6 +9283,7 @@ export type BatchCreateRacesMutation = {
     id: string,
     label: string,
     value: string,
+    quote?: string | null,
     desc?: string | null,
     playable?: string | null,
     category: string,
@@ -9942,7 +9947,7 @@ export type BatchCreateRacesMutation = {
     } | null > | null,
     traits?:  {
       __typename: "Traits",
-      area?:  Array< {
+      details?:  Array< {
         __typename: "Detail",
         label: string,
         value: string,
@@ -36860,6 +36865,7 @@ export type ListMasterRacesQuery = {
     id: string,
     label: string,
     value: string,
+    quote?: string | null,
     desc?: string | null,
     playable?: string | null,
     category: string,
@@ -37523,7 +37529,7 @@ export type ListMasterRacesQuery = {
     } | null > | null,
     traits?:  {
       __typename: "Traits",
-      area?:  Array< {
+      details?:  Array< {
         __typename: "Detail",
         label: string,
         value: string,
@@ -38957,6 +38963,7 @@ export type GetRaceQuery = {
     id: string,
     label: string,
     value: string,
+    quote?: string | null,
     desc?: string | null,
     playable?: string | null,
     category: string,
@@ -39620,7 +39627,7 @@ export type GetRaceQuery = {
     } | null > | null,
     traits?:  {
       __typename: "Traits",
-      area?:  Array< {
+      details?:  Array< {
         __typename: "Detail",
         label: string,
         value: string,
@@ -41058,6 +41065,7 @@ export type ListRacesQuery = {
       id: string,
       label: string,
       value: string,
+      quote?: string | null,
       desc?: string | null,
       playable?: string | null,
       category: string,
@@ -41259,7 +41267,7 @@ export type ListRacesQuery = {
       } | null > | null,
       traits?:  {
         __typename: "Traits",
-        area?:  Array< {
+        details?:  Array< {
           __typename: "Detail",
           label: string,
           value: string,

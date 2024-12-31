@@ -1,12 +1,12 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
-import Spinner from '../../components/Spinner/Spinner'
 import Detail from '../../components/Detail/Detail'
+import { Spell as SpellState } from '../../../amplify/API'
 
 const Spell = () => {
-  const location: any = useLocation()
+  const location = useLocation()
 
-  const spell = location.state.item
+  const spell: SpellState = location.state.item
 
   const materialDesc = () => {
     if (spell && 'materialDesc' in spell) {
@@ -50,9 +50,7 @@ const Spell = () => {
 
   const footer = <span>{materialDesc()}</span>
 
-  return !spell ? (
-    <Spinner />
-  ) : (
+  return (
     <Detail cols={cols} colsData={spell} footer={footer}>
       <div>{parse(spell.desc)}</div>
     </Detail>
