@@ -31,7 +31,7 @@ import clsx from 'clsx'
 import { Character, RollType } from '../../../../../amplify/API'
 import { parseDiceRoll } from '../../../../utils/dice'
 import { DeepKeyOf, UpdateState } from '../../../../types/form'
-import { DiceContext } from '../../../Dice/DiceContext'
+import DiceContext from '../../../Dice/DiceContext'
 
 const ManualArray = ({
   formData,
