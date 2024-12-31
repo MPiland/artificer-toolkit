@@ -2,7 +2,7 @@ import { createContext, useState, useLayoutEffect } from 'react'
 import { light, dark, theme } from '../css/theme.css'
 
 export const ThemeOptions = () => {
-  const [themeType, setThemeType] = useState<'light' | 'dark'>()
+  const [themeType, setThemeType] = useState<'light' | 'dark'>('light')
 
   useLayoutEffect(() => {
     if (themeType == null) {
