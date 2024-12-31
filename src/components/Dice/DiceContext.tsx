@@ -265,4 +265,6 @@ export const DiceOptions = () => {
 
 export type DiceOptionsType = ReturnType<typeof DiceOptions> | null
 
-export const DiceContext = createContext<DiceOptionsType>(undefined)
+const DiceContext = createContext<DiceOptionsType>(undefined)
+
+export default DiceContext

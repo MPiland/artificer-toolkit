@@ -121,7 +121,7 @@ const Upcast = ({
 
   // Spell Upcast table formData
   const upcastFields = (index?: number) => {
-    const headers: Array<ReactNode> = [<span>Level</span>]
+    const headers: Array<ReactNode> = [<span key={index}>Level</span>]
     const inputs: Array<ReactNode> = [
       <Input
         name={`upcast.levels.${index}.level`}
@@ -129,6 +129,7 @@ const Upcast = ({
         errorMsg='Must contain only numbers'
         value={formData?.upcast?.levels[index]?.level}
         onChange={updateFormData}
+        key={index}
       />,
     ]
     upcastTypes?.forEach((type) => {
