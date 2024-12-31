@@ -312,7 +312,7 @@ const RaceFeatures = ({
   return (
     <>
       {raceLineages?.length > 0 &&
-        raceLineages?.forEach(
+        raceLineages?.map(
           (lineage, index) =>
             lineage?.ancestry?.options?.length > 0 && (
               <div className={feature_card} key={index}>

@@ -22,7 +22,7 @@ const Traits = () => {
 
   // Edit feature
   const handleRemove = (index: number) => {
-    if (index === 0 && formData.traits?.area?.length === 1) {
+    if (index === 0 && formData.traits?.details?.length === 1) {
       return updateFormData({
         type: 'remove',
         path: `traits`,
@@ -31,7 +31,7 @@ const Traits = () => {
     if (index >= 0) {
       updateFormData({
         type: 'remove',
-        path: `traits.area.${index}`,
+        path: `traits.details.${index}`,
       })
     }
   }
@@ -40,7 +40,7 @@ const Traits = () => {
     <>
       <Button
         onClick={() => {
-          updateFormData({ type: 'add', path: 'traits.area' })
+          updateFormData({ type: 'add', path: 'traits.details' })
         }}
         color='primary'
         style='outline'
@@ -48,27 +48,27 @@ const Traits = () => {
       >
         Add Trait
       </Button>
-      {formData?.traits?.area?.length > 0 && (
-        <Accordion dataArray={formData?.traits?.area} onChange={updateFormData} name='traits.area'>
-          {formData.traits.area.map((area, index) => (
+      {formData?.traits?.details?.length > 0 && (
+        <Accordion dataArray={formData?.traits?.details} onChange={updateFormData} name='traits.details'>
+          {formData.traits.details.map((detail, index) => (
             <Accordion.Wrapper key={index} itemId={String(index)}>
               <Accordion.Header handleRemove={() => handleRemove(index)}>
-                {area.value ?? `Trait ${index}`}
+                {detail.value ?? `Trait ${index}`}
               </Accordion.Header>
               <Accordion.Content>
                 <Row>
                   <Input
-                    name={`traits.area.${index}.value`}
+                    name={`traits.details.${index}.value`}
                     label='Trait Name'
                     errorMsg='Must contain only numbers'
-                    value={area?.value}
+                    value={detail?.value}
                     onChange={updateFormData}
                     className={sprinkles({ mb: 'space-3' })}
                   />
                 </Row>
                 <RichTextEditor
-                  name={`traits.area.${index}.desc`}
-                  value={area?.desc}
+                  name={`traits.details.${index}.desc`}
+                  value={detail?.desc}
                   label={'Traits Description'}
                   onChange={updateFormData}
                   className={sprinkles({ mb: 'space-3' })}
