@@ -19,7 +19,8 @@ import HTMLReactParser from '../../utils/reactParser/dom-to-react'
 import { Text, Element } from '../../utils/reactParser/dom-to-react'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
 import Button from '../Button/Button'
-import CardContext, { CardOptions } from './CardContext'
+import { CardContext } from './CardContext'
+import CardProvider from './CardProvider'
 
 const Header = ({
   title,
@@ -119,13 +120,12 @@ type CardComponent = {
 }
 
 const Card = ({ children, className, style, itemId, ref }: CardComponent) => {
-  const cardOptions = CardOptions(itemId)
   return (
-    <CardContext value={cardOptions}>
+    <CardProvider itemId={itemId}>
       <div className={clsx(card, className)} ref={ref} style={style}>
         {children}
       </div>
-    </CardContext>
+    </CardProvider>
   )
 }
 

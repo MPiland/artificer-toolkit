@@ -25,7 +25,7 @@ import { Class, EquipmentEnum } from '../../../../amplify/API'
 import { Attributes, EquipmentCategories } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const StartingEquipment = () => {
   const isLoading = useIsFetching() > 0

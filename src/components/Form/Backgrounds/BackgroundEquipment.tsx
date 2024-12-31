@@ -16,7 +16,7 @@ import { Background, EquipmentEnum } from '../../../../amplify/API'
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const BackgroundEquipment = () => {
   const isLoading = useIsFetching() > 0

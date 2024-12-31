@@ -4,7 +4,7 @@ import { UpdateState } from '../../../types/form'
 import { Class } from '../../../../amplify/API'
 import { Attributes } from '../../../types/enums'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 import Row from '../../Row/Row'
 import Input from '../../Input/Input'
 

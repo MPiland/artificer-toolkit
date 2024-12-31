@@ -3,7 +3,7 @@ import Form from '../../components/Form/Form'
 import { useAddNewClassMutation, useUpdateClassMutation } from './classesApi'
 import { useGetSystemQuery } from '../systems/systemsApi'
 import { Step } from '../../types/form'
-import FormContext from '../../components/Form/FormContext'
+import { FormContext } from '../../components/Form/FormContext'
 
 const ClassForm = () => {
   const { setSteps, formData } = use(FormContext)

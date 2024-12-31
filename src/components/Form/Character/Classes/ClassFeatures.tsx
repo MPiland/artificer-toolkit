@@ -22,7 +22,7 @@ import {
   Feature,
 } from '../../../../../amplify/API'
 import { Attributes, Categories } from '../../../../types/enums'
-import FeatureContext from '../../Features/FeatureContext'
+import { FeatureContext } from '../../Features/FeatureContext'
 import useGetSections from '../../../../hooks/useGetSectionState'
 
 export type FeatureObject = {

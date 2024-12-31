@@ -17,7 +17,7 @@ import { useListRacesQuery } from '../../../features/races/racesApi'
 import { useListClassesQuery } from '../../../features/classes/classesApi'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const CharacterHeader = () => {
   const { formData, updateFormData } = use(FormContext) as {

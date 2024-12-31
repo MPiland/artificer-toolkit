@@ -4,7 +4,6 @@ import App from './App'
 import { disableReactDevTools } from '@fvilers/disable-react-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Amplify } from 'aws-amplify'
-import ThemeContext, { ThemeOptions } from './theme/ThemeContext'
 
 Amplify.configure({
   API: {
@@ -45,10 +44,8 @@ if (import.meta.env.MODE === 'production') disableReactDevTools()
 
 ReactDOM.createRoot(document.getElementById('root') as Element).render(
   <StrictMode>
-    <ThemeContext value={ThemeOptions()}>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
-    </ThemeContext>
   </StrictMode>
 )

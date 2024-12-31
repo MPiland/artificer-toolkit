@@ -14,9 +14,9 @@ import Damage from '../Generic/Damage'
 import LimitUse from '../Generic/LimitUse'
 import { FeatureEnum } from '../../../../amplify/API'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 import { Attributes, Categories, Ranges, Shapes } from '../../../types/enums'
-import FeatureContext from './FeatureContext'
+import { FeatureContext } from './FeatureContext'
 import Loading from '../../Loading/Loading'
 
 const Base = ({

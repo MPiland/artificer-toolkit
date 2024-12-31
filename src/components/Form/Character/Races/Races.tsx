@@ -1,7 +1,7 @@
 import RaceFeatures from './RaceFeatures'
 import RaceSelection from './RaceSelection'
 import { use } from 'react'
-import FormContext from '../../FormContext'
+import { FormContext } from '../../FormContext'
 import { Character } from '../../../../../amplify/API'
 import { useListRacesQuery } from '../../../../features/races/racesApi'
 import { UpdateState } from '../../../../types/form'

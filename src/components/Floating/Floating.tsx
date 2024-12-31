@@ -21,16 +21,13 @@ import {
   arrow,
 } from '@floating-ui/react'
 import { FloatingContext } from './FloatingContext'
-import { FloatingOptions, FloatingOptionsProps } from './FloatingContext'
+import FloatingProvider, { FloatingOptionsProps } from './FloatingProvider'
 import { floating_arrow, floating_content, floating_option, floating_option_right_side } from './Floating.css'
 import clsx from 'clsx'
 import { TbCheck } from 'react-icons/tb'
 
 const Floating = ({ children }: { children: ReactNode } & FloatingOptionsProps) => {
-  // This can accept any props as options, e.g. `placement`,
-  // or other positioning options.
-  const floatingOptions = FloatingOptions()
-  return <FloatingContext value={floatingOptions}>{children}</FloatingContext>
+  return <FloatingProvider>{children}</FloatingProvider>
 }
 
 const Anchor = function FloatingAnchor({

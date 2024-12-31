@@ -9,9 +9,9 @@ import { Outlet } from 'react-router-dom'
 import { UseMutationResult } from '@tanstack/react-query'
 import { FormDataType, FormInputType } from '../../types/form'
 import { use } from 'react'
-import FormContext from './FormContext'
-import FeatureContext, { FeatureOptions } from './Features/FeatureContext'
+import { FormContext } from './FormContext'
 import Loading from '../Loading/Loading'
+import FeatureProvider from './Features/FeatureProvider'
 
 interface FormProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
@@ -62,10 +62,8 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
 
   console.log({ formData })
 
-  return saving ? (
-    <Loading />
-  ) : (
-    <FeatureContext value={FeatureOptions()}>
+  return (
+    <FeatureProvider>
       <form className={form_wrapper} id='form_wrapper'>
         <Header />
         {context.title === 'characters' && <CharacterHeader />}
@@ -75,7 +73,8 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
         <Footer useAddNewItemMutation={useAddNewItemMutation} useUpdateItemMutation={useUpdateItemMutation} />
       </form>
       <Outlet />
-    </FeatureContext>
+      {saving && <Loading />}
+    </FeatureProvider>
   )
 }
 

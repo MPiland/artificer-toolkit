@@ -2,7 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import { scene_overlay } from './Scene.css'
 import DiceTray from './DiceTray'
 import { useCallback, useEffect } from 'react'
-import DiceContext from './DiceContext'
+import { DiceContext } from './DiceContext'
 import { use } from 'react'
 
 const Scene = () => {

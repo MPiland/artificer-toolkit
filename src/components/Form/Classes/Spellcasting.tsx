@@ -7,7 +7,7 @@ import { Class, ClassesEnum } from '../../../../amplify/API'
 import { Attributes, Measurement } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const Spellcasting = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
   const { context } = use(FormContext)

@@ -4,7 +4,7 @@ import { RapierRigidBody, RigidBody, Vector3Tuple, useRapier } from '@react-thre
 import { useEffect, useMemo, useRef, useState, use } from 'react'
 import { Mesh, MeshStandardMaterial, Vector4Like } from 'three'
 import { Vector } from 'three/examples/jsm/Addons.js'
-import DiceContext from './DiceContext'
+import { DiceContext } from './DiceContext'
 
 export interface DiceProps {
   type: number

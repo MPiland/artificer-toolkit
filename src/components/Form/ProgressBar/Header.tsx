@@ -3,7 +3,7 @@ import Group from '../../Group/Group'
 import { startCase } from 'lodash'
 import Button from '../../Button/Button'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 import ProgressBar from './ProgressBar'
 import { titleText } from '../../../utils/formatting'
 

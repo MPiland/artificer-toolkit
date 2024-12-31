@@ -5,10 +5,10 @@ import ScrollArea from '../../ScrollArea/ScrollArea'
 import { validate } from '../../../utils/form'
 import { isEqual } from 'lodash'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 import { useIsFetching } from '@tanstack/react-query'
 import { Attributes } from '../../../types/enums'
-import FeatureContext from '../Features/FeatureContext'
+import { FeatureContext } from '../Features/FeatureContext'
 
 const ProgressBar = () => {
   const [lineWidth, setLineWidth] = useState<number>(0)

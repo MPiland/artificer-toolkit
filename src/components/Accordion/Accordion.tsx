@@ -19,7 +19,8 @@ import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSens
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { DeepKeyOf, UpdateState } from '../../types/form'
-import { AccordionContext, AccordionOptions } from './AccordionContext'
+import AccordionProvider from './AccordionProvider'
+import { AccordionContext } from './AccordionContext'
 
 interface FooterProps {
   children: ReactNode
@@ -172,10 +173,8 @@ const Accordion = <T,>({ children, dataArray, onChange, name, disableSort = fals
     onChange({ type: 'update', path: name, value: newArray })
   }
 
-  const accordionOptions = AccordionOptions()
-
   return (
-    <AccordionContext value={accordionOptions}>
+    <AccordionProvider>
       <div className={accordion}>
         <DndContext collisionDetection={closestCenter} sensors={sensor} onDragEnd={onDragEnd}>
           <SortableContext
@@ -187,7 +186,7 @@ const Accordion = <T,>({ children, dataArray, onChange, name, disableSort = fals
           </SortableContext>
         </DndContext>
       </div>
-    </AccordionContext>
+    </AccordionProvider>
   )
 }
 

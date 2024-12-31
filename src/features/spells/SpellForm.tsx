@@ -2,7 +2,7 @@ import { useEffect, use } from 'react'
 import { useAddNewSpellMutation, useUpdateSpellMutation } from './spellsApi'
 import { Step } from '../../types/form'
 import Form from '../../components/Form/Form'
-import FormContext from '../../components/Form/FormContext'
+import { FormContext } from '../../components/Form/FormContext'
 
 const SpellForm = () => {
   const { setSteps } = use(FormContext)

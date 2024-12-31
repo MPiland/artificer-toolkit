@@ -7,7 +7,7 @@ import { Character, Class } from '../../../../../amplify/API'
 import { Categories } from '../../../../types/enums'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { use } from 'react'
-import FormContext from '../../FormContext'
+import { FormContext } from '../../FormContext'
 
 const ClassSelection = () => {
   const navigate = useNavigate()

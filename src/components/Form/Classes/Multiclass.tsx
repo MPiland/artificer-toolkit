@@ -7,7 +7,7 @@ import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { Class } from '../../../../amplify/API'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const Multiclass = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
   const { context } = use(FormContext)

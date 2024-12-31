@@ -9,8 +9,8 @@ import { SectionName } from '../../types/form'
 import { UseMutationResult } from '@tanstack/react-query'
 import { FormDataType, FormInputType } from '../../types/form'
 import { use } from 'react'
-import FormContext from './FormContext'
-import FeatureContext from './Features/FeatureContext'
+import { FormContext } from './FormContext'
+import { FeatureContext } from './Features/FeatureContext'
 
 interface FooterProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>

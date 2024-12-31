@@ -52,8 +52,8 @@ import {
   SpellInput,
 } from '../../../amplify/API'
 import { v4 as uuid } from 'uuid'
-import AuthContext from '../../features/auth/AuthContext'
-import FormContext from '../Form/FormContext'
+import { AuthContext } from '../../features/auth/AuthContext'
+import { FormContext } from '../Form/FormContext'
 
 /* TODO
   - Add drag functionality

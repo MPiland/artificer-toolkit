@@ -3,7 +3,7 @@ import { generateClient } from 'aws-amplify/data'
 import { listSystems, getSystem } from '../../../amplify/graphql/queries'
 import useSystemPref from '../../hooks/useSystemPref'
 import { use } from 'react'
-import AuthContext from '../auth/AuthContext'
+import { AuthContext } from '../auth/AuthContext'
 
 const client = generateClient()
 

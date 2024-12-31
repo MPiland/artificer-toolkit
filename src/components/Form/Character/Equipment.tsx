@@ -3,7 +3,7 @@ import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { UpdateState } from '../../../types/form'
 import Dropdown from '../../Dropdown/Dropdown'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const Equipment = () => {
   const { formData, updateFormData } = use(FormContext) as {

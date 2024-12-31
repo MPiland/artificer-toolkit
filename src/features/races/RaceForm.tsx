@@ -2,7 +2,7 @@ import { useEffect, use } from 'react'
 import { useAddNewRaceMutation, useUpdateRaceMutation } from './racesApi'
 import Form from '../../components/Form/Form'
 import { Step } from '../../types/form'
-import FormContext from '../../components/Form/FormContext'
+import { FormContext } from '../../components/Form/FormContext'
 
 const RaceForm = () => {
   const { setSteps } = use(FormContext)

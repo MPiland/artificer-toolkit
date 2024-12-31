@@ -4,7 +4,7 @@ import { Character } from '../../../../../amplify/API'
 import { useListClassesQuery } from '../../../../features/classes/classesApi'
 import { UpdateState } from '../../../../types/form'
 import { use } from 'react'
-import FormContext from '../../FormContext'
+import { FormContext } from '../../FormContext'
 
 const CharacterClasses = () => {
   const { addClass, formData, updateFormData } = use(FormContext) as {

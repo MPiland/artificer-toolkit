@@ -3,7 +3,7 @@ import Form from '../../components/Form/Form'
 import { Step } from '../../types/form'
 import { useAddNewCharacterMutation, useUpdateCharacterMutation } from './charactersApi'
 import { Outlet } from 'react-router-dom'
-import FormContext from '../../components/Form/FormContext'
+import { FormContext } from '../../components/Form/FormContext'
 
 const stepsArray = [
   { id: 'details', label: 'Details' },

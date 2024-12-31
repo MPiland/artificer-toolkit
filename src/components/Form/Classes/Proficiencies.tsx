@@ -16,7 +16,7 @@ import { Class, SectionEnum } from '../../../../amplify/API'
 import { Attributes, Measurement } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const Proficiencies = () => {
   const { formData, updateFormData } = use(FormContext) as {

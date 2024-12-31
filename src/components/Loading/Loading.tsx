@@ -2,7 +2,7 @@ import { useState, useEffect, use } from 'react'
 import Modal from '../Modal/Modal'
 import Spinner from '../Spinner/Spinner'
 import { loading_message, loading_wrapper } from './Loading.css'
-import LoadingContext from './LoadingContext'
+import { LoadingContext } from './LoadingContext'
 
 const loadingMessages = [
   'Preparing your adventure...',

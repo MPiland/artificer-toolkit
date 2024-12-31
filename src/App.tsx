@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react'
+import { Suspense } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Layout from './Layout/Layout'
 import ErrorPage from './features/auth/ErrorPage'
@@ -25,41 +25,28 @@ import Equipment from './features/equipment/Equipment'
 import Background from './features/backgrounds/Background'
 import Copy from './components/Copy/Copy'
 import ShortDetail from './components/Form/ShortDetail'
-import FeatureContext, { FeatureOptions } from './components/Form/Features/FeatureContext'
+import FeatureProvider from './components/Form/Features/FeatureProvider'
 import Auth from './features/auth/Auth'
 import RequireAuth from './features/auth/RequireAuth'
 import ConfirmSignUp from './features/auth/ConfirmSignUp'
-import AuthContext, { AuthOptions } from './features/auth/AuthContext'
-import LoadingContext, { LoadingOptions } from './components/Loading/LoadingContext'
 import Loading from './components/Loading/Loading'
-import FormContext, { FormOptions } from './components/Form/FormContext'
+import FormProvider from './components/Form/FormProvider'
+import ThemeProvider from './theme/ThemeProvider'
+import AuthProvider from './features/auth/AuthProvider'
+import LoadingProvider from './components/Loading/LoadingProvider'
 
 const App = () => {
-  useEffect(() => {
-    const documentHeight = () => {
-      const doc = document.documentElement
-      doc.style.setProperty('--doc-height', `${window.innerHeight}px`)
-    }
-    window.addEventListener('resize', documentHeight)
-
-    return () => {
-      window.addEventListener('resize', documentHeight)
-    }
-  })
-
-  const featureOptions = FeatureOptions()
-
   const router = createBrowserRouter([
     {
       path: '/',
       element: (
-          <AuthContext value={AuthOptions()}>
-            <LoadingContext value={LoadingOptions()}>
-              <Suspense fallback={<Loading />}>
-                <Layout />
-              </Suspense>
-            </LoadingContext>
-          </AuthContext>
+        <AuthProvider>
+          <LoadingProvider>
+            <Suspense fallback={<Loading />}>
+              <Layout />
+            </Suspense>
+          </LoadingProvider>
+        </AuthProvider>
       ),
       errorElement: <ErrorPage />,
       children: [
@@ -82,7 +69,7 @@ const App = () => {
             {
               element: (
                 <Suspense fallback={<Loading />}>
-                  <FormContext value={FormOptions()} />
+                  <FormProvider />
                 </Suspense>
               ),
               path: '',
@@ -102,9 +89,9 @@ const App = () => {
                         {
                           path: 'alert/:alertType',
                           element: (
-                            <FeatureContext value={featureOptions}>
+                            <FeatureProvider>
                               <Alert />
-                            </FeatureContext>
+                            </FeatureProvider>
                           ),
                         },
                         { path: ':context/detail/short/:item', element: <ShortDetail /> },
@@ -130,9 +117,9 @@ const App = () => {
                         {
                           path: 'alert/:alertType',
                           element: (
-                            <FeatureContext value={featureOptions}>
+                            <FeatureProvider>
                               <Alert />
-                            </FeatureContext>
+                            </FeatureProvider>
                           ),
                         },
                         { path: 'copy/feature', element: <Copy /> },
@@ -158,9 +145,9 @@ const App = () => {
                         {
                           path: 'alert/:alertType',
                           element: (
-                            <FeatureContext value={featureOptions}>
+                            <FeatureProvider>
                               <Alert />
-                            </FeatureContext>
+                            </FeatureProvider>
                           ),
                         },
                         { path: 'copy/feature', element: <Copy /> },
@@ -183,9 +170,9 @@ const App = () => {
                         {
                           path: 'alert/:alertType',
                           element: (
-                            <FeatureContext value={featureOptions}>
+                            <FeatureProvider>
                               <Alert />
-                            </FeatureContext>
+                            </FeatureProvider>
                           ),
                         },
                         { path: 'copy/feature', element: <Copy /> },
@@ -211,9 +198,9 @@ const App = () => {
                         {
                           path: 'alert/:alertType',
                           element: (
-                            <FeatureContext value={featureOptions}>
+                            <FeatureProvider>
                               <Alert />
-                            </FeatureContext>
+                            </FeatureProvider>
                           ),
                         },
                         { path: 'copy/feature', element: <Copy /> },
@@ -239,9 +226,9 @@ const App = () => {
                         {
                           path: 'alert/:alertType',
                           element: (
-                            <FeatureContext value={featureOptions}>
+                            <FeatureProvider>
                               <Alert />
-                            </FeatureContext>
+                            </FeatureProvider>
                           ),
                         },
                         { path: 'copy/feature', element: <Copy /> },
@@ -267,9 +254,9 @@ const App = () => {
                         {
                           path: 'alert/:alertType',
                           element: (
-                            <FeatureContext value={featureOptions}>
+                            <FeatureProvider>
                               <Alert />
-                            </FeatureContext>
+                            </FeatureProvider>
                           ),
                         },
                         { path: 'copy/feature', element: <Copy /> },
@@ -285,7 +272,11 @@ const App = () => {
     },
   ])
 
-  return <RouterProvider router={router} />
+  return (
+    <ThemeProvider>
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  )
 }
 
 export default App

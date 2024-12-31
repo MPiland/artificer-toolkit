@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { use } from 'react'
-import AuthContext from './AuthContext'
+import { AuthContext } from './AuthContext'
 
 const RequireAuth = () => {
   const { user, isAuthenticating, isLoading: isUserLoading } = use(AuthContext)

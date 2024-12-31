@@ -1,6 +1,6 @@
 import { useMemo, useEffect, ReactNode } from 'react'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 import Dropdown from '../../Dropdown/Dropdown'
 import Row from '../../Row/Row'
 import Collapse from '../../Collapse/Collapse'

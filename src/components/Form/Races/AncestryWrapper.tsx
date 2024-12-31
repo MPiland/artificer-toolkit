@@ -1,6 +1,6 @@
 import AncestryList from './AncestryList'
 import { sprinkles } from '../../../css/sprinkles.css'
-import FeatureContext from '../Features/FeatureContext'
+import { FeatureContext } from '../Features/FeatureContext'
 import { use } from 'react'
 
 const AncestryWrapper = () => {

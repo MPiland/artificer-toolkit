@@ -17,7 +17,7 @@ import Collapse from '../../Collapse/Collapse'
 import { Character, Feat, FeatureEnum, Spell } from '../../../../amplify/API'
 import { Attributes, Prerequisites as PrerequisitesEnum } from '../../../types/enums'
 import { FeatureDataType, FormDataType, UpdateState } from '../../../types/form'
-import FeatureContext from '../Features/FeatureContext'
+import { FeatureContext } from '../Features/FeatureContext'
 
 const Prerequisites = ({
   formData,

@@ -30,8 +30,8 @@ import Dropdown from '../components/Dropdown/Dropdown'
 import { useListSystemsQuery } from '../features/systems/systemsApi'
 import useSystemPref from '../hooks/useSystemPref'
 import ThemeContext from '../theme/ThemeContext'
-import LoadingContext from '../components/Loading/LoadingContext'
-import AuthContext from '../features/auth/AuthContext'
+import { LoadingContext } from '../components/Loading/LoadingContext'
+import { AuthContext } from '../features/auth/AuthContext'
 
 const Layout = () => {
   const { user, isAuthenticating, isLoading: isUserLoading } = use(AuthContext)

@@ -3,7 +3,7 @@ import Group from '../../Group/Group'
 import Input from '../../Input/Input'
 import Button from '../../Button/Button'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 import Collapse from '../../Collapse/Collapse'
 import Row from '../../Row/Row'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
@@ -15,7 +15,7 @@ import { feature_description, feature_list } from '../Form.css'
 import parse from 'html-react-parser'
 import { Race } from '../../../../amplify/API'
 import { Context, SectionName, UpdateState } from '../../../types/form'
-import FeatureContext from '../Features/FeatureContext'
+import { FeatureContext } from '../Features/FeatureContext'
 
 const AncestryList = () => {
   const { updateFormData, formData, context } = use(FormContext) as {

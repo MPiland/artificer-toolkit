@@ -21,7 +21,7 @@ import {
   CharacterFeature,
 } from '../../../../../amplify/API'
 import { SectionName, UpdateState } from '../../../../types/form'
-import FeatureContext from '../../Features/FeatureContext'
+import { FeatureContext } from '../../Features/FeatureContext'
 import useGetSections from '../../../../hooks/useGetSectionState'
 import { Attributes } from '../../../../types/enums'
 

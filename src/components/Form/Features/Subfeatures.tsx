@@ -1,7 +1,7 @@
 import Base from './Base'
 import { use } from 'react'
-import FormContext from '../FormContext'
-import FeatureContext from './FeatureContext'
+import { FormContext } from '../FormContext'
+import { FeatureContext } from './FeatureContext'
 
 const Subfeature = () => {
   const { steps, stepIndex } = use(FormContext)

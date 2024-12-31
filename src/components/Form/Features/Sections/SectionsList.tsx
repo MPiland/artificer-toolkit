@@ -6,7 +6,7 @@ import { sprinkles } from '../../../../css/sprinkles.css'
 import { startCase } from 'lodash'
 import { feature_description } from '../../Form.css'
 import parse from 'html-react-parser'
-import FeatureContext from '../FeatureContext'
+import { FeatureContext } from '../FeatureContext'
 import { sectionSteps } from '../../../../types/form'
 import { Feature, FeatureOption, Subfeature } from '../../../../../amplify/API'
 

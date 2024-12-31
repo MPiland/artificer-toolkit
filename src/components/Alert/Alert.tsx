@@ -2,9 +2,9 @@ import Modal from '../Modal/Modal'
 import Group from '../Group/Group'
 import Button from '../Button/Button'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import FormContext from '../Form/FormContext'
+import { FormContext } from '../Form/FormContext'
 import { use } from 'react'
-import FeatureContext from '../Form/Features/FeatureContext'
+import { FeatureContext } from '../Form/Features/FeatureContext'
 
 const Alert = () => {
   const { alertType } = useParams()

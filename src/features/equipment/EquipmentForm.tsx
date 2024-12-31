@@ -2,7 +2,7 @@ import { useEffect, use } from 'react'
 import Form from '../../components/Form/Form'
 import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from './equipmentApi'
 import { Step } from '../../types/form'
-import FormContext from '../../components/Form/FormContext'
+import { FormContext } from '../../components/Form/FormContext'
 
 const EquipmentForm = () => {
   const { setSteps } = use(FormContext)

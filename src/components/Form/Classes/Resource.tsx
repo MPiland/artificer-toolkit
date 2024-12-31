@@ -6,7 +6,7 @@ import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { Class, ClassesEnum } from '../../../../amplify/API'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'

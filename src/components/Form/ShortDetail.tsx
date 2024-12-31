@@ -10,7 +10,7 @@ import { startCase } from 'lodash'
 import ClassShort from '../../features/classes/ClassShort'
 import RaceShort from '../../features/races/RaceShort'
 import { use } from 'react'
-import FormContext from './FormContext'
+import { FormContext } from './FormContext'
 import { Race, Class, Character } from '../../../amplify/API'
 import { UpdateState } from '../../types/form'
 

@@ -20,7 +20,7 @@ import StandardArray from './GenerateAbility/StandardArray'
 import ManualArray from './GenerateAbility/ManualArray'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
-import FormContext from '../FormContext'
+import { FormContext } from '../FormContext'
 
 const AbilitiesForm = () => {
   const { data: system } = useGetSystemQuery()

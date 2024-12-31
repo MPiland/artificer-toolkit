@@ -2,7 +2,7 @@ import { Physics } from '@react-three/rapier'
 import Boundary from './Boundary'
 import { Suspense, useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
-import DiceContext from './DiceContext'
+import { DiceContext } from './DiceContext'
 import { use } from 'react'
 
 const DiceTray = () => {

@@ -12,8 +12,8 @@ import Input from '../../Input/Input'
 import Row from '../../Row/Row'
 import Collapse from '../../Collapse/Collapse'
 import { useLocation, useNavigate } from 'react-router-dom'
-import FormContext from '../FormContext'
-import FeatureContext from './FeatureContext'
+import { FormContext } from '../FormContext'
+import { FeatureContext } from './FeatureContext'
 import { Race } from '../../../../amplify/API'
 
 const FeaturesList = () => {

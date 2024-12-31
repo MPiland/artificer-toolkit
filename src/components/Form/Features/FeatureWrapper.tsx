@@ -1,7 +1,7 @@
 import { use } from 'react'
 import FeaturesList from './FeaturesList'
 import { sprinkles } from '../../../css/sprinkles.css'
-import FeatureContext from './FeatureContext'
+import { FeatureContext } from './FeatureContext'
 
 const FeatureWrapper = () => {
   const {

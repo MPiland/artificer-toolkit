@@ -17,7 +17,7 @@ import Modal from '../Modal/Modal'
 import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import FormContext from '../Form/FormContext'
+import { FormContext } from '../Form/FormContext'
 
 type colType = {
   header: string

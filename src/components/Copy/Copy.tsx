@@ -8,7 +8,7 @@ import Row from '../Row/Row'
 import Dropdown from '../Dropdown/Dropdown'
 import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
-import FormContext from '../Form/FormContext'
+import { FormContext } from '../Form/FormContext'
 import { Class, Equipment, Feature, Race } from '../../../amplify/API'
 import { FormDataType, UpdateState } from '../../types/form'
 
