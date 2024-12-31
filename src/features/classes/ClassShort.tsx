@@ -4,70 +4,123 @@ import Spinner from '../../components/Spinner/Spinner'
 import Collapse from '../../components/Collapse/Collapse'
 import { feature_header } from './ClassShort.css'
 import { useCallback, useMemo } from 'react'
-import { set, startCase, uniqBy } from 'lodash'
+import { startCase, uniqBy } from 'lodash'
 import { numberToWords } from '../../utils/formatting'
 import { useListEquipmentQuery } from '../equipment/equipmentApi'
-import { FeatureArray, ClassProficiency } from '../../types/components'
+import { ClassProficiency } from '../../components/Form/Character/Classes/ClassProficiencies'
+import { Class, Feature, FeatureProficiency } from '../../../amplify/API'
+import { EquipmentCategories, ProficiencyCategories } from '../../types/enums'
+import { useGetSystemQuery } from '../systems/systemsApi'
+import { FeatureObject } from '../../components/Form/Character/Classes/ClassFeatures'
+import { useListClassesQuery } from './classesApi'
+import { excludeFields } from '../../utils/form'
 
 const ClassShort = () => {
   const location: any = useLocation()
 
-  const { data: items } = useListEquipmentQuery() as { data: any[] }
+  const { data: equipment } = useListEquipmentQuery()
+  const { data: system } = useGetSystemQuery()
+  const { data: classes } = useListClassesQuery()
 
-  const uClass = location.state.item
+  const fullClass: Class = location.state.item
 
-  const createFeatures = useCallback(
-    (featureArray?: FeatureArray[]) => {
-      let featureArrayUpdated: FeatureArray[] = []
+  // Create feauture array for the selected class
+  const createFeatures = useCallback(() => {
+    let subclassMapped: boolean = false
 
-      if (featureArray && featureArray.length > 0) {
-        featureArrayUpdated = [...featureArray]
+    let featureUpdated: Array<FeatureObject> = []
+
+    const createObject = (type?: 'subclass', featureArray?: Array<FeatureObject>) => {
+      if (featureArray.length > 0) {
+        featureUpdated = [...featureArray]
       }
 
-      const fullFeatures: any[] = uClass.features
+      const featureClass: Class =
+        type === 'subclass' ? classes.find((fClass) => fClass.parentClass === fullClass.id) : fullClass
 
-      fullFeatures?.forEach((feature: any) => {
-        const featureLevel = feature.levelAvailable.split(', ')
+      const fullFeatures: Feature[] = featureClass.features
+
+      fullFeatures?.forEach((feature) => {
+        const featureLevel = feature.levelAvailable.split(/\s*,\s*/)
         if (featureLevel.length > 0) {
-          featureLevel.forEach((level: string) => {
-            const arrayIndex = featureArrayUpdated.findIndex((fObject) => fObject.level === Number(level))
+          featureLevel.forEach((level) => {
+            // If feature has same level more than once, use that as selection count while only storing the feature one time otherwise ignore it
+            const levelCount = featureLevel.reduce((count: number, rLevel: string) => {
+              return count + (rLevel === level ? 1 : 0)
+            }, 0)
+
+            const featureObjectClone = {
+              ...excludeFields(feature, 'options'),
+              classId: featureClass.id,
+              levelAvailable: Number(level),
+            }
+
+            if (levelCount > 1) {
+              featureObjectClone.selectionCount = Number(levelCount)
+            }
+
+            const arrayIndex = featureUpdated?.findIndex((aFeature) => aFeature.level === Number(level))
+
             if (arrayIndex === -1) {
-              featureArrayUpdated.push({ level: Number(level), features: [{ ...feature }] })
+              featureUpdated.push({
+                level: Number(level),
+                features: [{ ...featureObjectClone }],
+              })
             } else {
-              const arrayLevel = featureArrayUpdated[arrayIndex]
-              if (arrayLevel && !arrayLevel?.features.some((aFeature: any) => aFeature._id === feature._id)) {
-                set(featureArrayUpdated, `${arrayIndex}.features`, [...arrayLevel.features, { ...feature }])
+              const arrayObject = featureUpdated[arrayIndex]
+              if (arrayObject && !arrayObject?.features.some((aFeature) => aFeature.id === feature.id)) {
+                featureUpdated[arrayIndex].features = [...arrayObject.features, { ...featureObjectClone }]
               }
             }
           })
         }
       })
+    }
 
-      if (featureArrayUpdated.length > 0) {
-        featureArrayUpdated = featureArrayUpdated
-          .sort((a, b) => a.level - b.level)
-          .map((fObject) => {
-            fObject.features.sort((a, b) => a.feature?.name?.localeCompare(b.feature.name))
-            return fObject // Ensure you return the object after sorting its features
-          })
-      }
+    createObject()
 
-      return featureArrayUpdated
-    },
-    [uClass]
-  )
+    if (classes.some((uClass) => uClass.parentClass === fullClass.id) && !subclassMapped) {
+      subclassMapped = true
+      createObject('subclass', featureUpdated)
+    }
 
+    if (featureUpdated.length > 0) {
+      const featuresSorted = featureUpdated
+        .sort((a, b) => a.level - b.level)
+        .map((fObject) => {
+          fObject.features.sort((a, b) => a.value?.localeCompare(b.value))
+          return fObject
+        })
+      featureUpdated = featuresSorted
+    }
+
+    return featureUpdated
+  }, [classes, fullClass])
+
+  // Memoize the feature array
+  const features = useMemo(() => createFeatures(), [createFeatures])
+
+  // Create the proficiencies array
   const createProficiencies = useCallback(() => {
-    const sortObjectFields = (obj: any, stateOrder: any[]) => {
+    const sortObjectFields = (obj: ClassProficiency, stateOrder: FeatureProficiency[]) => {
       let sortedKeys: string[] = []
-      const sortedObjects: any = {}
+      const sortedObjects: ClassProficiency = {}
       stateOrder.forEach((order) => {
-        const categoryName = order.category.name
-        if (order[categoryName]?.category?.name) {
-          sortedKeys.push(order[categoryName]?.category?.name)
-        } else {
-          sortedKeys.push(categoryName)
+        let categoryName: keyof typeof EquipmentCategories | 'skills' | 'languages' | 'saveAbilities'
+        if (order.category === ProficiencyCategories.equipment || order.category === ProficiencyCategories.properties) {
+          categoryName = system.equipment.categories.find((sCategory) => sCategory.id === order.equipment.category)
+            .value as keyof typeof EquipmentCategories
         }
+        if (order.category === ProficiencyCategories.skills) {
+          categoryName = 'skills'
+        }
+        if (order.category === ProficiencyCategories.languages) {
+          categoryName = 'languages'
+        }
+        if (order.category === ProficiencyCategories.saveAbilities) {
+          categoryName = 'saveAbilities'
+        }
+        sortedKeys.push(categoryName)
       })
 
       sortedKeys = uniqBy(sortedKeys, (key) => key)
@@ -79,82 +132,164 @@ const ClassShort = () => {
       return sortedObjects
     }
 
-    const fullProficiencies = uClass.proficiencies
+    const fullProficiencies = fullClass.proficiencies
 
-    let proficiencyObject: ClassProficiency = {}
+    let proficiencyObject = {} as ClassProficiency
 
-    fullProficiencies?.forEach((proficiency: any) => {
-      const categoryName: string = proficiency.category?.name
-      if (proficiency[categoryName]?.type?.length > 0) {
-        const profType = proficiency[categoryName]?.type
-        if (categoryName === 'properties') {
-          const itemCategory: string = proficiency[categoryName]?.category?.name
-          const existType: any[] = [...(proficiencyObject[itemCategory]?.type ?? [])]
+    fullProficiencies?.forEach((proficiency) => {
+      if (proficiency.category === ProficiencyCategories.properties) {
+        if (proficiency.properties?.ids?.length > 0) {
+          const equipmentCategory = system.equipment.categories.find(
+            (category) => category.id === proficiency.properties.category
+          )
 
-          if (profType.some((prof: any) => prof.name === 'all')) {
-            const filteredType = items
-              .filter((item: any) => item.category._id === proficiency[categoryName].category._id)
-              .flatMap((item: any) => item.properties.type)
-            if (
-              !existType.some((type: any) => filteredType?.some((filteredItem: any) => filteredItem._id === type._id))
-            ) {
-              set(proficiencyObject, itemCategory, {
-                type: [...existType, ...filteredType],
-                selectionCount: proficiency.selectionCount ?? null,
-              })
-            }
+          const existType: Array<{ id: string; label: string; value: string }> = [
+            ...(proficiencyObject[equipmentCategory.value].type || []),
+          ]
+
+          const filteredProperties = []
+
+          if (proficiency.properties.ids.some((id) => id === 'all')) {
+            filteredProperties.push(
+              ...system.equipment.properties
+                .filter((property) =>
+                  system.equipment.categoryProperties.filter(
+                    (category) =>
+                      category.categoryId === proficiency.properties.category && category.propertyId === property.id
+                  )
+                )
+                .filter((property) => existType.some((type) => type.id === property.id))
+                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
+            )
           } else {
-            if (!existType.some((type: any) => profType?.some((profType: any) => profType._id === type._id))) {
-              set(proficiencyObject, itemCategory, {
-                type: [...existType, ...profType],
-                selectionCount: proficiency.selectionCount ?? null,
-              })
-            }
+            filteredProperties.push(
+              ...system.equipment.properties
+                .filter((property) => proficiency.properties.ids.some((id) => id === property.id))
+                .filter((property) => existType.some((type) => type.id === property.id))
+                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
+            )
           }
-        } else if (categoryName === 'items') {
-          const itemCategory: string = proficiency[categoryName]?.category?.name
-          const itemProperty: any[] = proficiency[categoryName]?.property?.type ?? []
 
-          const existType: any[] = [...(proficiencyObject[itemCategory]?.type ?? [])]
+          proficiencyObject[equipmentCategory.value] = {
+            type: [...proficiencyObject[equipmentCategory.value].type, ...filteredProperties],
+            selectionCount: proficiency.selectionCount || 0,
+          }
+        }
+      }
+      if (proficiency.category === ProficiencyCategories.equipment) {
+        const equipmentCategory = system.equipment.categories.find(
+          (category) => category.id === proficiency.equipment.category
+        )
 
-          if (profType.some((prof: any) => prof.name === 'all')) {
-            const filteredType = items
-              .filter((item: any) => item.category._id === proficiency[categoryName].category._id)
-              .filter((item: any) =>
-                itemProperty.length > 0
-                  ? itemProperty.some((iProperty: any) =>
-                      item?.property?.type?.some((property: any) => iProperty._id === property._id)
-                    )
-                  : item
-              )
-            if (
-              !existType.some((type: any) => filteredType?.some((filteredItem: any) => filteredItem._id === type._id))
-            ) {
-              set(proficiencyObject, itemCategory, {
-                type: [...existType, ...filteredType],
-                selectionCount: proficiency.selectionCount ?? null,
-                property: itemProperty,
-              })
-            }
+        const existType: Array<{ id: string; label: string; value: string }> = [
+          ...(proficiencyObject[equipmentCategory.value].type || []),
+        ]
+
+        const filteredEquipment = []
+        if (proficiency.equipment.ids.some((id) => id === 'all')) {
+          if (proficiency.equipment.properties.length > 0) {
+            filteredEquipment.push(
+              ...equipment
+                .filter((sEquipment) => sEquipment.category === proficiency.equipment.category)
+                .filter((sEquipment) =>
+                  sEquipment.properties.some((eProperty) => proficiency.equipment.properties.includes(eProperty))
+                )
+                .filter((sEquipment) => existType.some((type) => type.id === sEquipment.id))
+                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.value, value: sEquipment.value }))
+            )
           } else {
-            if (!existType.some((type: any) => profType?.some((profType: any) => profType._id === type._id))) {
-              set(proficiencyObject, itemCategory, {
-                type: [...existType, ...profType],
-                selectionCount: proficiency.selectionCount ?? null,
-              })
-            }
+            filteredEquipment.push(
+              ...equipment
+                .filter((sEquipment) => sEquipment.category === proficiency.equipment.category)
+                .filter((sEquipment) => existType.some((type) => type.id === sEquipment.id))
+                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.value, value: sEquipment.value }))
+            )
           }
         } else {
-          const existType = [...(proficiencyObject[categoryName]?.type ?? [])]
+          filteredEquipment.push(
+            ...equipment
+              .filter((sEquipment) => proficiency.equipment.ids.some((id) => id === sEquipment.id))
+              .filter((sEquipment) => existType.some((type) => type.id === sEquipment.id))
+              .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.value, value: sEquipment.value }))
+          )
+        }
 
-          if (
-            !existType.some((type: any) => profType?.some((profTypeObject: any) => profTypeObject._id === type._id))
-          ) {
-            set(proficiencyObject, categoryName, {
-              type: [...existType, ...profType],
-              selectionCount: proficiency.selectionCount ?? null,
-            })
-          }
+        proficiencyObject[equipmentCategory.value] = {
+          type: [...proficiencyObject[equipmentCategory.value].type, ...filteredEquipment],
+          selectionCount: proficiency.selectionCount || 0,
+        }
+      } else if (proficiency.category === ProficiencyCategories.skills) {
+        const existType: Array<{ id: string; label: string; value: string }> = [...(proficiencyObject.skils.type || [])]
+
+        const filteredSkills = []
+        if (proficiency.skills.some((skill) => skill === 'all')) {
+          filteredSkills.push(
+            ...system.skills
+              .filter((skill) => existType.some((type) => type.id === skill.id))
+              .map((skill) => ({ id: skill.id, label: skill.label, value: skill.value }))
+          )
+        } else {
+          filteredSkills.push(
+            ...system.skills
+              .filter((skill) => proficiency.skills.some((skillId) => skillId === skill.id))
+              .filter((skill) => existType.some((type) => type.id === skill.id))
+              .map((skill) => ({ id: skill.id, label: skill.label, value: skill.value }))
+          )
+        }
+
+        proficiencyObject.skills = {
+          type: [...proficiencyObject.skills.type, ...filteredSkills],
+          selectionCount: proficiency.selectionCount || 0,
+        }
+      } else if (proficiency.category === ProficiencyCategories.languages) {
+        const existType: Array<{ id: string; label: string; value: string }> = [
+          ...(proficiencyObject.languages.type || []),
+        ]
+
+        const filteredLanguages = []
+        if (proficiency.languages.some((language) => language === 'all')) {
+          filteredLanguages.push(
+            ...system.languages
+              .filter((language) => existType.some((type) => type.id === language.id))
+              .map((language) => ({ id: language.id, label: language.label, value: language.value }))
+          )
+        } else {
+          filteredLanguages.push(
+            ...system.languages
+              .filter((language) => proficiency.languages.some((languageId) => languageId === language.id))
+              .filter((language) => existType.some((type) => type.id === language.id))
+              .map((language) => ({ id: language.id, label: language.label, value: language.value }))
+          )
+        }
+
+        proficiencyObject.languages = {
+          type: [...proficiencyObject.skills.type, ...filteredLanguages],
+          selectionCount: proficiency.selectionCount || 0,
+        }
+      } else if (proficiency.category === ProficiencyCategories.saveAbilities) {
+        const existType: Array<{ id: string; label: string; value: string }> = [
+          ...(proficiencyObject.saveAbilities.type || []),
+        ]
+
+        const filteredSaveAbilities = []
+        if (proficiency.saveAbilities.some((ability) => ability === 'all')) {
+          filteredSaveAbilities.push(
+            ...system.abilities
+              .filter((ability) => existType.some((type) => type.id === ability.id))
+              .map((ability) => ({ id: ability.id, label: ability.label, value: ability.value }))
+          )
+        } else {
+          filteredSaveAbilities.push(
+            ...system.abilities
+              .filter((ability) => proficiency.saveAbilities.some((abilityId) => abilityId === ability.id))
+              .filter((ability) => existType.some((type) => type.id === ability.id))
+              .map((ability) => ({ id: ability.id, label: ability.label, value: ability.value }))
+          )
+        }
+
+        proficiencyObject.languages = {
+          type: [...proficiencyObject.skills.type, ...filteredSaveAbilities],
+          selectionCount: proficiency.selectionCount || 0,
         }
       }
     })
@@ -162,33 +297,45 @@ const ClassShort = () => {
     proficiencyObject = sortObjectFields(proficiencyObject, fullProficiencies)
 
     return proficiencyObject
-  }, [items, uClass])
+  }, [
+    fullClass,
+    equipment,
+    system.equipment.categories,
+    system.equipment.properties,
+    system.abilities,
+    system.equipment.categoryProperties,
+    system.languages,
+    system.skills,
+  ])
 
-  const features = useMemo(() => createFeatures(), [createFeatures])
+  const hitpointAbility = system.abilities.find((ability) => ability.value === fullClass.hitpoint?.ability)
+
+  // Memoize the proficiency array
   const proficiencies = useMemo(() => createProficiencies(), [createProficiencies])
-  return !uClass ? (
+
+  return !fullClass ? (
     <Spinner />
   ) : (
     <>
-      {uClass?.desc && <em>{parse(uClass.desc)}</em>}
+      {fullClass?.desc && <em>{parse(fullClass.desc)}</em>}
       <Collapse>
         <Collapse.Header title='Hit Points' className={feature_header} startOpened={true} />
         <Collapse.Body>
           <div>
             <strong>{'Hit Dice: '}</strong>
-            {`${uClass.hitpoint?.diceShort} per ${uClass.value} level`}
+            {`${fullClass.hitpoint?.dieShort} per ${fullClass.value} level`}
           </div>
           <div>
             <strong>{'Hit Points at 1st Level: '}</strong>
-            {`${uClass.hitpoint?.diceCount * uClass.hitpoint?.diceValue.value} + your ${
-              uClass.hitpoint.ability.value
+            {`${fullClass.hitpoint?.dieCount * fullClass.hitpoint?.dieValue} + your ${
+              fullClass.hitpoint.ability
             } modifier`}
           </div>
           <div>
             <strong>{'Hit Points at Higher Levels: '}</strong>
-            {`${uClass.hitpoint?.diceShort} (or ${Math.round(
-              uClass.hitpoint?.diceCount * (uClass.hitpoint?.diceValue.value / 2) + 0.5
-            )}) + your ${uClass.hitpoint.ability.value} modifier per ${uClass.value} level after 1st`}
+            {`${fullClass.hitpoint?.dieShort} (or ${Math.round(
+              fullClass.hitpoint?.dieCount * (fullClass.hitpoint?.dieValue / 2) + 0.5
+            )}) + your ${hitpointAbility.value} modifier per ${fullClass.value} level after 1st`}
           </div>
         </Collapse.Body>
       </Collapse>
@@ -281,19 +428,17 @@ const ClassShort = () => {
         </Collapse>
       )}
       {features?.map((fObject) =>
-        fObject.features.flatMap((feature: any, fIndex: number) => {
-          if (!feature.attribute?.some((attribute: any) => attribute.name === 'hideInBuilder')) {
-            return (
-              <Collapse key={fIndex}>
-                <Collapse.Header
-                  title={`(${fObject.level}) ${feature.value}`}
-                  className={feature_header}
-                  startOpened={true}
-                />
-                <Collapse.Body>{feature.desc && parse(feature.desc)}</Collapse.Body>
-              </Collapse>
-            )
-          }
+        fObject.features.flatMap((feature, fIndex) => {
+          return (
+            <Collapse key={fIndex}>
+              <Collapse.Header
+                title={`(${fObject.level}) ${feature.value}`}
+                className={feature_header}
+                startOpened={true}
+              />
+              <Collapse.Body>{feature.desc && parse(feature.desc)}</Collapse.Body>
+            </Collapse>
+          )
         })
       )}
     </>

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { set as lSet, get, camelCase, PropertyPath, merge } from 'lodash'
 import { produce } from 'immer'
-import { FormDataType, SectionDataType } from '../types/form'
+import {  FormDataType, SectionDataType } from '../types/form'
 import { formSlice, FormSlice } from './formSlice'
 import { featureSlice, FeatureSlice } from './featureSlice'
 import { optionSlice, OptionSlice } from './optionsSlice'
@@ -79,7 +79,7 @@ export const removeField = ({
           lSet(targetState, newPath, newObject)
         } else {
           const newObject = { ...targetState }
-          delete newObject[statePath[0]]
+          delete newObject[statePath[0] as keyof typeof newObject]
           lSet(targetState, '', newObject)
         }
       } else {

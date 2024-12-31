@@ -32,7 +32,7 @@ export type FeatureObject = {
   >
 }
 
-type ClassFeatures = {
+export type ClassFeatures = {
   available: Array<FeatureObject>
   unavailable: Array<FeatureObject>
 }
