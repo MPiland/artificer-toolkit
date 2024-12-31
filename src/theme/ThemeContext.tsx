@@ -1,8 +1,8 @@
 import { createContext } from 'react'
 import { useState, useEffect } from 'react'
-import { Theme, light, dark, theme as defaultTheme } from '../css/theme.css'
+import { light, dark, theme } from '../css/theme.css'
 
-export const ThemeOptions = ({ theme }: { theme?: Theme }) => {
+export const ThemeOptions = () => {
   const [themeType, setThemeType] = useState<'light' | 'dark'>()
 
   useEffect(() => {
@@ -17,8 +17,6 @@ export const ThemeOptions = ({ theme }: { theme?: Theme }) => {
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
 
-  const themeObject = theme ?? defaultTheme
-
   const toggleTheme = () => {
     const newTheme = themeType === 'light' ? 'dark' : 'light'
     setThemeType(newTheme)
@@ -28,18 +26,11 @@ export const ThemeOptions = ({ theme }: { theme?: Theme }) => {
   const themeVar = themeType === 'light' ? light : dark
 
   return {
-    theme: themeObject,
+    theme,
     themeType,
     toggleTheme,
     themeVar,
   }
-}
-
-export interface ThemeContextProps {
-  theme: Theme
-  themeType: string
-  toggleTheme: () => void
-  themeVar: string
 }
 
 const ThemeContext = createContext<ThemeOptionsType>(null)

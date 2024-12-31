@@ -2,10 +2,9 @@ import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { disableReactDevTools } from '@fvilers/disable-react-devtools'
-import ThemeProvider from './theme/ThemeProvider'
-import { theme } from './css/theme.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Amplify } from 'aws-amplify'
+import ThemeContext, { ThemeOptions } from './theme/ThemeContext'
 
 Amplify.configure({
   API: {
@@ -46,10 +45,10 @@ if (import.meta.env.MODE === 'production') disableReactDevTools()
 
 ReactDOM.createRoot(document.getElementById('root') as Element).render(
   <StrictMode>
-    <ThemeProvider theme={theme}>
+    <ThemeContext value={ThemeOptions()}>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
-    </ThemeProvider>
+    </ThemeContext>
   </StrictMode>
 )

@@ -53,11 +53,13 @@ const App = () => {
     {
       path: '/',
       element: (
-        <AuthContext value={AuthOptions()}>
-          <LoadingContext value={LoadingOptions()}>
-            <Layout />
-          </LoadingContext>
-        </AuthContext>
+          <AuthContext value={AuthOptions()}>
+            <LoadingContext value={LoadingOptions()}>
+              <Suspense fallback={<Loading />}>
+                <Layout />
+              </Suspense>
+            </LoadingContext>
+          </AuthContext>
       ),
       errorElement: <ErrorPage />,
       children: [
