@@ -1,12 +1,11 @@
-import { createContext } from 'react'
-import { useState, useEffect } from 'react'
+import { createContext, useState, useLayoutEffect } from 'react'
 import { light, dark, theme } from '../css/theme.css'
 
 export const ThemeOptions = () => {
   const [themeType, setThemeType] = useState<'light' | 'dark'>()
 
-  useEffect(() => {
-    if (!themeType) {
+  useLayoutEffect(() => {
+    if (themeType == null) {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
       const handleChange = (e: MediaQueryListEvent) => {
         if (!localStorage.getItem('theme')) {
