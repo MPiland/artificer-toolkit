@@ -88,7 +88,7 @@ input ClassInput {
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
   equipment: [StartingEquipmentInput]
-  proficiencies: [FeatureProficiencyInput!]
+  proficiencies: [FeatureProficiencyInput]
   spellcasting: SpellcastingInput
   levelAttributes: [LevelAttributeInput]
   resource: ResourceInput

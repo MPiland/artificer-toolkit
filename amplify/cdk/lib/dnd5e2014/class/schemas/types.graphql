@@ -90,7 +90,7 @@ type Class implements BaseFields {
   hitpoint: Hitpoint
   startingGold: StartingGold
   equipment: [StartingEquipment]
-  proficiencies: [FeatureProficiency!]
+  proficiencies: [FeatureProficiency]
   spellcasting: Spellcasting
   levelAttributes: [LevelAttribute]
   resource: Resource

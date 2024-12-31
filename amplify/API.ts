@@ -981,7 +981,7 @@ export type Class = {
   hitpoint?: Hitpoint | null,
   startingGold?: StartingGold | null,
   equipment?:  Array<StartingEquipment | null > | null,
-  proficiencies?:  Array<FeatureProficiency > | null,
+  proficiencies?:  Array<FeatureProficiency | null > | null,
   spellcasting?: Spellcasting | null,
   levelAttributes?:  Array<LevelAttribute | null > | null,
   resource?: Resource | null,
@@ -1963,7 +1963,7 @@ export type ClassInput = {
   hitpoint?: HitpointInput | null,
   startingGold?: StartingGoldInput | null,
   equipment?: Array< StartingEquipmentInput | null > | null,
-  proficiencies?: Array< FeatureProficiencyInput > | null,
+  proficiencies?: Array< FeatureProficiencyInput | null > | null,
   spellcasting?: SpellcastingInput | null,
   levelAttributes?: Array< LevelAttributeInput | null > | null,
   resource?: ResourceInput | null,
@@ -24749,7 +24749,7 @@ export type CreateClassMutation = {
         category?: string | null,
         properties?: Array< string | null > | null,
       } | null,
-    } > | null,
+    } | null > | null,
     spellcasting?:  {
       __typename: "Spellcasting",
       magicName?: string | null,
@@ -26332,7 +26332,7 @@ export type UpdateClassMutation = {
         category?: string | null,
         properties?: Array< string | null > | null,
       } | null,
-    } > | null,
+    } | null > | null,
     spellcasting?:  {
       __typename: "Spellcasting",
       magicName?: string | null,
@@ -27923,7 +27923,7 @@ export type BatchCreateClassesMutation = {
         category?: string | null,
         properties?: Array< string | null > | null,
       } | null,
-    } > | null,
+    } | null > | null,
     spellcasting?:  {
       __typename: "Spellcasting",
       magicName?: string | null,
@@ -55255,7 +55255,7 @@ export type ListMasterClassesQuery = {
         category?: string | null,
         properties?: Array< string | null > | null,
       } | null,
-    } > | null,
+    } | null > | null,
     spellcasting?:  {
       __typename: "Spellcasting",
       magicName?: string | null,
@@ -56838,7 +56838,7 @@ export type GetClassQuery = {
         category?: string | null,
         properties?: Array< string | null > | null,
       } | null,
-    } > | null,
+    } | null > | null,
     spellcasting?:  {
       __typename: "Spellcasting",
       magicName?: string | null,
@@ -58425,7 +58425,7 @@ export type ListClassesQuery = {
           category?: string | null,
           properties?: Array< string | null > | null,
         } | null,
-      } > | null,
+      } | null > | null,
       spellcasting?:  {
         __typename: "Spellcasting",
         magicName?: string | null,
