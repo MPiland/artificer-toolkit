@@ -19,7 +19,7 @@ type Cost {
 }
 
 type Contains {
-  id: ID!
+  equipment: ID!
   quantity: Int!
   contains: [Contains]  
   currencies: [Currency]

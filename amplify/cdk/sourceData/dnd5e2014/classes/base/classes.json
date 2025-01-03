@@ -59,10 +59,7 @@
         },
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": {
-            "value": "level",
-            "label": "Level"
-          },
+          "limit": "19d5f00e-c246-4478-9eb9-7b7ec2b942ed",
           "usesPerLevel": [
             {
               "label": 1,
@@ -117,7 +114,8 @@
               "label": "Set Value"
             },
             "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
-            "setAmount": 10
+            "setAmount": 10,
+            "id": "13dba73f-68da-4c59-bc55-5eff8604031a"
           },
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
@@ -126,7 +124,8 @@
               "label": "Bonus"
             },
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
+            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+            "id": "4940ed96-9439-49b4-8d59-87f845275ef3"
           },
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
@@ -136,7 +135,8 @@
               "desc": "Increases selected area value"
             },
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "492f208f-6e7a-4a69-bbf2-047389576246"
+            "modifierAbility": "492f208f-6e7a-4a69-bbf2-047389576246",
+            "id": "bc44ba08-33fe-4da5-86d2-7f19c775ccd5"
           }
         ],
         "prerequisites": {
@@ -208,7 +208,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "3ce252d5-7ce2-4aab-be00-ffb8a1fab997"
           }
         ],
         "id": "b9a3bb1f-139d-4530-9f08-a86730f891ca"
@@ -243,7 +244,8 @@
             "setAmount": 10,
             "speeds": [
               "all"
-            ]
+            ],
+            "id": "d99d65f3-362e-4f9d-b262-8939217d3ab6"
           }
         ],
         "prerequisites": {
@@ -266,7 +268,8 @@
             "mode": {
               "value": "advantage",
               "label": "Advantage"
-            }
+            },
+            "id": "8c11b4b6-9abd-4330-ab49-e69208a8c47a"
           }
         ],
         "id": "4e1044b5-8657-4474-8408-26156b920d52"
@@ -330,7 +333,8 @@
             "abilities": [
               "492f208f-6e7a-4a69-bbf2-047389576246",
               "93607465-de3d-4788-a5e0-df290fda7959"
-            ]
+            ],
+            "id": "3f8cab70-58b3-4028-9697-b0a0b0b0fd83"
           }
         ],
         "id": "f67dfc78-5aba-4a46-a785-676cbdaa6e50"
@@ -339,67 +343,57 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654",
             "df5b0efb-0ab4-44e8-845a-13f109331d9b"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "c4f5f1f0-8d6d-4dd1-8840-6be4deb6f0bf"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "all"
           ],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
-        }
+        },
+        "id": "01b789b4-a5b6-4d91-b175-490882c05d12"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "e021418d-fa97-424f-8d60-ee042fa26386"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "9fa816b5-a0cd-474f-9dee-f7de93e22803"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "33f8bcbb-2367-429c-9838-a263f5199251"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "93607465-de3d-4788-a5e0-df290fda7959",
           "492f208f-6e7a-4a69-bbf2-047389576246"
-        ]
+        ],
+        "id": "2414f7c0-1687-426c-ab87-51cb400ca1b3"
       },
       {
         "attributes": [
@@ -407,10 +401,7 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "f6ac4c05-edf8-4d25-9098-2c3603f328b1",
           "58f04f10-8886-401a-8c5e-06279154f148",
@@ -418,7 +409,8 @@
           "521debf5-9212-49db-8fa1-5ee9e01861c3",
           "1fc0087a-7532-4023-be0b-6c50fe577d60",
           "34d3640f-ecb8-4107-b140-bb59e2cb1001"
-        ]
+        ],
+        "id": "12ff7df1-90f6-4ebd-b2b7-6a9a1767f00d"
       }
     ],
     "startingGold": {
@@ -981,7 +973,8 @@
             "rounding": "7a7dc0de-c6bb-4afe-9507-5446c1b85a67",
             "skills": [
               "all"
-            ]
+            ],
+            "id": "ecc0e5de-30fa-4236-8b21-5010a9a34eab"
           }
         ],
         "id": "73aecf78-8247-4093-a1c2-7da405c01826"
@@ -1062,7 +1055,8 @@
             "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
             "skills": [
               "all"
-            ]
+            ],
+            "id": "21cb44a3-6481-4741-9d9c-22d10f82a77d"
           }
         ],
         "id": "e57923bf-2eda-4ddd-9a98-241183a4bbb8"
@@ -1093,7 +1087,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "6e7ed719-4cc2-4e96-97a3-0951186acc3d"
           }
         ],
         "id": "7c2e93d4-d5af-469c-a871-47abe71d9309"
@@ -1107,7 +1102,8 @@
         "targets": 1,
         "modifiers": [
           {
-            "category": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730"
+            "category": "fa7b799a-a26b-4ca2-b0eb-1cbf6f700730",
+            "id": "ae5b75db-be60-47ab-be72-fee5fe9397bf"
           }
         ],
         "id": "a234871d-5a5a-4d7e-ba54-c767c3505bbc"
@@ -1165,37 +1161,31 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "c0bfd891-3fa9-4c85-a4f1-2863ba4708d2"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "d2405e34-db9e-4c3d-955c-fce9315827ed"
       },
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "4af38774-45df-44b9-937d-792e018910dc"
       },
       {
         "attributes": [
@@ -1203,22 +1193,18 @@
         ],
         "selectionCount": 3,
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "20834c37-4d3d-4211-90b7-6dc648e15a31"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
           "def276fe-3fa5-4af7-95ad-a37113815cc7"
-        ]
+        ],
+        "id": "0eff54a1-999c-4bbb-9e8a-dc329cc24b5d"
       },
       {
         "attributes": [
@@ -1226,13 +1212,11 @@
         ],
         "selectionCount": 3,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "all"
-        ]
+        ],
+        "id": "2916b804-f561-4fff-aa7e-ac7ede99548b"
       }
     ],
     "startingGold": {
@@ -1851,7 +1835,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "f8309678-7e83-4299-9692-22ca9d4ed3be"
           }
         ],
         "id": "37b1efc2-49e5-4be2-bbe9-929d27b8d613"
@@ -1886,55 +1871,47 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654",
             "df5b0efb-0ab4-44e8-845a-13f109331d9b"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "a3bc3a4e-7f69-4352-b009-4b99f460a1cf"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "a6cf86fd-8553-41a6-a6bf-24110e1e91f1",
             "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"
           ],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
-        }
+        },
+        "id": "a15c746f-49cb-494f-9a53-d91fe1fa378d"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "5f15ae03-189e-41b4-b088-8f6291470e7a"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "def276fe-3fa5-4af7-95ad-a37113815cc7",
           "458fdf58-0496-4701-86d0-7bc234009276"
-        ]
+        ],
+        "id": "37c5db7a-9107-400a-88cf-1d077a46308e"
       },
       {
         "attributes": [
@@ -1942,17 +1919,15 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "f01f2fbd-d1a7-4e7e-8645-fbdc743cd55b",
           "882113b0-b4ab-4904-95d7-ad2231bef7d4",
           "0e26ef5e-d29f-4b66-a1fe-da82f3d800b1",
           "7377834f-6811-4151-bdf0-a621409221db",
           "ed704543-3bbc-4026-a611-823a6ac69c5c"
-        ]
+        ],
+        "id": "58483069-bfcf-49b7-adb2-f85b9b619d21"
       }
     ],
     "startingGold": {
@@ -2546,7 +2521,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "5b484993-f641-4954-9e73-367ed5f44bc1"
           }
         ],
         "id": "448c5579-aa07-403d-80b4-93fdd3666d13"
@@ -2591,57 +2567,47 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654",
             "df5b0efb-0ab4-44e8-845a-13f109331d9b"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "46d12436-2282-401c-accf-2e555f1b6d4e"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"
           ],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
-        }
+        },
+        "id": "89316434-8f2f-4ed6-b1a1-480807c4fd1c"
       },
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "2bee3151-1f9b-4d1c-9034-30f48e15b92c"
       },
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "d31bb0aa-4a3f-4e77-86f0-f25ee5d8be7c"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
           "458fdf58-0496-4701-86d0-7bc234009276"
-        ]
+        ],
+        "id": "74f86c68-eab5-4234-b1fa-b8b5e4b2fd88"
       },
       {
         "attributes": [
@@ -2649,10 +2615,7 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "f6ac4c05-edf8-4d25-9098-2c3603f328b1",
           "7c9ea3de-9d0b-4518-b5ff-b02af5b87b1f",
@@ -2662,7 +2625,8 @@
           "1fc0087a-7532-4023-be0b-6c50fe577d60",
           "ed704543-3bbc-4026-a611-823a6ac69c5c",
           "34d3640f-ecb8-4107-b140-bb59e2cb1001"
-        ]
+        ],
+        "id": "1cd5a27e-f35f-43c5-9b83-90931fbb64f3"
       }
     ],
     "startingGold": {
@@ -2748,7 +2712,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 2
+                "setAmount": 2,
+                "id": "2a5d301e-3ee9-4bf6-a2aa-6cf1aac227c3"
               }
             ],
             "id": "77b313f8-4a49-481f-93cf-d1e05a7d5011"
@@ -2769,7 +2734,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 1
+                "setAmount": 1,
+                "id": "57a1301d-8fb6-4334-aae3-258e5b28e0d6"
               }
             ],
             "prerequisites": {
@@ -2956,7 +2922,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "f57090ce-610f-4308-9638-15c297791074"
           }
         ],
         "id": "b91b30a1-34c7-4286-b771-bb5558ba1df8"
@@ -2984,10 +2951,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": {
-            "value": "level",
-            "label": "Level"
-          },
+          "limit": "19d5f00e-c246-4478-9eb9-7b7ec2b942ed",
           "usesPerLevel": [
             {
               "label": 9,
@@ -3011,67 +2975,57 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "all"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "eac4f952-11bb-404d-9d1c-048f30e55bcc"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9",
             "a6cf86fd-8553-41a6-a6bf-24110e1e91f1"
           ],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
-        }
+        },
+        "id": "ac87582d-7d9c-4b7d-bb07-8b5cc0dc5b05"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "2b23d564-5732-48cd-ad16-274c4de91add"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "9fa816b5-a0cd-474f-9dee-f7de93e22803"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "322207aa-5c13-4ee0-92ca-2528a18529db"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "492f208f-6e7a-4a69-bbf2-047389576246",
           "93607465-de3d-4788-a5e0-df290fda7959"
-        ]
+        ],
+        "id": "ba3b093b-bc9d-45e8-9b61-f7b14b06cdac"
       },
       {
         "attributes": [
@@ -3079,10 +3033,7 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "8800b4eb-8fbc-47bc-a6a8-c71fd8afd6cc",
           "f6ac4c05-edf8-4d25-9098-2c3603f328b1",
@@ -3092,7 +3043,8 @@
           "dba004ae-16aa-40ac-8df1-2f2c47775f6c",
           "1fc0087a-7532-4023-be0b-6c50fe577d60",
           "34d3640f-ecb8-4107-b140-bb59e2cb1001"
-        ]
+        ],
+        "id": "f323f24a-505c-4f68-aab6-94296c59d410"
       }
     ],
     "startingGold": {
@@ -3265,7 +3217,8 @@
               "label": "Set Value"
             },
             "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
-            "setAmount": 10
+            "setAmount": 10,
+            "id": "63db9553-2eeb-498c-abae-f8ebf6814f45"
           },
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
@@ -3274,7 +3227,8 @@
               "label": "Bonus"
             },
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
+            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+            "id": "3c686460-52c0-48a8-a839-95cc193bb0fc"
           },
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
@@ -3283,7 +3237,8 @@
               "label": "Bonus"
             },
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "458fdf58-0496-4701-86d0-7bc234009276"
+            "modifierAbility": "458fdf58-0496-4701-86d0-7bc234009276",
+            "id": "3d7c0a70-6b00-4c24-a260-1e5a9b118f66"
           }
         ],
         "prerequisites": {
@@ -3319,7 +3274,8 @@
               "label": "Modifier Ability"
             },
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
+            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+            "id": "f05ed73b-4fa7-4d23-aaa5-d88cf4c082f2"
           },
           {
             "category": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
@@ -3350,7 +3306,8 @@
                   "level": 17
                 }
               ]
-            }
+            },
+            "id": "645d0a2b-8d3f-49c2-abe0-50abe0a8080e"
           }
         ],
         "prerequisites": {
@@ -3464,7 +3421,8 @@
         "targets": 1,
         "modifiers": [
           {
-            "category": "0168aa65-99ea-4381-9997-11f12f7adbfc"
+            "category": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+            "id": "ee853582-9d1f-47e3-8c7a-3f14fa91d38d"
           }
         ],
         "prerequisites": {
@@ -3536,7 +3494,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "e35befb7-799e-448b-af11-db5febd3be1d"
           }
         ],
         "id": "46b724d2-a30b-4bf9-81ec-94616bae9b13"
@@ -3664,7 +3623,8 @@
             },
             "conditions": [
               "0a21062b-d7b5-48c7-a7d9-7546c2f69223"
-            ]
+            ],
+            "id": "fb81ea01-6880-494d-a9b3-5f0cb2281754"
           }
         ],
         "id": "8207e205-7ce8-4445-8a6f-ed054a79d59a"
@@ -3698,7 +3658,8 @@
             "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "05c4d3a6-6026-4935-ab32-c06795c92dd4"
           }
         ],
         "id": "f29f693c-2ecf-4322-bbf0-68e817c18ee5"
@@ -3754,24 +3715,20 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "1b71e5ef-a2ec-4b69-b490-c8db44ff4a4c"
       },
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "1662abd1-7f97-4867-8d90-0beca6ab96b8"
       },
       {
         "attributes": [
@@ -3779,22 +3736,18 @@
         ],
         "selectionCount": 1,
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "27b7a5ca-bcb6-4709-ac87-3244143174ec"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
           "93607465-de3d-4788-a5e0-df290fda7959"
-        ]
+        ],
+        "id": "0bc881d8-4361-4389-8de9-c3eb3b3fed7c"
       },
       {
         "attributes": [
@@ -3802,10 +3755,7 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "8800b4eb-8fbc-47bc-a6a8-c71fd8afd6cc",
           "58f04f10-8886-401a-8c5e-06279154f148",
@@ -3813,7 +3763,8 @@
           "882113b0-b4ab-4904-95d7-ad2231bef7d4",
           "ed704543-3bbc-4026-a611-823a6ac69c5c",
           "b598a80e-d7e8-47fb-8438-f79151223afe"
-        ]
+        ],
+        "id": "a6bcb765-f7ef-42b7-aba2-65ba8a9e9885"
       }
     ],
     "startingGold": {
@@ -4259,7 +4210,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 1
+                "setAmount": 1,
+                "id": "65cf732c-0561-41ae-a7e5-39e48f37478b"
               }
             ],
             "prerequisites": {
@@ -4287,7 +4239,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 1
+                "setAmount": 1,
+                "id": "30d852e9-82f0-4b70-9a82-8bbf5757feed"
               }
             ],
             "prerequisites": {
@@ -4484,27 +4437,33 @@
     ],
     "proficiencies": [
       {
-        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
+        "id": "7b49afe2-4fe3-4a7d-8e63-07cfee29dd74"
       },
       {
-        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
+        "id": "58745e4a-c395-4d7e-9044-ceece0f728b7"
       },
       {
-        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
+        "id": "0d5c1213-d20a-4da3-88b0-4bad61761451"
       },
       {
-        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
+        "id": "5501bea0-a0fe-4c49-b73b-bf032e6b8b4c"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "def276fe-3fa5-4af7-95ad-a37113815cc7",
           "458fdf58-0496-4701-86d0-7bc234009276"
-        ]
+        ],
+        "id": "c4fb0643-6cff-4a3c-913a-f576f52026ba"
       },
       {
         "attributes": [
@@ -4512,10 +4471,7 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "58f04f10-8886-401a-8c5e-06279154f148",
           "882113b0-b4ab-4904-95d7-ad2231bef7d4",
@@ -4523,7 +4479,8 @@
           "0e26ef5e-d29f-4b66-a1fe-da82f3d800b1",
           "7377834f-6811-4151-bdf0-a621409221db",
           "ed704543-3bbc-4026-a611-823a6ac69c5c"
-        ]
+        ],
+        "id": "b6da7c43-de90-4027-9f70-90302281696b"
       }
     ],
     "startingGold": {
@@ -4931,7 +4888,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 2
+                "setAmount": 2,
+                "id": "270b0774-770f-4dac-b747-365a02d732f7"
               }
             ],
             "id": "b9bb490c-7bea-426f-8a49-1b67a14f3681"
@@ -4954,7 +4912,8 @@
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
                 "armorClass": {
                   "setAmount": 1
-                }
+                },
+                "id": "0502e829-9f7a-4c6a-8477-e7bccbd725a6"
               }
             ],
             "prerequisites": {
@@ -4982,7 +4941,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 2
+                "setAmount": 2,
+                "id": "7790cc62-ae58-4946-a5f5-332c65bf0a1e"
               }
             ],
             "prerequisites": {
@@ -5075,7 +5035,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "b2b11b3f-b4d8-4a2e-ab85-8ec84a5bca23"
           }
         ],
         "id": "5e619161-5e3c-429b-afd1-cf0f1fd5b04f"
@@ -5146,10 +5107,7 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654",
@@ -5157,58 +5115,51 @@
             "21a0ad2e-c7df-4c9b-9c66-ba57b58cf5e2"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "ff819c57-5f99-48ac-8c35-caba8d24e060"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "all"
           ],
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "eaf148d2-0bcc-4b1d-9b9e-02a9f3df309c"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "e244999f-13e2-46b2-a6f1-d1e0386002ae"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "9fa816b5-a0cd-474f-9dee-f7de93e22803"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "65e91375-ad9a-4dbc-a599-c2f705c2a0ef"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
           "93607465-de3d-4788-a5e0-df290fda7959"
-        ]
+        ],
+        "id": "fb2d4cf1-04c6-4af0-935a-a9f7c6660c1f"
       },
       {
         "attributes": [
@@ -5216,10 +5167,7 @@
         ],
         "selectionCount": 3,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "f6ac4c05-edf8-4d25-9098-2c3603f328b1",
           "58f04f10-8886-401a-8c5e-06279154f148",
@@ -5229,7 +5177,8 @@
           "1fc0087a-7532-4023-be0b-6c50fe577d60",
           "b598a80e-d7e8-47fb-8438-f79151223afe",
           "34d3640f-ecb8-4107-b140-bb59e2cb1001"
-        ]
+        ],
+        "id": "3228712f-d3b9-4b58-a299-d4304ef5bda0"
       }
     ],
     "startingGold": {
@@ -5311,7 +5260,8 @@
                 "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
                 "skills": [
                   "all"
-                ]
+                ],
+                "id": "fd2f92e6-fb30-4939-92e0-fb476da1054b"
               }
             ]
           },
@@ -5325,7 +5275,8 @@
             ],
             "expertise": [
               {
-                "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c"
+                "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+                "id": "50217748-d17a-4b96-8bcb-c7a6c0e36811"
               },
               {
                 "attributes": [
@@ -5335,7 +5286,8 @@
                 "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
                 "skills": [
                   "all"
-                ]
+                ],
+                "id": "f4883301-a042-461f-a717-c897241fc375"
               }
             ],
             "prerequisites": {
@@ -5500,7 +5452,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "e89a6f4a-389e-4464-944f-a662627e30ca"
           }
         ],
         "id": "a9f95965-8338-4036-9795-41800394fb81"
@@ -5562,7 +5515,8 @@
             "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
             "abilities": [
               "458fdf58-0496-4701-86d0-7bc234009276"
-            ]
+            ],
+            "id": "a27cb08a-af98-4dab-9a46-05d78f7bcd10"
           }
         ],
         "id": "63781f98-2168-4939-b614-7a86903021ef"
@@ -5588,56 +5542,46 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "f4ba4772-6cc0-4e23-9ed9-0c018dbd01fe"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "9393f266-b51c-40ba-83a2-b2365a6d3b62"
       },
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "13b7ba46-a536-4d3b-a76e-2264b5c540e0"
       },
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "56c27e48-e873-4a97-9986-b11e36453003"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
           "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
-        ]
+        ],
+        "id": "cbb3b62a-0d1d-4d88-b555-789a443e4d42"
       },
       {
         "attributes": [
@@ -5645,10 +5589,7 @@
         ],
         "selectionCount": 4,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "8800b4eb-8fbc-47bc-a6a8-c71fd8afd6cc",
           "58f04f10-8886-401a-8c5e-06279154f148",
@@ -5661,7 +5602,8 @@
           "7377834f-6811-4151-bdf0-a621409221db",
           "3c2cfcf2-2fb5-464f-839d-f5a9703bcfb7",
           "b598a80e-d7e8-47fb-8438-f79151223afe"
-        ]
+        ],
+        "id": "5b265eed-584b-45c0-907f-1cc6d13f6245"
       }
     ],
     "startingGold": {
@@ -6396,7 +6338,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "931a03ce-9339-43b6-a80d-0c313709f238"
           }
         ],
         "id": "61797a3f-6c1f-4d5a-b0a5-628658c279e3"
@@ -6414,29 +6357,22 @@
     "proficiencies": [
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "e417b3df-747a-4710-a95b-364bb1991bf4"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "492f208f-6e7a-4a69-bbf2-047389576246",
           "def276fe-3fa5-4af7-95ad-a37113815cc7"
-        ]
+        ],
+        "id": "bca27780-e5b0-4fd4-8f59-02408449e96e"
       },
       {
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "7c9ea3de-9d0b-4518-b5ff-b02af5b87b1f",
           "1382f52c-2281-441f-8fb2-608a274a13d3",
@@ -6444,7 +6380,8 @@
           "dba004ae-16aa-40ac-8df1-2f2c47775f6c",
           "7377834f-6811-4151-bdf0-a621409221db",
           "ed704543-3bbc-4026-a611-823a6ac69c5c"
-        ]
+        ],
+        "id": "3844a69d-cf86-4d8f-9d9e-fe4b2f66ab79"
       }
     ],
     "startingGold": {
@@ -7017,7 +6954,8 @@
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "e28a296e-c7fd-419a-8138-ae4c1fb7afdb"
           }
         ],
         "id": "361ec461-b44d-4216-8566-30884ae7aab4"
@@ -7071,22 +7009,18 @@
     "proficiencies": [
       {
         "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+        "equipment": "e915836c-d4dd-434d-934b-5eb8d8d053e3",
+        "id": "ce21d798-7494-4fa8-9720-0b69eff14ff2"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "d0cd6776-ef2c-4589-8a18-175a160b8ef4",
           "458fdf58-0496-4701-86d0-7bc234009276"
-        ]
+        ],
+        "id": "f9e6be08-533f-4376-b6d5-563cf7c721d6"
       },
       {
         "attributes": [
@@ -7094,10 +7028,7 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "7c9ea3de-9d0b-4518-b5ff-b02af5b87b1f",
           "f01f2fbd-d1a7-4e7e-8645-fbdc743cd55b",
@@ -7105,7 +7036,8 @@
           "97347fe6-1b4c-43df-832c-f07403dc076e",
           "0e26ef5e-d29f-4b66-a1fe-da82f3d800b1",
           "ed704543-3bbc-4026-a611-823a6ac69c5c"
-        ]
+        ],
+        "id": "b0ed00c4-4222-4cd7-a210-178dd8f0cc54"
       }
     ],
     "startingGold": {
@@ -7793,7 +7725,8 @@
             "maxAmount": 20,
             "abilities": [
               "all"
-            ]
+            ],
+            "id": "37d8efae-6af4-4172-8f23-7d9462291cc5"
           }
         ],
         "id": "1df790e2-57eb-4d32-8fe7-b30e0138b712"
@@ -7887,40 +7820,34 @@
     "proficiencies": [
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-        }
+        },
+        "id": "f37113b0-07e6-4816-8986-028fc5304e33"
       },
       {
         "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "properties": {
           "ids": [
             "ab95948e-73af-4cd6-ac18-a22841fb5773"
           ],
           "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-        }
+        },
+        "id": "7133f49e-4b97-404f-8291-96830af05fe7"
       },
       {
         "category": "7328d22a-8c29-45de-a08f-5987fac2d6d1",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "abilities": [
           "def276fe-3fa5-4af7-95ad-a37113815cc7",
           "458fdf58-0496-4701-86d0-7bc234009276"
-        ]
+        ],
+        "id": "2d111a57-bc23-43c1-9807-f775fee8b7fe"
       },
       {
         "attributes": [
@@ -7928,10 +7855,7 @@
         ],
         "selectionCount": 2,
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "7c9ea3de-9d0b-4518-b5ff-b02af5b87b1f",
           "1382f52c-2281-441f-8fb2-608a274a13d3",
@@ -7940,7 +7864,8 @@
           "97347fe6-1b4c-43df-832c-f07403dc076e",
           "521debf5-9212-49db-8fa1-5ee9e01861c3",
           "ed704543-3bbc-4026-a611-823a6ac69c5c"
-        ]
+        ],
+        "id": "2eb228a7-e8c8-42b0-9c00-5d9bc8d0c0e3"
       }
     ],
     "startingGold": {

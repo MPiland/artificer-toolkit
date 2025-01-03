@@ -943,10 +943,7 @@
         ]
       },
       "options": [
-        {
-          "value": "abilityScore",
-          "label": "Ability Score"
-        }
+        "096cf44a-60ec-4f6c-b42c-3c46e12530bb"
       ]
     },
     "armorClass": 17,
@@ -1104,10 +1101,7 @@
         ]
       },
       "options": [
-        {
-          "value": "abilityScore",
-          "label": "Ability Score"
-        }
+        "096cf44a-60ec-4f6c-b42c-3c46e12530bb"
       ]
     },
     "armorClass": 16,
@@ -1923,10 +1917,7 @@
         "10910065-c17e-4994-93d3-f030d9b4c649"
       ],
       "options": [
-        {
-          "value": "charactersize",
-          "label": "Size"
-        }
+        "d5def5fd-4b6e-411b-994d-3e830912093e"
       ]
     },
     "properties": [
@@ -2130,10 +2121,7 @@
       {
         "prerequisites": {
           "options": [
-            {
-              "value": "charactersize",
-              "label": "Size"
-            }
+            "d5def5fd-4b6e-411b-994d-3e830912093e"
           ],
           "sizes": [
             "c6dcfa53-da6e-4258-8857-37eea7135c52",
@@ -2194,10 +2182,7 @@
       {
         "prerequisites": {
           "options": [
-            {
-              "value": "charactersize",
-              "label": "Size"
-            }
+            "d5def5fd-4b6e-411b-994d-3e830912093e"
           ],
           "sizes": [
             "c6dcfa53-da6e-4258-8857-37eea7135c52",
@@ -2338,10 +2323,7 @@
       {
         "prerequisites": {
           "options": [
-            {
-              "value": "charactersize",
-              "label": "Size"
-            }
+            "d5def5fd-4b6e-411b-994d-3e830912093e"
           ],
           "sizes": [
             "c6dcfa53-da6e-4258-8857-37eea7135c52",
@@ -2438,10 +2420,7 @@
       {
         "prerequisites": {
           "options": [
-            {
-              "value": "charactersize",
-              "label": "Size"
-            }
+            "d5def5fd-4b6e-411b-994d-3e830912093e"
           ],
           "sizes": [
             "c6dcfa53-da6e-4258-8857-37eea7135c52",
@@ -2864,10 +2843,7 @@
       {
         "prerequisites": {
           "options": [
-            {
-              "value": "charactersize",
-              "label": "Size"
-            }
+            "d5def5fd-4b6e-411b-994d-3e830912093e"
           ],
           "sizes": [
             "c6dcfa53-da6e-4258-8857-37eea7135c52",
@@ -2933,10 +2909,7 @@
       {
         "prerequisites": {
           "options": [
-            {
-              "value": "charactersize",
-              "label": "Size"
-            }
+            "d5def5fd-4b6e-411b-994d-3e830912093e"
           ],
           "sizes": [
             "c6dcfa53-da6e-4258-8857-37eea7135c52",

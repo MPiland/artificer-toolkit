@@ -681,7 +681,7 @@ type FeatureSense {
   attributes: [ID]
   selectionCount: Int
   subtype: ID
-  senses: [ID]
+  ids: [ID!]
 }
 
 type SpellsByLevel {
@@ -692,7 +692,7 @@ type SpellsByLevel {
 
 type FeatureSpell {
   id: ID!
-  spells: [ID]
+  ids: [ID!]
   attributes: [ID]
   selectionCount: Int
   classLimit: [ID]
@@ -725,8 +725,8 @@ type ActionGroup {
 
 type Subfeature implements BaseFields {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -752,8 +752,8 @@ type Subfeature implements BaseFields {
 
 type FeatureOption implements BaseFields {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -780,8 +780,8 @@ type FeatureOption implements BaseFields {
 
 type Feature implements BaseFields {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -869,7 +869,7 @@ type Cost {
 }
 
 type Contains {
-  id: ID!
+  equipment: ID!
   quantity: Int!
   contains: [Contains]  
   currencies: [Currency]
@@ -1976,18 +1976,18 @@ input FeatureSenseInput {
   attributes: [ID]
   selectionCount: Int
   subtype: ID
-  senses: [ID]
+  ids: [ID!]
 }
 
 input SpellsByLevelInput {
+  id: ID!
   spells: [ID]
   level: Int
   spellLevel: Int
 }
 
 input FeatureSpellInput {
-  id: ID!
-  spells: [ID]
+  ids: [ID!]
   attributes: [ID]
   selectionCount: Int
   classLimit: [ID]
@@ -2020,8 +2020,8 @@ input ActionGroupInput {
 
 input SubfeatureInput {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -2047,8 +2047,8 @@ input SubfeatureInput {
 
 input FeatureOptionInput {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -2075,8 +2075,8 @@ input FeatureOptionInput {
 
 input FeatureInput {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -2163,7 +2163,7 @@ input CostInput {
 }
 
 input ContainsInput {
-  id: ID!
+  equipment: ID!
   quantity: Int!
   contains: [ContainsInput]  
   currencies: [CurrencyInput]

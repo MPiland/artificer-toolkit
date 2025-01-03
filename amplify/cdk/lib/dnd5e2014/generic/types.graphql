@@ -224,7 +224,7 @@ type FeatureSense {
   attributes: [ID]
   selectionCount: Int
   subtype: ID
-  senses: [ID]
+  ids: [ID!]
 }
 
 type SpellsByLevel {
@@ -235,7 +235,7 @@ type SpellsByLevel {
 
 type FeatureSpell {
   id: ID!
-  spells: [ID]
+  ids: [ID!]
   attributes: [ID]
   selectionCount: Int
   classLimit: [ID]
@@ -268,8 +268,8 @@ type ActionGroup {
 
 type Subfeature implements BaseFields {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -295,8 +295,8 @@ type Subfeature implements BaseFields {
 
 type FeatureOption implements BaseFields {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -323,8 +323,8 @@ type FeatureOption implements BaseFields {
 
 type Feature implements BaseFields {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID

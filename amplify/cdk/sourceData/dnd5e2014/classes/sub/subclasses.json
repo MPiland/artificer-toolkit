@@ -23,13 +23,11 @@
             ],
             "selectionCount": 3,
             "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
-            "level": {
-              "value": "proficient",
-              "label": "Proficient"
-            },
+            "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
             "skills": [
               "all"
-            ]
+            ],
+            "id": "ff4cc58f-563a-4260-8345-8a18a6ac5564"
           }
         ],
         "prerequisites": {
@@ -209,16 +207,14 @@
         "proficiencies": [
           {
             "category": "3d1075dc-8a5e-419a-90d4-7c2c2c29ff32",
-            "level": {
-              "value": "proficient",
-              "label": "Full"
-            },
+            "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
             "properties": {
               "ids": [
                 "f0de1c52-9141-4d5a-bc4b-76110edf8e3e"
               ],
               "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-            }
+            },
+            "id": "30b42d36-5d99-4af8-aa2e-1e333820d32e"
           }
         ]
       },
@@ -239,7 +235,8 @@
             "setAmount": 2,
             "damage": [
               "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d"
-            ]
+            ],
+            "id": "85516578-1104-49cd-988c-109d00ed9d34"
           },
           {
             "category": "526b7457-00b0-40b9-a163-e1f598a0d8b5",
@@ -250,7 +247,8 @@
             "method": "a919adf5-4526-4472-b9af-31e400ef6f52",
             "damage": [
               "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d"
-            ]
+            ],
+            "id": "f3394236-2d9a-4b59-a0ae-570d1c1a57c0"
           }
         ]
       },
@@ -321,7 +319,8 @@
             },
             "damage": [
               "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d"
-            ]
+            ],
+            "id": "53da27da-07d8-45af-b95c-3cf954fa31cd"
           }
         ]
       }
@@ -904,7 +903,8 @@
             },
             "conditions": [
               "0a21062b-d7b5-48c7-a7d9-7546c2f69223"
-            ]
+            ],
+            "id": "031f725f-7394-4c28-a99f-772423f5c033"
           }
         ]
       },
@@ -986,7 +986,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 2
+                "setAmount": 2,
+                "id": "34c4d9ed-37f8-4783-9b31-c1a85845f603"
               }
             ],
             "id": "eb7cbd8e-ccc4-4776-8749-e1cab57bb397"
@@ -1017,7 +1018,8 @@
                   "label": "Bonus"
                 },
                 "method": "f21220f9-96db-4369-ba11-88c87d631fac",
-                "setAmount": 1
+                "setAmount": 1,
+                "id": "befe1080-47bb-4adf-a924-44ff25f44e2e"
               }
             ],
             "id": "54fa0eea-ccc4-482d-b374-fff898f45740"
@@ -1478,7 +1480,8 @@
             },
             "conditions": [
               "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
-            ]
+            ],
+            "id": "afa20e85-804b-46e1-b2c3-61b640b7fec4"
           }
         ]
       },
@@ -1603,7 +1606,8 @@
                 },
                 "conditions": [
                   "5692845d-057f-4bef-bf66-7d74bd580efc"
-                ]
+                ],
+                "id": "aeb770e6-44c8-4cf3-9435-4f6ec21554a0"
               }
             ],
             "id": "2703989b-7be6-4924-8e49-fca33645efaa"
@@ -1790,13 +1794,11 @@
         "proficiencies": [
           {
             "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
-            "level": {
-              "value": "proficient",
-              "label": "Proficient"
-            },
+            "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
             "languages": [
               "6e3d198f-d6bc-4853-8a00-cf45d1a454e4"
-            ]
+            ],
+            "id": "7be04668-532a-4f61-be6c-5bf5d3c737c5"
           }
         ]
       },
@@ -1842,7 +1844,8 @@
             "setAmount": 30,
             "speeds": [
               "f317a924-5dfd-46a1-ba1e-9e2ad0f7b8b5"
-            ]
+            ],
+            "id": "b26b8b30-5773-4e75-8735-5f635d3c19a1"
           }
         ],
         "prerequisites": {

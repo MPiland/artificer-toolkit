@@ -203,18 +203,18 @@ input FeatureSenseInput {
   attributes: [ID]
   selectionCount: Int
   subtype: ID
-  senses: [ID]
+  ids: [ID!]
 }
 
 input SpellsByLevelInput {
+  id: ID!
   spells: [ID]
   level: Int
   spellLevel: Int
 }
 
 input FeatureSpellInput {
-  id: ID!
-  spells: [ID]
+  ids: [ID!]
   attributes: [ID]
   selectionCount: Int
   classLimit: [ID]
@@ -247,8 +247,8 @@ input ActionGroupInput {
 
 input SubfeatureInput {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -274,8 +274,8 @@ input SubfeatureInput {
 
 input FeatureOptionInput {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID
@@ -302,8 +302,8 @@ input FeatureOptionInput {
 
 input FeatureInput {
   id: ID!
-  label: String!
-  value: String!
+  label: String
+  value: String
   desc: String
   detail: String
   category: ID

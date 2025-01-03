@@ -19,7 +19,7 @@ input CostInput {
 }
 
 input ContainsInput {
-  id: ID!
+  equipment: ID!
   quantity: Int!
   contains: [ContainsInput]  
   currencies: [CurrencyInput]

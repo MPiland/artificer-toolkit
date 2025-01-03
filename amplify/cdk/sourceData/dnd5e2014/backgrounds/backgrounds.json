@@ -79,27 +79,25 @@
     ],
     "proficiencies": [
       {
+        "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
         "attributes": [
           "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
         ],
         "selectionCount": 2,
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "languages": [
           "all"
-        ]
+        ],
+        "id": "3b86f0b0-009a-4ffd-8290-ed500c916030"
       },
       {
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
+        "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+        "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "skills": [
           "882113b0-b4ab-4904-95d7-ad2231bef7d4",
           "ed704543-3bbc-4026-a611-823a6ac69c5c"
-        ]
+        ],
+        "id": "ca6f36d6-2952-4aa5-acca-6f3ad06f628c"
       }
     ],
     "currency": {
