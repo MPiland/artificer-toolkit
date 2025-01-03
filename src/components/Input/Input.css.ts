@@ -34,7 +34,6 @@ export const input_container = style({
     [app]: {
       position: 'relative',
       fontSize: 'inherit',
-      height: theme.component.input.height,
       padding: '0 .75rem',
       borderRadius: theme.border.radius,
       backgroundColor: theme.vars.component.input.backgroundColor,
@@ -115,6 +114,7 @@ export const input = style({
 export const input_height = styleVariants({
   auto: { height: size['size-auto'] },
   full: { height: size['size-full'] },
+  default: { height: theme.component.input.height },
 })
 
 export const input_textAlign = styleVariants({

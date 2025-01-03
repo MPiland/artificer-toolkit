@@ -1,4 +1,5 @@
 /* tslint:disable */
+/* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
 import * as APITypes from "../API";
@@ -2654,12 +2655,12 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -2842,12 +2843,12 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -3000,12 +3001,12 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -3372,12 +3373,12 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -3732,12 +3733,12 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -4094,12 +4095,12 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -4409,12 +4410,12 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -4751,12 +4752,12 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -4939,12 +4940,12 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -5097,12 +5098,12 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -5469,12 +5470,12 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -5829,12 +5830,12 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -6191,12 +6192,12 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -6506,12 +6507,12 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -6855,12 +6856,12 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -7043,12 +7044,12 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -7201,12 +7202,12 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -7573,12 +7574,12 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -7933,12 +7934,12 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -8295,12 +8296,12 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -8610,12 +8611,12 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -9207,12 +9208,12 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
       attributes
       selectionCount
       subtype
-      senses
+      ids
       __typename
     }
     spells {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -9231,7 +9232,7 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
     }
     spellcasting {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -9586,12 +9587,12 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -9946,12 +9947,12 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -10308,12 +10309,12 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -10623,12 +10624,12 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -10989,12 +10990,12 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -11349,12 +11350,12 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -11944,12 +11945,12 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
       attributes
       selectionCount
       subtype
-      senses
+      ids
       __typename
     }
     spells {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -11968,7 +11969,7 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
     }
     spellcasting {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -12323,12 +12324,12 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -12683,12 +12684,12 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -13045,12 +13046,12 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -13360,12 +13361,12 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -13726,12 +13727,12 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -14086,12 +14087,12 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -14688,12 +14689,12 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
       attributes
       selectionCount
       subtype
-      senses
+      ids
       __typename
     }
     spells {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -14712,7 +14713,7 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
     }
     spellcasting {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -15067,12 +15068,12 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -15427,12 +15428,12 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -15789,12 +15790,12 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -16104,12 +16105,12 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -16470,12 +16471,12 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -16830,12 +16831,12 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -17109,19 +17110,19 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
       __typename
     }
     contains {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -17479,12 +17480,12 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -17839,12 +17840,12 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -18201,12 +18202,12 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -18516,12 +18517,12 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -18798,19 +18799,19 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
       __typename
     }
     contains {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -19168,12 +19169,12 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -19528,12 +19529,12 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -19890,12 +19891,12 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -20205,12 +20206,12 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -20494,19 +20495,19 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
       __typename
     }
     contains {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -20864,12 +20865,12 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -21224,12 +21225,12 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -21586,12 +21587,12 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -21901,12 +21902,12 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -22447,12 +22448,12 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -22807,12 +22808,12 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -23169,12 +23170,12 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -23484,12 +23485,12 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -24029,12 +24030,12 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -24389,12 +24390,12 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -24751,12 +24752,12 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -25066,12 +25067,12 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -25618,12 +25619,12 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -25978,12 +25979,12 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -26340,12 +26341,12 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -26655,12 +26656,12 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -26892,19 +26893,19 @@ export const createCharacter = /* GraphQL */ `mutation CreateCharacter($input: C
       __typename
     }
     equipment {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -27213,19 +27214,19 @@ export const updateCharacter = /* GraphQL */ `mutation UpdateCharacter($input: C
       __typename
     }
     equipment {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -27739,12 +27740,12 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -28099,12 +28100,12 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -28461,12 +28462,12 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -28776,12 +28777,12 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -29211,12 +29212,12 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -29571,12 +29572,12 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -29933,12 +29934,12 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -30248,12 +30249,12 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -30690,12 +30691,12 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -31050,12 +31051,12 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -31412,12 +31413,12 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -31727,12 +31728,12 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit

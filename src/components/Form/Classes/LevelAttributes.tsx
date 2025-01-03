@@ -3,8 +3,6 @@ import Collapse from '../../Collapse/Collapse'
 import { UpdateState } from '../../../types/form'
 import { Class } from '../../../../amplify/API'
 import { Attributes } from '../../../types/enums'
-import { use } from 'react'
-import { FormContext } from '../FormContext'
 import Row from '../../Row/Row'
 import Input from '../../Input/Input'
 
@@ -15,7 +13,6 @@ const LevelAttributes = ({
   formData: Class
   updateFormData: (arg: UpdateState<Class>) => void
 }) => {
-  const { context } = use(FormContext)
   // Add level attribute table
   useEffect(() => {
     if (
@@ -55,7 +52,7 @@ const LevelAttributes = ({
         formData.resource?.method === Attributes.setPerLevel)) && (
       <>
         <Collapse>
-          <Collapse.Header title={'Level Attributes'} startOpened={context.type === 'new'} />
+          <Collapse.Header title={'Level Attributes'} startOpened={formData.id == null} />
           <Collapse.Body>
             <Row spacing='spaceBetween' cellSize='auto'>
               <span>Level</span>

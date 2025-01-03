@@ -118,7 +118,7 @@ export const button_style = styleVariants({
   outline: {
     color: theme.vars.typography.color.main,
     backgroundColor: 'transparent',
-    border: `${theme.border} ${button_background_color}`,
+    border: `${theme.border.size.main} ${theme.border.style} ${button_background_color}`,
 
     selectors: {
       '&:hover': {
@@ -127,6 +127,8 @@ export const button_style = styleVariants({
     },
   },
 })
+
+console.log({ button_background_color })
 
 export const button_height = styleVariants({
   default: { height: theme.component.button.height },

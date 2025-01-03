@@ -20,13 +20,14 @@ const FeaturesList = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { formData, updateFormData, context, stepIndex, steps } = use(FormContext)
+  const { formData, updateFormData, stepIndex, steps } = use(FormContext)
 
   const { setFeatureStep, updateFeatureData, sectionSteps } = use(FeatureContext)
 
   const arrayName = useMemo(
-    () => (context.title === 'feats' ? '' : steps[stepIndex].id === 'ancestry' ? ['ancestry', 'options'] : 'features'),
-    [context.title, steps, stepIndex]
+    () =>
+      formData.__typename === 'Feat' ? '' : steps[stepIndex].id === 'ancestry' ? ['ancestry', 'options'] : 'features',
+    [formData, steps, stepIndex]
   )
 
   const featureArray = useMemo(() => get(formData, arrayName) ?? [], [arrayName, formData])
@@ -45,7 +46,7 @@ const FeaturesList = () => {
 
   // Delete feature
   const handleRemove = (featureIndex: number) => {
-    if (context.title !== 'feats') {
+    if (formData.__typename !== 'Feat') {
       if (steps[stepIndex].id === 'ancestry') {
         updateFormData({
           type: 'remove',
@@ -97,7 +98,7 @@ const FeaturesList = () => {
               />
             </Row>
             <Collapse className={sprinkles({ width: 'size-full' })}>
-              <Collapse.Header title='Ancestry Description' startOpened={context.type === 'new'} />
+              <Collapse.Header title='Ancestry Description' startOpened={formData.id == null} />
               <Collapse.Body>
                 <RichTextEditor<Race> name='ancestry.desc' onChange={updateFormData} value={formData?.ancestry?.desc} />
               </Collapse.Body>

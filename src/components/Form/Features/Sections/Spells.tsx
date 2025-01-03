@@ -151,10 +151,10 @@ const Spells = () => {
         {!sectionData.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) && (
           <>
             <Dropdown
-              name='spells'
+              name='ids'
               multiSelect={true}
               label='Spell'
-              value={sectionData.spells}
+              value={sectionData.ids}
               options={spellsArray}
               required={true}
               onChange={updateSectionData}

@@ -1,4 +1,5 @@
 import { get, truncate } from 'lodash'
+import { FormDataType } from '../types/form'
 
 export const getValueFromState = ({
   input,
@@ -197,34 +198,31 @@ export const numberToWords = (number: number) => {
   return result.trim().replace(/,$/, '')
 }
 
-export const titleText = (title: string) => {
-  let titleText: string = ''
-  switch (title) {
-    case 'characters':
-      titleText = 'character'
+export const routeRoot = (typename: FormDataType['__typename']) => {
+  let routeString: string = ''
+  switch (typename) {
+    case 'Character':
+      routeString = 'characters'
       break
-    case 'classes':
-      titleText = 'class'
+    case 'Class':
+      routeString = 'classes'
       break
-    case 'feats':
-      titleText = 'feat'
+    case 'Feat':
+      routeString = 'feats'
       break
-    case 'items':
-      titleText = 'item'
+    case 'Equipment':
+      routeString = 'equipment'
       break
-    case 'backgrounds':
-      titleText = 'background'
+    case 'Background':
+      routeString = 'backgrounds'
       break
-    case 'races':
-      titleText = 'race'
+    case 'Race':
+      routeString = 'races'
       break
-    case 'spells':
-      titleText = 'spell'
-      break
-    case 'options':
-      titleText = 'option'
+    case 'Spell':
+      routeString = 'spells'
       break
   }
 
-  return titleText
+  return routeString
 }

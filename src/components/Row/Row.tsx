@@ -1,8 +1,9 @@
 import { Children, ReactNode, isValidElement, useCallback, useMemo, useRef, Fragment } from 'react'
 import Column from './Column'
-import { row } from './Row.css'
+import { column_gap, row, row_gap } from './Row.css'
 import clsx from 'clsx'
 import { useMediaQuery } from 'usehooks-ts'
+import { assignInlineVars } from '@vanilla-extract/dynamic'
 
 type ColsAutoType = {
   start: number
@@ -56,7 +57,6 @@ const Row = ({
   spacing = 'flexStart',
 }: RowProps) => {
   const rowRef = useRef<HTMLDivElement>(null)
-
   const lg = useMediaQuery('(min-width: 1300px)')
   const md = useMediaQuery('(min-width: 762px) and (max-width: 1300px)')
 
@@ -120,6 +120,7 @@ const Row = ({
   return (
     <div
       className={clsx({ [className]: className }, row[rowWidth], row[spacing])}
+      style={assignInlineVars({ [column_gap]: `${columnGap}px`, [row_gap]: `${rowGap}px` })}
       onClick={onClick && onClick}
       ref={rowRef}
     >
@@ -136,7 +137,7 @@ const Row = ({
             : columnWidth
         return (
           child && (
-            <Column key={index} width={colWidth} columnGap={columnGap} rowGap={rowGap}>
+            <Column key={index} width={colWidth}>
               {child}
             </Column>
           )

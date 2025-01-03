@@ -28,7 +28,7 @@ const Base = ({
   updateFeatureData: (arg: UpdateState<FeatureDataType>) => void
   valueLabel: string
 }) => {
-  const { context, steps, stepIndex } = use(FormContext)
+  const { formData, steps, stepIndex } = use(FormContext)
 
   const {
     featureStep,
@@ -127,14 +127,14 @@ const Base = ({
           className={sprinkles({ mb: 'space-3' })}
         />
         <Row className={sprinkles({ mb: 'space-3' })}>
-          {context.title !== 'equipment' &&
-            context.title !== 'backgrounds' &&
+          {formData.__typename !== 'Equipment' &&
+            formData.__typename !== 'Background' &&
             !(steps[stepIndex].id === 'ancestry' && featureStep !== 'option') && (
               <Input
                 name={`levelAvailable`}
                 autoComplete='off'
                 label='Level(s) Available'
-                required={context.title === 'races' || featureStep === 'option' ? false : true}
+                required={formData.__typename === 'Race' || featureStep === 'option' ? false : true}
                 value={featureData?.levelAvailable}
                 validation='num'
                 errorMsg='Must contain whole numbers and commas only'
@@ -149,7 +149,7 @@ const Base = ({
                 options={system.attributes.filter(
                   (attribute) =>
                     attribute.features.includes(FeatureEnum.all) ||
-                    (context.title === 'equipment' && attribute.features.includes(FeatureEnum.equipment)) ||
+                    (formData.__typename === 'Equipment' && attribute.features.includes(FeatureEnum.equipment)) ||
                     (featureData.__typename !== 'FeatureOption' &&
                       featureData.__typename !== 'Subfeature' &&
                       featureData?.options?.length > 0 &&
@@ -300,7 +300,7 @@ const Base = ({
               name={`saveAbility.minAmount`}
               autoComplete='off'
               label='Base Value'
-              required={context.title !== 'classes' && true}
+              required={formData.__typename !== 'Class' && true}
               errorMsg='Must contain only numbers'
               value={featureData?.saveAbility?.minAmount}
               onChange={updateFeatureData}

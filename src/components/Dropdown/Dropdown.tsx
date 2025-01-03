@@ -32,7 +32,7 @@ export interface DropdownProps<T> {
   id?: string
   filters?: Filter[]
   all?: boolean
-  height?: 'full' | 'auto'
+  height?: 'full' | 'auto' | 'default'
   border?: 'none' | 'default'
   name: DeepKeyOf<T>
 }
@@ -51,7 +51,7 @@ const Dropdown = <T,>({
   id,
   filters,
   all = true,
-  height = 'auto',
+  height = 'default',
   border = 'default',
 }: DropdownProps<T>) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)

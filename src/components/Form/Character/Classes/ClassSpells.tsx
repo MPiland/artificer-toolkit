@@ -5,15 +5,7 @@ import { get, isEqual, set } from 'lodash'
 import { useCallback, useEffect, useMemo } from 'react'
 import Group from '../../../Group/Group'
 import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
-import {
-  Character,
-  CharacterClass,
-  Class,
-  Spell,
-  ClassSpell,
-  ClassSpellList,
-  CharacterSpell,
-} from '../../../../../amplify/API'
+import { Character, CharacterClass, Class, Spell, ClassSpellList, CharacterSpell } from '../../../../../amplify/API'
 import { Attributes, Measurement, Rounding } from '../../../../types/enums'
 import { UpdateState } from '../../../../types/form'
 
@@ -95,7 +87,7 @@ const ClassSpells = ({
                     })
                 }
               } else {
-                spell.spells?.forEach((fSpell) => {
+                spell.ids?.forEach((fSpell) => {
                   const subSpell = spells.find((sSpell) => sSpell.id === fSpell)
                   subSpells.push(subSpell)
                 })
@@ -198,7 +190,7 @@ const ClassSpells = ({
                   })
               }
             } else {
-              featureSpell.spells.forEach((fSpell) => {
+              featureSpell.ids.forEach((fSpell) => {
                 const spell = spells.find((sSpell) => sSpell.id === fSpell)
                 additionalSpells.push({
                   classId: uClass.id,
@@ -357,7 +349,7 @@ const ClassSpells = ({
   const knownSpellCount = spellList?.flatMap((listObject) => listObject.spells.map((oSpell) => oSpell)).length || 0
 
   const handleAddSpell = (spell: Spell, type: 'known' | 'prepared') => {
-    let spellList: Array<{ level?: number | null; spells?: Array<Omit<ClassSpell, '__typename'>> }> = JSON.parse(
+    let spellList: Omit<ClassSpellList, '__typename'>[] = JSON.parse(
       JSON.stringify(formData.spellcasting?.[type] || [])
     )
     if (spellList?.length > 0) {
@@ -365,16 +357,16 @@ const ClassSpells = ({
       if (spellObjectIndex !== -1) {
         spellList[spellObjectIndex].spells = [
           ...spellList[spellObjectIndex].spells,
-          { id: spell.id, classId: uClass.id },
+          { id: spell.id, classId: uClass.id, __typename: 'ClassSpell' },
         ]
       } else {
         spellObjectIndex = spellList.length
-        spellList[spellObjectIndex].spells.push({ id: spell.id, classId: uClass.id })
+        spellList[spellObjectIndex].spells.push({ id: spell.id, classId: uClass.id, __typename: 'ClassSpell' })
       }
     } else {
       spellList.push({
         level: spell.level,
-        spells: [{ id: spell.id, classId: uClass.id }],
+        spells: [{ id: spell.id, classId: uClass.id, __typename: 'ClassSpell' }],
       })
     }
 

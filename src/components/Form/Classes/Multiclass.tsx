@@ -6,16 +6,13 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { Class } from '../../../../amplify/API'
 import { UpdateState } from '../../../types/form'
-import { use } from 'react'
-import { FormContext } from '../FormContext'
 
 const Multiclass = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
-  const { context } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
   return (
     <Collapse>
-      <Collapse.Header title={'Multiclass Ability Requirements'} startOpened={context.type === 'new'} />
+      <Collapse.Header title={'Multiclass Ability Requirements'} startOpened={formData.id == null} />
       <Collapse.Body>
         <Row className={sprinkles({ mb: 'space-3' })}>
           {formData?.attributes?.some((attribute) => attribute === 'primaryAbility') && (

@@ -27,19 +27,11 @@ import {
   Ranges,
   Shapes,
 } from '../../../types/enums'
-import {
-  AllEnum,
-  ClassesEnum,
-  Equipment,
-  EquipmentEnum,
-  Feat,
-  FeatureEnum,
-  Spell,
-} from '../../../../amplify/API'
+import { AllEnum, ClassesEnum, Equipment, EquipmentEnum, Feat, FeatureEnum, Spell } from '../../../../amplify/API'
 import { UpdateState } from '../../../types/form'
 
 const AttributeForm = () => {
-  const { context, formData, updateFormData } = use(FormContext)
+  const { formData, updateFormData } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
 
@@ -457,7 +449,7 @@ const AttributeForm = () => {
       {formData.__typename === 'Class' && formData?.subtypes?.length > 0 && (
         <>
           <Collapse>
-            <Collapse.Header title={'Subtypes'} startOpened={context.type === 'new'} />
+            <Collapse.Header title={'Subtypes'} startOpened={formData.id == null} />
             <Collapse.Body>
               <Row cellSize='auto'>
                 <span>Name</span>

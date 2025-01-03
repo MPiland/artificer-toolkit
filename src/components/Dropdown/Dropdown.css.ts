@@ -38,6 +38,7 @@ export const dropdown_wrapper = style({
 export const dropdown_label = style({
   '@layer': {
     [app]: {
+      marginBottom: space['space-2'],
       selectors: {
         '&.required:after': {
           content: '*',
@@ -59,10 +60,8 @@ export const dropdown_container = style({
       paddingLeft: size['size-3'],
       overflow: 'hidden',
       cursor: 'pointer',
-      height: theme.component.input.height,
       borderRadius: theme.border.radius,
       backgroundColor: theme.vars.component.input.backgroundColor,
-      marginTop: space['space-2'],
 
       selectors: {
         '&:focus-within': {
@@ -193,6 +192,7 @@ globalStyle(`${dropdown_right_section} > span`, {
 export const dropdown_height = styleVariants({
   auto: { height: size['size-auto'] },
   full: { height: size['size-full'] },
+  default: { height: theme.component.input.height },
 })
 
 export const dropdown_border = styleVariants({

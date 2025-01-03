@@ -1,4 +1,4 @@
-import { useState, ReactElement, useMemo, useCallback } from 'react'
+import { useState, ReactElement, useCallback } from 'react'
 import FeatureWrapper from './Features/FeatureWrapper'
 import Details from './Generic/Details'
 import Traits from './Races/Traits'
@@ -8,7 +8,7 @@ import Races from './Character/Races/Races'
 import Attributes from './Generic/Attributes'
 import Abilities from './Character/Abilities'
 import StartingEquipment from './Classes/StartingEquipment'
-import { Context as AppContext, FormDataType, FormSteps, Step, UpdateState } from '../../types/form'
+import { FormDataType, FormSteps, Step, UpdateState } from '../../types/form'
 import CharacterClasses from './Character/Classes/CharacterClasses'
 import BackgroundEquipment from './Backgrounds/BackgroundEquipment'
 import Equipment from './Character/Equipment'
@@ -20,7 +20,6 @@ import { Outlet } from 'react-router-dom'
 
 const useFormOptions = () => {
   // Generic form states
-  const [context, setContext] = useState<AppContext>({ title: undefined, type: undefined })
   const [saving, setSaving] = useState<boolean>(false)
   const [stepIndex, setStepIndex] = useState<number>(0)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -64,47 +63,43 @@ const useFormOptions = () => {
   )
 
   // Standard possible form steps
-  const formSteps: Record<FormSteps, ReactElement> = useMemo(
-    () => ({
-      details: <Details />,
-      attributes: <Attributes />,
-      traits: <Traits />,
-      ancestry: <AncestryWrapper />,
-      features: <FeatureWrapper />,
-      contains: <Contains />,
-      proficiencies: <Proficiencies />,
-      equipment: context.title === 'backgrounds' ? <BackgroundEquipment /> : <Equipment />,
-      startingEquipment: <StartingEquipment />,
-      race: <Races />,
-      class: <CharacterClasses />,
-      abilities: (
-        <DiceProvider>
-          <Abilities />
-        </DiceProvider>
-      ),
-      background: <></>,
-    }),
-    [context.title]
-  )
+  const formSteps: Record<FormSteps, ReactElement> = {
+    details: <Details />,
+    attributes: <Attributes />,
+    traits: <Traits />,
+    ancestry: <AncestryWrapper />,
+    features: <FeatureWrapper />,
+    contains: <Contains />,
+    proficiencies: <Proficiencies />,
+    equipment: formData.__typename === 'Background' ? <BackgroundEquipment /> : <Equipment />,
+    startingEquipment: <StartingEquipment />,
+    race: <Races />,
+    class: <CharacterClasses />,
+    abilities: (
+      <DiceProvider>
+        <Abilities />
+      </DiceProvider>
+    ),
+    background: <></>,
+  }
 
-  const isFirstStep = useMemo(() => {
+  const isFirstStep = () => {
     if (stepIndex === 0) {
       return true
     } else {
       return false
     }
-  }, [stepIndex])
+  }
 
-  const isLastStep = useMemo(() => {
+  const isLastStep = () => {
     if (stepIndex === steps?.length - 1) {
       return true
     } else {
       return false
     }
-  }, [stepIndex, steps])
+  }
 
   const stateReset = () => {
-    setContext({ title: undefined, type: undefined })
     setSaving(false)
     setStepIndex(0)
     setSuccessMessage(null)
@@ -116,52 +111,31 @@ const useFormOptions = () => {
     return Promise.resolve()
   }
 
-  return useMemo(
-    () => ({
-      formSteps,
-      initialFormData,
-      saving,
-      setSaving,
-      stepIndex,
-      setStepIndex,
-      context,
-      setContext,
-      successMessage,
-      setSuccessMessage,
-      errorMessage,
-      setErrorMessage,
-      validForm,
-      setValidForm,
-      addClass,
-      setAddClass,
-      changeRace,
-      setChangeRace,
-      steps,
-      setSteps,
-      stateReset,
-      isFirstStep,
-      isLastStep,
-      formData,
-      updateFormData,
-    }),
-    [
-      addClass,
-      changeRace,
-      context,
-      errorMessage,
-      formSteps,
-      isFirstStep,
-      isLastStep,
-      initialFormData,
-      saving,
-      stepIndex,
-      successMessage,
-      steps,
-      validForm,
-      formData,
-      updateFormData,
-    ]
-  )
+  return {
+    formSteps,
+    initialFormData,
+    saving,
+    setSaving,
+    stepIndex,
+    setStepIndex,
+    successMessage,
+    setSuccessMessage,
+    errorMessage,
+    setErrorMessage,
+    validForm,
+    setValidForm,
+    addClass,
+    setAddClass,
+    changeRace,
+    setChangeRace,
+    steps,
+    setSteps,
+    stateReset,
+    isFirstStep,
+    isLastStep,
+    formData,
+    updateFormData,
+  }
 }
 
 const FormProvider = () => {

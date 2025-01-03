@@ -1,22 +1,15 @@
 import { ReactNode } from 'react'
-import { column, column_gap, column_width, row_gap } from './Column.css'
+import { column, column_width } from './Column.css'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
 
 interface ColumnProps {
   children: ReactNode
   width: string
-  columnGap: number
-  rowGap: number
 }
 
-const Column = ({ children, width, columnGap, rowGap }: ColumnProps) => {
-  const colSpacing = `${columnGap / 2}px`
-  const rowSpacing = `${rowGap / 2}px`
+const Column = ({ children, width }: ColumnProps) => {
   return (
-    <div
-      className={column}
-      style={assignInlineVars({ [column_width]: width, [column_gap]: colSpacing, [row_gap]: rowSpacing })}
-    >
+    <div className={column} style={assignInlineVars({ [column_width]: width })}>
       {children}
     </div>
   )

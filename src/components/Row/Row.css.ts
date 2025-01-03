@@ -1,5 +1,9 @@
 import { app } from '../../css/layers.css'
 import { style, styleVariants } from '@vanilla-extract/css'
+import { createVar } from '@vanilla-extract/css'
+
+export const column_gap = createVar('column_gap')
+export const row_gap = createVar('row_gap')
 
 export const rowBase = style({
   '@layer': {
@@ -7,6 +11,8 @@ export const rowBase = style({
       display: 'flex',
       justifyContent: 'space-between',
       flexWrap: 'wrap',
+      columnGap: column_gap,
+      rowGap: row_gap,
     },
   },
 })

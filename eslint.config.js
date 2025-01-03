@@ -20,6 +20,9 @@ export default [
     plugins: {
       'react-refresh': reactRefresh,
     },
+    linterOptions: {
+      reportUnusedDisableDirectives: 'off',
+    },
   },
   ...fixupConfigRules(
     compat.extends(
@@ -59,6 +62,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       'react/no-unknown-property': 'off',
       'react/react-in-jsx-scope': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn',
     },
   },
 ]

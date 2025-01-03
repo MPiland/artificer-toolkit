@@ -34,7 +34,7 @@ interface InputProps<T> {
   endAdornment?: any
   id?: string
   disabled?: boolean
-  height?: 'full' | 'auto'
+  height?: 'full' | 'auto' | 'default'
   border?: 'none' | 'default'
   textAlign?: 'center'
   name: DeepKeyOf<T>
@@ -57,7 +57,7 @@ const Input = <T,>({
   endAdornment,
   id,
   disabled = false,
-  height = 'auto',
+  height = 'default',
   border = 'default',
   textAlign,
 }: InputProps<T>) => {

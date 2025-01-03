@@ -29,7 +29,6 @@ const ProgressBar = () => {
     setSteps,
     setAddClass,
     setChangeRace,
-    context,
   } = use(FormContext)
 
   const { setSectionStep, featureStep, setFeatureStep, handleSaveFeatures } = use(FeatureContext)
@@ -105,7 +104,7 @@ const ProgressBar = () => {
       if (
         featureStep === 'subfeature' ||
         featureStep === 'option' ||
-        (featureStep === 'feature' && context.title !== 'feats')
+        (featureStep === 'feature' && formData.__typename !== 'Feat')
       ) {
         formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }

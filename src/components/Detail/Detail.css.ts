@@ -1,54 +1,34 @@
 import { globalStyle, style } from '@vanilla-extract/css'
-import { fontSize, fontWeight } from '../../css/typography.css'
 import { theme } from '../../css/theme.css'
 import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
 
+export const detail_nav_section = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 .5rem',
+    },
+  },
+})
+
 export const detail_title = style({
   '@layer': {
     [app]: {
-      fontWeight: fontWeight['font-weight-7'],
+      padding: '1rem .5rem',
     },
   },
 })
 
-export const detail_main = style({
+export const detail_col_section = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      display: 'flex',
-      flexDirection: 'row',
-      height: '100%',
-      width: '100%',
-      overflow: 'hidden',
-    },
-  },
-})
-
-export const detail_aside = style({
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      height: '100%',
-      width: '0',
-      padding: '0',
-      margin: '0',
-      backgroundColor: theme.vars.component.content.backgroundColor.main,
-      color: theme.vars.typography.color.main,
-      zIndex: 20,
-      transition: 'all .3s ease-in-out',
-      overflow: 'hidden',
-      textWrap: 'nowrap',
-
-      selectors: {
-        '&.active': {
-          width: '13rem',
-          borderRight: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
-          transition: 'all .3s ease-in-out',
-          paddingRight: '1rem',
-          marginRight: '.5rem',
-        },
-      },
+      zIndex: 1,
+      padding: '1rem .5rem',
+      flex: '1 1 0',
     },
   },
 })
@@ -56,63 +36,39 @@ export const detail_aside = style({
 export const detail_body = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      zIndex: 1,
-      padding: '0 .5rem',
+      display: 'flex',
+      flexDirection: 'column',
       flex: '1 1 0',
+      padding: '1rem .5rem',
     },
   },
 })
 
-export const detail_aside_title = style({
-  '@layer': {
-    [app]: {
-      fontWeight: fontWeight['font-weight-7'],
-      fontSize: fontSize['font-size-2'],
-    },
-  },
-})
-
-export const detail_aside_list = style({
+export const detail_col_item = style({
   '@layer': {
     [app]: {
       display: 'flex',
       flexDirection: 'column',
-      padding: '0',
-      paddingLeft: '.75rem',
-      listStyle: 'none',
-      fontSize: fontSize['font-size-1'],
+      padding: '.5rem .5rem',
     },
   },
 })
 
-globalStyle(`${detail_aside_list} > li`, {
+export const detail_col_title = style({
+  '@layer': {
+    [app]: {
+      fontWeight: 'bold',
+      marginBottom: '.5rem',
+    },
+  },
+})
+
+export const detail_footer = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      fontSize: 'inherit',
-    },
-  },
-})
-
-globalStyle(`${detail_aside_list} > li.active::before`, {
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      content: '',
-      width: '.5rem',
-      backgroundColor: 'lightgreen',
-      marginRight: '.25rem',
-    },
-  },
-})
-
-globalStyle(`${detail_aside_list} > li > a`, {
-  '@layer': {
-    [app]: {
-      fontSize: 'inherit',
-      textDecoration: 'none',
-      color: theme.vars.typography.color.main,
+      justifyContent: 'end',
+      alignItems: 'center',
     },
   },
 })

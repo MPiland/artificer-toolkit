@@ -18,24 +18,38 @@ const Spell = () => {
     { header: 'LEVEL', name: 'level' },
     {
       header: 'CASTING TIME',
-      name: ['action', 'action.type'],
+      name: [
+        [
+          ['actions.primary.amount', { path: 'actions.primary.id', source: { type: 'system', field: 'actions' } }],
+          ['actions.secondary.amount', { path: 'actions.secondary.id', source: { type: 'system', field: 'actions' } }],
+        ],
+      ],
     },
     {
       header: 'RANGE/AREA',
       name: [
-        ['range.type', 'range.distance', 'range.unit.short'],
-        ['shape.type', 'shape.size', 'shape.unit.short'],
+        [{ path: 'range.id', source: { type: 'system', field: 'spells.ranges' } }, 'range.minRange'],
+        ['range.maxRange', { path: 'range.unit', source: { type: 'system', field: 'rules' } }],
+        [
+          { path: 'shape.id', source: { type: 'system', field: 'spells.shapes' } },
+          'shape.size',
+          { path: 'shape.unit', source: { type: 'system', field: 'rules' } },
+        ],
       ],
     },
-    { header: 'REQUIREMENTS', name: 'requirement', truncate: 1 },
+    {
+      header: 'REQUIREMENTS',
+      name: { path: 'requirements', source: { type: 'system', field: 'spells.requirements' } },
+      truncate: 1,
+    },
     {
       header: 'DURATION',
-      name: ['duration.value', 'duration.type'],
+      name: ['duration.amount', { path: 'duration.id', source: { type: 'system', field: 'spells.durations' } }],
     },
-    { header: 'SCHOOL', name: 'school' },
+    { header: 'SCHOOL', name: { path: 'school', source: { type: 'system', field: 'spells.schools' } } },
     {
       header: 'SAVE ABILITY',
-      name: 'saveAbility.type',
+      name: { path: 'saveAbility', source: { type: 'system', field: 'abilities' } },
       filter: ['isAttack', 'requireSave'],
     },
     {

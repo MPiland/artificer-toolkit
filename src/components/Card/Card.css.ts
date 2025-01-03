@@ -30,9 +30,16 @@ export const card_header = style({
       flexDirection: 'row',
       justifyContent: 'space-between',
       borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
-      padding: `${size['size-4']} ${size['size-4']}`,
+      height: 'auto',
+      padding: `${size['size-2']} ${size['size-4']}`,
       backgroundColor: theme.vars.component.card.backgroundColor.header,
       alignItems: 'center',
+
+      selectors: {
+        '&.collapsible': {
+          cursor: 'pointer',
+        },
+      },
     },
   },
 })
@@ -56,23 +63,10 @@ export const card_header_title = style({
   },
 })
 
-export const card_header_icon_container = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      flexDirection: 'row',
-      width: '100%',
-      height: '100%',
-      justifyContent: 'end',
-      cursor: 'pointer',
-    },
-  },
-})
-
 export const card_header_icon = style({
   '@layer': {
     [app]: {
-      height: '100%',
+      height: '1.75rem',
       width: 'auto',
       transition: 'rotate .3s ease-in-out',
 

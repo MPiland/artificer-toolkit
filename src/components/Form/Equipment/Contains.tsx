@@ -31,8 +31,8 @@ const ContainsForm = () => {
       {formData.contains?.map((contain, index) => (
         <Row key={index} spacing='flexStart' cellSize='auto'>
           <Dropdown
-            name={`contains.${index}.id`}
-            value={contain.id}
+            name={`contains.${index}.equipment`}
+            value={contain.equipment}
             required={true}
             options={equipment}
             errorMsg='Please enter a whole number'

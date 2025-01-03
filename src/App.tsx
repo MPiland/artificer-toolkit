@@ -34,6 +34,7 @@ import FormProvider from './components/Form/FormProvider'
 import ThemeProvider from './theme/ThemeProvider'
 import AuthProvider from './features/auth/AuthProvider'
 import LoadingProvider from './components/Loading/LoadingProvider'
+import Spell from './features/spells/Spell'
 
 const App = () => {
   const router = createBrowserRouter([
@@ -134,7 +135,7 @@ const App = () => {
                       path: '',
                       element: <RacesList />,
                       children: [
-                        { path: 'detail/:id', element: <Race /> },
+                        { path: ':id', element: <Race /> },
                         { path: 'delete/:id', element: <Delete /> },
                       ],
                     },
@@ -163,8 +164,9 @@ const App = () => {
                       element: <SpellsList />,
                       children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
+                    { path: ':id', element: <Spell />, children: [{ path: 'edit', element: <SpellForm /> }] },
                     {
-                      path: ':type?/:id?',
+                      path: 'new',
                       element: <SpellForm />,
                       children: [
                         {

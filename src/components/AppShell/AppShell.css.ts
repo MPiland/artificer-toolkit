@@ -129,7 +129,8 @@ export const hamburger_line = style({
     [app]: {
       width: '100%',
       height: theme.component.appShell.hamburger.line.height,
-      backgroundColor: theme.vars.component.appShell.sidebar.backgroundColor,
+      backgroundColor: theme.vars.typography.color.main,
+      color: theme.vars.typography.color.main,
       transition: 'transform .3s, opacity .3s',
       transformOrigin: 'center',
       vars: {

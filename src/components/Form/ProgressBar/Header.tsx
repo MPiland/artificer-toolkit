@@ -1,15 +1,12 @@
 import { form_header } from '../Form.css'
 import Group from '../../Group/Group'
-import { startCase } from 'lodash'
 import Button from '../../Button/Button'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import ProgressBar from './ProgressBar'
-import { titleText } from '../../../utils/formatting'
 
 const Header = () => {
   const {
-    context,
     formData,
     setChangeRace,
     setAddClass,
@@ -27,10 +24,10 @@ const Header = () => {
       <div className={form_header}>
         <Group justifyContentVariant='spaceBetween'>
           <h1>
-            {`${context.type === 'new' ? 'Create' : startCase(context.type)} ${
+            {`${formData.id == null ? 'Create' : formData.__typename} ${
               formData.__typename === 'Character' ? ' An ' : ' A '
             }`}
-            {startCase(titleText(context.title as string))}
+            {formData.__typename}
             {formData?.value && ` (${formData.value})`}
           </h1>
           {formData.__typename === 'Character' && (

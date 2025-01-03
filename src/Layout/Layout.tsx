@@ -32,6 +32,7 @@ import useSystemPref from '../hooks/useSystemPref'
 import ThemeContext from '../theme/ThemeContext'
 import { LoadingContext } from '../components/Loading/LoadingContext'
 import { AuthContext } from '../features/auth/AuthContext'
+import ILogo from '../assets/Icons/ILogo'
 
 const Layout = () => {
   const { user, isAuthenticating, isLoading: isUserLoading } = use(AuthContext)
@@ -152,7 +153,10 @@ const Layout = () => {
       )}
       <AppShell.Main>
         <AppShell.Header>
-          <span className={header_title}>Artificer Toolkit</span>
+          <div className={header_title}>
+            <ILogo />
+            Artificer Toolkit
+          </div>
           <div className={header_item_group}>
             {!isAuthenticating && !user ? (
               !sm &&

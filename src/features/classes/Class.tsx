@@ -1,5 +1,6 @@
 import parse from 'html-react-parser'
-import { Fragment, MouseEvent as ReactMouseEvent } from 'react'
+import { Fragment } from 'react'
+// import { Fragment, MouseEvent as ReactMouseEvent } from 'react'
 import { useListClassesQuery } from './classesApi'
 import { useLocation } from 'react-router-dom'
 import Detail from '../../components/Detail/Detail'
@@ -116,91 +117,91 @@ const Class = () => {
     }
   }
 
-  const scrollToElement = (e: ReactMouseEvent<HTMLLIElement | HTMLAnchorElement, MouseEvent>, id: string) => {
-    const element = document.getElementById(`${id}`)
-    e.preventDefault()
-    if (element) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    }
-  }
+  // const scrollToElement = (e: ReactMouseEvent<HTMLLIElement | HTMLAnchorElement, MouseEvent>, id: string) => {
+  //   const element = document.getElementById(`${id}`)
+  //   e.preventDefault()
+  //   if (element) {
+  //     element.scrollIntoView({
+  //       behavior: 'smooth',
+  //       block: 'start',
+  //     })
+  //   }
+  // }
 
   let resourceShown = false
 
-  const sidebarList =
-    uClass?.category === Categories.base ? (
-      <>
-        {uClass?.details?.length > 0 &&
-          uClass?.details.map((detail, index) => (
-            <li
-              key={index}
-              onClick={(e) => {
-                scrollToElement(e, detail.value)
-              }}
-            >
-              <a href='/'>{detail?.label}</a>
-            </li>
-          ))}
-        {subclasses?.length > 0 && (
-          <>
-            {subclasses.map((subclass, index) => (
-              <li
-                onClick={(e) => {
-                  scrollToElement(e, subclass.value)
-                }}
-                key={index}
-              >
-                <a href='/'>{subclass.label}</a>
-              </li>
-            ))}
-          </>
-        )}
-        {uClass?.features?.find((feature) => feature?.category === Categories.subclass) && (
-          <li
-            onClick={(e) => {
-              scrollToElement(e, uClass?.features?.find((feature) => feature?.category === Categories.subclass)?.value)
-            }}
-          >
-            <a href='/'>{`${uClass?.features?.find((feature) => feature?.category === Categories.subclass)?.label}`}</a>
-          </li>
-        )}
-        {subclasses.length > 0 &&
-          subclasses.map((subclass, index) => (
-            <li key={index}>
-              <a
-                href='/'
-                onClick={(e) => {
-                  scrollToElement(e, subclass.value)
-                }}
-              >
-                {subclass.label}
-              </a>
-            </li>
-          ))}
-      </>
-    ) : (
-      <>
-        {uClass?.features?.length > 0 &&
-          uClass?.features.map((feature, fIndex) => (
-            <li key={fIndex}>
-              <a
-                href='/'
-                className='sidebar-link'
-                onClick={(e) => {
-                  scrollToElement(e, feature.value)
-                }}
-              >
-                {feature.value}
-              </a>
-            </li>
-          ))}
-      </>
-    )
+  // const sidebarList =
+  //   uClass?.category === Categories.base ? (
+  //     <>
+  //       {uClass?.details?.length > 0 &&
+  //         uClass?.details.map((detail, index) => (
+  //           <li
+  //             key={index}
+  //             onClick={(e) => {
+  //               scrollToElement(e, detail.value)
+  //             }}
+  //           >
+  //             <a href='/'>{detail?.label}</a>
+  //           </li>
+  //         ))}
+  //       {subclasses?.length > 0 && (
+  //         <>
+  //           {subclasses.map((subclass, index) => (
+  //             <li
+  //               onClick={(e) => {
+  //                 scrollToElement(e, subclass.value)
+  //               }}
+  //               key={index}
+  //             >
+  //               <a href='/'>{subclass.label}</a>
+  //             </li>
+  //           ))}
+  //         </>
+  //       )}
+  //       {uClass?.features?.find((feature) => feature?.category === Categories.subclass) && (
+  //         <li
+  //           onClick={(e) => {
+  //             scrollToElement(e, uClass?.features?.find((feature) => feature?.category === Categories.subclass)?.value)
+  //           }}
+  //         >
+  //           <a href='/'>{`${uClass?.features?.find((feature) => feature?.category === Categories.subclass)?.label}`}</a>
+  //         </li>
+  //       )}
+  //       {subclasses.length > 0 &&
+  //         subclasses.map((subclass, index) => (
+  //           <li key={index}>
+  //             <a
+  //               href='/'
+  //               onClick={(e) => {
+  //                 scrollToElement(e, subclass.value)
+  //               }}
+  //             >
+  //               {subclass.label}
+  //             </a>
+  //           </li>
+  //         ))}
+  //     </>
+  //   ) : (
+  //     <>
+  //       {uClass?.features?.length > 0 &&
+  //         uClass?.features.map((feature, fIndex) => (
+  //           <li key={fIndex}>
+  //             <a
+  //               href='/'
+  //               className='sidebar-link'
+  //               onClick={(e) => {
+  //                 scrollToElement(e, feature.value)
+  //               }}
+  //             >
+  //               {feature.value}
+  //             </a>
+  //           </li>
+  //         ))}
+  //     </>
+  //   )
 
   return (
-    <Detail sidebar={{ list: sidebarList }} footerSpacing='end'>
+    <Detail footerSpacing='end'>
       <div id='quote'>
         <em>{uClass?.desc && parse(uClass?.desc)}</em>
       </div>

@@ -8,11 +8,10 @@ import {
   card_content_wrapper,
   card_footer,
   card_header_icon,
-  card_header_icon_container,
   card_content_truncated,
   card_content_collapsed_height,
 } from './Card.css'
-import { MdDelete, MdExpandMore, MdModeEdit } from 'react-icons/md'
+import { MdDelete, MdExpandMore, MdLaunch } from 'react-icons/md'
 import clsx from 'clsx'
 import useMeasure from 'react-use-measure'
 import HTMLReactParser from '../../utils/reactParser/dom-to-react'
@@ -24,15 +23,15 @@ import CardProvider from './CardProvider'
 
 const Header = ({
   title,
-  editable,
-  removable,
+  open,
+  remove,
   leftSide,
   collapsible = false,
   startCollapsed = true,
 }: {
   title: string
-  editable?: (arg: any) => void
-  removable?: (arg: any) => void
+  open?: (arg: any) => void
+  remove?: (arg: any) => void
   leftSide?: ReactNode
   collapsible?: boolean
   startCollapsed?: boolean
@@ -46,26 +45,29 @@ const Header = ({
   }, [startCollapsed, setCollapsed])
 
   return (
-    <div className={card_header} onClick={() => setCollapsed(!collapsed)}>
+    <div
+      className={clsx(card_header, { ['collapsible']: collapsible })}
+      onClick={() => {
+        if (collapsible) {
+          setCollapsed(!collapsed)
+        }
+      }}
+    >
       <div className={card_header_title_container}>
         {leftSide && <div>{leftSide}</div>}
         <h4 className={card_header_title}>{title}</h4>
-        {editable && (
-          <Button style='unstyled' width='size-4' onClick={editable}>
-            <MdModeEdit />
+        {open && (
+          <Button style='unstyled' width='size-4' onClick={open}>
+            <MdLaunch />
           </Button>
         )}
-        {removable && (
-          <Button style='unstyled' width='size-4' onClick={removable}>
+        {remove && (
+          <Button style='unstyled' width='size-4' onClick={remove}>
             <MdDelete />
           </Button>
         )}
       </div>
-      {collapsible && (
-        <div className={card_header_icon_container}>
-          <MdExpandMore className={clsx(card_header_icon, { ['collapsed']: collapsed })} />
-        </div>
-      )}
+      {collapsible && <MdExpandMore className={clsx(card_header_icon, { ['collapsed']: collapsed })} />}
     </div>
   )
 }

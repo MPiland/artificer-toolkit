@@ -11,6 +11,7 @@ import { FormDataType, FormInputType } from '../../types/form'
 import { use } from 'react'
 import { FormContext } from './FormContext'
 import { FeatureContext } from './Features/FeatureContext'
+import { routeRoot } from '../../utils/formatting'
 
 interface FooterProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
@@ -26,7 +27,6 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     setValidForm,
     steps,
     setStepIndex,
-    context,
     formData,
     updateFormData,
     initialFormData,
@@ -85,7 +85,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   const forwardLabel = isLastStep
     ? featureStep != null
       ? 'Finish'
-      : context.type === 'edit'
+      : formData.id != null
       ? 'Update'
       : 'Create'
     : 'Next'
@@ -122,9 +122,9 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   ])
 
   const handleNavigateEdit = (item: any) => {
-    const form = context.title
-    navigate(`/${form}/edit/${formData.value}`, {
-      state: { formData: item, previous: `/${form}` },
+    const route = routeRoot(formData.__typename)
+    navigate(`/${route}/${formData.value}/edit`, {
+      state: { formData: item, previous: `/${route}` },
     })
     setStepIndex(0)
     setSaving(false)
@@ -285,11 +285,9 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         return handleAlert({
           alertType: 'back',
           message:
-            context.type === 'edit'
+            formData.id != null
               ? `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
-              : `${startCase(
-                  context.title
-                )} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+              : `${formData.__typename} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
         })
       }
       return navigate(-1)
@@ -326,7 +324,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       if (
         featureStep === 'subfeature' ||
         featureStep === 'option' ||
-        (featureStep === 'feature' && context.title !== 'feats')
+        (featureStep === 'feature' && formData.__typename !== 'Feat')
       ) {
         formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }
@@ -402,7 +400,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         </Button>
       </Group>
       <Group>
-        {context.type === 'edit' && (!isLastStep || (isLastStep && featureStep != null)) && (
+        {formData.id != null && (!isLastStep || (isLastStep && featureStep != null)) && (
           <Button color='update' type='button' onClick={handleUpdate}>
             Update
           </Button>
@@ -410,9 +408,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         <Button
           color={forwardLabel === 'Update' ? 'update' : 'primary'}
           type='button'
-          onClick={() =>
-            isLastStep && featureStep == null && context.type !== 'new' ? handleUpdate() : handleForward()
-          }
+          onClick={() => (isLastStep && featureStep == null && formData.id != null ? handleUpdate() : handleForward())}
         >
           {forwardLabel}
         </Button>

@@ -36,10 +36,10 @@ const Senses = () => {
         onChange={updateSectionData}
       />
       <Dropdown
-        name='senses'
+        name='ids'
         multiSelect={true}
         label='Sense'
-        value={sectionData.senses}
+        value={sectionData.ids}
         options={system.senses}
         required={true}
         onChange={updateSectionData}

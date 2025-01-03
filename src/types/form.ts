@@ -130,11 +130,6 @@ export type Step = {
 
 export type FormSteps = Step['id']
 
-export type Context = {
-  type?: 'new' | 'edit' | string
-  title?: 'classes' | 'spells' | 'races' | 'equipment' | 'feats' | 'options' | 'backgrounds' | 'characters'
-}
-
 export const sectionSteps = [
   'modifiers',
   'spells',
@@ -150,8 +145,3 @@ export type SectionName = (typeof sectionSteps)[number]
 export const featureTypes = ['feature', 'option', 'ancestry', 'subfeature'] as const
 
 export type FeatureTypes = (typeof featureTypes)[number]
-
-export type ClassSpell = {
-  level: number
-  spells: Spell[]
-}

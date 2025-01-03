@@ -14,14 +14,13 @@ import { startCase } from 'lodash'
 import { feature_description, feature_list } from '../Form.css'
 import parse from 'html-react-parser'
 import { Race } from '../../../../amplify/API'
-import { Context, SectionName, UpdateState } from '../../../types/form'
+import { SectionName, UpdateState } from '../../../types/form'
 import { FeatureContext } from '../Features/FeatureContext'
 
 const AncestryList = () => {
-  const { updateFormData, formData, context } = use(FormContext) as {
+  const { updateFormData, formData } = use(FormContext) as {
     formData: Race
     updateFormData: (state: UpdateState<Race>) => void
-    context: Context
   }
 
   const { updateAncestryData, setFeatureStep, sectionSteps } = use(FeatureContext)
@@ -95,7 +94,7 @@ const AncestryList = () => {
               />
             </Row>
             <Collapse className={sprinkles({ width: 'size-full' })}>
-              <Collapse.Header title='Ancestry Description' startOpened={context.type === 'new'} />
+              <Collapse.Header title='Ancestry Description' startOpened={formData.id == null} />
               <Collapse.Body>
                 <RichTextEditor name='ancestry.desc' onChange={updateFormData} value={formData?.ancestry?.desc} />
               </Collapse.Body>

@@ -6,17 +6,14 @@ import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { Class, ClassesEnum } from '../../../../amplify/API'
 import { Attributes, Measurement } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
-import { use } from 'react'
-import { FormContext } from '../FormContext'
 
 const Spellcasting = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
-  const { context } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
 
   return (
     <Collapse>
-      <Collapse.Header startOpened={context.type === 'new'} title={'Spellcaster Attributes'} />
+      <Collapse.Header startOpened={formData.id == null} title={'Spellcaster Attributes'} />
       <Collapse.Body>
         <Row>
           <Dropdown

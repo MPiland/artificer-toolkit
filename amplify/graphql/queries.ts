@@ -1,4 +1,5 @@
 /* tslint:disable */
+/* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
 import * as APITypes from "../API";
@@ -2603,12 +2604,12 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -2791,12 +2792,12 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -2949,12 +2950,12 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -3321,12 +3322,12 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -3681,12 +3682,12 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -4043,12 +4044,12 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -4358,12 +4359,12 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -4700,12 +4701,12 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -4888,12 +4889,12 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -5046,12 +5047,12 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -5418,12 +5419,12 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -5778,12 +5779,12 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -6140,12 +6141,12 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -6455,12 +6456,12 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -6668,12 +6669,12 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -7051,12 +7052,12 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -7366,12 +7367,12 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -7683,12 +7684,12 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -7871,12 +7872,12 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -8437,12 +8438,12 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
       attributes
       selectionCount
       subtype
-      senses
+      ids
       __typename
     }
     spells {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -8461,7 +8462,7 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
     }
     spellcasting {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -8816,12 +8817,12 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -9176,12 +9177,12 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -9538,12 +9539,12 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -9853,12 +9854,12 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -10219,12 +10220,12 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -10579,12 +10580,12 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -11174,12 +11175,12 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
       attributes
       selectionCount
       subtype
-      senses
+      ids
       __typename
     }
     spells {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -11198,7 +11199,7 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
     }
     spellcasting {
       id
-      spells
+      ids
       attributes
       selectionCount
       classLimit
@@ -11553,12 +11554,12 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -11913,12 +11914,12 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -12275,12 +12276,12 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -12590,12 +12591,12 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -12956,12 +12957,12 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -13316,12 +13317,12 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -13909,12 +13910,12 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -13933,7 +13934,7 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
       }
       spellcasting {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -14288,12 +14289,12 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -14603,12 +14604,12 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -14920,12 +14921,12 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -15108,12 +15109,12 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -15442,12 +15443,12 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -15757,12 +15758,12 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -16037,19 +16038,19 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
       __typename
     }
     contains {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -16407,12 +16408,12 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -16767,12 +16768,12 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -17129,12 +17130,12 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -17444,12 +17445,12 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -17726,19 +17727,19 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
       __typename
     }
     contains {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -18096,12 +18097,12 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -18456,12 +18457,12 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -18818,12 +18819,12 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -19133,12 +19134,12 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -19416,16 +19417,16 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
         __typename
       }
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -19766,12 +19767,12 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -20081,12 +20082,12 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -20398,12 +20399,12 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -20586,12 +20587,12 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -21104,12 +21105,12 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -21464,12 +21465,12 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -21826,12 +21827,12 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -22141,12 +22142,12 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -22686,12 +22687,12 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -23046,12 +23047,12 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -23408,12 +23409,12 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -23723,12 +23724,12 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -24266,12 +24267,12 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -24581,12 +24582,12 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -24898,12 +24899,12 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -25086,12 +25087,12 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit
@@ -25295,19 +25296,19 @@ export const getCharacter = /* GraphQL */ `query GetCharacter($id: ID!) {
       __typename
     }
     equipment {
-      id
+      equipment
       quantity
       contains {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -25605,16 +25606,16 @@ export const listCharacters = /* GraphQL */ `query ListCharacters($limit: Int, $
         __typename
       }
       equipment {
-        id
+        equipment
         quantity
         contains {
-          id
+          equipment
           quantity
           contains {
-            id
+            equipment
             quantity
             contains {
-              id
+              equipment
               quantity
               __typename
             }
@@ -26108,12 +26109,12 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -26468,12 +26469,12 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -26830,12 +26831,12 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -27145,12 +27146,12 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -27580,12 +27581,12 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
         attributes
         selectionCount
         subtype
-        senses
+        ids
         __typename
       }
       spells {
         id
-        spells
+        ids
         attributes
         selectionCount
         classLimit
@@ -27940,12 +27941,12 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -28302,12 +28303,12 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -28617,12 +28618,12 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -29053,12 +29054,12 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
           attributes
           selectionCount
           subtype
-          senses
+          ids
           __typename
         }
         spells {
           id
-          spells
+          ids
           attributes
           selectionCount
           classLimit
@@ -29368,12 +29369,12 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -29685,12 +29686,12 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
             attributes
             selectionCount
             subtype
-            senses
+            ids
             __typename
           }
           spells {
             id
-            spells
+            ids
             attributes
             selectionCount
             classLimit
@@ -29873,12 +29874,12 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
               attributes
               selectionCount
               subtype
-              senses
+              ids
               __typename
             }
             spells {
               id
-              spells
+              ids
               attributes
               selectionCount
               classLimit

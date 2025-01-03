@@ -5,20 +5,17 @@ import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { Class, ClassesEnum } from '../../../../amplify/API'
-import { use } from 'react'
-import { FormContext } from '../FormContext'
 
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 
 const Resource = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
-  const { context } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
 
   return (
     <Collapse>
-      <Collapse.Header startOpened={context.type === 'new'} title='Resource Attributes' />
+      <Collapse.Header startOpened={formData.id == null} title='Resource Attributes' />
       <Collapse.Body>
         <Row>
           <Input

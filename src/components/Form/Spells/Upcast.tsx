@@ -1,6 +1,4 @@
 import { useMemo, useEffect, ReactNode } from 'react'
-import { use } from 'react'
-import { FormContext } from '../FormContext'
 import Dropdown from '../../Dropdown/Dropdown'
 import Row from '../../Row/Row'
 import Collapse from '../../Collapse/Collapse'
@@ -20,7 +18,6 @@ const Upcast = ({
   formData: Spell
   updateFormData: (arg: UpdateState<Spell>) => void
 }) => {
-  const { context } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
 
@@ -419,7 +416,7 @@ const Upcast = ({
       {formData?.upcast?.attributes?.length > 0 && (
         <>
           <Collapse className={sprinkles({ mt: 'space-3' })}>
-            <Collapse.Header title='Upcast Table' startOpened={context.type === 'new'} />
+            <Collapse.Header title='Upcast Table' startOpened={formData.id == null} />
             <Collapse.Body>
               <Row>{upcastFields().headers.map((header) => header)}</Row>
               {formData.upcast?.levels?.map((_, index) => (

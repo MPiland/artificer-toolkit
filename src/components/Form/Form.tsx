@@ -22,7 +22,6 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
   const {
     formData,
     stepIndex,
-    context,
     successMessage,
     setSuccessMessage,
     errorMessage,
@@ -66,7 +65,7 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
     <FeatureProvider>
       <form className={form_wrapper} id='form_wrapper'>
         <Header />
-        {context.title === 'characters' && <CharacterHeader />}
+        {formData.__typename === 'Character' && <CharacterHeader />}
         <ScrollArea scrollDirection='vertical' className={form_content} wrapperId={'form_content'}>
           {formSteps[`${steps[stepIndex]?.id}`]}
         </ScrollArea>

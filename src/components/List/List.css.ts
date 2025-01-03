@@ -124,7 +124,7 @@ export const list_footer_item = style({
       textAlign: 'center',
       flexWrap: 'wrap',
       verticalAlign: 'middle',
-      padding: `${space['space-2']} ${space['space-2']}`,
+      padding: `0 ${space['space-2']}`,
     },
   },
 })
