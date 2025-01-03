@@ -34,12 +34,12 @@
       "primary": {
         "dieCount": 4,
         "dieValue": 4,
-        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f"
+        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
       },
       "secondary": {
         "dieCount": 2,
         "dieValue": 4,
-        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f"
+        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
       }
     },
     "classes": [
@@ -50,7 +50,7 @@
         "cb47b615-2a96-4617-870a-9051ab4b95cf",
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -187,7 +187,7 @@
     },
     "damage": {
       "primary": {
-        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
         "dieCount": 1,
         "dieValue": 6
       }
@@ -200,7 +200,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -408,7 +408,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "targets": 2
@@ -491,7 +491,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "duration": {
@@ -632,7 +632,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "targets": 3
@@ -935,7 +935,7 @@
         "cb47b615-2a96-4617-870a-9051ab4b95cf",
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -1289,7 +1289,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 2
@@ -1378,7 +1378,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 5
@@ -1525,7 +1525,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "duration": {
@@ -1718,7 +1718,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "targets": 4
@@ -1811,7 +1811,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -1914,7 +1914,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "targets": 2
@@ -2069,7 +2069,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -2193,7 +2193,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -2320,7 +2320,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -2485,7 +2485,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "targets": 5
@@ -2556,7 +2556,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 2
@@ -2644,7 +2644,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -2736,7 +2736,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "damage": {
@@ -2909,7 +2909,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -3045,7 +3045,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "targets": 2
@@ -3264,7 +3264,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -3362,7 +3362,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "shape": {
@@ -4013,7 +4013,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "shape": {
@@ -4123,7 +4123,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 7
@@ -4188,7 +4188,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "shape": {
@@ -4279,7 +4279,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "damage": {
@@ -4621,7 +4621,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 8,
           "damage": {
@@ -4985,7 +4985,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "damage": {
@@ -5268,7 +5268,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "duration": {
@@ -5347,7 +5347,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 9,
           "duration": {
@@ -5411,7 +5411,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "duration": {
@@ -5633,7 +5633,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 1,
           "damage": {
@@ -5704,7 +5704,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 3
@@ -5913,7 +5913,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 6,
           "level": 8
@@ -6519,7 +6519,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -6699,7 +6699,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -6795,7 +6795,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -6900,7 +6900,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -7096,7 +7096,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 4
@@ -7176,7 +7176,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "shape": {
@@ -7458,7 +7458,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "damage": {
@@ -7630,7 +7630,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "duration": {
@@ -7826,7 +7826,7 @@
     ],
     "damage": {
       "primary": {
-        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
         "dieCount": 5,
         "dieValue": 8
       }
@@ -7856,7 +7856,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -8248,7 +8248,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "damage": {
@@ -8603,7 +8603,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "damage": {
@@ -8693,7 +8693,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "damage": {
@@ -8826,7 +8826,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -8947,7 +8947,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "damage": {
@@ -9102,7 +9102,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 2
@@ -9296,7 +9296,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "targets": 2
@@ -9434,7 +9434,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "duration": {
@@ -9576,7 +9576,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -9842,7 +9842,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "damage": {
@@ -9980,7 +9980,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -10445,7 +10445,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -10684,7 +10684,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "targets": 2,
           "level": 2
@@ -10850,7 +10850,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "duration": {
@@ -10993,7 +10993,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "targets": 4
@@ -11200,7 +11200,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "duration": {
@@ -11275,7 +11275,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -11419,7 +11419,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -11526,7 +11526,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "duration": {
@@ -12095,7 +12095,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -12375,7 +12375,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -12546,7 +12546,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "duration": {
@@ -12717,7 +12717,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -12888,7 +12888,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -13018,7 +13018,7 @@
     ],
     "damage": {
       "primary": {
-        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
         "dieCount": 10,
         "dieValue": 6
       }
@@ -13070,7 +13070,7 @@
     ],
     "damage": {
       "primary": {
-        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
         "dieCount": 10,
         "dieValue": 6
       }
@@ -13149,7 +13149,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "shape": {
@@ -13231,7 +13231,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -13636,7 +13636,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -14077,7 +14077,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -14188,7 +14188,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -14307,7 +14307,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "targets": 4
@@ -14663,7 +14663,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -14900,7 +14900,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -15501,7 +15501,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -15623,7 +15623,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 3,
           "damage": {
@@ -16238,7 +16238,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 2,
           "damage": {
@@ -16776,7 +16776,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 4,
           "damage": {
@@ -16867,7 +16867,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 5,
           "damage": {
@@ -16954,7 +16954,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 6,
           "damage": {
@@ -17101,7 +17101,7 @@
         "cb47b615-2a96-4617-870a-9051ab4b95cf",
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "damage": {
@@ -17241,7 +17241,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levelAttribute": [
+      "levels": [
         {
           "level": 7,
           "damage": {

@@ -30,7 +30,7 @@ import { useGetSystemQuery } from '../../features/systems/systemsApi'
 import { useListClassesQuery } from '../../features/classes/classesApi'
 import Card from '../Card/Card'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Context as AppContext, FormDataType } from '../../types/form'
+import {FormDataType } from '../../types/form'
 import { useDebounceCallback } from 'usehooks-ts'
 import { scrollReducer } from '../../utils/virtualScroll'
 import { set, startCase } from 'lodash'
@@ -108,7 +108,7 @@ const List = ({
   })
   const [errorMessage, setErrorMessage] = useState<string>()
 
-  const form = location?.pathname?.split('/')[1] as AppContext['title']
+  const form = location?.pathname?.split('/')[1]
   const deleteConfirmed = location.state?.delete
   const itemToDelete = location.state?.item
 

@@ -3,9 +3,10 @@ import { useAddNewSpellMutation, useUpdateSpellMutation } from './spellsApi'
 import { Step } from '../../types/form'
 import Form from '../../components/Form/Form'
 import { FormContext } from '../../components/Form/FormContext'
+import { isEqual } from 'lodash'
 
 const SpellForm = () => {
-  const { setSteps } = use(FormContext)
+  const { setSteps, steps } = use(FormContext)
 
   const stepsArray = [
     { id: 'details', label: 'Details' },
@@ -13,8 +14,10 @@ const SpellForm = () => {
   ] satisfies Step[]
 
   useEffect(() => {
-    setSteps(stepsArray)
-  }, [setSteps, stepsArray])
+    if (!isEqual(steps, stepsArray)) {
+      setSteps(stepsArray)
+    }
+  }, [setSteps, stepsArray, steps])
 
   return <Form useAddNewItemMutation={useAddNewSpellMutation} useUpdateItemMutation={useUpdateSpellMutation} />
 }

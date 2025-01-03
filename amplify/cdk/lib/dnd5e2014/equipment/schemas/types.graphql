@@ -50,7 +50,7 @@ type Equipment implements BaseFields {
   armorClass: Int
   prerequisities: Prerequisite
   speed: Speed
-  range: Range
+  range: GenericRange
   contains: [Contains]
   features: [Feature]
   ownerId: ID!

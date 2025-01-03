@@ -1,9 +1,19 @@
+type UpcastFields {
+  id: ID
+  size: Float
+  unit: ID
+  amount: Int
+  minRange: Int
+  maxRange: Int
+  distance: Int
+}
+
 type UpcastLevel {
   level: Int
   damage: Damage
-  duration: Duration
-  range: Range
-  shape: Shape
+  duration: UpcastFields
+  range: UpcastFields
+  shape: UpcastFields
   targets: Int
 }
 
@@ -21,6 +31,14 @@ type Shape {
 type Duration {
   id: ID!
   amount: Int
+}
+
+type Range {
+  id: ID!
+  minRange: Int
+  maxRange: Int
+  distance: Int
+  unit: ID
 }
 
 type Spell implements BaseFields {

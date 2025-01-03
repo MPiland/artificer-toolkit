@@ -1,4 +1,4 @@
-import { useState, ReactElement, useCallback } from 'react'
+import { useState, ReactElement } from 'react'
 import FeatureWrapper from './Features/FeatureWrapper'
 import Details from './Generic/Details'
 import Traits from './Races/Traits'
@@ -32,35 +32,32 @@ const useFormOptions = () => {
   const [changeRace, setChangeRace] = useState<boolean>(false)
 
   const { formData, initialFormData, updateFormField, addFormField, removeFormField, formReset, initialFormReset } =
-    useStore()
+    useStore((state) => state)
 
-  const updateFormData = useCallback(
-    <T extends FormDataType>(state: UpdateState<T>) => {
-      switch (state.type) {
-        case 'add': {
-          if (state.value) {
-            addFormField({ path: state.path, value: state.value })
-          } else {
-            addFormField({ path: state.path })
-          }
-          break
+  const updateFormData = <T extends FormDataType>(state: UpdateState<T>) => {
+    switch (state.type) {
+      case 'add': {
+        if (state.value) {
+          addFormField({ path: state.path, value: state.value })
+        } else {
+          addFormField({ path: state.path })
         }
-        case 'update':
-          updateFormField({ path: state.path, value: state.value })
-          break
-        case 'remove':
-          removeFormField({ path: state.path })
-          break
-        case 'reset':
-          formReset({ value: state.value })
-          break
-        case 'initialReset':
-          initialFormReset({ value: state.value })
-          break
+        break
       }
-    },
-    [addFormField, formReset, initialFormReset, removeFormField, updateFormField]
-  )
+      case 'update':
+        updateFormField({ path: state.path, value: state.value })
+        break
+      case 'remove':
+        removeFormField({ path: state.path })
+        break
+      case 'reset':
+        formReset({ value: state.value })
+        break
+      case 'initialReset':
+        initialFormReset({ value: state.value })
+        break
+    }
+  }
 
   // Standard possible form steps
   const formSteps: Record<FormSteps, ReactElement> = {

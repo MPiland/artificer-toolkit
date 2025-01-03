@@ -132,9 +132,11 @@ const Damage = ({
             label={`Damage Attributes`}
             value={formData?.damage?.attributes}
             options={system.attributes.filter((attribute) =>
-              formData.__typename === 'Equipment'
-                ? attribute?.damage.includes(DamageEnum.equipment)
-                : attribute?.damage.includes(DamageEnum.all)
+              attribute?.damage?.length > 0
+                ? formData.__typename === 'Equipment'
+                  ? attribute?.damage?.includes(DamageEnum.equipment)
+                  : attribute?.damage?.includes(DamageEnum.all)
+                : attribute
             )}
             onChange={updateFormData}
           />

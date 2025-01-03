@@ -11,7 +11,7 @@ import {
   dropdown_height,
   dropdown_border,
 } from './Dropdown.css'
-import { get, isEqual, uniqBy } from 'lodash'
+import { isEqual, uniqBy } from 'lodash'
 import clsx from 'clsx'
 import { DropdownOption, Filter } from '../../types/components'
 import { TbX, TbChevronDown } from 'react-icons/tb'
@@ -49,7 +49,6 @@ const Dropdown = <T,>({
   className,
   errorMsg = 'Must select an option',
   id,
-  filters,
   all = true,
   height = 'default',
   border = 'default',
@@ -78,83 +77,6 @@ const Dropdown = <T,>({
       optionArray = optionArray?.filter((option) => option?.label != null)
       optionArray = uniqBy(optionArray, (option) => option.value)
 
-      if (filters && filters?.length > 0) {
-        filters?.map((filter) => {
-          if (filter.dataObject != null) {
-            const filterValue = get(filter.dataObject, `${filter.key}`)
-            if (filterValue != undefined) {
-              if (Array.isArray(filterValue)) {
-                optionArray = optionArray?.filter((option: any) => {
-                  const optionValue = get(option, `${filter.matchingKey ?? filter.key}`)
-                  if (Array.isArray(optionValue) && optionValue?.length > 0) {
-                    return optionValue.some((key: any) =>
-                      filterValue.some((value: any) => {
-                        const matchValue = value.id == null ? value.name : value.id
-                        if (filter.type === 'equal') {
-                          return key.id === matchValue
-                        } else {
-                          return key.id !== matchValue
-                        }
-                      })
-                    )
-                  } else {
-                    return filterValue.some((value: any) => {
-                      const matchValue = value.id == null ? value.name : value.id
-                      if (filter.type === 'equal') {
-                        return String(optionValue) === String(matchValue)
-                      } else {
-                        return String(optionValue) !== String(matchValue)
-                      }
-                    })
-                  }
-                })
-              } else if (typeof filterValue === 'object') {
-                const matchValue = filterValue.id == null ? filterValue.name : filterValue.id
-
-                optionArray = optionArray?.filter((option: any) => {
-                  const optionValue = get(option, `${filter.matchingKey ?? filter.key}`)
-                  if (optionValue) {
-                    if (filter.type === 'equal') {
-                      return String(optionValue) === String(matchValue)
-                    } else {
-                      return String(optionValue) !== String(matchValue)
-                    }
-                  }
-                })
-              } else {
-                optionArray = optionArray?.filter((option: any) => {
-                  const optionValue = get(option, `${filter.matchingKey ?? filter.key}`)
-                  if (optionValue) {
-                    if (filter.type === 'equal') {
-                      return String(optionValue) === String(filterValue)
-                    } else {
-                      return String(optionValue) !== String(filterValue)
-                    }
-                  }
-                })
-              }
-            }
-          }
-          if (filter.dataField != undefined) {
-            optionArray = optionArray.filter((option) => {
-              const optionValue = get(option, `${filter.matchingKey ?? filter.key}`)
-              if (filter.type === 'equal') {
-                return optionValue === filter.dataField
-              } else {
-                return optionValue !== filter.dataField
-              }
-            })
-          }
-          if (filter.mapKey) {
-            optionArray = optionArray.flatMap((item: any) => {
-              const value = get(item, `${filter.mapKey}`)
-              if (value) {
-                return value
-              }
-            })
-          }
-        })
-      }
       if (optionArray.length > 0) {
         optionArray = uniqBy(optionArray, (obj) => obj?.id)
         optionArray.sort((a, b) => {
@@ -203,7 +125,7 @@ const Dropdown = <T,>({
       }
     }
     return optionArray
-  }, [filters, multiSelect, options, all])
+  }, [options, multiSelect, all])
 
   const filteredOptions = useMemo(() => filteredArray(), [filteredArray])
 
@@ -281,7 +203,7 @@ const Dropdown = <T,>({
     <div className={clsx(dropdown, { [className]: className })}>
       <Floating>
         <Floating.Anchor className={dropdown_wrapper}>
-          {label && <span className={clsx(dropdown_label, { ['required']: required })}>{label}</span>}
+          {label && <div className={clsx(dropdown_label, { ['required']: required })}>{label}</div>}
           <div
             className={clsx(
               dropdown_container,

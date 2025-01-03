@@ -18,7 +18,6 @@ const Upcast = ({
   formData: Spell
   updateFormData: (arg: UpdateState<Spell>) => void
 }) => {
-
   const { data: system } = useGetSystemQuery()
 
   // Add/remove Upcast table
@@ -77,7 +76,11 @@ const Upcast = ({
 
   // Set upcast options based on the upcast types
   const upcastOptions = useMemo(() => {
-    const options = [...system.attributes.filter((attribute) => attribute?.spells.includes(SpellEnum.upcast))]
+    const options = [
+      ...system.attributes.filter((attribute) =>
+        attribute.spells ? attribute?.spells.includes(SpellEnum.upcast) : attribute
+      ),
+    ]
     if (!formData.attributes?.some((attribute) => attribute === Attributes.doesDamage)) {
       options.filter((option) => option.id !== Attributes.primaryDamage)
     }
@@ -126,7 +129,7 @@ const Upcast = ({
         errorMsg='Must contain only numbers'
         value={formData?.upcast?.levels[index]?.level}
         onChange={updateFormData}
-        key={index}
+        key={`${index}${formData?.upcast?.levels[index]?.level}`}
       />,
     ]
     upcastTypes?.forEach((type) => {
@@ -139,6 +142,7 @@ const Upcast = ({
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.setAmount}
             onChange={updateFormData}
+            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.setAmount}`}
           />
         )
       } else if (
@@ -160,6 +164,7 @@ const Upcast = ({
               options={system.attributes.filter((attribute) => attribute.damage.includes(DamageEnum.pool))}
               required={true}
               errorMsg='Please select an ability.'
+              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.ability}`}
               onChange={updateFormData}
             />
           )
@@ -170,6 +175,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.minAmount}
+            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.minAmount}`}
             onChange={updateFormData}
           />,
           <Input
@@ -177,6 +183,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.maxAmount}
+            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.maxAmount}`}
             onChange={updateFormData}
           />,
           <Input
@@ -184,6 +191,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.multiplier}
+            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.multiplier}`}
             onChange={updateFormData}
           />
         )
@@ -196,6 +204,7 @@ const Upcast = ({
             options={system.attributes.filter((attribute) => attribute.damage.includes(DamageEnum.pool))}
             required={true}
             errorMsg='Please select an ability.'
+            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.option}`}
             onChange={updateFormData}
           />
         )
@@ -218,6 +227,7 @@ const Upcast = ({
                   options={system.abilities}
                   required={true}
                   errorMsg='Please select an ability.'
+                  key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.ability}`}
                   onChange={updateFormData}
                 />
               )
@@ -229,6 +239,7 @@ const Upcast = ({
                 validation='num'
                 errorMsg='Must contain only numbers'
                 value={formData?.upcast?.levels[index]?.damage[type]?.pool.minAmount}
+                key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.minAmount}`}
                 onChange={updateFormData}
               />
             )
@@ -243,6 +254,7 @@ const Upcast = ({
               validation='num'
               errorMsg='Must contain only numbers'
               value={formData?.upcast?.levels[index]?.damage[type]?.pool.maxAmount}
+              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.maxAmount}`}
               onChange={updateFormData}
             />,
             <Input
@@ -250,6 +262,7 @@ const Upcast = ({
               validation='num'
               errorMsg='Must contain only numbers'
               value={formData?.upcast?.levels[index]?.damage[type]?.pool.multiplier}
+              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.multiplier}`}
               onChange={updateFormData}
             />
           )
@@ -262,6 +275,7 @@ const Upcast = ({
               validation='num'
               errorMsg='Must contain only numbers'
               value={formData?.upcast?.levels[index]?.damage[type]?.pool.setAmount}
+              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.setAmount}`}
               onChange={updateFormData}
             />
           )
@@ -277,6 +291,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.dieCount}
+            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.dieCount}`}
             onChange={updateFormData}
           />,
           <Input
@@ -284,6 +299,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.dieValue}
+            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.dieValue}`}
             onChange={updateFormData}
           />
         )
@@ -301,6 +317,7 @@ const Upcast = ({
           options={system.spells.durations}
           required={true}
           errorMsg='Please select a duration.'
+          key={`${index}${formData?.upcast?.levels[index]?.duration.id}`}
           onChange={updateFormData}
         />,
         <Input
@@ -308,6 +325,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.duration.amount}
+          key={`${index}${formData?.upcast?.levels[index]?.duration.amount}`}
           onChange={updateFormData}
         />
       )
@@ -324,6 +342,7 @@ const Upcast = ({
           options={system.spells.ranges}
           required={true}
           errorMsg='Please select a range.'
+          key={`${index}${formData?.upcast?.levels[index]?.range.id}`}
           onChange={updateFormData}
         />,
         <Input
@@ -331,6 +350,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.range.minRange}
+          key={`${index}${formData?.upcast?.levels[index]?.range.minRange}`}
           onChange={updateFormData}
         />,
         <Input
@@ -338,6 +358,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.range.maxRange}
+          key={`${index}${formData?.upcast?.levels[index]?.range.maxRange}`}
           onChange={updateFormData}
         />,
         <Dropdown
@@ -346,6 +367,7 @@ const Upcast = ({
           options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
           required={true}
           errorMsg='Please select a range.'
+          key={`${index}${formData?.upcast?.levels[index]?.range.unit}`}
           onChange={updateFormData}
         />
       )
@@ -362,6 +384,7 @@ const Upcast = ({
           options={system.spells.shapes}
           required={true}
           errorMsg='Please select a shape.'
+          key={`${index}${formData?.upcast?.levels[index]?.shape.id}`}
           onChange={updateFormData}
         />,
         <Input
@@ -369,6 +392,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.shape.size}
+          key={`${index}${formData?.upcast?.levels[index]?.shape.size}`}
           onChange={updateFormData}
         />,
         <Dropdown
@@ -377,6 +401,7 @@ const Upcast = ({
           options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
           required={true}
           errorMsg='Please select a shape.'
+          key={`${index}${formData?.upcast?.levels[index]?.shape.unit}`}
           onChange={updateFormData}
         />
       )
@@ -393,6 +418,7 @@ const Upcast = ({
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.targets}
           required={true}
+          key={`${index}${formData?.upcast?.levels[index]?.targets}`}
           onChange={updateFormData}
         />
       )

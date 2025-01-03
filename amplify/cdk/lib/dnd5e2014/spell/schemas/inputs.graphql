@@ -1,9 +1,19 @@
+input UpcastFieldsInput {
+  id: ID
+  size: Float
+  unit: ID
+  amount: Int
+  minRange: Int
+  maxRange: Int
+  distance: Int
+}
+
 input UpcastLevelInput {
   level: Int
   damage: DamageInput
-  duration: DurationInput
-  range: RangeInput
-  shape: ShapeInput
+  duration: UpcastFieldsInput
+  range: UpcastFieldsInput
+  shape: UpcastFieldsInput
   targets: Int
 }
 

@@ -53,8 +53,22 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
       updateFormData({ type: 'reset', value: item })
       updateFormData({ type: 'initialReset', value: item })
       navigate('edit')
-    } catch {
-      console.error('error resetting state')
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleCopy = async () => {
+    try {
+      setStepIndex(0)
+      const itemCopy: typeof item = JSON.parse(JSON.stringify(item))
+      itemCopy.id = undefined
+      itemCopy.masterId = undefined
+      updateFormData({ type: 'reset', value: itemCopy })
+      updateFormData({ type: 'initialReset', value: itemCopy })
+      navigate(`../new/${item.value}`)
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -76,7 +90,7 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
     <>
       <div className={detail_nav_section}>
         <MdArrowBackIos onClick={() => navigate(-1)} cursor={'pointer'} style={{ scale: '1.5' }} />
-        <Button color='main' style='outline'>
+        <Button color='main' style='outline' onClick={handleCopy}>
           {<CopyIcon />} Copy
         </Button>
         {item.masterId == null && (

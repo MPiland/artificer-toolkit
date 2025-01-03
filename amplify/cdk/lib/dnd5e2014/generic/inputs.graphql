@@ -26,6 +26,13 @@ input SaveAbilityInput {
   abilityModifier: ID
 }
 
+input GenericRangeInput {
+  minRange: Int
+  maxRange: Int
+  distance: Int
+  unit: ID!
+}
+
 input EquipmentGroupInput {
   attributes: [ID]
   selectionCount: Int
@@ -257,7 +264,7 @@ input SubfeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: RangeInput
+  range: GenericRangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -284,7 +291,7 @@ input FeatureOptionInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: RangeInput
+  range: GenericRangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -312,7 +319,7 @@ input FeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: RangeInput
+  range: GenericRangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]

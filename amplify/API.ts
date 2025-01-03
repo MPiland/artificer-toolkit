@@ -377,9 +377,9 @@ export type UpcastLevel = {
   __typename: "UpcastLevel",
   level?: number | null,
   damage?: Damage | null,
-  duration?: Duration | null,
-  range?: Range | null,
-  shape?: Shape | null,
+  duration?: UpcastFields | null,
+  range?: UpcastFields | null,
+  shape?: UpcastFields | null,
   targets?: number | null,
 };
 
@@ -516,26 +516,15 @@ export type StartingGold = {
   dieShort?: string | null,
 };
 
-export type Duration = {
-  __typename: "Duration",
-  id: string,
-  amount?: number | null,
-};
-
-export type Range = {
-  __typename: "Range",
+export type UpcastFields = {
+  __typename: "UpcastFields",
   id?: string | null,
+  size?: number | null,
+  unit?: string | null,
+  amount?: number | null,
   minRange?: number | null,
   maxRange?: number | null,
   distance?: number | null,
-  unit?: string | null,
-};
-
-export type Shape = {
-  __typename: "Shape",
-  id: string,
-  size?: number | null,
-  unit?: string | null,
 };
 
 export type ActionGroup = {
@@ -556,6 +545,28 @@ export type SaveAbility = {
   minAmount?: number | null,
   attributes?: Array< string | null > | null,
   abilityModifier?: string | null,
+};
+
+export type Range = {
+  __typename: "Range",
+  id: string,
+  minRange?: number | null,
+  maxRange?: number | null,
+  distance?: number | null,
+  unit?: string | null,
+};
+
+export type Shape = {
+  __typename: "Shape",
+  id: string,
+  size?: number | null,
+  unit?: string | null,
+};
+
+export type Duration = {
+  __typename: "Duration",
+  id: string,
+  amount?: number | null,
 };
 
 export type Race = {
@@ -742,7 +753,7 @@ export type Subfeature = {
   actions?: ActionGroup | null,
   damage?: Damage | null,
   charges?: Charge | null,
-  range?: Range | null,
+  range?: GenericRange | null,
   shape?: Shape | null,
   targets?: number | null,
   feats?:  Array<FeatureFeat | null > | null,
@@ -767,6 +778,14 @@ export type FeatureAncestry = {
   subtype?: string | null,
 };
 
+export type GenericRange = {
+  __typename: "GenericRange",
+  minRange?: number | null,
+  maxRange?: number | null,
+  distance?: number | null,
+  unit: string,
+};
+
 export type FeatureOption = {
   __typename: "FeatureOption",
   id: string,
@@ -780,7 +799,7 @@ export type FeatureOption = {
   actions?: ActionGroup | null,
   damage?: Damage | null,
   charges?: Charge | null,
-  range?: Range | null,
+  range?: GenericRange | null,
   shape?: Shape | null,
   targets?: number | null,
   feats?:  Array<FeatureFeat | null > | null,
@@ -831,7 +850,7 @@ export type Feature = {
   actions?: ActionGroup | null,
   damage?: Damage | null,
   charges?: Charge | null,
-  range?: Range | null,
+  range?: GenericRange | null,
   shape?: Shape | null,
   targets?: number | null,
   feats?:  Array<FeatureFeat | null > | null,
@@ -910,7 +929,7 @@ export type Equipment = {
   armorClass?: number | null,
   prerequisities?: Prerequisite | null,
   speed?: Speed | null,
-  range?: Range | null,
+  range?: GenericRange | null,
   contains?:  Array<Contains | null > | null,
   features?:  Array<Feature | null > | null,
   ownerId: string,
@@ -1424,9 +1443,9 @@ export type UpcastInput = {
 export type UpcastLevelInput = {
   level?: number | null,
   damage?: DamageInput | null,
-  duration?: DurationInput | null,
-  range?: RangeInput | null,
-  shape?: ShapeInput | null,
+  duration?: UpcastFieldsInput | null,
+  range?: UpcastFieldsInput | null,
+  shape?: UpcastFieldsInput | null,
   targets?: number | null,
 };
 
@@ -1477,23 +1496,14 @@ export type DamagePoolInput = {
   option?: string | null,
 };
 
-export type DurationInput = {
-  id: string,
+export type UpcastFieldsInput = {
+  id?: string | null,
+  size?: number | null,
+  unit?: string | null,
   amount?: number | null,
-};
-
-export type RangeInput = {
-  id: string,
   minRange?: number | null,
   maxRange?: number | null,
   distance?: number | null,
-  unit?: string | null,
-};
-
-export type ShapeInput = {
-  id: string,
-  size?: number | null,
-  unit?: string | null,
 };
 
 export type ActionGroupInput = {
@@ -1511,6 +1521,25 @@ export type SaveAbilityInput = {
   minAmount?: number | null,
   attributes?: Array< string | null > | null,
   abilityModifier?: string | null,
+};
+
+export type RangeInput = {
+  id: string,
+  minRange?: number | null,
+  maxRange?: number | null,
+  distance?: number | null,
+  unit?: string | null,
+};
+
+export type ShapeInput = {
+  id: string,
+  size?: number | null,
+  unit?: string | null,
+};
+
+export type DurationInput = {
+  id: string,
+  amount?: number | null,
 };
 
 export type BatchSpellsInput = {
@@ -1741,7 +1770,7 @@ export type SubfeatureInput = {
   actions?: ActionGroupInput | null,
   damage?: DamageInput | null,
   charges?: ChargeInput | null,
-  range?: RangeInput | null,
+  range?: GenericRangeInput | null,
   shape?: ShapeInput | null,
   targets?: number | null,
   feats?: Array< FeatureFeatInput | null > | null,
@@ -1765,6 +1794,13 @@ export type FeatureAncestryInput = {
   subtype?: string | null,
 };
 
+export type GenericRangeInput = {
+  minRange?: number | null,
+  maxRange?: number | null,
+  distance?: number | null,
+  unit: string,
+};
+
 export type FeatureOptionInput = {
   id: string,
   label?: string | null,
@@ -1777,7 +1813,7 @@ export type FeatureOptionInput = {
   actions?: ActionGroupInput | null,
   damage?: DamageInput | null,
   charges?: ChargeInput | null,
-  range?: RangeInput | null,
+  range?: GenericRangeInput | null,
   shape?: ShapeInput | null,
   targets?: number | null,
   feats?: Array< FeatureFeatInput | null > | null,
@@ -1824,7 +1860,7 @@ export type FeatureInput = {
   actions?: ActionGroupInput | null,
   damage?: DamageInput | null,
   charges?: ChargeInput | null,
-  range?: RangeInput | null,
+  range?: GenericRangeInput | null,
   shape?: ShapeInput | null,
   targets?: number | null,
   feats?: Array< FeatureFeatInput | null > | null,
@@ -1911,7 +1947,7 @@ export type EquipmentInput = {
   armorClass?: number | null,
   prerequisities?: PrerequisiteInput | null,
   speed?: SpeedInput | null,
-  range?: RangeInput | null,
+  range?: GenericRangeInput | null,
   contains?: Array< ContainsInput | null > | null,
   features?: Array< FeatureInput | null > | null,
   ownerId?: string | null,
@@ -4262,23 +4298,34 @@ export type CreateSpellMutation = {
           } | null,
         } | null,
         duration?:  {
-          __typename: "Duration",
-          id: string,
-          amount?: number | null,
-        } | null,
-        range?:  {
-          __typename: "Range",
+          __typename: "UpcastFields",
           id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
         } | null,
-        shape?:  {
-          __typename: "Shape",
-          id: string,
+        range?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
           size?: number | null,
           unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
+        } | null,
+        shape?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
         } | null,
         targets?: number | null,
       } | null > | null,
@@ -4308,7 +4355,7 @@ export type CreateSpellMutation = {
     requirements?: Array< string | null > | null,
     range:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -4572,23 +4619,34 @@ export type UpdateSpellMutation = {
           } | null,
         } | null,
         duration?:  {
-          __typename: "Duration",
-          id: string,
-          amount?: number | null,
-        } | null,
-        range?:  {
-          __typename: "Range",
+          __typename: "UpcastFields",
           id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
         } | null,
-        shape?:  {
-          __typename: "Shape",
-          id: string,
+        range?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
           size?: number | null,
           unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
+        } | null,
+        shape?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
         } | null,
         targets?: number | null,
       } | null > | null,
@@ -4618,7 +4676,7 @@ export type UpdateSpellMutation = {
     requirements?: Array< string | null > | null,
     range:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -4890,23 +4948,34 @@ export type BatchCreateSpellsMutation = {
           } | null,
         } | null,
         duration?:  {
-          __typename: "Duration",
-          id: string,
-          amount?: number | null,
-        } | null,
-        range?:  {
-          __typename: "Range",
+          __typename: "UpcastFields",
           id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
         } | null,
-        shape?:  {
-          __typename: "Shape",
-          id: string,
+        range?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
           size?: number | null,
           unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
+        } | null,
+        shape?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
         } | null,
         targets?: number | null,
       } | null > | null,
@@ -4936,7 +5005,7 @@ export type BatchCreateSpellsMutation = {
     requirements?: Array< string | null > | null,
     range:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -5206,7 +5275,7 @@ export type CreateRaceMutation = {
           } | null,
           range?:  {
             __typename: "Range",
-            id?: string | null,
+            id: string,
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
@@ -5442,12 +5511,11 @@ export type CreateRaceMutation = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -5600,12 +5668,11 @@ export type CreateRaceMutation = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -5916,12 +5983,11 @@ export type CreateRaceMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -6277,12 +6343,11 @@ export type CreateRaceMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -6639,12 +6704,11 @@ export type CreateRaceMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -6960,12 +7024,11 @@ export type CreateRaceMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -7304,7 +7367,7 @@ export type UpdateRaceMutation = {
           } | null,
           range?:  {
             __typename: "Range",
-            id?: string | null,
+            id: string,
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
@@ -7540,12 +7603,11 @@ export type UpdateRaceMutation = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -7698,12 +7760,11 @@ export type UpdateRaceMutation = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -8014,12 +8075,11 @@ export type UpdateRaceMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -8375,12 +8435,11 @@ export type UpdateRaceMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -8737,12 +8796,11 @@ export type UpdateRaceMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -9058,12 +9116,11 @@ export type UpdateRaceMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -9410,7 +9467,7 @@ export type BatchCreateRacesMutation = {
           } | null,
           range?:  {
             __typename: "Range",
-            id?: string | null,
+            id: string,
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
@@ -9646,12 +9703,11 @@ export type BatchCreateRacesMutation = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -9804,12 +9860,11 @@ export type BatchCreateRacesMutation = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -10120,12 +10175,11 @@ export type BatchCreateRacesMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -10481,12 +10535,11 @@ export type BatchCreateRacesMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -10843,12 +10896,11 @@ export type BatchCreateRacesMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -11164,12 +11216,11 @@ export type BatchCreateRacesMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -11753,7 +11804,7 @@ export type CreateFeatMutation = {
     } | null,
     range?:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -12134,12 +12185,11 @@ export type CreateFeatMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -12495,12 +12545,11 @@ export type CreateFeatMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -12857,12 +12906,11 @@ export type CreateFeatMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -13178,12 +13226,11 @@ export type CreateFeatMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -13537,12 +13584,11 @@ export type CreateFeatMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -13898,12 +13944,11 @@ export type CreateFeatMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -14491,7 +14536,7 @@ export type UpdateFeatMutation = {
     } | null,
     range?:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -14872,12 +14917,11 @@ export type UpdateFeatMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -15233,12 +15277,11 @@ export type UpdateFeatMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -15595,12 +15638,11 @@ export type UpdateFeatMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -15916,12 +15958,11 @@ export type UpdateFeatMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -16275,12 +16316,11 @@ export type UpdateFeatMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -16636,12 +16676,11 @@ export type UpdateFeatMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -17237,7 +17276,7 @@ export type BatchCreateFeatsMutation = {
     } | null,
     range?:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -17618,12 +17657,11 @@ export type BatchCreateFeatsMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -17979,12 +18017,11 @@ export type BatchCreateFeatsMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -18341,12 +18378,11 @@ export type BatchCreateFeatsMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -18662,12 +18698,11 @@ export type BatchCreateFeatsMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -19021,12 +19056,11 @@ export type BatchCreateFeatsMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -19382,12 +19416,11 @@ export type BatchCreateFeatsMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -19789,12 +19822,11 @@ export type CreateEquipmentMutation = {
       unit: string,
     } | null,
     range?:  {
-      __typename: "Range",
-      id?: string | null,
+      __typename: "GenericRange",
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
-      unit?: string | null,
+      unit: string,
     } | null,
     contains?:  Array< {
       __typename: "Contains",
@@ -20031,12 +20063,11 @@ export type CreateEquipmentMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -20392,12 +20423,11 @@ export type CreateEquipmentMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -20754,12 +20784,11 @@ export type CreateEquipmentMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -21075,12 +21104,11 @@ export type CreateEquipmentMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -21479,12 +21507,11 @@ export type UpdateEquipmentMutation = {
       unit: string,
     } | null,
     range?:  {
-      __typename: "Range",
-      id?: string | null,
+      __typename: "GenericRange",
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
-      unit?: string | null,
+      unit: string,
     } | null,
     contains?:  Array< {
       __typename: "Contains",
@@ -21721,12 +21748,11 @@ export type UpdateEquipmentMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -22082,12 +22108,11 @@ export type UpdateEquipmentMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -22444,12 +22469,11 @@ export type UpdateEquipmentMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -22765,12 +22789,11 @@ export type UpdateEquipmentMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -23177,12 +23200,11 @@ export type BatchCreateEquipmentMutation = {
       unit: string,
     } | null,
     range?:  {
-      __typename: "Range",
-      id?: string | null,
+      __typename: "GenericRange",
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
-      unit?: string | null,
+      unit: string,
     } | null,
     contains?:  Array< {
       __typename: "Contains",
@@ -23419,12 +23441,11 @@ export type BatchCreateEquipmentMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -23780,12 +23801,11 @@ export type BatchCreateEquipmentMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -24142,12 +24162,11 @@ export type BatchCreateEquipmentMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -24463,12 +24482,11 @@ export type BatchCreateEquipmentMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -25003,12 +25021,11 @@ export type CreateClassMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -25364,12 +25381,11 @@ export type CreateClassMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -25726,12 +25742,11 @@ export type CreateClassMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -26047,12 +26062,11 @@ export type CreateClassMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -26586,12 +26600,11 @@ export type UpdateClassMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -26947,12 +26960,11 @@ export type UpdateClassMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -27309,12 +27321,11 @@ export type UpdateClassMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -27630,12 +27641,11 @@ export type UpdateClassMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -28177,12 +28187,11 @@ export type BatchCreateClassesMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -28538,12 +28547,11 @@ export type BatchCreateClassesMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -28900,12 +28908,11 @@ export type BatchCreateClassesMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -29221,12 +29228,11 @@ export type BatchCreateClassesMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -30302,12 +30308,11 @@ export type CreateBackgroundMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -30663,12 +30668,11 @@ export type CreateBackgroundMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -31025,12 +31029,11 @@ export type CreateBackgroundMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -31346,12 +31349,11 @@ export type CreateBackgroundMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -31775,12 +31777,11 @@ export type UpdateBackgroundMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -32136,12 +32137,11 @@ export type UpdateBackgroundMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -32498,12 +32498,11 @@ export type UpdateBackgroundMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -32819,12 +32818,11 @@ export type UpdateBackgroundMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -33256,12 +33254,11 @@ export type BatchCreateBackgroundsMutation = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -33617,12 +33614,11 @@ export type BatchCreateBackgroundsMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -33979,12 +33975,11 @@ export type BatchCreateBackgroundsMutation = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -34300,12 +34295,11 @@ export type BatchCreateBackgroundsMutation = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -36090,23 +36084,34 @@ export type ListMasterSpellsQuery = {
           } | null,
         } | null,
         duration?:  {
-          __typename: "Duration",
-          id: string,
-          amount?: number | null,
-        } | null,
-        range?:  {
-          __typename: "Range",
+          __typename: "UpcastFields",
           id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
         } | null,
-        shape?:  {
-          __typename: "Shape",
-          id: string,
+        range?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
           size?: number | null,
           unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
+        } | null,
+        shape?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
         } | null,
         targets?: number | null,
       } | null > | null,
@@ -36136,7 +36141,7 @@ export type ListMasterSpellsQuery = {
     requirements?: Array< string | null > | null,
     range:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -36400,23 +36405,34 @@ export type GetSpellQuery = {
           } | null,
         } | null,
         duration?:  {
-          __typename: "Duration",
-          id: string,
-          amount?: number | null,
-        } | null,
-        range?:  {
-          __typename: "Range",
+          __typename: "UpcastFields",
           id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
         } | null,
-        shape?:  {
-          __typename: "Shape",
-          id: string,
+        range?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
           size?: number | null,
           unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
+        } | null,
+        shape?:  {
+          __typename: "UpcastFields",
+          id?: string | null,
+          size?: number | null,
+          unit?: string | null,
+          amount?: number | null,
+          minRange?: number | null,
+          maxRange?: number | null,
+          distance?: number | null,
         } | null,
         targets?: number | null,
       } | null > | null,
@@ -36446,7 +36462,7 @@ export type GetSpellQuery = {
     requirements?: Array< string | null > | null,
     range:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -36674,23 +36690,34 @@ export type ListSpellsQuery = {
             } | null,
           } | null,
           duration?:  {
-            __typename: "Duration",
-            id: string,
-            amount?: number | null,
-          } | null,
-          range?:  {
-            __typename: "Range",
+            __typename: "UpcastFields",
             id?: string | null,
+            size?: number | null,
+            unit?: string | null,
+            amount?: number | null,
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
           } | null,
-          shape?:  {
-            __typename: "Shape",
-            id: string,
+          range?:  {
+            __typename: "UpcastFields",
+            id?: string | null,
             size?: number | null,
             unit?: string | null,
+            amount?: number | null,
+            minRange?: number | null,
+            maxRange?: number | null,
+            distance?: number | null,
+          } | null,
+          shape?:  {
+            __typename: "UpcastFields",
+            id?: string | null,
+            size?: number | null,
+            unit?: string | null,
+            amount?: number | null,
+            minRange?: number | null,
+            maxRange?: number | null,
+            distance?: number | null,
           } | null,
           targets?: number | null,
         } | null > | null,
@@ -36720,7 +36747,7 @@ export type ListSpellsQuery = {
       requirements?: Array< string | null > | null,
       range:  {
         __typename: "Range",
-        id?: string | null,
+        id: string,
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
@@ -36992,7 +37019,7 @@ export type ListMasterRacesQuery = {
           } | null,
           range?:  {
             __typename: "Range",
-            id?: string | null,
+            id: string,
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
@@ -37228,12 +37255,11 @@ export type ListMasterRacesQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -37386,12 +37412,11 @@ export type ListMasterRacesQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -37702,12 +37727,11 @@ export type ListMasterRacesQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -38063,12 +38087,11 @@ export type ListMasterRacesQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -38425,12 +38448,11 @@ export type ListMasterRacesQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -38746,12 +38768,11 @@ export type ListMasterRacesQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -39090,7 +39111,7 @@ export type GetRaceQuery = {
           } | null,
           range?:  {
             __typename: "Range",
-            id?: string | null,
+            id: string,
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
@@ -39326,12 +39347,11 @@ export type GetRaceQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -39484,12 +39504,11 @@ export type GetRaceQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -39800,12 +39819,11 @@ export type GetRaceQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -40161,12 +40179,11 @@ export type GetRaceQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -40523,12 +40540,11 @@ export type GetRaceQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -40844,12 +40860,11 @@ export type GetRaceQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -41113,7 +41128,7 @@ export type ListRacesQuery = {
             } | null,
             range?:  {
               __typename: "Range",
-              id?: string | null,
+              id: string,
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
@@ -41440,12 +41455,11 @@ export type ListRacesQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -41761,12 +41775,11 @@ export type ListRacesQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -42078,12 +42091,11 @@ export type ListRacesQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -42315,12 +42327,11 @@ export type ListRacesQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -42826,7 +42837,7 @@ export type ListMasterFeatsQuery = {
     } | null,
     range?:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -43207,12 +43218,11 @@ export type ListMasterFeatsQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -43568,12 +43578,11 @@ export type ListMasterFeatsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -43930,12 +43939,11 @@ export type ListMasterFeatsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -44251,12 +44259,11 @@ export type ListMasterFeatsQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -44610,12 +44617,11 @@ export type ListMasterFeatsQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -44971,12 +44977,11 @@ export type ListMasterFeatsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -45564,7 +45569,7 @@ export type GetFeatQuery = {
     } | null,
     range?:  {
       __typename: "Range",
-      id?: string | null,
+      id: string,
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
@@ -45945,12 +45950,11 @@ export type GetFeatQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -46306,12 +46310,11 @@ export type GetFeatQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -46668,12 +46671,11 @@ export type GetFeatQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -46989,12 +46991,11 @@ export type GetFeatQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -47348,12 +47349,11 @@ export type GetFeatQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -47709,12 +47709,11 @@ export type GetFeatQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -48306,7 +48305,7 @@ export type ListFeatsQuery = {
       } | null,
       range?:  {
         __typename: "Range",
-        id?: string | null,
+        id: string,
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
@@ -48687,12 +48686,11 @@ export type ListFeatsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -49008,12 +49006,11 @@ export type ListFeatsQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -49325,12 +49322,11 @@ export type ListFeatsQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -49562,12 +49558,11 @@ export type ListFeatsQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -49841,12 +49836,11 @@ export type ListFeatsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -50162,12 +50156,11 @@ export type ListFeatsQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -50566,12 +50559,11 @@ export type ListMasterEquipmentQuery = {
       unit: string,
     } | null,
     range?:  {
-      __typename: "Range",
-      id?: string | null,
+      __typename: "GenericRange",
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
-      unit?: string | null,
+      unit: string,
     } | null,
     contains?:  Array< {
       __typename: "Contains",
@@ -50808,12 +50800,11 @@ export type ListMasterEquipmentQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -51169,12 +51160,11 @@ export type ListMasterEquipmentQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -51531,12 +51521,11 @@ export type ListMasterEquipmentQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -51852,12 +51841,11 @@ export type ListMasterEquipmentQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -52256,12 +52244,11 @@ export type GetEquipmentQuery = {
       unit: string,
     } | null,
     range?:  {
-      __typename: "Range",
-      id?: string | null,
+      __typename: "GenericRange",
       minRange?: number | null,
       maxRange?: number | null,
       distance?: number | null,
-      unit?: string | null,
+      unit: string,
     } | null,
     contains?:  Array< {
       __typename: "Contains",
@@ -52498,12 +52485,11 @@ export type GetEquipmentQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -52859,12 +52845,11 @@ export type GetEquipmentQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -53221,12 +53206,11 @@ export type GetEquipmentQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -53542,12 +53526,11 @@ export type GetEquipmentQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -53950,12 +53933,11 @@ export type ListEquipmentQuery = {
         unit: string,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       contains?:  Array< {
         __typename: "Contains",
@@ -54172,12 +54154,11 @@ export type ListEquipmentQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -54493,12 +54474,11 @@ export type ListEquipmentQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -54810,12 +54790,11 @@ export type ListEquipmentQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -55047,12 +55026,11 @@ export type ListEquipmentQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -55509,12 +55487,11 @@ export type ListMasterClassesQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -55870,12 +55847,11 @@ export type ListMasterClassesQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -56232,12 +56208,11 @@ export type ListMasterClassesQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -56553,12 +56528,11 @@ export type ListMasterClassesQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -57092,12 +57066,11 @@ export type GetClassQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -57453,12 +57426,11 @@ export type GetClassQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -57815,12 +57787,11 @@ export type GetClassQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -58136,12 +58107,11 @@ export type GetClassQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -58679,12 +58649,11 @@ export type ListClassesQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -59000,12 +58969,11 @@ export type ListClassesQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -59317,12 +59285,11 @@ export type ListClassesQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -59554,12 +59521,11 @@ export type ListClassesQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",
@@ -60524,12 +60490,11 @@ export type ListMasterBackgroundsQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -60885,12 +60850,11 @@ export type ListMasterBackgroundsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -61247,12 +61211,11 @@ export type ListMasterBackgroundsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -61568,12 +61531,11 @@ export type ListMasterBackgroundsQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -61997,12 +61959,11 @@ export type GetBackgroundQuery = {
         resourcePoints?: number | null,
       } | null,
       range?:  {
-        __typename: "Range",
-        id?: string | null,
+        __typename: "GenericRange",
         minRange?: number | null,
         maxRange?: number | null,
         distance?: number | null,
-        unit?: string | null,
+        unit: string,
       } | null,
       shape?:  {
         __typename: "Shape",
@@ -62358,12 +62319,11 @@ export type GetBackgroundQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -62720,12 +62680,11 @@ export type GetBackgroundQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -63041,12 +63000,11 @@ export type GetBackgroundQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -63474,12 +63432,11 @@ export type ListBackgroundsQuery = {
           resourcePoints?: number | null,
         } | null,
         range?:  {
-          __typename: "Range",
-          id?: string | null,
+          __typename: "GenericRange",
           minRange?: number | null,
           maxRange?: number | null,
           distance?: number | null,
-          unit?: string | null,
+          unit: string,
         } | null,
         shape?:  {
           __typename: "Shape",
@@ -63795,12 +63752,11 @@ export type ListBackgroundsQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -64112,12 +64068,11 @@ export type ListBackgroundsQuery = {
             resourcePoints?: number | null,
           } | null,
           range?:  {
-            __typename: "Range",
-            id?: string | null,
+            __typename: "GenericRange",
             minRange?: number | null,
             maxRange?: number | null,
             distance?: number | null,
-            unit?: string | null,
+            unit: string,
           } | null,
           shape?:  {
             __typename: "Shape",
@@ -64349,12 +64304,11 @@ export type ListBackgroundsQuery = {
               resourcePoints?: number | null,
             } | null,
             range?:  {
-              __typename: "Range",
-              id?: string | null,
+              __typename: "GenericRange",
               minRange?: number | null,
               maxRange?: number | null,
               distance?: number | null,
-              unit?: string | null,
+              unit: string,
             } | null,
             shape?:  {
               __typename: "Shape",

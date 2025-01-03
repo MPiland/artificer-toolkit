@@ -7,7 +7,7 @@ export const collapse_wrapper = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      border: `${theme.border.size.main} ${theme.border.radius} ${theme.vars.component.collapse.border.color.main}`,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.collapse.border.color.main}`,
       borderRadius: theme.border.radius,
       backgroundColor: theme.vars.component.collapse.backgroundColor.main,
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',

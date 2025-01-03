@@ -166,7 +166,7 @@ const App = () => {
                     },
                     { path: ':id', element: <Spell />, children: [{ path: 'edit', element: <SpellForm /> }] },
                     {
-                      path: 'new',
+                      path: 'new/:id?',
                       element: <SpellForm />,
                       children: [
                         {

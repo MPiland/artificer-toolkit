@@ -485,10 +485,10 @@ const useGetSections = ({ state }: { state: Character }) => {
         label = 'Feat'
       } else if (sectionStep === 'senses' && section.__typename === 'FeatureSense') {
         existing = getStateSenses()
-        if (section.senses.some((sense) => sense === 'all')) {
+        if (section.ids.some((sense) => sense === 'all')) {
           options = system.senses
         } else {
-          options = system.senses.filter((sense) => section.senses.includes(sense.id))
+          options = system.senses.filter((sense) => section.ids.includes(sense.id))
         }
         label = 'Sense'
       }
@@ -507,10 +507,10 @@ const useGetSections = ({ state }: { state: Character }) => {
       }
     } else {
       if (sectionStep === 'spells' && section.__typename === 'FeatureSpell') {
-        if (section.spells.some((spell) => spell === 'all')) {
+        if (section.ids.some((spell) => spell === 'all')) {
           options = spells
         } else {
-          options = spells.filter((spell) => section.spells.includes(spell.id))
+          options = spells.filter((spell) => section.ids.includes(spell.id))
         }
         if (section.attributes?.some((attribute) => attribute === Attributes.classLimit)) {
           options = (options as Array<Spell>).filter((option) =>

@@ -85,7 +85,7 @@ const useFeatureOptions = () => {
     ancestryReset,
     initialAncestryReset,
     updateAncestryIndex,
-  } = useStore()
+  } = useStore((state) => state)
 
   const [sectionStep, setSectionStep] = useState<SectionName>(null)
   const [featureStep, setFeatureStep] = useState<FeatureTypes>(null)

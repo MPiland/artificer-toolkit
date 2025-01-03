@@ -50,7 +50,7 @@ input EquipmentInput {
   armorClass: Int
   prerequisities: PrerequisiteInput
   speed: SpeedInput
-  range: RangeInput
+  range: GenericRangeInput
   contains: [ContainsInput]
   features: [FeatureInput]
   ownerId: String

@@ -8,11 +8,9 @@ import { startCase } from 'lodash'
 import Button from '../../Button/Button'
 import Accordion from '../../Accordion/Accordion'
 import { sprinkles } from '../../../css/sprinkles.css'
-import Spinner from '../../Spinner/Spinner'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Divider from '../../Divider/Divider'
-import { useIsFetching } from '@tanstack/react-query'
 import { Categories, EquipmentCategories, EquipmentProperties, SpellRequirements } from '../../../types/enums'
 
 const Details = () => {
@@ -21,18 +19,14 @@ const Details = () => {
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
 
-  const isLoading = useIsFetching() > 0
-
-  return isLoading || !system || !formData ? (
-    <Spinner />
-  ) : (
+  return (
     <>
       <Row cols={{ lg: 6, md: 4, base: 2 }} className={sprinkles({ mb: 'space-3' })}>
         <Input<typeof formData>
-          name='value'
+          name='label'
           label='Name'
           autoComplete='off'
-          value={formData?.value}
+          value={formData?.label}
           required={true}
           onChange={updateFormData}
           autoFocus={true}
@@ -277,31 +271,29 @@ const Details = () => {
               ))}
           </>
         )}
-        {(formData.__typename === 'Spell' ||
-          (formData.__typename === 'Equipment' &&
-            (formData.category === EquipmentProperties.thrown ||
-              formData.category === EquipmentProperties.ranged))) && (
-          <>
-            <Input<typeof formData>
-              validation='num'
-              name='range.minRange'
-              errorMsg='Must contain only numbers'
-              label='Min Range'
-              value={formData?.range?.minRange}
-              required={true}
-              onChange={updateFormData}
-            />
-            <Input<typeof formData>
-              validation='num'
-              name='range.maxRange'
-              errorMsg='Must contain only numbers'
-              label='Max Range'
-              value={formData?.range?.maxRange}
-              required={true}
-              onChange={updateFormData}
-            />
-          </>
-        )}
+        {formData.__typename === 'Equipment' &&
+          (formData.category === EquipmentProperties.thrown || formData.category === EquipmentProperties.ranged) && (
+            <>
+              <Input<typeof formData>
+                validation='num'
+                name='range.minRange'
+                errorMsg='Must contain only numbers'
+                label='Min Range'
+                value={formData?.range?.minRange}
+                required={true}
+                onChange={updateFormData}
+              />
+              <Input<typeof formData>
+                validation='num'
+                name='range.maxRange'
+                errorMsg='Must contain only numbers'
+                label='Max Range'
+                value={formData?.range?.maxRange}
+                required={true}
+                onChange={updateFormData}
+              />
+            </>
+          )}
         {formData.__typename === 'Equipment' && (
           <Input<typeof formData>
             validation='num'

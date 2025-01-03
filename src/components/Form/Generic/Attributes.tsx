@@ -500,7 +500,10 @@ const AttributeForm = () => {
             </Row>
           </>
         )}
-      {formData.__typename === 'Spell' && <Upcast formData={formData} updateFormData={updateFormData} />}
+      {formData.__typename === 'Spell' &&
+        formData.attributes.some((attribute) => attribute === Attributes.canUpcast) && (
+          <Upcast formData={formData} updateFormData={updateFormData} />
+        )}
       {formData.__typename === 'Feat' && formData.attributes.map((attribute) => attribute === Attributes.limitUse) && (
         <LimitUse formData={formData} updateFormData={updateFormData} />
       )}

@@ -1580,21 +1580,32 @@ export const listMasterSpells = /* GraphQL */ `query ListMasterSpells {
         }
         duration {
           id
+          size
+          unit
           amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         range {
           id
+          size
+          unit
+          amount
           minRange
           maxRange
           distance
-          unit
           __typename
         }
         shape {
           id
           size
           unit
+          amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         targets
@@ -1889,21 +1900,32 @@ export const getSpell = /* GraphQL */ `query GetSpell($id: ID!) {
         }
         duration {
           id
+          size
+          unit
           amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         range {
           id
+          size
+          unit
+          amount
           minRange
           maxRange
           distance
-          unit
           __typename
         }
         shape {
           id
           size
           unit
+          amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         targets
@@ -2156,21 +2178,32 @@ export const listSpells = /* GraphQL */ `query ListSpells($limit: Int, $nextToke
           }
           duration {
             id
+            size
+            unit
             amount
+            minRange
+            maxRange
+            distance
             __typename
           }
           range {
             id
+            size
+            unit
+            amount
             minRange
             maxRange
             distance
-            unit
             __typename
           }
           shape {
             id
             size
             unit
+            amount
+            minRange
+            maxRange
+            distance
             __typename
           }
           targets
@@ -2708,7 +2741,6 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -2866,7 +2898,6 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -3185,7 +3216,6 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -3545,7 +3575,6 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -3907,7 +3936,6 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -4227,7 +4255,6 @@ export const listMasterRaces = /* GraphQL */ `query ListMasterRaces {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -4805,7 +4832,6 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -4963,7 +4989,6 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -5282,7 +5307,6 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -5642,7 +5666,6 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -6004,7 +6027,6 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -6324,7 +6346,6 @@ export const getRace = /* GraphQL */ `query GetRace($id: ID!) {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -6915,7 +6936,6 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -7235,7 +7255,6 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -7552,7 +7571,6 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -7788,7 +7806,6 @@ export const listRaces = /* GraphQL */ `query ListRaces($limit: Int, $nextToken:
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -8680,7 +8697,6 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -9040,7 +9056,6 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -9402,7 +9417,6 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -9722,7 +9736,6 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -10083,7 +10096,6 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -10443,7 +10455,6 @@ export const listMasterFeats = /* GraphQL */ `query ListMasterFeats {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -11417,7 +11428,6 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -11777,7 +11787,6 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -12139,7 +12148,6 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -12459,7 +12467,6 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -12820,7 +12827,6 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -13180,7 +13186,6 @@ export const getFeat = /* GraphQL */ `query GetFeat($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -14152,7 +14157,6 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -14472,7 +14476,6 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -14789,7 +14792,6 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -15025,7 +15027,6 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -15306,7 +15307,6 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -15626,7 +15626,6 @@ export const listFeats = /* GraphQL */ `query ListFeats($limit: Int, $nextToken:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -16030,7 +16029,6 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
       __typename
     }
     range {
-      id
       minRange
       maxRange
       distance
@@ -16271,7 +16269,6 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -16631,7 +16628,6 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -16993,7 +16989,6 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -17313,7 +17308,6 @@ export const listMasterEquipment = /* GraphQL */ `query ListMasterEquipment {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -17719,7 +17713,6 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
       __typename
     }
     range {
-      id
       minRange
       maxRange
       distance
@@ -17960,7 +17953,6 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -18320,7 +18312,6 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -18682,7 +18673,6 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -19002,7 +18992,6 @@ export const getEquipment = /* GraphQL */ `query GetEquipment($id: ID!) {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -19409,7 +19398,6 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -19630,7 +19618,6 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -19950,7 +19937,6 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -20267,7 +20253,6 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -20503,7 +20488,6 @@ export const listEquipment = /* GraphQL */ `query ListEquipment($limit: Int, $ne
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -20968,7 +20952,6 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -21328,7 +21311,6 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -21690,7 +21672,6 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -22010,7 +21991,6 @@ export const listMasterClasses = /* GraphQL */ `query ListMasterClasses {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -22550,7 +22530,6 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -22910,7 +22889,6 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -23272,7 +23250,6 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -23592,7 +23569,6 @@ export const getClass = /* GraphQL */ `query GetClass($id: ID!) {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -24130,7 +24106,6 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -24450,7 +24425,6 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -24767,7 +24741,6 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -25003,7 +24976,6 @@ export const listClasses = /* GraphQL */ `query ListClasses($limit: Int, $nextTo
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -25972,7 +25944,6 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -26332,7 +26303,6 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -26694,7 +26664,6 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -27014,7 +26983,6 @@ export const listMasterBackgrounds = /* GraphQL */ `query ListMasterBackgrounds 
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -27444,7 +27412,6 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -27804,7 +27771,6 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -28166,7 +28132,6 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -28486,7 +28451,6 @@ export const getBackground = /* GraphQL */ `query GetBackground($id: ID!) {
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -28917,7 +28881,6 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -29237,7 +29200,6 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -29554,7 +29516,6 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -29790,7 +29751,6 @@ export const listBackgrounds = /* GraphQL */ `query ListBackgrounds($limit: Int,
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance

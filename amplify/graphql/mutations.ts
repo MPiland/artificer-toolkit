@@ -1586,21 +1586,32 @@ export const createSpell = /* GraphQL */ `mutation CreateSpell($input: SpellInpu
         }
         duration {
           id
+          size
+          unit
           amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         range {
           id
+          size
+          unit
+          amount
           minRange
           maxRange
           distance
-          unit
           __typename
         }
         shape {
           id
           size
           unit
+          amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         targets
@@ -1895,21 +1906,32 @@ export const updateSpell = /* GraphQL */ `mutation UpdateSpell($input: SpellInpu
         }
         duration {
           id
+          size
+          unit
           amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         range {
           id
+          size
+          unit
+          amount
           minRange
           maxRange
           distance
-          unit
           __typename
         }
         shape {
           id
           size
           unit
+          amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         targets
@@ -2211,21 +2233,32 @@ export const batchCreateSpells = /* GraphQL */ `mutation BatchCreateSpells($inpu
         }
         duration {
           id
+          size
+          unit
           amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         range {
           id
+          size
+          unit
+          amount
           minRange
           maxRange
           distance
-          unit
           __typename
         }
         shape {
           id
           size
           unit
+          amount
+          minRange
+          maxRange
+          distance
           __typename
         }
         targets
@@ -2759,7 +2792,6 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -2917,7 +2949,6 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -3236,7 +3267,6 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -3596,7 +3626,6 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -3958,7 +3987,6 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -4278,7 +4306,6 @@ export const createRace = /* GraphQL */ `mutation CreateRace($input: RaceInput!)
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -4856,7 +4883,6 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -5014,7 +5040,6 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -5333,7 +5358,6 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -5693,7 +5717,6 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -6055,7 +6078,6 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -6375,7 +6397,6 @@ export const updateRace = /* GraphQL */ `mutation UpdateRace($input: RaceInput!)
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -6960,7 +6981,6 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -7118,7 +7138,6 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
               __typename
             }
             range {
-              id
               minRange
               maxRange
               distance
@@ -7437,7 +7456,6 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -7797,7 +7815,6 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -8159,7 +8176,6 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -8479,7 +8495,6 @@ export const batchCreateRaces = /* GraphQL */ `mutation BatchCreateRaces($input:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -9450,7 +9465,6 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -9810,7 +9824,6 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -10172,7 +10185,6 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -10492,7 +10504,6 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -10853,7 +10864,6 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -11213,7 +11223,6 @@ export const createFeat = /* GraphQL */ `mutation CreateFeat($input: FeatInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -12187,7 +12196,6 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -12547,7 +12555,6 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -12909,7 +12916,6 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -13229,7 +13235,6 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -13590,7 +13595,6 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -13950,7 +13954,6 @@ export const updateFeat = /* GraphQL */ `mutation UpdateFeat($input: FeatInput!)
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -14931,7 +14934,6 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -15291,7 +15293,6 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -15653,7 +15654,6 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -15973,7 +15973,6 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -16334,7 +16333,6 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -16694,7 +16692,6 @@ export const batchCreateFeats = /* GraphQL */ `mutation BatchCreateFeats($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -17102,7 +17099,6 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
       __typename
     }
     range {
-      id
       minRange
       maxRange
       distance
@@ -17343,7 +17339,6 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -17703,7 +17698,6 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -18065,7 +18059,6 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -18385,7 +18378,6 @@ export const createEquipment = /* GraphQL */ `mutation CreateEquipment($input: E
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -18791,7 +18783,6 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
       __typename
     }
     range {
-      id
       minRange
       maxRange
       distance
@@ -19032,7 +19023,6 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -19392,7 +19382,6 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -19754,7 +19743,6 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -20074,7 +20062,6 @@ export const updateEquipment = /* GraphQL */ `mutation UpdateEquipment($input: E
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -20487,7 +20474,6 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
       __typename
     }
     range {
-      id
       minRange
       maxRange
       distance
@@ -20728,7 +20714,6 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -21088,7 +21073,6 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -21450,7 +21434,6 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -21770,7 +21753,6 @@ export const batchCreateEquipment = /* GraphQL */ `mutation BatchCreateEquipment
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -22311,7 +22293,6 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -22671,7 +22652,6 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -23033,7 +23013,6 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -23353,7 +23332,6 @@ export const createClass = /* GraphQL */ `mutation CreateClass($input: ClassInpu
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -23893,7 +23871,6 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -24253,7 +24230,6 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -24615,7 +24591,6 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -24935,7 +24910,6 @@ export const updateClass = /* GraphQL */ `mutation UpdateClass($input: ClassInpu
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -25482,7 +25456,6 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -25842,7 +25815,6 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -26204,7 +26176,6 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -26524,7 +26495,6 @@ export const batchCreateClasses = /* GraphQL */ `mutation BatchCreateClasses($in
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -27603,7 +27573,6 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -27963,7 +27932,6 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -28325,7 +28293,6 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -28645,7 +28612,6 @@ export const createBackground = /* GraphQL */ `mutation CreateBackground($input:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -29075,7 +29041,6 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -29435,7 +29400,6 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -29797,7 +29761,6 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -30117,7 +30080,6 @@ export const updateBackground = /* GraphQL */ `mutation UpdateBackground($input:
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance
@@ -30554,7 +30516,6 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
         __typename
       }
       range {
-        id
         minRange
         maxRange
         distance
@@ -30914,7 +30875,6 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -31276,7 +31236,6 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
           __typename
         }
         range {
-          id
           minRange
           maxRange
           distance
@@ -31596,7 +31555,6 @@ export const batchCreateBackgrounds = /* GraphQL */ `mutation BatchCreateBackgro
             __typename
           }
           range {
-            id
             minRange
             maxRange
             distance

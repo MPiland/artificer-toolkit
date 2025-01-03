@@ -6,9 +6,9 @@ import { validate } from '../../../utils/form'
 import { isEqual } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import { useIsFetching } from '@tanstack/react-query'
 import { Attributes } from '../../../types/enums'
 import { FeatureContext } from '../Features/FeatureContext'
+import { LoadingContext } from '../../Loading/LoadingContext'
 
 const ProgressBar = () => {
   const [lineWidth, setLineWidth] = useState<number>(0)
@@ -33,7 +33,7 @@ const ProgressBar = () => {
 
   const { setSectionStep, featureStep, setFeatureStep, handleSaveFeatures } = use(FeatureContext)
 
-  const isLoading = useIsFetching() > 0
+  const { isLoading } = use(LoadingContext)
 
   const stepsArray = useMemo(() => {
     let updatedSteps = [...steps]
