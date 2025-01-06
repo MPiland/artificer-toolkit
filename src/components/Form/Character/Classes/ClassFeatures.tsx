@@ -475,8 +475,12 @@ const ClassFeature = ({
                           <div className={option_dropdown} key={index}>
                             <Dropdown
                               name={path}
-                              label={`${feature.value} Option`}
-                              options={feature.options}
+                              label={`${feature.label} Option`}
+                              options={feature.options.map((option) => ({
+                                label: option.label,
+                                value: option.value,
+                                id: option.id,
+                              }))}
                               onChange={() =>
                                 updateFormData({
                                   type: 'update',

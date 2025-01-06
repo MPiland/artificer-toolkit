@@ -11,7 +11,6 @@ import {
 import Collapse from '../../Collapse/Collapse'
 import { isEqual } from 'lodash'
 import { Character, Class, FeatureModifier } from '../../../../amplify/API'
-import { Context } from '../../../types/form'
 import { ModifierCategories, ModifierMethods, ModifierTypes } from '../../../types/enums'
 import { useListRacesQuery } from '../../../features/races/racesApi'
 import { useListClassesQuery } from '../../../features/classes/classesApi'
@@ -23,7 +22,6 @@ const CharacterHeader = () => {
   const { formData, updateFormData } = use(FormContext) as {
     formData: Character
     updateFormData: (state: UpdateState<Character>) => void
-    context: Context
   }
 
   const { data: races } = useListRacesQuery()

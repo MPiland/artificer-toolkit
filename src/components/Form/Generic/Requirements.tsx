@@ -107,7 +107,11 @@ const Prerequisites = ({
                   name='prerequisites.featuresKnown'
                   value={formData?.prerequisites?.featuresKnown}
                   label='Feature'
-                  options={(formData as Exclude<FormDataType, Spell | Character>).features}
+                  options={(formData as Exclude<FormDataType, Spell | Character>).features.map((feature) => ({
+                    label: feature.label,
+                    value: feature.value,
+                    id: feature.id,
+                  }))}
                   onChange={updateFormData}
                 />
                 {formData?.prerequisites?.featuresKnown?.some(
@@ -121,11 +125,14 @@ const Prerequisites = ({
                     name='prerequisites.optionsKnown'
                     value={formData?.prerequisites?.optionsKnown}
                     label='Feature Option'
-                    options={formData?.prerequisites?.featuresKnown?.flatMap(
-                      (feature: any) =>
-                        (formData as Exclude<FormDataType, Spell | Character>).features.find(
-                          (sFeature) => sFeature.id === feature
-                        ).options
+                    options={formData?.prerequisites?.featuresKnown?.flatMap((feature: any) =>
+                      (formData as Exclude<FormDataType, Spell | Character>).features
+                        .find((sFeature) => sFeature.id === feature)
+                        .options.map((option) => ({
+                          label: option.label,
+                          value: option.value,
+                          id: option.id,
+                        }))
                     )}
                     onChange={updateFormData}
                   />

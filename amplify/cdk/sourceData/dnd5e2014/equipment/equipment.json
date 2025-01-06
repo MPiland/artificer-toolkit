@@ -13,9 +13,7 @@
       "amount": 5,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "e5703396-2540-44a9-94fa-0bc7fb287228",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -37,9 +35,7 @@
       "amount": 8,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "573d387a-0d48-4fd1-8fcc-a4fe7219e063",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -61,9 +57,7 @@
       "amount": 5,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "597ab06e-912b-446c-8698-5c1f7d3d4ac0",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -85,9 +79,7 @@
       "amount": 6,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "c94aa8e3-4d2a-478d-b920-4e00a74cc874",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -109,9 +101,7 @@
       "amount": 5
     },
     "desc": "<p>These special tools include the items needed to pursue a craft or trade. Proficiency with a set of artisan's tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan's tools requires a separate proficiency.</p>",
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "c176a76e-a335-445e-bd0f-cf56b82503b5",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -130,9 +120,7 @@
     "desc": "<p>If you are proficient with a gaming set, you can add your proficiency bonus to ability checks you make to play a game with that set.</p>",
     "quantity": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "51ec3d3a-6ade-4ad3-9dfc-8efecdeeb4ba"
-    ],
+    "properties": ["51ec3d3a-6ade-4ad3-9dfc-8efecdeeb4ba"],
     "id": "a4778168-e533-45b2-8c43-4f0586612bcd",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -154,9 +142,7 @@
       "amount": 5,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "98da1d55-0445-4927-ac40-cd05fc14fe6d"
-    ],
+    "properties": ["98da1d55-0445-4927-ac40-cd05fc14fe6d"],
     "id": "47aa0e9c-164b-4d5d-a7a7-1a230c050cb6",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -175,9 +161,7 @@
     "desc": "<p>If you are proficient with a gaming set, you can add your proficiency bonus to ability checks you make to play a game with that set.</p>",
     "quantity": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "51ec3d3a-6ade-4ad3-9dfc-8efecdeeb4ba"
-    ],
+    "properties": ["51ec3d3a-6ade-4ad3-9dfc-8efecdeeb4ba"],
     "id": "418f93b6-657f-4d8f-89ef-ad9466c617e7",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -199,9 +183,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 1
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "34ab4fcf-0f99-474b-9184-f0f74f5d9a18",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -216,10 +198,7 @@
       "amount": 10
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "265c6cc0-1de4-40b7-be69-4cacd43b77fe"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "265c6cc0-1de4-40b7-be69-4cacd43b77fe"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "maxBonus": 2,
     "armorClass": 12,
@@ -230,9 +209,7 @@
       "amount": 12
     },
     "desc": "<p>This crude armor consists of thick furs and pelts.</p>",
-    "properties": [
-      "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-    ],
+    "properties": ["df5b0efb-0ab4-44e8-845a-13f109331d9b"],
     "id": "60ca0723-1084-4f60-bbbc-90365120316b",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -254,9 +231,7 @@
       "amount": 9
     },
     "desc": "<p>These special tools include the items needed to pursue a craft or trade. Proficiency with a set of artisan's tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan's tools requires a separate proficiency.</p>",
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "d4eff270-6869-41d0-afaf-50ba7329ea53",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -278,9 +253,7 @@
       "amount": 5,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "8f55e3c8-06c9-438a-bb18-e2bcd1089cec",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -302,9 +275,7 @@
       "amount": 2,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "0960c80b-3ad1-4a66-ba54-a2cd0187bcf2",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -326,9 +297,7 @@
       "amount": 1,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "edab39de-9eee-46e5-b451-6f8e6dd5a83e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -350,9 +319,7 @@
       "amount": 1,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "98da1d55-0445-4927-ac40-cd05fc14fe6d"
-    ],
+    "properties": ["98da1d55-0445-4927-ac40-cd05fc14fe6d"],
     "id": "12c8c66b-76cb-49d0-8f58-08b4aa92df5c",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -366,9 +333,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 30
     },
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "armorClass": 14,
     "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
     "desc": "<p>Plate consists of shaped, interlocking metal plates to cover the entire body. A suit of plate includes gauntlets, heavy leather boots, a visored helmet, and thick layers of padding underneath the armor. Buckles and straps distribute the weight over the body.</p>",
@@ -383,9 +348,7 @@
         "modifiers": [
           {
             "skill": {
-              "set": [
-                "b598a80e-d7e8-47fb-8438-f79151223afe"
-              ]
+              "set": ["b598a80e-d7e8-47fb-8438-f79151223afe"]
             },
             "multiplier": 1,
             "id": "888ee438-a5bb-49a0-baf7-f31283bb92f3",
@@ -395,9 +358,7 @@
         "id": "e915836c-d4dd-434d-934b-5eb8d8d053e3"
       }
     ],
-    "properties": [
-      "f0de1c52-9141-4d5a-bc4b-76110edf8e3e"
-    ],
+    "properties": ["f0de1c52-9141-4d5a-bc4b-76110edf8e3e"],
     "id": "c81fac98-2ebe-473b-b617-db9dbb52b1af",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -412,9 +373,7 @@
       "amount": 45
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "armorClass": 12,
     "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
@@ -424,9 +383,7 @@
       "amount": 13
     },
     "desc": "<p>Made from tough but flexible leather, studded leather is reinforced with close-set rivets or spikes.</p>",
-    "properties": [
-      "786e4da5-d0a7-4d30-9232-864950691654"
-    ],
+    "properties": ["786e4da5-d0a7-4d30-9232-864950691654"],
     "id": "5a6efec2-b9da-4752-9ac7-0dbbd75ab57e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -448,9 +405,7 @@
       "amount": 5
     },
     "desc": "<p>These special tools include the items needed to pursue a craft or trade. Proficiency with a set of artisan's tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan's tools requires a separate proficiency.</p>",
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "357899f9-17bc-4016-8a59-d1fa7b5bd145",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -472,9 +427,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
     "desc": "<p>If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use bagpipes&nbsp;as a spellcasting focus.</p>",
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "0b60fd81-a94b-4e57-b49d-08591c18025f",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -488,10 +441,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 400
     },
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "265c6cc0-1de4-40b7-be69-4cacd43b77fe"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "265c6cc0-1de4-40b7-be69-4cacd43b77fe"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "maxBonus": 2,
     "armorClass": 14,
@@ -503,9 +453,7 @@
       "amount": 20
     },
     "desc": "<p>This armor consists of a fitted metal chest piece worn with supple leather. Although it leaves the legs and arms relatively unprotected, this armor provides good protection for the wearer's vital organs while leaving the wearer relatively unencumbered.</p>",
-    "properties": [
-      "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-    ],
+    "properties": ["df5b0efb-0ab4-44e8-845a-13f109331d9b"],
     "id": "7e08d15e-1794-49e0-a77e-fcf024ce5231",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -519,10 +467,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 750
     },
-    "attributes": [
-      "265c6cc0-1de4-40b7-be69-4cacd43b77fe",
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["265c6cc0-1de4-40b7-be69-4cacd43b77fe", "c88dafe7-0494-4913-83d9-34fcf7904196"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "maxBonus": 2,
     "armorClass": 15,
@@ -539,9 +484,7 @@
         "modifiers": [
           {
             "skill": {
-              "set": [
-                "b598a80e-d7e8-47fb-8438-f79151223afe"
-              ]
+              "set": ["b598a80e-d7e8-47fb-8438-f79151223afe"]
             },
             "multiplier": 1,
             "id": "888ee438-a5bb-49a0-baf7-f31283bb92f3",
@@ -551,9 +494,7 @@
         "id": "b18b5701-2d5f-480c-8164-2a5de91c7935"
       }
     ],
-    "properties": [
-      "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-    ],
+    "properties": ["df5b0efb-0ab4-44e8-845a-13f109331d9b"],
     "id": "ec66544c-eeec-4412-a48c-9b0de961d7e1",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -567,10 +508,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 50
     },
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "265c6cc0-1de4-40b7-be69-4cacd43b77fe"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "265c6cc0-1de4-40b7-be69-4cacd43b77fe"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "maxBonus": 2,
     "armorClass": 13,
@@ -582,9 +520,7 @@
       "amount": 20
     },
     "desc": "<p>Made of interlocking metal rings, a chain shirt is worn between layers of clothing or leather. This armor offers modest protection to the wearer's upper body and allows the sound of the rings rubbing against one another to be muffled by outer layers.</p>",
-    "properties": [
-      "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-    ],
+    "properties": ["df5b0efb-0ab4-44e8-845a-13f109331d9b"],
     "id": "bbeb1778-2ddc-45cf-8549-90e52061829d",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -598,10 +534,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 50
     },
-    "attributes": [
-      "265c6cc0-1de4-40b7-be69-4cacd43b77fe",
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["265c6cc0-1de4-40b7-be69-4cacd43b77fe", "c88dafe7-0494-4913-83d9-34fcf7904196"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "maxBonus": 2,
     "armorClass": 14,
@@ -618,9 +551,7 @@
         "modifiers": [
           {
             "skill": {
-              "set": [
-                "b598a80e-d7e8-47fb-8438-f79151223afe"
-              ]
+              "set": ["b598a80e-d7e8-47fb-8438-f79151223afe"]
             },
             "multiplier": 1,
             "id": "888ee438-a5bb-49a0-baf7-f31283bb92f3",
@@ -630,9 +561,7 @@
         "id": "75bb4fe7-fa03-46f0-8540-161c6f040cb0"
       }
     ],
-    "properties": [
-      "df5b0efb-0ab4-44e8-845a-13f109331d9b"
-    ],
+    "properties": ["df5b0efb-0ab4-44e8-845a-13f109331d9b"],
     "id": "b14487c9-946b-46d9-851f-1a591e1b61e6",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -654,9 +583,7 @@
       "amount": 5,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "41f86316-68d8-4af2-83e6-1f78ad452941",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -678,9 +605,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
     "desc": "<p>If you have proficiency with a given musical instrument, you can add your proficiency bonus to any ability checks you make to play music with the instrument. A bard can use bagpipes&nbsp;as a spellcasting focus.</p>",
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "8a13ce28-a324-4a99-948a-8d926a145751",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -702,9 +627,7 @@
       "amount": 2,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "98da1d55-0445-4927-ac40-cd05fc14fe6d"
-    ],
+    "properties": ["98da1d55-0445-4927-ac40-cd05fc14fe6d"],
     "id": "b2bfabb1-af02-4bdf-94c8-4bd677a3d74b",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -720,9 +643,7 @@
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "armorClass": 11,
     "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
     "quantity": 1,
@@ -743,9 +664,7 @@
         "id": "a3d75373-6dda-4159-a1f0-56cd69864e5b"
       }
     ],
-    "properties": [
-      "786e4da5-d0a7-4d30-9232-864950691654"
-    ],
+    "properties": ["786e4da5-d0a7-4d30-9232-864950691654"],
     "id": "4c670524-1262-443e-b16b-8cd10b63f193",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -759,10 +678,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 10
     },
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "armorClass": 2,
     "category": "81990afe-e34a-48cb-aece-5e7c46088615",
     "quantity": 1,
@@ -772,9 +688,7 @@
       "amount": 6
     },
     "desc": "<p>A shield made from metal and is carried in one hand. Wielding a shield increases your Armor Class by 2. You can benefit from only one shield at a time.</p>",
-    "properties": [
-      "a6cf86fd-8553-41a6-a6bf-24110e1e91f1"
-    ],
+    "properties": ["a6cf86fd-8553-41a6-a6bf-24110e1e91f1"],
     "id": "cd2f1dfa-0906-475d-b8f4-25a553513511",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -796,9 +710,7 @@
       "amount": 6
     },
     "desc": "<p>These special tools include the items needed to pursue a craft or trade. Proficiency with a set of artisan's tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan's tools requires a separate proficiency.</p>",
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "366233e4-b559-4d14-a312-f58ede62645f",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -819,9 +731,7 @@
       "amount": 2,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "3680666b-a63a-4082-badf-ebbc86a8a13c",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -843,9 +753,7 @@
       "amount": 8,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "63268050-f5f5-4cf1-9e99-5e9018f4da96",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -867,9 +775,7 @@
       "amount": 10,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "f0d8ebcb-2d79-46c4-9b3b-68f8b22eceaa",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -891,9 +797,7 @@
       "amount": 1,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "85f67004-6348-4aa0-b691-f0a8ba4d4f53",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -915,9 +819,7 @@
       "amount": 2,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "d6eef77e-4efe-4010-af40-53535c6bbab5",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -931,20 +833,13 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 200
     },
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "40a91f3a-8909-4593-8a5f-b66b364602bb"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "40a91f3a-8909-4593-8a5f-b66b364602bb"],
     "prerequisites": {
       "abilityScore": {
         "score": 15,
-        "abilities": [
-          "93607465-de3d-4788-a5e0-df290fda7959"
-        ]
+        "abilities": ["93607465-de3d-4788-a5e0-df290fda7959"]
       },
-      "options": [
-        "096cf44a-60ec-4f6c-b42c-3c46e12530bb"
-      ]
+      "options": ["096cf44a-60ec-4f6c-b42c-3c46e12530bb"]
     },
     "armorClass": 17,
     "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
@@ -960,9 +855,7 @@
         "modifiers": [
           {
             "skill": {
-              "set": [
-                "b598a80e-d7e8-47fb-8438-f79151223afe"
-              ]
+              "set": ["b598a80e-d7e8-47fb-8438-f79151223afe"]
             },
             "multiplier": 1,
             "id": "888ee438-a5bb-49a0-baf7-f31283bb92f3",
@@ -972,9 +865,7 @@
         "id": "06833704-3fc6-4f8e-9c9b-e0d1a40eb8ba"
       }
     ],
-    "properties": [
-      "f0de1c52-9141-4d5a-bc4b-76110edf8e3e"
-    ],
+    "properties": ["f0de1c52-9141-4d5a-bc4b-76110edf8e3e"],
     "id": "1c4c8b55-b554-4b0f-a348-835ab44213bd",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -996,9 +887,7 @@
       "amount": 6,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "0730ed24-01a3-4739-a53a-90483efb7700",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1020,9 +909,7 @@
       "amount": 3,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "f92f75b2-f0a3-423e-a34b-d9f5b19c7dde",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1044,9 +931,7 @@
       "amount": 3,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "98da1d55-0445-4927-ac40-cd05fc14fe6d"
-    ],
+    "properties": ["98da1d55-0445-4927-ac40-cd05fc14fe6d"],
     "id": "5176dae3-e445-4d5f-8676-2c5a43fb97c3",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1061,9 +946,7 @@
       "amount": 10
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "armorClass": 11,
     "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
@@ -1073,9 +956,7 @@
       "amount": 10
     },
     "desc": "<p>The breastplate and shoulder protectors of this armor are made of leather that has been stiffened by being boiled in oil. The rest of the armor is made of softer and more flexible materials.</p>",
-    "properties": [
-      "786e4da5-d0a7-4d30-9232-864950691654"
-    ],
+    "properties": ["786e4da5-d0a7-4d30-9232-864950691654"],
     "id": "9b594c64-0fc5-47e4-badb-595b4a333a32",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1089,20 +970,13 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 75
     },
-    "attributes": [
-      "40a91f3a-8909-4593-8a5f-b66b364602bb",
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb", "c88dafe7-0494-4913-83d9-34fcf7904196"],
     "prerequisites": {
       "abilityScore": {
         "score": 13,
-        "abilities": [
-          "93607465-de3d-4788-a5e0-df290fda7959"
-        ]
+        "abilities": ["93607465-de3d-4788-a5e0-df290fda7959"]
       },
-      "options": [
-        "096cf44a-60ec-4f6c-b42c-3c46e12530bb"
-      ]
+      "options": ["096cf44a-60ec-4f6c-b42c-3c46e12530bb"]
     },
     "armorClass": 16,
     "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
@@ -1118,9 +992,7 @@
         "modifiers": [
           {
             "skill": {
-              "set": [
-                "b598a80e-d7e8-47fb-8438-f79151223afe"
-              ]
+              "set": ["b598a80e-d7e8-47fb-8438-f79151223afe"]
             },
             "multiplier": 1,
             "id": "888ee438-a5bb-49a0-baf7-f31283bb92f3",
@@ -1130,9 +1002,7 @@
         "id": "e0132278-4610-4650-a03b-c9175d882e6b"
       }
     ],
-    "properties": [
-      "f0de1c52-9141-4d5a-bc4b-76110edf8e3e"
-    ],
+    "properties": ["f0de1c52-9141-4d5a-bc4b-76110edf8e3e"],
     "id": "4e413ee0-d691-49bf-8cd0-4013df9b0829",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1154,9 +1024,7 @@
       "amount": 3,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "63d04f4f-1b70-466b-bbba-38b5374f0d66",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1178,9 +1046,7 @@
       "amount": 2,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "98da1d55-0445-4927-ac40-cd05fc14fe6d"
-    ],
+    "properties": ["98da1d55-0445-4927-ac40-cd05fc14fe6d"],
     "id": "c40f4e36-7668-44d6-817d-95f94f41f57b",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1194,9 +1060,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
       "amount": 50
     },
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "quantity": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
     "weight": {
@@ -1205,9 +1069,7 @@
     },
     "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
     "desc": "<p>These special tools include the items needed to pursue a craft or trade. Proficiency with a set of artisan's tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan's tools requires a separate proficiency.</p>",
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "9039d2f5-94d1-4556-bd2c-bc67325d0ded",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1229,9 +1091,7 @@
       "amount": 5
     },
     "desc": "<p>These special tools include the items needed to pursue a craft or trade. Proficiency with a set of artisan's tools lets you add your proficiency bonus to any ability checks you make using the tools in your craft. Each type of artisan's tools requires a separate proficiency.</p>",
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "137fbfe8-70bf-441d-b8ba-76d4192b9df7",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1253,9 +1113,7 @@
       "amount": 5,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "112f51e4-cee6-4fd0-8207-163da4cbd397"
-    ],
+    "properties": ["112f51e4-cee6-4fd0-8207-163da4cbd397"],
     "id": "69c1e2eb-539c-44ca-aeda-3ac73ee00d46",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1277,9 +1135,7 @@
       "amount": 3,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "98da1d55-0445-4927-ac40-cd05fc14fe6d"
-    ],
+    "properties": ["98da1d55-0445-4927-ac40-cd05fc14fe6d"],
     "id": "460a7c23-30da-4250-9c34-8547f0485156",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1301,9 +1157,7 @@
       "amount": 2,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
-    ],
+    "properties": ["96ae55ee-79fa-44e8-9fb8-c96d713a6424"],
     "id": "a327670e-96f4-4a5a-ae44-0ed04b22ed2b",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1318,9 +1172,7 @@
       "amount": 1
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -1355,9 +1207,7 @@
       "amount": 2
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -1375,6 +1225,7 @@
       "amount": 1
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 20,
       "maxRange": 60
     },
@@ -1399,9 +1250,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -1418,6 +1267,7 @@
       "amount": 2
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 20,
       "maxRange": 60
     },
@@ -1441,9 +1291,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -1460,6 +1308,7 @@
     },
     "desc": "<p>Proficiency with a javelin allows you to add your proficiency bonus to the attack roll for any attack you make with it.</p>",
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 30,
       "maxRange": 120
     },
@@ -1482,9 +1331,7 @@
       "amount": 2
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -1501,6 +1348,7 @@
       "amount": 2
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 20,
       "maxRange": 60
     },
@@ -1524,9 +1372,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -1543,10 +1389,7 @@
       "amount": 4
     },
     "secondaryAbility": "def276fe-3fa5-4af7-95ad-a37113815cc7",
-    "properties": [
-      "ab95948e-73af-4cd6-ac18-a22841fb5773",
-      "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-    ],
+    "properties": ["ab95948e-73af-4cd6-ac18-a22841fb5773", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
     "id": "38644ef8-2770-4511-8b14-0c5c9a1f4289",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1561,9 +1404,7 @@
       "amount": 2
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -1598,9 +1439,7 @@
       "amount": 2
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -1639,9 +1478,7 @@
       "amount": 1
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -1676,9 +1513,7 @@
       "amount": 1
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -1699,6 +1534,7 @@
       "amount": 3
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 20,
       "maxRange": 60
     },
@@ -1722,9 +1558,7 @@
       "amount": 25
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -1741,6 +1575,7 @@
       "amount": 5
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 80,
       "maxRange": 320
     },
@@ -1763,9 +1598,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -1783,6 +1616,7 @@
       "amount": 0.25
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 20,
       "maxRange": 60
     },
@@ -1805,9 +1639,7 @@
       "amount": 25
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -1824,6 +1656,7 @@
       "amount": 2
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 80,
       "maxRange": 320
     },
@@ -1847,9 +1680,7 @@
     },
     "itemWeight": 0,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -1862,13 +1693,11 @@
     "desc": "<p>Proficiency with a sling allows you to add your proficiency bonus to the attack roll for any attack you make with it.</p>",
     "quantity": 1,
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 30,
       "maxRange": 120
     },
-    "properties": [
-      "756bfbbe-e9a4-4080-abdf-613fe2443fcf",
-      "ab95948e-73af-4cd6-ac18-a22841fb5773"
-    ],
+    "properties": ["756bfbbe-e9a4-4080-abdf-613fe2443fcf", "ab95948e-73af-4cd6-ac18-a22841fb5773"],
     "id": "82420a0a-c4f9-466e-a2d0-525ac68ee73b",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1883,10 +1712,7 @@
       "currency": "2b9c4330-14d4-473a-aed7-52a8eb1906ce"
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "40a91f3a-8909-4593-8a5f-b66b364602bb"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "40a91f3a-8909-4593-8a5f-b66b364602bb"],
     "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
     "quantity": 1,
     "desc": "<p>Proficiency with a battleaxe allows you to add your proficiency bonus to the attack roll for any attack you make with it. Small creatures have disadvantage on attack rolls with heavy weapons. A heavy weapon’s size and bulk make it too large for a Small creature to use effectively.</p>",
@@ -1916,9 +1742,7 @@
         "a21fdef5-470f-4f2b-a233-0408e3e331f2",
         "10910065-c17e-4994-93d3-f030d9b4c649"
       ],
-      "options": [
-        "d5def5fd-4b6e-411b-994d-3e830912093e"
-      ]
+      "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"]
     },
     "properties": [
       "6833776a-26c0-4143-b367-39f81a2fdad7",
@@ -1940,9 +1764,7 @@
       "amount": 10
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -1958,10 +1780,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 2
     },
-    "properties": [
-      "9fa816b5-a0cd-474f-9dee-f7de93e22803",
-      "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-    ],
+    "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
     "id": "c0eae342-1920-49ff-b153-1f61e816f06c",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -1976,9 +1795,7 @@
       "amount": 20
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -1997,17 +1814,10 @@
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2038,9 +1848,7 @@
       "amount": 30
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -2059,17 +1867,10 @@
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2099,9 +1900,7 @@
       "amount": 50
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -2120,17 +1919,10 @@
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2160,9 +1952,7 @@
       "amount": 20
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -2181,17 +1971,10 @@
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2222,9 +2005,7 @@
       "amount": 10
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2260,9 +2041,7 @@
       "amount": 10
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -2301,9 +2080,7 @@
       "amount": 15
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -2322,17 +2099,10 @@
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2362,9 +2132,7 @@
       "amount": 15
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2380,10 +2148,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 4
     },
-    "properties": [
-      "9fa816b5-a0cd-474f-9dee-f7de93e22803",
-      "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-    ],
+    "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
     "id": "eda88a3a-a6b2-4335-9328-69ea3dd178d2",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -2398,9 +2163,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2419,17 +2182,10 @@
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2460,9 +2216,7 @@
       "amount": 25
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2479,10 +2233,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 2
     },
-    "properties": [
-      "f2db5999-dba0-4e27-a260-7153aee16335",
-      "9fa816b5-a0cd-474f-9dee-f7de93e22803"
-    ],
+    "properties": ["f2db5999-dba0-4e27-a260-7153aee16335", "9fa816b5-a0cd-474f-9dee-f7de93e22803"],
     "id": "19ed4b20-5521-4758-b8db-63589866a61c",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -2497,9 +2248,7 @@
       "amount": 25
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -2535,9 +2284,7 @@
       "amount": 10
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2573,9 +2320,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2596,6 +2341,7 @@
       "amount": 3
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 20,
       "maxRange": 60
     },
@@ -2619,9 +2365,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2637,10 +2381,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 2
     },
-    "properties": [
-      "9fa816b5-a0cd-474f-9dee-f7de93e22803",
-      "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-    ],
+    "properties": ["9fa816b5-a0cd-474f-9dee-f7de93e22803", "72f57c5d-c213-4b1b-887f-1eea56f02fe2"],
     "id": "aa4d5c32-f3a0-4944-bd18-79344d0f1341",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -2655,9 +2396,7 @@
       "amount": 15
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
@@ -2696,9 +2435,7 @@
       "amount": 2
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
@@ -2735,9 +2472,7 @@
       "amount": 10
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2753,6 +2488,7 @@
       "amount": 1
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 25,
       "maxRange": 100
     },
@@ -2775,9 +2511,7 @@
       "amount": 75
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2794,6 +2528,7 @@
       "amount": 3
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 30,
       "maxRange": 120
     },
@@ -2817,9 +2552,7 @@
       "amount": 50
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2836,23 +2569,17 @@
       "amount": 18
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 100,
       "maxRange": 400
     },
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2883,9 +2610,7 @@
       "amount": 50
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -2902,23 +2627,17 @@
       "amount": 2
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 150,
       "maxRange": 600
     },
     "features": [
       {
         "prerequisites": {
-          "options": [
-            "d5def5fd-4b6e-411b-994d-3e830912093e"
-          ],
-          "sizes": [
-            "c6dcfa53-da6e-4258-8857-37eea7135c52",
-            "c5796805-1672-478b-b59f-7eaeef42f6ac"
-          ]
+          "options": ["d5def5fd-4b6e-411b-994d-3e830912093e"],
+          "sizes": ["c6dcfa53-da6e-4258-8857-37eea7135c52", "c5796805-1672-478b-b59f-7eaeef42f6ac"]
         },
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
+        "attributes": ["40a91f3a-8909-4593-8a5f-b66b364602bb"],
         "modifiers": [
           {
             "multiplier": 1,
@@ -2948,10 +2667,7 @@
       "amount": 1
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "13e4400f-aeed-4a6a-a2f3-9f661862ddd9"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "13e4400f-aeed-4a6a-a2f3-9f661862ddd9"],
     "primaryAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
     "desc": "<p>A Large or smaller creature hit by a net is restrained until it is freed. A net has no effect on creatures that are formless, or creatures that are Huge or larger. A creature can use its action to make a DC 10 Strength check, freeing itself or another creature within its reach on a success. Dealing 5 slashing damage to the net (AC 10) also frees the creature without harming it, ending the effect and destroying the net.</p><p>When you use an action, bonus action, or reaction to attack with a net, you can make only one attack regardless of the number of attacks you can normally make.</p>",
     "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
@@ -2965,6 +2681,7 @@
       "id": "93607465-de3d-4788-a5e0-df290fda7959"
     },
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 5,
       "maxRange": 15
     },
@@ -2989,18 +2706,14 @@
     "quantity": 1,
     "equipmentRank": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "weight": {
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 0.05
     },
     "desc": "<p>Arrows are&nbsp;used with&nbsp;a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.</p>",
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-    "properties": [
-      "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-    ],
+    "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
     "id": "6413c7ca-5b35-48fa-aee0-79aefa730d56",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3017,18 +2730,14 @@
     "quantity": 1,
     "equipmentRank": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "desc": "<p>Blowgun needles are&nbsp;used with&nbsp;a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.</p>",
     "weight": {
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 0.02
     },
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-    "properties": [
-      "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-    ],
+    "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
     "id": "34122a47-3c47-40f1-96a1-71c9a6454dd5",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3045,18 +2754,14 @@
     "quantity": 1,
     "equipmentRank": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "desc": "<p>Crossbow bolts are&nbsp;used with&nbsp;a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.</p>",
     "weight": {
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 0.075
     },
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-    "properties": [
-      "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-    ],
+    "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
     "id": "b349249d-b9b5-4064-ab31-685c44a29bb7",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3079,9 +2784,7 @@
       "amount": 1,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "d012faee-75b7-4cee-a4ba-55246289c6c2"
-    ],
+    "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
     "id": "fcecda44-e4de-4760-a100-f8936b9f28d5",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3104,9 +2807,7 @@
       "amount": 3,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "d012faee-75b7-4cee-a4ba-55246289c6c2"
-    ],
+    "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
     "id": "7e64c115-a305-43f3-a008-fcf735971ec0",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3129,9 +2830,7 @@
       "amount": 2,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "d012faee-75b7-4cee-a4ba-55246289c6c2"
-    ],
+    "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
     "id": "93cfd01c-aa47-447c-85c8-4d6d17e2dfde",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3154,9 +2853,7 @@
       "amount": 4,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "d012faee-75b7-4cee-a4ba-55246289c6c2"
-    ],
+    "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
     "id": "b8895278-edf7-4441-b316-eb32834cf059",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3179,9 +2876,7 @@
       "amount": 1
     },
     "desc": "<p>An arcane focus is a special item designed to channel the power of arcane spells. A sorcerer, warlock, or wizard can use such an item as a spellcasting focus.</p>",
-    "properties": [
-      "d012faee-75b7-4cee-a4ba-55246289c6c2"
-    ],
+    "properties": ["d012faee-75b7-4cee-a4ba-55246289c6c2"],
     "id": "8582511f-2b5e-4427-8056-6246a51dd2b8",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3203,9 +2898,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e",
       "amount": 2
     },
-    "properties": [
-      "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-    ],
+    "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
     "id": "7197e1d9-1767-4dae-a780-048e9de0b160",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3224,9 +2917,7 @@
       "amount": 2
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "capacity": {
@@ -3234,9 +2925,7 @@
       "unit": "6156d3be-429c-4143-b92a-81dd9a07cbcc"
     },
     "desc": "<p>A barrel can hold&nbsp;40 gallons of liquid, or 4 cubic feet of solid material.</p>",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "a657ea8d-a793-48ea-ab50-34b9091d0133",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3255,9 +2944,7 @@
       "amount": 2
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "capacity": {
@@ -3265,9 +2952,7 @@
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
     "desc": "<p>A basket can hold&nbsp;2 cubic feet/40 pounds of gear.</p>",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "ee3d0907-cf49-4b83-8b4b-1f3990783671",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3286,9 +2971,7 @@
       "amount": 7
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "desc": "<p>You never know where you’re going to sleep, and a bedroll helps you get better sleep in a hayloft or on the cold ground. A bedroll consists of bedding and a blanket thin enough to be rolled up and tied. In an emergency, it can double as a stretcher.</p>",
@@ -3327,9 +3010,7 @@
       "amount": 3
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "desc": "<p>A thick, quilted, blanket made to keep you warm in cold weather.</p>",
@@ -3351,9 +3032,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "desc": "<p>A set of pulleys with a cable threaded through them and a hook to attach to objects, a block and tackle allows you to hoist up to four times the weight you can normally lift.</p>",
@@ -3375,9 +3054,7 @@
       "amount": 5
     },
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "desc": "<p>A book might contain poetry, historical accounts, information pertaining to a particular field of lore, diagrams and notes on gnomish contraptions, or just about anything else that can be represented using text or pictures. A book of spells is a spellbook.</p>",
@@ -3400,18 +3077,14 @@
     },
     "quantity": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "capacity": {
       "amount": 1.5,
       "unit": "2705eb49-bd03-4b82-8655-930e560a8b43"
     },
     "desc": "<p>A bottle can hold&nbsp;1 1/2 pints of liquid.</p>",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "bef5d81b-f96e-4902-a7b9-ef35b24964dc",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3431,18 +3104,14 @@
     },
     "quantity": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "capacity": {
       "amount": 3,
       "unit": "6156d3be-429c-4143-b92a-81dd9a07cbcc"
     },
     "desc": "<p>A bucket can hold&nbsp;3 gallons of liquid, or 1/2 cubic foot of solid material.</p>",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "7898462b-bf00-44f7-88b8-df44eb9b4739",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3458,14 +3127,10 @@
     },
     "quantity": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "desc": "<p>As an action, you can spread a bag of caltrops to cover a square area that is 5 feet on a side. Any creature that enters the area must succeed on a DC 15 Dexterity saving throw or stop moving this turn and take 1 piercing damage. Taking this damage reduces the creature's walking speed by 10 feet until the creature regains at least 1 hit point. A creature moving through the area at half speed doesn't need to make the save.</p>",
-    "properties": [
-      "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-    ],
+    "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
     "id": "bf97103f-b96c-46c6-a1d8-1cd6f66ae60f",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3507,9 +3172,7 @@
     },
     "quantity": 1,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "348c49e2-a25e-42d6-8357-390530243929"
-    ],
+    "attributes": ["348c49e2-a25e-42d6-8357-390530243929"],
     "damage": {
       "primary": {
         "dieCount": 2,
@@ -3519,6 +3182,7 @@
     },
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "range": {
+      "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e",
       "minRange": 5,
       "maxRange": 20
     },
@@ -3582,12 +3246,8 @@
     "quantity": 20,
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
-    "properties": [
-      "be798ea9-2db6-4eb9-89ce-1073e09f9fe6"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
+    "properties": ["be798ea9-2db6-4eb9-89ce-1073e09f9fe6"],
     "id": "85186906-74b1-4365-aa51-549a895dbe2e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3610,9 +3270,7 @@
         "modifiers": [
           {
             "conditionSave": {
-              "set": [
-                "0a21062b-d7b5-48c7-a7d9-7546c2f69223"
-              ]
+              "set": ["0a21062b-d7b5-48c7-a7d9-7546c2f69223"]
             },
             "multiplier": 1,
             "id": "3a173c5b-0be0-4c2f-807e-52c5117acc92",
@@ -3622,9 +3280,7 @@
         "id": "399f8626-7c9b-4d3c-b219-b8ed6058f33b"
       }
     ],
-    "properties": [
-      "b3429a94-145d-4cdd-9842-78a826056942"
-    ],
+    "properties": ["b3429a94-145d-4cdd-9842-78a826056942"],
     "id": "6795b935-340c-41c3-bd27-12d0209c0082",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3650,9 +3306,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "04a232ea-f320-41d9-b643-63d8b9724556",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3690,9 +3344,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "f3739a98-997c-42dd-aabd-0dbf41c53467",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3713,9 +3365,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "8872edae-c7a8-46ad-95d1-5c48787be4bd",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3733,9 +3383,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "id": "3789eeb2-a64a-41f3-b2e0-5dcf68995909",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3761,9 +3409,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "3a4aff77-7390-4530-b858-95d2bfefe830",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3806,9 +3452,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-    ],
+    "properties": ["d6d3c7a1-e868-44e4-bb25-ad169e6186c9"],
     "id": "3079b26b-2583-4c03-9afe-3be15116d161",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3830,9 +3474,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-    ],
+    "properties": ["d6d3c7a1-e868-44e4-bb25-ad169e6186c9"],
     "id": "642eb47a-2a00-4e44-8f6b-498777e7f1f0",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3854,9 +3496,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "97c761f3-7cbd-4cfc-9bd2-657bbf7e6d21",
-    "properties": [
-      "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-    ],
+    "properties": ["d6d3c7a1-e868-44e4-bb25-ad169e6186c9"],
     "id": "c27b8464-5469-421d-ae49-4cf38f7a837e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3878,9 +3518,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-    ],
+    "properties": ["d6d3c7a1-e868-44e4-bb25-ad169e6186c9"],
     "id": "47b23e0a-f2c1-49ab-9477-244761d8d302",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3902,9 +3540,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "e1c83b6d-e5d8-4e8c-8b48-75b85cd528c3",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3943,9 +3579,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "68163324-bcb2-45c1-b465-7ac1976e49fb"
-    ],
+    "properties": ["68163324-bcb2-45c1-b465-7ac1976e49fb"],
     "id": "c6ef9b37-9b60-4608-b264-1fb977d5a2ac",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3963,9 +3597,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "68163324-bcb2-45c1-b465-7ac1976e49fb"
-    ],
+    "properties": ["68163324-bcb2-45c1-b465-7ac1976e49fb"],
     "id": "3df0973d-05fc-4b43-97d4-5488a9ccf106",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -3987,9 +3619,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "68163324-bcb2-45c1-b465-7ac1976e49fb"
-    ],
+    "properties": ["68163324-bcb2-45c1-b465-7ac1976e49fb"],
     "id": "d602684b-c636-418e-a518-690190e02018",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4011,9 +3641,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "68163324-bcb2-45c1-b465-7ac1976e49fb"
-    ],
+    "properties": ["68163324-bcb2-45c1-b465-7ac1976e49fb"],
     "id": "e3cb0af2-5dc9-47d0-9e70-b35d147044ab",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4060,10 +3688,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020",
-      "993c120c-05c3-4d56-b2a3-2e0c073c082a"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020", "993c120c-05c3-4d56-b2a3-2e0c073c082a"],
     "id": "2b0e4582-2f1f-49c3-885b-d43cbc408597",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4089,10 +3714,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020",
-      "993c120c-05c3-4d56-b2a3-2e0c073c082a"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020", "993c120c-05c3-4d56-b2a3-2e0c073c082a"],
     "id": "46c5badb-766b-42d0-bdfd-b872b631826c",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4187,10 +3809,7 @@
             "id": "ec034006-0d37-4687-b426-e8c4dc091b27"
           }
         },
-        "attributes": [
-          "408bd86e-2ed9-4da6-9932-0e99a6e40e17",
-          "84916f75-92c2-4ee6-abe0-cc038128f0fc"
-        ],
+        "attributes": ["408bd86e-2ed9-4da6-9932-0e99a6e40e17", "84916f75-92c2-4ee6-abe0-cc038128f0fc"],
         "charges": {
           "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 10,
@@ -4216,9 +3835,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "5f5ac5fa-2602-4104-8abd-86a2c413056f"
-    ],
+    "properties": ["5f5ac5fa-2602-4104-8abd-86a2c413056f"],
     "id": "219ac028-6c93-440b-ab47-98aa3a3eb7a4",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4235,9 +3852,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "5f5ac5fa-2602-4104-8abd-86a2c413056f"
-    ],
+    "properties": ["5f5ac5fa-2602-4104-8abd-86a2c413056f"],
     "id": "98adeb9b-b663-40a6-b6ec-e6597192dd68",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4259,9 +3874,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "5f5ac5fa-2602-4104-8abd-86a2c413056f"
-    ],
+    "properties": ["5f5ac5fa-2602-4104-8abd-86a2c413056f"],
     "id": "8ebeedd6-30c4-4cec-b014-a8b8afd106a9",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4283,9 +3896,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "348c49e2-a25e-42d6-8357-390530243929"
-    ],
+    "attributes": ["348c49e2-a25e-42d6-8357-390530243929"],
     "damage": {
       "primary": {
         "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
@@ -4293,9 +3904,7 @@
         "dieValue": 6
       }
     },
-    "properties": [
-      "993c120c-05c3-4d56-b2a3-2e0c073c082a"
-    ],
+    "properties": ["993c120c-05c3-4d56-b2a3-2e0c073c082a"],
     "id": "aa3a8713-9e5d-41bc-8c5f-aca0a7b50b90",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4338,10 +3947,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "13e4400f-aeed-4a6a-a2f3-9f661862ddd9",
-      "348c49e2-a25e-42d6-8357-390530243929"
-    ],
+    "attributes": ["13e4400f-aeed-4a6a-a2f3-9f661862ddd9", "348c49e2-a25e-42d6-8357-390530243929"],
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
@@ -4394,9 +4000,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "1881e3c7-1496-4797-9268-083216953880",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4422,9 +4026,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "f4d360c7-5741-430c-84b7-1f14162d6a8b",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4630,9 +4232,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "993c120c-05c3-4d56-b2a3-2e0c073c082a"
-    ],
+    "properties": ["993c120c-05c3-4d56-b2a3-2e0c073c082a"],
     "id": "0d396fcd-3e7c-4f06-95ab-7195ff0993e9",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4650,9 +4250,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "id": "5240fd8c-770b-4525-b04f-5c0a37fda4c5",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4669,9 +4267,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "id": "3420954a-cfe9-493b-afe2-fe11d54e24cc",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4689,9 +4285,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "97c761f3-7cbd-4cfc-9bd2-657bbf7e6d21",
-    "properties": [
-      "b3429a94-145d-4cdd-9842-78a826056942"
-    ],
+    "properties": ["b3429a94-145d-4cdd-9842-78a826056942"],
     "id": "d2ef8823-2459-4c3e-bb53-9fb48c7fc130",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4784,10 +4378,7 @@
         "id": "9d97b951-3522-45d7-badc-24c4111a4b00"
       }
     ],
-    "properties": [
-      "a77dd525-f359-49df-b5b9-cf9069d5ea24",
-      "b3429a94-145d-4cdd-9842-78a826056942"
-    ],
+    "properties": ["a77dd525-f359-49df-b5b9-cf9069d5ea24", "b3429a94-145d-4cdd-9842-78a826056942"],
     "id": "85116d68-016e-4edc-a359-9449bc32b583",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4834,9 +4425,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "76a936b6-cfeb-4e24-85ae-7225d4050765",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4858,17 +4447,13 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "348c49e2-a25e-42d6-8357-390530243929"
-    ],
+    "attributes": ["348c49e2-a25e-42d6-8357-390530243929"],
     "damage": {
       "primary": {
         "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d"
       }
     },
-    "properties": [
-      "0bed3288-ee9a-46f3-9205-ad223baaaddb"
-    ],
+    "properties": ["0bed3288-ee9a-46f3-9205-ad223baaaddb"],
     "id": "c6378ffe-55c5-48e8-b01b-397f8e6944fd",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4894,9 +4479,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "85bd76ea-2d08-4e89-b8bb-eb3248de7200",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4918,9 +4501,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "cebf6bda-f88d-456c-99a1-cc269876d5e3",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4963,9 +4544,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "78354594-9697-4237-a0c3-9cad5521a025"
-    ],
+    "properties": ["78354594-9697-4237-a0c3-9cad5521a025"],
     "id": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -4987,9 +4566,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-    ],
+    "properties": ["d6d3c7a1-e868-44e4-bb25-ad169e6186c9"],
     "id": "4cd09af6-7fcb-4cf0-aaba-127d02127f65",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5056,9 +4633,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "5120fbd8-a850-49ff-830d-bc4c57ec684e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5211,9 +4786,7 @@
     "quantity": 10,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"
-    ],
+    "attributes": ["5bfaaaf4-f5d0-40de-9c07-ec441d75bf51"],
     "id": "2cbe14fd-0d8f-4471-a0ae-be719631451c",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5315,9 +4888,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "b3429a94-145d-4cdd-9842-78a826056942"
-    ],
+    "properties": ["b3429a94-145d-4cdd-9842-78a826056942"],
     "id": "b6b0cd07-464e-431f-b6c1-9c6c08ddb33e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5343,9 +4914,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5392,9 +4961,7 @@
       "amount": 1,
       "unit": "4978e45d-5533-44b5-a001-414fedf86c81"
     },
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "fa4ee205-11b2-46af-be44-7e152d7e561e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5487,16 +5054,12 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
     "capacity": {
       "amount": 30,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "9ae7b7d2-e2ed-473f-80eb-d49acabb6f7d",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5564,16 +5127,12 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
     "capacity": {
       "amount": 300,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "4457cba0-2f02-424c-8644-7ff57e54a089",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5629,16 +5188,12 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
     "capacity": {
       "amount": 30,
       "unit": "70f69d1c-525a-4404-a287-25cb005d8e2e"
     },
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5690,12 +5245,8 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "86148a46-e764-41a0-bc93-2f53533aff96",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5751,12 +5302,8 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "4ac4900c-0d2d-4991-93f1-c2c67bf30f54",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5816,12 +5363,8 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "d14d717a-9621-42e8-abfe-fbe5ae25468e",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5839,9 +5382,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "c1ebcc2d-1f0c-43aa-b6d6-db3ad8a2bc0a",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5893,9 +5434,7 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "properties": [
-      "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-    ],
+    "properties": ["d6d3c7a1-e868-44e4-bb25-ad169e6186c9"],
     "id": "e5e10940-9c3a-4d0f-8d49-ba5af5f1f664",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -5947,12 +5486,8 @@
     "quantity": 1,
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
     "id": "85c7c9a3-ebbd-46f6-82a3-5794a87cd3d9",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -6061,14 +5596,9 @@
     "quantity": 1,
     "category": "81990afe-e34a-48cb-aece-5e7c46088615",
     "rarity": "d4d36dac-7365-44e7-a911-650a3696e9c4",
-    "attributes": [
-      "c88dafe7-0494-4913-83d9-34fcf7904196",
-      "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"
-    ],
+    "attributes": ["c88dafe7-0494-4913-83d9-34fcf7904196", "14b3ca23-2b10-4bfc-a763-f543a72fa3e2"],
     "armorClass": 2,
-    "properties": [
-      "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"
-    ],
+    "properties": ["44478ef1-2c6f-4b7c-8b49-c364a77e5bb9"],
     "id": "57c6cbc8-9bb2-4e11-9dc6-2622d7482282",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",
@@ -6083,12 +5613,8 @@
     "createdAt": "2024-09-12T11:05:10.351Z",
     "updatedAt": "2024-09-12T11:05:10.351Z",
     "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-    "properties": [
-      "7e27efc4-7b48-48b1-913b-c48cd500b020"
-    ],
-    "attributes": [
-      "d8a46d89-3e37-4a79-862f-8f503bcecd8a"
-    ],
+    "properties": ["7e27efc4-7b48-48b1-913b-c48cd500b020"],
+    "attributes": ["d8a46d89-3e37-4a79-862f-8f503bcecd8a"],
     "contains": [
       {
         "equipment": "7197e1d9-1767-4dae-a780-048e9de0b160",

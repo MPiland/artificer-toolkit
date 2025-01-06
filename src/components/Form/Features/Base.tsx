@@ -173,100 +173,102 @@ const Base = ({
             </>
           )}
         </Row>
-        {featureData?.attributes?.some((attribute) => attribute === Attributes.hasRange) && (
-          <>
-            <Row className={sprinkles({ mb: 'space-3' })}>
-              <Dropdown
-                name='range.id'
-                label='Range'
-                value={featureData?.range?.id}
-                options={system.spells.ranges}
-                required={true}
-                onChange={updateFeatureData}
-              />
-              {featureData?.range?.id !== Ranges.touch &&
-                featureData.range?.id !== Ranges.sight &&
-                featureData.range?.id !== Ranges.unlimited && (
+        {featureData?.attributes?.some((attribute) => attribute === Attributes.hasRange) &&
+          featureData.range &&
+          'id' in featureData.range && (
+            <>
+              <Row className={sprinkles({ mb: 'space-3' })}>
+                <Dropdown
+                  name='range.id'
+                  label='Range'
+                  value={featureData?.range?.id}
+                  options={system.spells.ranges}
+                  required={true}
+                  onChange={updateFeatureData}
+                />
+                {featureData?.range?.id !== Ranges.touch &&
+                  featureData.range?.id !== Ranges.sight &&
+                  featureData.range?.id !== Ranges.unlimited && (
+                    <>
+                      <Input
+                        validation='num'
+                        name='range.minRange'
+                        errorMsg='Please enter a valid number greater than 0'
+                        label='Min. Range'
+                        autoComplete='off'
+                        required={featureData.range?.id === Ranges.distance ? true : false}
+                        value={featureData?.range?.minRange}
+                        onChange={updateFeatureData}
+                      />
+                      <Input
+                        validation='num'
+                        name='range.maxRange'
+                        errorMsg='Must contain only numbers'
+                        label='Max Range'
+                        autoComplete='off'
+                        required={featureData.range?.id === Ranges.distance ? true : false}
+                        value={featureData?.range?.maxRange}
+                        onChange={updateFeatureData}
+                      />
+                      <Dropdown
+                        name='range.unit'
+                        label='UoM'
+                        value={featureData?.range?.unit}
+                        options={Object.values(system.rules.measurements.imperial).flatMap(
+                          (rule) => Array.isArray(rule) && rule
+                        )}
+                        required={featureData.range?.id === Ranges.distance ? true : false}
+                        onChange={updateFeatureData}
+                      />
+                    </>
+                  )}
+                {featureData.attributes?.some((attribute) => attribute === Attributes.limitTargets) && (
+                  <Input
+                    name='targets'
+                    value={featureData?.targets}
+                    label='No. of Targets'
+                    validation='num'
+                    errorMsg='Must contain only numbers'
+                    onChange={updateFeatureData}
+                    placeholder='1'
+                  />
+                )}
+              </Row>
+              <Row>
+                <Dropdown
+                  name='shape.id'
+                  label='Shape'
+                  options={system.spells.shapes}
+                  value={featureData?.shape?.id}
+                  onChange={updateFeatureData}
+                />
+                {featureData?.shape?.id !== Shapes.none && featureData.shape?.id !== Shapes.weapon && (
                   <>
                     <Input
-                      validation='num'
-                      name='range.minRange'
-                      errorMsg='Please enter a valid number greater than 0'
-                      label='Min. Range'
+                      validation='cur'
+                      name='shape.size'
+                      errorMsg='Please enter a valid number (can inlude decimals)'
+                      label='Shape Size'
                       autoComplete='off'
-                      required={featureData.range?.id === Ranges.distance ? true : false}
-                      value={featureData?.range?.minRange}
-                      onChange={updateFeatureData}
-                    />
-                    <Input
-                      validation='num'
-                      name='range.maxRange'
-                      errorMsg='Must contain only numbers'
-                      label='Max Range'
-                      autoComplete='off'
-                      required={featureData.range?.id === Ranges.distance ? true : false}
-                      value={featureData?.range?.maxRange}
+                      required={true}
+                      value={featureData?.shape?.size}
                       onChange={updateFeatureData}
                     />
                     <Dropdown
-                      name='range.unit'
+                      name='shape.unit'
                       label='UoM'
-                      value={featureData?.range?.unit}
+                      value={featureData?.shape?.unit}
                       options={Object.values(system.rules.measurements.imperial).flatMap(
                         (rule) => Array.isArray(rule) && rule
                       )}
-                      required={featureData.range?.id === Ranges.distance ? true : false}
+                      required={true}
                       onChange={updateFeatureData}
                     />
                   </>
                 )}
-              {featureData.attributes?.some((attribute) => attribute === Attributes.limitTargets) && (
-                <Input
-                  name='targets'
-                  value={featureData?.targets}
-                  label='No. of Targets'
-                  validation='num'
-                  errorMsg='Must contain only numbers'
-                  onChange={updateFeatureData}
-                  placeholder='1'
-                />
-              )}
-            </Row>
-            <Row>
-              <Dropdown
-                name='shape.id'
-                label='Shape'
-                options={system.spells.shapes}
-                value={featureData?.shape?.id}
-                onChange={updateFeatureData}
-              />
-              {featureData?.shape?.id !== Shapes.none && featureData.shape?.id !== Shapes.weapon && (
-                <>
-                  <Input
-                    validation='cur'
-                    name='shape.size'
-                    errorMsg='Please enter a valid number (can inlude decimals)'
-                    label='Shape Size'
-                    autoComplete='off'
-                    required={true}
-                    value={featureData?.shape?.size}
-                    onChange={updateFeatureData}
-                  />
-                  <Dropdown
-                    name='shape.unit'
-                    label='UoM'
-                    value={featureData?.shape?.unit}
-                    options={Object.values(system.rules.measurements.imperial).flatMap(
-                      (rule) => Array.isArray(rule) && rule
-                    )}
-                    required={true}
-                    onChange={updateFeatureData}
-                  />
-                </>
-              )}
-            </Row>
-          </>
-        )}
+              </Row>
+            </>
+          )}
         {featureData?.attributes?.some((attribute) => attribute === Attributes.requiresSave) && (
           <Row className={sprinkles({ mb: 'space-3' })}>
             <Dropdown
