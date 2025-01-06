@@ -77,6 +77,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const [isDragging, setIsDragging] = useState<boolean>(false)
   const [mousePos, setMousePos] = useState<number>(0)
   const [errorMessage, setErrorMessage] = useState<string>()
+  const [collapsedCards, setCollapsedCards] = useState(new Set<string>())
 
   const form = location?.pathname?.split('/')[1]
   const deleteConfirmed = location.state?.delete
@@ -117,6 +118,18 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
 
     return () => resizeObserver.disconnect()
   }, [])
+
+  const handleCollapse = (itemId: string) => {
+    setCollapsedCards((prev) => {
+      const next = new Set(prev)
+      if (next.has(itemId)) {
+        next.delete(itemId)
+      } else {
+        next.add(itemId)
+      }
+      return next
+    })
+  }
 
   const handleDelete = useCallback(
     (e: Event, item: FormDataType) => {
@@ -425,6 +438,8 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
                         }
                         leftSide={'level' in item && (item.level || item.level === 0) && `(${item.level})`}
                         collapsible={view === 'list' && true}
+                        collapsed={!collapsedCards.has(item.id)}
+                        onCollapse={() => handleCollapse(item.id)}
                       />
                       <Card.Content>{item.desc}</Card.Content>
                       {footerText && (

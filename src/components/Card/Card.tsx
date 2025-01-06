@@ -28,6 +28,8 @@ const Header = ({
   leftSide,
   collapsible = false,
   startCollapsed = true,
+  collapsed: collapsedProp,
+  onCollapse,
 }: {
   title: string
   open?: (arg: any) => void
@@ -35,6 +37,8 @@ const Header = ({
   leftSide?: ReactNode
   collapsible?: boolean
   startCollapsed?: boolean
+  collapsed?: boolean
+  onCollapse?: () => void
 }) => {
   const { collapsed, setCollapsed } = use(CardContext)
 
@@ -42,7 +46,10 @@ const Header = ({
     if (!startCollapsed) {
       setCollapsed(false)
     }
-  }, [startCollapsed, setCollapsed])
+    if (collapsedProp != null && collapsed !== collapsedProp) {
+      setCollapsed(collapsedProp)
+    }
+  }, [startCollapsed, setCollapsed, collapsedProp, collapsed])
 
   return (
     <div
@@ -50,6 +57,9 @@ const Header = ({
       onClick={() => {
         if (collapsible) {
           setCollapsed(!collapsed)
+          if (onCollapse && collapsedProp != null) {
+            onCollapse()
+          }
         }
       }}
     >
