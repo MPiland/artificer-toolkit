@@ -9,7 +9,7 @@ export const scroll_bar_vertical = style({
       height: '100%',
       right: 0,
       top: 0,
-      position: 'absolute',
+      position: 'relative',
       borderRadius: '.5rem',
       backgroundColor: 'transparent',
       opacity: 0,

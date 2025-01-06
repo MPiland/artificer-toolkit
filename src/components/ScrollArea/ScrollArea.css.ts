@@ -33,7 +33,8 @@ export const scroll_area_base = style({
       height: '100%',
       width: 'inherit',
       zIndex: 0,
-      overflow: 'hidden',
+      minHeight: '0',
+      flex: '1 1 auto',
 
       selectors: {
         '&::webkit-scrollbar': {
@@ -60,7 +61,7 @@ export const scroll_area = styleVariants({
     {
       '@layer': {
         [app]: {
-          overflowY: 'hidden',
+          overflowY: 'auto',
         },
       },
     },

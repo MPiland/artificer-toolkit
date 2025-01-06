@@ -5,14 +5,16 @@ import {
   useState,
   MouseEvent as ReactMouseEvent,
   ComponentPropsWithoutRef,
-  useEffect,
   RefObject,
+  useReducer,
+  useLayoutEffect,
 } from 'react'
 import clsx from 'clsx'
 import { scroll_area, scroll_area_wrapper, scroll_arrow } from './ScrollArea.css'
-import { useEventListener } from 'usehooks-ts'
+import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import { TbChevronLeft, TbChevronRight } from 'react-icons/tb'
 import Scrollbar from '../Scrollbar/Scrollbar'
+import { scrollReducer } from '../../reducers/scrollReducer'
 
 interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
   children?: ReactNode | ReactNode[]
@@ -42,193 +44,231 @@ const ScrollArea = ({
   ...props
 }: ScrollAreaProps) => {
   const scrollAreaRef = useRef<HTMLDivElement | null>(null)
-  const vertThumbRef = useRef<HTMLDivElement>(null)
-  const horzThumbRef = useRef<HTMLDivElement>(null)
   const documentRef = useRef<Document>(document)
   const scrollWrapperRef = useRef<HTMLDivElement | null>(null)
 
-  const [vertThumbHeight, setVertThumbHeight] = useState<number>(SCROLL_BOX_MIN_SIZE)
-  const [vertThumbTop, setVertThumbTop] = useState<number>(0)
-  const [vertThumbPosition, setVertThumbPosition] = useState<number>(0)
-  const [horzThumbWidth, setHorzThumbWidth] = useState<number>(SCROLL_BOX_MIN_SIZE)
-  const [horzThumbLeft, setHorzThumbLeft] = useState<number>(0)
-  const [horzThumbPosition, setHorzThumbPosition] = useState<number>(0)
-  const [isDragging, setIsDragging] = useState<boolean>(false)
-  const [active, setActive] = useState<boolean>(false)
-  const [leftScroll, setLeftScroll] = useState<boolean>(false)
-  const [rightScroll, setRightScroll] = useState<boolean>(false)
+  const [scrollState, dispatch] = useReducer(scrollReducer, {
+    verticalThumbSize: SCROLL_BOX_MIN_SIZE,
+    horizontalThumbSize: SCROLL_BOX_MIN_SIZE,
+    verticalThumbPosition: 0,
+    horizontalThumbPosition: 0,
+    scrollHeight: 0,
+    scrollWidth: 0,
+    isDragging: false,
+    dragDirection: null,
+    active: false,
+    mousePos: { x: 0, y: 0 },
+  })
 
-  let scrollTimer: ReturnType<typeof setTimeout> = setTimeout(() => {
-    clearTimeout(scrollTimer)
-  }, 0)
+  const [leftArrowVisible, setLeftArrowVisible] = useState<boolean>(false)
+  const [rightArrowVisible, setRightArrowVisible] = useState<boolean>(false)
 
-  const updateThumbSizes = useCallback(() => {
-    const scrollArea = scrollAreaRef.current
-    if (!scrollArea) return
-
-    const { scrollWidth, clientWidth, scrollHeight, clientHeight } = scrollArea
-
-    if (scrollDirection === 'all' || scrollDirection === 'vertical') {
-      const scrollThumbPercentage = clientHeight / scrollHeight
-      const newVertScrollThumbHeight =
-        scrollHeight > clientHeight ? Math.max(scrollThumbPercentage * clientHeight, SCROLL_BOX_MIN_SIZE) : 0
-      setVertThumbHeight(newVertScrollThumbHeight)
-    }
-
-    if (scrollDirection === 'all' || scrollDirection === 'horizontal') {
-      const scrollThumbPercentage = clientWidth / scrollWidth
-      const newHorzScrollThumbWidth =
-        scrollWidth > clientWidth ? Math.max(scrollThumbPercentage * clientWidth, SCROLL_BOX_MIN_SIZE) : 0
-      setHorzThumbWidth(newHorzScrollThumbWidth)
-    }
-  }, [scrollDirection])
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current
     if (scrollArea) {
-      const handleResize = () => {
-        updateThumbSizes()
+      const updateSizes = () => {
+        const scrollArea = scrollAreaRef.current
+        if (scrollArea) {
+          const { clientHeight, scrollHeight, scrollWidth, clientWidth } = scrollArea
+          const needsVerticalScroll = scrollHeight > clientHeight
+          const needsHorizontalScroll = scrollWidth > clientWidth
+
+          const verticalRatio = needsVerticalScroll ? clientHeight / scrollHeight : 1
+          const horizontalRatio = needsHorizontalScroll ? clientWidth / scrollWidth : 1
+
+          const verticalThumbSize = needsVerticalScroll
+            ? Math.max(SCROLL_BOX_MIN_SIZE, clientHeight * verticalRatio)
+            : 0
+          const horizontalThumbSize = needsHorizontalScroll
+            ? Math.max(SCROLL_BOX_MIN_SIZE, clientWidth * horizontalRatio)
+            : 0
+
+          dispatch({
+            type: 'UPDATE_DIMENSIONS',
+            scrollHeight,
+            scrollWidth,
+            verticalThumbSize,
+            horizontalThumbSize,
+          })
+
+          dispatch({
+            type: 'SET_ACTIVE',
+            value: needsVerticalScroll || needsHorizontalScroll,
+          })
+        }
       }
 
-      const observer = new ResizeObserver(handleResize)
-      observer.observe(scrollArea)
-
-      // Observe children for changes
-      Array.from(scrollArea.children).forEach((child) => {
-        observer.observe(child)
+      const resizeObserver = new ResizeObserver(updateSizes)
+      const mutationObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList') {
+            const addedNodes = Array.from(mutation.addedNodes)
+            addedNodes.forEach((node) => {
+              if (node instanceof Element) {
+                resizeObserver.observe(node)
+                const collapseElements = node.querySelectorAll('[data-component="collapse"]')
+                collapseElements.forEach((el) => resizeObserver.observe(el))
+              }
+            })
+          }
+        })
+        updateSizes()
       })
 
+      resizeObserver.observe(scrollArea)
+      mutationObserver.observe(scrollArea, {
+        childList: true,
+        subtree: true,
+      })
+
+      updateSizes()
+
       return () => {
-        observer.disconnect()
+        resizeObserver.disconnect()
+        mutationObserver.disconnect()
       }
     }
-  }, [updateThumbSizes])
+  }, [])
 
-  useEffect(() => {
-    updateThumbSizes()
-  }, [updateThumbSizes])
-
-  const handleScroll = useCallback(() => {
+  useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current
-    if (!scrollArea) return
+    if (scrollArea && arrows) {
+      setLeftArrowVisible(scrollArea.scrollLeft > 0)
+      setRightArrowVisible(scrollArea.scrollLeft < scrollArea.scrollWidth - scrollArea.clientWidth)
+    }
+  }, [arrows, scrollState.horizontalThumbPosition])
 
-    const { scrollLeft, scrollWidth, clientWidth, scrollTop, scrollHeight, clientHeight } = scrollArea
+  const debouncedScrollEnd = useDebounceCallback(() => {
+    if (!scrollState.isDragging && visibility !== 'always') {
+      dispatch({ type: 'SET_ACTIVE', value: false })
+    }
+  }, 750)
 
-    clearTimeout(scrollTimer)
-    setActive(true)
-    if (scrollDirection === 'all' || scrollDirection === 'horizontal') {
-      if (arrows) {
-        setLeftScroll(scrollLeft > 0)
-        setRightScroll(Math.round(scrollLeft) + clientWidth < scrollWidth)
+  const handleScroll = useCallback(
+    (e: WheelEvent) => {
+      const scrollArea = scrollAreaRef.current
+      if (!scrollArea || !e.deltaY) return
+
+      debouncedScrollEnd.cancel()
+      dispatch({ type: 'SET_ACTIVE', value: true })
+
+      const delta = e.deltaY
+
+      if (scrollDirection === 'vertical' || scrollDirection === 'all') {
+        scrollArea.scrollTop += delta
+        dispatch({
+          type: 'UPDATE_SCROLL',
+          verticalDelta: delta,
+          clientHeight: scrollArea.clientHeight,
+          clientWidth: scrollArea.clientWidth,
+        })
       }
-      const newHorzScrollThumbLeft =
-        scrollWidth > clientWidth ? (scrollLeft / (scrollWidth - clientWidth)) * (clientWidth - horzThumbWidth) : 0
-      setHorzThumbLeft(newHorzScrollThumbLeft)
-    }
-    if (scrollDirection === 'all' || scrollDirection === 'vertical') {
-      const newVertScrollThumbTop =
-        scrollHeight > clientHeight ? (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - vertThumbHeight) : 0
-      setVertThumbTop(newVertScrollThumbTop)
-    }
-  }, [arrows, scrollDirection, horzThumbWidth, vertThumbHeight, scrollTimer])
-
-  const handleScrollEnd = () => {
-    if (!isDragging) {
-      scrollTimer = setTimeout(() => {
-        if (visibility !== 'always') {
-          setActive(false)
-        }
-      }, 750)
-    }
-  }
-
-  const handleMouseOver = () => {
-    updateThumbSizes()
-    setActive(true)
-  }
-
-  const handleMouseLeave = () => {
-    if (visibility !== 'always' && !isDragging) {
-      setActive(false)
-    }
-  }
+      if (scrollDirection === 'horizontal' || scrollDirection === 'all') {
+        scrollArea.scrollLeft += delta
+        dispatch({
+          type: 'UPDATE_SCROLL',
+          horizontalDelta: delta,
+          clientHeight: scrollArea.clientHeight,
+          clientWidth: scrollArea.clientWidth,
+        })
+      }
+    },
+    [scrollDirection, debouncedScrollEnd]
+  )
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isDragging) {
+      if (scrollState.isDragging && scrollState.dragDirection) {
+        const wrapper = scrollWrapperRef.current
         const scrollArea = scrollAreaRef.current
-        if (!scrollArea) return
+        if (!wrapper || !scrollArea) return
 
-        const { offsetHeight, scrollHeight, offsetWidth, scrollWidth } = scrollArea
-
-        clearTimeout(scrollTimer)
-        if (scrollDirection === 'all' || scrollDirection === 'vertical') {
-          const deltaY = e.clientY - vertThumbPosition
-          const scrollPercentage = deltaY * (scrollHeight / offsetHeight)
-          setVertThumbPosition(e.clientY)
-          setVertThumbTop(Math.min(Math.max(0, vertThumbTop + deltaY), offsetHeight - vertThumbHeight))
-          scrollArea.scrollTop = Math.min(scrollArea.scrollTop + scrollPercentage, scrollHeight - offsetHeight)
+        if (scrollDirection === 'vertical' || scrollDirection === 'all') {
+          const delta = e.clientY - scrollState.mousePos.y
+          scrollArea.scrollTop += delta
+          dispatch({
+            type: 'UPDATE_SCROLL',
+            verticalDelta: delta,
+            clientHeight: scrollArea.clientHeight,
+            clientWidth: scrollArea.clientWidth,
+          })
         }
-
-        if (scrollDirection === 'all' || scrollDirection === 'horizontal') {
-          const deltaX = e.clientX - horzThumbPosition
-          const scrollPercentage = deltaX * (scrollWidth / offsetWidth)
-          setHorzThumbPosition(e.clientX)
-          setHorzThumbLeft(Math.min(Math.max(0, horzThumbLeft + deltaX), offsetWidth - horzThumbWidth))
-          scrollArea.scrollLeft = Math.min(scrollArea.scrollLeft + scrollPercentage, scrollWidth - offsetWidth)
+        if (scrollDirection === 'horizontal' || scrollDirection === 'all') {
+          const delta = e.clientX - scrollState.mousePos.x
+          scrollArea.scrollLeft += delta
+          dispatch({
+            type: 'UPDATE_SCROLL',
+            horizontalDelta: delta,
+            clientHeight: scrollArea.clientHeight,
+            clientWidth: scrollArea.clientWidth,
+          })
         }
       }
     },
-    [
-      isDragging,
-      scrollDirection,
-      vertThumbPosition,
-      horzThumbPosition,
-      horzThumbLeft,
-      vertThumbTop,
-      horzThumbWidth,
-      vertThumbHeight,
-      scrollTimer,
-    ]
+    [scrollState, scrollDirection]
   )
+
+  const handleThumbMouseDown = (e: ReactMouseEvent, direction: 'vertical' | 'horizontal') => {
+    e.preventDefault()
+    dispatch({
+      type: 'SET_DRAG',
+      isDragging: true,
+      dragDirection: direction,
+      mousePos: { x: e.clientX, y: e.clientY },
+    })
+  }
 
   const handleMouseUp = () => {
-    setIsDragging(false)
+    dispatch({
+      type: 'SET_DRAG',
+      isDragging: false,
+      dragDirection: null,
+    })
   }
 
-  const handleThumbMouseDown = (e: ReactMouseEvent) => {
-    e.preventDefault()
-    if (scrollDirection === 'all' || scrollDirection === 'vertical') {
-      setVertThumbPosition(e.clientY)
+  const handleMouseOver = () => {
+    const scrollArea = scrollAreaRef.current
+    if (!scrollArea) return
+
+    const needsVerticalScroll = scrollArea.scrollHeight > scrollArea.clientHeight
+    const needsHorizontalScroll = scrollArea.scrollWidth > scrollArea.clientWidth
+
+    if (needsVerticalScroll || needsHorizontalScroll) {
+      dispatch({ type: 'SET_ACTIVE', value: true })
     }
-    if (scrollDirection === 'all' || scrollDirection === 'horizontal') {
-      setHorzThumbPosition(e.clientX)
-    }
-    setIsDragging(true)
   }
 
-  const scrollByPercentage = useCallback(
-    (percentage: number) => {
-      const scrollArea = scrollAreaRef.current
-      if (scrollArea) {
-        const scrollAmount = scrollArea.scrollWidth * percentage
-        scrollArea.scrollLeft += scrollAmount
-        handleScroll()
-      }
-    },
-    [handleScroll]
-  )
+  const handleMouseLeave = () => {
+    if (visibility !== 'always' && !scrollState.isDragging) {
+      dispatch({ type: 'SET_ACTIVE', value: false })
+    }
+  }
+
+  const scrollByPercentage = useCallback((percentage: number) => {
+    const scrollArea = scrollAreaRef.current
+    if (scrollArea) {
+      const scrollAmount = scrollArea.scrollWidth * percentage
+      scrollArea.scrollLeft += scrollAmount
+
+      dispatch({
+        type: 'UPDATE_SCROLL',
+        horizontalDelta: scrollArea.scrollLeft,
+        clientHeight: scrollArea.clientHeight,
+        clientWidth: scrollArea.clientWidth,
+      })
+    }
+  }, [])
 
   const handleLeftArrowClick = useCallback(() => {
-    scrollByPercentage(-0.15) // Scroll left by 15%
+    scrollByPercentage(-0.15)
   }, [scrollByPercentage])
 
   const handleRightArrowClick = useCallback(() => {
-    scrollByPercentage(0.15) // Scroll right by 15%
+    scrollByPercentage(0.15)
   }, [scrollByPercentage])
 
   useEventListener('scroll', handleScroll, scrollAreaRef)
-  useEventListener('scrollend', handleScrollEnd, scrollAreaRef)
+  useEventListener('scrollend', debouncedScrollEnd, scrollAreaRef)
   useEventListener('wheel', handleScroll, scrollAreaRef, { passive: true })
   useEventListener('mousemove', handleMouseMove, documentRef)
   useEventListener('mouseup', handleMouseUp, documentRef)
@@ -244,11 +284,12 @@ const ScrollArea = ({
       ref={scrollWrapperRef}
       id={wrapperId}
     >
-      {arrows && horzThumbWidth > 0 && leftScroll && (
+      {arrows && scrollDirection !== 'vertical' && leftArrowVisible && (
         <div className={clsx(scroll_arrow, 'left')} onClick={handleLeftArrowClick}>
           <TbChevronLeft />
         </div>
       )}
+
       <div
         ref={(el) => {
           scrollAreaRef.current = el
@@ -262,37 +303,32 @@ const ScrollArea = ({
       >
         {children}
       </div>
-      {arrows && horzThumbWidth > 0 && rightScroll && (
+
+      {arrows && scrollDirection !== 'vertical' && rightArrowVisible && (
         <div className={clsx(scroll_arrow, 'right')} onClick={handleRightArrowClick}>
           <TbChevronRight />
         </div>
       )}
-      {visibility !== 'hidden' &&
-        scrollDirection !== 'horizontal' &&
-        scrollDirection !== 'none' &&
-        vertThumbHeight > 0 && (
-          <Scrollbar
-            active={active || visibility === 'always'}
-            ref={vertThumbRef}
-            size={vertThumbHeight}
-            position={vertThumbTop}
-            onMouseDown={handleThumbMouseDown}
-            scrollDirection='vertical'
-          />
-        )}
-      {visibility !== 'hidden' &&
-        scrollDirection !== 'vertical' &&
-        scrollDirection !== 'none' &&
-        horzThumbWidth > 0 && (
-          <Scrollbar
-            active={active || visibility === 'always'}
-            ref={horzThumbRef}
-            size={horzThumbWidth}
-            position={horzThumbLeft}
-            onMouseDown={handleThumbMouseDown}
-            scrollDirection='horizontal'
-          />
-        )}
+
+      {visibility !== 'hidden' && (scrollDirection === 'vertical' || scrollDirection === 'all') && (
+        <Scrollbar
+          active={scrollState.active || visibility === 'always'}
+          size={scrollState.verticalThumbSize}
+          position={scrollState.verticalThumbPosition}
+          onMouseDown={(e) => handleThumbMouseDown(e, 'vertical')}
+          scrollDirection='vertical'
+        />
+      )}
+
+      {visibility !== 'hidden' && (scrollDirection === 'horizontal' || scrollDirection === 'all') && (
+        <Scrollbar
+          active={scrollState.active || visibility === 'always'}
+          size={scrollState.horizontalThumbSize}
+          position={scrollState.horizontalThumbPosition}
+          onMouseDown={(e) => handleThumbMouseDown(e, 'horizontal')}
+          scrollDirection='horizontal'
+        />
+      )}
     </div>
   )
 }

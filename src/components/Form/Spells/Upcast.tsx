@@ -121,7 +121,7 @@ const Upcast = ({
 
   // Spell Upcast table formData
   const upcastFields = (index?: number) => {
-    const headers: Array<ReactNode> = [<span key={index}>Level</span>]
+    const headers: Array<ReactNode> = [<span key={`${index}levelSpan`}>Level</span>]
     const inputs: Array<ReactNode> = [
       <Input
         name={`upcast.levels.${index}.level`}
@@ -129,7 +129,7 @@ const Upcast = ({
         errorMsg='Must contain only numbers'
         value={formData?.upcast?.levels[index]?.level}
         onChange={updateFormData}
-        key={`${index}${formData?.upcast?.levels[index]?.level}`}
+        key={`${index}level`}
       />,
     ]
     upcastTypes?.forEach((type) => {
@@ -142,7 +142,7 @@ const Upcast = ({
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.setAmount}
             onChange={updateFormData}
-            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.setAmount}`}
+            key={`${index}damageSetAmount`}
           />
         )
       } else if (
@@ -150,13 +150,13 @@ const Upcast = ({
         formData?.damage?.[type]?.attribute === Attributes.spellcastingAbility ||
         formData?.damage?.[type]?.attribute === Attributes.proficiency
       ) {
+        headers.push(
+          <span key={`${index}damage${type}MinAmountSpan`}> {startCase(type)} Dmg. Min. Value</span>,
+          <span key={`${index}damage${type}MaxAmountSpan`}>{startCase(type)} Dmg. Max Value</span>,
+          <span key={`${index}damage${type}MultiplierSpan`}>{startCase(type)} Dmg. Multiplier</span>
+        )
         if (formData?.damage?.[type]?.attribute === Attributes.ability) {
-          headers.push(
-            <span>`${startCase(type)} Dmg. Ability`</span>,
-            <span> `${startCase(type)} Dmg. Min. Value`</span>,
-            <span>`${startCase(type)} Dmg. Max Value`</span>,
-            <span>`${startCase(type)} Dmg. Multiplier`</span>
-          )
+          headers.push(<span key={`${index}damage${type}AbilitySpan`}>{startCase(type)} Dmg. Ability</span>)
           inputs.push(
             <Dropdown
               name={`upcast.levels.${index}.damage.${type}.ability`}
@@ -164,7 +164,7 @@ const Upcast = ({
               options={system.attributes.filter((attribute) => attribute.damage.includes(DamageEnum.pool))}
               required={true}
               errorMsg='Please select an ability.'
-              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.ability}`}
+              key={`${index}damage${type}Ability`}
               onChange={updateFormData}
             />
           )
@@ -175,7 +175,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.minAmount}
-            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.minAmount}`}
+            key={`${index}damage${type}MinAmount`}
             onChange={updateFormData}
           />,
           <Input
@@ -183,7 +183,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.maxAmount}
-            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.maxAmount}`}
+            key={`${index}damage${type}MaxAmount`}
             onChange={updateFormData}
           />,
           <Input
@@ -191,12 +191,12 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.multiplier}
-            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.multiplier}`}
+            key={`${index}damage${type}Multiplier`}
             onChange={updateFormData}
           />
         )
       } else if (formData?.damage?.[type]?.attribute === Attributes.damagePool) {
-        headers.push(<span>`${startCase(type)} Dmg. Pool Options`</span>)
+        headers.push(<span key={`${index}damage${type}PoolOptionSpan`}>`${startCase(type)} Dmg. Pool Options`</span>)
         inputs.push(
           <Dropdown
             name={`upcast.levels.${index}.damage.${type}.pool.option`}
@@ -204,7 +204,7 @@ const Upcast = ({
             options={system.attributes.filter((attribute) => attribute.damage.includes(DamageEnum.pool))}
             required={true}
             errorMsg='Please select an ability.'
-            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.option}`}
+            key={`${index}damage${type}PoolOption`}
             onChange={updateFormData}
           />
         )
@@ -219,7 +219,7 @@ const Upcast = ({
             formData?.damage?.[type]?.pool?.attribute === Attributes.spellcastingAbility
           ) {
             if (formData.damage?.[type]?.pool?.attribute === Attributes.ability) {
-              headers.push(<span>`${startCase(type)} Dmg. Ability`</span>)
+              headers.push(<span key={`${index}damage${type}PoolAbilitySpan`}>`${startCase(type)} Dmg. Ability`</span>)
               inputs.push(
                 <Dropdown
                   name={`upcast.levels.${index}.damage.${type}.pool.ability`}
@@ -227,26 +227,28 @@ const Upcast = ({
                   options={system.abilities}
                   required={true}
                   errorMsg='Please select an ability.'
-                  key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.ability}`}
+                  key={`${index}damage${type}PoolAbility`}
                   onChange={updateFormData}
                 />
               )
             }
-            headers.push(<span>`${startCase(type)} Dmg. Min Value`</span>)
+            headers.push(
+              <span key={`${index}damage${type}PoolMinAmountSpan`}>`${startCase(type)} Dmg. Min Value`</span>
+            )
             inputs.push(
               <Input
                 name={`upcast.levels.${index}.damage.${type}.pool.minAmount`}
                 validation='num'
                 errorMsg='Must contain only numbers'
                 value={formData?.upcast?.levels[index]?.damage[type]?.pool.minAmount}
-                key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.minAmount}`}
+                key={`${index}damage${type}PoolMinAmount`}
                 onChange={updateFormData}
               />
             )
           }
           headers.push(
-            <span>`${startCase(type)} Dmg. Max Value`</span>,
-            <span>`${startCase(type)} Dmg. Multiplier`</span>
+            <span key={`${index}damage${type}PoolMaxAmountSpan`}>{startCase(type)} Dmg. Max Value`</span>,
+            <span key={`${index}damage${type}PoolMultiplierSpan`}>{startCase(type)} Dmg. Multiplier`</span>
           )
           inputs.push(
             <Input
@@ -254,7 +256,7 @@ const Upcast = ({
               validation='num'
               errorMsg='Must contain only numbers'
               value={formData?.upcast?.levels[index]?.damage[type]?.pool.maxAmount}
-              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.maxAmount}`}
+              key={`${index}damage${type}PoolMaxAmount`}
               onChange={updateFormData}
             />,
             <Input
@@ -262,28 +264,28 @@ const Upcast = ({
               validation='num'
               errorMsg='Must contain only numbers'
               value={formData?.upcast?.levels[index]?.damage[type]?.pool.multiplier}
-              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.multiplier}`}
+              key={`${index}damage${type}PoolMultiplier`}
               onChange={updateFormData}
             />
           )
         }
         if (formData?.damage?.[type]?.pool?.attribute === Attributes.setAmount) {
-          headers.push(<span>`${startCase(type)} Dmg. Pool Total`</span>)
+          headers.push(<span key={`${index}damage${type}PoolSetAmountSpan`}>{startCase(type)} Dmg. Pool Total</span>)
           inputs.push(
             <Input
               name={`upcast.levels.${index}.damage.${type}.pool.setAmount`}
               validation='num'
               errorMsg='Must contain only numbers'
               value={formData?.upcast?.levels[index]?.damage[type]?.pool.setAmount}
-              key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.pool.setAmount}`}
+              key={`${index}damage${type}PoolSetAmount`}
               onChange={updateFormData}
             />
           )
         }
       } else {
         headers.push(
-          <span>`${startCase(type)} Dmg. Dice Count`</span>,
-          <span>`${startCase(type)} Dmg. Dice Value`</span>
+          <span key={`${index}damage${type}DieCountSpan`}>{startCase(type)} Dmg. Dice Count</span>,
+          <span key={`${index}damage${type}DieValueSpan`}>{startCase(type)} Dmg. Dice Value</span>
         )
         inputs.push(
           <Input
@@ -291,7 +293,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.dieCount}
-            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.dieCount}`}
+            key={`${index}damage${type}DieCount`}
             onChange={updateFormData}
           />,
           <Input
@@ -299,7 +301,7 @@ const Upcast = ({
             validation='num'
             errorMsg='Must contain only numbers'
             value={formData?.upcast?.levels[index]?.damage[type]?.dieValue}
-            key={`${index}${formData?.upcast?.levels[index]?.damage[type]?.dieValue}`}
+            key={`${index}damage${type}DieValue`}
             onChange={updateFormData}
           />
         )
@@ -309,7 +311,10 @@ const Upcast = ({
       formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.duration) ||
       formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      headers.push(<span>Duration</span>, <span>Duration Increment</span>)
+      headers.push(
+        <span key={`${index}durationIdSpan`}>Duration</span>,
+        <span key={`${index}durationAmountSpan`}>Duration Increment</span>
+      )
       inputs.push(
         <Dropdown
           name={`upcast.levels.${index}.duration.id`}
@@ -317,7 +322,7 @@ const Upcast = ({
           options={system.spells.durations}
           required={true}
           errorMsg='Please select a duration.'
-          key={`${index}${formData?.upcast?.levels[index]?.duration.id}`}
+          key={`${index}durationId`}
           onChange={updateFormData}
         />,
         <Input
@@ -325,7 +330,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.duration.amount}
-          key={`${index}${formData?.upcast?.levels[index]?.duration.amount}`}
+          key={`${index}durationAmount`}
           onChange={updateFormData}
         />
       )
@@ -334,7 +339,12 @@ const Upcast = ({
       formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.range) ||
       formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      headers.push(<span>Range</span>, <span>Min. Range</span>, <span>Max Range</span>, <span>UoM</span>)
+      headers.push(
+        <span key={`${index}rangeSpan`}>Range</span>,
+        <span key={`${index}rangeMinRangeSpan`}>Min. Range</span>,
+        <span key={`${index}rangeMaxRangeSpan`}>Max Range</span>,
+        <span key={`${index}rangeUnitSpan`}>UoM</span>
+      )
       inputs.push(
         <Dropdown
           name={`upcast.levels.${index}.range.id`}
@@ -342,7 +352,7 @@ const Upcast = ({
           options={system.spells.ranges}
           required={true}
           errorMsg='Please select a range.'
-          key={`${index}${formData?.upcast?.levels[index]?.range.id}`}
+          key={`${index}rangeId`}
           onChange={updateFormData}
         />,
         <Input
@@ -350,7 +360,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.range.minRange}
-          key={`${index}${formData?.upcast?.levels[index]?.range.minRange}`}
+          key={`${index}rangeMinRange`}
           onChange={updateFormData}
         />,
         <Input
@@ -358,7 +368,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.range.maxRange}
-          key={`${index}${formData?.upcast?.levels[index]?.range.maxRange}`}
+          key={`${index}rangeMaxRange`}
           onChange={updateFormData}
         />,
         <Dropdown
@@ -367,7 +377,7 @@ const Upcast = ({
           options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
           required={true}
           errorMsg='Please select a range.'
-          key={`${index}${formData?.upcast?.levels[index]?.range.unit}`}
+          key={`${index}rangeUnit`}
           onChange={updateFormData}
         />
       )
@@ -376,7 +386,11 @@ const Upcast = ({
       formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.shape) ||
       formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      headers.push(<span>Shape</span>, <span>Shape Size</span>, <span>UoM</span>)
+      headers.push(
+        <span key={`${index}shapeIdSpan`}>Shape</span>,
+        <span key={`${index}shapeSizeSpan`}>Shape Size</span>,
+        <span key={`${index}shapeUnitSpan`}>UoM</span>
+      )
       inputs.push(
         <Dropdown
           name={`upcast.levels.${index}.shape.id`}
@@ -384,7 +398,7 @@ const Upcast = ({
           options={system.spells.shapes}
           required={true}
           errorMsg='Please select a shape.'
-          key={`${index}${formData?.upcast?.levels[index]?.shape.id}`}
+          key={`${index}shapeId`}
           onChange={updateFormData}
         />,
         <Input
@@ -392,7 +406,7 @@ const Upcast = ({
           validation='num'
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.shape.size}
-          key={`${index}${formData?.upcast?.levels[index]?.shape.size}`}
+          key={`${index}shapeSize`}
           onChange={updateFormData}
         />,
         <Dropdown
@@ -401,7 +415,7 @@ const Upcast = ({
           options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
           required={true}
           errorMsg='Please select a shape.'
-          key={`${index}${formData?.upcast?.levels[index]?.shape.unit}`}
+          key={`${index}shapeUnit`}
           onChange={updateFormData}
         />
       )
@@ -410,7 +424,7 @@ const Upcast = ({
       formData?.upcast?.attributes?.some((attribute) => attribute === Attributes.targets) ||
       formData?.upcast?.attributes?.some((attribute) => attribute === 'all')
     ) {
-      headers.push(<span>Targets</span>)
+      headers.push(<span key={`${index}targetsSpan`}>Targets</span>)
       inputs.push(
         <Input
           name={`upcast.levels.${index}.targets`}
@@ -418,7 +432,7 @@ const Upcast = ({
           errorMsg='Must contain only numbers'
           value={formData?.upcast?.levels[index]?.targets}
           required={true}
-          key={`${index}${formData?.upcast?.levels[index]?.targets}`}
+          key={`${index}targets`}
           onChange={updateFormData}
         />
       )

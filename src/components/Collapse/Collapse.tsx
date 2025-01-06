@@ -105,7 +105,10 @@ const Collapse = ({
   style?: 'border' | 'borderless'
 }) => {
   return (
-    <div className={clsx(collapse_wrapper, { [className]: className }, { ['borderless']: style === 'borderless' })}>
+    <div
+      className={clsx(collapse_wrapper, { [className]: className }, { ['borderless']: style === 'borderless' })}
+      data-component='collapse'
+    >
       {children}
     </div>
   )

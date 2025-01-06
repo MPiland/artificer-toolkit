@@ -93,33 +93,33 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   const backLabel = isFirstStep ? 'Cancel' : 'Back'
 
   // Sucess Message
-  // useEffect(() => {
-  //   if (updateIsSuccess) {
-  //     setSuccessMessage(`${startCase(formData.__typename)} updated successfully!`)
-  //     setErrorMessage(null)
-  //   }
-  // }, [updateIsSuccess, formData.__typename, setErrorMessage, setSuccessMessage])
+  useEffect(() => {
+    if (updateIsSuccess) {
+      setSuccessMessage(`${startCase(formData.__typename)} updated successfully!`)
+      setErrorMessage(null)
+    }
+  }, [updateIsSuccess, formData.__typename, setErrorMessage, setSuccessMessage])
 
   // Error Message
-  // useEffect(() => {
-  //   if (addIsError || updateIsError) {
-  //     if (addError) {
-  //       setErrorMessage((addError as any).message)
-  //     }
-  //     if (updateError) {
-  //       setErrorMessage((updateError as any).message)
-  //     }
-  //   }
-  // }, [
-  //   addIsSuccess,
-  //   updateIsSuccess,
-  //   setErrorMessage,
-  //   setSuccessMessage,
-  //   addIsError,
-  //   updateIsError,
-  //   addError,
-  //   updateError,
-  // ])
+  useEffect(() => {
+    if (addIsError || updateIsError) {
+      if (addError) {
+        setErrorMessage((addError as any).message)
+      }
+      if (updateError) {
+        setErrorMessage((updateError as any).message)
+      }
+    }
+  }, [
+    addIsSuccess,
+    updateIsSuccess,
+    setErrorMessage,
+    setSuccessMessage,
+    addIsError,
+    updateIsError,
+    addError,
+    updateError,
+  ])
 
   const handleNavigateEdit = (item: any) => {
     const route = routeRoot(formData.__typename)

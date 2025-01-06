@@ -7,20 +7,19 @@ import {
   useEffect,
   ReactElement,
   useLayoutEffect,
-  useReducer,
   Ref,
   use,
 } from 'react'
 import clsx from 'clsx'
 import {
   list,
-  list_container,
-  list_container_wrapper,
   list_footer_group,
   list_footer_item,
   list_button_container,
   list_title_button_container,
   list_title_container,
+  list_parent,
+  list_wrapper,
 } from './List.css'
 import { useEventListener } from 'usehooks-ts'
 import Scrollbar from '../Scrollbar/Scrollbar'
@@ -30,9 +29,8 @@ import { useGetSystemQuery } from '../../features/systems/systemsApi'
 import { useListClassesQuery } from '../../features/classes/classesApi'
 import Card from '../Card/Card'
 import { useNavigate, useLocation } from 'react-router-dom'
-import {FormDataType } from '../../types/form'
+import { FormDataType } from '../../types/form'
 import { useDebounceCallback } from 'usehooks-ts'
-import { scrollReducer } from '../../utils/virtualScroll'
 import { set, startCase } from 'lodash'
 import Divider from '../Divider/Divider'
 import Button from '../Button/Button'
@@ -44,11 +42,7 @@ import ListIcon from '../../assets/Icons/IList'
 import { Character, Class, Equipment, Feat, Race, Scores, Spell } from '../../../amplify/API'
 import { AuthContext } from '../../features/auth/AuthContext'
 import { FormContext } from '../Form/FormContext'
-
-/* TODO
-  - Add drag functionality
-  - Remember collapse, uncollapse state
-*/
+import { useVirtualizer } from '@tanstack/react-virtual'
 
 interface ListProps extends ComponentPropsWithoutRef<'div'> {
   className?: string
@@ -61,21 +55,7 @@ interface ListProps extends ComponentPropsWithoutRef<'div'> {
 
 const SCROLL_BOX_MIN_SIZE = 20
 
-type ThumbState = {
-  size: number
-  isDragging: boolean
-  startPosition: number
-}
-
-const List = ({
-  className,
-  visibility = 'visible',
-  useListItems,
-  useDeleteItem,
-  footerText,
-  ref,
-  ...props
-}: ListProps) => {
+const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, footerText }: ListProps) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { mutateAsync: deleteItem } = useDeleteItem()
@@ -85,27 +65,17 @@ const List = ({
   const { updateFormData, stateReset } = use(FormContext)
   const { user } = use(AuthContext)
 
-  const containerRef = useRef<HTMLDivElement>(null)
-  const containerWrapperRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const parentRef = useRef<HTMLDivElement>(null)
   const itemRef = useRef<HTMLDivElement>(null)
   const documentRef = useRef<Document>(document)
 
   const [view, setView] = useState<'list' | 'grid'>('list')
-  const [scrollState, dispatch] = useReducer(scrollReducer, {
-    scrollTop: 0,
-    startIndex: 0,
-    thumbPosition: 0,
-    scrollHeight: 0,
-    renderedNodesCount: 0,
-  })
-  const [itemHeight, setItemHeight] = useState<number>(0)
   const [active, setActive] = useState<boolean>(false)
-  const [thumbState, setThumbState] = useState<ThumbState>({
-    size: SCROLL_BOX_MIN_SIZE,
-    isDragging: false,
-    startPosition: 0,
-  })
+  const [thumbState, setThumbState] = useState<{ size: number; pos: number }>({ size: 0, pos: 0 })
+  const [isDragging, setIsDragging] = useState<boolean>(false)
+  const [mousePos, setMousePos] = useState<number>(0)
   const [errorMessage, setErrorMessage] = useState<string>()
 
   const form = location?.pathname?.split('/')[1]
@@ -113,25 +83,10 @@ const List = ({
   const itemToDelete = location.state?.item
 
   const debouncedScrollEnd = useDebounceCallback(() => {
-    if (!thumbState.isDragging && visibility !== 'always') {
+    if (!isDragging && visibility !== 'always') {
       setActive(false)
     }
   }, 750)
-
-  const updateSizes = useCallback(() => {
-    const wrapper = containerWrapperRef.current
-    if (!wrapper || !itemHeight || itemHeight === 0) return
-
-    const itemsPerRow = view === 'grid' ? 3 : 1
-    const totalRows = Math.ceil((data?.length || 0) / itemsPerRow)
-
-    dispatch({
-      type: 'UPDATE_LAYOUT',
-      itemHeight,
-      totalItems: totalRows,
-      clientHeight: wrapper.clientHeight,
-    })
-  }, [data?.length, itemHeight, view])
 
   useEffect(() => {
     const handleDeleteConfirmed = async () => {
@@ -147,21 +102,21 @@ const List = ({
   }, [deleteConfirmed, itemToDelete, deleteItem])
 
   useLayoutEffect(() => {
-    const item = itemRef?.current
-    const wrapper = containerWrapperRef?.current
-    if (wrapper && item && data?.length > 0 && (itemHeight === 0 || !itemHeight)) {
-      const itemRect = item.getBoundingClientRect()
-      setItemHeight(itemRect.height)
-      const itemsPerRow = view === 'grid' ? 3 : 1
-      const totalRows = Math.ceil((data?.length || 0) / itemsPerRow)
-      dispatch({
-        type: 'UPDATE_LAYOUT',
-        itemHeight: item.clientHeight,
-        totalItems: totalRows,
-        clientHeight: wrapper.clientHeight,
-      })
+    const parent = parentRef.current
+    if (!parent) return
+
+    const updateThumbSize = () => {
+      const ratio = parent.clientHeight / parent.scrollHeight
+      const size = Math.max(SCROLL_BOX_MIN_SIZE, parent.clientHeight * ratio)
+      setThumbState((prev) => ({ ...prev, size }))
     }
-  }, [data?.length, itemHeight, itemRef, view])
+
+    const resizeObserver = new ResizeObserver(updateThumbSize)
+    resizeObserver.observe(parent)
+    updateThumbSize()
+
+    return () => resizeObserver.disconnect()
+  }, [])
 
   const handleDelete = useCallback(
     (e: Event, item: FormDataType) => {
@@ -311,6 +266,72 @@ const List = ({
     }
   }
 
+  const handleScroll = useCallback(
+    (e: WheelEvent) => {
+      requestAnimationFrame(() => {
+        const parent = parentRef.current
+        if (!parent) return
+
+        debouncedScrollEnd.cancel()
+        setActive(true)
+
+        parent.scrollTop += e.deltaY
+
+        const newPosition =
+          (parent.scrollTop / (parent.scrollHeight - parent.clientHeight)) * (parent.clientHeight - thumbState.size)
+
+        setThumbState((prev) => ({
+          ...prev,
+          pos: newPosition,
+        }))
+      })
+    },
+    [debouncedScrollEnd, thumbState.size]
+  )
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (isDragging) {
+        const parent = parentRef.current
+        if (!parent) return
+
+        const delta = e.clientY - mousePos
+        const scrollRatio = delta / (parent.clientHeight - thumbState.size)
+        const scrollAmount = scrollRatio * (parent.scrollHeight - parent.clientHeight)
+
+        parent.scrollTop += scrollAmount
+        setMousePos(e.clientY)
+
+        const newPosition =
+          (parent.scrollTop / (parent.scrollHeight - parent.clientHeight)) * (parent.clientHeight - thumbState.size)
+
+        setThumbState((prev) => ({
+          ...prev,
+          pos: newPosition,
+        }))
+      }
+    },
+    [isDragging, mousePos, thumbState.size]
+  )
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  const handleMouseOver = useCallback(() => {
+    setActive(true)
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setActive(false)
+  }, [])
+
+  const handleThumbMouseDown = (e: ReactMouseEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    setMousePos(e.clientY)
+  }
+
   const getSourceData = useCallback(
     (sourceType: string) => {
       switch (sourceType) {
@@ -325,119 +346,18 @@ const List = ({
     [classes, system]
   )
 
-  const generateRows = useCallback(() => {
-    if (!(data?.length > 0)) return
+  const rowVirtualizer = useVirtualizer({
+    count: Math.ceil(data.length / (view === 'grid' ? 3 : 1)),
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 100,
+    overscan: 5,
+  })
 
-    if (itemHeight === 0) {
-      return [data[0]]
-    }
-
-    const itemsPerRow = view === 'grid' ? 3 : 1
-    const startRow = scrollState.startIndex
-    const endRow = scrollState.startIndex + scrollState.renderedNodesCount
-
-    const startIndex = startRow * itemsPerRow
-    const endIndex = Math.min(endRow * itemsPerRow, data.length)
-
-    return data.slice(startIndex, endIndex)
-  }, [data, scrollState.startIndex, scrollState.renderedNodesCount, itemHeight, view])
-
-  const debouncedUpdateSizes = useDebounceCallback(updateSizes, 16)
-
-  useEffect(() => {
-    const wrapper = containerWrapperRef.current
-    if (wrapper) {
-      const observer = new ResizeObserver(debouncedUpdateSizes)
-      observer.observe(wrapper)
-      return () => observer.disconnect()
-    }
-  }, [debouncedUpdateSizes])
-
-  const handleScroll = useCallback(
-    (e: WheelEvent) => {
-      requestAnimationFrame(() => {
-        const wrapper = containerWrapperRef.current
-        if (!wrapper) return
-
-        debouncedScrollEnd.cancel()
-        setActive(true)
-
-        dispatch({
-          type: 'SCROLL',
-          deltaY: e.deltaY,
-          clientHeight: wrapper.clientHeight,
-          itemHeight,
-          thumbSize: thumbState.size,
-        })
-      })
-    },
-    [debouncedScrollEnd, itemHeight, thumbState.size]
-  )
-
-  const handleScrollEnd = () => {
-    if (!thumbState.isDragging) {
-      debouncedScrollEnd()
-    }
-  }
-
-  const handleMouseOver = () => {
-    setActive(true)
-  }
-
-  const handleMouseLeave = () => {
-    if (visibility !== 'always' && !thumbState.isDragging) {
-      setActive(false)
-    }
-  }
-
-  // const handleMouseMove = useCallback(
-  //   (e: MouseEvent) => {
-  //     if (thumbState.isDragging) {
-  //       const wrapper = containerWrapperRef.current
-  //       if (!wrapper) return
-
-  //       console.log({ thumbState })
-
-  //       const { clientHeight } = wrapper
-  //       const deltaY = e.clientY - thumbState.startPosition
-  //       const scrollPercentage = deltaY / (clientHeight - thumbState.size)
-  //       const newScrollTop = Math.max(
-  //         0,
-  //         Math.min(scrollPercentage * scrollState.scrollHeight, scrollState.scrollHeight - clientHeight)
-  //       )
-
-  //       dispatch({
-  //         type: 'DRAG',
-  //         newScrollTop,
-  //         clientHeight: clientHeight,
-  //         itemHeight,
-  //         thumbSize: thumbState.size,
-  //       })
-  //     }
-  //   },
-  //   [thumbState, scrollState.scrollHeight, itemHeight]
-  // )
-
-  const handleMouseUp = () => {
-    setThumbState((prev) => ({ ...prev, isDragging: false }))
-  }
-
-  const handleThumbMouseDown = (e: ReactMouseEvent) => {
-    e.preventDefault()
-    setThumbState((prev) => ({
-      ...prev,
-      isDragging: true,
-      startPosition: e.clientY,
-    }))
-  }
-
-  useEventListener('scroll', handleScroll, listRef)
-  useEventListener('scrollend', handleScrollEnd, listRef)
-  useEventListener('wheel', handleScroll, listRef, { passive: true })
-  // useEventListener('mousemove', handleMouseMove, documentRef)
+  useEventListener('wheel', handleScroll, parentRef)
+  useEventListener('mouseenter', handleMouseOver, documentRef)
+  useEventListener('mouseleave', handleMouseLeave, documentRef)
+  useEventListener('mousemove', handleMouseMove, documentRef)
   useEventListener('mouseup', handleMouseUp, documentRef)
-  useEventListener('mouseover', handleMouseOver, listRef)
-  useEventListener('mouseleave', handleMouseLeave, listRef)
 
   return (
     <>
@@ -465,66 +385,76 @@ const List = ({
         </Button>
       </div>
       {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
-      <div className={list} ref={listRef}>
-        <div
-          className={list_container_wrapper}
-          ref={containerWrapperRef}
-          style={{ height: `${scrollState.scrollHeight}px` }}
-        >
+      <div className={list_wrapper} ref={wrapperRef}>
+        <div className={list_parent} ref={parentRef}>
           <div
-            ref={(el) => {
-              containerRef.current = el
-              if (ref) {
-                if (typeof ref === 'function') {
-                  ref(el)
-                } else {
-                  ref.current = el
-                }
-              }
-            }}
-            className={clsx({ [className]: className }, list_container, view)}
+            ref={listRef}
+            className={clsx({ [className]: className }, list, view)}
             style={{
-              transform: `translateY(${scrollState.startIndex * itemHeight}px)`,
+              height: `${rowVirtualizer.getTotalSize()}px`,
             }}
-            {...props}
           >
-            {generateRows()?.map((item, index) => (
-              <Card className='card' key={index + scrollState.startIndex} ref={itemRef} itemId={item.id}>
-                <Card.Header
-                  title={`${item.label} ${(item as Exclude<FormDataType, Character>).masterId !== null && '(M)'}`}
-                  open={(e) => handleOpen(e, item)}
-                  remove={
-                    (item as Exclude<FormDataType, Character>).masterId === null && ((e) => handleDelete(e, item))
-                  }
-                  leftSide={'level' in item && (item.level || item.level === 0) && `(${item.level})`}
-                  collapsible={view === 'list' && true}
-                />
-                <Card.Content>{item.desc}</Card.Content>
-                {footerText && (
-                  <Card.Footer>
-                    <div className={list_footer_group}>
-                      {footerText.map((footerItem, footerIndex) => {
-                        if ((view && footerItem.display === view) || !footerItem.display) {
-                          return (
-                            <div className={list_footer_item} key={footerIndex}>
-                              {footerItem.icon ?? footerItem.value}
-                              {getValueFromState({ input: footerItem, state: item, getSourceData })}
-                            </div>
-                          )
+            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const rowStartIndex = virtualItem.index * (view === 'grid' ? 3 : 1)
+              const rowEndIndex = Math.min(rowStartIndex + (view === 'grid' ? 3 : 1), data.length)
+              const itemsInRow = data.slice(rowStartIndex, rowEndIndex)
+
+              return (
+                <div
+                  key={virtualItem.key}
+                  data-index={virtualItem.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualItem.start}px)`,
+                    display: view === 'grid' ? 'grid' : 'block',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: '1rem',
+                  }}
+                >
+                  {itemsInRow.map((item) => (
+                    <Card key={item.id} className='card' ref={itemRef} itemId={item.id}>
+                      <Card.Header
+                        title={`${item.label} ${(item as Exclude<FormDataType, Character>).masterId !== null && '(M)'}`}
+                        open={(e) => handleOpen(e, item)}
+                        remove={
+                          (item as Exclude<FormDataType, Character>).masterId === null && ((e) => handleDelete(e, item))
                         }
-                      })}
-                    </div>
-                  </Card.Footer>
-                )}
-              </Card>
-            ))}
+                        leftSide={'level' in item && (item.level || item.level === 0) && `(${item.level})`}
+                        collapsible={view === 'list' && true}
+                      />
+                      <Card.Content>{item.desc}</Card.Content>
+                      {footerText && (
+                        <Card.Footer>
+                          <div className={list_footer_group}>
+                            {footerText.map((footerItem, footerIndex) => {
+                              if ((view && footerItem.display === view) || !footerItem.display) {
+                                return (
+                                  <div className={list_footer_item} key={footerIndex}>
+                                    {footerItem.icon ?? footerItem.value}
+                                    {getValueFromState({ input: footerItem, state: item, getSourceData })}
+                                  </div>
+                                )
+                              }
+                            })}
+                          </div>
+                        </Card.Footer>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+              )
+            })}
           </div>
         </div>
         {visibility !== 'hidden' && (
           <Scrollbar
             active={active || visibility === 'always'}
             size={thumbState.size}
-            position={scrollState.thumbPosition}
+            position={thumbState.pos}
             onMouseDown={handleThumbMouseDown}
             scrollDirection='vertical'
           />
