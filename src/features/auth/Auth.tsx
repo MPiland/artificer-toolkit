@@ -5,10 +5,11 @@ import Button from '../../components/Button/Button'
 import { TbEye, TbEyeOff } from 'react-icons/tb'
 import { sprinkles } from '../../css/sprinkles.css'
 import Modal from '../../components/Modal/Modal'
-import { useSignUp, useSignIn } from './authApi'
+import { useSignUp, useSignIn, useResetPassword } from './authApi'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Group from '../../components/Group/Group'
 import Spinner from '../../components/Spinner/Spinner'
+import { error_message } from './Auth.css'
 
 const Auth = () => {
   const location = useLocation()
@@ -16,6 +17,7 @@ const Auth = () => {
 
   const { mutateAsync: signUp } = useSignUp()
   const { mutateAsync: signIn } = useSignIn()
+  const { mutateAsync: resetPassword } = useResetPassword()
 
   const [state, setState] = useState<{ password: string; username: string; submitting: boolean }>({
     password: '',
@@ -27,14 +29,69 @@ const Auth = () => {
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [errorMsg, setErrMsg] = useState<string | null>(null)
   const [isSignIn, setIsSignIn] = useState<boolean>(null)
+  const [errorSource, setErrorSource] = useState<'observer' | 'reset' | null>(null)
 
-  const contentRef = useRef(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const usernameRef = useRef<HTMLInputElement>(null)
+  const passwordRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isSignIn === null) {
       setIsSignIn(location.pathname === '/sign-in')
     }
   }, [location.pathname, isSignIn])
+
+  useEffect(() => {
+    const observer = new MutationObserver((mutations: MutationRecord[]) => {
+      mutations.forEach((mutation: MutationRecord) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const hasInvalidInput = [usernameRef.current?.parentElement, passwordRef.current?.parentElement].some((ref) =>
+            ref?.classList.contains('invalid')
+          )
+          if (hasInvalidInput && isSignIn && errorSource !== 'reset') {
+            setErrorSource('observer')
+            setErrMsg('Invalid username or password.')
+          }
+        }
+      })
+    })
+
+    const refs = [usernameRef.current?.parentElement, passwordRef.current?.parentElement].filter(Boolean)
+    refs.forEach((ref) => {
+      if (ref) {
+        observer.observe(ref, {
+          attributes: true,
+          attributeFilter: ['class'],
+        })
+      }
+    })
+
+    return () => observer.disconnect()
+  }, [isSignIn, errorMsg, errorSource])
+
+  const handleResetPassword = async () => {
+    const usernameInput = usernameRef.current
+
+    const test = usernameInput?.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
+
+    if (!test) {
+      setErrorSource('reset')
+      setErrMsg('Please enter a valid username.')
+      const event = new CustomEvent('setErrorState', {
+        detail: !usernameInput?.value.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+      })
+      return usernameInput?.dispatchEvent(event)
+    }
+
+    const result = await resetPassword(state.username)
+    if (result !== 'DONE') {
+      navigate('reset-password', {
+        state: {
+          username: state.username,
+        },
+      })
+    }
+  }
 
   const auth = isSignIn ? signIn : signUp
 
@@ -87,7 +144,7 @@ const Auth = () => {
         <Modal.Dialogue ref={contentRef} size='xs'>
           <Modal.Header title={isSignIn ? 'Sign In' : 'Sign Up'} />
           <Modal.Content>
-            {errorMsg && <p>{errorMsg}</p>}
+            {errorMsg && <p className={error_message}>{errorMsg}</p>}
             <Input
               className={sprinkles({ mb: 'space-4' })}
               validation='user'
@@ -101,7 +158,8 @@ const Auth = () => {
                 setState((prevState) => ({ ...prevState, username: (e as { type: 'update'; value: string }).value }))
               }
               value={state.username}
-              errorMsg='Username must be a valid email address.'
+              errorMsg={!isSignIn && 'Username must be a valid email address (example@domain.com).'}
+              ref={usernameRef}
             />
             <Input
               className={sprinkles({ mb: 'space-2' })}
@@ -126,6 +184,11 @@ const Auth = () => {
                   {showPassword ? <TbEyeOff /> : <TbEye />}
                 </span>
               }
+              errorMsg={
+                !isSignIn &&
+                'Password must be between 8 and 15 characters and include at least one uppercase letter, one lowercase letter, one symbol, and one number.'
+              }
+              ref={passwordRef}
             />
             <Group
               className={sprinkles({ mb: 'space-2' })}
@@ -162,9 +225,19 @@ const Auth = () => {
             <p
               onClick={() => setIsSignIn(!isSignIn)}
               className={sprinkles({ ta: 'center', mt: 'space-4', mb: 'space-x', fontWeight: 'font-weight-7' })}
+              style={{ cursor: 'pointer' }}
             >
               {isSignIn ? 'Sign Up' : 'Sign In'}
             </p>
+            {isSignIn && (
+              <p
+                onClick={handleResetPassword}
+                className={sprinkles({ ta: 'center', mt: 'space-4', mb: 'space-x', fontWeight: 'font-weight-7' })}
+                style={{ cursor: 'pointer' }}
+              >
+                Forgot Password
+              </p>
+            )}
           </Modal.Content>
         </Modal.Dialogue>
       </Modal>

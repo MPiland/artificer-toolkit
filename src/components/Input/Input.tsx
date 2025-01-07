@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, RefObject } from 'react'
 import {
   input_wrapper,
   input_label,
@@ -38,6 +38,7 @@ interface InputProps<T> {
   border?: 'none' | 'default'
   textAlign?: 'center'
   name: DeepKeyOf<T>
+  ref?: RefObject<HTMLDivElement>
 }
 
 const Input = <T,>({
@@ -60,14 +61,23 @@ const Input = <T,>({
   height = 'default',
   border = 'default',
   textAlign,
+  ref,
 }: InputProps<T>) => {
-  const [inputValue, setInputValue] = useState<string>(value ?? '')
+  const [inputValue, setInputValue] = useState<string>(value || '')
   const [debouncing, setDebouncing] = useState(false)
+  const [width, setWidth] = useState<number>(0)
   const [error, setError] = useState<boolean>(false)
   const [open, setOpen] = useState<boolean>(false)
 
   const inputRef = useRef<HTMLInputElement | null>(null)
   const documentRef = useRef<Document>(document)
+
+  useEffect(() => {
+    const input = inputRef.current
+    if (input) {
+      setWidth(input.getBoundingClientRect().width)
+    }
+  }, [inputValue])
 
   useEffect(() => {
     const input = inputRef.current
@@ -103,6 +113,7 @@ const Input = <T,>({
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      setOpen(false)
       debounceSave.cancel()
       const target = e.target
       setInputValue(target.value)
@@ -144,7 +155,7 @@ const Input = <T,>({
         })}
       >
         {label && (
-          <label className={clsx(input_label, { ['required']: required })} htmlFor={id ?? name}>
+          <label className={clsx(input_label, { ['required']: required })} htmlFor={id || name}>
             {label}
           </label>
         )}
@@ -166,29 +177,37 @@ const Input = <T,>({
             className={clsx(input, className)}
             required={required}
             autoFocus={autoFocus}
-            autoComplete={autoComplete ?? 'off'}
+            autoComplete={autoComplete || 'off'}
             readOnly={readOnly}
-            value={inputValue ?? ''}
+            value={inputValue || ''}
             onChange={(e: any) => handleChange(e)}
             tabIndex={0}
-            ref={inputRef}
-            id={id ?? name}
+            ref={(el) => {
+              inputRef.current = el
+              if (ref) {
+                ref.current = el
+              }
+            }}
+            id={id || name}
             data-atapp-validation={validation}
             disabled={disabled}
           />
           {endAdornment && <div className={input_endAdornment}>{endAdornment}</div>}
         </div>
       </Floating.Anchor>
-      <Floating.Tooltip
-        className={'invalid'}
-        boundary='form'
-        open={open}
-        onOpenChange={setOpen}
-        showArrow={true}
-        role='tooltip'
-      >
-        {errorMsg}
-      </Floating.Tooltip>
+      {errorMsg && (
+        <Floating.Tooltip
+          className={'invalid'}
+          boundary='form'
+          open={open}
+          onOpenChange={setOpen}
+          showArrow={true}
+          role='tooltip'
+          style={{ width }}
+        >
+          {errorMsg}
+        </Floating.Tooltip>
+      )}
     </Floating>
   )
   return content

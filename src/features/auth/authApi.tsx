@@ -1,5 +1,14 @@
 import { useMutation } from '@tanstack/react-query'
-import { signIn, signUp, confirmSignUp, autoSignIn, signOut, resendSignUpCode } from 'aws-amplify/auth'
+import {
+  signIn,
+  signUp,
+  confirmSignUp,
+  autoSignIn,
+  signOut,
+  resendSignUpCode,
+  resetPassword,
+  confirmResetPassword,
+} from 'aws-amplify/auth'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import { defaultStorage, sessionStorage } from 'aws-amplify/utils'
 import { useNavigate } from 'react-router-dom'
@@ -12,6 +21,12 @@ type Credentials = {
 
 type Confirm = {
   username: string
+  confirmationCode: string
+}
+
+type Reset = {
+  username: string
+  password: string
   confirmationCode: string
 }
 
@@ -88,6 +103,21 @@ export const handleResendSignUpCode = async (username: string) => {
   }
 }
 
+export const handleConfirmPasswordReset = async (credentials: Reset) => {
+  try {
+    const { username, password, confirmationCode } = credentials
+    await confirmResetPassword({
+      username: username,
+      newPassword: password,
+      confirmationCode: confirmationCode,
+    })
+    return 'DONE'
+  } catch (err) {
+    console.error('Error confirming password reset:', err)
+    return err
+  }
+}
+
 const handleSignIn = async (credentials: Credentials) => {
   try {
     const { username, password, persist } = credentials
@@ -137,6 +167,16 @@ export const useConfirmSignUp = () => {
   })
 }
 
+export const useConfirmPasswordReset = () => {
+  return useMutation({
+    mutationFn: async (credentials: Reset) => {
+      const result = await handleConfirmPasswordReset(credentials)
+
+      return result
+    },
+  })
+}
+
 export const useSignIn = () => {
   return useMutation({
     mutationFn: async (credentials: Credentials) => {
@@ -155,6 +195,24 @@ export const useSignOut = () => {
       navigate('/')
 
       return result
+    },
+  })
+}
+
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: async (username: string) => {
+      try {
+        const { nextStep } = await resetPassword({ username })
+        if (nextStep.resetPasswordStep === 'CONFIRM_RESET_PASSWORD_WITH_CODE') {
+          return 'CONFIRM_RESET_PASSWORD_WITH_CODE'
+        } else {
+          return 'DONE'
+        }
+      } catch (err) {
+        console.error('Error resetting password:', err)
+        return err
+      }
     },
   })
 }

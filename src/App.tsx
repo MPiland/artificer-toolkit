@@ -28,7 +28,7 @@ import ShortDetail from './components/Form/ShortDetail'
 import FeatureProvider from './components/Form/Features/FeatureProvider'
 import Auth from './features/auth/Auth'
 import RequireAuth from './features/auth/RequireAuth'
-import ConfirmSignUp from './features/auth/ConfirmSignUp'
+import Confirm from './features/auth/Confirm'
 import Loading from './components/Loading/Loading'
 import FormProvider from './components/Form/FormProvider'
 import ThemeProvider from './theme/ThemeProvider'
@@ -61,7 +61,11 @@ const App = () => {
         },
         {
           path: ':signType/confirm-sign-up',
-          element: <ConfirmSignUp />,
+          element: <Confirm />,
+        },
+        {
+          path: 'sign-in/reset-password',
+          element: <Confirm />,
         },
         {
           path: '',
