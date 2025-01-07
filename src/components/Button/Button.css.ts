@@ -130,8 +130,6 @@ export const button_style = styleVariants({
   },
 })
 
-console.log({ button_background_color })
-
 export const button_height = styleVariants({
   default: { height: theme.component.button.height },
   auto: { height: height['auto'] },

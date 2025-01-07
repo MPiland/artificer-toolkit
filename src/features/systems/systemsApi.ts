@@ -12,7 +12,6 @@ const systemsKeys = {
 }
 
 export const useListSystemsQuery = () => {
-
   return useSuspenseQuery({
     queryKey: systemsKeys.lists(),
     queryFn: async () => {

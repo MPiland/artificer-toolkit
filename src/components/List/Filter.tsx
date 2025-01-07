@@ -1,26 +1,27 @@
 import Collapse from '../Collapse/Collapse'
-import Row from '../Row/Row'
-import Dropdown from '../Dropdown/Dropdown'
-import Input from '../Input/Input'
+// import Row from '../Row/Row'
+// import Dropdown from '../Dropdown/Dropdown'
+// import Input from '../Input/Input'
 import { useMediaQuery } from 'usehooks-ts'
-import { DropdownOption, ReducerAction } from '../../types/components'
-import { startCase } from 'lodash'
+// import { DropdownOption, ReducerAction } from '../../types/components'
+// import { startCase } from 'lodash'
 
-interface FilterProps {
-  context: string
-  items: any
-  listFilter: any
-  setListFilter: (arg: ReducerAction) => void
-}
+// interface FilterProps {
+//   context: string
+//   items: any
+//   listFilter: any
+//   setListFilter: (arg: ReducerAction) => void
+// }
 
-const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
+// const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
+const Filter = () => {
   const sm = useMediaQuery('screen and (max-width: 567px)')
 
   return (
     <Collapse style='borderless'>
       <Collapse.Header title={'Filters'} startOpened={!sm} />
       <Collapse.Body>
-        <Row>
+        {/* <Row>
           <Input
             name='value'
             label={`${startCase(context)} Name`}
@@ -191,7 +192,7 @@ const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
               />
             </>
           )}
-        </Row>
+        </Row> */}
       </Collapse.Body>
     </Collapse>
   )

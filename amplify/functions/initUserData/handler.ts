@@ -50,7 +50,30 @@ export const handler: PostConfirmationTriggerHandler = async (event) => {
   await Promise.all(
     Array.from(processedDataSets.entries()).map(async ([tableName, data]) => {
       const userTableName = await getTableName(tableName.replace('Master', ''))
-      return batchWriteData(userTableName, data)
+
+      // Filter out items that already exist for this user
+      const newItems = await Promise.all(
+        data.map(async (item: any) => {
+          const existingItemCheck = await docClient.send(
+            new ScanCommand({
+              TableName: userTableName,
+              FilterExpression: 'masterId = :masterId AND ownerId = :userId',
+              ExpressionAttributeValues: {
+                ':masterId': item.masterId,
+                ':userId': userId,
+              },
+            })
+          )
+
+          return existingItemCheck.Items?.length ? null : item
+        })
+      )
+
+      // Only batch write items that don't exist yet
+      const itemsToCreate = newItems.filter((item) => item !== null)
+      if (itemsToCreate.length > 0) {
+        return batchWriteData(userTableName, itemsToCreate)
+      }
     })
   )
 
