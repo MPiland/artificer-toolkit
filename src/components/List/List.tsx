@@ -9,6 +9,7 @@ import {
   useLayoutEffect,
   Ref,
   use,
+  Suspense,
 } from 'react'
 import clsx from 'clsx'
 import {
@@ -43,6 +44,7 @@ import { Character, Class, Equipment, Feat, Race, Scores, Spell } from '../../..
 import { AuthContext } from '../../features/auth/AuthContext'
 import { FormContext } from '../Form/FormContext'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import Loading from '../Loading/Loading'
 
 interface ListProps extends ComponentPropsWithoutRef<'div'> {
   className?: string
@@ -375,7 +377,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   useEventListener('mouseup', handleMouseUp, documentRef)
 
   return (
-    <>
+    <Suspense fallback={<Loading />}>
       <div className={list_title_container}>
         <h2>{startCase(`${form}`)}</h2>
         <div className={list_title_button_container}>
@@ -479,7 +481,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
           />
         )}
       </div>
-    </>
+    </Suspense>
   )
 }
 

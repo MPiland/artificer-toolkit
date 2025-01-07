@@ -17,6 +17,8 @@ const Layout = () => {
     setIsLoading((prev) => prev && (isUserLoading || (!systems && !isUserLoading && user !== null)))
   }, [isUserLoading, systems, setIsLoading, user])
 
+  console.log({ isLoading })
+
   return (
     <LayoutProvider>
       <AppShell>

@@ -44,10 +44,6 @@ const NotSignedIn = () => {
       title: 'About',
     },
     {
-      to: 'register',
-      title: 'Register',
-    },
-    {
       to: 'sign-in',
       title: 'Sign In',
     },
