@@ -1,5 +1,5 @@
 import AppShell from '../components/AppShell/AppShell'
-import { use } from 'react'
+import { use, useRef } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import {
   header_title,
@@ -9,7 +9,7 @@ import {
   sidebar_item,
   sidebar_item_title,
 } from './Layout.css'
-import { useMediaQuery } from 'usehooks-ts'
+import { useEventListener, useMediaQuery } from 'usehooks-ts'
 import Button from '../components/Button/Button'
 import IDarkMode from '../assets/Icons/IDarkMode'
 import ILightMode from '../assets/Icons/ILightMode'
@@ -21,6 +21,10 @@ const NotSignedIn = () => {
   const location = useLocation()
   const { themeType, toggleTheme } = use(ThemeContext)
   const { collapsed, setCollapsed } = use(LayoutContext)
+
+  const documentRef = useRef<Document>(document)
+
+  useEventListener('click', () => setCollapsed(true), documentRef)
 
   const sm = useMediaQuery('screen and (max-width: 567px)')
   const md = useMediaQuery('screen and (max-width: 1024px)')
@@ -58,7 +62,13 @@ const NotSignedIn = () => {
       {!lg && (
         <AppShell.Header>
           <div className={header_item_group}>
-            <AppShell.Hamburger onClick={() => setCollapsed((prev) => !prev)} collapsed={collapsed} />
+            <AppShell.Hamburger
+              onClick={(e) => {
+                e.stopPropagation()
+                setCollapsed((prev) => !prev)
+              }}
+              collapsed={collapsed}
+            />
             <div className={header_title}>
               <ILogo />
               Artificer Toolkit

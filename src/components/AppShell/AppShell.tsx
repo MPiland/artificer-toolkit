@@ -1,4 +1,4 @@
-import { ReactNode, use } from 'react'
+import { MouseEvent as ReactMouseEvent, ReactNode, use } from 'react'
 import {
   app_shell,
   app_main,
@@ -30,7 +30,7 @@ interface HeaderProps {
 }
 
 interface HamburgerProps {
-  onClick: () => void
+  onClick: (event: ReactMouseEvent<HTMLDivElement, MouseEvent>) => void
   collapsed: boolean
 }
 

@@ -1,5 +1,5 @@
 import AppShell from '../components/AppShell/AppShell'
-import { ReactNode, useEffect, use } from 'react'
+import { ReactNode, useEffect, use, useRef } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import {
   header_title,
@@ -12,7 +12,7 @@ import {
   sidebar_header,
   sidebar_footer,
 } from './Layout.css'
-import { useMediaQuery } from 'usehooks-ts'
+import { useEventListener, useMediaQuery } from 'usehooks-ts'
 import CharactersIcon from '../assets/Icons/IChar'
 import ClassesIcon from '../assets/Icons/IClass'
 import RacesIcon from '../assets/Icons/IRaces'
@@ -41,6 +41,9 @@ const SignedIn = () => {
 
   const { mutateAsync: signOut } = useSignOut()
   const { data: systems } = useListSystemsQuery()
+  const documentRef = useRef<Document>(document)
+
+  useEventListener('click', () => setCollapsed(true), documentRef)
 
   useEffect(() => {
     setIsLoading((prev) => prev && !systems)
@@ -104,7 +107,13 @@ const SignedIn = () => {
         <AppShell.Sidebar collapsed={collapsed}>
           <div>
             <div className={sidebar_header}>
-              <AppShell.Hamburger onClick={() => setCollapsed((prev) => !prev)} collapsed={collapsed} />
+              <AppShell.Hamburger
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setCollapsed((prev) => !prev)
+                }}
+                collapsed={collapsed}
+              />
             </div>
             <div className={sidebar_item_group}>
               {userNavigation.map((user: { icon?: ReactNode; to: string; title: string }, index: number) => (
@@ -141,7 +150,13 @@ const SignedIn = () => {
       {!lg && (
         <AppShell.Header>
           <div className={header_item_group}>
-            <AppShell.Hamburger onClick={() => setCollapsed((prev) => !prev)} collapsed={collapsed} />
+            <AppShell.Hamburger
+              onClick={(e) => {
+                e.stopPropagation()
+                setCollapsed((prev) => !prev)
+              }}
+              collapsed={collapsed}
+            />
             <div className={header_title}>
               Artificer Toolkit
               <ILogo />
