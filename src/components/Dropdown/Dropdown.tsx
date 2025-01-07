@@ -156,21 +156,25 @@ const Dropdown = <T,>({
 
   const handleValueSelect = (option: DropdownOption) => {
     setSettingOption(true)
-    if (multiSelect && Array.isArray(selectedOptions)) {
-      let newOptions = [...selectedOptions]
-      if (option.value === 'clear') {
-        newOptions = null
-        return onChange({ type: 'remove', path: name })
-      } else {
-        if (!(selectedOptions.length > 0)) {
-          setSelectedOptions([option.id])
-        } else if (selectedOptions?.some((selectedOption) => selectedOption === option.id)) {
-          newOptions = newOptions.filter((selectedOption) => selectedOption !== option.id)
+    if (multiSelect) {
+      let newOptions = [option.id]
+      if (Array.isArray(selectedOptions) && selectedOptions?.length > 0) {
+        newOptions = [...newOptions, ...selectedOptions]
+        if (option.value === 'clear') {
+          newOptions = null
+          return onChange({ type: 'remove', path: name })
         } else {
-          newOptions = [...newOptions, option.id]
+          if (!(selectedOptions.length > 0)) {
+            setSelectedOptions([option.id])
+          } else if (selectedOptions?.some((selectedOption) => selectedOption === option.id)) {
+            newOptions = newOptions.filter((selectedOption) => selectedOption !== option.id)
+          } else {
+            newOptions = [...newOptions, option.id]
+          }
         }
       }
       setSelectedOptions(newOptions)
+      console.log({ newOptions })
       onChange({ type: 'update', path: name, value: newOptions })
     } else {
       // If it's a single select, update selectedOptionsRef.current to match selectedOptions
