@@ -1,12 +1,13 @@
 import { useDeleteSpellMutation, useListSpellsQuery } from './spellsApi'
 import List from '../../components/List/List'
-import { ReactElement } from 'react'
+import { ReactElement, Suspense } from 'react'
 import IFlame from '../../assets/Icons/IFlame'
 import IClass from '../../assets/Icons/IClass'
 import IBook from '../../assets/Icons/IBook'
 import IClock from '../../assets/Icons/IClock'
 import IRange from '../../assets/Icons/IRange'
 import IMortPest from '../../assets/Icons/IMortPest'
+import Loading from '../../components/Loading/Loading'
 
 const SpellsList = () => {
   const footerText: { name: string | any | any[]; value: string; display?: string; icon?: ReactElement }[] = [
@@ -73,7 +74,11 @@ const SpellsList = () => {
     },
   ]
 
-  return <List useListItems={useListSpellsQuery} useDeleteItem={useDeleteSpellMutation} footerText={footerText} />
+  return (
+    <Suspense fallback={<Loading />}>
+      <List useListItems={useListSpellsQuery} useDeleteItem={useDeleteSpellMutation} footerText={footerText} />
+    </Suspense>
+  )
 }
 
 export default SpellsList

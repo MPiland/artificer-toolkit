@@ -1,5 +1,5 @@
 import AppShell from '../components/AppShell/AppShell'
-import { useEffect, use } from 'react'
+import { useEffect, use, Suspense } from 'react'
 import Loading from '../components/Loading/Loading'
 import { useListSystemsQuery } from '../features/systems/systemsApi'
 import { LoadingContext } from '../components/Loading/LoadingContext'
@@ -17,14 +17,14 @@ const Layout = () => {
     setIsLoading((prev) => prev && (isUserLoading || (!systems && !isUserLoading && user !== null)))
   }, [isUserLoading, systems, setIsLoading, user])
 
-  console.log({ isLoading })
-
   return (
     <LayoutProvider>
-      <AppShell>
-        {!isAuthenticating && !user ? <NotSignedIn /> : <SignedIn />}
-        {isLoading && <Loading />}
-      </AppShell>
+      <Suspense fallback={<Loading />}>
+        <AppShell>
+          {!isAuthenticating && !user ? <NotSignedIn /> : <SignedIn />}
+          {isLoading && <Loading />}
+        </AppShell>
+      </Suspense>
     </LayoutProvider>
   )
 }

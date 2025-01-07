@@ -1,9 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
 import { listSystems, getSystem } from '../../../amplify/graphql/queries'
 import useSystemPref from '../../hooks/useSystemPref'
-import { use } from 'react'
-import { AuthContext } from '../auth/AuthContext'
 
 const client = generateClient()
 
@@ -14,9 +12,8 @@ const systemsKeys = {
 }
 
 export const useListSystemsQuery = () => {
-  const { user } = use(AuthContext)
 
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: systemsKeys.lists(),
     queryFn: async () => {
       try {
@@ -45,13 +42,12 @@ export const useListSystemsQuery = () => {
         throw error
       }
     },
-    enabled: Boolean(user),
   })
 }
 
 export const useGetSystemQuery = () => {
   const [systemsPref] = useSystemPref()
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: systemsKeys.single(systemsPref),
     queryFn: async () => {
       if (!systemsPref) {
@@ -183,6 +179,5 @@ export const useGetSystemQuery = () => {
         throw error
       }
     },
-    enabled: Boolean(systemsPref),
   })
 }

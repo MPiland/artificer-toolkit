@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { signIn, signUp, confirmSignUp, autoSignIn, signOut, resendSignUpCode } from 'aws-amplify/auth'
 import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito'
 import { defaultStorage, sessionStorage } from 'aws-amplify/utils'
+import { useNavigate } from 'react-router-dom'
 
 type Credentials = {
   username: string
@@ -147,9 +148,11 @@ export const useSignIn = () => {
 }
 
 export const useSignOut = () => {
+  const navigate = useNavigate()
   return useMutation({
     mutationFn: async () => {
       const result = await signOut()
+      navigate('/')
 
       return result
     },

@@ -6,7 +6,8 @@ import IProps from '../../assets/Icons/IProps'
 import IShield from '../../assets/Icons/IShield'
 import IWeight from '../../assets/Icons/IWeight'
 import IDollar from '../../assets/Icons/IDollar'
-import { ReactElement } from 'react'
+import { ReactElement, Suspense } from 'react'
+import Loading from '../../components/Loading/Loading'
 
 const ItemsList = () => {
   const footerText: { name: string | any | any[]; value: string; display?: string; icon?: ReactElement }[] = [
@@ -60,7 +61,9 @@ const ItemsList = () => {
   ]
 
   return (
-    <List useListItems={useListEquipmentQuery} useDeleteItem={useDeleteEquipmentMutation} footerText={footerText} />
+    <Suspense fallback={<Loading />}>
+      <List useListItems={useListEquipmentQuery} useDeleteItem={useDeleteEquipmentMutation} footerText={footerText} />
+    </Suspense>
   )
 }
 
