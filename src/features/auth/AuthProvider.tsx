@@ -26,11 +26,12 @@ const useAuthOptions = () => {
           setUser(null)
           setTokens(null)
         }
-        setIsLoading(false)
       } catch (error) {
         console.log('No current user:', error)
         setUser(null)
         setTokens(null)
+      } finally {
+        setIsLoading(false)
       }
     }
 
