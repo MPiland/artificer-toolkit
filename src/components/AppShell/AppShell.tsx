@@ -11,6 +11,7 @@ import {
 } from './AppShell.css'
 import clsx from 'clsx'
 import ThemeContext from '../../theme/ThemeContext'
+import AppShellProvider from '../../Layout/LayoutProvider'
 
 interface AppShellProps {
   children: ReactNode
@@ -40,7 +41,7 @@ interface SidebarProps {
 
 export const Hamburger = ({ onClick, collapsed = false }: HamburgerProps) => {
   return (
-    <div className={clsx(hamburger_wrapper, { ['collapsed']: collapsed })} onClick={onClick} tabIndex={0} role='button'>
+    <div className={clsx(hamburger_wrapper, { ['open']: !collapsed })} onClick={onClick} tabIndex={0} role='button'>
       <div className={hamburger}>
         <span className={hamburger_line}></span>
         <span className={hamburger_line}></span>
@@ -76,7 +77,11 @@ export const Sidebar = ({ children, collapsed = false }: SidebarProps) => {
 
 const AppShell = ({ children }: AppShellProps) => {
   const { themeVar } = use(ThemeContext)
-  return <div className={clsx(app_shell, themeVar)}>{children}</div>
+  return (
+    <AppShellProvider>
+      <div className={clsx(app_shell, themeVar)}>{children}</div>
+    </AppShellProvider>
+  )
 }
 
 AppShell.Header = Header

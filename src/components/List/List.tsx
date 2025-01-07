@@ -21,7 +21,7 @@ import {
   list_parent,
   list_wrapper,
 } from './List.css'
-import { useEventListener } from 'usehooks-ts'
+import { useEventListener, useMediaQuery } from 'usehooks-ts'
 import Scrollbar from '../Scrollbar/Scrollbar'
 import { UseMutationResult, UseSuspenseQueryResult } from '@tanstack/react-query'
 import { getValueFromState } from '../../utils/formatting'
@@ -64,6 +64,8 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const { data }: { data: FormDataType[] } = useListItems()
   const { updateFormData, stateReset } = use(FormContext)
   const { user } = use(AuthContext)
+
+  const md = useMediaQuery('(min-width: 568px)')
 
   const listRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -378,25 +380,27 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
         <h2>{startCase(`${form}`)}</h2>
         <div className={list_title_button_container}>
           <Button color='main' style='outline'>
-            {<FilterIcon />} Filter
+            {<FilterIcon />} {md && ' Filter'}
           </Button>
           <Button color='main' style='outline'>
-            {<CopyIcon />} Copy
+            {<CopyIcon />} {md && ' Copy'}
           </Button>
           <Button color='main' style='outline' onClick={() => handleCreate(form === 'classes' || form === 'races')}>
-            {<CreateIcon />} Create
+            {<CreateIcon />} {md && ' Create'}
           </Button>
         </div>
       </div>
       <Divider />
-      <div className={list_button_container}>
-        <Button color='main' style='outline' onClick={() => setView('grid')}>
-          {<GridIcon />}
-        </Button>
-        <Button color='main' style='outline' onClick={() => setView('list')}>
-          {<ListIcon />}
-        </Button>
-      </div>
+      {md && (
+        <div className={list_button_container}>
+          <Button color='main' style='outline' onClick={() => setView('grid')}>
+            {<GridIcon />}
+          </Button>
+          <Button color='main' style='outline' onClick={() => setView('list')}>
+            {<ListIcon />}
+          </Button>
+        </div>
+      )}
       {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
       <div className={list_wrapper} ref={wrapperRef}>
         <div className={list_parent} ref={parentRef}>

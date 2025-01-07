@@ -24,17 +24,24 @@ export const header_title = style({
 export const header_item_group = style({
   '@layer': {
     [app]: {
-      marginLeft: 'auto',
-      listStyleType: 'none',
-      display: 'flex',
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      order: 3,
-      paddingRight: space['space-4'],
-      height: '100%',
+      'marginLeft': 'auto',
+      'listStyleType': 'none',
+      'display': 'flex',
+      'flexDirection': 'row',
+      'justifyContent': 'space-between',
+      'alignItems': 'center',
+      'order': 3,
+      'paddingRight': space['space-4'],
+      'height': '100%',
+      'width': '100%',
 
-      selectors: {
+      '@media': {
+        '(min-width: 1024px)': {
+          justifyContent: 'end',
+        },
+      },
+
+      'selectors': {
         '&:first-child': {
           paddingLeft: 0,
         },
@@ -124,6 +131,18 @@ export const sidebar_icon = style({
       color: theme.vars.typography.color.main,
       height: '100%',
       width: theme.component.appShell.sidebar.spacing.height.item,
+    },
+  },
+})
+
+export const sidebar_footer = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
     },
   },
 })

@@ -62,6 +62,7 @@ export const dropdown_container = style({
       cursor: 'pointer',
       borderRadius: theme.border.radius,
       backgroundColor: theme.vars.component.input.backgroundColor,
+      color: theme.vars.typography.color.main,
 
       selectors: {
         '&:focus-within': {

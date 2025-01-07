@@ -53,7 +53,7 @@ export const root = createGlobalTheme(':root', {
           },
           width: {
             main: '14rem',
-            collapsed: '3.5rem',
+            collapsed: '2.5rem',
           },
         },
       },

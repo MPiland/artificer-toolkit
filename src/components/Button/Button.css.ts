@@ -23,6 +23,7 @@ export const button = style({
       padding: `${space['space-2']} ${space['space-4']}`,
       flexWrap: 'nowrap',
       textWrap: 'nowrap',
+      overflow: 'hidden',
     },
   },
 })
@@ -40,6 +41,7 @@ export const button_content = style({
       zIndex: 0,
       width: '100%',
       pointerEvents: 'none',
+      overflow: 'hidden',
     },
   },
 })

@@ -6,12 +6,18 @@ import { size } from '../../css/size.css'
 export const app_shell = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      flexDirection: 'row',
-      height: '100dvh',
-      width: '100%',
-      overflow: 'hidden',
-      color: theme.vars.typography.color.main,
+      'display': 'flex',
+      'flexDirection': 'row',
+      'height': '100dvh',
+      'width': '100%',
+      'overflow': 'hidden',
+      'color': theme.vars.typography.color.main,
+
+      '@media': {
+        '(max-width: 1024px)': {
+          flexDirection: 'column',
+        },
+      },
     },
   },
 })
@@ -22,11 +28,10 @@ export const app_header = style({
       position: 'sticky',
       top: 0,
       right: 0,
-      width: 'auto',
+      width: '100%',
       height: theme.component.appShell.header.spacing.height,
       display: 'flex',
       flexDirection: 'row',
-      border: 'none',
       borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       padding: theme.component.appShell.header.spacing.padding,
       backgroundColor: theme.vars.component.content.backgroundColor.main,
@@ -37,25 +42,46 @@ export const app_header = style({
 export const app_sidebar = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      left: 0,
-      top: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      width: theme.component.appShell.sidebar.spacing.width.main,
-      backgroundColor: theme.vars.component.appShell.sidebar.backgroundColor,
-      color: 'white',
-      listStyleType: 'none',
-      transition: 'width .3s ease-in-out',
-      padding: theme.component.appShell.sidebar.spacing.padding,
-      rowGap: '1rem',
-      borderRight: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      'boxSizing': 'content-box',
+      'position': 'relative',
+      'left': 0,
+      'top': 0,
+      'display': 'flex',
+      'flexDirection': 'column',
+      'justifyContent': 'space-between',
+      'width': theme.component.appShell.sidebar.spacing.width.main,
+      'backgroundColor': theme.vars.component.appShell.sidebar.backgroundColor,
+      'color': 'white',
+      'listStyleType': 'none',
+      'transition': 'all .3s ease-in-out',
+      'padding': theme.component.appShell.sidebar.spacing.padding,
+      'rowGap': '1rem',
+      'borderRight': `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      'zIndex': 1,
 
-      selectors: {
+      'selectors': {
         '&.collapsed': {
           width: theme.component.appShell.sidebar.spacing.width.collapsed,
           overflow: 'hidden',
+          border: 'none',
+        },
+      },
+      '@media': {
+        'screen and (max-width: 1024px)': {
+          position: 'absolute',
+          width: theme.component.appShell.sidebar.spacing.width.main,
+          left: 0,
+          top: 0,
+          bottom: 0,
+          selectors: {
+            '&.collapsed': {
+              width: 0,
+              paddingLeft: 0,
+              paddingRight: 0,
+              overflow: 'hidden',
+              transition: 'all .3s ease-in-out',
+            },
+          },
         },
       },
     },
@@ -65,14 +91,22 @@ export const app_sidebar = style({
 export const app_main = style({
   '@layer': {
     [app]: {
-      position: 'relative',
-      top: 0,
-      right: 0,
-      width: '100%',
-      overflow: 'hidden',
-      height: '100%',
-      backgroundColor: theme.vars.component.content.backgroundColor.main,
-      zIndex: 0,
+      'position': 'relative',
+      'top': 0,
+      'right': 0,
+      'width': '100%',
+      'overflow': 'hidden',
+      'height': '100%',
+      'backgroundColor': theme.vars.component.content.backgroundColor.main,
+      'zIndex': 0,
+      'display': 'flex',
+      'flexDirection': 'column',
+
+      '@media': {
+        '(max-width: 1024px)': {
+          flexDirection: 'row',
+        },
+      },
     },
   },
 })
@@ -80,12 +114,24 @@ export const app_main = style({
 export const app_content = style({
   '@layer': {
     [app]: {
-      padding: `${size['size-4']} 8rem`,
-      width: '100%',
-      height: `calc(100% - ${theme.component.appShell.header.spacing.height})`,
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
+      'position': 'relative',
+      'bottom': 0,
+      'right': 0,
+      'height': '100%',
+      'padding': `${size['size-4']} 8rem`,
+      'width': '100%',
+      'overflow': 'hidden',
+      'display': 'flex',
+      'flexDirection': 'column',
+
+      '@media': {
+        '(max-width: 1024px)': {
+          padding: `${size['size-4']} ${size['size-4']}`,
+        },
+        '(max-width: 567px)': {
+          display: 'block',
+        },
+      },
     },
   },
 })
@@ -103,7 +149,7 @@ export const hamburger_wrapper = style({
       width: theme.component.appShell.hamburger.wrapper.width,
 
       selectors: {
-        '&.collapsed': {
+        '&.open': {
           justifyContent: 'center',
         },
       },
@@ -138,15 +184,15 @@ export const hamburger_line = style({
         '--hamburger-translate-y': `calc(var(--hamburger-line-margin) + ${theme.component.appShell.hamburger.line.height})`,
       },
       selectors: {
-        '.collapsed &:first-of-type': {
-          transform: `translateY(var(--hamburger-translate-y)) rotate(45deg)`,
+        '.open &:first-of-type': {
+          transform: `translateY(var(--hamburger-translate-y)) rotate(-45deg)`,
         },
-        '.collapsed &:nth-of-type(2)': {
+        '.open &:nth-of-type(2)': {
           opacity: '0',
         },
-        '.collapsed &:last-of-type': {
+        '.open &:last-of-type': {
           transform: `translateY(calc(-1 * var(--hamburger-translate-y)))
-      rotate(-45deg)`,
+      rotate(45deg)`,
         },
       },
     },
