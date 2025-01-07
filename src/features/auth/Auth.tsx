@@ -235,7 +235,7 @@ const Auth = () => {
                 className={sprinkles({ ta: 'center', mt: 'space-4', mb: 'space-x', fontWeight: 'font-weight-7' })}
                 style={{ cursor: 'pointer' }}
               >
-                Forgot Password
+                Reset Password
               </p>
             )}
           </Modal.Content>

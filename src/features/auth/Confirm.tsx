@@ -106,7 +106,7 @@ const Confirm = () => {
                   placeholder='Enter password...'
                   type={showPassword ? 'text' : 'password'}
                   name='password'
-                  label={'Password'}
+                  label={'New Password'}
                   autoComplete={'new-password'}
                   required={true}
                   value={state.password}
