@@ -90,7 +90,7 @@ const Header = ({
 const Body = ({ children, className }: { children?: ReactNode; className?: string | number | symbol | any }) => {
   return (
     <div className={clsx(collapse_body)}>
-      <div className={clsx(collapse_content, { [className]: className })}>{children}</div>
+      <div className={clsx({ [className]: className }, collapse_content)}>{children}</div>
     </div>
   )
 }

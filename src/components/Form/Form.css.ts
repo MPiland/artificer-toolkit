@@ -37,8 +37,6 @@ export const form_content = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      paddingLeft: '1rem',
-      paddingRight: '1rem',
       height: '100%',
     },
   },

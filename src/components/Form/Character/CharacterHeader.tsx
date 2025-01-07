@@ -3,6 +3,7 @@ import Group from '../../Group/Group'
 import { sprinkles } from '../../../css/sprinkles.css'
 import {
   character_header,
+  character_header_body,
   character_header_group,
   character_header_item,
   character_header_item_divier,
@@ -10,13 +11,14 @@ import {
 } from './Character.css'
 import Collapse from '../../Collapse/Collapse'
 import { isEqual } from 'lodash'
-import { Character, Class, FeatureModifier } from '../../../../amplify/API'
+import { Character, Class, FeatureModifier, Scores } from '../../../../amplify/API'
 import { ModifierCategories, ModifierMethods, ModifierTypes } from '../../../types/enums'
 import { useListRacesQuery } from '../../../features/races/racesApi'
 import { useListClassesQuery } from '../../../features/classes/classesApi'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
+import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 
 const CharacterHeader = () => {
   const { formData, updateFormData } = use(FormContext) as {
@@ -26,6 +28,7 @@ const CharacterHeader = () => {
 
   const { data: races } = useListRacesQuery()
   const { data: classes } = useListClassesQuery()
+  const { data: system } = useGetSystemQuery()
 
   const race = races.find((aRace) => aRace.id === formData.race)
 
@@ -33,15 +36,24 @@ const CharacterHeader = () => {
   useEffect(() => {
     const setAbilityScores = () => {
       if (formData.__typename === 'Character') {
-        const abilityScores = JSON.parse(
+        const abilityScores: Scores[] = JSON.parse(
           JSON.stringify(formData?.abilities?.scores ?? [])
         ) as Character['abilities']['scores']
         const race = races.find((sRace) => sRace.id === formData.race)
-        const charClasses: Class[] = formData.classes.map((uClass) => classes.find((sClass) => sClass.id === uClass.id))
-        const modifiers = [
-          ...race.features.flatMap((feature) => feature.modifiers),
-          ...charClasses.flatMap((uClass) => uClass.features.flatMap((feature) => feature.modifiers)),
-        ]
+        const charClasses: Class[] = formData?.classes?.map((uClass) =>
+          classes.find((sClass) => sClass.id === uClass.id)
+        )
+        const modifiers: FeatureModifier[] = []
+        if (race?.features?.length > 0) {
+          modifiers.push(...race.features.flatMap((feature) => feature.modifiers))
+        }
+        if (charClasses) {
+          charClasses.forEach((charClass) => {
+            if (charClass?.features?.length > 0) {
+              modifiers.push(...charClass.features.flatMap((feature) => feature.modifiers))
+            }
+          })
+        }
 
         const characterModifiers = formData.modifiers
 
@@ -110,10 +122,10 @@ const CharacterHeader = () => {
   }, [formData, updateFormData, races, classes])
 
   return (
-    <>
+    <div className={character_header}>
       <Collapse style='borderless' className={sprinkles({ mb: 'space-x' })}>
         <Collapse.Header title='Character Details' startOpened={true} />
-        <Collapse.Body className={character_header}>
+        <Collapse.Body className={character_header_body}>
           <Group directionVariant='column' alignItemsVariant='start' className={character_header_group}>
             <Group>
               <Group className={character_header_item}>
@@ -144,13 +156,12 @@ const CharacterHeader = () => {
           </Group>
           <Group directionVariant='column' alignItemsVariant='start' className={character_header_group}>
             <Group justifyContentVariant='spaceBetween'>
-              {formData.abilities?.scores?.map((ability: any, index: number) => {
+              {formData.abilities?.scores?.map((score, index) => {
+                const ability = system.abilities.find((sAbility) => sAbility.id === score.ability)
                 return (
                   <Group className={character_header_item} key={index} justifyContentVariant='start'>
                     <span className={character_header_item_label}>{`${ability.value.slice(0, 3)}:`}</span>
-                    {ability.calculatedScore > 0 || ability.baseScore > 0
-                      ? ability.calculatedScore ?? ability.baseScore
-                      : '--'}
+                    {score.calculatedScore > 0 || score.baseScore > 0 ? score.calculatedScore ?? score.baseScore : '--'}
                     {index !== formData.abilities?.scores?.length - 1 && (
                       <span className={character_header_item_divier}>|</span>
                     )}
@@ -162,7 +173,7 @@ const CharacterHeader = () => {
         </Collapse.Body>
       </Collapse>
       <hr className={sprinkles({ mb: 'space-3' })} />
-    </>
+    </div>
   )
 }
 

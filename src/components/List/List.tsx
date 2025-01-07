@@ -80,6 +80,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const [mousePos, setMousePos] = useState<number>(0)
   const [errorMessage, setErrorMessage] = useState<string>()
   const [collapsedCards, setCollapsedCards] = useState(new Set<string>())
+  const [scroll, setScroll] = useState<boolean>(false)
 
   const form = location?.pathname?.split('/')[1]
   const deleteConfirmed = location.state?.delete
@@ -112,6 +113,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
       const ratio = parent.clientHeight / parent.scrollHeight
       const size = Math.max(SCROLL_BOX_MIN_SIZE, parent.clientHeight * ratio)
       setThumbState((prev) => ({ ...prev, size }))
+      setScroll(parent.scrollHeight > parent.clientHeight)
     }
 
     const resizeObserver = new ResizeObserver(updateThumbSize)
@@ -469,7 +471,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
             })}
           </div>
         </div>
-        {visibility !== 'hidden' && (
+        {visibility !== 'hidden' && scroll && (
           <Scrollbar
             active={active || visibility === 'always'}
             size={thumbState.size}

@@ -123,10 +123,6 @@ export const collapse_content = style({
         [`${collapse_wrapper}.collapsed > ${collapse_body} > &`]: {
           padding: `0 ${size['size-3']}`,
         },
-        [`${collapse_wrapper}.borderless > ${collapse_body} > &`]: {
-          paddingLeft: '0',
-          paddingRight: '0',
-        },
       },
     },
   },

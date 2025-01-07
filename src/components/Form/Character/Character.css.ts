@@ -138,6 +138,13 @@ export const character_header = style({
   '@layer': {
     [app]: {
       padding: `${size['size-2']} ${size['size-3']} 0`,
+    },
+  },
+})
+
+export const character_header_body = style({
+  '@layer': {
+    [app]: {
       display: 'flex',
       justifyContent: 'space-between',
     },
