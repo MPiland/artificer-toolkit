@@ -46,14 +46,14 @@ export const root = createGlobalTheme(':root', {
     appShell: {
       sidebar: {
         spacing: {
-          padding: `${space['space-4']} ${space['space-2']}`,
+          padding: `${space['space-4']} 0`,
           height: {
             header: height['md'],
             item: size['size-9'],
           },
           width: {
             main: '14rem',
-            collapsed: size['size-9'],
+            collapsed: `calc(${size['size-9']} + ${space['space-4']})`,
           },
         },
       },

@@ -44,9 +44,7 @@ const App = () => {
       element: (
         <AuthProvider>
           <LoadingProvider>
-            <Suspense fallback={<Loading />}>
-              <Layout />
-            </Suspense>
+            <Layout />
           </LoadingProvider>
         </AuthProvider>
       ),

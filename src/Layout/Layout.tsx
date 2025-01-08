@@ -1,28 +1,32 @@
-import AppShell from '../components/AppShell/AppShell'
-import { useEffect, use, Suspense } from 'react'
+import { use, Suspense } from 'react'
 import Loading from '../components/Loading/Loading'
-import { LoadingContext } from '../components/Loading/LoadingContext'
 import { AuthContext } from '../features/auth/AuthContext'
-import NotSignedIn from './NotSignedIn'
-import SignedIn from './SignedIn'
 import LayoutProvider from './LayoutProvider'
+import Header from './Header'
+import Sidebar from './Sidebar'
+import { Outlet } from 'react-router-dom'
+import clsx from 'clsx'
+import { content, layout } from './Layout.css'
+import ThemeContext from '../theme/ThemeContext'
 
 const Layout = () => {
-  const { user, isAuthenticating, isLoading: isUserLoading } = use(AuthContext)
-  const { isLoading, setIsLoading } = use(LoadingContext)
+  const { user, isAuthenticating } = use(AuthContext)
+  const signedIn = !isAuthenticating && user != null
+  const { themeVar } = use(ThemeContext)
 
-  useEffect(() => {
-    setIsLoading((prev) => prev && (isUserLoading || isAuthenticating))
-  }, [isUserLoading, isAuthenticating, setIsLoading])
+  console.log({ isAuthenticating, user })
 
   return (
     <LayoutProvider>
-      <Suspense fallback={<Loading />}>
-        <AppShell>
-          {!isAuthenticating && !user ? <NotSignedIn /> : <SignedIn />}
-          {isLoading && <Loading />}
-        </AppShell>
-      </Suspense>
+      <div className={clsx(layout, themeVar)}>
+        <Header signedIn={signedIn} />
+        <Suspense fallback={<Loading />}>
+          <Sidebar signedIn={signedIn} />
+          <div className={content}>
+            <Outlet />
+          </div>
+        </Suspense>
+      </div>
     </LayoutProvider>
   )
 }
