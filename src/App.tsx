@@ -35,6 +35,7 @@ import ThemeProvider from './theme/ThemeProvider'
 import AuthProvider from './features/auth/AuthProvider'
 import LoadingProvider from './components/Loading/LoadingProvider'
 import Spell from './features/spells/Spell'
+import Character from './features/characters/Character'
 
 const App = () => {
   const router = createBrowserRouter([
@@ -87,8 +88,9 @@ const App = () => {
                       element: <CharactersList />,
                       children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
+                    { path: ':id', element: <Character />, children: [{ path: 'edit', element: <SpellForm /> }] },
                     {
-                      path: ':type?/:id?',
+                      path: 'new/:id?',
                       element: <CharacterForm />,
                       children: [
                         {
@@ -110,13 +112,11 @@ const App = () => {
                     {
                       path: '',
                       element: <ClassesList />,
-                      children: [
-                        { path: 'detail/:item', element: <Class /> },
-                        { path: 'delete/:id', element: <Delete /> },
-                      ],
+                      children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
+                    { path: ':id', element: <Class />, children: [{ path: 'edit', element: <ClassForm /> }] },
                     {
-                      path: ':type?/:id?',
+                      path: 'new/:id?',
                       element: <ClassForm />,
                       children: [
                         {
@@ -138,13 +138,11 @@ const App = () => {
                     {
                       path: '',
                       element: <RacesList />,
-                      children: [
-                        { path: ':id', element: <Race /> },
-                        { path: 'delete/:id', element: <Delete /> },
-                      ],
+                      children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
+                    { path: ':id', element: <Race />, children: [{ path: 'edit', element: <RaceForm /> }] },
                     {
-                      path: ':type?/:id?',
+                      path: 'new/:id?',
                       element: <RaceForm />,
                       children: [
                         {
@@ -192,13 +190,11 @@ const App = () => {
                     {
                       path: '',
                       element: <EquipmentList />,
-                      children: [
-                        { path: 'detail/:id', element: <Equipment /> },
-                        { path: 'delete/:id', element: <Delete /> },
-                      ],
+                      children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
+                    { path: ':id', element: <Equipment />, children: [{ path: 'edit', element: <EquipmentForm /> }] },
                     {
-                      path: ':type?/:id?',
+                      path: 'new/:id?',
                       element: <EquipmentForm />,
                       children: [
                         {
@@ -220,13 +216,11 @@ const App = () => {
                     {
                       path: '',
                       element: <FeatsList />,
-                      children: [
-                        { path: 'detail/:id', element: <Feat /> },
-                        { path: 'delete/:id', element: <Delete /> },
-                      ],
+                      children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
+                    { path: ':id', element: <Feat />, children: [{ path: 'edit', element: <FeatForm /> }] },
                     {
-                      path: ':type?/:id?',
+                      path: 'new/:id?',
                       element: <FeatForm />,
                       children: [
                         {
@@ -248,13 +242,11 @@ const App = () => {
                     {
                       path: '',
                       element: <BackgroundsList />,
-                      children: [
-                        { path: 'detail/:id', element: <Background /> },
-                        { path: 'delete/:id', element: <Delete /> },
-                      ],
+                      children: [{ path: 'delete/:id', element: <Delete /> }],
                     },
+                    { path: ':id', element: <Background />, children: [{ path: 'edit', element: <BackgroundForm /> }] },
                     {
-                      path: ':type?/:id?',
+                      path: 'new/:id?',
                       element: <BackgroundForm />,
                       children: [
                         {

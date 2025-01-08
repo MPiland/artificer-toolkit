@@ -1,8 +1,12 @@
-import { Character as CharacterState } from '../../../amplify/API'
+import { useLocation } from 'react-router-dom'
 import { useListClassesQuery } from '../classes/classesApi'
 import { useListRacesQuery } from '../races/racesApi'
+import { Character as CharacterState } from '../../../amplify/API'
 
-const Character = ({ character }: { character: CharacterState }) => {
+const Character = () => {
+  const location = useLocation()
+
+  const character: CharacterState = location.state.item
   const { data: classes } = useListClassesQuery()
   const { data: races } = useListRacesQuery()
 

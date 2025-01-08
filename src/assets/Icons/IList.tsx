@@ -1,6 +1,13 @@
-const ListIcon = () => {
+const ListIcon = ({ className }: { className?: string }) => {
   return (
-    <svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+    <svg
+      className={className}
+      width='24'
+      height='24'
+      viewBox='0 0 24 24'
+      fill='none'
+      xmlns='http://www.w3.org/2000/svg'
+    >
       <path d='M6.44444 6.44446H22V8.66668H6.44444V6.44446Z' fill='currentColor' />
       <path d='M6.44444 10.8889H22V13.1111H6.44444V10.8889Z' fill='currentColor' />
       <path d='M6.44444 15.3333H22V17.5556H6.44444V15.3333Z' fill='currentColor' />

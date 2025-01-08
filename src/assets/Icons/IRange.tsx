@@ -1,6 +1,13 @@
-const IRange = () => {
+const IRange = ({ className }: { className?: string }) => {
   return (
-    <svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+    <svg
+      className={className}
+      width='24'
+      height='24'
+      viewBox='0 0 24 24'
+      fill='none'
+      xmlns='http://www.w3.org/2000/svg'
+    >
       <path
         d='M3 11.7645H21M3 11.7645L6.5 7.6192M3 11.7645L6.5 16.5029M21 11.7645L17.5 7.49713M21 11.7645L17.5 16.5029'
         stroke='currentColor'

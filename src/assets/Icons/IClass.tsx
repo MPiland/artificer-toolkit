@@ -1,19 +1,26 @@
-const IClass = () => {
+const IClass = ({ className }: { className?: string }) => {
   return (
-    <svg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'>
-      <path d='M17 1L20 0L19 3L7.5 14.5C6.5 14 6 13.5 5.5 12.5L17 1Z' fill='currentColor' />
+    <svg
+      className={className}
+      width='24'
+      height='24'
+      viewBox='0 0 24 24'
+      fill='none'
+      xmlns='http://www.w3.org/2000/svg'
+    >
+      <path d='M19 3L22 2L21 5L9.5 16.5C8.5 16 8 15.5 7.5 14.5L19 3Z' fill='currentColor' />
       <path
-        d='M2.5 12.5L4 11C5 14 7 15 9 16L7.5 17.5L4.5 16.5C4.5 16.5 2 18.5 2 20L0.5 19.5L0 18C1.5 18 3.5 15.5 3.5 15.5L2.5 12.5Z'
+        d='M4.5 14.5L6 13C7 16 9 17 11 18L9.5 19.5L6.5 18.5C6.5 18.5 4 20.5 4 22L2.5 21.5L2 20C3.5 20 5.5 17.5 5.5 17.5L4.5 14.5Z'
         fill='currentColor'
       />
-      <path d='M3.5 3.5H5L9 7.5L7.5 9L3.5 5V3.5Z' fill='currentColor' />
+      <path d='M5.5 5.5H7L11 9.5L9.5 11L5.5 7V5.5Z' fill='currentColor' />
       <path
-        d='M12.5 16C12.0634 15.5634 13 14.5 13 14.5L11 12.5L12.5 11L14.5 13C14.5 13 15.5634 12.0634 16 12.5C16.4366 12.9366 15.5 14 15.5 14C15.5 14 19 16.5 19.5 18C19.6852 18.5557 19.8355 19.1645 19.5 19.5C19.1645 19.8355 18.5557 19.6852 18 19.5C16.5 19 14 15.5 14 15.5C14 15.5 12.9366 16.4366 12.5 16Z'
+        d='M14.5 18C14.0634 17.5634 15 16.5 15 16.5L13 14.5L14.5 13L16.5 15C16.5 15 17.5634 14.0634 18 14.5C18.4366 14.9366 17.5 16 17.5 16C17.5 16 21 18.5 21.5 20C21.6852 20.5557 21.8355 21.1645 21.5 21.5C21.1645 21.8355 20.5557 21.6852 20 21.5C18.5 21 16 17.5 16 17.5C16 17.5 14.9366 18.4366 14.5 18Z'
         fill='currentColor'
       />
-      <path d='M1 2.5H2.5V1L0 0L1 2.5Z' fill='currentColor' />
-      <path d='M3.5 1V2.5H5L6 0L3.5 1Z' fill='currentColor' />
-      <path d='M1 3.5H2.5V5L0 6L1 3.5Z' fill='currentColor' />
+      <path d='M3 4.5H4.5V3L2 2L3 4.5Z' fill='currentColor' />
+      <path d='M5.5 3V4.5H7L8 2L5.5 3Z' fill='currentColor' />
+      <path d='M3 5.5H4.5V7L2 8L3 5.5Z' fill='currentColor' />
     </svg>
   )
 }

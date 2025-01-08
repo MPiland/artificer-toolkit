@@ -215,7 +215,7 @@ const Auth = () => {
                 e.preventDefault()
                 onSubmit()
               }}
-              className={sprinkles({ width: 'size-full' })}
+              className={sprinkles({ width: 'size-full', p: 'space-x' })}
             >
               {submitting ? <Spinner /> : 'Submit'}
             </Button>

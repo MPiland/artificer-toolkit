@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import { button, button_color, button_content, button_height, button_radius, button_style } from './Button.css'
 import clsx from 'clsx'
 import { ButtonColor } from '../../css/theme.css'
@@ -21,7 +21,7 @@ const Button = ({
   ...props
 }: {
   children: ReactNode
-  onClick?: ((arg: any) => void) | (() => void) | (() => Promise<void>)
+  onClick?: ((arg: ReactMouseEvent<HTMLButtonElement, MouseEvent>) => void) | (() => void) | (() => Promise<void>)
   disabled?: boolean
   className?: string | number | symbol | any
   name?: string
@@ -47,7 +47,7 @@ const Button = ({
         })
       )}
       disabled={disabled}
-      onClick={onClick}
+      onClick={(e) => onClick(e)}
       name={name}
       {...props}
     >

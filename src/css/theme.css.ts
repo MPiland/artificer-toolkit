@@ -4,7 +4,7 @@ import './reset.css'
 import './app.css'
 import { lightColors, darkColors } from './colors.css'
 import { borderRadius, borderSize } from './border.css'
-import { height, space } from './size.css'
+import { height, size, space } from './size.css'
 
 const colorTokens = {
   content: {
@@ -49,11 +49,11 @@ export const root = createGlobalTheme(':root', {
           padding: `${space['space-4']} ${space['space-2']}`,
           height: {
             header: height['md'],
-            item: height['md'],
+            item: size['size-9'],
           },
           width: {
             main: '14rem',
-            collapsed: '2.5rem',
+            collapsed: size['size-9'],
           },
         },
       },
@@ -70,7 +70,7 @@ export const root = createGlobalTheme(':root', {
         },
         wrapper: {
           height: '2.5rem',
-          width: '2.5rem',
+          width: size['size-9'],
         },
       },
     },

@@ -1,6 +1,13 @@
-const IShield = () => {
+const IShield = ({ className }: { className?: string }) => {
   return (
-    <svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+    <svg
+      className={className}
+      width='24'
+      height='24'
+      viewBox='0 0 24 24'
+      fill='none'
+      xmlns='http://www.w3.org/2000/svg'
+    >
       <path
         d='M7.71964 8C9.5 8 12 6.22222 12 6.22222C12 8.5 12 17.7778 12 17.7778C12 17.7778 9.04474 15.7959 8.14767 13.7778C7.71964 12 7.71964 9.83923 7.71964 8Z'
         fill='currentColor'

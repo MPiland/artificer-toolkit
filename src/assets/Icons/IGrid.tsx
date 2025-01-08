@@ -1,6 +1,13 @@
-const IGrid = () => {
+const IGrid = ({ className }: { className?: string }) => {
   return (
-    <svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
+    <svg
+      className={className}
+      width='24'
+      height='24'
+      viewBox='0 0 24 24'
+      fill='none'
+      xmlns='http://www.w3.org/2000/svg'
+    >
       <path
         d='M2 3.42857C2 2.63959 2.63959 2 3.42857 2H9.14286C9.93184 2 10.5714 2.63959 10.5714 3.42857V9.14286C10.5714 9.93184 9.93184 10.5714 9.14286 10.5714H3.42857C2.63959 10.5714 2 9.93184 2 9.14286V3.42857Z'
         fill='currentColor'

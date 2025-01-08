@@ -1,5 +1,5 @@
 import AppShell from '../components/AppShell/AppShell'
-import { ReactNode, useEffect, use, useRef } from 'react'
+import { ReactNode, useEffect, use, useRef, useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import {
   header_title,
@@ -19,6 +19,8 @@ import RacesIcon from '../assets/Icons/IRaces'
 import Button from '../components/Button/Button'
 import ScrollIcon from '../assets/Icons/IScroll'
 import SackIcon from '../assets/Icons/ISack'
+import FeatsIcon from '../assets/Icons/IFeat'
+import BackstoryIcon from '../assets/Icons/IBackstory'
 import { sprinkles } from '../css/sprinkles.css'
 import clsx from 'clsx'
 import { useSignOut } from '../features/auth/authApi'
@@ -32,18 +34,29 @@ import ThemeContext from '../theme/ThemeContext'
 import ILogo from '../assets/Icons/ILogo'
 import { LoadingContext } from '../components/Loading/LoadingContext'
 import { LayoutContext } from './LayoutContext'
+import Floating from '../components/Floating/Floating'
 
 const SignedIn = () => {
   const [systemPref, setSystemPref] = useSystemPref()
   const { themeType, toggleTheme } = use(ThemeContext)
   const { setIsLoading } = use(LoadingContext)
   const { collapsed, setCollapsed } = use(LayoutContext)
+  const [toolTipOpen, setToolTipOpen] = useState<boolean[]>([])
 
   const { mutateAsync: signOut } = useSignOut()
   const { data: systems } = useListSystemsQuery()
   const documentRef = useRef<Document>(document)
 
-  useEventListener('click', () => setCollapsed(true), documentRef)
+  useEventListener(
+    'click',
+    (e) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[class*="app_sidebar"]')) {
+        setCollapsed(true)
+      }
+    },
+    documentRef
+  )
 
   useEffect(() => {
     setIsLoading((prev) => prev && !systems)
@@ -68,34 +81,34 @@ const SignedIn = () => {
   const lg = !sm && !md
 
   const userNavigation: { icon?: ReactNode; to: string; title: string }[] = [
-    { icon: <CharactersIcon />, to: 'characters', title: 'Characters' },
+    { icon: <CharactersIcon className={sidebar_icon} />, to: 'characters', title: 'Characters' },
     {
-      icon: <ClassesIcon />,
+      icon: <ClassesIcon className={sidebar_icon} />,
       to: 'classes',
       title: 'Classes',
     },
     {
-      icon: <RacesIcon />,
+      icon: <RacesIcon className={sidebar_icon} />,
       to: 'races',
       title: 'Races',
     },
     {
-      icon: <ScrollIcon />,
+      icon: <ScrollIcon className={sidebar_icon} />,
       to: 'spells',
       title: 'Spells',
     },
     {
-      icon: <SackIcon />,
+      icon: <SackIcon className={sidebar_icon} />,
       to: 'equipment',
       title: 'Equipment',
     },
     {
-      icon: <CharactersIcon />,
+      icon: <BackstoryIcon className={sidebar_icon} />,
       to: 'backgrounds',
       title: 'Backgrounds',
     },
     {
-      icon: <CharactersIcon />,
+      icon: <FeatsIcon className={sidebar_icon} />,
       to: 'feats',
       title: 'Feats',
     },
@@ -117,10 +130,37 @@ const SignedIn = () => {
             </div>
             <div className={sidebar_item_group}>
               {userNavigation.map((user: { icon?: ReactNode; to: string; title: string }, index: number) => (
-                <NavLink className={sidebar_item} to={user.to} key={index}>
-                  {user?.icon && <div className={sidebar_icon}>{user.icon}</div>}
-                  {!collapsed && <span className={sidebar_item_title}>{user.title}</span>}
-                </NavLink>
+                <Floating key={index}>
+                  <Floating.Anchor>
+                    <NavLink
+                      className={clsx(sidebar_item, { ['collapsed']: collapsed })}
+                      to={user.to}
+                      key={index}
+                      onMouseOver={() =>
+                        setToolTipOpen((prev) => {
+                          const newArray = [...prev]
+                          newArray[index] = true
+                          return newArray
+                        })
+                      }
+                      onMouseLeave={() =>
+                        setToolTipOpen((prev) => {
+                          const newArray = [...prev]
+                          newArray[index] = false
+                          return newArray
+                        })
+                      }
+                    >
+                      {user?.icon && user.icon}
+                      {!collapsed && <span className={sidebar_item_title}>{user.title}</span>}
+                    </NavLink>
+                    {collapsed && toolTipOpen[index] && (
+                      <Floating.Tooltip boundary='app' placement='right' open={true}>
+                        {user.title}
+                      </Floating.Tooltip>
+                    )}
+                  </Floating.Anchor>
+                </Floating>
               ))}
             </div>
           </div>

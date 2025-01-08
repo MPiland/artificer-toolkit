@@ -104,6 +104,7 @@ export const sidebar_item = style({
       color: theme.vars.typography.color.main,
       textDecoration: 'none',
       height: theme.component.appShell.sidebar.spacing.height.item,
+      marginBottom: '.5rem',
     },
   },
 })
