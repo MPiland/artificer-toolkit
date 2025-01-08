@@ -18,7 +18,7 @@ const Layout = () => {
 
   return (
     <LayoutProvider>
-      <div className={clsx(layout, themeVar)}>
+      <div className={clsx(layout, themeVar)} id='app-main'>
         <Header signedIn={signedIn} />
         <Suspense fallback={<Loading />}>
           <Sidebar signedIn={signedIn} />

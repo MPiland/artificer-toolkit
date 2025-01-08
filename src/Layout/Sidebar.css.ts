@@ -12,7 +12,6 @@ export const sidebar = style({
       'justifyContent': 'space-between',
       'backgroundColor': theme.vars.component.appShell.sidebar.backgroundColor,
       'width': theme.component.appShell.sidebar.spacing.width.main,
-      'padding': theme.component.appShell.sidebar.spacing.padding,
       'transition': 'all .3s ease-in-out',
       'borderRight': `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
 
@@ -40,6 +39,16 @@ export const sidebar = style({
   },
 })
 
+export const sidebar_upper = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    },
+  },
+})
+
 export const sidebar_header = style({
   '@layer': {
     [app]: {
@@ -49,6 +58,7 @@ export const sidebar_header = style({
       justifyContent: 'end',
       alignItems: 'center',
       height: theme.component.appShell.sidebar.spacing.height.header,
+      margin: `${size['size-4']} 0`,
       padding: `0 ${size['size-2']}`,
     },
   },
@@ -61,6 +71,7 @@ export const sidebar_item_group = style({
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
+      margin: `${size['size-4']} 0`,
       padding: `0 ${size['size-2']}`,
     },
   },

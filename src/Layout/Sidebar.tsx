@@ -9,6 +9,7 @@ import {
   sidebar_icon,
   sidebar_footer,
   sidebar,
+  sidebar_upper,
 } from './Sidebar.css'
 import { useMediaQuery } from 'usehooks-ts'
 import Floating from '../components/Floating/Floating'
@@ -130,7 +131,7 @@ const Sidebar = ({ signedIn }: { signedIn: boolean }) => {
         )
       ) : lg ? (
         <>
-          <div>
+          <div className={sidebar_upper}>
             <div className={sidebar_header}>
               <Hamburger
                 onClick={(e) => {
