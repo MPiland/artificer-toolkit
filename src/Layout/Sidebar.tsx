@@ -33,31 +33,8 @@ import clsx from 'clsx'
 import { useListSystemsQuery } from '../features/systems/systemsApi'
 import { Hamburger } from './Hamburger'
 
-const Sidebar = ({ signedIn }: { signedIn: boolean }) => {
-  const [systemPref, setSystemPref] = useSystemPref()
-  const { collapsed, setCollapsed } = use(LayoutContext)
-  const { themeType, toggleTheme } = use(ThemeContext)
-  const lg = useMediaQuery('screen and (min-width: 1025px)')
-
-  const [toolTipOpen, setToolTipOpen] = useState<boolean[]>([])
-
-  const { mutateAsync: signOut } = useSignOut()
-  const { data: systems } = useListSystemsQuery()
-
-  useEffect(() => {
-    if (systemPref === '' || (systems?.length > 0 && !systems?.find((system) => system.id === systemPref))) {
-      const defaultSystem = systems?.find((system) => system.value === 'dnd5e2014').id
-      if (defaultSystem) {
-        setSystemPref(defaultSystem)
-      }
-    }
-  }, [systemPref, systems, setSystemPref])
-
-  const handleSystemChange = (e: { type: 'update'; value: string }) => {
-    localStorage.setItem('selectedSystem', e.value)
-    setSystemPref(e.value)
-  }
-
+const NoAuthSidebar = () => {
+  const { collapsed } = use(LayoutContext)
   const noUserNavigation: { to: string; title: string }[] = [
     {
       to: '',
@@ -80,6 +57,43 @@ const Sidebar = ({ signedIn }: { signedIn: boolean }) => {
       title: 'Sign Up',
     },
   ]
+
+  return (
+    <nav className={clsx(sidebar, { ['collapsed']: collapsed })}>
+      <div className={sidebar_item_group}>
+        {noUserNavigation.map((noUser: { to: string; title: string }, index: number) => (
+          <NavLink className={sidebar_item} to={noUser.to} key={index}>
+            <span className={sidebar_item_title}>{noUser.title}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+const AuthSidebar = ({ lg }: { lg: boolean }) => {
+  const { collapsed, setCollapsed } = use(LayoutContext)
+  const { themeType, toggleTheme } = use(ThemeContext)
+  const [systemPref, setSystemPref] = useSystemPref()
+
+  const [toolTipOpen, setToolTipOpen] = useState<boolean[]>([])
+
+  const { mutateAsync: signOut } = useSignOut()
+  const { data: systems } = useListSystemsQuery()
+
+  useEffect(() => {
+    if (systemPref === '' || (systems?.length > 0 && !systems?.find((system) => system.id === systemPref))) {
+      const defaultSystem = systems?.find((system) => system.value === 'dnd5e2014').id
+      if (defaultSystem) {
+        setSystemPref(defaultSystem)
+      }
+    }
+  }, [systemPref, systems, setSystemPref])
+
+  const handleSystemChange = (e: { type: 'update'; value: string }) => {
+    localStorage.setItem('selectedSystem', e.value)
+    setSystemPref(e.value)
+  }
 
   const userNavigation: { icon?: ReactNode; to: string; title: string }[] = [
     { icon: <CharactersIcon className={sidebar_icon} />, to: 'characters', title: 'Characters' },
@@ -115,21 +129,9 @@ const Sidebar = ({ signedIn }: { signedIn: boolean }) => {
     },
   ]
 
-  console.log({ signedIn })
-
   return (
     <nav className={clsx(sidebar, { ['collapsed']: collapsed })}>
-      {!signedIn ? (
-        !lg && (
-          <div className={sidebar_item_group}>
-            {noUserNavigation.map((noUser: { to: string; title: string }, index: number) => (
-              <NavLink className={sidebar_item} to={noUser.to} key={index}>
-                <span className={sidebar_item_title}>{noUser.title}</span>
-              </NavLink>
-            ))}
-          </div>
-        )
-      ) : lg ? (
+      {lg ? (
         <>
           <div className={sidebar_upper}>
             <div className={sidebar_header}>
@@ -231,5 +233,13 @@ const Sidebar = ({ signedIn }: { signedIn: boolean }) => {
       )}
     </nav>
   )
+}
+
+const Sidebar = ({ signedIn }: { signedIn: boolean }) => {
+  const lg = useMediaQuery('screen and (min-width: 1025px)')
+
+  console.log({ lg })
+
+  return !signedIn ? !lg && <NoAuthSidebar /> : <AuthSidebar lg={lg} />
 }
 export default Sidebar

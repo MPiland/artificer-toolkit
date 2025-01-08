@@ -10,10 +10,17 @@ export const header = style({
       gridArea: 'header',
       display: 'flex',
       alignItems: 'center',
+      justifyContent: 'space-between',
       backgroundColor: theme.vars.component.content.backgroundColor.main,
       borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       padding: theme.component.appShell.header.spacing.padding,
       height: theme.component.appShell.header.spacing.height,
+
+      selectors: {
+        '&.auth': {
+          justifyContent: 'end',
+        },
+      },
     },
   },
 })
@@ -38,24 +45,16 @@ export const header_title = style({
 export const header_item_group = style({
   '@layer': {
     [app]: {
-      'marginLeft': 'auto',
-      'listStyleType': 'none',
-      'display': 'flex',
-      'flexDirection': 'row',
-      'justifyContent': 'space-between',
-      'alignItems': 'center',
-      'order': 3,
-      'paddingRight': space['space-4'],
-      'height': '100%',
-      'width': '100%',
+      listStyleType: 'none',
+      display: 'flex',
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      order: 3,
+      paddingRight: space['space-4'],
+      height: '100%',
 
-      '@media': {
-        '(min-width: 1024px)': {
-          justifyContent: 'end',
-        },
-      },
-
-      'selectors': {
+      selectors: {
         '&:first-child': {
           paddingLeft: 0,
         },

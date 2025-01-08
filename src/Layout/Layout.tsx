@@ -14,7 +14,7 @@ const Layout = () => {
   const signedIn = !isAuthenticating && user != null
   const { themeVar } = use(ThemeContext)
 
-  console.log({ isAuthenticating, user })
+  console.log({ signedIn })
 
   return (
     <LayoutProvider>
