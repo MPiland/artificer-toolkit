@@ -14,6 +14,7 @@ export const sidebar = style({
       'width': theme.component.appShell.sidebar.spacing.width.main,
       'transition': 'all .3s ease-in-out',
       'borderRight': `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      'zIndex': 100,
 
       'selectors': {
         '&.collapsed': {
