@@ -1,6 +1,6 @@
 import { style, globalStyle } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
-import { size } from '../../css/size.css'
+import { size, space } from '../../css/size.css'
 import { fontWeight } from '../../css/typography.css'
 import { theme } from '../../css/theme.css'
 
@@ -26,9 +26,8 @@ export const form_wrapper = style({
 export const form_header = style({
   '@layer': {
     [app]: {
-      paddingTop: size['size-1'],
-      padding: `${size['size-3']} ${size['size-4']}`,
-      marginBottom: size['size-3'],
+      padding: `${space['space-3']} ${space['space-4']} 0`,
+      marginBottom: space['space-3'],
     },
   },
 })
@@ -37,7 +36,8 @@ export const form_content = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      height: '100%',
+      flexGrow: 1,
+      width: '100%',
     },
   },
 })
@@ -58,38 +58,23 @@ export const form_footer = style({
   },
 })
 
-export const form_remove_button = style({
+export const row_button = style({
   '@layer': {
     [app]: {
-      width: '2rem',
-      height: '1.75rem',
+      width: '1.5rem',
+      height: 'auto',
       borderRadius: '.5rem',
       alignItems: 'center',
       justifyContent: 'center',
-      marginLeft: '.5rem',
-      marginRight: '.25rem',
     },
   },
 })
 
-export const form_add_button = style({
+export const feature_list_button_container = style({
   '@layer': {
     [app]: {
-      width: '2rem',
-      height: '1.75rem',
-      borderRadius: '.5rem',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginLeft: '.25rem',
-    },
-  },
-})
-
-export const feature_content_header = style({
-  '@layer': {
-    [app]: {
-      marginBottom: size['size-3'],
-      padding: `0 ${size['size-4']}`,
+      flexShrink: 0,
+      paddingTop: space['space-4'],
     },
   },
 })
@@ -97,8 +82,7 @@ export const feature_content_header = style({
 export const feature_list = style({
   '@layer': {
     [app]: {
-      width: '80%',
-      marginLeft: '10%',
+      width: '100%',
       marginTop: '2rem',
     },
   },
@@ -106,25 +90,6 @@ export const feature_list = style({
 
 export const feature_description = style({
   height: '100%',
-})
-
-export const equipment_form_sub_group = style({
-  '@layer': {
-    [app]: {
-      flexDirection: 'row',
-      justifyContent: 'end',
-      alignItems: 'start',
-      flexWrap: 'nowrap',
-    },
-  },
-})
-
-export const equipment_sub_group_button = style({
-  '@layer': {
-    [app]: {
-      marginTop: '19px',
-    },
-  },
 })
 
 export const form_detail_title = style({
@@ -184,22 +149,6 @@ globalStyle(`${form_detail_body} blockquote`, {
       marginLeft: size['size-3'],
       marginTop: size['size-2'],
       padding: size['size-1'],
-    },
-  },
-})
-
-globalStyle(`${form_remove_button} svg`, {
-  '@layer': {
-    [app]: {
-      strokeWidth: '3px',
-    },
-  },
-})
-
-globalStyle(`${form_add_button} svg`, {
-  '@layer': {
-    [app]: {
-      strokeWidth: '3px',
     },
   },
 })

@@ -3,9 +3,10 @@ import Form from '../../components/Form/Form'
 import { useAddNewEquipmentMutation, useUpdateEquipmentMutation } from './equipmentApi'
 import { Step } from '../../types/form'
 import { FormContext } from '../../components/Form/FormContext'
+import { isEqual } from 'lodash'
 
 const EquipmentForm = () => {
-  const { setSteps } = use(FormContext)
+  const { setSteps, steps } = use(FormContext)
 
   const stepsArray = [
     { id: 'details', label: 'Details' },
@@ -14,8 +15,10 @@ const EquipmentForm = () => {
   ] satisfies Step[]
 
   useEffect(() => {
-    setSteps(stepsArray)
-  }, [setSteps, stepsArray])
+    if (!isEqual(steps, stepsArray)) {
+      setSteps(stepsArray)
+    }
+  }, [setSteps, stepsArray, steps])
 
   return <Form useUpdateItemMutation={useUpdateEquipmentMutation} useAddNewItemMutation={useAddNewEquipmentMutation} />
 }

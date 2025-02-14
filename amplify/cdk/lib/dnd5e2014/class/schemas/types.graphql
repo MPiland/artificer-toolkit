@@ -1,24 +1,12 @@
-type Hitpoint implements DieFields {
+type Hitpoint {
   ability: ID
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  dieConfig: String
 }
 
-type StartingGold implements DieFields {
+type StartingGold {
   multiplier: Int!
   currency: ID!
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-}
-
-type EquipmentOption {
-  groups: [EquipmentGroup]
-}
-
-type StartingEquipment {
-  options: [EquipmentOption]
+  dieConfig: String
 }
 
 type PrepareLimitLevel {
@@ -79,7 +67,7 @@ type Subtype {
   value: String!
 }
 
-type Class implements BaseFields {
+type Class {
   id: ID!
   label: String!
   value: String!
@@ -89,7 +77,7 @@ type Class implements BaseFields {
   details: [Detail]
   hitpoint: Hitpoint
   startingGold: StartingGold
-  equipment: [StartingEquipment]
+  equipment: [[[EquipmentGroup]]]
   proficiencies: [FeatureProficiency]
   spellcasting: Spellcasting
   levelAttributes: [LevelAttribute]

@@ -18,6 +18,7 @@ enum DamageEnumInput {
 enum SpellEnumInput {
   all
   upcast
+  damage
 }
 
 enum AllEnumInput {

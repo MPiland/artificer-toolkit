@@ -17,27 +17,32 @@
   {
     "id": "6833776a-26c0-4143-b367-39f81a2fdad7",
     "value": "versatile",
-    "label": "Versatile"
+    "label": "Versatile",
+    "tooltip": "<p>This weapon can be used with one or two hands. A damage value in parentheses appears with the property—the damage when the weapon is used with two hands to make a melee attack.</p>"
   },
   {
     "id": "cd909c00-7311-4643-be4d-497b095f7c72",
     "value": "light",
-    "label": "Light"
+    "label": "Light",
+    "tooltip": "<p>A light weapon is small and easy to handle, making it ideal for use when fighting with two weapons.</p>"
   },
   {
     "id": "1ce89a34-1e5e-4773-af2a-212df276371b",
     "value": "heavy",
-    "label": "Heavy"
+    "label": "Heavy",
+    "tooltip": "<p>Small creatures have disadvantage on attack rolls with heavy weapons. A heavy weapon’s size and bulk make it too large for a Small reature to use effectively.</p>"
   },
   {
     "id": "71b5b42c-f4bc-4319-85ab-9e888d00743c",
     "value": "twoHanded",
-    "label": "Two Handed"
+    "label": "Two Handed",
+    "tooltip": "<p>This weapon requires two hands when you attack with it.</p>"
   },
   {
     "id": "dc9ee927-f81e-4966-bfce-6e12813fedb6",
     "value": "loading",
-    "label": "Loading"
+    "label": "Loading",
+    "tooltip": "<p>Because of the time required to load this weapon, you can fire only one piece of ammunition from it when you use an action, bonus action, or reaction to fire it, regardless of the number of attacks you can normally make.</p>"
   },
   {
     "id": "ab95948e-73af-4cd6-ac18-a22841fb5773",
@@ -47,17 +52,20 @@
   {
     "id": "756bfbbe-e9a4-4080-abdf-613fe2443fcf",
     "value": "ranged",
-    "label": "Ranged"
+    "label": "Ranged",
+    "tooltip": "<p>. A weapon that can be used to make a ranged attack has a range in parentheses after the ammunition or thrown property. The range lists two numbers. The first is the weapon’s normal range in feet, and the second indicates the weapon’s long range. When attacking a target beyond normal range, you have disadvantage on the attack roll. You can’t attack a target beyond the weapon’s long range.</p>"
   },
   {
     "id": "c3797121-b46d-4b04-9dfd-71a0ba0a7945",
     "value": "reach",
-    "label": "Reach"
+    "label": "Reach",
+    "tooltip": "<p>This weapon adds 5 feet to your reach when you attack with it, as well as when determining your reach for opportunity attacks with it.</p>"
   },
   {
     "id": "cb8f55bc-c9e5-4406-b408-e8caf6d5bd5b",
     "value": "thrown",
-    "label": "Thrown"
+    "label": "Thrown",
+    "tooltip": "<p>If a weapon has the thrown property, you can throw the weapon to make a ranged attack. If the weapon is a melee weapon, you use the same ability modifier for that attack roll and damage roll that you would use for a melee attack with the weapon. For example, if you throw a handaxe, you use your Strength, but if you throw a dagger, you can use either your Strength or your Dexterity, since the dagger has the finesse property.</p>"
   },
   {
     "id": "f2db5999-dba0-4e27-a260-7153aee16335",
@@ -72,7 +80,8 @@
   {
     "id": "859a1a8a-bf82-4bd0-b45a-65386ec068be",
     "value": "special",
-    "label": "Special"
+    "label": "Special",
+    "tooltip": "<p>This weapon requires two hands when you attack with it.</p>"
   },
   {
     "id": "72f57c5d-c213-4b1b-887f-1eea56f02fe2",

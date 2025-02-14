@@ -63,10 +63,12 @@ const Header = ({
   children,
   handleRemove,
   handleEdit,
+  expandable = true,
 }: {
   children: ReactNode
   handleRemove?: () => void
   handleEdit?: () => void
+  expandable?: boolean
 }) => {
   const { activeHeader, setActiveHeader } = use(AccordionContext)
 
@@ -90,7 +92,17 @@ const Header = ({
   }, [activeHeader, setActiveHeader])
 
   return (
-    <div className={clsx(accordion_header)} ref={headerRef} onClick={handleClick}>
+    <div
+      className={clsx(accordion_header, {
+        'not-expandable': !expandable,
+      })}
+      ref={headerRef}
+      onClick={() => {
+        if (expandable) {
+          handleClick()
+        }
+      }}
+    >
       <Group justifyContentVariant='spaceBetween' className={sprinkles({ width: 'size-full' })}>
         <Group>
           {handleRemove && (
@@ -121,9 +133,11 @@ const Header = ({
           )}
           <h3>{children}</h3>
         </Group>
-        <span className={accordion_header_icon}>
-          {activeHeader === headerRef.current ? <TbSquareMinus /> : <TbSquarePlus />}
-        </span>
+        {expandable && (
+          <span className={accordion_header_icon}>
+            {activeHeader === headerRef.current ? <TbSquareMinus /> : <TbSquarePlus />}
+          </span>
+        )}
       </Group>
     </div>
   )

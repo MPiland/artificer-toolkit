@@ -70,6 +70,7 @@ const ScrollArea = ({
         const scrollArea = scrollAreaRef.current
         if (scrollArea) {
           const { clientHeight, scrollHeight, scrollWidth, clientWidth } = scrollArea
+
           const needsVerticalScroll = scrollHeight > clientHeight
           const needsHorizontalScroll = scrollWidth > clientWidth
 
@@ -149,28 +150,47 @@ const ScrollArea = ({
       const scrollArea = scrollAreaRef.current
       if (!scrollArea || !e.deltaY) return
 
-      debouncedScrollEnd.cancel()
-      dispatch({ type: 'SET_ACTIVE', value: true })
-
-      const delta = e.deltaY
-
-      if (scrollDirection === 'vertical' || scrollDirection === 'all') {
-        scrollArea.scrollTop += delta
-        dispatch({
-          type: 'UPDATE_SCROLL',
-          verticalDelta: delta,
-          clientHeight: scrollArea.clientHeight,
-          clientWidth: scrollArea.clientWidth,
-        })
+      // Check if this scroll area should handle the scroll
+      const isScrollable = (direction: 'vertical' | 'horizontal') => {
+        if (direction === 'vertical') {
+          return scrollArea.scrollHeight > scrollArea.clientHeight
+        }
+        return scrollArea.scrollWidth > scrollArea.clientWidth
       }
-      if (scrollDirection === 'horizontal' || scrollDirection === 'all') {
-        scrollArea.scrollLeft += delta
-        dispatch({
-          type: 'UPDATE_SCROLL',
-          horizontalDelta: delta,
-          clientHeight: scrollArea.clientHeight,
-          clientWidth: scrollArea.clientWidth,
-        })
+
+      // Get the target element's closest ScrollArea
+      const targetScrollArea = (e.target as HTMLElement).closest('[data-scroll-area]')
+
+      // Only handle scroll if this is the target scroll area and it's scrollable
+      if (targetScrollArea === scrollArea) {
+        if ((scrollDirection === 'vertical' || scrollDirection === 'all') && isScrollable('vertical')) {
+          debouncedScrollEnd.cancel()
+          dispatch({ type: 'SET_ACTIVE', value: true })
+          scrollArea.scrollTop += e.deltaY
+          dispatch({
+            type: 'UPDATE_SCROLL',
+            source: 'scroll',
+            verticalDelta: e.deltaY,
+            clientHeight: scrollArea.clientHeight,
+            clientWidth: scrollArea.clientWidth,
+            scrollTop: scrollArea.scrollTop,
+            scrollHeight: scrollArea.scrollHeight,
+          })
+        }
+        if ((scrollDirection === 'horizontal' || scrollDirection === 'all') && isScrollable('horizontal')) {
+          debouncedScrollEnd.cancel()
+          dispatch({ type: 'SET_ACTIVE', value: true })
+          scrollArea.scrollLeft += e.deltaY
+          dispatch({
+            type: 'UPDATE_SCROLL',
+            source: 'scroll',
+            horizontalDelta: e.deltaY,
+            clientHeight: scrollArea.clientHeight,
+            clientWidth: scrollArea.clientWidth,
+            scrollLeft: scrollArea.scrollLeft,
+            scrollWidth: scrollArea.scrollWidth,
+          })
+        }
       }
     },
     [scrollDirection, debouncedScrollEnd]
@@ -184,23 +204,49 @@ const ScrollArea = ({
         if (!wrapper || !scrollArea) return
 
         if (scrollDirection === 'vertical' || scrollDirection === 'all') {
-          const delta = e.clientY - scrollState.mousePos.y
-          scrollArea.scrollTop += delta
+          const mouseDelta = e.clientY - scrollState.mousePos.y
+          const scrollRatio =
+            (scrollArea.scrollHeight - scrollArea.clientHeight) /
+            (scrollArea.clientHeight - scrollState.verticalThumbSize)
+          const scrollDelta = mouseDelta * scrollRatio
+          scrollArea.scrollTop += scrollDelta
           dispatch({
             type: 'UPDATE_SCROLL',
-            verticalDelta: delta,
+            source: 'drag',
+            verticalDelta: mouseDelta,
             clientHeight: scrollArea.clientHeight,
             clientWidth: scrollArea.clientWidth,
+            scrollTop: scrollArea.scrollTop,
+            scrollHeight: scrollArea.scrollHeight,
+          })
+          dispatch({
+            type: 'SET_DRAG',
+            isDragging: true,
+            dragDirection: scrollState.dragDirection,
+            mousePos: { x: e.clientX, y: e.clientY },
           })
         }
         if (scrollDirection === 'horizontal' || scrollDirection === 'all') {
-          const delta = e.clientX - scrollState.mousePos.x
-          scrollArea.scrollLeft += delta
+          const mouseDelta = e.clientX - scrollState.mousePos.x
+          const scrollRatio =
+            (scrollArea.scrollWidth - scrollArea.clientWidth) /
+            (scrollArea.clientWidth - scrollState.horizontalThumbSize)
+          const scrollDelta = mouseDelta * scrollRatio
+          scrollArea.scrollLeft += scrollDelta
           dispatch({
             type: 'UPDATE_SCROLL',
-            horizontalDelta: delta,
+            source: 'drag',
+            horizontalDelta: mouseDelta,
             clientHeight: scrollArea.clientHeight,
             clientWidth: scrollArea.clientWidth,
+            scrollLeft: scrollArea.scrollLeft,
+            scrollWidth: scrollArea.scrollWidth,
+          })
+          dispatch({
+            type: 'SET_DRAG',
+            isDragging: true,
+            dragDirection: scrollState.dragDirection,
+            mousePos: { x: e.clientX, y: e.clientY },
           })
         }
       }
@@ -209,7 +255,6 @@ const ScrollArea = ({
   )
 
   const handleThumbMouseDown = (e: ReactMouseEvent, direction: 'vertical' | 'horizontal') => {
-    e.preventDefault()
     dispatch({
       type: 'SET_DRAG',
       isDragging: true,
@@ -252,9 +297,12 @@ const ScrollArea = ({
 
       dispatch({
         type: 'UPDATE_SCROLL',
-        horizontalDelta: scrollArea.scrollLeft,
+        source: 'scroll',
+        horizontalDelta: scrollAmount,
         clientHeight: scrollArea.clientHeight,
         clientWidth: scrollArea.clientWidth,
+        scrollLeft: scrollArea.scrollLeft,
+        scrollWidth: scrollArea.scrollWidth,
       })
     }
   }, [])
@@ -297,6 +345,7 @@ const ScrollArea = ({
             ref.current = el
           }
         }}
+        data-scroll-area
         className={clsx({ [className]: className }, scroll_area[scrollDirection])}
         {...props}
         id={id}

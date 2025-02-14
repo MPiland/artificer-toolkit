@@ -99,6 +99,7 @@ input CharacterFeatureInput {
   backgroundId: ID
   featId: ID
   optionIndex: Int
+  level: Int
 }
 
 ## Ability ScoresInput

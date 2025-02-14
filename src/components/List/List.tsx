@@ -9,6 +9,7 @@ import {
   useLayoutEffect,
   Ref,
   use,
+  Fragment,
 } from 'react'
 import clsx from 'clsx'
 import {
@@ -20,6 +21,7 @@ import {
   list_title_container,
   list_parent,
   list_wrapper,
+  list_sub,
 } from './List.css'
 import { useEventListener, useMediaQuery } from 'usehooks-ts'
 import Scrollbar from '../Scrollbar/Scrollbar'
@@ -28,7 +30,7 @@ import { getValueFromState } from '../../utils/formatting'
 import { useGetSystemQuery } from '../../features/systems/systemsApi'
 import { useListClassesQuery } from '../../features/classes/classesApi'
 import Card from '../Card/Card'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { FormDataType } from '../../types/form'
 import { useDebounceCallback } from 'usehooks-ts'
 import { set, startCase } from 'lodash'
@@ -39,10 +41,11 @@ import CopyIcon from '../../assets/Icons/ICopy'
 import CreateIcon from '../../assets/Icons/ICreate'
 import GridIcon from '../../assets/Icons/IGrid'
 import ListIcon from '../../assets/Icons/IList'
-import { Character, Class, Equipment, Feat, Race, Scores, Spell } from '../../../amplify/API'
+import { Character, Class, Equipment, Feat, Race, Scores, Spell } from '../../../amplify/gql/types'
 import { AuthContext } from '../../features/auth/AuthContext'
 import { FormContext } from '../Form/FormContext'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { Categories } from '../../types/enums'
 
 interface ListProps extends ComponentPropsWithoutRef<'div'> {
   className?: string
@@ -62,10 +65,10 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
   const { data }: { data: FormDataType[] } = useListItems()
-  const { updateFormData, stateReset } = use(FormContext)
+  const { updateFormData, resetForm } = use(FormContext)
   const { user } = use(AuthContext)
 
-  const md = useMediaQuery('(min-width: 568px)')
+  const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
 
   const listRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -161,7 +164,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const handleCreate = async (secondary?: boolean) => {
     let stateObject: FormDataType
     try {
-      await stateReset()
+      resetForm()
       switch (form) {
         case 'classes': {
           const category = system?.categories.find((category) =>
@@ -249,6 +252,13 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
               scores: abilityScores,
             },
             __typename: 'Character',
+            features: [],
+            modifiers: [],
+            proficiencies: [],
+            equipment: [],
+            feats: [],
+            expertise: [],
+            senses: [],
           }
           stateObject = characterObject
           break
@@ -283,6 +293,14 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
     }
   }
 
+  const handleCopy = () => {
+    navigate('copy', {
+      state: {
+        items: data,
+      },
+    })
+  }
+
   const handleScroll = useCallback(
     (e: WheelEvent) => {
       requestAnimationFrame(() => {
@@ -312,20 +330,18 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
         const parent = parentRef.current
         if (!parent) return
 
-        const delta = e.clientY - mousePos
-        const scrollRatio = delta / (parent.clientHeight - thumbState.size)
-        const scrollAmount = scrollRatio * (parent.scrollHeight - parent.clientHeight)
-
-        parent.scrollTop += scrollAmount
-        setMousePos(e.clientY)
+        const mouseDelta = e.clientY - mousePos
+        const scrollRatio = (parent.scrollHeight - parent.clientHeight) / (parent.clientHeight - thumbState.size)
+        const scrollDelta = mouseDelta * scrollRatio
+        parent.scrollTop += scrollDelta
 
         const newPosition =
           (parent.scrollTop / (parent.scrollHeight - parent.clientHeight)) * (parent.clientHeight - thumbState.size)
-
         setThumbState((prev) => ({
           ...prev,
           pos: newPosition,
         }))
+        setMousePos(e.clientY)
       }
     },
     [isDragging, mousePos, thumbState.size]
@@ -370,11 +386,18 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
     overscan: 5,
   })
 
-  useEventListener('wheel', handleScroll, parentRef)
+  useEventListener('wheel', handleScroll, parentRef, { passive: true })
   useEventListener('mouseenter', handleMouseOver, documentRef)
   useEventListener('mouseleave', handleMouseLeave, documentRef)
   useEventListener('mousemove', handleMouseMove, documentRef)
   useEventListener('mouseup', handleMouseUp, documentRef)
+
+  const sub = data.filter((item) => {
+    if (item.__typename === 'Class' || item.__typename === 'Race') {
+      return item.category !== Categories.base
+    }
+    return false
+  })
 
   return (
     <>
@@ -384,7 +407,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
           <Button color='main' style='outline'>
             {<FilterIcon />} {md && ' Filter'}
           </Button>
-          <Button color='main' style='outline'>
+          <Button color='main' style='outline' onClick={handleCopy}>
             {<CopyIcon />} {md && ' Copy'}
           </Button>
           <Button color='main' style='outline' onClick={() => handleCreate(form === 'classes' || form === 'races')}>
@@ -393,7 +416,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
         </div>
       </div>
       <Divider />
-      {md && (
+      {md && !(sub.length > 0) && (
         <div className={list_button_container}>
           <Button color='main' style='outline' onClick={() => setView('grid')}>
             {<GridIcon />}
@@ -416,7 +439,14 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
             {rowVirtualizer.getVirtualItems().map((virtualItem) => {
               const rowStartIndex = virtualItem.index * (view === 'grid' ? 3 : 1)
               const rowEndIndex = Math.min(rowStartIndex + (view === 'grid' ? 3 : 1), data.length)
-              const itemsInRow = data.slice(rowStartIndex, rowEndIndex)
+              const itemsInRow = data
+                .filter((item) => {
+                  if (item.__typename === 'Class' || item.__typename === 'Race') {
+                    return item.category === Categories.base
+                  }
+                  return true
+                })
+                .slice(rowStartIndex, rowEndIndex)
 
               return (
                 <div
@@ -435,36 +465,95 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
                   }}
                 >
                   {itemsInRow.map((item) => (
-                    <Card key={item.id} className='card' ref={itemRef} itemId={item.id}>
-                      <Card.Header
-                        title={`${item.label} ${(item as Exclude<FormDataType, Character>).masterId !== null && '(M)'}`}
-                        open={(e) => handleOpen(e, item)}
-                        remove={
-                          (item as Exclude<FormDataType, Character>).masterId === null && ((e) => handleDelete(e, item))
-                        }
-                        leftSide={'level' in item && (item.level || item.level === 0) && `(${item.level})`}
-                        collapsible={view === 'list' && true}
-                        collapsed={!collapsedCards.has(item.id)}
-                        onCollapse={() => handleCollapse(item.id)}
-                      />
-                      <Card.Content>{item.desc}</Card.Content>
-                      {footerText && (
-                        <Card.Footer>
-                          <div className={list_footer_group}>
-                            {footerText.map((footerItem, footerIndex) => {
-                              if ((view && footerItem.display === view) || !footerItem.display) {
-                                return (
-                                  <div className={list_footer_item} key={footerIndex}>
-                                    {footerItem.icon ?? footerItem.value}
-                                    {getValueFromState({ input: footerItem, state: item, getSourceData })}
-                                  </div>
-                                )
-                              }
-                            })}
-                          </div>
-                        </Card.Footer>
-                      )}
-                    </Card>
+                    <Fragment key={item.id}>
+                      <Card ref={itemRef} itemId={item.id}>
+                        <Card.Header
+                          title={`${item.label} ${
+                            (item as Exclude<FormDataType, Character>).masterId !== null && '(M)'
+                          }`}
+                          open={(e) => handleOpen(e, item)}
+                          remove={
+                            (item as Exclude<FormDataType, Character>).masterId === null &&
+                            ((e) => handleDelete(e, item))
+                          }
+                          leftSide={'level' in item && (item.level || item.level === 0) && `(${item.level})`}
+                          collapsible={view === 'list' && true}
+                          collapsed={!collapsedCards.has(item.id)}
+                          onCollapse={() => handleCollapse(item.id)}
+                        />
+                        <Card.Content>{item.desc}</Card.Content>
+                        {footerText && (
+                          <Card.Footer>
+                            <div className={list_footer_group}>
+                              {footerText.map((footerItem, footerIndex) => {
+                                const text = getValueFromState({ input: footerItem, state: item, getSourceData })
+                                if (((view && footerItem.display === view) || !footerItem.display) && text !== '---') {
+                                  return (
+                                    <div className={list_footer_item} key={footerIndex}>
+                                      {footerItem.icon ?? footerItem.value}
+                                      {text}
+                                    </div>
+                                  )
+                                }
+                              })}
+                            </div>
+                          </Card.Footer>
+                        )}
+                      </Card>
+                      {sub.length > 0 &&
+                        sub.map((sItem) => {
+                          if (
+                            ('parentClass' in sItem && sItem.parentClass === item.id) ||
+                            ('lineages' in sItem && sItem.lineages?.includes(item.id))
+                          ) {
+                            return (
+                              <Card key={sItem.id} className={list_sub} ref={itemRef} itemId={sItem.id}>
+                                <Card.Header
+                                  title={`${sItem.label} ${
+                                    (sItem as Exclude<FormDataType, Character>).masterId !== null && '(M)'
+                                  }`}
+                                  open={(e) => handleOpen(e, sItem)}
+                                  remove={
+                                    (sItem as Exclude<FormDataType, Character>).masterId === null &&
+                                    ((e) => handleDelete(e, sItem))
+                                  }
+                                  leftSide={
+                                    'level' in sItem && (sItem.level || sItem.level === 0) && `(${sItem.level})`
+                                  }
+                                  collapsible={view === 'list' && true}
+                                  collapsed={!collapsedCards.has(sItem.id)}
+                                  onCollapse={() => handleCollapse(sItem.id)}
+                                />
+                                <Card.Content>{sItem.desc}</Card.Content>
+                                {footerText && (
+                                  <Card.Footer>
+                                    <div className={list_footer_group}>
+                                      {footerText.map((footerItem, footerIndex) => {
+                                        const text = getValueFromState({
+                                          input: footerItem,
+                                          state: sItem,
+                                          getSourceData,
+                                        })
+                                        if (
+                                          ((view && footerItem.display === view) || !footerItem.display) &&
+                                          text !== '---'
+                                        ) {
+                                          return (
+                                            <div className={list_footer_item} key={footerIndex}>
+                                              {footerItem.icon ?? footerItem.value}
+                                              {text}
+                                            </div>
+                                          )
+                                        }
+                                      })}
+                                    </div>
+                                  </Card.Footer>
+                                )}
+                              </Card>
+                            )
+                          }
+                        })}
+                    </Fragment>
                   ))}
                 </div>
               )
@@ -481,6 +570,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
           />
         )}
       </div>
+      <Outlet />
     </>
   )
 }

@@ -41,7 +41,7 @@ type Range {
   unit: ID
 }
 
-type Spell implements BaseFields {
+type Spell {
   id: ID!
   label: String!
   value: String!

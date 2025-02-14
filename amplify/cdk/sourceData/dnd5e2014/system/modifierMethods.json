@@ -7,7 +7,7 @@
   },
   {
     "id": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
-    "value": "setGlobally",
+    "value": "setAmount",
     "label": "Set Globally",
     "tooltip": "Set the value applied for the modifier type globally."
   },

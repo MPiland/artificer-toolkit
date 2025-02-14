@@ -13,9 +13,7 @@ const Layout = () => {
   const { user, isAuthenticating } = use(AuthContext)
   const signedIn = !isAuthenticating && user != null
   const { themeVar } = use(ThemeContext)
-
-  console.log({ signedIn })
-
+  
   return (
     <LayoutProvider>
       <div className={clsx(layout, themeVar)} id='app-main'>

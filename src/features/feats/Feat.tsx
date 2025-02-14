@@ -1,7 +1,7 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
 import Detail from '../../components/Detail/Detail'
-import { Feat as FeatState } from '../../../amplify/API'
+import { Feat as FeatState } from '../../../amplify/gql/types'
 
 const Feat = () => {
   const location = useLocation()

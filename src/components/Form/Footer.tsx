@@ -12,6 +12,7 @@ import { use } from 'react'
 import { FormContext } from './FormContext'
 import { FeatureContext } from './Features/FeatureContext'
 import { routeRoot } from '../../utils/formatting'
+import { sprinkles } from '../../css/sprinkles.css'
 
 interface FooterProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
@@ -48,7 +49,6 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     ancestryData,
     updateAncestryData,
     initialAncestryData,
-    ancestryIndex,
     optionData,
     updateOptionData,
     initialOptionData,
@@ -139,104 +139,129 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     })
   }
 
-  // Save feature hierachy and clear states
-  const handleSave = () => {
-    if (sectionStep != null) {
-      if (featureStep === 'subfeature') {
-        updateSubfeatureData({
-          type: 'update',
-          path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
-          value: sectionData,
-        })
-      } else if (featureStep === 'option') {
-        updateOptionData({
-          type: 'update',
-          path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
-          value: sectionData,
-        })
-      } else {
-        if (formData.__typename === 'Feat') {
-          updateFormData({
-            type: 'update',
-            path: `${sectionStep as Exclude<SectionName, 'subfeatures' | 'ancestries'> & 'ancestry'}.${sectionIndex}`,
-            value: sectionData,
-          })
-        } else {
-          if (steps[stepIndex].id === 'ancestry') {
-            updateAncestryData({
-              type: 'update',
-              path: `${sectionStep as Exclude<SectionName, 'ancestries'>}.${sectionIndex}`,
-              value: sectionData,
-            })
-          } else {
-            updateFeatureData({
-              type: 'update',
-              path: `${sectionStep}.${sectionIndex}`,
-              value: sectionData,
-            })
-          }
-        }
-      }
-      updateSectionData({ type: 'initialReset', value: sectionData })
-      if (steps && steps?.length > 0) {
-        setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      }
-      return setSectionStep(null)
-    }
+  const handleSaveSection = () => {
     if (featureStep === 'subfeature') {
+      updateSubfeatureData({
+        type: 'update',
+        path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
+        value: sectionData,
+      })
+    } else if (featureStep === 'option') {
       updateOptionData({
         type: 'update',
-        path: `subfeatures.${subfeatureIndex}`,
-        value: subfeatureData,
+        path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
+        value: sectionData,
       })
-      return setFeatureStep('option')
-    }
-    if (featureStep === 'option') {
+    } else {
       if (formData.__typename === 'Feat') {
-        updateFormData<typeof formData>({
+        updateFormData({
           type: 'update',
-          path: `options.${optionIndex}`,
-          value: optionData,
-        })
-        updateFormData<typeof formData>({
-          type: 'initialReset',
-          value: optionData,
+          path: `${sectionStep as Exclude<SectionName, 'subfeatures' | 'ancestries'> & 'ancestry'}.${sectionIndex}`,
+          value: sectionData,
         })
       } else {
         if (steps[stepIndex].id === 'ancestry') {
           updateAncestryData({
             type: 'update',
-            path: `options.${optionIndex}`,
-            value: optionData,
+            path: `features.${featureIndex}.${
+              sectionStep as Exclude<SectionName, 'ancestries' | 'subfeatures'>
+            }.${sectionIndex}`,
+            value: sectionData,
           })
         } else {
           updateFeatureData({
             type: 'update',
-            path: `options.${optionIndex}`,
-            value: optionData,
+            path: `${sectionStep as Exclude<SectionName, 'subfeatures'>}.${sectionIndex}`,
+            value: sectionData,
           })
         }
       }
-      setFeatureStep(null)
-      return setSectionStep(null)
     }
-    if (sectionStep == null && formData.__typename !== 'Feat') {
+    updateSectionData({ type: 'initialReset', value: sectionData })
+    if (steps && steps?.length > 0) {
+      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+    }
+    return setSectionStep(null)
+  }
+
+  const handleSaveSubfeature = () => {
+    updateOptionData({
+      type: 'update',
+      path: `subfeatures.${subfeatureIndex}`,
+      value: subfeatureData,
+    })
+    return setFeatureStep('option')
+  }
+
+  const handleSaveOption = () => {
+    if (formData.__typename === 'Feat') {
+      updateFormData<typeof formData>({
+        type: 'update',
+        path: `options.${optionIndex}`,
+        value: optionData,
+      })
+      updateFormData<typeof formData>({
+        type: 'initialReset',
+        value: optionData,
+      })
+    } else {
       if (steps[stepIndex].id === 'ancestry') {
-        updateFormData({
+        updateAncestryData({
           type: 'update',
-          path: `ancestry.options.${ancestryIndex}`,
-          value: ancestryData,
+          path: `features.${featureIndex}.options.${optionIndex}`,
+          value: optionData,
         })
+      } else {
+        updateFeatureData({
+          type: 'update',
+          path: `options.${optionIndex}`,
+          value: optionData,
+        })
+      }
+    }
+    setFeatureStep(null)
+    return setSectionStep(null)
+  }
+
+  // Save feature hierachy and clear states
+  const handleSave = () => {
+    if (sectionStep != null) {
+      return handleSaveSection()
+    }
+    if (featureStep === 'subfeature') {
+      return handleSaveSubfeature()
+    }
+    if (featureStep === 'option') {
+      return handleSaveOption()
+    }
+    if (sectionStep == null && featureStep != null && formData.__typename !== 'Feat') {
+      if (steps[stepIndex].id === 'ancestry') {
+        if (featureStep === 'ancestry') {
+          updateAncestryData({
+            type: 'update',
+            path: `features.${featureIndex}`,
+            value: featureData,
+          })
+          return setFeatureStep('ancestryOption')
+        }
+        if (featureStep === 'ancestryOption') {
+          updateFormData({
+            type: 'update',
+            path: `ancestry.options.${optionIndex}`,
+            value: ancestryData,
+          })
+          return setFeatureStep(null)
+        }
       } else {
         updateFormData({
           type: 'update',
           path: `features.${featureIndex}`,
           value: featureData,
         })
+        return setFeatureStep(null)
       }
-      return setFeatureStep(null)
     }
-    updateFormData({ type: 'initialReset', value: formData })
+    return updateFormData({ type: 'initialReset', value: formData })
   }
 
   const handleForward = async () => {
@@ -383,7 +408,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         value: initialFeatureData,
       })
     }
-    updateFormData({
+    return updateFormData({
       type: 'reset',
       value: initialFormData,
     })
@@ -392,7 +417,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   return (
     <Group className={form_footer} justifyContentVariant={'spaceBetween'}>
       <Group>
-        <Button color='main' type='button' onClick={handleBack}>
+        <Button color='main' type='button' onClick={handleBack} className={sprinkles({ marginRight: 'space-2' })}>
           {backLabel}
         </Button>
         <Button color='warning' type='button' onClick={handleReset}>
@@ -401,7 +426,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       </Group>
       <Group>
         {formData.id != null && (!isLastStep || (isLastStep && featureStep != null)) && (
-          <Button color='update' type='button' onClick={handleUpdate}>
+          <Button color='update' type='button' onClick={handleUpdate} className={sprinkles({ marginRight: 'space-2' })}>
             Update
           </Button>
         )}

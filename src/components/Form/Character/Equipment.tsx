@@ -1,4 +1,4 @@
-import { Character } from '../../../../amplify/API'
+import { Character } from '../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { UpdateState } from '../../../types/form'
 import Dropdown from '../../Dropdown/Dropdown'
@@ -17,7 +17,7 @@ const Equipment = () => {
     <>
       <Dropdown
         name='startingEquipment.option'
-        value={formData?.startingEquipment.option}
+        value={formData?.startingEquipment?.option}
         label='Equipment or Gold'
         onChange={updateFormData}
         options={system.characters.startingEquipmentOptions}

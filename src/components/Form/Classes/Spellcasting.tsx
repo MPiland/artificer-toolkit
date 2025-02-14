@@ -3,12 +3,17 @@ import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import Row from '../../Row/Row'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
-import { Class, ClassesEnum } from '../../../../amplify/API'
+import { Class, ClassesEnum } from '../../../../amplify/gql/types'
 import { Attributes, Measurement } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 
-const Spellcasting = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
-
+const Spellcasting = ({
+  formData,
+  updateFormData,
+}: {
+  formData: Class
+  updateFormData: (arg: UpdateState<Class>) => void
+}) => {
   const { data: system } = useGetSystemQuery()
 
   return (
@@ -29,7 +34,7 @@ const Spellcasting = ({ formData, updateFormData }: { formData: Class; updateFor
             label='Spell Casting Attributes'
             multiSelect={true}
             value={formData?.spellcasting?.attributes}
-            options={system.attributes.filter((attributes) => attributes?.classes.includes(ClassesEnum.spellcaster))}
+            options={system.attributes.filter((attributes) => attributes?.classes?.includes(ClassesEnum.spellcaster))}
             onChange={updateFormData}
           />
           {formData?.spellcasting?.attributes?.some((attribute) => attribute === 'magicName') && (
@@ -43,32 +48,37 @@ const Spellcasting = ({ formData, updateFormData }: { formData: Class; updateFor
             />
           )}
           {formData?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.preparesSpells) && (
-            <Dropdown
-              name='spellcasting.prepareLimit.methods'
-              label='Prepare Limit Method'
-              multiSelect={true}
-              value={formData?.spellcasting?.prepareLimit.methods}
-              options={system.attributes.filter((attributes) => attributes?.classes.includes(ClassesEnum.prepareLimit))}
-              onChange={updateFormData}
-            />
-          )}
-          {formData?.spellcasting?.prepareLimit.methods?.some((method) => method === Attributes.classLevel) && (
             <>
               <Dropdown
-                name='spellcasting.prepareLimit.level.measurement'
-                label='Level Measurement'
-                value={formData?.spellcasting?.prepareLimit.level?.measurement}
-                options={system.rules.measurements.amount}
+                name='spellcasting.prepareLimit.methods'
+                label='Prepare Limit Method'
+                multiSelect={true}
+                value={formData?.spellcasting?.prepareLimit?.methods}
+                options={system.attributes.filter(
+                  (attributes) =>
+                    attributes?.classes?.length > 0 && attributes?.classes?.includes(ClassesEnum.prepareLimit)
+                )}
                 onChange={updateFormData}
               />
-              {formData?.spellcasting?.prepareLimit.level?.measurement === Measurement.half && (
-                <Dropdown
-                  name='spellcasting.prepareLimit.level.rounding'
-                  label='Level Rounding'
-                  value={formData?.spellcasting?.prepareLimit?.level?.rounding}
-                  options={system.rules.measurements.rounding}
-                  onChange={updateFormData}
-                />
+              {formData?.spellcasting?.prepareLimit?.methods?.some((method) => method === Attributes.classLevel) && (
+                <>
+                  <Dropdown
+                    name='spellcasting.prepareLimit.level.measurement'
+                    label='Level Measurement'
+                    value={formData?.spellcasting?.prepareLimit?.level?.measurement}
+                    options={system.rules.measurements.amount}
+                    onChange={updateFormData}
+                  />
+                  {formData?.spellcasting?.prepareLimit?.level?.measurement === Measurement.half && (
+                    <Dropdown
+                      name='spellcasting.prepareLimit.level.rounding'
+                      label='Level Rounding'
+                      value={formData?.spellcasting?.prepareLimit?.level?.rounding}
+                      options={system.rules.measurements.rounding}
+                      onChange={updateFormData}
+                    />
+                  )}
+                </>
               )}
             </>
           )}
@@ -86,7 +96,9 @@ const Spellcasting = ({ formData, updateFormData }: { formData: Class; updateFor
             name='spellcasting.charges.reset'
             label='Spellslot Reset Option'
             value={formData?.spellcasting?.charges?.reset}
-            options={system.charges.resets.filter((reset) => reset?.classes.includes(ClassesEnum.spellcaster))}
+            options={system.charges.resets.filter(
+              (reset) => reset?.classes?.length > 0 && reset?.classes?.includes(ClassesEnum.spellcaster)
+            )}
             required={true}
             onChange={updateFormData}
           />

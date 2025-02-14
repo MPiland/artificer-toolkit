@@ -1,4 +1,4 @@
-type Feat implements BaseFields {
+type Feat {
   id: ID!
   label: String!
   value: String!

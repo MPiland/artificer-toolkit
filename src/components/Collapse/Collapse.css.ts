@@ -30,7 +30,7 @@ export const collapse_header = style({
     [app]: {
       width: '100%',
       fontWeight: 'bold',
-      backgroundColor: theme.vars.component.collapse.backgroundColor.main,
+      backgroundColor: theme.vars.component.collapse.backgroundColor.header,
       display: 'flex',
       flexDirection: 'row',
       alignItems: 'center',
@@ -104,7 +104,7 @@ export const collapse_body = style({
       selectors: {
         [`${collapse_wrapper}.collapsed > &`]: {
           gridTemplateRows: '0fr',
-        },
+        }
       },
     },
   },
@@ -133,6 +133,14 @@ globalStyle(`${collapse_header_icon} svg`, {
     [app]: {
       height: '60%',
       width: 'auto',
+    },
+  },
+})
+
+globalStyle(`${collapse_body} p:last-child`, {
+  '@layer': {
+    [app]: {
+      marginBottom: 'unset',
     },
   },
 })

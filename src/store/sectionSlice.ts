@@ -1,45 +1,76 @@
 import { StateCreator } from 'zustand'
 import { addField, removeField, updateField, reset, CombinedSlice } from './useStore'
-import { DeepKeyOf, SectionDataType } from '../types/form'
+import { DeepKeyOf, SectionDataType, SectionName } from '../types/form'
 import { produce } from 'immer'
 
 export interface SectionSlice {
+  // Core section data
   sectionData: SectionDataType
-  sectionIndex: number
   initialSectionData: SectionDataType
+
+  // Section UI state
+  sectionIndex: number
+  sectionStep: SectionName | null
+
   updateSectionField: (arg: { path: DeepKeyOf<SectionDataType>; value: any }) => void
   addSectionField: (arg: { path: DeepKeyOf<SectionDataType>; value?: any }) => void
   removeSectionField: (arg: { path: DeepKeyOf<SectionDataType> }) => void
   sectionReset: (arg: { value: SectionDataType }) => void
   initialSectionReset: (arg: { value: SectionDataType }) => void
   updateSectionIndex: (arg: { value: number }) => void
+  setSectionStep: (arg: SectionName) => void
+  resetSection: () => void
 }
 
-export const sectionSlice: StateCreator<CombinedSlice, [], [], SectionSlice> = (set) => ({
-  sectionData: { id: undefined, value: undefined, label: undefined, __typename: undefined },
+export const sectionSlice: StateCreator<CombinedSlice, [], [], SectionSlice> = (set) => {
+  const defaultState: Pick<SectionSlice, 'sectionData' | 'initialSectionData' | 'sectionIndex' | 'sectionStep'> = {
+    sectionData: { id: undefined, __typename: undefined },
 
-  initialSectionData: { id: undefined, value: undefined, label: undefined, __typename: undefined },
+    initialSectionData: { id: undefined, __typename: undefined },
 
-  sectionIndex: 0,
+    sectionIndex: 0,
 
-  addSectionField: ({ path, value }) =>
-    set((state) => addField({ path, value, selector: (state) => state.sectionData })(state)),
+    sectionStep: null,
+  }
 
-  removeSectionField: ({ path }) =>
-    set((state) => removeField({ path, selector: (state) => state.sectionData })(state)),
+  return {
+    ...defaultState,
 
-  updateSectionField: ({ path, value }) =>
-    set((state) => updateField({ path, value, selector: (state) => state.sectionData })(state)),
+    addSectionField: ({ path, value }) =>
+      set((state) => addField({ path, value, selector: (state) => state.sectionData })(state)),
 
-  sectionReset: ({ value }) => set((state) => reset({ value, selector: (state) => state.sectionData })(state)),
+    removeSectionField: ({ path }) =>
+      set((state) => removeField({ path, selector: (state) => state.sectionData })(state)),
 
-  initialSectionReset: ({ value }) =>
-    set((state) => reset({ value, selector: (state) => state.initialSectionData })(state)),
+    updateSectionField: ({ path, value }) =>
+      set((state) => updateField({ path, value, selector: (state) => state.sectionData })(state)),
 
-  updateSectionIndex: ({ value }) =>
-    set((state) =>
-      produce(state, (draft) => {
-        draft.sectionIndex = value
-      })
-    ),
-})
+    sectionReset: ({ value }) => set((state) => reset({ value, selector: (state) => state.sectionData })(state)),
+
+    initialSectionReset: ({ value }) =>
+      set((state) => reset({ value, selector: (state) => state.initialSectionData })(state)),
+
+    updateSectionIndex: ({ value }) =>
+      set((state) =>
+        produce(state, (draft) => {
+          draft.sectionIndex = value
+        })
+      ),
+
+    setSectionStep: (value) =>
+      set((state) =>
+        produce(state, (draft) => {
+          draft.sectionStep = value
+        })
+      ),
+
+    resetSection: () =>
+      set((state) => ({
+        ...state,
+        sectionData: defaultState.sectionData,
+        initialSectionData: defaultState.initialSectionData,
+        sectionIndex: defaultState.sectionIndex,
+        sectionStep: defaultState.sectionStep,
+      })),
+  }
+}

@@ -69,7 +69,7 @@
     "id": "7b202c09-bdd0-43df-8225-6232de134e3d",
     "value": "resistance",
     "label": "Resistance",
-    "tooltip": "Adds resistance to the selected type"
+    "tooltip": "Adds resistance to the selected damage type"
   },
   {
     "id": "4d5f63ef-833e-4a65-ab7d-2659f028281a",

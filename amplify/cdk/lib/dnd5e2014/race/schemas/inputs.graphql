@@ -22,7 +22,7 @@ input AncestryFeatureInput {
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [SubfeatureInput]
+  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }
 
@@ -63,7 +63,7 @@ input RaceInput {
   desc: String
   playable: String!
   category: ID!
-  lineage: [ID!]
+  lineages: [ID!]
   ancestry: AncestryInput
   details: [DetailInput]
   traits: TraitsInput

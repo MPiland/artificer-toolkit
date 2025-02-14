@@ -1,32 +1,6 @@
-## Base Interfaces
-interface BaseFields {
-  label: String
-  value: String
-  desc: String
-}
-
-interface DieFields {
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-}
-
-type DamageFields implements DieFields {
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-  attribute: ID
-  id: ID
-  ability: ID
-  setAmount: Int
-  multiplier: Int
-  minAmount: Int
-  maxAmount: Int
-  pool: DamagePool
-}
-
 ## Basic Types
-type Detail implements BaseFields {
+
+type Detail {
   label: String!
   value: String!
   desc: String
@@ -37,13 +11,6 @@ type SaveAbility {
   minAmount: Int
   attributes: [ID]
   abilityModifier: ID
-}
-
-type GenericRange {
-  minRange: Int
-  maxRange: Int
-  distance: Int
-  unit: ID!
 }
 
 type EquipmentGroup {
@@ -61,6 +28,19 @@ type EquipmentGroup {
 }
 
 ## Damage Related
+
+type DamageFields {
+  dieConfig: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePool
+}
+
 type DamagePool {
   attribute: ID
   setAmount: Int
@@ -73,21 +53,23 @@ type DamagePool {
 
 type SetPerLevel {
   level: String
-  amount: Int
+  primary: Int
+  secondary: Int
+  bonus: Int
 }
 
-type DicePerLevel implements DieFields {
+type DiePerLevel {
   level: String
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  primary: DamageFields
+  secondary: DamageFields
+  bonus: DamageFields
 }
 
 type Damage {
   attributes: [ID]
   damageSave: [ID]
   setPerLevel: [SetPerLevel]
-  dicePerLevel: [DicePerLevel]
+  diePerLevel: [DiePerLevel]
   primary: DamageFields
   secondary: DamageFields
   bonus: DamageFields
@@ -95,6 +77,7 @@ type Damage {
 }
 
 ## Charges
+
 type UsesPerLevel {
   level: Int
   uses: Int
@@ -114,6 +97,7 @@ type Charge {
 }
 
 ## Prerequisites
+
 type EquipPrerequisite {
   numberEquipped: Int
   category: ID
@@ -140,6 +124,7 @@ type Prerequisite {
 }
 
 ## Feature Related
+
 type FeatureFeat {
   id: ID!
   attributes: [ID]
@@ -148,7 +133,17 @@ type FeatureFeat {
   subtype: ID
 }
 
-type FeatureModifier implements DieFields {
+type ModifierDiePerLevel {
+  level: String
+  dieConfig: String
+}
+
+type ModifierSetPerLevel {
+  level: String
+  setAmount: Int
+}
+
+type FeatureModifier {
   id: ID!
   subtype: ID
   attributes: [ID]
@@ -162,12 +157,10 @@ type FeatureModifier implements DieFields {
   maxAmount: Int
   minAmount: Int
   setAmount: Int
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  dieConfig: String
   feature: ID
-  dicePerLevel: [DicePerLevel]
-  setPerLevel: [SetPerLevel]
+  diePerLevel: [ModifierDiePerLevel]
+  setPerLevel: [ModifierSetPerLevel]
   skills: [ID]
   saveAbilities: [ID]
   abilities: [ID]
@@ -265,7 +258,7 @@ type ActionGroup {
   secondary: ActionProperty
 }
 
-type Subfeature implements BaseFields {
+type FeatureSubfeature {
   id: ID!
   label: String
   value: String
@@ -277,7 +270,7 @@ type Subfeature implements BaseFields {
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  range: GenericRange
+  range: Range
   shape: Shape
   targets: Int
   feats: [FeatureFeat]
@@ -292,7 +285,7 @@ type Subfeature implements BaseFields {
   levelAvailable: String
 }
 
-type FeatureOption implements BaseFields {
+type FeatureOption {
   id: ID!
   label: String
   value: String
@@ -304,7 +297,7 @@ type FeatureOption implements BaseFields {
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  range: GenericRange
+  range: Range
   shape: Shape
   targets: Int
   feats: [FeatureFeat]
@@ -317,10 +310,10 @@ type FeatureOption implements BaseFields {
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [Subfeature]
+  subfeatures: [FeatureSubfeature]
 }
 
-type Feature implements BaseFields {
+type Feature {
   id: ID!
   label: String
   value: String
@@ -332,7 +325,7 @@ type Feature implements BaseFields {
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  range: GenericRange
+  range: Range
   shape: Shape
   targets: Int
   feats: [FeatureFeat]
@@ -345,6 +338,6 @@ type Feature implements BaseFields {
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [Subfeature]
+  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }

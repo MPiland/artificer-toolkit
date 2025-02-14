@@ -9,8 +9,8 @@ const IFeat = ({ className }: { className?: string }) => {
       xmlns='http://www.w3.org/2000/svg'
     >
       <path
-        fill-rule='evenodd'
-        clip-rule='evenodd'
+        fillRule='evenodd'
+        clipRule='evenodd'
         d='M12 4.75L6.5 5.75V14.25C6.5 15.75 12 18.85 12 18.85C12 18.85 17.5 15.75 17.5 14.25V5.75L12 4.75ZM12 7.25L9.7 9.55V10.75L12 8.45L14.3 10.75V9.55L12 7.25ZM14.3 11.55L12 9.25L9.7 11.55V12.75L11.4019 11.0481V16.55H12.6V11.05L14.3 12.75V11.55Z'
         fill='currentColor'
       />

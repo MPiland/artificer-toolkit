@@ -1,24 +1,32 @@
 import { style } from '@vanilla-extract/css'
 import { theme } from '../../css/theme.css'
 import { app } from '../../css/layers.css'
-import { size } from '../../css/size.css'
-
-export const select = style({
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      color: theme.vars.component.input.backgroundColor,
-    },
-  },
-})
+import { size, space } from '../../css/size.css'
 
 export const select_wrapper = style({
   '@layer': {
     [app]: {
-      color: theme.vars.typography.color.main,
-      height: 'fit-content',
-      display: 'flex',
-      flexDirection: 'column',
+      position: 'relative',
+      textWrap: 'nowrap',
+      textOverflow: 'ellipsis',
+    },
+  },
+})
+
+export const select_label = style({
+  '@layer': {
+    [app]: {
+      display: 'inline-block',
+      marginBottom: space['space-2'],
+
+      selectors: {
+        '&.required:after': {
+          content: '*',
+          color: 'red',
+          right: 0,
+          transform: 'scale(1.5)',
+        },
+      },
     },
   },
 })
@@ -27,16 +35,12 @@ export const select_container = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
-      borderRight: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
-      borderBottomRightRadius: theme.border.radius,
+      fontSize: 'inherit',
+      padding: '0 .75rem',
+      borderRadius: theme.border.radius,
+      backgroundColor: theme.vars.component.input.backgroundColor,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
       height: theme.component.input.height,
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingLeft: size['size-3'],
-      overflow: 'hidden',
-      cursor: 'pointer',
     },
   },
 })
@@ -45,15 +49,18 @@ export const select_input = style({
   '@layer': {
     [app]: {
       position: 'relative',
-      border: 'none',
-      backgroundColor: 'transparent',
-      width: '100%',
-      color: theme.vars.typography.color.main,
-      userSelect: 'none',
       display: 'flex',
       flexDirection: 'row',
-      flexWrap: 'nowrap',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+      width: '100%',
+      height: '100%',
+      fontSize: 'inherit',
+      fontWeight: 'inherit',
+      border: 'none',
+      color: theme.vars.typography.color.main,
       overflow: 'hidden',
+      textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
 
       selectors: {

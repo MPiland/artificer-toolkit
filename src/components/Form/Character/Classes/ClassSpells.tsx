@@ -5,7 +5,7 @@ import { get, isEqual, set } from 'lodash'
 import { useCallback, useEffect, useMemo } from 'react'
 import Group from '../../../Group/Group'
 import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
-import { Character, CharacterClass, Class, Spell, ClassSpellList, CharacterSpell } from '../../../../../amplify/API'
+import { Character, CharacterClass, Class, Spell, ClassSpellList, CharacterSpell } from '../../../../../amplify/gql/types'
 import { Attributes, Measurement, Rounding } from '../../../../types/enums'
 import { UpdateState } from '../../../../types/form'
 

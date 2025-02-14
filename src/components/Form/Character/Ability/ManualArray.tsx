@@ -28,9 +28,9 @@ import Collapse from '../../../Collapse/Collapse'
 import { isEqual } from 'lodash'
 import Row from '../../../Row/Row'
 import clsx from 'clsx'
-import { Character, RollType } from '../../../../../amplify/API'
+import { Character, RollType } from '../../../../../amplify/gql/types'
 import { parseDiceRoll } from '../../../../utils/dice'
-import { DeepKeyOf, UpdateState } from '../../../../types/form'
+import { UpdateState } from '../../../../types/form'
 import { DiceContext } from '../../../Dice/DiceContext'
 
 const ManualArray = ({
@@ -81,7 +81,7 @@ const ManualArray = ({
 
     if (rollGroups?.length > 0) {
       rollGroups.forEach((rollGroup, gIndex) =>
-        rollGroup.rolls.forEach((roll, rIndex) => {
+        rollGroup?.rolls?.forEach((roll, rIndex) => {
           if (
             roll.rolling &&
             !isRolling &&
@@ -120,8 +120,8 @@ const ManualArray = ({
     let applied = false
     if (formData.abilities?.manualRolled?.rollGroups?.length > 0) {
       formData.abilities?.manualRolled?.rollGroups?.forEach((rollGroup) => {
-        if (rollGroup.rolls.length > 0) {
-          rollGroup.rolls.forEach((roll) => {
+        if (rollGroup?.rolls?.length > 0) {
+          rollGroup?.rolls?.forEach((roll) => {
             if (roll.ability) {
               const scoreIndex = formData.abilities?.scores?.findIndex((score) => score.ability === roll.ability)
 
@@ -253,18 +253,6 @@ const ManualArray = ({
       value: rollGroups,
     })
   }
-
-  const handleDiceConfiguration = (e: UpdateState<Character>) => {
-    if (e.type === 'update') {
-      setRollConfiguration(e.value)
-      updateFormData({
-        type: 'update',
-        path: 'abilities.manualRolled.configuration',
-        value: e.value,
-      })
-    }
-  }
-
   const rollResult = (gIndex: number, rIndex: number) => {
     const diceResults = []
     const { numDice } = parseDiceRoll(rollConfiguration)
@@ -291,7 +279,7 @@ const ManualArray = ({
       rollGroups?.forEach((rollGroup, groupIndex) => {
         if (groupIndex !== gIndex) {
           if (rollGroup?.rolls?.length > 0) {
-            rollGroup.rolls.forEach((roll, rollIndex) => {
+            rollGroup?.rolls?.forEach((roll, rollIndex) => {
               if (roll.applied) {
                 abilities.manualRolled.rollGroups[groupIndex].rolls[rollIndex].applied = false
               }
@@ -331,7 +319,7 @@ const ManualArray = ({
       if (rollGroups?.length > 0) {
         rollGroups.forEach((rollGroup, gIndex) => {
           if (rollGroup.rolls?.length > 0) {
-            rollGroup.rolls.forEach((roll, rIndex) => {
+            rollGroup?.rolls?.forEach((roll, rIndex) => {
               if (roll.applied) {
                 abilities.manualRolled.rollGroups[gIndex].rolls[rIndex].applied = false
               }
@@ -376,12 +364,12 @@ const ManualArray = ({
         <Collapse.Header title='Roll Configuration' startOpened={true} />
         <Collapse.Body>
           <Row cols={{ base: 2, md: 3, lg: 7 }} cellSize='auto'>
-            <Input<RollConfig>
-              name={'quantity' as DeepKeyOf<RollConfig>}
-              value={rollConfiguration}
+            <Input
+              name='abilities.manualRolled.configuration'
+              value={formData.abilities.manualRolled.configuration}
               label='Dice Count'
-              type='num'
-              onChange={(e) => handleDiceConfiguration(e)}
+              type='roll'
+              onChange={updateFormData}
             />
           </Row>
         </Collapse.Body>
@@ -420,7 +408,7 @@ const ManualArray = ({
                     )}
                   </Group>
                   <Row cols={{ base: 2, md: rollGroup.rolls?.length }} className={dice_group}>
-                    {rollGroup.rolls.map((roll, rIndex) => {
+                    {rollGroup?.rolls?.map((roll, rIndex) => {
                       const { numDice, dieType } = parseDiceRoll(rollConfiguration)
                       return (
                         <Group
@@ -484,7 +472,7 @@ const ManualArray = ({
                     <Button
                       color='danger'
                       style='outline'
-                      disabled={!rollGroup.rolls.some((roll) => roll.score != null)}
+                      disabled={!rollGroup?.rolls?.some((roll) => roll.score != null)}
                       onClick={() => handleResetGroup(gIndex)}
                     >
                       Reset Group
@@ -493,7 +481,7 @@ const ManualArray = ({
                       color='update'
                       style='outline'
                       disabled={
-                        rollGroup.rolls.some((roll) => roll.rolling) || !rollGroup.rolls.some((roll) => roll.score)
+                        rollGroup?.rolls?.some((roll) => roll.rolling) || !rollGroup?.rolls?.some((roll) => roll.score)
                       }
                       onClick={() => handleRollApply(gIndex)}
                     >

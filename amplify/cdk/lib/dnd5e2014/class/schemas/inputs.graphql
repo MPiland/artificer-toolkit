@@ -1,22 +1,12 @@
 input HitpointInput {
   ability: ID
-  dieCount: Int
-  dieValue: Int
+  dieConfig: String
 }
 
 input StartingGoldInput {
   multiplier: Int!
   currency: ID!
-  dieCount: Int
-  dieValue: Int
-}
-
-input EquipmentOptionInput {
-  groups: [EquipmentGroupInput]
-}
-
-input StartingEquipmentInput {
-  options: [EquipmentOptionInput]
+  dieConfig: String
 }
 
 input PrepareLimitLevelInput {
@@ -87,7 +77,7 @@ input ClassInput {
   details: [DetailInput]
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
-  equipment: [StartingEquipmentInput]
+  equipment: [[[EquipmentGroupInput]]]
   proficiencies: [FeatureProficiencyInput]
   spellcasting: SpellcastingInput
   levelAttributes: [LevelAttributeInput]

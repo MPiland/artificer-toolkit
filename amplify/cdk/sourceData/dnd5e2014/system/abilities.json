@@ -36,7 +36,7 @@
     "desc": "<p>An Intelligence check comes into play when you need to draw on logic, education, memory, or deductive reasoning. The Arcana, History, Investigation, Nature, and Religion skills reflect aptitude in certain kinds of Intelligence checks.",
     "label": "Intelligence",
     "shortName": "INT",
-    "tooltip": "Intelligence measures mental acuity, accuracy of recall, and the ability to reason.",
+    "tooltip": "<p>Intelligence measures mental acuity, accuracy of recall, and the ability to reason.</p>",
     "value": "int"
   },
   {
@@ -44,7 +44,7 @@
     "desc": "<p>A Charisma check might arise when you try to influence or entertain others, when you try to make an impression or tell a convincing lie, or when you are navigating a tricky social situation. The Deception, Intimidation, Performance, and Persuasion skills reflect aptitude in certain kinds of Charisma checks.<p>",
     "label": "Charisma",
     "shortName": "CHA",
-    "tooltip": "Charisma measures your ability to interact effectively with others. It includes such factors as confidence and eloquence, and it can represent a charming or commanding personality.",
+    "tooltip": "<p>Charisma measures your ability to interact effectively with others. It includes such factors as confidence and eloquence, and it can represent a charming or commanding personality.</p>",
     "value": "cha"
   }
 ]

@@ -18,6 +18,7 @@ enum DamageEnum {
 enum SpellEnum {
   all
   upcast
+  damage
 }
 
 enum AllEnum {
@@ -277,7 +278,7 @@ type SystemPrerequisite {
   classes: [ClassesEnum]
 }
 
-type System implements BaseFields {
+type System {
   id: ID!
   value: String!
   label: String!

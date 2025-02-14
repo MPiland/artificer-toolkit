@@ -1,9 +1,9 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
 import useSystemPref from '../../hooks/useSystemPref'
-import { listCharacters } from '../../../amplify/graphql/queries'
-import { createCharacter, deleteCharacter, updateCharacter } from '../../../amplify/graphql/mutations'
-import { CharacterInput, Character } from '../../../amplify/API'
+import { listCharacters } from '../../../amplify/gql/queries'
+import { createCharacter, deleteCharacter, updateCharacter } from '../../../amplify/gql/mutations'
+import { CharacterInput, Character } from '../../../amplify/gql/types'
 
 const client = generateClient()
 

@@ -84,7 +84,6 @@ const Row = ({
         if (colSet.lg) {
           columnWidth = `calc((100% - ${columnGap * (colSet.lg - 1)}px) / ${colSet.lg})`
         } else if (colSet.md) {
-          console.log({ colSet: colSet.md })
           columnWidth = `calc((100% - ${columnGap * colSet.md}px) / ${colSet.md})`
         } else if (colSet.base) {
           columnWidth = `calc((100% - ${columnGap * colSet.base}px)/ ${colSet.base})`
@@ -94,10 +93,14 @@ const Row = ({
           columnWidth = `calc((100% - ${columnGap * colSet.md}px) / ${colSet.md})`
         } else if (colSet.base) {
           columnWidth = `calc((100% - ${columnGap * colSet.base}px) / ${colSet.base})`
+        } else {
+          columnWidth = `calc((100% - ${columnGap * 4}px) / 4)`
         }
       } else {
         if (colSet.base) {
           columnWidth = `calc((100% - ${columnGap * colSet.base}px) / ${colSet.base})`
+        } else {
+          columnWidth = `calc((100% - ${columnGap * 2}px) / 2)`
         }
       }
     } else {
@@ -127,7 +130,9 @@ const Row = ({
       {childElements?.map((child, index) => {
         const colWidth =
           cellSize === 'auto'
-            ? 'auto'
+            ? `calc((100% - (${totalChildren * columnGap}px)) / ${
+                childElements.length
+              })`
             : cols && 'start' in cols
             ? index < (cols as ColsAutoType).start
               ? startWidth

@@ -8,7 +8,7 @@ import Button from '../../Button/Button'
 import Accordion from '../../Accordion/Accordion'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import { Race } from '../../../../amplify/API'
+import { Race } from '../../../../amplify/gql/types'
 import { Categories } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 
@@ -53,15 +53,15 @@ const Traits = () => {
           {formData.traits.details.map((detail, index) => (
             <Accordion.Wrapper key={index} itemId={String(index)}>
               <Accordion.Header handleRemove={() => handleRemove(index)}>
-                {detail.value ?? `Trait ${index}`}
+                {detail.label ?? `Trait ${index}`}
               </Accordion.Header>
               <Accordion.Content>
                 <Row>
                   <Input
-                    name={`traits.details.${index}.value`}
+                    name={`traits.details.${index}.label`}
                     label='Trait Name'
                     errorMsg='Must contain only numbers'
-                    value={detail?.value}
+                    value={detail?.label}
                     onChange={updateFormData}
                     className={sprinkles({ mb: 'space-3' })}
                   />

@@ -8,7 +8,7 @@ const ClassList = () => {
   const footerText: { name: string | any[]; value: string; display?: string; icon?: ReactElement }[] = [
     {
       icon: <ICategory />,
-      name: 'category.value',
+      name: [{ path: 'category', source: { type: 'system', field: 'categories' } }],
       value: 'Category',
     },
   ]

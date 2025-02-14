@@ -2,7 +2,7 @@ import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
 import Detail from '../../components/Detail/Detail'
 import { Fragment } from 'react'
-import { Background as BackgroundState } from '../../../amplify/API'
+import { Background as BackgroundState } from '../../../amplify/gql/types'
 
 const Background = () => {
   const location = useLocation()

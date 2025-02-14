@@ -23,7 +23,7 @@ import Race from './features/races/Race'
 import Feat from './features/feats/Feat'
 import Equipment from './features/equipment/Equipment'
 import Background from './features/backgrounds/Background'
-import Copy from './components/Copy/Copy'
+import CopyFeature from './components/Form/Features/CopyFeature/CopyFeature'
 import ShortDetail from './components/Form/ShortDetail'
 import FeatureProvider from './components/Form/Features/FeatureProvider'
 import Auth from './features/auth/Auth'
@@ -36,6 +36,7 @@ import AuthProvider from './features/auth/AuthProvider'
 import LoadingProvider from './components/Loading/LoadingProvider'
 import Spell from './features/spells/Spell'
 import Character from './features/characters/Character'
+import Copy from './components/List/Copy/Copy'
 
 const App = () => {
   const router = createBrowserRouter([
@@ -84,7 +85,10 @@ const App = () => {
                     {
                       path: '',
                       element: <CharactersList />,
-                      children: [{ path: 'delete/:id', element: <Delete /> }],
+                      children: [
+                        { path: 'delete/:id', element: <Delete /> },
+                        { path: 'copy', element: <Copy /> },
+                      ],
                     },
                     { path: ':id', element: <Character />, children: [{ path: 'edit', element: <SpellForm /> }] },
                     {
@@ -110,7 +114,10 @@ const App = () => {
                     {
                       path: '',
                       element: <ClassesList />,
-                      children: [{ path: 'delete/:id', element: <Delete /> }],
+                      children: [
+                        { path: 'delete/:id', element: <Delete /> },
+                        { path: 'copy', element: <Copy /> },
+                      ],
                     },
                     { path: ':id', element: <Class />, children: [{ path: 'edit', element: <ClassForm /> }] },
                     {
@@ -125,7 +132,7 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: 'copy/feature', element: <Copy /> },
+                        { path: 'copy/feature', element: <CopyFeature /> },
                       ],
                     },
                   ],
@@ -136,7 +143,10 @@ const App = () => {
                     {
                       path: '',
                       element: <RacesList />,
-                      children: [{ path: 'delete/:id', element: <Delete /> }],
+                      children: [
+                        { path: 'delete/:id', element: <Delete /> },
+                        { path: 'copy', element: <Copy /> },
+                      ],
                     },
                     { path: ':id', element: <Race />, children: [{ path: 'edit', element: <RaceForm /> }] },
                     {
@@ -151,7 +161,7 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: 'copy/feature', element: <Copy /> },
+                        { path: 'copy/feature', element: <CopyFeature /> },
                       ],
                     },
                   ],
@@ -162,7 +172,10 @@ const App = () => {
                     {
                       path: '',
                       element: <SpellsList />,
-                      children: [{ path: 'delete/:id', element: <Delete /> }],
+                      children: [
+                        { path: 'delete/:id', element: <Delete /> },
+                        { path: 'copy', element: <Copy /> },
+                      ],
                     },
                     { path: ':id', element: <Spell />, children: [{ path: 'edit', element: <SpellForm /> }] },
                     {
@@ -177,7 +190,7 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: 'copy/feature', element: <Copy /> },
+                        { path: 'copy/feature', element: <CopyFeature /> },
                       ],
                     },
                   ],
@@ -188,7 +201,10 @@ const App = () => {
                     {
                       path: '',
                       element: <EquipmentList />,
-                      children: [{ path: 'delete/:id', element: <Delete /> }],
+                      children: [
+                        { path: 'delete/:id', element: <Delete /> },
+                        { path: 'copy', element: <Copy /> },
+                      ],
                     },
                     { path: ':id', element: <Equipment />, children: [{ path: 'edit', element: <EquipmentForm /> }] },
                     {
@@ -203,7 +219,7 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: 'copy/feature', element: <Copy /> },
+                        { path: 'copy/feature', element: <CopyFeature /> },
                       ],
                     },
                   ],
@@ -214,7 +230,10 @@ const App = () => {
                     {
                       path: '',
                       element: <FeatsList />,
-                      children: [{ path: 'delete/:id', element: <Delete /> }],
+                      children: [
+                        { path: 'delete/:id', element: <Delete /> },
+                        { path: 'copy', element: <Copy /> },
+                      ],
                     },
                     { path: ':id', element: <Feat />, children: [{ path: 'edit', element: <FeatForm /> }] },
                     {
@@ -229,7 +248,7 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: 'copy/feature', element: <Copy /> },
+                        { path: 'copy/feature', element: <CopyFeature /> },
                       ],
                     },
                   ],
@@ -240,7 +259,10 @@ const App = () => {
                     {
                       path: '',
                       element: <BackgroundsList />,
-                      children: [{ path: 'delete/:id', element: <Delete /> }],
+                      children: [
+                        { path: 'delete/:id', element: <Delete /> },
+                        { path: 'copy', element: <Copy /> },
+                      ],
                     },
                     { path: ':id', element: <Background />, children: [{ path: 'edit', element: <BackgroundForm /> }] },
                     {
@@ -255,7 +277,7 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: 'copy/feature', element: <Copy /> },
+                        { path: 'copy/feature', element: <CopyFeature /> },
                       ],
                     },
                   ],

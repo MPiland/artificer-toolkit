@@ -6,7 +6,7 @@ type BackgroundCurrency {
   platinum: Int
 }
 
-type Background implements BaseFields {
+type Background {
   id: ID!
   label: String!
   value: String!

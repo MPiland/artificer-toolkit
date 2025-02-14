@@ -4,16 +4,14 @@ import Accordion from '../../Accordion/Accordion'
 import Row from '../../Row/Row'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
-import Spinner from '../../Spinner/Spinner'
 import Button from '../../Button/Button'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Group from '../../Group/Group'
-import { isEqual, startCase } from 'lodash'
+import { isEqual } from 'lodash'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
-import { useIsFetching } from '@tanstack/react-query'
-import { Class, SectionEnum } from '../../../../amplify/API'
-import { Attributes, Measurement } from '../../../types/enums'
+import { Class, SectionEnum } from '../../../../amplify/gql/types'
+import { Attributes, Measurement, ProficiencyCategories } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
@@ -23,8 +21,6 @@ const Proficiencies = () => {
     formData: Class
     updateFormData: (state: UpdateState<Class>) => void
   }
-
-  const isLoading = useIsFetching() > 0
 
   const { data: system } = useGetSystemQuery()
   const { data: equipment } = useListEquipmentQuery()
@@ -37,22 +33,20 @@ const Proficiencies = () => {
           !proficiency?.level ||
           (proficiency?.level !== Measurement.full && proficiency?.level !== Measurement.half)
         ) {
-          const proficiencyLevel = system.proficiencies.levels.find((level) => level.id === Measurement.full)
-          formClone.proficiencies[index].level = proficiencyLevel.id
+          formClone.proficiencies[index].level = Measurement.full
         }
       })
-      if (!isEqual(formClone, formData)) {
+      if (!isEqual(formClone.proficiencies, formData.proficiencies)) {
         updateFormData({
-          type: 'reset',
-          value: formClone,
+          type: 'update',
+          path: 'proficiencies',
+          value: formClone.proficiencies,
         })
       }
     }
-  }, [system.proficiencies.levels, formData, updateFormData])
+  }, [formData, updateFormData])
 
-  return isLoading || !system || !equipment ? (
-    <Spinner />
-  ) : (
+  return (
     <>
       <Group>
         <Button
@@ -74,13 +68,7 @@ const Proficiencies = () => {
               const multipleOptions = proficiency.attributes?.some(
                 (attribute) => attribute === Attributes.providesOptions
               )
-              const categoryName = system.categories.find((category) => category.id === proficiency.category).value as
-                | 'abilities'
-                | 'skills'
-                | 'properties'
-                | 'equipment'
-                | 'languages'
-                | 'saveAbilities'
+              const category = system.proficiencies.categories.find((category) => category.id === proficiency.category)
               return (
                 <Accordion.Wrapper key={index} itemId={String(index)}>
                   <Accordion.Header
@@ -89,7 +77,7 @@ const Proficiencies = () => {
                         type: 'remove',
                         path: `proficiencies.${index}`,
                       })
-                    }
+                    } 
                   >
                     {`Proficiency ${index + 1}`}
                   </Accordion.Header>
@@ -100,8 +88,9 @@ const Proficiencies = () => {
                         name={`proficiencies.${index}.attributes`}
                         options={system.attributes.filter(
                           (attribute) =>
-                            attribute?.sections.includes(SectionEnum.all) &&
-                            attribute?.sections.includes(SectionEnum.subclasses)
+                            attribute?.sections?.length > 0 &&
+                            (attribute?.sections?.includes(SectionEnum.all) ||
+                              attribute?.sections?.includes(SectionEnum.subclasses))
                         )}
                         label='Proficiency Attribute'
                         value={proficiency.attributes}
@@ -115,84 +104,98 @@ const Proficiencies = () => {
                         required={true}
                         onChange={updateFormData}
                       />
-                      {categoryName != null &&
-                        categoryName !== 'abilities' &&
-                        (categoryName !== 'properties' && categoryName !== 'equipment' ? (
+                      {category.id === ProficiencyCategories.saveAbilities && (
+                        <Dropdown
+                          name={`proficiencies.${index}.saveAbilities`}
+                          multiSelect={true}
+                          label={`${category.label} Type`}
+                          value={proficiency.saveAbilities}
+                          options={system.abilities}
+                          required={true}
+                          onChange={updateFormData}
+                        />
+                      )}
+                      {(category.id === ProficiencyCategories.properties ||
+                        category.id === ProficiencyCategories.equipment) && (
+                        <>
                           <Dropdown
-                            name={`proficiencies.${index}.saveAbilities`}
-                            multiSelect={true}
-                            label={`${startCase(categoryName)} Type`}
-                            value={proficiency[categoryName]}
-                            options={categoryName === 'saveAbilities' ? system.abilities : system[categoryName]}
+                            name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.category`}
+                            label='Item Category'
+                            value={proficiency[category.value as 'properties' | 'equipment']?.category}
+                            options={system.equipment.categories}
                             required={true}
                             onChange={updateFormData}
                           />
-                        ) : (
-                          <>
-                            <Dropdown
-                              name={`proficiencies.${index}.${categoryName}.category`}
-                              label='Item Category'
-                              value={proficiency[categoryName]?.category}
-                              options={system.equipment.categories}
-                              required={true}
-                              onChange={updateFormData}
-                            />
-                            <Dropdown
-                              name={`proficiencies.${index}.${categoryName}.${
-                                categoryName === 'equipment' ? 'properties' : 'ids'
-                              }`}
-                              multiSelect={true}
-                              label='Item Properties'
-                              value={
-                                categoryName === 'equipment'
-                                  ? proficiency.equipment?.properties
-                                  : proficiency.properties.ids
+                          <Dropdown
+                            name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.${
+                              category.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
+                            }`}
+                            multiSelect={true}
+                            label='Equipment Properties'
+                            value={
+                              category.id === ProficiencyCategories.equipment
+                                ? proficiency.equipment?.properties
+                                : proficiency.properties?.ids
+                            }
+                            options={system.equipment.properties.filter((property) => {
+                              if (category.id === ProficiencyCategories.properties) {
+                                return system.equipment.categoryProperties.some(
+                                  (bridge) =>
+                                    bridge.categoryId === proficiency.properties.category &&
+                                    bridge.propertyId === property.id
+                                )
                               }
-                              options={equipment}
-                              filters={[
-                                {
-                                  key: 'category',
-                                  dataObject: proficiency[categoryName],
-                                  mapKey: 'properties',
-                                  type: 'equal',
-                                },
-                              ]}
-                              onChange={updateFormData}
-                              required={categoryName === 'equipment' ? false : true}
-                            />
-                            {categoryName === 'equipment' && (
-                              <>
-                                <Dropdown
-                                  name={`proficiencies.${index}.${categoryName}.ids`}
-                                  multiSelect={true}
-                                  label='Item'
-                                  value={proficiency[categoryName]?.ids}
-                                  options={equipment}
-                                  filters={[
-                                    {
-                                      key: 'category.id',
-                                      dataObject: proficiency[categoryName],
-                                      type: 'equal',
-                                    },
-                                    {
-                                      key: 'properties.ids',
-                                      dataObject: proficiency[categoryName],
-                                      type: 'equal',
-                                    },
-                                  ]}
-                                  onChange={updateFormData}
-                                  required={true}
-                                />
-                              </>
-                            )}
-                          </>
-                        ))}
+                              return true
+                            })}
+                            onChange={updateFormData}
+                            required={category.id === ProficiencyCategories.equipment ? false : true}
+                          />
+                          {category.id === ProficiencyCategories.equipment && (
+                            <>
+                              <Dropdown
+                                name={`proficiencies.${index}.equipment.ids`}
+                                multiSelect={true}
+                                label='Equipment'
+                                value={proficiency?.equipment?.ids}
+                                options={equipment
+                                  .filter((sEquipment) => {
+                                    if (proficiency?.equipment?.category != null) {
+                                      return sEquipment.category === proficiency?.equipment?.category
+                                    }
+                                    return true
+                                  })
+                                  .filter((sEquipment) => {
+                                    if (proficiency?.equipment?.properties?.length > 0) {
+                                      return sEquipment.properties?.some((property) =>
+                                        proficiency?.equipment?.properties?.includes(property)
+                                      )
+                                    }
+                                    return true
+                                  })}
+                                onChange={updateFormData}
+                                required={true}
+                              />
+                            </>
+                          )}
+                        </>
+                      )}
                       {proficiency.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) && (
                         <Dropdown
                           name={`proficiencies.${index}.subtype`}
                           label='Subtype'
                           value={proficiency?.subtype}
                           options={formData.subtypes}
+                          required={true}
+                          onChange={updateFormData}
+                        />
+                      )}
+                      {category.id === ProficiencyCategories.skills && (
+                        <Dropdown
+                          name={`proficiencies.${index}.skills`}
+                          multiSelect={true}
+                          label={`${category.label} Type`}
+                          value={proficiency.skills}
+                          options={system.skills}
                           required={true}
                           onChange={updateFormData}
                         />

@@ -1,7 +1,7 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
 import Detail from '../../components/Detail/Detail'
-import { Spell as SpellState } from '../../../amplify/API'
+import { Spell as SpellState } from '../../../amplify/gql/types'
 
 const Spell = () => {
   const location = useLocation()
@@ -9,9 +9,9 @@ const Spell = () => {
   const spell: SpellState = location.state.item
 
   const materialDesc = () => {
-    if (spell && 'materialDesc' in spell) {
+    if (spell && 'materialDesc' in spell && spell.materialDesc != null) {
       return '*' + spell.materialDesc
-    } else return ''
+    } else return null
   }
 
   const cols = [
@@ -62,7 +62,7 @@ const Spell = () => {
     },
   ]
 
-  const footer = <span>{materialDesc()}</span>
+  const footer = materialDesc()
 
   return (
     <Detail cols={cols} colsData={spell} footer={footer}>

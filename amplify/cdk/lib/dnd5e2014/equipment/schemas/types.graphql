@@ -21,11 +21,17 @@ type Cost {
 type Contains {
   equipment: ID!
   quantity: Int!
-  contains: [Contains]  
+  contains: [Contains]
   currencies: [Currency]
 }
 
-type Equipment implements BaseFields {
+type EquipmentRange {
+  minAmount: Int
+  maxAmount: Int
+  unit: ID!
+}
+
+type Equipment {
   id: ID!
   label: String!
   value: String!
@@ -50,7 +56,7 @@ type Equipment implements BaseFields {
   armorClass: Int
   prerequisities: Prerequisite
   speed: Speed
-  range: GenericRange
+  range: EquipmentRange
   contains: [Contains]
   features: [Feature]
   ownerId: ID!

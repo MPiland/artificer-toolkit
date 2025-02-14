@@ -238,8 +238,6 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
 const Sidebar = ({ signedIn }: { signedIn: boolean }) => {
   const lg = useMediaQuery('screen and (min-width: 1025px)')
 
-  console.log({ lg })
-
   return !signedIn ? !lg && <NoAuthSidebar /> : <AuthSidebar lg={lg} />
 }
 export default Sidebar

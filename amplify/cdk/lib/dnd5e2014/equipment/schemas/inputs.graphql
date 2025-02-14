@@ -25,6 +25,12 @@ input ContainsInput {
   currencies: [CurrencyInput]
 }
 
+input EquipmentRangeInput {
+  minAmount: Int
+  maxAmount: Int
+  unit: ID!
+}
+
 input EquipmentInput {
   id: ID
   label: String!
@@ -50,7 +56,7 @@ input EquipmentInput {
   armorClass: Int
   prerequisities: PrerequisiteInput
   speed: SpeedInput
-  range: GenericRangeInput
+  range: EquipmentRangeInput
   contains: [ContainsInput]
   features: [FeatureInput]
   ownerId: String

@@ -1,20 +1,21 @@
 import { style } from '@vanilla-extract/css'
 import { app } from '../../../css/layers.css'
-import { size } from '../../../css/size.css'
+import { size, space } from '../../../css/size.css'
 import { fontSize } from '../../../css/typography.css'
+import { theme } from '../../../css/theme.css'
 
 export const option_dropdown = style({
   '@layer': {
     [app]: {
       'width': 'auto',
-      'margin': `0 ${size['size-15']}`,
+      'margin': `${space['space-3']} ${space['space-15']}`,
 
       '@media': {
         'screen and (min-width: 568px) and (max-width: 1024px)': {
-          margin: `0 ${size['size-10']}`,
+          margin: `0 ${space['space-10']}`,
         },
         'screen and (max-width: 567px)': {
-          margin: `0 ${size['size-3']}`,
+          margin: `0 ${space['space-3']}`,
         },
       },
     },
@@ -24,15 +25,15 @@ export const option_dropdown = style({
 export const card_group = style({
   '@layer': {
     [app]: {
-      'padding': `0 ${size['size-13']}`,
-      'marginBottom': size['size-3'],
+      'padding': `0 ${space['space-10']}`,
+      'marginBottom': space['space-3'],
 
       '@media': {
         'screen and (min-Width: 568px) and (max-width: 1024px)': {
-          padding: `0 ${size['size-12']}`,
+          padding: `0 ${space['space-12']}`,
         },
         'screen and (max-width: 567px)': {
-          padding: `0 ${size['size-10']}`,
+          padding: `0 ${space['space-10']}`,
         },
       },
     },
@@ -45,6 +46,8 @@ export const main_card = style({
       display: 'flex',
       alignItems: 'center',
       height: '3.5rem',
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.card.border.color.main}`,
+      borderRadius: theme.border.radius,
 
       selectors: {
         '&.clickable:hover': {
@@ -130,14 +133,6 @@ export const feature_card_body = style({
     [app]: {
       padding: size['size-3'],
       marginBottom: size['size-1'],
-    },
-  },
-})
-
-export const character_header = style({
-  '@layer': {
-    [app]: {
-      padding: `${size['size-2']} ${size['size-3']} 0`,
     },
   },
 })

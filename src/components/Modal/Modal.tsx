@@ -1,4 +1,4 @@
-import { useEffect, useCallback, ReactNode, forwardRef } from 'react'
+import { useEffect, useCallback, ReactNode, RefObject } from 'react'
 import { Location, useNavigate } from 'react-router-dom'
 import {
   modal,
@@ -61,13 +61,13 @@ export const Header = ({
   )
 }
 
-export const Content = forwardRef<HTMLDivElement, { children: ReactNode }>(({ children }, ref) => {
+export const Content = ({ children, ref }: { children: ReactNode; ref?: RefObject<HTMLDivElement> }) => {
   return (
     <div className={modal_body} ref={ref}>
       {children}
     </div>
   )
-})
+}
 
 export const Footer = ({ children }: { children: ReactNode }) => {
   return (
@@ -78,25 +78,31 @@ export const Footer = ({ children }: { children: ReactNode }) => {
   )
 }
 
-const Dialogue = forwardRef<HTMLDivElement, { children: ReactNode; size?: 'xs' | 'sm' | 'md' | 'lg' }>(
-  ({ children, size = 'md' }, ref) => {
-    return (
-      <div
-        className={clsx(modal_dialogue, {
-          [size]: size,
-        })}
-        tabIndex={-1}
-        role='dialog'
-        id='modal'
-        ref={ref}
-      >
-        <div className={modal_content} onClick={(e) => e.stopPropagation()}>
-          {children}
-        </div>
+const Dialogue = ({
+  children,
+  size = 'md',
+  ref,
+}: {
+  children: ReactNode
+  size?: 'xs' | 'sm' | 'md' | 'lg'
+  ref?: RefObject<HTMLDivElement>
+}) => {
+  return (
+    <div
+      className={clsx(modal_dialogue, {
+        [size]: size,
+      })}
+      tabIndex={-1}
+      role='dialog'
+      id='modal'
+      ref={ref}
+    >
+      <div className={modal_content} onClick={(e) => e.stopPropagation()}>
+        {children}
       </div>
-    )
-  }
-)
+    </div>
+  )
+}
 
 const Modal = ({ children, handleCloseFn }: { children: ReactNode; handleCloseFn?: () => void }) => {
   const navigate = useNavigate()
@@ -134,9 +140,6 @@ const Modal = ({ children, handleCloseFn }: { children: ReactNode; handleCloseFn
     </>
   )
 }
-
-Content.displayName = 'Content'
-Dialogue.displayName = 'Dialogue'
 
 Modal.Content = Content
 Modal.Dialogue = Dialogue

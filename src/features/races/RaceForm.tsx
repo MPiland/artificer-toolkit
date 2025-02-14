@@ -3,9 +3,10 @@ import { useAddNewRaceMutation, useUpdateRaceMutation } from './racesApi'
 import Form from '../../components/Form/Form'
 import { Step } from '../../types/form'
 import { FormContext } from '../../components/Form/FormContext'
+import { isEqual } from 'lodash'
 
 const RaceForm = () => {
-  const { setSteps } = use(FormContext)
+  const { setSteps, steps } = use(FormContext)
 
   const stepsArray = [
     { id: 'details', label: 'Details' },
@@ -15,8 +16,10 @@ const RaceForm = () => {
   ] satisfies Step[]
 
   useEffect(() => {
-    setSteps(stepsArray)
-  }, [setSteps, stepsArray])
+    if (!isEqual(steps, stepsArray)) {
+      setSteps(stepsArray)
+    }
+  }, [setSteps, stepsArray, steps])
 
   return <Form useUpdateItemMutation={useUpdateRaceMutation} useAddNewItemMutation={useAddNewRaceMutation} />
 }

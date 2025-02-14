@@ -1,8 +1,8 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listEquipment } from '../../../amplify/graphql/queries'
-import { createEquipment, deleteEquipment, updateEquipment } from '../../../amplify/graphql/mutations'
-import { EquipmentInput, Equipment } from '../../../amplify/API'
+import { listEquipment } from '../../../amplify/gql/queries'
+import { createEquipment, deleteEquipment, updateEquipment } from '../../../amplify/gql/mutations'
+import { EquipmentInput, Equipment } from '../../../amplify/gql/types'
 import useSystemPref from '../../hooks/useSystemPref'
 
 const client = generateClient()

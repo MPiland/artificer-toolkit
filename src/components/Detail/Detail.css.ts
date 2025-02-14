@@ -1,7 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css'
 import { theme } from '../../css/theme.css'
 import { app } from '../../css/layers.css'
-import { size } from '../../css/size.css'
+import { size, space } from '../../css/size.css'
 
 export const detail_nav_section = style({
   '@layer': {
@@ -73,11 +73,26 @@ export const detail_footer = style({
   },
 })
 
+globalStyle(`${detail_body} tr`, {
+  '@layer': {
+    [app]: {
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+    },
+  },
+})
+
 globalStyle(`${detail_body} td`, {
   '@layer': {
     [app]: {
-      verticalAlign: 'top',
-      padding: '0 .125rem',
+      padding: `${space['space-2']} ${space['space-0']}`,
+    },
+  },
+})
+
+globalStyle(`${detail_body} td > p`, {
+  '@layer': {
+    [app]: {
+      marginBottom: 'unset',
     },
   },
 })

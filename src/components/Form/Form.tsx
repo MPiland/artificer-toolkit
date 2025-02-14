@@ -1,9 +1,8 @@
 import { form_content, form_wrapper } from './Form.css'
-import { useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { useEventListener } from 'usehooks-ts'
 import Footer from './Footer'
 import Header from './ProgressBar/Header'
-import CharacterHeader from './Character/CharacterHeader'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { Outlet } from 'react-router-dom'
 import { UseMutationResult } from '@tanstack/react-query'
@@ -20,7 +19,6 @@ interface FormProps<T extends FormDataType> {
 
 const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FormProps<T>) => {
   const {
-    formData,
     stepIndex,
     successMessage,
     setSuccessMessage,
@@ -29,6 +27,7 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
     formSteps,
     steps,
     saving,
+    formData,
   } = use(FormContext)
 
   const documentRef = useRef(document)
@@ -62,18 +61,19 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
   console.log({ formData })
 
   return (
-    <FeatureProvider>
-      <form className={form_wrapper} id='form_wrapper'>
-        <Header />
-        {formData.__typename === 'Character' && <CharacterHeader />}
-        <ScrollArea scrollDirection='vertical' className={form_content} wrapperId={'form_content'}>
-          {formSteps[`${steps[stepIndex]?.id}`]}
-        </ScrollArea>
-        <Footer useAddNewItemMutation={useAddNewItemMutation} useUpdateItemMutation={useUpdateItemMutation} />
-      </form>
-      <Outlet />
-      {saving && <Loading />}
-    </FeatureProvider>
+    <Suspense fallback={<Loading />}>
+      <FeatureProvider>
+        <form className={form_wrapper} id='form_wrapper'>
+          <Header />
+          <ScrollArea scrollDirection='vertical' className={form_content} wrapperId={'form_content'}>
+            {formSteps[`${steps[stepIndex]?.id}`]}
+          </ScrollArea>
+          <Footer useAddNewItemMutation={useAddNewItemMutation} useUpdateItemMutation={useUpdateItemMutation} />
+        </form>
+        <Outlet />
+        {saving && <Loading />}
+      </FeatureProvider>
+    </Suspense>
   )
 }
 

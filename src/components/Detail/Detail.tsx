@@ -1,4 +1,4 @@
-import { FC, ReactNode, use, useCallback } from 'react'
+import { FC, ReactNode, Suspense, use, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Row from '../Row/Row'
 import { getValueFromState } from '../../utils/formatting'
@@ -19,6 +19,9 @@ import { useListClassesQuery } from '../../features/classes/classesApi'
 import { MdArrowBackIos, MdEdit } from 'react-icons/md'
 import Button from '../Button/Button'
 import CopyIcon from '../../assets/Icons/ICopy'
+import { FormDataType } from '../../types/form'
+import { Character } from '../../../amplify/gql/types'
+import Loading from '../Loading/Loading'
 
 type colType = {
   header: string
@@ -42,14 +45,13 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
 
-  const { updateFormData, setStepIndex, stateReset } = use(FormContext)
+  const { updateFormData, fullReset } = use(FormContext)
 
-  const item = location.state.item
+  const item: FormDataType = location.state.item
 
-  const handleEdit = async () => {
+  const handleEdit = () => {
     try {
-      await stateReset()
-      setStepIndex(0)
+      fullReset()
       updateFormData({ type: 'reset', value: item })
       updateFormData({ type: 'initialReset', value: item })
       navigate('edit')
@@ -58,15 +60,16 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
     }
   }
 
-  const handleCopy = async () => {
+  const handleCopy = () => {
     try {
-      setStepIndex(0)
-      const itemCopy: typeof item = JSON.parse(JSON.stringify(item))
-      itemCopy.id = undefined
-      itemCopy.masterId = undefined
+      fullReset()
+      const itemCopy: FormDataType = { ...item, id: undefined, label: undefined, value: undefined }
+      if (itemCopy.__typename !== 'Character') {
+        itemCopy.masterId = undefined
+      }
       updateFormData({ type: 'reset', value: itemCopy })
       updateFormData({ type: 'initialReset', value: itemCopy })
-      navigate(`../new/${item.value}`)
+      navigate(`../new`)
     } catch (err) {
       console.error(err)
     }
@@ -87,13 +90,13 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
   )
 
   return (
-    <>
+    <Suspense fallback={<Loading />}>
       <div className={detail_nav_section}>
         <MdArrowBackIos onClick={() => navigate(-1)} cursor={'pointer'} style={{ scale: '1.5' }} />
         <Button color='main' style='outline' onClick={handleCopy}>
           {<CopyIcon />} Copy
         </Button>
-        {item.masterId == null && (
+        {(item as Exclude<FormDataType, Character>).masterId == null && (
           <Button color='main' style='outline' onClick={handleEdit}>
             {<MdEdit />} Edit
           </Button>
@@ -105,35 +108,37 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
       <hr />
       <ScrollArea scrollDirection='vertical'>
         {colsData && cols && (
-          <div className={detail_col_section}>
-            <Row cols={{ lg: 4, md: 3, base: 2 }}>
-              {cols?.map((colItem, colIndex) => {
-                return (
-                  <div className={detail_col_item} key={colIndex}>
-                    <div className={detail_col_title}>{colItem.header}</div>
-                    <div>
-                      {getValueFromState({
-                        input: colItem,
-                        state: colsData,
-                        getSourceData,
-                        truncateNum: colItem?.truncate,
-                      })}
+          <>
+            <div className={detail_col_section}>
+              <Row cols={{ lg: 4, md: 3, base: 2 }}>
+                {cols?.map((colItem, colIndex) => {
+                  return (
+                    <div className={detail_col_item} key={colIndex}>
+                      <div className={detail_col_title}>{colItem.header}</div>
+                      <div>
+                        {getValueFromState({
+                          input: colItem,
+                          state: colsData,
+                          getSourceData,
+                          truncateNum: colItem?.truncate,
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )
-              })}
-            </Row>
-          </div>
+                  )
+                })}
+              </Row>
+            </div>
+            <hr />
+          </>
         )}
-        <hr />
         <div className={detail_body}>{children}</div>
         <div className={detail_footer}>
           <Group justifyContentVariant={footerSpacing} directionVariant='row' alignItemsVariant='end'>
-            {footer}
+            {footer != null && <span>{footer}</span>}
           </Group>
         </div>
       </ScrollArea>
-    </>
+    </Suspense>
   )
 }
 

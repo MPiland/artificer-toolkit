@@ -25,16 +25,6 @@
     "label": "Shield"
   },
   {
-    "id": "c246e38a-8247-45ef-b7d9-65f0f74d261c",
-    "value": "waterVehicle",
-    "label": "Water Vehicle"
-  },
-  {
-    "id": "5af95ce6-0c76-4673-bc56-5c3d1df03bad",
-    "value": "mount",
-    "label": "Mount"
-  },
-  {
     "id": "00e0cca8-b2a4-4b48-bf54-d7db7d0ed5da",
     "value": "currency",
     "label": "Currency"

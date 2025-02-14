@@ -12,9 +12,9 @@ const AncestryWrapper = () => {
         <AncestryList />
       ) : (
         <>
-          <h2 className={sprinkles({ mb: 'space-2', px: 'space-4' })}>{`Ancestry Option ${
-            featureData.value ? `(${featureData.value})` : ''
-          }`}</h2>
+          <h2 className={sprinkles({ mb: 'space-2' })}>{`${
+            featureStep === 'ancestryOption' ? 'Ancestry Option' : 'Ancestry Option Feature'
+          } ${featureData.label && featureStep === 'ancestry' ? `(${featureData.label})` : ''}`}</h2>
           {sectionStep != null ? sectionStepComponent[sectionStep] : featureSteps[featureStep]}
         </>
       )}

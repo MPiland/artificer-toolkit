@@ -54,6 +54,7 @@ export const parseDiceRoll = (rollString: RollConfig) => {
   const rollRegex =
     /(?<numDice>\d*)d(?<dieType>\d+)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
   const match = rollString.match(rollRegex)
+  
   if (!match) {
     console.log('No dice match')
   }

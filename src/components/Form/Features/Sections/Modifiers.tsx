@@ -9,7 +9,7 @@ import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
 import { FeatureContext } from '../FeatureContext'
 import { FormDataType, UpdateState } from '../../../../types/form'
-import { Character, Class, FeatureModifier, SectionEnum, Spell } from '../../../../../amplify/API'
+import { Character, Class, FeatureModifier, SectionEnum, Spell } from '../../../../../amplify/gql/types'
 import {
   Attributes,
   Categories,
@@ -31,69 +31,71 @@ const Modifiers = () => {
   const { data: system } = useGetSystemQuery()
   const { data: spells } = useListSpellsQuery()
 
-  const providesOptions = sectionData.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+  const providesOptions = sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
   const [modTypes, setModTypes] = useState<typeof system.modifiers.types>([])
   const [modMethods, setModMethods] = useState<typeof system.modifiers.methods>(null)
   const [spellsArray, setSpellsArray] = useState<Spell[]>([])
   const [typeOptions, setTypeOptions] = useState<boolean>(false)
 
-  const sectionCategory = system.modifiers.categories.find((category) => category.id === sectionData.category)
+  const sectionCategory = system.modifiers.categories.find((category) => category.id === sectionData?.category)
 
-  const categoryName = getKeyFromId(sectionData.category, { ...ModifierCategories, ...ModifierSpellCategories })
+  const categoryName = getKeyFromId(sectionData?.category, { ...ModifierCategories, ...ModifierSpellCategories })
 
   const path = getModifierProperties({
     category: categoryName,
   })
-
+  
   // Set if selected category has type options
   useEffect(() => {
     setTypeOptions(
-      sectionData.category === ModifierCategories.damageTypes ||
-        sectionData.category === ModifierCategories.abilityScores ||
-        sectionData.category === ModifierCategories.saveAbilities ||
-        sectionData.category === ModifierCategories.conditions ||
-        sectionData.category === ModifierCategories.conditionSave ||
-        sectionData.category === ModifierCategories.damageSave ||
-        sectionData.category === ModifierCategories.speeds ||
-        sectionData.category === ModifierCategories.spellDamage
+      sectionData?.category === ModifierCategories.damageTypes ||
+        sectionData?.category === ModifierCategories.abilityScores ||
+        sectionData?.category === ModifierCategories.saveAbilities ||
+        sectionData?.category === ModifierCategories.conditions ||
+        sectionData?.category === ModifierCategories.conditionSave ||
+        sectionData?.category === ModifierCategories.damageSave ||
+        sectionData?.category === ModifierCategories.speeds ||
+        sectionData?.category === ModifierCategories.spellDamage
     )
-  }, [sectionData.category])
+  }, [sectionData?.category])
 
   // Set modTypes and modMethods options
   useEffect(() => {
     if (sectionData != null) {
-      if (sectionData.category === ModifierCategories.spell) {
+      if (sectionData?.category === ModifierCategories.spell) {
         const types = system.modifiers.spellCategories?.find(
-          (category) => category.id === sectionData.spellCategory
+          (category) => category.id === sectionData?.spellCategory
         )?.types
 
         setModTypes(types)
       } else {
-        const types = system.modifiers.categories?.find((category) => category.id === sectionData.spellCategory)?.types
+        const types = system.modifiers.categories?.find((category) => category.id === sectionData?.category)?.types
 
         setModTypes(types)
       }
     }
     if (modTypes?.length > 0) {
-      if (sectionData.category === ModifierCategories.spell) {
-        const methods = modTypes.flatMap((type) =>
-          system.modifiers.methods.filter((method) => {
-            return system.modifiers.categoryMethods
-              .filter((bridge) => bridge.categoryId === sectionData.spellCategory && bridge.typeId === type.id)
-              .some((bridge) => bridge.methodId === method.id)
-          })
-        )
+      if (sectionData?.category === ModifierCategories.spell) {
+        const methods = system.modifiers.methods.filter((method) => {
+          return system.modifiers.categoryMethods.some(
+            (bridge) =>
+              bridge.categoryId === sectionData?.spellCategory &&
+              bridge.typeId === sectionData?.type &&
+              bridge.methodId === method.id
+          )
+        })
 
         setModMethods(methods)
       } else {
-        const methods = modTypes.flatMap((type) =>
-          system.modifiers.methods.filter((method) => {
-            return system.modifiers.categoryMethods
-              .filter((bridge) => bridge.categoryId === sectionData.category && bridge.typeId === type.id)
-              .some((bridge) => bridge.methodId === method.id)
-          })
-        )
+        const methods = system.modifiers.methods.filter((method) => {
+          return system.modifiers.categoryMethods.some(
+            (bridge) =>
+              bridge.methodId === method.id &&
+              bridge.categoryId === sectionData?.category &&
+              bridge.typeId === sectionData?.type
+          )
+        })
 
         setModMethods(methods)
       }
@@ -103,45 +105,45 @@ const Modifiers = () => {
   // Filter spells array
   useEffect(() => {
     const filteredSpells = spells?.filter((spell) => {
-      if (sectionData.spellCategory === ModifierSpellCategories.spellDamage) {
+      if (sectionData?.spellCategory === ModifierSpellCategories.spellDamage) {
         return spell.attributes?.some((attribute) => attribute === Attributes.doesDamage)
       }
-      if (sectionData.spellCategory === ModifierSpellCategories.spellRange) {
+      if (sectionData?.spellCategory === ModifierSpellCategories.spellRange) {
         return spell.range && spell.range.minRange && spell.range.maxRange
       }
-      if (sectionData.spellCategory === ModifierSpellCategories.spellShape) {
+      if (sectionData?.spellCategory === ModifierSpellCategories.spellShape) {
         return spell.shape && spell.shape.id && spell.shape.size
       }
-      if (sectionData.spellCategory === ModifierSpellCategories.spellDuration) {
+      if (sectionData?.spellCategory === ModifierSpellCategories.spellDuration) {
         return spell.duration && spell.duration.id && spell.duration
       }
       return false
     })
     setSpellsArray(filteredSpells)
-  }, [sectionData.spellCategory, spells])
+  }, [sectionData?.spellCategory, spells])
 
   // Add/Remove die per level Table
   useEffect(() => {
     if (
-      (sectionData?.dicePerLevel || sectionData?.dicePerLevel?.length > 0) &&
+      (sectionData?.diePerLevel || sectionData?.diePerLevel?.length > 0) &&
       (sectionData?.type !== ModifierTypes.setDie || sectionData?.method !== ModifierMethods.setPerLevel)
     ) {
       updateSectionData({
         type: 'remove',
-        path: 'dicePerLevel',
+        path: 'diePerLevel',
       })
     }
     if (
       sectionData?.type === ModifierTypes.setDie &&
       sectionData?.method === ModifierMethods.setPerLevel &&
-      (!sectionData?.dicePerLevel || !(sectionData?.dicePerLevel?.length > 0))
+      (!sectionData?.diePerLevel || !(sectionData?.diePerLevel?.length > 0))
     ) {
       updateSectionData({
         type: 'add',
-        path: 'dicePerLevel',
+        path: 'diePerLevel',
       })
     }
-  }, [sectionData, updateSectionData, sectionData.type, sectionData.method])
+  }, [sectionData, updateSectionData, sectionData?.type, sectionData?.method])
 
   // Add/remove setPerLevel table
   useEffect(() => {
@@ -174,28 +176,29 @@ const Modifiers = () => {
           name='attributes'
           options={system.attributes.filter(
             (attribute) =>
-              attribute.sections.includes(SectionEnum.all) &&
+              attribute?.sections?.length > 0 &&
+              attribute?.sections?.includes(SectionEnum.all) &&
               (formData as Class).category === Categories.subclass &&
-              attribute.sections.includes(SectionEnum.subclasses)
+              attribute?.sections?.includes(SectionEnum.subclasses)
           )}
           label='Attrbutes'
-          value={sectionData.attributes}
+          value={sectionData?.attributes}
           onChange={updateSectionData}
         />
         <Dropdown
           name='category'
           label='Modifier Category'
-          value={sectionData.category}
+          value={sectionData?.category}
           options={system.modifiers.categories}
           required={true}
           onChange={updateSectionData}
         />
-        {sectionData.category === ModifierCategories.spell && (
+        {sectionData?.category === ModifierCategories.spell && (
           <>
             <Dropdown
               name='spellCategory'
               label='Spell Category'
-              value={sectionData.spellCategory}
+              value={sectionData?.spellCategory}
               options={system.modifiers.spellCategories}
               required={true}
               onChange={updateSectionData}
@@ -210,32 +213,32 @@ const Modifiers = () => {
             />
           </>
         )}
-        {typeOptions && sectionData.category !== ModifierCategories.spell && (
-          <Dropdown
-            name={`${path}`}
-            multiSelect={true}
-            label={`${sectionCategory.label}`}
-            value={sectionData[path]}
-            options={
-              sectionData.category === ModifierCategories.saveAbilities
-                ? system.abilities
-                : sectionData.category === ModifierCategories.conditionSave
-                ? system.conditions
-                : sectionData.category === ModifierCategories.spellDC ||
-                  sectionData.category === ModifierCategories.damageSave
-                ? system.damageTypes
-                : system[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
-            }
-            required={true}
-            onChange={updateSectionData}
-          />
-        )}
         {modTypes?.length > 0 && sectionCategory != null && (
           <Dropdown
             name='type'
             label='Modifier Type'
             value={sectionData?.type}
             options={modTypes}
+            required={true}
+            onChange={updateSectionData}
+          />
+        )}
+        {typeOptions && sectionData?.category !== ModifierCategories.spell && (
+          <Dropdown
+            name={`${path}`}
+            multiSelect={true}
+            label={`${sectionCategory.label}`}
+            value={sectionData[path]}
+            options={
+              sectionData?.category === ModifierCategories.saveAbilities
+                ? system.abilities
+                : sectionData?.category === ModifierCategories.conditionSave
+                ? system.conditions
+                : sectionData?.category === ModifierCategories.spellDC ||
+                  sectionData?.category === ModifierCategories.damageSave
+                ? system.damageTypes
+                : system[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
+            }
             required={true}
             onChange={updateSectionData}
           />
@@ -250,7 +253,7 @@ const Modifiers = () => {
             onChange={updateSectionData}
           />
         )}
-        {sectionData.category === ModifierCategories.charge && sectionData.type === ModifierTypes.useReset && (
+        {sectionData?.category === ModifierCategories.charge && sectionData?.type === ModifierTypes.useReset && (
           <>
             <Dropdown
               name='charge.reset'
@@ -273,18 +276,18 @@ const Modifiers = () => {
             />
           </>
         )}
-        {sectionData.category === ModifierCategories.spell &&
-          (sectionData.spellCategory === ModifierSpellCategories.spellDuration ? (
+        {sectionData?.category === ModifierCategories.spell &&
+          (sectionData?.spellCategory === ModifierSpellCategories.spellDuration ? (
             <>
               <Dropdown
                 name='duration'
                 label='Spell Duration Type'
-                value={sectionData.duration}
+                value={sectionData?.duration}
                 options={system.spells.durations}
                 required={true}
                 onChange={updateSectionData}
               />
-              {sectionData.type === ModifierTypes.setAmount && (
+              {sectionData?.type === ModifierTypes.setAmount && (
                 <>
                   <Input
                     validation='num'
@@ -292,13 +295,13 @@ const Modifiers = () => {
                     label='Duration Increment'
                     errorMsg='Must contain only whole numbers'
                     autoComplete='off'
-                    value={sectionData.setAmount}
+                    value={sectionData?.setAmount}
                     onChange={updateSectionData}
                   />
                 </>
               )}
             </>
-          ) : sectionData.spellCategory === ModifierSpellCategories.spellRange ? (
+          ) : sectionData?.spellCategory === ModifierSpellCategories.spellRange ? (
             <>
               <Dropdown
                 name='range'
@@ -308,7 +311,7 @@ const Modifiers = () => {
                 required={true}
                 onChange={updateSectionData}
               />
-              {sectionData.type === ModifierTypes.setAmount && (
+              {sectionData?.type === ModifierTypes.setAmount && (
                 <>
                   <Input
                     validation='num'
@@ -342,17 +345,17 @@ const Modifiers = () => {
               )}
             </>
           ) : (
-            sectionData.spellCategory === ModifierSpellCategories.spellShape && (
+            sectionData?.spellCategory === ModifierSpellCategories.spellShape && (
               <>
                 <Dropdown
                   name='shape'
                   label='Spell Shape Type'
-                  value={sectionData.shape}
+                  value={sectionData?.shape}
                   options={system.spells.shapes}
                   required={true}
                   onChange={updateSectionData}
                 />
-                {sectionData.type === ModifierTypes.setAmount && (
+                {sectionData?.type === ModifierTypes.setAmount && (
                   <>
                     <Input
                       validation='num'
@@ -378,7 +381,7 @@ const Modifiers = () => {
               </>
             )
           ))}
-        {sectionData.category !== ModifierCategories.spell &&
+        {sectionData?.category !== ModifierCategories.spell &&
           sectionData?.method != null &&
           sectionData?.method !== ModifierMethods.setPerLevel && (
             <>
@@ -442,9 +445,9 @@ const Modifiers = () => {
               )}
             </>
           )}
-        {sectionData.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+        {sectionData?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
           formData.__typename === 'Class' &&
-          sectionData.category != null && (
+          sectionData?.category != null && (
             <Dropdown
               name='subtype'
               label='Subclass Subtype'
@@ -460,7 +463,7 @@ const Modifiers = () => {
             name={`selectionCount`}
             label='# of Selections'
             autoComplete='off'
-            value={sectionData.selectionCount}
+            value={sectionData?.selectionCount}
             errorMsg='Must contain only numbers'
             required={true}
             onChange={updateSectionData}
@@ -469,7 +472,7 @@ const Modifiers = () => {
       </Row>
       {sectionData?.type === ModifierTypes.setDie &&
         sectionData?.method === ModifierMethods.setPerLevel &&
-        sectionData?.dicePerLevel?.length > 0 && (
+        sectionData?.diePerLevel?.length > 0 && (
           <Collapse>
             <Collapse.Header title='Die Per Level' />
             <Collapse.Body>
@@ -478,10 +481,10 @@ const Modifiers = () => {
                 <span>Die Count</span>
                 <span>Die Value</span>
               </Row>
-              {sectionData?.dicePerLevel?.map((setLevel, index) => (
+              {sectionData?.diePerLevel?.map((setLevel, index) => (
                 <Row key={index} spacing='spaceBetween' cellSize='auto'>
                   <Input
-                    name={`dicePerLevel.${index}.level`}
+                    name={`diePerLevel.${index}.level`}
                     value={setLevel.level}
                     validation='num'
                     errorMsg='Please enter a whole number'
@@ -489,16 +492,8 @@ const Modifiers = () => {
                     required={true}
                   />
                   <Input
-                    name={`dicePerLevel.${index}.dieCount`}
-                    value={setLevel.dieCount}
-                    validation='num'
-                    errorMsg='Please enter a whole number'
-                    onChange={updateSectionData}
-                    required={true}
-                  />
-                  <Input
-                    name={`dicePerLevel.${index}.dieValue`}
-                    value={setLevel.dieValue}
+                    name={`diePerLevel.${index}.dieConfig`}
+                    value={setLevel.dieConfig}
                     validation='num'
                     errorMsg='Please enter a valid die value'
                     onChange={updateSectionData}
@@ -528,8 +523,8 @@ const Modifiers = () => {
                   required={true}
                 />
                 <Input
-                  name={`setPerLevel.${index}.amount`}
-                  value={setLevel.amount}
+                  name={`setPerLevel.${index}.setAmount`}
+                  value={setLevel.setAmount}
                   validation='num'
                   errorMsg='Please enter a whole number'
                   onChange={updateSectionData}

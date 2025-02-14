@@ -32,14 +32,12 @@
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
       "primary": {
-        "dieCount": 4,
-        "dieValue": 4,
-        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
+        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "dieConfig": "4d4"
       },
       "secondary": {
-        "dieCount": 2,
-        "dieValue": 4,
-        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
+        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "dieConfig": "2d4"
       }
     },
     "classes": [
@@ -50,17 +48,15 @@
         "cb47b615-2a96-4617-870a-9051ab4b95cf",
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 4
+              "dieConfig": "5d4"
             },
             "secondary": {
-              "dieCount": 3,
-              "dieValue": 4
+              "dieConfig": "3d4"
             }
           }
         },
@@ -68,12 +64,10 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 4
+              "dieConfig": "6d4"
             },
             "secondary": {
-              "dieCount": 4,
-              "dieValue": 4
+              "dieConfig": "4d4"
             }
           }
         },
@@ -81,12 +75,10 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 4
+              "dieConfig": "7d4"
             },
             "secondary": {
-              "dieCount": 5,
-              "dieValue": 4
+              "dieConfig": "5d4"
             }
           }
         },
@@ -94,12 +86,10 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 4
+              "dieConfig": "8d4"
             },
             "secondary": {
-              "dieCount": 6,
-              "dieValue": 4
+              "dieConfig": "6d4"
             }
           }
         },
@@ -107,12 +97,10 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 4
+              "dieConfig": "9d4"
             },
             "secondary": {
-              "dieCount": 7,
-              "dieValue": 4
+              "dieConfig": "7d4"
             }
           }
         },
@@ -120,12 +108,10 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 4
+              "dieConfig": "10d4"
             },
             "secondary": {
-              "dieCount": 8,
-              "dieValue": 4
+              "dieConfig": "8d4"
             }
           }
         },
@@ -133,12 +119,10 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 4
+              "dieConfig": "11d4"
             },
             "secondary": {
-              "dieCount": 9,
-              "dieValue": 4
+              "dieConfig": "9d4"
             }
           }
         }
@@ -187,9 +171,8 @@
     },
     "damage": {
       "primary": {
-        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
-        "dieCount": 1,
-        "dieValue": 6
+        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "dieConfig": "1d6"
       }
     },
     "classes": [
@@ -200,13 +183,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 6
+              "dieConfig": "2d6"
             }
           }
         },
@@ -214,8 +196,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 6
+              "dieConfig": "3d6"
             }
           }
         },
@@ -223,8 +204,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         }
@@ -408,7 +388,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "targets": 2
@@ -491,7 +471,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "duration": {
@@ -632,7 +612,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "targets": 3
@@ -935,17 +915,15 @@
         "cb47b615-2a96-4617-870a-9051ab4b95cf",
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             },
             "secondary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         },
@@ -953,12 +931,10 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             },
             "secondary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -966,12 +942,10 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 8
+              "dieConfig": "10d8"
             },
             "secondary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         },
@@ -979,12 +953,10 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 8
+              "dieConfig": "12d8"
             },
             "secondary": {
-              "dieCount": 10,
-              "dieValue": 6
+              "dieConfig": "10d6"
             }
           }
         }
@@ -996,13 +968,11 @@
       ],
       "primary": {
         "id": "24e79760-06ca-4378-8cf4-6f96ba98b3af",
-        "dieCount": 4,
-        "dieValue": 8
+        "dieConfig": "4d8"
       },
       "secondary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 2,
-        "dieValue": 6
+        "dieConfig": "2d6"
       }
     },
     "targets": 1,
@@ -1068,8 +1038,7 @@
     "damage": {
       "primary": {
         "id": "24e79760-06ca-4378-8cf4-6f96ba98b3af",
-        "dieCount": 3,
-        "dieValue": 10
+        "dieConfig": "3d10"
       }
     },
     "actions": {
@@ -1289,7 +1258,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 2
@@ -1378,7 +1347,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 5
@@ -1525,7 +1494,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "duration": {
@@ -1584,8 +1553,7 @@
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 3,
-        "dieValue": 6
+        "dieConfig": "3d6"
       }
     },
     "saveAbility": {
@@ -1645,8 +1613,7 @@
     "damage": {
       "primary": {
         "id": "95f7686e-17f7-42ec-b20f-ba2cb4d25af2",
-        "dieCount": 6,
-        "dieValue": 10
+        "dieConfig": "6d10"
       }
     },
     "saveAbility": {
@@ -1718,7 +1685,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "targets": 4
@@ -1785,8 +1752,7 @@
     "damage": {
       "primary": {
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 8,
-        "dieValue": 8
+        "dieConfig": "8d8"
       }
     },
     "saveAbility": {
@@ -1811,13 +1777,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         },
@@ -1825,8 +1790,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 8
+              "dieConfig": "10d8"
             }
           }
         },
@@ -1834,8 +1798,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 8
+              "dieConfig": "11d8"
             }
           }
         },
@@ -1843,8 +1806,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 8
+              "dieConfig": "12d8"
             }
           }
         },
@@ -1852,8 +1814,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 13,
-              "dieValue": 8
+              "dieConfig": "13d8"
             }
           }
         }
@@ -1914,7 +1875,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "targets": 2
@@ -2042,8 +2003,7 @@
     "damage": {
       "primary": {
         "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
-        "dieCount": 2,
-        "dieValue": 6
+        "dieConfig": "2d6"
       }
     },
     "actions": {
@@ -2069,13 +2029,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 6
+              "dieConfig": "3d6"
             }
           }
         },
@@ -2083,8 +2042,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         },
@@ -2092,8 +2050,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -2101,8 +2058,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -2110,8 +2066,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -2119,8 +2074,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         },
@@ -2128,8 +2082,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         }
@@ -2163,9 +2116,8 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 3,
-        "dieValue": 6,
-        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4"
+        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
+        "dieConfig": "3d6"
       }
     },
     "saveAbility": {
@@ -2193,13 +2145,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         },
@@ -2207,8 +2158,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -2216,8 +2166,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -2225,8 +2174,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -2234,8 +2182,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         },
@@ -2243,8 +2190,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         },
@@ -2252,8 +2198,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 6
+              "dieConfig": "10d6"
             }
           }
         }
@@ -2288,8 +2233,7 @@
     "damage": {
       "primary": {
         "id": "d28827d8-177f-4e9f-9570-df37003e1c6f",
-        "dieCount": 3,
-        "dieValue": 10
+        "dieConfig": "3d10"
       }
     },
     "saveAbility": {
@@ -2320,13 +2264,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 10
+              "dieConfig": "4d10"
             }
           }
         },
@@ -2334,8 +2277,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 10
+              "dieConfig": "5d10"
             }
           }
         },
@@ -2343,8 +2285,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 10
+              "dieConfig": "6d10"
             }
           }
         },
@@ -2352,8 +2293,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 10
+              "dieConfig": "7d10"
             }
           }
         },
@@ -2361,8 +2301,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 10
+              "dieConfig": "8d10"
             }
           }
         },
@@ -2370,8 +2309,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 10
+              "dieConfig": "9d10"
             }
           }
         }
@@ -2458,8 +2396,7 @@
     "damage": {
       "primary": {
         "id": "d28827d8-177f-4e9f-9570-df37003e1c6f",
-        "dieCount": 10,
-        "dieValue": 8
+        "dieConfig": "10d8"
       }
     },
     "saveAbility": {
@@ -2485,7 +2422,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "targets": 5
@@ -2556,7 +2493,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 2
@@ -2620,8 +2557,7 @@
     "damage": {
       "primary": {
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 1,
-        "dieValue": 8
+        "dieConfig": "1d8"
       }
     },
     "actions": {
@@ -2644,13 +2580,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 8
+              "dieConfig": "2d8"
             }
           }
         },
@@ -2658,8 +2593,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -2667,8 +2601,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         }
@@ -2704,8 +2637,7 @@
     "damage": {
       "primary": {
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 8,
-        "dieValue": 6
+        "dieConfig": "8d6"
       }
     },
     "saveAbility": {
@@ -2736,13 +2668,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 6
+              "dieConfig": "10d6"
             }
           }
         },
@@ -2750,8 +2681,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 6
+              "dieConfig": "12d6"
             }
           }
         },
@@ -2759,8 +2689,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 14,
-              "dieValue": 6
+              "dieConfig": "14d6"
             }
           }
         }
@@ -2874,8 +2803,7 @@
     "damage": {
       "primary": {
         "id": "a77dd525-f359-49df-b5b9-cf9069d5ea24",
-        "dieCount": 5,
-        "dieValue": 8
+        "dieConfig": "5d8"
       }
     },
     "saveAbility": {
@@ -2909,13 +2837,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -2923,8 +2850,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -2932,8 +2858,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -2941,8 +2866,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         }
@@ -3045,7 +2969,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "targets": 2
@@ -3235,8 +3159,7 @@
     "damage": {
       "primary": {
         "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
-        "dieCount": 8,
-        "dieValue": 8
+        "dieConfig": "8d8"
       }
     },
     "saveAbility": {
@@ -3264,13 +3187,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         },
@@ -3278,8 +3200,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 8
+              "dieConfig": "10d8"
             }
           }
         },
@@ -3287,8 +3208,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 8
+              "dieConfig": "11d8"
             }
           }
         },
@@ -3296,8 +3216,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 8
+              "dieConfig": "12d8"
             }
           }
         }
@@ -3362,7 +3281,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "shape": {
@@ -3814,8 +3733,7 @@
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 2,
-        "dieValue": 8
+        "dieConfig": "2d8"
       }
     },
     "saveAbility": {
@@ -4013,7 +3931,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "shape": {
@@ -4123,7 +4041,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 7
@@ -4188,7 +4106,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "shape": {
@@ -4254,8 +4172,7 @@
       ],
       "primary": {
         "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
-        "dieCount": 1,
-        "dieValue": 8
+        "dieConfig": "1d8"
       },
       "bonus": {
         "attributes": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
@@ -4279,13 +4196,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 8
+              "dieConfig": "2d8"
             }
           }
         },
@@ -4293,8 +4209,7 @@
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -4302,8 +4217,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -4311,8 +4225,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -4320,8 +4233,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -4329,8 +4241,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -4338,8 +4249,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -4347,8 +4257,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         }
@@ -4591,8 +4500,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 12,
-        "dieValue": 6
+        "dieConfig": "12d6"
       }
     },
     "actions": {
@@ -4621,13 +4529,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 13,
-              "dieValue": 6
+              "dieConfig": "13d6"
             }
           }
         },
@@ -4635,8 +4542,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 14,
-              "dieValue": 6
+              "dieConfig": "14d6"
             }
           }
         }
@@ -4953,8 +4859,7 @@
       ],
       "primary": {
         "id": "24e79760-06ca-4378-8cf4-6f96ba98b3af",
-        "dieCount": 10,
-        "dieValue": 6
+        "dieConfig": "10d6"
       },
       "bonus": {
         "attributes": "119789c9-909c-499a-8936-6777efb9b990",
@@ -4985,13 +4890,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 13,
-              "dieValue": 6
+              "dieConfig": "13d6"
             }
           }
         },
@@ -4999,8 +4903,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 16,
-              "dieValue": 6
+              "dieConfig": "16d6"
             }
           }
         },
@@ -5008,8 +4911,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 19,
-              "dieValue": 6
+              "dieConfig": "19d6"
             }
           }
         }
@@ -5268,7 +5170,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "duration": {
@@ -5347,7 +5249,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 9,
           "duration": {
@@ -5411,7 +5313,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "duration": {
@@ -5480,8 +5382,8 @@
     "materialDesc": "a handful of sand, a dab of ink, and a writing quill plucked from a sleeping bird",
     "damage": {
       "primary": {
-        "dieCount": 3,
-        "dieValue": 6
+        "id": "e33319c6-2e67-4e54-901d-9f9af4e271ed",
+        "dieConfig": "3d6"
       }
     },
     "targets": 1,
@@ -5578,8 +5480,7 @@
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 5,
-        "dieValue": 6
+        "dieConfig": "5d6"
       }
     },
     "targets": 1,
@@ -5610,8 +5511,7 @@
     "damage": {
       "primary": {
         "id": "24e79760-06ca-4378-8cf4-6f96ba98b3af",
-        "dieCount": 1,
-        "dieValue": 10
+        "dieConfig": "1d10"
       }
     },
     "actions": {
@@ -5633,13 +5533,12 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 1,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 10
+              "dieConfig": "2d10"
             }
           },
           "targets": 2
@@ -5704,7 +5603,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 3
@@ -5913,7 +5812,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 6,
           "level": 8
@@ -6257,8 +6156,8 @@
     "materialDesc": "a handful of clay, crystal, glass, or mineral spheres",
     "damage": {
       "primary": {
-        "dieCount": 4,
-        "dieValue": 6
+        "id": "e33319c6-2e67-4e54-901d-9f9af4e271ed",
+        "dieConfig": "4d6"
       }
     },
     "targets": 1,
@@ -6441,8 +6340,7 @@
       ],
       "primary": {
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 7,
-        "dieValue": 8
+        "dieConfig": "7d8"
       },
       "bonus": {
         "attributes": "119789c9-909c-499a-8936-6777efb9b990",
@@ -6496,8 +6394,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 1,
-        "dieValue": 10
+        "dieConfig": "1d10"
       }
     },
     "actions": {
@@ -6519,13 +6416,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 10
+              "dieConfig": "2d10"
             }
           }
         },
@@ -6533,8 +6429,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 10
+              "dieConfig": "3d10"
             }
           }
         },
@@ -6542,8 +6437,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 10
+              "dieConfig": "4d10"
             }
           }
         }
@@ -6575,9 +6469,8 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 2,
-        "dieValue": 8,
-        "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe"
+        "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
+        "dieConfig": "2d8"
       }
     },
     "actions": {
@@ -6624,8 +6517,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 7,
-        "dieValue": 10
+        "dieConfig": "7d10"
       }
     },
     "saveAbility": {
@@ -6674,8 +6566,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 3,
-        "dieValue": 6
+        "dieConfig": "3d6"
       }
     },
     "actions": {
@@ -6699,13 +6590,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         },
@@ -6713,8 +6603,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -6722,8 +6611,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         }
@@ -6760,14 +6648,12 @@
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
       "primary": {
-        "dieCount": 4,
-        "dieValue": 6,
-        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4"
+        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
+        "dieConfig": "4d6"
       },
       "secondary": {
-        "dieCount": 4,
-        "dieValue": 6,
-        "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f"
+        "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
+        "dieConfig": "4d6"
       }
     },
     "actions": {
@@ -6795,13 +6681,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -6809,8 +6694,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -6818,8 +6702,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -6827,8 +6710,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         }
@@ -6866,8 +6748,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 2,
-        "dieValue": 6
+        "dieConfig": "2d6"
       }
     },
     "actions": {
@@ -6900,13 +6781,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 6
+              "dieConfig": "3d6"
             }
           }
         },
@@ -6914,8 +6794,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         },
@@ -6923,8 +6802,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -6932,8 +6810,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -6941,8 +6818,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -6950,8 +6826,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         },
@@ -6959,8 +6834,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         }
@@ -7096,7 +6970,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 4
@@ -7176,7 +7050,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "shape": {
@@ -7262,8 +7136,7 @@
       "primary": {
         "attributes": "63ed8641-6ff4-4807-a61d-d43a0c2b6926",
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 5,
-        "dieValue": 10
+        "dieConfig": "5d10"
       }
     },
     "actions": {
@@ -7426,8 +7299,7 @@
     "damage": {
       "primary": {
         "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
-        "dieCount": 10,
-        "dieValue": 6
+        "dieConfig": "10d6"
       }
     },
     "saveAbility": {
@@ -7458,13 +7330,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 6
+              "dieConfig": "11d6"
             }
           }
         },
@@ -7472,8 +7343,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 6
+              "dieConfig": "12d6"
             }
           }
         },
@@ -7481,8 +7351,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 13,
-              "dieValue": 6
+              "dieConfig": "13d6"
             }
           }
         }
@@ -7630,7 +7499,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "duration": {
@@ -7826,9 +7695,8 @@
     ],
     "damage": {
       "primary": {
-        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
-        "dieCount": 5,
-        "dieValue": 8
+        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "dieConfig": "5d8"
       }
     },
     "saveAbility": {
@@ -7856,13 +7724,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -7870,8 +7737,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -7879,8 +7745,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -7888,8 +7753,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         },
@@ -7897,8 +7761,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 8
+              "dieConfig": "10d8"
             }
           }
         },
@@ -7906,8 +7769,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 8
+              "dieConfig": "11d8"
             }
           }
         }
@@ -8224,8 +8086,7 @@
     "damage": {
       "primary": {
         "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
-        "dieCount": 4,
-        "dieValue": 6
+        "dieConfig": "4d6"
       }
     },
     "actions": {
@@ -8248,13 +8109,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -8262,8 +8122,7 @@
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -8271,8 +8130,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -8280,8 +8138,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         },
@@ -8289,8 +8146,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         },
@@ -8298,8 +8154,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 6
+              "dieConfig": "10d6"
             }
           }
         },
@@ -8307,8 +8162,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 6
+              "dieConfig": "11d6"
             }
           }
         },
@@ -8316,8 +8170,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 6
+              "dieConfig": "12d6"
             }
           }
         }
@@ -8489,8 +8342,7 @@
     "damage": {
       "primary": {
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 14,
-        "dieValue": 6
+        "dieConfig": "14d6"
       }
     },
     "saveAbility": {
@@ -8603,7 +8455,7 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "damage": {
@@ -8665,8 +8517,7 @@
       ],
       "primary": {
         "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
-        "dieCount": 1,
-        "dieValue": 4
+        "dieConfig": "1d4"
       },
       "bonus": {
         "attributes": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
@@ -8693,13 +8544,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 4
+              "dieConfig": "2d4"
             }
           }
         },
@@ -8707,8 +8557,7 @@
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 4
+              "dieConfig": "3d4"
             }
           }
         },
@@ -8716,8 +8565,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 4
+              "dieConfig": "4d4"
             }
           }
         },
@@ -8725,8 +8573,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 4
+              "dieConfig": "5d4"
             }
           }
         },
@@ -8734,8 +8581,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 4
+              "dieConfig": "6d4"
             }
           }
         },
@@ -8743,8 +8589,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 4
+              "dieConfig": "7d4"
             }
           }
         },
@@ -8752,8 +8597,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 4
+              "dieConfig": "8d4"
             }
           }
         },
@@ -8761,8 +8605,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 4
+              "dieConfig": "9d4"
             }
           }
         }
@@ -8797,8 +8640,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 2,
-        "dieValue": 8
+        "dieConfig": "2d8"
       }
     },
     "actions": {
@@ -8826,13 +8668,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -8840,8 +8681,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -8849,8 +8689,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -8858,8 +8697,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -8867,8 +8705,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -8876,8 +8713,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -8885,8 +8721,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         }
@@ -8921,8 +8756,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 2,
-        "dieValue": 10
+        "dieConfig": "2d10"
       }
     },
     "saveAbility": {
@@ -8947,13 +8781,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 6
+              "dieConfig": "3d6"
             }
           }
         },
@@ -8961,8 +8794,7 @@
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         },
@@ -8970,8 +8802,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -8979,8 +8810,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -8988,8 +8818,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -8997,8 +8826,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         },
@@ -9006,8 +8834,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         },
@@ -9015,8 +8842,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 6
+              "dieConfig": "10d6"
             }
           }
         }
@@ -9102,7 +8928,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 2
@@ -9296,7 +9122,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "targets": 2
@@ -9410,8 +9236,7 @@
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 1,
-        "dieValue": 6
+        "dieConfig": "1d6"
       }
     },
     "actions": {
@@ -9434,7 +9259,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "duration": {
@@ -9539,13 +9364,11 @@
       ],
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 2,
-        "dieValue": 8
+        "dieConfig": "2d8"
       },
       "secondary": {
         "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
-        "dieCount": 4,
-        "dieValue": 6
+        "dieConfig": "4d6"
       }
     },
     "saveAbility": {
@@ -9576,13 +9399,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -9590,8 +9412,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -9599,8 +9420,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -9608,8 +9428,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         }
@@ -9767,8 +9586,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 10,
-        "dieValue": 8
+        "dieConfig": "10d8"
       }
     },
     "saveAbility": {
@@ -9822,8 +9640,7 @@
     "damage": {
       "primary": {
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 3,
-        "dieValue": 10
+        "dieConfig": "3d10"
       }
     },
     "actions": {
@@ -9842,13 +9659,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 10
+              "dieConfig": "4d10"
             }
           }
         },
@@ -9856,8 +9672,7 @@
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 10
+              "dieConfig": "5d10"
             }
           }
         },
@@ -9865,8 +9680,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 10
+              "dieConfig": "6d10"
             }
           }
         },
@@ -9874,8 +9688,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 10
+              "dieConfig": "7d10"
             }
           }
         },
@@ -9883,8 +9696,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 10
+              "dieConfig": "8d10"
             }
           }
         },
@@ -9892,8 +9704,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 10
+              "dieConfig": "9d10"
             }
           }
         },
@@ -9901,8 +9712,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 10
+              "dieConfig": "10d10"
             }
           }
         },
@@ -9910,8 +9720,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 10
+              "dieConfig": "11d10"
             }
           }
         }
@@ -9947,8 +9756,7 @@
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
-        "dieCount": 4,
-        "dieValue": 10
+        "dieConfig": "4d10"
       }
     },
     "saveAbility": {
@@ -9980,13 +9788,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 10
+              "dieConfig": "5d10"
             }
           }
         },
@@ -9994,8 +9801,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 10
+              "dieConfig": "6d10"
             }
           }
         },
@@ -10003,8 +9809,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 10
+              "dieConfig": "7d10"
             }
           }
         },
@@ -10012,8 +9817,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 10
+              "dieConfig": "8d10"
             }
           }
         }
@@ -10413,8 +10217,7 @@
     "damage": {
       "primary": {
         "id": "d28827d8-177f-4e9f-9570-df37003e1c6f",
-        "dieCount": 8,
-        "dieValue": 6
+        "dieConfig": "8d6"
       }
     },
     "saveAbility": {
@@ -10445,13 +10248,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         },
@@ -10459,8 +10261,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 6
+              "dieConfig": "10d6"
             }
           }
         },
@@ -10468,8 +10269,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 6
+              "dieConfig": "11d6"
             }
           }
         },
@@ -10477,8 +10277,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 6
+              "dieConfig": "12d6"
             }
           }
         },
@@ -10486,8 +10285,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 13,
-              "dieValue": 6
+              "dieConfig": "13d6"
             }
           }
         },
@@ -10495,8 +10293,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 14,
-              "dieValue": 6
+              "dieConfig": "14d6"
             }
           }
         }
@@ -10684,7 +10481,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "targets": 2,
           "level": 2
@@ -10850,7 +10647,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "duration": {
@@ -10965,8 +10762,7 @@
       ],
       "primary": {
         "id": "24e79760-06ca-4378-8cf4-6f96ba98b3af",
-        "dieCount": 1,
-        "dieValue": 4
+        "dieConfig": "1d4"
       },
       "bonus": {
         "attributes": "119789c9-909c-499a-8936-6777efb9b990",
@@ -10993,7 +10789,7 @@
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "targets": 4
@@ -11200,7 +10996,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "duration": {
@@ -11242,8 +11038,7 @@
       ],
       "primary": {
         "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
-        "dieCount": 3,
-        "dieValue": 8
+        "dieConfig": "3d8"
       },
       "bonus": {
         "attributes": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
@@ -11275,13 +11070,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -11289,8 +11083,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -11298,8 +11091,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -11307,8 +11099,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         }
@@ -11391,8 +11182,7 @@
       ],
       "primary": {
         "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
-        "dieCount": 1,
-        "dieValue": 4
+        "dieConfig": "1d4"
       },
       "bonus": {
         "attributes": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
@@ -11419,13 +11209,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 4
+              "dieConfig": "2d4"
             }
           }
         },
@@ -11433,8 +11222,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 4
+              "dieConfig": "3d4"
             }
           }
         },
@@ -11442,8 +11230,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 4
+              "dieConfig": "4d4"
             }
           }
         },
@@ -11451,8 +11238,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 4
+              "dieConfig": "5d4"
             }
           }
         },
@@ -11460,8 +11246,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 4
+              "dieConfig": "6d4"
             }
           }
         },
@@ -11469,8 +11254,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 4
+              "dieConfig": "7d4"
             }
           }
         }
@@ -11526,7 +11310,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "duration": {
@@ -11731,13 +11515,11 @@
       ],
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 20,
-        "dieValue": 6
+        "dieConfig": "20d6"
       },
       "secondary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 20,
-        "dieValue": 6
+        "dieConfig": "20d6"
       }
     },
     "saveAbility": {
@@ -12062,8 +11844,7 @@
     "damage": {
       "primary": {
         "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
-        "dieCount": 2,
-        "dieValue": 10
+        "dieConfig": "2d10"
       }
     },
     "saveAbility": {
@@ -12095,13 +11876,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 10
+              "dieConfig": "3d10"
             }
           }
         },
@@ -12109,8 +11889,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 10
+              "dieConfig": "4d10"
             }
           }
         },
@@ -12118,8 +11897,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 10
+              "dieConfig": "5d10"
             }
           }
         },
@@ -12127,8 +11905,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 10
+              "dieConfig": "6d10"
             }
           }
         },
@@ -12136,8 +11913,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 10
+              "dieConfig": "7d10"
             }
           }
         },
@@ -12145,8 +11921,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 10
+              "dieConfig": "8d10"
             }
           }
         },
@@ -12154,8 +11929,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 10
+              "dieConfig": "9d10"
             }
           }
         }
@@ -12348,8 +12122,8 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 4,
-        "dieValue": 10
+        "id": "e33319c6-2e67-4e54-901d-9f9af4e271ed",
+        "dieConfig": "4d10"
       }
     },
     "saveAbility": {
@@ -12375,13 +12149,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 10
+              "dieConfig": "5d10"
             }
           }
         },
@@ -12389,8 +12162,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 10
+              "dieConfig": "6d10"
             }
           }
         },
@@ -12398,8 +12170,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 10
+              "dieConfig": "7d10"
             }
           }
         },
@@ -12407,8 +12178,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 10
+              "dieConfig": "8d10"
             }
           }
         },
@@ -12416,8 +12186,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 10
+              "dieConfig": "9d10"
             }
           }
         }
@@ -12546,7 +12315,7 @@
       "attributes": [
         "075fc5db-1dcd-404b-9d75-8c776e2db96a"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "duration": {
@@ -12691,8 +12460,7 @@
     "damage": {
       "primary": {
         "id": "a77dd525-f359-49df-b5b9-cf9069d5ea24",
-        "dieCount": 1,
-        "dieValue": 12
+        "dieConfig": "1d12"
       }
     },
     "saveAbility": {
@@ -12717,13 +12485,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 12
+              "dieConfig": "2d12"
             }
           }
         },
@@ -12731,8 +12498,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 12
+              "dieConfig": "3d12"
             }
           }
         },
@@ -12740,8 +12506,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 12
+              "dieConfig": "4d12"
             }
           }
         }
@@ -12860,8 +12625,7 @@
       ],
       "primary": {
         "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
-        "dieCount": 2,
-        "dieValue": 8
+        "dieConfig": "2d8"
       },
       "bonus": {
         "attributes": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
@@ -12888,13 +12652,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -12902,8 +12665,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -12911,8 +12673,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -12920,8 +12681,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -12929,8 +12689,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -12938,8 +12697,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -12947,8 +12705,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         }
@@ -13018,9 +12775,8 @@
     ],
     "damage": {
       "primary": {
-        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
-        "dieCount": 10,
-        "dieValue": 6
+        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "dieConfig": "10d6"
       }
     },
     "saveAbility": {
@@ -13070,9 +12826,8 @@
     ],
     "damage": {
       "primary": {
-        "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d",
-        "dieCount": 10,
-        "dieValue": 6
+        "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f",
+        "dieConfig": "10d6"
       }
     },
     "saveAbility": {
@@ -13149,7 +12904,7 @@
       "attributes": [
         "24d16527-d6b2-4f85-b8ee-906ed3238d47"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "shape": {
@@ -13208,8 +12963,7 @@
     "damage": {
       "primary": {
         "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
-        "dieCount": 1,
-        "dieValue": 8
+        "dieConfig": "1d8"
       }
     },
     "actions": {
@@ -13231,13 +12985,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 8
+              "dieConfig": "2d8"
             }
           }
         },
@@ -13245,8 +12998,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -13254,8 +13006,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         }
@@ -13613,8 +13364,7 @@
     "damage": {
       "primary": {
         "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
-        "dieCount": 1,
-        "dieValue": 8
+        "dieConfig": "1d8"
       }
     },
     "actions": {
@@ -13636,13 +13386,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 8
+              "dieConfig": "2d8"
             }
           }
         },
@@ -13650,8 +13399,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -13659,8 +13407,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         }
@@ -13697,8 +13444,7 @@
       ],
       "primary": {
         "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
-        "dieCount": 4,
-        "dieValue": 8
+        "dieConfig": "4d8"
       },
       "bonus": {
         "attributes": "119789c9-909c-499a-8936-6777efb9b990",
@@ -14051,8 +13797,7 @@
     "damage": {
       "primary": {
         "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
-        "dieCount": 1,
-        "dieValue": 8
+        "dieConfig": "1d8"
       }
     },
     "saveAbility": {
@@ -14077,13 +13822,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 8
+              "dieConfig": "2d8"
             }
           }
         },
@@ -14091,8 +13835,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -14100,8 +13843,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         }
@@ -14179,22 +13921,20 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 8,
-        "dieValue": 6,
-        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4"
+        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
+        "dieConfig": "8d6"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         },
@@ -14202,8 +13942,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 6
+              "dieConfig": "10d6"
             }
           }
         },
@@ -14211,8 +13950,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 11,
-              "dieValue": 6
+              "dieConfig": "11d6"
             }
           }
         },
@@ -14220,8 +13958,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 6
+              "dieConfig": "12d6"
             }
           }
         },
@@ -14229,8 +13966,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 13,
-              "dieValue": 6
+              "dieConfig": "13d6"
             }
           }
         },
@@ -14238,8 +13974,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 14,
-              "dieValue": 6
+              "dieConfig": "14d6"
             }
           }
         }
@@ -14298,16 +14033,15 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 2,
-        "dieValue": 6,
-        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4"
+        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
+        "dieConfig": "2d6"
       }
     },
     "upcast": {
       "attributes": [
         "c4611274-295d-453a-8441-4d41ba519777"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "targets": 4
@@ -14655,21 +14389,19 @@
     "damage": {
       "primary": {
         "id": "9da11bac-04f3-4136-8ec6-292889129320",
-        "dieCount": 3,
-        "dieValue": 8
+        "dieConfig": "3d8"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -14677,8 +14409,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -14686,8 +14417,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -14695,8 +14425,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -14704,8 +14433,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -14713,8 +14441,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         },
@@ -14722,8 +14449,7 @@
           "level": 10,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 8
+              "dieConfig": "10d8"
             }
           }
         }
@@ -14892,21 +14618,19 @@
     "damage": {
       "primary": {
         "id": "d28827d8-177f-4e9f-9570-df37003e1c6f",
-        "dieCount": 1,
-        "dieValue": 8
+        "dieConfig": "1d8"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 8
+              "dieConfig": "2d8"
             }
           }
         },
@@ -14914,8 +14638,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -14923,8 +14646,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         }
@@ -15437,8 +15159,7 @@
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
-        "dieCount": 2,
-        "dieValue": 4
+        "dieConfig": "2d4"
       }
     },
     "targets": 1,
@@ -15493,21 +15214,19 @@
     "damage": {
       "primary": {
         "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
-        "dieCount": 3,
-        "dieValue": 8
+        "dieConfig": "3d8"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -15515,8 +15234,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -15524,8 +15242,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -15533,8 +15250,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -15542,8 +15258,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -15551,8 +15266,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         }
@@ -15611,8 +15325,7 @@
       ],
       "primary": {
         "id": "24e79760-06ca-4378-8cf4-6f96ba98b3af",
-        "dieCount": 1,
-        "dieValue": 8
+        "dieConfig": "1d8"
       },
       "bonus": {
         "attributes": "b5857657-75a7-4290-aef9-85a3f87fd8c6",
@@ -15623,13 +15336,12 @@
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 8
+              "dieConfig": "2d8"
             }
           }
         },
@@ -15637,8 +15349,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -15646,8 +15357,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -15655,8 +15365,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -15664,8 +15373,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -15673,8 +15381,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -15682,8 +15389,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         }
@@ -15826,8 +15532,7 @@
     "damage": {
       "primary": {
         "id": "9da11bac-04f3-4136-8ec6-292889129320",
-        "dieCount": 2,
-        "dieValue": 6
+        "dieConfig": "2d6"
       }
     },
     "targets": 1,
@@ -15932,8 +15637,7 @@
     "damage": {
       "primary": {
         "id": "cb8cef81-ccd8-4084-b7a5-7dc39149873f",
-        "dieCount": 6,
-        "dieValue": 8
+        "dieConfig": "6d8"
       }
     },
     "targets": 1,
@@ -16230,21 +15934,19 @@
     "damage": {
       "primary": {
         "id": "9da11bac-04f3-4136-8ec6-292889129320",
-        "dieCount": 2,
-        "dieValue": 8
+        "dieConfig": "2d8"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 2,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 8
+              "dieConfig": "3d8"
             }
           }
         },
@@ -16252,8 +15954,7 @@
           "level": 3,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 8
+              "dieConfig": "4d8"
             }
           }
         },
@@ -16261,8 +15962,7 @@
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 8
+              "dieConfig": "5d8"
             }
           }
         },
@@ -16270,8 +15970,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -16279,8 +15978,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -16288,8 +15986,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -16297,8 +15994,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         },
@@ -16306,8 +16002,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 8
+              "dieConfig": "10d8"
             }
           }
         }
@@ -16768,21 +16463,19 @@
     "damage": {
       "primary": {
         "id": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
-        "dieCount": 3,
-        "dieValue": 6
+        "dieConfig": "3d6"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 4,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 6
+              "dieConfig": "4d6"
             }
           }
         },
@@ -16790,8 +16483,7 @@
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 5,
-              "dieValue": 6
+              "dieConfig": "5d6"
             }
           }
         },
@@ -16799,8 +16491,7 @@
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -16808,8 +16499,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -16817,8 +16507,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         },
@@ -16826,8 +16515,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 6
+              "dieConfig": "9d6"
             }
           }
         }
@@ -16859,21 +16547,20 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 1,
-        "dieValue": 4
+        "id": "e33319c6-2e67-4e54-901d-9f9af4e271ed",
+        "dieConfig": "1d4"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 5,
           "damage": {
             "primary": {
-              "dieCount": 2,
-              "dieValue": 4
+              "dieConfig": "2d4"
             }
           }
         },
@@ -16881,8 +16568,7 @@
           "level": 11,
           "damage": {
             "primary": {
-              "dieCount": 3,
-              "dieValue": 4
+              "dieConfig": "3d4"
             }
           }
         },
@@ -16890,8 +16576,7 @@
           "level": 17,
           "damage": {
             "primary": {
-              "dieCount": 4,
-              "dieValue": 4
+              "dieConfig": "4d4"
             }
           }
         }
@@ -16945,22 +16630,20 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 5,
-        "dieValue": 8,
-        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4"
+        "id": "e72e5731-29c3-4e78-ab14-ba93296a3ac4",
+        "dieConfig": "5d8"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 6,
           "damage": {
             "primary": {
-              "dieCount": 6,
-              "dieValue": 8
+              "dieConfig": "6d8"
             }
           }
         },
@@ -16968,8 +16651,7 @@
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 7,
-              "dieValue": 8
+              "dieConfig": "7d8"
             }
           }
         },
@@ -16977,8 +16659,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -16986,8 +16667,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         }
@@ -17087,13 +16767,11 @@
       ],
       "primary": {
         "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
-        "dieCount": 10,
-        "dieValue": 6
+        "dieConfig": "10d6"
       },
       "secondary": {
         "id": "13ebcaa8-8789-4ce1-8a44-9bcc58c3c9fe",
-        "dieCount": 5,
-        "dieValue": 6
+        "dieConfig": "5d6"
       }
     },
     "upcast": {
@@ -17101,17 +16779,15 @@
         "cb47b615-2a96-4617-870a-9051ab4b95cf",
         "90ed849a-a870-419c-b58b-451afeeff7bb"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 12,
-              "dieValue": 6
+              "dieConfig": "12d6"
             },
             "secondary": {
-              "dieCount": 6,
-              "dieValue": 6
+              "dieConfig": "6d6"
             }
           }
         },
@@ -17119,12 +16795,10 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 14,
-              "dieValue": 6
+              "dieConfig": "14d6"
             },
             "secondary": {
-              "dieCount": 7,
-              "dieValue": 6
+              "dieConfig": "7d6"
             }
           }
         },
@@ -17132,12 +16806,10 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 16,
-              "dieValue": 6
+              "dieConfig": "16d6"
             },
             "secondary": {
-              "dieCount": 8,
-              "dieValue": 6
+              "dieConfig": "8d6"
             }
           }
         }
@@ -17233,21 +16905,19 @@
     "damage": {
       "primary": {
         "id": "0140d436-010e-4705-b65b-0a87e3c04d03",
-        "dieCount": 7,
-        "dieValue": 8
+        "dieConfig": "7d8"
       }
     },
     "upcast": {
       "attributes": [
         "cb47b615-2a96-4617-870a-9051ab4b95cf"
       ],
-      "levels": [
+      "levelAttribute": [
         {
           "level": 7,
           "damage": {
             "primary": {
-              "dieCount": 8,
-              "dieValue": 8
+              "dieConfig": "8d8"
             }
           }
         },
@@ -17255,8 +16925,7 @@
           "level": 8,
           "damage": {
             "primary": {
-              "dieCount": 9,
-              "dieValue": 8
+              "dieConfig": "9d8"
             }
           }
         },
@@ -17264,8 +16933,7 @@
           "level": 9,
           "damage": {
             "primary": {
-              "dieCount": 10,
-              "dieValue": 8
+              "dieConfig": "10d8"
             }
           }
         }
@@ -17498,8 +17166,8 @@
     ],
     "damage": {
       "primary": {
-        "dieCount": 4,
-        "dieValue": 10
+        "id": "e33319c6-2e67-4e54-901d-9f9af4e271ed",
+        "dieConfig": "4d10"
       }
     },
     "targets": 1,
@@ -17596,8 +17264,7 @@
     "damage": {
       "primary": {
         "id": "f0e1a4c8-6663-4c53-a4f2-da1dedbe2ead",
-        "dieCount": 3,
-        "dieValue": 8
+        "dieConfig": "3d8"
       }
     },
     "targets": 1,

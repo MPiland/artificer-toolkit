@@ -11,7 +11,7 @@ import ClassShort from '../../features/classes/ClassShort'
 import RaceShort from '../../features/races/RaceShort'
 import { use } from 'react'
 import { FormContext } from './FormContext'
-import { Race, Class, Character } from '../../../amplify/API'
+import { Race, Class, Character } from '../../../amplify/gql/types'
 import { UpdateState } from '../../types/form'
 
 type colType = {
@@ -35,6 +35,8 @@ const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
     setAddClass: (arg: boolean) => void
     updateFormData: (arg: UpdateState<Character>) => void
   }
+
+  console.log({ formData })
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -58,8 +60,9 @@ const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
         value: {
           id: item?.id,
           level: 1,
-        }
+        },
       })
+
       setAddClass(false)
     }
     navigate(-1)
@@ -68,7 +71,7 @@ const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
   return (
     <Modal>
       <Modal.Dialogue>
-        <Modal.Header title={item.value} />
+        <Modal.Header title={item.label} />
         <Modal.Content>
           {colsData && cols && (
             <>

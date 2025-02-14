@@ -9,9 +9,11 @@ import Button from '../../../Button/Button'
 import ClassSpells from './ClassSpells'
 import ClassProficiencies from './ClassProficiencies'
 import ClassFeatures from './ClassFeatures'
-import { Character, CharacterClass as CharacterClassType, Class } from '../../../../../amplify/API'
+import { Character, CharacterClass as CharacterClassType, Class } from '../../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { UpdateState } from '../../../../types/form'
+import { parseDiceRoll } from '../../../../utils/dice'
+import { RollConfig } from '../../../../types/components'
 
 const CharacterClass = ({
   uClass,
@@ -35,6 +37,8 @@ const CharacterClass = ({
   )?.level
 
   const hitPointAbility = system.abilities.find((ability) => fullClass.hitpoint.ability === ability.id)
+
+  const { numDice, dieType } = parseDiceRoll(fullClass.hitpoint.dieConfig as RollConfig)
 
   return (
     <>
@@ -72,19 +76,17 @@ const CharacterClass = ({
             <Collapse.Body>
               <div>
                 <strong>{'Hit Dice: '}</strong>
-                {`${fullClass.hitpoint?.dieShort} per ${fullClass.label} level`}
+                {`${fullClass.hitpoint?.dieConfig} per ${fullClass.label} level`}
               </div>
               <div>
                 <strong>{'Hit Points at 1st Level: '}</strong>
-                {`${fullClass.hitpoint?.dieCount * fullClass.hitpoint?.dieValue} + your ${
-                  hitPointAbility.label
-                } modifier`}
+                {`${numDice * dieType} + your ${hitPointAbility.label} modifier`}
               </div>
               <div>
                 <strong>{'Hit Points at Higher Levels: '}</strong>
-                {`${fullClass.hitpoint?.dieShort} (or ${Math.round(
-                  fullClass.hitpoint?.dieCount * (fullClass.hitpoint?.dieValue / 2) + 0.5
-                )}) + your ${hitPointAbility.label} modifier per ${fullClass.label} level after 1st`}
+                {`${fullClass.hitpoint?.dieConfig} (or ${Math.round(numDice * (dieType / 2) + 0.5)}) + your ${
+                  hitPointAbility.label
+                } modifier per ${fullClass.label} level after 1st`}
               </div>
             </Collapse.Body>
           </Collapse>
@@ -100,8 +102,8 @@ const CharacterClass = ({
           {fullClass.features && fullClass.features.length > 0 && (
             <ClassFeatures
               uClass={uClass}
-              classIndex={classIndex}
               fullClass={fullClass}
+              classIndex={classIndex}
               formData={formData}
               updateFormData={updateFormData}
             />

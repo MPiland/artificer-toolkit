@@ -47,11 +47,22 @@ export const layout = style({
 export const content = style({
   '@layer': {
     [app]: {
-      gridArea: 'content',
-      overflow: 'auto',
-      backgroundColor: theme.vars.component.content.backgroundColor.main,
-      color: theme.vars.typography.color.main,
-      padding: `${size['size-4']} 8rem`,
+      'gridArea': 'content',
+      'overflow': 'hidden',
+      'backgroundColor': theme.vars.component.content.backgroundColor.main,
+      'color': theme.vars.typography.color.main,
+      'padding': `${size['size-4']} 8rem 0`,
+      'display': 'flex',
+      'flexDirection': 'column',
+
+      '@media': {
+        'screen and (max-width: 567px)': {
+          padding: `${size['size-4']} ${size['size-3']} 0`,
+        },
+        'screen and (max-width: 1440px)': {
+          padding: `${size['size-4']} ${size['size-8']} 0`,
+        },
+      },
     },
   },
 })

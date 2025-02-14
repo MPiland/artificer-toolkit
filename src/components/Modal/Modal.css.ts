@@ -32,12 +32,12 @@ export const modal_dialogue = style({
       borderRadius: '0.5rem',
       overflow: 'hidden',
       justifyContent: 'center',
-      borderColor: theme.vars.component.content.border.color.main,
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
 
       selectors: {
         '&.xs': {
           'width': '20dvw',
-          minWidth: '20rem',
+          'minWidth': '20rem',
           'maxHeight': '80dvh',
 
           '@media': {
@@ -50,7 +50,7 @@ export const modal_dialogue = style({
           },
         },
         '&.sm': {
-          'width': '50dvw',
+          'width': '30dvw',
           'maxHeight': '80dvh',
 
           '@media': {
@@ -63,7 +63,7 @@ export const modal_dialogue = style({
           },
         },
         '&.md': {
-          'width': '75dvw',
+          'width': '60dvw',
           'maxHeight': '80dvh',
 
           '@media': {

@@ -4,18 +4,25 @@ import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import { sprinkles } from '../../../css/sprinkles.css'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
-import { Class } from '../../../../amplify/API'
+import { Class } from '../../../../amplify/gql/types'
 import { UpdateState } from '../../../types/form'
+import { Attributes } from '../../../types/enums'
 
-const Multiclass = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
-
+const Multiclass = ({
+  formData,
+  updateFormData,
+}: {
+  formData: Class
+  updateFormData: (arg: UpdateState<Class>) => void
+}) => {
   const { data: system } = useGetSystemQuery()
+
   return (
     <Collapse>
       <Collapse.Header title={'Multiclass Ability Requirements'} startOpened={formData.id == null} />
       <Collapse.Body>
         <Row className={sprinkles({ mb: 'space-3' })}>
-          {formData?.attributes?.some((attribute) => attribute === 'primaryAbility') && (
+          {formData?.attributes?.some((attribute) => attribute === Attributes.primaryAbility) && (
             <>
               <Dropdown
                 name='multiclass.primaryAbility.id'
@@ -39,7 +46,7 @@ const Multiclass = ({ formData, updateFormData }: { formData: Class; updateFormD
               />
             </>
           )}
-          {formData?.attributes?.some((attribute) => attribute === 'secondaryAbility') && (
+          {formData?.attributes?.some((attribute) => attribute === Attributes.secondaryAbility) && (
             <>
               <Dropdown
                 name='multiclass.secondaryAbility.id'
@@ -63,7 +70,7 @@ const Multiclass = ({ formData, updateFormData }: { formData: Class; updateFormD
               />
             </>
           )}
-          {formData?.attributes?.some((attribute) => attribute === 'optionalAbility') && (
+          {formData?.attributes?.some((attribute) => attribute === Attributes.optionalAbility) && (
             <>
               <Dropdown
                 name='multiclass.optionalAbility.id'

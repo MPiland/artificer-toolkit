@@ -38,7 +38,9 @@ export const dropdown_wrapper = style({
 export const dropdown_label = style({
   '@layer': {
     [app]: {
+      display: 'inline-block',
       marginBottom: space['space-2'],
+
       selectors: {
         '&.required:after': {
           content: '*',
@@ -160,11 +162,15 @@ export const dropdown_option = style({
 })
 
 export const dropdown_option_right_side = style({
-  width: '1rem',
-  marginLeft: size['size-2'],
-  display: 'flex',
-  flexDirection: 'row',
-  alignItems: 'row',
+  '@layer': {
+    [app]: {
+      width: '1rem',
+      marginLeft: size['size-2'],
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'row',
+    },
+  },
 })
 
 export const dropdown_active_option = style({
@@ -191,21 +197,25 @@ globalStyle(`${dropdown_right_section} > span`, {
 })
 
 export const dropdown_height = styleVariants({
-  auto: { height: size['size-auto'] },
-  full: { height: size['size-full'] },
-  default: { height: theme.component.input.height },
+  auto: { '@layer': { [app]: { height: size['size-auto'] } } },
+  full: { '@layer': { [app]: { height: size['size-full'] } } },
+  default: { '@layer': { [app]: { height: theme.component.input.height } } },
 })
 
 export const dropdown_border = styleVariants({
-  none: { border: 'none' },
+  none: { '@layer': { [app]: { border: 'none' } } },
   default: {
-    border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
-    selectors: {
-      '&:focus-within': {
-        border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
-      },
-      '&.invalid': {
-        border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
+    '@layer': {
+      [app]: {
+        border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
+        selectors: {
+          '&:focus-within': {
+            border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
+          },
+          '&.invalid': {
+            border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
+          },
+        },
       },
     },
   },

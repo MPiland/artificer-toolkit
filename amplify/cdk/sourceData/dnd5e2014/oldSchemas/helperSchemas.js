@@ -68,7 +68,7 @@ export const damageSchema = new Schema({
     ],
     default: undefined,
   },
-  dicePerLevel: {
+  diePerLevel: {
     type: [
       {
         level: String,
@@ -277,7 +277,7 @@ export const genericModSchema = new Schema({
     ],
     default: undefined,
   },
-  dicePerLevel: {
+  diePerLevel: {
     type: [diceSchema.add({ level: Number })],
     default: undefined,
   },

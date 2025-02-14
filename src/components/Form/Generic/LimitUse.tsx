@@ -5,7 +5,7 @@ import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Collapse from '../../Collapse/Collapse'
-import { AllEnum, Feat, FeatureEnum } from '../../../../amplify/API'
+import { AllEnum, Feat, FeatureEnum } from '../../../../amplify/gql/types'
 import { ChargesLimits } from '../../../types/enums'
 import { FeatureDataType, FormDataType, UpdateState } from '../../../types/form'
 
@@ -41,9 +41,12 @@ const LimitUse = ({
           name='charges.limit'
           label='Limit Option'
           value={formData?.charges?.limit}
-          options={system.charges.limits.filter(
-            (limit) => limit?.features.includes(FeatureEnum.all) || limit?.feats.includes(AllEnum.all)
-          )}
+          options={system.charges.limits.filter((limit) => {
+            if (formData.__typename === 'Feat') {
+              return limit?.feats?.length > 0 && limit?.feats?.includes(AllEnum.all)
+            }
+            return limit?.features?.length > 0 && limit?.features?.includes(FeatureEnum.all)
+          })}
           required={true}
           onChange={updateFormData}
         />
@@ -129,13 +132,15 @@ const LimitUse = ({
             name='charges.reset'
             label='Reset Option'
             value={formData?.charges?.reset}
-            options={system.charges.resets.filter((reset) => reset.features.includes(FeatureEnum.all))}
+            options={system.charges.resets.filter(
+              (reset) => reset?.features?.length > 0 && reset?.features?.includes(FeatureEnum.all)
+            )}
             required={true}
             onChange={updateFormData}
           />
         )}
       </Row>
-      {formData.charges.limit === ChargesLimits.usesPerLevel && (
+      {formData.charges?.limit === ChargesLimits.usesPerLevel && (
         <Collapse>
           <Collapse.Header title={'Limit Use Table'} />
           <Collapse.Body>

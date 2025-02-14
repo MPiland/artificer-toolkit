@@ -1,6 +1,7 @@
 import { createVar, globalStyle, style } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
 import { size } from '../../css/size.css'
+import { theme } from '../../css/theme.css'
 
 export const height = createVar()
 
@@ -21,6 +22,9 @@ export const accordion_wrapper = style({
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
       zIndex: 2,
       marginBottom: size['size-3'],
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      borderRadius: theme.border.radius,
+      backgroundColor: theme.vars.component.collapse.backgroundColor.main,
 
       selectors: {
         '&.borderless': {
@@ -33,22 +37,31 @@ export const accordion_wrapper = style({
 })
 
 export const accordion_header = style({
-  width: '100%',
-  fontWeight: 'bold',
-  display: 'flex',
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  cursor: 'pointer',
-  padding: `${size['size-2']} ${size['size-3']}`,
-  height: '2.5rem',
-  flexWrap: 'nowrap',
-  borderBottomLeftRadius: '0',
-  borderBottomRightRadius: '0',
+  '@layer': {
+    [app]: {
+      width: '100%',
+      fontWeight: 'bold',
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      cursor: 'pointer',
+      padding: `${size['size-2']} ${size['size-3']}`,
+      height: '2.5rem',
+      flexWrap: 'nowrap',
+      borderBottomLeftRadius: '0',
+      borderBottomRightRadius: '0',
+      backgroundColor: theme.vars.component.collapse.backgroundColor.header,
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
 
-  selectors: {
-    [`${accordion_wrapper}.collapsed &`]: {
-      border: 'none',
+      selectors: {
+        [`${accordion_wrapper}.collapsed &`]: {
+          border: 'none',
+        },
+        '&.not-expandable': {
+          cursor: 'default',
+        },
+      },
     },
   },
 })
@@ -119,6 +132,7 @@ export const accordion_footer = style({
       display: 'flex',
       flexDirection: 'column',
       padding: `${size['size-1']} ${size['size-2']}`,
+      borderTop: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
     },
   },
 })

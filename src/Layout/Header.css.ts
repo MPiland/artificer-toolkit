@@ -53,6 +53,7 @@ export const header_item_group = style({
       order: 3,
       paddingRight: space['space-4'],
       height: '100%',
+      width: '100%',
 
       selectors: {
         '&:first-child': {

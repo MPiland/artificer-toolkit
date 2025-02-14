@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react'
 import Collapse from '../../Collapse/Collapse'
 import { UpdateState } from '../../../types/form'
-import { Class } from '../../../../amplify/API'
+import { Class } from '../../../../amplify/gql/types'
 import { Attributes } from '../../../types/enums'
 import Row from '../../Row/Row'
 import Input from '../../Input/Input'

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listSystems, getSystem } from '../../../amplify/graphql/queries'
+import { listSystems, getSystem } from '../../../amplify/gql/queries'
 import useSystemPref from '../../hooks/useSystemPref'
 
 const client = generateClient()

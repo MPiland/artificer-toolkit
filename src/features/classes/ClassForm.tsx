@@ -4,9 +4,11 @@ import { useAddNewClassMutation, useUpdateClassMutation } from './classesApi'
 import { useGetSystemQuery } from '../systems/systemsApi'
 import { Step } from '../../types/form'
 import { FormContext } from '../../components/Form/FormContext'
+import { isEqual } from 'lodash'
+import { Categories } from '../../types/enums'
 
 const ClassForm = () => {
-  const { setSteps, formData } = use(FormContext)
+  const { setSteps, formData, steps } = use(FormContext)
   const { data: system } = useGetSystemQuery()
 
   const baseStepArray = [
@@ -26,12 +28,15 @@ const ClassForm = () => {
 
   useEffect(() => {
     if (formData.__typename === 'Class') {
-      if (system.categories.find((sCategory) => sCategory.id === formData.category).value === 'subclass') {
-        return setSteps(subclassStepArray)
+      if (formData.category === Categories.subclass) {
+        if (!isEqual(steps, subclassStepArray)) {
+          return setSteps(subclassStepArray)
+        }
+      } else if (!isEqual(steps, baseStepArray)) {
+        return setSteps(baseStepArray)
       }
-      return setSteps(baseStepArray)
     }
-  }, [setSteps, formData, system.categories, baseStepArray, subclassStepArray])
+  }, [setSteps, formData, system.categories, baseStepArray, subclassStepArray, steps])
 
   return <Form useAddNewItemMutation={useAddNewClassMutation} useUpdateItemMutation={useUpdateClassMutation} />
 }

@@ -30,6 +30,7 @@ export const list_parent = style({
       position: 'relative',
       scrollbarWidth: 'none',
       msOverflowStyle: 'none',
+      padding: `0 ${space['space-4']}`,
 
       selectors: {
         '&::webkit-listbar': {
@@ -90,6 +91,19 @@ export const list_button_container = style({
       columnGap: space['space-2'],
       marginBottom: space['space-4'],
       marginTop: space['space-2'],
+    },
+  },
+})
+
+export const list_sub = style({
+  '@layer': {
+    [app]: {
+      selectors: {
+        [`${list} &`]: {
+          width: 'auto',
+          marginLeft: space['space-10'],
+        },
+      },
     },
   },
 })

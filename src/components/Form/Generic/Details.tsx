@@ -12,12 +12,16 @@ import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Divider from '../../Divider/Divider'
 import { Categories, EquipmentCategories, EquipmentProperties, SpellRequirements } from '../../../types/enums'
+import { useListRacesQuery } from '../../../features/races/racesApi'
 
 const Details = () => {
   const { formData, updateFormData } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
+  const { data: races } = useListRacesQuery()
+
+  console.log({ formData })
 
   return (
     <>
@@ -79,12 +83,12 @@ const Details = () => {
                   {
                     value: 'true',
                     label: 'Yes',
-                    id: null,
+                    id: 'yes',
                   },
                   {
                     value: 'false',
                     label: 'No',
-                    id: null,
+                    id: 'no',
                   },
                 ]}
                 required={true}
@@ -165,21 +169,11 @@ const Details = () => {
             ) : (
               <>
                 <Input<typeof formData>
-                  name='hitpoint.dieCount'
+                  name='hitpoint.dieConfig'
                   autoComplete='off'
-                  label='HP Dice Count'
+                  label='HP Die Value'
                   required={true}
-                  value={formData?.hitpoint?.dieCount}
-                  validation='num'
-                  errorMsg='Must contain whole numbers only'
-                  onChange={updateFormData}
-                />
-                <Input<typeof formData>
-                  name='hitpoint.dieValue'
-                  autoComplete='off'
-                  label='HP Dice Value'
-                  required={true}
-                  value={formData?.hitpoint?.dieValue}
+                  value={formData?.hitpoint?.dieConfig}
                   validation='die'
                   errorMsg='Must contain whole numbers only'
                   onChange={updateFormData}
@@ -197,13 +191,13 @@ const Details = () => {
           </>
         )}
         {formData.__typename === 'Race' &&
-          (formData.category === Categories.base || formData.category === Categories.variant) && (
+          (formData.category === Categories.subrace || formData.category === Categories.variant) && (
             <Dropdown<typeof formData>
               multiSelect={true}
-              name='lineage'
+              name='lineages'
               label='Race Lineage'
-              value={formData?.lineage}
-              options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
+              value={formData?.lineages}
+              options={races}
               required={true}
               onChange={updateFormData}
             />
@@ -246,7 +240,7 @@ const Details = () => {
                 />
               )
             )}
-            {formData.properties.some((property) => property === EquipmentProperties.container) ||
+            {formData.properties?.some((property) => property === EquipmentProperties.container) ||
               (formData.category === EquipmentCategories.mount && (
                 <>
                   <Input<typeof formData>
@@ -363,21 +357,12 @@ const Details = () => {
           <Divider label='Starting Gold' />
           <Row className={sprinkles({ mb: 'space-3' })}>
             <Input<typeof formData>
-              name='startingGold.dieCount'
-              label='Dice Count'
-              required={true}
-              validation='num'
-              errorMsg='Please enter a whole number'
-              value={formData?.startingGold?.dieCount}
-              onChange={updateFormData}
-            />
-            <Input<typeof formData>
-              name='startingGold.dieValue'
+              name='startingGold.dieConfig'
               label='Dice Count'
               required={true}
               validation='die'
               errorMsg='Please enter a whole number'
-              value={formData?.startingGold?.dieValue}
+              value={formData?.startingGold?.dieConfig}
               onChange={updateFormData}
             />
             <Input<typeof formData>
@@ -411,7 +396,9 @@ const Details = () => {
           />
         </div>
       )}
-      {formData.__typename === 'Character' && (
+      {(formData.__typename === 'Character' ||
+        formData.__typename === 'Spell' ||
+        formData.__typename === 'Equipment') && (
         <RichTextEditor<typeof formData>
           name='desc'
           className={sprinkles({ mb: 'space-3' })}
@@ -447,15 +434,15 @@ const Details = () => {
                       })
                     }
                   >
-                    {detail.value != null && detail.value !== '' ? detail.value : `Detail ${index + 1}`}
+                    {detail.label != null && detail.label !== '' ? detail.label : `Detail ${index + 1}`}
                   </Accordion.Header>
                   <Accordion.Content>
                     <Row className={sprinkles({ mb: 'space-3' })}>
                       <Input<typeof formData>
-                        name={`details.${index}.value`}
+                        name={`details.${index}.label`}
                         autoComplete='off'
                         label='Detail Name'
-                        value={detail.value}
+                        value={detail.label}
                         onChange={updateFormData}
                       />
                     </Row>

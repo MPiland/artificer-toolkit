@@ -1,6 +1,6 @@
 import CharacterClass from './CharacterClass'
 import ClassSelection from './ClassSelection'
-import { Character } from '../../../../../amplify/API'
+import { Character } from '../../../../../amplify/gql/types'
 import { useListClassesQuery } from '../../../../features/classes/classesApi'
 import { UpdateState } from '../../../../types/form'
 import { use } from 'react'
@@ -35,7 +35,6 @@ const CharacterClasses = () => {
     <>
       {formData.classes?.map((uClass, cIndex) => {
         const fullClass = classes?.find((classItem) => uClass.id === classItem.id)
-
         return (
           <CharacterClass
             uClass={uClass}

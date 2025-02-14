@@ -4,13 +4,18 @@ import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
-import { Class, ClassesEnum } from '../../../../amplify/API'
+import { Class, ClassesEnum } from '../../../../amplify/gql/types'
 
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 
-const Resource = ({ formData, updateFormData }: { formData: Class; updateFormData: (arg: UpdateState<Class>) => void }) => {
-
+const Resource = ({
+  formData,
+  updateFormData,
+}: {
+  formData: Class
+  updateFormData: (arg: UpdateState<Class>) => void
+}) => {
   const { data: system } = useGetSystemQuery()
 
   return (
@@ -19,10 +24,10 @@ const Resource = ({ formData, updateFormData }: { formData: Class; updateFormDat
       <Collapse.Body>
         <Row>
           <Input
-            name='resource.value'
+            name='resource.label'
             label='Resource Name'
             autoComplete='off'
-            value={formData?.resource.value}
+            value={formData?.resource.label}
             required={true}
             onChange={updateFormData}
           />
@@ -37,14 +42,16 @@ const Resource = ({ formData, updateFormData }: { formData: Class; updateFormDat
             onChange={updateFormData}
           />
           <Dropdown
-            name='resource.method'
-            label='Resource Point Amount'
-            value={formData?.resource?.method}
-            options={system.charges.limits.filter((limit) => limit?.classes.includes(ClassesEnum.resources))}
+            name='resource.charges.limit'
+            label='Resource Limit Method'
+            value={formData?.resource?.charges?.limit}
+            options={system.charges.limits.filter(
+              (limit) => limit?.classes?.length > 0 && limit?.classes?.includes(ClassesEnum.resources)
+            )}
             required={true}
             onChange={updateFormData}
           />
-          {formData?.resource?.method === Attributes.ability && (
+          {formData?.resource?.charges?.limit === Attributes.ability && (
             <Dropdown
               name='resource.charges.ability'
               label='Ability'

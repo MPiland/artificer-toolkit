@@ -6,7 +6,7 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import Divider from '../../Divider/Divider'
 import { startCase } from 'lodash'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
-import { DamageEnum, SpellEnum, Spell } from '../../../../amplify/API'
+import { DamageEnum, SpellEnum, Spell } from '../../../../amplify/gql/types'
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import Input from '../../Input/Input'
@@ -18,6 +18,7 @@ const Upcast = ({
   formData: Spell
   updateFormData: (arg: UpdateState<Spell>) => void
 }) => {
+  console.log({ formData })
   const { data: system } = useGetSystemQuery()
 
   // Add/remove Upcast table
@@ -77,8 +78,8 @@ const Upcast = ({
   // Set upcast options based on the upcast types
   const upcastOptions = useMemo(() => {
     const options = [
-      ...system.attributes.filter((attribute) =>
-        attribute.spells ? attribute?.spells.includes(SpellEnum.upcast) : attribute
+      ...system.attributes.filter(
+        (attribute) => attribute?.spells?.length > 0 && attribute?.spells.includes(SpellEnum.upcast)
       ),
     ]
     if (!formData.attributes?.some((attribute) => attribute === Attributes.doesDamage)) {
@@ -200,7 +201,7 @@ const Upcast = ({
         inputs.push(
           <Dropdown
             name={`upcast.levels.${index}.damage.${type}.pool.option`}
-            value={formData?.upcast?.levels[index]?.damage[type]?.pool.option}
+            value={formData?.upcast?.levels[index]?.damage[type]?.pool?.option}
             options={system.attributes.filter((attribute) => attribute.damage.includes(DamageEnum.pool))}
             required={true}
             errorMsg='Please select an ability.'
@@ -223,7 +224,7 @@ const Upcast = ({
               inputs.push(
                 <Dropdown
                   name={`upcast.levels.${index}.damage.${type}.pool.ability`}
-                  value={formData?.upcast?.levels[index]?.damage[type]?.pool.ability}
+                  value={formData?.upcast?.levels[index]?.damage[type]?.pool?.ability}
                   options={system.abilities}
                   required={true}
                   errorMsg='Please select an ability.'
@@ -240,7 +241,7 @@ const Upcast = ({
                 name={`upcast.levels.${index}.damage.${type}.pool.minAmount`}
                 validation='num'
                 errorMsg='Must contain only numbers'
-                value={formData?.upcast?.levels[index]?.damage[type]?.pool.minAmount}
+                value={formData?.upcast?.levels[index]?.damage[type]?.pool?.minAmount}
                 key={`${index}damage${type}PoolMinAmount`}
                 onChange={updateFormData}
               />
@@ -255,7 +256,7 @@ const Upcast = ({
               name={`upcast.levels.${index}.damage.${type}.pool.maxAmount`}
               validation='num'
               errorMsg='Must contain only numbers'
-              value={formData?.upcast?.levels[index]?.damage[type]?.pool.maxAmount}
+              value={formData?.upcast?.levels[index]?.damage[type]?.pool?.maxAmount}
               key={`${index}damage${type}PoolMaxAmount`}
               onChange={updateFormData}
             />,
@@ -263,7 +264,7 @@ const Upcast = ({
               name={`upcast.levels.${index}.damage.${type}.pool.multiplier`}
               validation='num'
               errorMsg='Must contain only numbers'
-              value={formData?.upcast?.levels[index]?.damage[type]?.pool.multiplier}
+              value={formData?.upcast?.levels[index]?.damage[type]?.pool?.multiplier}
               key={`${index}damage${type}PoolMultiplier`}
               onChange={updateFormData}
             />
@@ -276,7 +277,7 @@ const Upcast = ({
               name={`upcast.levels.${index}.damage.${type}.pool.setAmount`}
               validation='num'
               errorMsg='Must contain only numbers'
-              value={formData?.upcast?.levels[index]?.damage[type]?.pool.setAmount}
+              value={formData?.upcast?.levels[index]?.damage[type]?.pool?.setAmount}
               key={`${index}damage${type}PoolSetAmount`}
               onChange={updateFormData}
             />
@@ -289,18 +290,10 @@ const Upcast = ({
         )
         inputs.push(
           <Input
-            name={`upcast.levels.${index}.damage.${type}.dieCount`}
+            name={`upcast.levels.${index}.damage.${type}.dieConfig`}
             validation='num'
             errorMsg='Must contain only numbers'
-            value={formData?.upcast?.levels[index]?.damage[type]?.dieCount}
-            key={`${index}damage${type}DieCount`}
-            onChange={updateFormData}
-          />,
-          <Input
-            name={`upcast.levels.${index}.damage.${type}.dieValue`}
-            validation='num'
-            errorMsg='Must contain only numbers'
-            value={formData?.upcast?.levels[index]?.damage[type]?.dieValue}
+            value={formData?.upcast?.levels[index]?.damage[type]?.dieConfig}
             key={`${index}damage${type}DieValue`}
             onChange={updateFormData}
           />
@@ -318,7 +311,7 @@ const Upcast = ({
       inputs.push(
         <Dropdown
           name={`upcast.levels.${index}.duration.id`}
-          value={formData?.upcast?.levels[index]?.duration.id}
+          value={formData?.upcast?.levels[index]?.duration?.id}
           options={system.spells.durations}
           required={true}
           errorMsg='Please select a duration.'
@@ -329,7 +322,7 @@ const Upcast = ({
           name={`upcast.levels.${index}.duration.amount`}
           validation='num'
           errorMsg='Must contain only numbers'
-          value={formData?.upcast?.levels[index]?.duration.amount}
+          value={formData?.upcast?.levels[index]?.duration?.amount}
           key={`${index}durationAmount`}
           onChange={updateFormData}
         />
@@ -348,7 +341,7 @@ const Upcast = ({
       inputs.push(
         <Dropdown
           name={`upcast.levels.${index}.range.id`}
-          value={formData?.upcast?.levels[index]?.range.id}
+          value={formData?.upcast?.levels[index]?.range?.id}
           options={system.spells.ranges}
           required={true}
           errorMsg='Please select a range.'
@@ -359,7 +352,7 @@ const Upcast = ({
           name={`upcast.levels.${index}.range.minRange`}
           validation='num'
           errorMsg='Must contain only numbers'
-          value={formData?.upcast?.levels[index]?.range.minRange}
+          value={formData?.upcast?.levels[index]?.range?.minRange}
           key={`${index}rangeMinRange`}
           onChange={updateFormData}
         />,
@@ -367,13 +360,13 @@ const Upcast = ({
           name={`upcast.levels.${index}.range.maxRange`}
           validation='num'
           errorMsg='Must contain only numbers'
-          value={formData?.upcast?.levels[index]?.range.maxRange}
+          value={formData?.upcast?.levels[index]?.range?.maxRange}
           key={`${index}rangeMaxRange`}
           onChange={updateFormData}
         />,
         <Dropdown
           name={`upcast.levels.${index}.range.unit`}
-          value={formData?.upcast?.levels[index]?.range.unit}
+          value={formData?.upcast?.levels[index]?.range?.unit}
           options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
           required={true}
           errorMsg='Please select a range.'
@@ -394,7 +387,7 @@ const Upcast = ({
       inputs.push(
         <Dropdown
           name={`upcast.levels.${index}.shape.id`}
-          value={formData?.upcast?.levels[index]?.shape.id}
+          value={formData?.upcast?.levels[index]?.shape?.id}
           options={system.spells.shapes}
           required={true}
           errorMsg='Please select a shape.'
@@ -405,13 +398,13 @@ const Upcast = ({
           name={`upcast.levels.${index}.shape.size`}
           validation='num'
           errorMsg='Must contain only numbers'
-          value={formData?.upcast?.levels[index]?.shape.size}
+          value={formData?.upcast?.levels[index]?.shape?.size}
           key={`${index}shapeSize`}
           onChange={updateFormData}
         />,
         <Dropdown
           name={`upcast.levels.${index}.shape.unit`}
-          value={formData?.upcast?.levels[index]?.shape.unit}
+          value={formData?.upcast?.levels[index]?.shape?.unit}
           options={Object.values(system.rules.measurements.imperial).flatMap((rule) => Array.isArray(rule) && rule)}
           required={true}
           errorMsg='Please select a shape.'
@@ -458,9 +451,11 @@ const Upcast = ({
           <Collapse className={sprinkles({ mt: 'space-3' })}>
             <Collapse.Header title='Upcast Table' startOpened={formData.id == null} />
             <Collapse.Body>
-              <Row>{upcastFields().headers.map((header) => header)}</Row>
+              <Row cols={{ base: upcastFields().headers.length }}>{upcastFields().headers.map((header) => header)}</Row>
               {formData.upcast?.levels?.map((_, index) => (
-                <Row key={index}>{upcastFields(index).inputs.map((input) => input)}</Row>
+                <Row cols={{ base: upcastFields().headers.length }} key={index}>
+                  {upcastFields(index).inputs.map((input) => input)}
+                </Row>
               ))}
             </Collapse.Body>
           </Collapse>

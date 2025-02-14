@@ -21,74 +21,22 @@
         "value": "shelterOfTheFaithful",
         "label": "Shelter of the Faithful",
         "targets": 1,
+        "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
         "id": "12dedd0e-3ba8-400d-9d01-cf56cbb93e49"
-      }
-    ],
-    "equipment": [
-      {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
-        "selectionCount": 1,
-        "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-        "equipment": [
-          "all"
-        ],
-        "properties": [
-          "5f5ac5fa-2602-4104-8abd-86a2c413056f"
-        ]
-      },
-      {
-        "attributes": [
-          "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-        ],
-        "selectionCount": 1,
-        "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-        "equipment": [
-          "7a80b5dd-8be9-43b6-acf4-ed69a2fcb866",
-          "1307dc9e-6378-4444-9b6d-f3af74a1f9ba"
-        ]
-      },
-      {
-        "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-        "equipment": [
-          "5e188409-6443-422e-b88f-5e8fc4edeeb7"
-        ],
-        "quantity": 5
-      },
-      {
-        "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-        "equipment": [
-          "e5e10940-9c3a-4d0f-8d49-ba5af5f1f664"
-        ],
-        "properties": [
-          "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-        ],
-        "quantity": 1
-      },
-      {
-        "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
-        "equipment": [
-          "3079b26b-2583-4c03-9afe-3be15116d161"
-        ],
-        "properties": [
-          "d6d3c7a1-e868-44e4-bb25-ad169e6186c9"
-        ],
-        "quantity": 1
       }
     ],
     "proficiencies": [
       {
-        "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
         "attributes": [
           "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
         ],
         "selectionCount": 2,
+        "category": "43780ab4-fe83-4477-bd6a-4d3343044f8c",
         "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
         "languages": [
           "all"
         ],
-        "id": "3b86f0b0-009a-4ffd-8290-ed500c916030"
+        "id": "f85bc7ee-614b-47e6-b091-65ecbb5a3b96"
       },
       {
         "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
@@ -97,7 +45,7 @@
           "882113b0-b4ab-4904-95d7-ad2231bef7d4",
           "ed704543-3bbc-4026-a611-823a6ac69c5c"
         ],
-        "id": "ca6f36d6-2952-4aa5-acca-6f3ad06f628c"
+        "id": "df0623ee-29fd-4f1d-890e-1f8865e3ef8d"
       }
     ],
     "currency": {

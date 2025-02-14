@@ -3,7 +3,7 @@ import { card_group, card_header, card_header_subtext, card_header_title, main_c
 import clsx from 'clsx'
 import Group from '../../../Group/Group'
 import { useListClassesQuery } from '../../../../features/classes/classesApi'
-import { Character, Class } from '../../../../../amplify/API'
+import { Character, Class } from '../../../../../amplify/gql/types'
 import { Categories } from '../../../../types/enums'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { use } from 'react'
@@ -93,7 +93,7 @@ const ClassSelection = () => {
                 <span className={clsx(card_header, { ['selected']: selected }, { ['invalid']: invalidClass })}>
                   <Group>
                     <h3 className={clsx(card_header_title, { ['invalid']: invalidClass }, { ['selected']: selected })}>
-                      {uClass.value}
+                      {uClass.label}
                     </h3>
                   </Group>
                   {selected && (

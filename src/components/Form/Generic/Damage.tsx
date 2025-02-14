@@ -5,9 +5,14 @@ import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
 import { sprinkles } from '../../../css/sprinkles.css'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
-import { Attributes, EquipmentCategories, EquipmentProperties } from '../../../types/enums'
-import { DamageEnum, Equipment, Spell } from '../../../../amplify/API'
+import { Attributes } from '../../../types/enums'
+import { DamageEnum, Equipment, Spell, SpellEnum } from '../../../../amplify/gql/types'
 import { FeatureDataType, UpdateState } from '../../../types/form'
+import Button from '../../Button/Button'
+import { row_button } from '../Form.css'
+import { TbPlus, TbX } from 'react-icons/tb'
+import { useEnumChecks } from '../../../hooks/useEnumChecks'
+import { startCase } from 'lodash'
 
 const Damage = ({
   formData,
@@ -17,13 +22,15 @@ const Damage = ({
   updateFormData: (state: UpdateState<Spell | Equipment | FeatureDataType>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
+  const { doesDamage } = useEnumChecks({ data: formData })
+  const { secondaryDamage, bonusDamage, isVersatile } = useEnumChecks({ data: formData.damage })
 
   // Set Damage types for spells, weapons, items
   const damageTypes = useMemo(() => {
     let types: ('primary' | 'secondary' | 'bonus' | 'versatile')[] = ['primary'] // Create a copy of damageTypes array
 
     // Handle secondary
-    if (formData?.damage?.attributes?.some((attribute) => attribute === Attributes.secondaryDamage)) {
+    if (secondaryDamage) {
       if (!types.includes('secondary')) {
         types.push('secondary')
       }
@@ -32,7 +39,7 @@ const Damage = ({
     }
 
     // Handle bonus damage
-    if (formData?.damage?.attributes?.some((attribute) => attribute === Attributes.bonusDamage)) {
+    if (bonusDamage) {
       if (!types.includes('bonus')) {
         types.push('bonus')
       }
@@ -40,10 +47,7 @@ const Damage = ({
       types = types.filter((type) => type !== 'bonus')
     }
 
-    if (
-      formData.__typename === 'Equipment' &&
-      formData?.properties?.some((property) => property === EquipmentProperties.versatile)
-    ) {
+    if (formData.__typename === 'Equipment' && isVersatile) {
       if (!types.includes('versatile')) {
         types.push('versatile')
       }
@@ -51,360 +55,437 @@ const Damage = ({
       types = types.filter((type) => type !== 'versatile')
     }
     return types
-  }, [formData])
+  }, [formData, bonusDamage, secondaryDamage, isVersatile])
+
+  // Add primary damage if doesn't exist
+  useEffect(() => {
+    if (doesDamage && !formData?.damage?.primary) {
+      updateFormData({
+        type: 'update',
+        path: 'damage.primary',
+        value: {},
+      })
+    }
+  }, [doesDamage, formData?.damage?.primary, updateFormData])
 
   // Add/remove Die Per Level table
   useEffect(() => {
-    const dicePerLevel =
-      formData?.damage?.primary.attribute === Attributes.dicePerLevel ||
-      formData?.damage?.secondary?.attribute === Attributes.dicePerLevel ||
-      formData?.damage?.bonus?.attribute === Attributes.dicePerLevel
-
-    if (dicePerLevel && !formData?.damage?.dicePerLevel) {
-      updateFormData({
-        type: 'add',
-        path: `damage.dicePerLevel`,
-      })
+    const diePerLevel = {
+      primary: formData?.damage?.primary?.attribute === Attributes.diePerLevel,
+      secondary: formData?.damage?.secondary?.attribute === Attributes.diePerLevel,
+      bonus: formData?.damage?.bonus?.attribute === Attributes.diePerLevel,
     }
-    if (!dicePerLevel && formData?.damage?.dicePerLevel) {
-      updateFormData({
-        type: 'remove',
-        path: `damage.dicePerLevel`,
-      })
-    }
+    Object.keys(diePerLevel).forEach((key: 'primary' | 'secondary' | 'bonus') => {
+      if (
+        diePerLevel[key] &&
+        !formData?.damage?.diePerLevel?.some((level) => level?.[key] != null) &&
+        formData?.damage?.[key]
+      ) {
+        updateFormData({
+          type: 'add',
+          path: `damage.diePerLevel.0.${key}`,
+        })
+      }
+      if (!diePerLevel[key] && formData?.damage?.diePerLevel?.find((level) => level?.[key]) != null) {
+        console.log({ key: diePerLevel })
+        const diePerLevelArray = formData?.damage?.diePerLevel?.map((level) => {
+          const levelObject = { ...level }
+          delete levelObject[key]
+          return levelObject
+        })
+        updateFormData({
+          type: 'update',
+          path: `damage.diePerLevel`,
+          value: diePerLevelArray,
+        })
+      }
+    })
   }, [updateFormData, formData?.damage])
 
   // Add/remove Set Per Level table
   useEffect(() => {
-    const setPerLevel =
-      formData?.damage?.primary?.attribute === Attributes.setPerLevel ||
-      formData?.damage?.secondary?.attribute === Attributes.setPerLevel ||
-      formData?.damage?.bonus?.attribute === Attributes.setPerLevel
-
-    if (setPerLevel && !formData?.damage?.setPerLevel) {
-      updateFormData({
-        type: 'add',
-        path: `damage.setPerLevel`,
-      })
+    const setPerLevel = {
+      primary: formData?.damage?.primary?.attribute === Attributes.setPerLevel,
+      secondary: formData?.damage?.secondary?.attribute === Attributes.setPerLevel,
+      bonus: formData?.damage?.bonus?.attribute === Attributes.setPerLevel,
     }
-    if (!setPerLevel && formData?.damage?.setPerLevel) {
-      updateFormData({
-        type: 'remove',
-        path: `damage.setPerLevel`,
-      })
-    }
+    Object.keys(setPerLevel).forEach((key: 'primary' | 'secondary' | 'bonus') => {
+      if (
+        setPerLevel[key] &&
+        !formData?.damage?.setPerLevel?.some((level) => level?.[key] != null) &&
+        formData?.damage?.[key]
+      ) {
+        updateFormData({
+          type: 'add',
+          path: `damage.setPerLevel.0.${key}`,
+        })
+      }
+      if (!setPerLevel[key] && formData?.damage?.setPerLevel?.find((level) => level?.[key]) != null) {
+        const setPerLevelArray = formData?.damage?.setPerLevel?.map((level) => {
+          const levelObject = { ...level }
+          delete levelObject[key]
+          return levelObject
+        })
+        updateFormData({
+          type: 'update',
+          path: `damage.setPerLevel`,
+          value: setPerLevelArray,
+        })
+      }
+    })
   }, [updateFormData, formData?.damage])
 
   // Remove Damage formData
   useEffect(() => {
-    if (
-      formData?.damage?.secondary &&
-      !formData?.damage?.attributes?.some((attribute) => attribute === Attributes.secondaryDamage)
-    ) {
+    if (formData?.damage?.secondary && !secondaryDamage) {
+      console.log({ secondaryDamage })
       updateFormData({ type: 'remove', path: 'damage.secondary' })
     }
-    if (
-      formData?.damage?.bonus &&
-      !formData?.damage?.attributes?.some((attribute) => attribute === Attributes.bonusDamage)
-    ) {
+    if (formData?.damage?.bonus && !bonusDamage) {
       updateFormData({ type: 'remove', path: 'damage.bonus' })
     }
     if (
       (formData.__typename !== 'Equipment' && formData?.damage?.versatile) ||
-      (formData.__typename === 'Equipment' &&
-        formData.properties.some((property) => property !== EquipmentProperties.versatile))
+      (formData.__typename === 'Equipment' && !isVersatile)
     ) {
-      updateFormData({ type: 'remove', path: 'damage.versatile' })
+      updateFormData({ type: 'update', path: 'damage.versatile', value: null })
     }
-  }, [updateFormData, formData])
+  }, [updateFormData, formData, bonusDamage, secondaryDamage, isVersatile])
 
   return (
-    ((formData.__typename === 'Equipment' &&
-      ((formData.category === EquipmentCategories.weapon &&
-        !formData?.properties?.some((property: any) => property === EquipmentProperties.special)) ||
-        formData?.properties?.some((property: any) => property === EquipmentProperties.improvisedWeapon))) ||
-      formData?.attributes?.some((attribute: any) => attribute === Attributes.doesDamage)) && (
-      <>
-        <Row className={sprinkles({ mb: 'space-3' })}>
-          <Dropdown<typeof formData>
-            multiSelect={true}
-            name={`damage.attributes`}
-            label={`Damage Attributes`}
-            value={formData?.damage?.attributes}
-            options={system.attributes.filter((attribute) =>
-              attribute?.damage?.length > 0
-                ? formData.__typename === 'Equipment'
-                  ? attribute?.damage?.includes(DamageEnum.equipment)
-                  : attribute?.damage?.includes(DamageEnum.all)
-                : attribute
+    <>
+      <Row className={sprinkles({ mb: 'space-3' })}>
+        <Dropdown<typeof formData>
+          multiSelect={true}
+          name={`damage.attributes`}
+          label={`Damage Attributes`}
+          value={formData?.damage?.attributes}
+          options={system.attributes.filter((attribute) =>
+            formData.__typename !== 'Spell'
+              ? attribute?.damage?.length > 0 && formData.__typename === 'Equipment'
+                ? attribute?.damage?.includes(DamageEnum.equipment)
+                : attribute?.damage?.includes(DamageEnum.all)
+              : attribute?.spells?.length > 0 && attribute.spells.includes(SpellEnum.damage)
+          )}
+          onChange={updateFormData}
+        />
+      </Row>
+      {damageTypes.map((type, index) => {
+        return (
+          <Row key={index}>
+            {type !== 'versatile' && (
+              <>
+                <Dropdown<typeof formData>
+                  name={`damage.${type}.attribute`}
+                  label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Attribute`}
+                  value={formData?.damage?.[type]?.attribute}
+                  options={system.attributes.filter((attribute) =>
+                    attribute?.damage?.length > 0 && formData.__typename === 'Equipment'
+                      ? attribute?.damage?.includes(DamageEnum.equipment)
+                      : attribute?.damage?.includes(DamageEnum.main)
+                  )}
+                  onChange={updateFormData}
+                />
+                <Dropdown<typeof formData>
+                  name={`damage.${type}.id`}
+                  label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Type`}
+                  value={formData?.damage?.[type]?.id}
+                  options={[
+                    ...system.damageTypes,
+                    {
+                      id: 'matchWeapon',
+                      value: 'matchWeapon',
+                      label: 'Match Weapon',
+                    },
+                  ]}
+                  required={true}
+                  onChange={updateFormData}
+                />
+              </>
             )}
-            onChange={updateFormData}
-          />
-        </Row>
-        {damageTypes.map((type, index) => {
-          return (
-            <Row key={index}>
-              {type !== 'versatile' && (
+            {formData?.damage?.[type]?.attribute !== Attributes.diePerLevel &&
+              formData?.damage?.[type]?.attribute !== Attributes.setPerLevel &&
+              (formData?.damage?.[type]?.attribute === Attributes.setAmount ? (
+                <Input<typeof formData>
+                  name={`damage.${type}.setAmount`}
+                  value={formData?.damage?.[type]?.setAmount}
+                  label={`Set ${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Value`}
+                  onChange={updateFormData}
+                  required={true}
+                  validation='num'
+                  errorMsg={'Must contain only numbers'}
+                />
+              ) : formData?.damage?.[type]?.attribute === Attributes.ability ||
+                formData?.damage?.[type]?.attribute === Attributes.spellcastingAbility ||
+                formData?.damage?.[type]?.attribute === Attributes.proficiency ? (
                 <>
-                  <Dropdown<typeof formData>
-                    name={`damage.${type}.attribute`}
-                    label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Attribute`}
-                    value={formData?.damage?.[type]?.attribute}
-                    options={system.attributes.filter((attribute) =>
-                      formData.__typename !== 'Spell'
-                        ? formData.__typename === 'Equipment'
-                          ? attribute?.damage.includes(DamageEnum.equipment)
-                          : attribute?.damage.includes(DamageEnum.all)
-                        : attribute.spells
-                    )}
-                    onChange={updateFormData}
-                  />
-                  <Dropdown<typeof formData>
-                    name={`damage.${type}.id`}
-                    label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Type`}
-                    value={formData?.damage?.[type]?.id}
-                    options={[
-                      ...system.damageTypes,
-                      {
-                        id: 'matchWeapon',
-                        value: 'matchWeapon',
-                        label: 'Match Weapon',
-                      },
-                    ]}
-                    required={true}
-                    onChange={updateFormData}
-                  />
-                </>
-              )}
-              {formData?.damage?.[type]?.attribute !== Attributes.dicePerLevel &&
-                formData?.damage?.[type]?.attribute !== Attributes.setPerLevel &&
-                (formData?.damage?.[type]?.attribute === Attributes.setAmount ? (
-                  <Input<typeof formData>
-                    name={`damage.${type}.setAmount`}
-                    value={formData?.damage?.[type]?.setAmount}
-                    label={`Set ${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Value`}
-                    onChange={updateFormData}
-                    required={true}
-                    validation='num'
-                    errorMsg={'Must contain only numbers'}
-                  />
-                ) : formData?.damage?.[type]?.attribute === Attributes.ability ||
-                  formData?.damage?.[type]?.attribute === Attributes.spellcastingAbility ||
-                  formData?.damage?.[type]?.attribute === Attributes.proficiency ? (
-                  <>
-                    {formData?.damage?.[type]?.attribute === Attributes.ability && (
-                      <Dropdown<typeof formData>
-                        name={`damage.${type}.ability`}
-                        label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Ability`}
-                        value={formData?.damage?.[type]?.ability}
-                        options={system.abilities}
-                        required={true}
-                        onChange={updateFormData}
-                      />
-                    )}
-                    <Input<typeof formData>
-                      name={`damage.${type}.minAmount`}
-                      value={formData?.damage?.[type]?.minAmount}
-                      label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Min. Value`}
-                      onChange={updateFormData}
-                      validation='num'
-                      errorMsg={'Must contain only numbers'}
-                    />
-                    <Input<typeof formData>
-                      name={`damage.${type}.maxAmount`}
-                      value={formData?.damage?.[type]?.maxAmount}
-                      label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Max Value`}
-                      onChange={updateFormData}
-                      validation='num'
-                      errorMsg={'Must contain only numbers'}
-                    />
-                    <Input<typeof formData>
-                      name={`damage.${type}.multiplier`}
-                      value={formData?.damage?.[type]?.multiplier}
-                      label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Multiplier`}
-                      onChange={updateFormData}
-                      validation='num'
-                      errorMsg={'Must contain only numbers'}
-                    />
-                  </>
-                ) : formData?.damage?.[type]?.attribute === Attributes.damagePool ? (
-                  <>
+                  {formData?.damage?.[type]?.attribute === Attributes.ability && (
                     <Dropdown<typeof formData>
-                      name={`damage.${type}.pool.attribute`}
-                      label={`${
-                        type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
-                      } Dmg. Pool Attribute`}
-                      value={formData?.damage?.[type]?.pool?.attribute}
-                      options={system.attributes.filter((attribute) => attribute?.damage.includes(DamageEnum.pool))}
+                      name={`damage.${type}.ability`}
+                      label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Ability`}
+                      value={formData?.damage?.[type]?.ability}
+                      options={system.abilities}
                       required={true}
                       onChange={updateFormData}
                     />
-                    {formData?.damage?.[type]?.pool?.attribute === Attributes.level ||
-                    formData?.damage?.[type]?.pool?.attribute === Attributes.ability ||
-                    formData?.damage?.[type]?.pool.attribute === Attributes.spellcastingAbility ||
-                    formData?.damage?.[type]?.pool.attribute === Attributes.proficiency ? (
-                      <>
-                        {(formData?.damage?.[type]?.pool?.attribute === Attributes.ability ||
-                          formData?.damage?.[type]?.pool.attribute === Attributes.spellcastingAbility) && (
-                          <>
-                            {formData?.damage?.[type]?.pool?.attribute === Attributes.ability && (
-                              <Dropdown<typeof formData>
-                                name={`damage.${type}.pool.ability`}
-                                label='Pool Abilty'
-                                value={formData?.damage?.[type]?.pool?.ability}
-                                options={system.abilities}
-                                required={true}
-                                onChange={updateFormData}
-                              />
-                            )}
-                            <Input<typeof formData>
-                              name={`damage.${type}.pool.minAmount`}
-                              value={formData?.damage?.[type]?.pool?.minAmount}
-                              label={`${
-                                type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
-                              } Dmg. Min. Value`}
+                  )}
+                  <Input<typeof formData>
+                    name={`damage.${type}.minAmount`}
+                    value={formData?.damage?.[type]?.minAmount}
+                    label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Min. Value`}
+                    onChange={updateFormData}
+                    validation='num'
+                    errorMsg={'Must contain only numbers'}
+                  />
+                  <Input<typeof formData>
+                    name={`damage.${type}.maxAmount`}
+                    value={formData?.damage?.[type]?.maxAmount}
+                    label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Max Value`}
+                    onChange={updateFormData}
+                    validation='num'
+                    errorMsg={'Must contain only numbers'}
+                  />
+                  <Input<typeof formData>
+                    name={`damage.${type}.multiplier`}
+                    value={formData?.damage?.[type]?.multiplier}
+                    label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Multiplier`}
+                    onChange={updateFormData}
+                    validation='num'
+                    errorMsg={'Must contain only numbers'}
+                  />
+                </>
+              ) : formData?.damage?.[type]?.attribute === Attributes.damagePool ? (
+                <>
+                  <Dropdown<typeof formData>
+                    name={`damage.${type}.pool.attribute`}
+                    label={`${
+                      type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
+                    } Dmg. Pool Attribute`}
+                    value={formData?.damage?.[type]?.pool?.attribute}
+                    options={system.attributes.filter((attribute) => attribute?.damage.includes(DamageEnum.pool))}
+                    required={true}
+                    onChange={updateFormData}
+                  />
+                  {formData?.damage?.[type]?.pool?.attribute === Attributes.level ||
+                  formData?.damage?.[type]?.pool?.attribute === Attributes.ability ||
+                  formData?.damage?.[type]?.pool.attribute === Attributes.spellcastingAbility ||
+                  formData?.damage?.[type]?.pool.attribute === Attributes.proficiency ? (
+                    <>
+                      {(formData?.damage?.[type]?.pool?.attribute === Attributes.ability ||
+                        formData?.damage?.[type]?.pool.attribute === Attributes.spellcastingAbility) && (
+                        <>
+                          {formData?.damage?.[type]?.pool?.attribute === Attributes.ability && (
+                            <Dropdown<typeof formData>
+                              name={`damage.${type}.pool.ability`}
+                              label='Pool Abilty'
+                              value={formData?.damage?.[type]?.pool?.ability}
+                              options={system.abilities}
+                              required={true}
                               onChange={updateFormData}
-                              validation='num'
-                              errorMsg={'Must contain only numbers'}
                             />
-                          </>
-                        )}
-                        <Input<typeof formData>
-                          name={`damage.${type}.pool.maxAmount`}
-                          value={formData?.damage?.[type].pool?.maxAmount}
-                          label={`${
-                            type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
-                          } Dmg. Max Value`}
-                          onChange={updateFormData}
-                          validation='num'
-                          errorMsg={'Must contain only numbers'}
-                        />
-                        <Input<typeof formData>
-                          name={`damage.${type}.pool.multiplier`}
-                          value={formData?.damage?.[type]?.pool?.multiplier}
-                          label={`${
-                            type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
-                          } Dmg. Multiplier`}
-                          onChange={updateFormData}
-                          validation='num'
-                          errorMsg={'Must contain only numbers'}
-                        />
-                      </>
-                    ) : (
-                      formData?.damage?.[type]?.pool?.attribute === Attributes.setAmount && (
-                        <Input<typeof formData>
-                          name={`damage.${type}.pool.setAmount`}
-                          value={formData?.damage?.[type]?.pool?.setAmount}
-                          label='Pool Total'
-                          onChange={updateFormData}
-                          validation='num'
-                          required={true}
-                          errorMsg={'Must contain only numbers'}
-                        />
-                      )
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Input<typeof formData>
-                      name={`damage.${type}.dieCount`}
-                      value={formData?.damage?.[type]?.dieCount}
-                      label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dice Count`}
-                      onChange={updateFormData}
-                      required={type === 'primary' ? true : false}
-                      validation='num'
-                      errorMsg={'Must contain only numbers'}
-                    />
-                    <Input<typeof formData>
-                      name={`damage.${type}.dieValue`}
-                      label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dice Value`}
-                      value={formData?.damage?.[type]?.dieValue}
-                      validation='die'
-                      required={type === 'primary' ? true : false}
-                      onChange={updateFormData}
-                    />
-                  </>
-                ))}
+                          )}
+                          <Input<typeof formData>
+                            name={`damage.${type}.pool.minAmount`}
+                            value={formData?.damage?.[type]?.pool?.minAmount}
+                            label={`${
+                              type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
+                            } Dmg. Min. Value`}
+                            onChange={updateFormData}
+                            validation='num'
+                            errorMsg={'Must contain only numbers'}
+                          />
+                        </>
+                      )}
+                      <Input<typeof formData>
+                        name={`damage.${type}.pool.maxAmount`}
+                        value={formData?.damage?.[type].pool?.maxAmount}
+                        label={`${
+                          type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
+                        } Dmg. Max Value`}
+                        onChange={updateFormData}
+                        validation='num'
+                        errorMsg={'Must contain only numbers'}
+                      />
+                      <Input<typeof formData>
+                        name={`damage.${type}.pool.multiplier`}
+                        value={formData?.damage?.[type]?.pool?.multiplier}
+                        label={`${
+                          type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
+                        } Dmg. Multiplier`}
+                        onChange={updateFormData}
+                        validation='num'
+                        errorMsg={'Must contain only numbers'}
+                      />
+                    </>
+                  ) : (
+                    formData?.damage?.[type]?.pool?.attribute === Attributes.setAmount && (
+                      <Input<typeof formData>
+                        name={`damage.${type}.pool.setAmount`}
+                        value={formData?.damage?.[type]?.pool?.setAmount}
+                        label='Pool Total'
+                        onChange={updateFormData}
+                        validation='num'
+                        required={true}
+                        errorMsg={'Must contain only numbers'}
+                      />
+                    )
+                  )}
+                </>
+              ) : (
+                <>
+                  <Input<typeof formData>
+                    name={`damage.${type}.dieConfig`}
+                    value={formData?.damage?.[type]?.dieConfig}
+                    label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Die Count`}
+                    onChange={updateFormData}
+                    required={type === 'primary' ? true : false}
+                    validation='num'
+                    errorMsg={'Must contain only numbers'}
+                  />
+                </>
+              ))}
+          </Row>
+        )
+      })}
+      {(formData?.damage?.primary?.attribute === Attributes.diePerLevel ||
+        formData?.damage?.secondary?.attribute === Attributes.diePerLevel ||
+        formData?.damage?.bonus?.attribute === Attributes.diePerLevel) && (
+        <Collapse>
+          <Collapse.Header title={`Damage Die By Level`} />
+          <Collapse.Body>
+            <Row spacing='spaceBetween' cellSize='auto'>
+              <span>Level</span>
+              {damageTypes.map((type) => {
+                if (formData?.damage?.[type]?.attribute === Attributes.diePerLevel) {
+                  return <span key={type}>{`${startCase(type)} Die Roll`}</span>
+                }
+              })}
+              <span>Remove Row</span>
+              <span>Add Row</span>
             </Row>
-          )
-        })}
-        {(formData?.damage?.primary?.attribute === Attributes.dicePerLevel ||
-          formData?.damage?.secondary?.attribute === Attributes.dicePerLevel ||
-          formData?.damage?.bonus?.attribute === Attributes.dicePerLevel) && (
-          <Collapse>
-            <Collapse.Header title={`Damage Die By Level`} />
-            <Collapse.Body>
-              <Row spacing='spaceBetween' cellSize='auto'>
-                <span>Level</span>
-                <span>Die Count</span>
-                <span>Die Value</span>
+            {formData?.damage.diePerLevel?.map((setLevel, index) => (
+              <Row key={index} spacing='spaceBetween' cellSize='auto'>
+                <Input
+                  name={`damage.diePerLevel.${index}.level`}
+                  value={setLevel.level}
+                  validation='num'
+                  errorMsg='Please enter a whole number'
+                  onChange={updateFormData}
+                  required={true}
+                />
+                {damageTypes.map(
+                  (type: 'primary' | 'secondary' | 'bonus') =>
+                    formData?.damage?.[type]?.attribute === Attributes.diePerLevel && (
+                      <Input
+                        key={type}
+                        name={`damage.diePerLevel.${index}.${type}.dieConfig`}
+                        value={setLevel?.[type]?.dieConfig}
+                        validation='die'
+                        errorMsg='Please enter a valid die value'
+                        onChange={updateFormData}
+                        required={true}
+                      />
+                    )
+                )}
+                <Button
+                  style='unstyled'
+                  className={row_button}
+                  onClick={() =>
+                    updateFormData({
+                      type: 'remove',
+                      path: `damage.diePerLevel.${index}`,
+                    })
+                  }
+                >
+                  <TbX />
+                </Button>
+                <Button
+                  style='unstyled'
+                  className={row_button}
+                  onClick={() =>
+                    updateFormData({
+                      type: 'add',
+                      path: 'damage.diePerLevel',
+                    })
+                  }
+                >
+                  <TbPlus />
+                </Button>
               </Row>
-              {formData?.damage.dicePerLevel?.map((setLevel, index) => (
-                <Row key={index} spacing='spaceBetween' cellSize='auto'>
-                  <Input
-                    name={`damage.dicePerLevel.${index}.level`}
-                    value={setLevel.level}
-                    validation='num'
-                    errorMsg='Please enter a whole number'
-                    onChange={updateFormData}
-                    required={true}
-                  />
-                  <Input
-                    name={`damage.dicePerLevel.${index}.dieCount`}
-                    value={setLevel.dieCount}
-                    validation='num'
-                    errorMsg='Please enter a whole number'
-                    onChange={updateFormData}
-                    required={true}
-                  />
-                  <Input
-                    name={`damage.dicePerLevel.${index}.dieValue`}
-                    value={setLevel.dieValue}
-                    validation='num'
-                    errorMsg='Please enter a valid die value'
-                    onChange={updateFormData}
-                    required={true}
-                  />
-                </Row>
-              ))}
-            </Collapse.Body>
-          </Collapse>
-        )}
-        {(formData?.damage?.primary?.attribute === Attributes.setPerLevel ||
-          formData?.damage?.secondary?.attribute === Attributes.setPerLevel ||
-          formData?.damage?.bonus?.attribute === Attributes.setPerLevel) && (
-          <Collapse>
-            <Collapse.Header title={`Set By Level`} />
-            <Collapse.Body>
-              <Row spacing='spaceBetween' cellSize='auto'>
-                <span>Level</span>
-                <span>Amount</span>
+            ))}
+          </Collapse.Body>
+        </Collapse>
+      )}
+      {(formData?.damage?.primary?.attribute === Attributes.setPerLevel ||
+        formData?.damage?.secondary?.attribute === Attributes.setPerLevel ||
+        formData?.damage?.bonus?.attribute === Attributes.setPerLevel) && (
+        <Collapse>
+          <Collapse.Header title={`Damage Die By Level`} />
+          <Collapse.Body>
+            <Row spacing='spaceBetween' cellSize='auto'>
+              <span>Level</span>
+              {damageTypes.map((type) => {
+                if (formData?.damage?.[type]?.attribute === Attributes.setPerLevel) {
+                  return <span key={type}>{`${startCase(type)} Die Roll`}</span>
+                }
+              })}
+              <span>Remove Row</span>
+              <span>Add Row</span>
+            </Row>
+            {formData?.damage.setPerLevel?.map((setLevel, index) => (
+              <Row key={index} spacing='spaceBetween' cellSize='auto'>
+                <Input
+                  name={`damage.setPerLevel.${index}.level`}
+                  value={setLevel.level}
+                  validation='num'
+                  errorMsg='Please enter a whole number'
+                  onChange={updateFormData}
+                  required={true}
+                />
+                {damageTypes.map(
+                  (type: 'primary' | 'secondary' | 'bonus') =>
+                    formData?.damage?.[type]?.attribute === Attributes.setPerLevel && (
+                      <Input
+                        key={type}
+                        name={`damage.setPerLevel.${index}.${type}`}
+                        value={setLevel?.[type]}
+                        validation='num'
+                        errorMsg='Please enter a whole number'
+                        onChange={updateFormData}
+                        required={true}
+                      />
+                    )
+                )}
+                <Button
+                  style='unstyled'
+                  className={row_button}
+                  onClick={() =>
+                    updateFormData({
+                      type: 'remove',
+                      path: `damage.setPerLevel.${index}`,
+                    })
+                  }
+                >
+                  <TbX />
+                </Button>
+                <Button
+                  style='unstyled'
+                  className={row_button}
+                  onClick={() =>
+                    updateFormData({
+                      type: 'add',
+                      path: 'damage.setPerLevel',
+                    })
+                  }
+                >
+                  <TbPlus />
+                </Button>
               </Row>
-              {formData?.damage?.setPerLevel?.map((setLevel, index) => (
-                <Row key={index} spacing='spaceBetween' cellSize='auto'>
-                  <Input
-                    name={`damage.setPerLevel.${index}.level`}
-                    value={setLevel.level}
-                    validation='num'
-                    errorMsg='Please enter a whole number'
-                    onChange={updateFormData}
-                    required={true}
-                  />
-                  <Input
-                    name={`damage.setPerLevel.${index}.amount`}
-                    value={setLevel.amount}
-                    validation='num'
-                    errorMsg='Please enter a whole number'
-                    onChange={updateFormData}
-                    required={true}
-                  />
-                </Row>
-              ))}
-            </Collapse.Body>
-          </Collapse>
-        )}
-      </>
-    )
+            ))}
+          </Collapse.Body>
+        </Collapse>
+      )}
+    </>
   )
 }
 

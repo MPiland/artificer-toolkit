@@ -1,6 +1,6 @@
 import { useEffect, use } from 'react'
 import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
-import { Equipment } from '../../../../amplify/API'
+import { Equipment } from '../../../../amplify/gql/types'
 import { UpdateState } from '../../../types/form'
 import { FormContext } from '../FormContext'
 import Row from '../../Row/Row'

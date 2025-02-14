@@ -151,6 +151,7 @@ export const vars = createThemeContract({
     },
     collapse: {
       backgroundColor: {
+        header: '',
         main: '',
       },
       border: {
@@ -262,6 +263,7 @@ export const light = createTheme(vars, {
     collapse: {
       backgroundColor: {
         main: lightColors[colorTokens.component.background.main],
+        header: lightColors[colorTokens.component.background.header],
       },
       border: {
         color: {
@@ -382,6 +384,7 @@ export const dark = createTheme(vars, {
     collapse: {
       backgroundColor: {
         main: darkColors[colorTokens.component.background.main],
+        header: darkColors[colorTokens.component.background.header],
       },
       border: {
         color: {

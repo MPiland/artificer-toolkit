@@ -1,16 +1,23 @@
 import { create } from 'zustand'
-import { set as lSet, get, camelCase, PropertyPath, merge } from 'lodash'
+import { persist } from 'zustand/middleware'
+import { set as lSet, get, camelCase, PropertyPath } from 'lodash'
 import { produce } from 'immer'
 import { FormDataType, SectionDataType } from '../types/form'
 import { formSlice, FormSlice } from './formSlice'
 import { featureSlice, FeatureSlice } from './featureSlice'
 import { optionSlice, OptionSlice } from './optionsSlice'
-import { AncestryFeature, Feature, FeatureOption, Subfeature } from '../../amplify/API'
+import { AncestryOption, Feature, FeatureOption, FeatureSubfeature } from '../../amplify/gql/types'
 import { SectionSlice, sectionSlice } from './sectionSlice'
 import { subfeatureSlice, SubfeatureSlice } from './subfeatureSlice'
 import { ancestrySlice, AncestrySlice } from './ancestrySlice'
 
-export type SupportedStates = FormDataType | Feature | FeatureOption | AncestryFeature | SectionDataType | Subfeature
+export type SupportedStates =
+  | FormDataType
+  | Feature
+  | FeatureOption
+  | AncestryOption
+  | SectionDataType
+  | FeatureSubfeature
 
 export type CombinedSlice = FormSlice & FeatureSlice & OptionSlice & SectionSlice & SubfeatureSlice & AncestrySlice
 
@@ -30,22 +37,21 @@ export const addField = ({
   return (state: CombinedSlice) => {
     return produce(state, (draft) => {
       const targetState = selector(draft)
-      let statePath: string[] | null
+      const existing = get(targetState, path)
 
-      if (!Array.isArray(path)) {
-        statePath = path.split('.')
-      } else {
-        statePath = path
-      }
-
-      if (get(targetState, statePath as PropertyPath)) {
+      if (existing) {
         if (!value) {
-          get(targetState, statePath as PropertyPath).push({})
+          // If existing is an array of arrays, add a new array
+          if (Array.isArray(existing) && existing.length > 0 && Array.isArray(existing[0])) {
+            get(targetState, path).push([])
+          } else {
+            get(targetState, path).push({})
+          }
         } else {
-          lSet(targetState, statePath as PropertyPath, value)
+          lSet(targetState, path, value)
         }
       } else {
-        lSet(targetState, statePath as PropertyPath, value ? value : [{}])
+        lSet(targetState, path, value || [{}])
       }
     })
   }
@@ -61,33 +67,25 @@ export const removeField = ({
   return (state: CombinedSlice) => {
     return produce(state, (draft) => {
       const targetState = selector(draft)
-      let statePath: string[] | null
-
-      if (!Array.isArray(path)) {
-        statePath = path.split('.')
-      } else {
-        statePath = path
-      }
-
+      const statePath: string[] = Array.isArray(path) ? path : path.split('.')
       const lastKey = statePath[statePath.length - 1]
+
       if (!isNumber(lastKey)) {
         const newPath = [...statePath]
         newPath.pop()
         if (statePath.length > 1) {
-          const newObject = { ...get(targetState, newPath) }
-          delete newObject[statePath[statePath.length - 1]]
-          lSet(targetState, newPath, newObject)
+          const target = get(targetState, newPath)
+          delete target[statePath[statePath.length - 1]]
         } else {
-          const newObject = { ...targetState }
-          delete newObject[statePath[0] as keyof typeof newObject]
-          lSet(targetState, '', newObject)
+          delete targetState[statePath[0] as keyof SupportedStates]
         }
       } else {
         const newPath = statePath.slice(0, -1)
+        const array = get(targetState, newPath)
         lSet(
           targetState,
           newPath,
-          get(targetState, newPath).filter((_: any, index: number) => index !== Number(lastKey))
+          array.filter((_: any, index: number) => index !== Number(lastKey))
         )
       }
     })
@@ -114,20 +112,7 @@ export const updateField = ({
         statePath = path
       }
 
-      let newData: any
-      if (typeof value === 'object') {
-        if (Array.isArray(value)) {
-          const currentData = get(targetState, statePath as PropertyPath, [])
-          newData = merge(currentData, value)
-        } else {
-          const currentData = get(targetState, statePath as PropertyPath, {})
-          newData = merge(currentData, value)
-        }
-      }
-      if (typeof value === 'string') {
-        newData = value
-      }
-      lSet(targetState, statePath as PropertyPath, newData)
+      lSet(targetState, statePath as PropertyPath, value)
 
       if (statePath && statePath[statePath.length - 1] === 'label') {
         if (statePath.length === 1) {
@@ -145,19 +130,27 @@ export const updateField = ({
 
 export const reset = ({ value, selector }: { value: any; selector: (state: CombinedSlice) => SupportedStates }) => {
   return (state: CombinedSlice) => {
-    return produce(state, (draft) => {
-      const targetState = selector(draft)
-
-      merge(targetState, value)
+    return produce(state, (draft: any) => {
+      const targetStateKey = Object.keys(draft).find((key) => selector(draft) === draft[key])
+      if (targetStateKey) {
+        draft[targetStateKey] = { ...value }
+      }
     })
   }
 }
 
-export const useStore = create<CombinedSlice>()((...a) => ({
-  ...formSlice(...a),
-  ...featureSlice(...a),
-  ...optionSlice(...a),
-  ...sectionSlice(...a),
-  ...subfeatureSlice(...a),
-  ...ancestrySlice(...a),
-}))
+export const useStore = create<CombinedSlice>()(
+  persist(
+    (...a) => ({
+      ...formSlice(...a),
+      ...featureSlice(...a),
+      ...optionSlice(...a),
+      ...sectionSlice(...a),
+      ...subfeatureSlice(...a),
+      ...ancestrySlice(...a),
+    }),
+    {
+      name: 'at-app-form',
+    }
+  )
+)

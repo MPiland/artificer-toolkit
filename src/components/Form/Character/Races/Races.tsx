@@ -2,7 +2,7 @@ import RaceFeatures from './RaceFeatures'
 import RaceSelection from './RaceSelection'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import { Character } from '../../../../../amplify/API'
+import { Character } from '../../../../../amplify/gql/types'
 import { useListRacesQuery } from '../../../../features/races/racesApi'
 import { UpdateState } from '../../../../types/form'
 
@@ -16,8 +16,8 @@ const Races = () => {
   const { data: races } = useListRacesQuery()
 
   const fullRace = races.find((race) => race.id === formData.race)
-  const raceLineages = races.filter((race) => fullRace.lineage.map((lineage) => race.id === lineage))
-  const fullAncestry = fullRace?.ancestry?.options?.find((option) => option.id === formData?.ancestry.id)
+  const raceLineages = races.filter((race) => fullRace?.lineages?.map((lineage) => race.id === lineage))
+  const fullAncestry = fullRace?.ancestry?.options?.find((option) => option?.id === formData?.ancestry?.id)
 
   return formData?.race != null && !changeRace ? (
     <RaceFeatures

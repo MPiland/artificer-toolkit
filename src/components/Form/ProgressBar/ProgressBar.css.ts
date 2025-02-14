@@ -2,6 +2,7 @@ import { style } from '@vanilla-extract/css'
 import { fontSize } from '../../../css/typography.css'
 import { app } from '../../../css/layers.css'
 import { size } from '../../../css/size.css'
+import { lightColors } from '../../../css/colors.css'
 
 export const progress_tab = style({
   '@layer': {
@@ -12,6 +13,7 @@ export const progress_tab = style({
       'paddingTop': '1rem',
       'overflow': 'hidden',
       'height': 'fit-content',
+      'flexShrink': 0,
 
       '@media': {
         'screen and (max-width: 567px)': {
@@ -55,6 +57,7 @@ export const progress_line = style({
       left: '0',
       height: '0.25rem',
       transition: 'width .3s ease-in-out',
+      backgroundColor: lightColors['blue10'],
     },
   },
 })

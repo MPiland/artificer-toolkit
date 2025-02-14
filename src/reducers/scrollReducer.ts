@@ -14,10 +14,15 @@ type ScrollState = {
 type ScrollAction =
   | {
       type: 'UPDATE_SCROLL'
+      source: 'scroll' | 'drag'
       verticalDelta?: number
       horizontalDelta?: number
       clientHeight: number
       clientWidth: number
+      scrollTop?: number
+      scrollHeight?: number
+      scrollLeft?: number
+      scrollWidth?: number
     }
   | {
       type: 'UPDATE_DIMENSIONS'
@@ -35,19 +40,31 @@ type ScrollAction =
   | { type: 'SET_ACTIVE'; value: boolean }
 
 const calculateThumbPosition = ({
+  source,
   currentPosition,
   delta,
+  scrollPos,
+  scrollSize,
   clientSize,
   thumbSize,
 }: {
+  source: 'scroll' | 'drag'
   currentPosition: number
   delta: number
+  scrollPos?: number
+  scrollSize?: number
   clientSize: number
   thumbSize: number
 }) => {
+  if (source === 'drag') {
+    const maxThumbTravel = clientSize - thumbSize
+    const newPosition = currentPosition + delta
+    return Math.max(0, Math.min(newPosition, maxThumbTravel))
+  }
+
+  const scrollProgress = scrollPos / (scrollSize - clientSize)
   const maxThumbTravel = clientSize - thumbSize
-  const newPosition = currentPosition + delta
-  return Math.max(0, Math.min(newPosition, maxThumbTravel))
+  return scrollProgress * maxThumbTravel
 }
 
 export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollState => {
@@ -57,8 +74,11 @@ export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollS
 
       if (action.verticalDelta !== undefined) {
         newState.verticalThumbPosition = calculateThumbPosition({
+          source: action.source,
           currentPosition: state.verticalThumbPosition,
           delta: action.verticalDelta,
+          scrollPos: action.scrollTop,
+          scrollSize: action.scrollHeight,
           clientSize: action.clientHeight,
           thumbSize: state.verticalThumbSize,
         })
@@ -66,8 +86,11 @@ export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollS
 
       if (action.horizontalDelta !== undefined) {
         newState.horizontalThumbPosition = calculateThumbPosition({
+          source: action.source,
           currentPosition: state.horizontalThumbPosition,
           delta: action.horizontalDelta,
+          scrollPos: action.scrollLeft,
+          scrollSize: action.scrollWidth,
           clientSize: action.clientWidth,
           thumbSize: state.horizontalThumbSize,
         })

@@ -4,19 +4,11 @@ import Button from '../../Button/Button'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import ProgressBar from './ProgressBar'
+import CharacterHeader from '../Character/CharacterHeader'
 
 const Header = () => {
-  const {
-    formData,
-    setChangeRace,
-    setAddClass,
-    addClass,
-    changeRace,
-    stepIndex,
-    errorMessage,
-    successMessage,
-    steps,
-  } = use(FormContext)
+  const { formData, setChangeRace, setAddClass, addClass, changeRace, stepIndex, errorMessage, successMessage, steps } =
+    use(FormContext)
 
   return (
     <>
@@ -28,7 +20,7 @@ const Header = () => {
               formData.__typename === 'Character' ? ' An ' : ' A '
             }`}
             {formData.__typename}
-            {formData?.value && ` (${formData.value})`}
+            {formData?.label && ` (${formData.label})`}
           </h1>
           {formData.__typename === 'Character' && (
             <>
@@ -79,6 +71,7 @@ const Header = () => {
         {errorMessage && <span>{errorMessage}</span>}
         {successMessage && <span>{successMessage}</span>}
       </div>
+      {formData.__typename === 'Character' && <CharacterHeader />}
     </>
   )
 }

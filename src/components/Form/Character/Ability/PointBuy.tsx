@@ -6,7 +6,7 @@ import { UpdateState } from '../../../../types/form'
 import { isEqual } from 'lodash'
 import Row from '../../../Row/Row'
 import { AbilityGenerate } from '../../../../types/enums'
-import { Character } from '../../../../../amplify/API'
+import { Character } from '../../../../../amplify/gql/types'
 
 const PointBuy = ({
   formData,

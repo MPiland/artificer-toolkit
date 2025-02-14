@@ -13,7 +13,7 @@ import {
 } from './Dropdown.css'
 import { isEqual, uniqBy } from 'lodash'
 import clsx from 'clsx'
-import { DropdownOption, Filter } from '../../types/components'
+import { DropdownOption } from '../../types/components'
 import { TbX, TbChevronDown } from 'react-icons/tb'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import Floating from '../Floating/Floating'
@@ -30,7 +30,6 @@ export interface DropdownProps<T> {
   multiSelect?: boolean
   errorMsg?: string
   id?: string
-  filters?: Filter[]
   all?: boolean
   height?: 'full' | 'auto' | 'default'
   border?: 'none' | 'default'
@@ -135,7 +134,7 @@ const Dropdown = <T,>({
         setSelectedOptions(value)
       }
     }
-  }, [filteredOptions?.length, options?.length, settingOption, value, selectedOptions, setSelectedOptions])
+  }, [filteredOptions?.length, options?.length, settingOption, value, selectedOptions])
 
   const activeOptions = useMemo(() => {
     if (!selectedOptions) return null
@@ -158,24 +157,23 @@ const Dropdown = <T,>({
     setSettingOption(true)
     if (multiSelect) {
       let newOptions = [option.id]
-      if (Array.isArray(selectedOptions) && selectedOptions?.length > 0) {
-        newOptions = [...newOptions, ...selectedOptions]
-        if (option.value === 'clear') {
-          newOptions = null
-          return onChange({ type: 'remove', path: name })
+      if (option.id === 'clear') {
+        newOptions = null
+      } else if (option.id === 'all') {
+        newOptions = ['all']
+        const allOptions = filteredOptions.filter((opt) => opt.id !== 'all' && opt.id !== 'clear').map((opt) => opt.id)
+        onChange({ type: 'update', path: name, value: newOptions })
+        return setSelectedOptions(allOptions)
+      }
+      if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length > 0) {
+        if (selectedOptions.includes(option.id)) {
+          newOptions = selectedOptions.filter((selectedOption) => selectedOption !== option.id)
         } else {
-          if (!(selectedOptions.length > 0)) {
-            setSelectedOptions([option.id])
-          } else if (selectedOptions?.some((selectedOption) => selectedOption === option.id)) {
-            newOptions = newOptions.filter((selectedOption) => selectedOption !== option.id)
-          } else {
-            newOptions = [...newOptions, option.id]
-          }
+          newOptions = [...selectedOptions, ...newOptions]
         }
       }
-      setSelectedOptions(newOptions)
-      console.log({ newOptions })
       onChange({ type: 'update', path: name, value: newOptions })
+      setSelectedOptions(newOptions)
     } else {
       // If it's a single select, update selectedOptionsRef.current to match selectedOptions
       setIsOpen(false)
@@ -207,7 +205,11 @@ const Dropdown = <T,>({
     <div className={clsx(dropdown, { [className]: className })}>
       <Floating>
         <Floating.Anchor className={dropdown_wrapper}>
-          {label && <div className={clsx(dropdown_label, { ['required']: required })}>{label}</div>}
+          {label && (
+            <label className={clsx(dropdown_label, { ['required']: required })} htmlFor={id || name}>
+              {label}
+            </label>
+          )}
           <div
             className={clsx(
               dropdown_container,
@@ -228,7 +230,7 @@ const Dropdown = <T,>({
                 ? 'true'
                 : 'false'
             }
-            id={id}
+            id={id || name}
             aria-required={required}
           >
             <span className={clsx(dropdown_input, { ['multiselect']: multiSelect })}>

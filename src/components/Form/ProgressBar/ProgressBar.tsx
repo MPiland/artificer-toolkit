@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { progress_tab, progress_step, progress_line, progress_step_container } from './ProgressBar.css'
 import clsx from 'clsx'
 import ScrollArea from '../../ScrollArea/ScrollArea'
@@ -6,9 +6,10 @@ import { validate } from '../../../utils/form'
 import { isEqual } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import { Attributes } from '../../../types/enums'
 import { FeatureContext } from '../Features/FeatureContext'
 import { LoadingContext } from '../../Loading/LoadingContext'
+import { useEnumChecks } from '../../../hooks/useEnumChecks'
+import { FormDataType } from '../../../types/form'
 
 const ProgressBar = () => {
   const [lineWidth, setLineWidth] = useState<number>(0)
@@ -31,17 +32,16 @@ const ProgressBar = () => {
     setChangeRace,
   } = use(FormContext)
 
+  const { containsEquipment } = useEnumChecks({ data: formData })
+
   const { setSectionStep, featureStep, setFeatureStep, handleSaveFeatures } = use(FeatureContext)
 
   const { isLoading } = use(LoadingContext)
 
-  const stepsArray = useMemo(() => {
+  useEffect(() => {
     let updatedSteps = [...steps]
 
-    if (
-      formData.__typename === 'Equipment' &&
-      formData?.attributes?.some((attribute) => attribute === Attributes.containsItems)
-    ) {
+    if (formData.__typename === 'Equipment' && containsEquipment) {
       if (!updatedSteps.includes({ id: 'contains', label: 'Contains' })) {
         updatedSteps.push({ id: 'contains', label: 'Contains' })
       }
@@ -49,14 +49,10 @@ const ProgressBar = () => {
       updatedSteps = updatedSteps.filter((step) => step.label !== 'Contains')
     }
 
-    return updatedSteps
-  }, [formData, steps])
-
-  useEffect(() => {
-    if (!isEqual(stepsArray, steps)) {
-      setSteps(stepsArray)
+    if (!isEqual(updatedSteps, steps)) {
+      setSteps(updatedSteps)
     }
-  }, [setSteps, steps, stepsArray])
+  }, [setSteps, steps, containsEquipment, formData.__typename])
 
   useEffect(() => {
     const updateLinePosition = () => {
@@ -66,11 +62,15 @@ const ProgressBar = () => {
         const stepWidth = activeStep?.offsetWidth ?? 0
         const stepLeft = activeStep?.offsetLeft ?? 0
 
-        setLineLeft(stepLeft)
+        if (lineLeft !== stepLeft) {
+          setLineLeft(stepLeft)
+        }
 
         // Delay the width update to match the transition timing
         const timeoutId = setTimeout(() => {
-          setLineWidth(stepWidth)
+          if (stepWidth !== lineWidth) {
+            setLineWidth(stepWidth)
+          }
         }, 100) // Matching the transition time of 0.3s
 
         // Clear the timeout if the component unmounts or updates
@@ -89,12 +89,12 @@ const ProgressBar = () => {
         resizeObserver.disconnect()
       }
     }
-  }, [stepIndex, stepsArray])
+  }, [stepIndex, lineLeft, lineWidth])
 
   const handleStepChange = async (progressStepIndex: number) => {
     setAddClass(false)
     setChangeRace(false)
-    let formClone = JSON.parse(JSON.stringify(formData))
+    let formClone: FormDataType = JSON.parse(JSON.stringify(formData))
     const isValid = validate()
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
@@ -108,10 +108,12 @@ const ProgressBar = () => {
       ) {
         formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }
-      updateFormData({
-        type: 'reset',
-        value: formClone,
-      })
+      if (!isEqual(formClone, formData)) {
+        updateFormData({
+          type: 'reset',
+          value: formClone,
+        })
+      }
       setFeatureStep(null)
       setSectionStep(null)
     }
@@ -140,7 +142,7 @@ const ProgressBar = () => {
             transition: 'left 0.3s ease-in-out',
           }}
         />
-        {stepsArray.map((step, index) => (
+        {steps.map((step, index) => (
           <div
             key={index}
             className={clsx(progress_step, {

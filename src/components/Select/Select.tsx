@@ -1,5 +1,12 @@
-import { FC, useState, useRef } from 'react'
-import { select, select_wrapper, select_container, select_input, select_menu, select_option } from './Select.css'
+import { useState, useRef } from 'react'
+import {
+  select_wrapper,
+  select_container,
+  select_input,
+  select_menu,
+  select_option,
+  select_label,
+} from './Select.css'
 import { startCase } from 'lodash'
 import {
   autoUpdate,
@@ -16,14 +23,21 @@ import {
 } from '@floating-ui/react'
 import ScrollArea from '../ScrollArea/ScrollArea'
 
-interface SelectProps {
+const Select = ({
+  label,
+  options,
+  handleChange,
+  placeholder,
+  name,
+  id,
+}: {
   label: string
   options: ReadonlyArray<string> | Array<string>
   handleChange: (arg: string) => void
   placeholder: string
-}
-
-const Select: FC<SelectProps> = ({ label, options, handleChange, placeholder }) => {
+  name: string
+  id?: string
+}) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
@@ -65,9 +79,13 @@ const Select: FC<SelectProps> = ({ label, options, handleChange, placeholder }) 
   ])
 
   return (
-    <div className={select}>
+    <>
       <div className={select_wrapper}>
-        {label && <label>{label}</label>}
+        {label && (
+          <label htmlFor={id || name} className={select_label}>
+            {label}
+          </label>
+        )}
         <div className={select_container} ref={refs.setReference} {...getReferenceProps()} tabIndex={0}>
           <span className={select_input}>{placeholder}</span>
         </div>
@@ -105,7 +123,7 @@ const Select: FC<SelectProps> = ({ label, options, handleChange, placeholder }) 
           </FloatingFocusManager>
         </FloatingPortal>
       )}
-    </div>
+    </>
   )
 }
 

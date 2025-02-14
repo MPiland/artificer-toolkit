@@ -8,17 +8,18 @@ import { FeatureContext } from '../Form/Features/FeatureContext'
 
 const Alert = () => {
   const { alertType } = useParams()
-  const { isFirstStep, isLastStep, setStepIndex, stepIndex, initialFormData } = use(FormContext)
+  const { isFirstStep, isLastStep, setStepIndex, stepIndex, resetForm, steps } = use(FormContext)
 
   const {
     featureStep,
     setFeatureStep,
-    featureDataReset,
-    optionDataReset,
-    subfeatureDataReset,
-    sectionDataReset,
+    resetFeature,
+    resetOption,
+    resetSubfeature,
+    resetSection,
     sectionStep,
     setSectionStep,
+    resetAncestry,
   } = use(FeatureContext)
 
   const navigate = useNavigate()
@@ -31,29 +32,32 @@ const Alert = () => {
       if (featureStep == null) {
         setStepIndex(stepIndex - 1)
       } else if (sectionStep != null) {
-        sectionDataReset()
+        resetSection()
         setSectionStep(null)
       } else if (featureStep === 'subfeature') {
-        subfeatureDataReset()
+        resetSubfeature()
         setFeatureStep('option')
       } else if (featureStep === 'option') {
-        optionDataReset()
-        setFeatureStep('feature')
+        resetOption()
+        if (steps[stepIndex].id === 'ancestry') {
+          setFeatureStep('ancestry')
+        } else {
+          setFeatureStep('feature')
+        }
+      } else if (featureStep === 'ancestry') {
+        resetFeature()
+        setFeatureStep('ancestryOption')
+      } else if (featureStep === 'ancestryOption') {
+        resetAncestry()
+        setFeatureStep(null)
       } else {
-        featureDataReset()
+        resetFeature()
         setFeatureStep(null)
       }
       return navigate(-1)
     } else {
-      const previousState = location.state.previous.state.previous
-      const previousPathname = previousState.pathname
-      navigate(`${previousPathname}`, {
-        state: {
-          item: initialFormData,
-          background: previousState.state.background,
-          size: 'lg',
-        },
-      })
+      resetForm()
+      navigate('../..')
     }
   }
 
@@ -62,16 +66,26 @@ const Alert = () => {
       if (featureStep == null) {
         setStepIndex(stepIndex - 1)
       } else if (sectionStep != null) {
-        sectionDataReset()
+        resetSection()
         setSectionStep(null)
       } else if (featureStep === 'subfeature') {
-        subfeatureDataReset()
+        resetSubfeature()
         setFeatureStep('option')
       } else if (featureStep === 'option') {
-        optionDataReset()
-        setFeatureStep('feature')
+        resetOption()
+        if (steps[stepIndex].id === 'ancestry') {
+          setFeatureStep('ancestry')
+        } else {
+          setFeatureStep('feature')
+        }
+      } else if (featureStep === 'ancestry') {
+        resetFeature()
+        setFeatureStep('ancestryOption')
+      } else if (featureStep === 'ancestryOption') {
+        resetAncestry()
+        setFeatureStep(null)
       } else {
-        featureDataReset()
+        resetFeature()
         setFeatureStep(null)
       }
       setStepIndex(stepIndex + 1)

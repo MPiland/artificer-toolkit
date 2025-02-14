@@ -47,8 +47,8 @@
     "features": ["all"]
   },
   {
-    "value": "canCast",
-    "label": "Can Cast",
+    "value": "canCastLevel",
+    "label": "Can Cast Level",
     "id": "2b2cac99-dfc5-45a0-b4a6-1970179ebcd9",
     "features": ["all"]
   },

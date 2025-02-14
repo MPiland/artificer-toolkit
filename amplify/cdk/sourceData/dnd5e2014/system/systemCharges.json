@@ -79,12 +79,6 @@
       "label": "Uses Per Level",
       "features": ["all"],
       "classes": ["all"]
-    },
-    {
-      "value": "ability",
-      "label": "Ability",
-      "id": "12ea359b-7b7c-4d7f-89b1-465ac9e5048e",
-      "classes": ["resources"]
     }
   ]
 }

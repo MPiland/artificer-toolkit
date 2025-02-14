@@ -5,6 +5,8 @@ const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DEL_REGEX: RegExp = /^DELETE$/
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
+const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
+const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
 export const getModifierProperties = ({
   category,
@@ -40,7 +42,8 @@ export const getModifierProperties = ({
 }
 
 export const getKeyFromId = <T extends { [K in string]: string }>(id: string, enumObject: T): keyof T => {
-  return Object.keys(enumObject).find((key) => enumObject[key] === id)?.[0] as keyof T
+  const name = Object.keys(enumObject).find((key) => enumObject[key] === id) as keyof T
+  return name
 }
 
 export const validate = (resetValidation: boolean = false): boolean => {
@@ -86,7 +89,9 @@ export const validate = (resetValidation: boolean = false): boolean => {
             (validation === 'pwd' && PWD_REGEX.test(value)) ||
             (validation === 'del' && DEL_REGEX.test(value)) ||
             (validation === 'num' && NUM_REGEX.test(value)) ||
-            (validation === 'cur' && CUR_REGEX.test(value)))
+            (validation === 'cur' && CUR_REGEX.test(value)) ||
+            (validation === 'die' && DIE_REGEX.test(value)) ||
+            (validation === 'roll' && ROLL_CONFIG_REGEX.test(value)))
 
         element.dispatchEvent(
           new CustomEvent('setErrorState', {
@@ -106,12 +111,4 @@ export const validate = (resetValidation: boolean = false): boolean => {
   })
 
   return isValid
-}
-
-export const excludeFields = (obj: any, ...fields: any) => {
-  const newObj = { ...obj }
-  fields.forEach((field: any) => {
-    delete newObj[field]
-  })
-  return newObj
 }

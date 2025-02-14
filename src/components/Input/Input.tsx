@@ -16,7 +16,8 @@ import { DeepKeyOf, UpdateState } from '../../types/form'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
-const DIE_REGEX = /^(?:1|4|6|8|10|12|20|100)$/
+const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
+const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
 interface InputProps<T> {
   label?: string | boolean
@@ -26,7 +27,7 @@ interface InputProps<T> {
   onChange?: (state: UpdateState<T>) => void
   value: any | null
   readOnly?: boolean
-  validation?: 'num' | 'cur' | 'die' | 'user' | 'pwd'
+  validation?: 'num' | 'cur' | 'die' | 'user' | 'pwd' | 'roll' | 'dmg'
   autoFocus?: boolean
   className?: string | number | symbol | any
   type?: string
@@ -133,6 +134,12 @@ const Input = <T,>({
           }
         } else if (validation === 'die') {
           if (DIE_REGEX.test(target.value) === false && target.value !== '') {
+            setError(true)
+          } else {
+            setError(false)
+          }
+        } else if (validation === 'roll') {
+          if (ROLL_CONFIG_REGEX.test(target.value) === false && target.value !== '') {
             setError(true)
           } else {
             setError(false)

@@ -1,9 +1,10 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listClasses, getClass } from '../../../amplify/graphql/queries'
-import { createClass, deleteClass, updateClass } from '../../../amplify/graphql/mutations'
-import { ClassInput, Class } from '../../../amplify/API'
+import { listClasses, getClass } from '../../../amplify/gql/queries'
+import { createClass, deleteClass, updateClass } from '../../../amplify/gql/mutations'
+import { ClassInput, Class } from '../../../amplify/gql/types'
 import useSystemPref from '../../hooks/useSystemPref'
+import { Categories } from '../../types/enums'
 
 const client = generateClient()
 
@@ -13,7 +14,7 @@ const classesKeys = {
   single: (id: string) => [...classesKeys.all, 'single', id] as const,
 }
 
-export const useListClassesQuery = () => {
+export const useListClassesQuery = (filter?: Categories.base) => {
   const [systemPref] = useSystemPref()
 
   const query = useSuspenseQuery({
@@ -30,6 +31,12 @@ export const useListClassesQuery = () => {
             systemId: systemPref,
           },
         })
+
+        if (filter) {
+          const filteredItems = items.filter((item) => item.category !== filter)
+          console.log({ filteredItems })
+          return filteredItems
+        }
 
         return items
       } catch (err) {

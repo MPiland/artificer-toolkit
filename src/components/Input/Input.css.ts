@@ -6,8 +6,7 @@ import { size, space } from '../../css/size.css'
 export const input_wrapper = style({
   '@layer': {
     [app]: {
-      height: 'fit-content',
-      overflow: 'hidden',
+      position: 'relative',
       textWrap: 'nowrap',
       textOverflow: 'ellipsis',
     },
@@ -17,6 +16,9 @@ export const input_wrapper = style({
 export const input_label = style({
   '@layer': {
     [app]: {
+      display: 'inline-block',
+      marginBottom: space['space-2'],
+
       selectors: {
         '&.required:after': {
           content: '*',
@@ -37,7 +39,6 @@ export const input_container = style({
       padding: '0 .75rem',
       borderRadius: theme.border.radius,
       backgroundColor: theme.vars.component.input.backgroundColor,
-      marginTop: space['space-2'],
     },
   },
 })
@@ -85,6 +86,9 @@ export const input = style({
       'fontWeight': 'inherit',
       'border': 'none',
       'color': theme.vars.typography.color.main,
+      'overflow': 'hidden',
+      'textOverflow': 'ellipsis',
+      'whiteSpace': 'nowrap',
 
       '@media': {
         'screen and (max-width: 567px)': {
@@ -112,26 +116,30 @@ export const input = style({
 })
 
 export const input_height = styleVariants({
-  auto: { height: size['size-auto'] },
-  full: { height: size['size-full'] },
-  default: { height: theme.component.input.height },
+  auto: { '@layer': { [app]: { height: size['size-auto'] } } },
+  full: { '@layer': { [app]: { height: size['size-full'] } } },
+  default: { '@layer': { [app]: { height: theme.component.input.height } } },
 })
 
 export const input_textAlign = styleVariants({
-  center: { textAlign: 'center' },
+  center: { '@layer': { [app]: { textAlign: 'center' } } },
 })
 
 export const input_border = styleVariants({
-  none: { border: 'none' },
+  none: { '@layer': { [app]: { border: 'none' } } },
   default: {
-    border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
+    '@layer': {
+      [app]: {
+        border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
 
-    selectors: {
-      '&:focus-within': {
-        border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
-      },
-      '&.invalid': {
-        border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
+        selectors: {
+          '&:focus-within': {
+            border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
+          },
+          '&.invalid': {
+            border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.error}`,
+          },
+        },
       },
     },
   },

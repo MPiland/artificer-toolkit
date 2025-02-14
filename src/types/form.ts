@@ -21,7 +21,7 @@ import {
   FeatureInput,
   AncestryFeature,
   FeatureOption,
-  Subfeature,
+  FeatureSubfeature,
   FeatureFeat,
   FeatureAncestry,
   CharacterFeat,
@@ -30,7 +30,7 @@ import {
   CharacterExpertise,
   CharacterModifier,
   FeatureExpertise,
-} from '../../amplify/API'
+} from '../../amplify/gql/types'
 
 export type UpdateState<T> =
   | { type: 'add'; path: DeepKeyOf<T>; value?: any }
@@ -52,7 +52,7 @@ export type FormInputType =
 
 export type FormDataType = Spell | Race | Class | Feat | Background | Equipment | Character
 
-export type FeatureDataType = Feature | AncestryFeature | FeatureOption | Subfeature
+export type FeatureDataType = Feature | AncestryFeature | FeatureOption | FeatureSubfeature
 
 export type SectionDataType =
   | FeatureModifier
@@ -78,9 +78,23 @@ export type DeepKeyOf<T, Depth extends number = 4, Seen = never> = [Depth] exten
     : {
         [K in keyof T & string]:
           | `${K}` // Current property key
-          | (T[K] extends Array<infer U> // Handle arrays
-              ? `${K}.${number}` | `${K}.${number}.${DeepKeyOf<U, Subtract<Depth, 1>, T | Seen>}`
-              : T[K] extends object // Handle nested objects
+          | (T[K] extends Array<infer U>
+              ?
+                  | `${K}.${number}`
+                  | (U extends Array<any>
+                      ?
+                          | `${K}.${number}.${number}`
+                          | (U[number] extends Array<any>
+                              ?
+                                  | `${K}.${number}.${number}.${number}`
+                                  | `${K}.${number}.${number}.${number}.${DeepKeyOf<
+                                      U[number][number],
+                                      Subtract<Depth, 1>,
+                                      T | Seen
+                                    >}`
+                              : `${K}.${number}.${number}.${DeepKeyOf<U[number], Subtract<Depth, 1>, T | Seen>}`)
+                      : `${K}.${number}.${DeepKeyOf<U, Subtract<Depth, 1>, T | Seen>}`)
+              : T[K] extends object
               ? `${K}.${DeepKeyOf<T[K], Subtract<Depth, 1>, T | Seen>}`
               : never)
       }[keyof T & string]
@@ -138,10 +152,12 @@ export const sectionSteps = [
   'senses',
   'feats',
   'ancestries',
+  'options',
+  'subfeatures',
 ] as const
 
 export type SectionName = (typeof sectionSteps)[number]
 
-export const featureTypes = ['feature', 'option', 'ancestry', 'subfeature'] as const
+export const featureTypes = ['feature', 'option', 'ancestry', 'subfeature', 'ancestryOption'] as const
 
 export type FeatureTypes = (typeof featureTypes)[number]

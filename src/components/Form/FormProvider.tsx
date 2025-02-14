@@ -1,4 +1,4 @@
-import { useState, ReactElement } from 'react'
+import { ReactElement, useCallback, useEffect } from 'react'
 import FeatureWrapper from './Features/FeatureWrapper'
 import Details from './Generic/Details'
 import Traits from './Races/Traits'
@@ -6,9 +6,9 @@ import Contains from './Equipment/Contains'
 import Proficiencies from './Classes/Proficiencies'
 import Races from './Character/Races/Races'
 import Attributes from './Generic/Attributes'
-import Abilities from './Character/Abilities'
+import Abilities from './Character/Ability/Abilities'
 import StartingEquipment from './Classes/StartingEquipment'
-import { FormDataType, FormSteps, Step, UpdateState } from '../../types/form'
+import { FormDataType, FormSteps, UpdateState } from '../../types/form'
 import CharacterClasses from './Character/Classes/CharacterClasses'
 import BackgroundEquipment from './Backgrounds/BackgroundEquipment'
 import Equipment from './Character/Equipment'
@@ -17,46 +17,120 @@ import { useStore } from '../../store/useStore'
 import { FormContext } from './FormContext'
 import DiceProvider from '../Dice/DiceProvider'
 import { Outlet } from 'react-router-dom'
+import useGetSections from '../../hooks/useGetSectionState'
+import { Character } from '../../../amplify/gql/types'
+import { isEqual } from 'lodash'
 
 const useFormOptions = () => {
-  // Generic form states
-  const [saving, setSaving] = useState<boolean>(false)
-  const [stepIndex, setStepIndex] = useState<number>(0)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [steps, setSteps] = useState<Step[]>([])
-  const [validForm, setValidForm] = useState<{ [key: string]: boolean }>({})
+  const {
+    formData,
+    initialFormData,
+    updateFormField,
+    addFormField,
+    removeFormField,
+    formReset,
+    initialFormReset,
+    ui,
+    character,
+    setSaving,
+    setStepIndex,
+    setSuccessMessage,
+    setErrorMessage,
+    setSteps,
+    setValidForm,
+    setAddClass,
+    setChangeRace,
+    resetForm,
+    resetFeature,
+    resetAncestry,
+    resetSection,
+    resetOption,
+    resetSubfeature,
+  } = useStore((state) => state)
 
-  // Character builder states
-  const [addClass, setAddClass] = useState<boolean>(false)
-  const [changeRace, setChangeRace] = useState<boolean>(false)
+  const { createSections, createFeatures, createAbilityScores } = useGetSections({ formData: formData as Character })
 
-  const { formData, initialFormData, updateFormField, addFormField, removeFormField, formReset, initialFormReset } =
-    useStore((state) => state)
-
-  const updateFormData = <T extends FormDataType>(state: UpdateState<T>) => {
-    switch (state.type) {
-      case 'add': {
-        if (state.value) {
-          addFormField({ path: state.path, value: state.value })
-        } else {
-          addFormField({ path: state.path })
+  const updateFormData = useCallback(
+    <T extends FormDataType>(state: UpdateState<T>) => {
+      switch (state.type) {
+        case 'add': {
+          if (state.value) {
+            addFormField({ path: state.path, value: state.value })
+          } else {
+            addFormField({ path: state.path })
+          }
+          break
         }
-        break
+        case 'update':
+          updateFormField({ path: state.path, value: state.value })
+          break
+        case 'remove':
+          removeFormField({ path: state.path })
+          break
+        case 'reset':
+          formReset({ value: state.value })
+          break
+        case 'initialReset':
+          initialFormReset({ value: state.value })
+          break
       }
-      case 'update':
-        updateFormField({ path: state.path, value: state.value })
-        break
-      case 'remove':
-        removeFormField({ path: state.path })
-        break
-      case 'reset':
-        formReset({ value: state.value })
-        break
-      case 'initialReset':
-        initialFormReset({ value: state.value })
-        break
+    },
+    [addFormField, formReset, initialFormReset, removeFormField, updateFormField]
+  )
+
+  const features = createFeatures()
+
+  const sections = createSections()
+
+  const abilityScores = createAbilityScores()
+
+  useEffect(() => {
+    if (formData.__typename === 'Character') {
+      const characterData: Character = JSON.parse(JSON.stringify(formData))
+
+      // Store the current character sections for comparison at the end
+      const characterSections = {
+        feats: characterData.feats,
+        modifiers: characterData.modifiers,
+        proficiencies: characterData.proficiencies,
+        expertise: characterData.expertise,
+        senses: characterData.senses,
+      }
+
+      if (!isEqual(sections, characterSections)) {
+        updateFormData({
+          type: 'reset',
+          value: { ...formData, ...sections },
+        })
+      }
     }
+  }, [sections, updateFormData, formData])
+
+  useEffect(() => {
+    if (formData.__typename === 'Character' && !isEqual(formData?.features, features)) {
+      updateFormData({
+        type: 'update',
+        path: 'features',
+        value: features,
+      })
+    }
+  })
+
+  useEffect(() => {
+    if (formData.__typename === 'Character') {
+      if (!isEqual(abilityScores, formData?.abilities?.scores)) {
+        updateFormData({ type: 'update', path: 'abilities.scores', value: abilityScores })
+      }
+    }
+  }, [formData, updateFormData, abilityScores])
+
+  const fullReset = () => {
+    resetForm()
+    resetFeature()
+    resetAncestry()
+    resetSection()
+    resetOption()
+    resetSubfeature()
   }
 
   // Standard possible form steps
@@ -80,33 +154,13 @@ const useFormOptions = () => {
     background: <></>,
   }
 
-  const isFirstStep = () => {
-    if (stepIndex === 0) {
-      return true
-    } else {
-      return false
-    }
-  }
+  const { saving, steps, errorMessage, validForm, stepIndex, successMessage } = ui
 
-  const isLastStep = () => {
-    if (stepIndex === steps?.length - 1) {
-      return true
-    } else {
-      return false
-    }
-  }
+  const { addClass, changeRace } = character
 
-  const stateReset = () => {
-    setSaving(false)
-    setStepIndex(0)
-    setSuccessMessage(null)
-    setErrorMessage(null)
-    setValidForm({})
-    setAddClass(false)
-    setChangeRace(false)
+  const isFirstStep = stepIndex === 0 ? true : false
 
-    return Promise.resolve()
-  }
+  const isLastStep = stepIndex === steps.length - 1 ? true : false
 
   return {
     formSteps,
@@ -127,11 +181,14 @@ const useFormOptions = () => {
     setChangeRace,
     steps,
     setSteps,
-    stateReset,
+    resetForm,
     isFirstStep,
     isLastStep,
     formData,
     updateFormData,
+    fullReset,
+    features,
+    sections,
   }
 }
 
@@ -139,9 +196,9 @@ const FormProvider = () => {
   const formOptions = useFormOptions()
 
   return (
-    <FormContext.Provider value={formOptions}>
+    <FormContext value={formOptions}>
       <Outlet />
-    </FormContext.Provider>
+    </FormContext>
   )
 }
 

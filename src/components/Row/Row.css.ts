@@ -1,6 +1,7 @@
 import { app } from '../../css/layers.css'
 import { style, styleVariants } from '@vanilla-extract/css'
 import { createVar } from '@vanilla-extract/css'
+import { space } from '../../css/size.css'
 
 export const column_gap = createVar('column_gap')
 export const row_gap = createVar('row_gap')
@@ -13,6 +14,7 @@ export const rowBase = style({
       flexWrap: 'wrap',
       columnGap: column_gap,
       rowGap: row_gap,
+      marginBottom: space['space-4'],
     },
   },
 })

@@ -1,18 +1,5 @@
-input DamageFieldsInput {
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-  attribute: ID
-  id: ID
-  ability: ID
-  setAmount: Int
-  multiplier: Int
-  minAmount: Int
-  maxAmount: Int
-  pool: DamagePoolInput
-}
-
 ## Basic Types
+
 input DetailInput {
   label: String!
   value: String!
@@ -24,13 +11,6 @@ input SaveAbilityInput {
   minAmount: Int
   attributes: [ID]
   abilityModifier: ID
-}
-
-input GenericRangeInput {
-  minRange: Int
-  maxRange: Int
-  distance: Int
-  unit: ID!
 }
 
 input EquipmentGroupInput {
@@ -48,6 +28,19 @@ input EquipmentGroupInput {
 }
 
 ## Damage Related
+
+input DamageFieldsInput {
+  dieConfig: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePoolInput
+}
+
 input DamagePoolInput {
   attribute: ID
   setAmount: Int
@@ -60,21 +53,23 @@ input DamagePoolInput {
 
 input SetPerLevelInput {
   level: String
-  amount: Int
+  primary: Int
+  secondary: Int
+  bonus: Int
 }
 
-input DicePerLevelInput {
+input DiePerLevelInput {
   level: String
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  primary: DamageFieldsInput
+  secondary: DamageFieldsInput
+  bonus: DamageFieldsInput
 }
 
 input DamageInput {
   attributes: [ID]
   damageSave: [ID]
   setPerLevel: [SetPerLevelInput]
-  dicePerLevel: [DicePerLevelInput]
+  diePerLevel: [DiePerLevelInput]
   primary: DamageFieldsInput
   secondary: DamageFieldsInput
   bonus: DamageFieldsInput
@@ -82,6 +77,7 @@ input DamageInput {
 }
 
 ## Charges
+
 input UsesPerLevelInput {
   level: Int
   uses: Int
@@ -101,6 +97,7 @@ input ChargeInput {
 }
 
 ## Prerequisites
+
 input EquipPrerequisiteInput {
   numberEquipped: Int
   category: ID
@@ -127,12 +124,23 @@ input PrerequisiteInput {
 }
 
 ## Feature Related
+
 input FeatureFeatInput {
   id: ID!
   attributes: [ID]
   feats: [ID]
   selectionCount: Int
   subtype: ID
+}
+
+input ModifierDiePerLevelInput {
+  level: String
+  dieConfig: String
+}
+
+input ModifierSetPerLevelInput {
+  level: String
+  setAmount: Int
 }
 
 input FeatureModifierInput {
@@ -149,12 +157,10 @@ input FeatureModifierInput {
   maxAmount: Int
   minAmount: Int
   setAmount: Int
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  dieConfig: String
   feature: ID
-  dicePerLevel: [DicePerLevelInput]
-  setPerLevel: [SetPerLevelInput]
+  diePerLevel: [ModifierDiePerLevelInput]
+  setPerLevel: [ModifierSetPerLevelInput]
   skills: [ID]
   saveAbilities: [ID]
   abilities: [ID]
@@ -252,7 +258,7 @@ input ActionGroupInput {
   secondary: ActionPropertyInput
 }
 
-input SubfeatureInput {
+input FeatureSubfeatureInput {
   id: ID!
   label: String
   value: String
@@ -264,7 +270,7 @@ input SubfeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: GenericRangeInput
+  range: RangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -291,7 +297,7 @@ input FeatureOptionInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: GenericRangeInput
+  range: RangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -304,7 +310,7 @@ input FeatureOptionInput {
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [SubfeatureInput]
+  subfeatures: [FeatureSubfeatureInput]
 }
 
 input FeatureInput {
@@ -319,7 +325,7 @@ input FeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: GenericRangeInput
+  range: RangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -332,6 +338,6 @@ input FeatureInput {
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [SubfeatureInput]
+  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }

@@ -9,7 +9,7 @@ import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
 import { useListClassesQuery } from '../../../../features/classes/classesApi'
 import { FeatureContext } from '../FeatureContext'
 import { Attributes, Categories } from '../../../../types/enums'
-import { Class, FeatureSpell, SectionEnum, Spell } from '../../../../../amplify/API'
+import { Class, FeatureSpell, SectionEnum, Spell } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
 
 const Spells = () => {
@@ -23,7 +23,7 @@ const Spells = () => {
   const { data: spells } = useListSpellsQuery()
   const { data: classes } = useListClassesQuery()
 
-  const providesOptions = sectionData.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+  const providesOptions = sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
   const [spellsArray, setSpellsArray] = useState<Array<Spell>>([])
 
@@ -35,19 +35,19 @@ const Spells = () => {
       let meetsAttributeLimit: boolean = true
 
       // Check against classLimit filter
-      if (sectionData.classLimit?.length > 0) {
+      if (sectionData?.classLimit?.length > 0) {
         meetsClassLimit =
-          !sectionData.classLimit ||
-          sectionData.classLimit?.some((limit) => spell.classes?.some((sClass) => limit === sClass))
+          !sectionData?.classLimit ||
+          sectionData?.classLimit?.some((limit) => spell.classes?.some((sClass) => limit === sClass))
       }
 
       // Check against levelLimit filter
-      if (sectionData.levelLimit != null) {
-        meetsLevelLimit = sectionData.levelLimit === spell.level
+      if (sectionData?.levelLimit != null) {
+        meetsLevelLimit = sectionData?.levelLimit === spell.level
       }
 
-      if (sectionData.attributeLimit?.length > 0) {
-        meetsAttributeLimit = sectionData.attributeLimit?.some((limitItem) =>
+      if (sectionData?.attributeLimit?.length > 0) {
+        meetsAttributeLimit = sectionData?.attributeLimit?.some((limitItem) =>
           spell.attributes?.some((attribute) => attribute === limitItem)
         )
       }
@@ -57,13 +57,13 @@ const Spells = () => {
     })
 
     setSpellsArray(filteredSpells)
-  }, [spells, sectionData.classLimit, sectionData.levelLimit, sectionData.attributeLimit])
+  }, [spells, sectionData?.classLimit, sectionData?.levelLimit, sectionData?.attributeLimit])
 
   // Add/Remove Spells By Level Data
   useEffect(() => {
     if (
-      !sectionData.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) &&
-      sectionData.spellsByLevel
+      !sectionData?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) &&
+      sectionData?.spellsByLevel
     ) {
       updateSectionData({
         type: 'remove',
@@ -71,15 +71,15 @@ const Spells = () => {
       })
     }
     if (
-      sectionData.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) &&
-      !sectionData.spellsByLevel
+      sectionData?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) &&
+      !sectionData?.spellsByLevel
     ) {
       updateSectionData({
         type: 'add',
         path: `spellsByLevel`,
       })
     }
-  }, [sectionData.spellsByLevel, sectionData.attributes, updateSectionData])
+  }, [sectionData?.spellsByLevel, sectionData?.attributes, updateSectionData])
 
   return (
     <>
@@ -95,15 +95,15 @@ const Spells = () => {
                 attribute.sections.includes(SectionEnum.subclasses))
           )}
           label='Spell Attributes'
-          value={sectionData.attributes}
+          value={sectionData?.attributes}
           onChange={updateSectionData}
         />
-        {sectionData.attributes?.some((attribute) => attribute === Attributes.classLimit) && (
+        {sectionData?.attributes?.some((attribute) => attribute === Attributes.classLimit) && (
           <Dropdown
             name='classLimit'
             multiSelect={true}
             label='Class Limit'
-            value={sectionData.classLimit}
+            value={sectionData?.classLimit}
             options={classes}
             filters={[
               {
@@ -116,50 +116,50 @@ const Spells = () => {
             onChange={updateSectionData}
           />
         )}
-        {sectionData.attributes?.some((attribute) => attribute === Attributes.levelLimit) && (
+        {sectionData?.attributes?.some((attribute) => attribute === Attributes.levelLimit) && (
           <Dropdown
             name='levelLimit'
             label='Level Limit'
-            value={String(sectionData.levelLimit)}
+            value={String(sectionData?.levelLimit)}
             options={spells}
             required={true}
             onChange={updateSectionData}
           />
         )}
-        {sectionData.attributes?.some((attribute) => attribute === Attributes.attributeLimit) && (
+        {sectionData?.attributes?.some((attribute) => attribute === Attributes.attributeLimit) && (
           <Dropdown
             name='attributeLimit'
             multiSelect={true}
             label='Attribute'
-            value={sectionData.attributeLimit}
+            value={sectionData?.attributeLimit}
             options={system.attributes.filter((attribute) => attribute.sections.includes(SectionEnum.spells))}
             required={true}
             onChange={updateSectionData}
           />
         )}
-        {sectionData.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+        {sectionData?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
           formData.__typename === 'Class' && (
             <Dropdown
               name='subtype'
               label='Subtype'
-              value={sectionData.subtype}
+              value={sectionData?.subtype}
               options={formData?.subtypes}
               required={true}
               onChange={updateSectionData}
             />
           )}
-        {!sectionData.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) && (
+        {!sectionData?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) && (
           <>
             <Dropdown
               name='ids'
               multiSelect={true}
               label='Spell'
-              value={sectionData.ids}
+              value={sectionData?.ids}
               options={spellsArray}
               required={true}
               onChange={updateSectionData}
             />
-            {sectionData.attributes?.some(
+            {sectionData?.attributes?.some(
               (attribute) =>
                 attribute === Attributes.castAtLevel && (
                   <Input
@@ -167,18 +167,18 @@ const Spells = () => {
                     name='spellLevel'
                     label='Spell Level'
                     autoComplete='off'
-                    value={sectionData.spellLevel}
+                    value={sectionData?.spellLevel}
                     errorMsg='Must contain only numbers'
                     required={true}
                     onChange={updateSectionData}
                   />
                 )
             )}
-            {sectionData.attributes?.some((attribute) => attribute === Attributes.optionalAbility) && (
+            {sectionData?.attributes?.some((attribute) => attribute === Attributes.optionalAbility) && (
               <Dropdown
                 name='ability'
                 label='Ability'
-                value={sectionData.ability}
+                value={sectionData?.ability}
                 options={system.abilities}
                 required={true}
                 onChange={updateSectionData}
@@ -190,7 +190,7 @@ const Spells = () => {
                 name={`selectionCount`}
                 label='# of Selections'
                 autoComplete='off'
-                value={sectionData.selectionCount}
+                value={sectionData?.selectionCount}
                 errorMsg='Must contain only numbers'
                 required={true}
                 onChange={updateSectionData}
@@ -199,12 +199,12 @@ const Spells = () => {
           </>
         )}
       </Row>
-      {sectionData.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) && (
+      {sectionData?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel) && (
         <>
           <Row spacing='spaceBetween' cellSize='auto'>
             <span>Level</span>
             <span>Spell</span>
-            {sectionData.attributes?.some((attribute) => attribute === Attributes.castAtLevel) && (
+            {sectionData?.attributes?.some((attribute) => attribute === Attributes.castAtLevel) && (
               <span>Die Value</span>
             )}
           </Row>
@@ -231,7 +231,7 @@ const Spells = () => {
                 required={true}
                 multiSelect={true}
               />
-              {sectionData.attributes?.some((attribute) => attribute === Attributes.castAtLevel) && (
+              {sectionData?.attributes?.some((attribute) => attribute === Attributes.castAtLevel) && (
                 <Dropdown
                   name={`spellsByLevel.${index}.spellLevel`}
                   value={String(setLevel.spellLevel)}

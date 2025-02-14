@@ -2,6 +2,7 @@ import { use } from 'react'
 import FeaturesList from './FeaturesList'
 import { sprinkles } from '../../../css/sprinkles.css'
 import { FeatureContext } from './FeatureContext'
+import { startCase } from 'lodash'
 
 const FeatureWrapper = () => {
   const {
@@ -16,14 +17,14 @@ const FeatureWrapper = () => {
   } = use(FeatureContext)
 
   const featureTitle =
-    featureData.value != null &&
-    featureData.value !== '' &&
-    `${featureStep === 'subfeature' ? 'Subfeature' : featureStep} (${
-      featureStep === 'option' ? optionData?.value ?? '' : (featureStep === 'feature' && featureData?.value) ?? ''
+    featureData.label != null &&
+    featureData.label !== '' &&
+    `${featureStep === 'subfeature' ? 'Subfeature' : startCase(featureStep)} (${
+      featureStep === 'option' ? optionData?.label ?? '' : (featureStep === 'feature' && featureData?.label) ?? ''
     }${
       featureStep === 'subfeature'
-        ? subfeatureData.value
-          ? ` - ${subfeatureData.value}`
+        ? subfeatureData.label
+          ? ` - ${subfeatureData.label}`
           : ` - Sub-feature ${subfeatureIndex + 1}`
         : ''
     })`
@@ -34,7 +35,7 @@ const FeatureWrapper = () => {
         <FeaturesList />
       ) : (
         <>
-          <h2 className={sprinkles({ mb: 'space-2', px: 'space-4' })}>{featureTitle}</h2>
+          <h2 className={sprinkles({ mb: 'space-2' })}>{featureTitle}</h2>
           {sectionStep != null ? sectionStepComponent[sectionStep] : featureSteps[featureStep]}
         </>
       )}

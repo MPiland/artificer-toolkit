@@ -3,7 +3,7 @@ import { ability_group } from '../Character.css'
 import Dropdown from '../../../Dropdown/Dropdown'
 import { DeepKeyOf, UpdateState } from '../../../../types/form'
 import Row from '../../../Row/Row'
-import { Character, Scores } from '../../../../../amplify/API'
+import { Character, Scores } from '../../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { AbilityGenerate } from '../../../../types/enums'
 

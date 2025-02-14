@@ -7,6 +7,7 @@ export const column = style({
   '@layer': {
     [app]: {
       width: column_width,
+      alignContent: 'end',
     },
   },
 })

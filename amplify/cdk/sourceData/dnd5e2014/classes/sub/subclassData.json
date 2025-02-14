@@ -1,0 +1,3392 @@
+[
+  {
+    "value": "collegeOfLore",
+    "label": "College of Lore",
+    "desc": "<p>Bards of the College of Lore know something about most things, collecting bits of knowledge from sources as diverse as scholarly tomes and peasant tales. Whether singing folk ballads in taverns or elaborate compositions in royal courts, these bards use their gifts to hold audiences spellbound. When the applause dies down, the audience members might find themselves questioning everything they held to be true, from their faith in the priesthood of the local temple to their loyalty to the king.</p><p>The loyalty of these bards lies in the pursuit of beauty and truth, not in fealty to a monarch or following the tenets of a deity. A noble who keeps such a bard as a herald or advisor knows that the bard would rather be honest than politic.</p><p>The college’s members gather in libraries and sometimes in actual colleges, complete with classrooms and dormitories, to share their lore with one another. They also meet at festivals or affairs of state, where they can expose corruption, unravel lies, and poke fun at self-important figures of authority.</p>",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "bard",
+      "label": "Bard"
+    },
+    "features": [
+      {
+        "desc": "<p>When you join the College of Lore at 3rd level, you gain proficiency with three skills of your choice.</p>",
+        "value": "bonusProficiencies",
+        "label": "Bonus Proficiencies",
+        "levelAvailable": "3",
+        "attribute": [
+          {
+            "value": "prerequisites",
+            "label": "Has Requirements"
+          },
+          {
+            "value": "hideOnSheet",
+            "label": "Hide On Sheet"
+          }
+        ],
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "proficiencies": [
+          {
+            "attribute": [
+              {
+                "value": "providesOptions",
+                "label": "Provides Options"
+              }
+            ],
+            "selectionCount": 3,
+            "category": {
+              "value": "skills",
+              "label": "Skills"
+            },
+            "level": {
+              "value": "proficient",
+              "label": "Proficient"
+            },
+            "skills": {
+              "type": [
+                {
+                  "value": "all",
+                  "label": "All"
+                }
+              ]
+            },
+            "id": "174394b5-8ee1-4787-b596-7cc29cf44329"
+          }
+        ],
+        "requirements": {
+          "options": [
+            {
+              "value": "notProficient",
+              "label": "Not Proficient"
+            }
+          ]
+        },
+        "id": "0487515d-2442-4d22-a2d6-5188854334e1"
+      },
+      {
+        "desc": "<p>At 3rd level, you learn how to use your wit to distract, confuse, and otherwise sap the confidence and competence of others. When a creature that you can see within 60 feet of you makes an attack roll, an ability check, or a damage roll, you can use your reaction to expend one of your uses of Bardic Inspiration, rolling a Bardic Inspiration die and subtracting the number rolled from the creature’s roll. You can choose to use this feature after the creature makes its roll, but before the GM determines whether the attack roll or ability check succeeds or fails, or before the creature deals its damage. The creature is immune if it can’t hear you or if it’s immune to being charmed.</p>",
+        "value": "cuttingWords",
+        "label": "Cutting Words",
+        "levelAvailable": "3",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "reaction",
+            "label": "Reaction"
+          }
+        },
+        "charges": {
+          "limit": {
+            "value": "resourcePoints",
+            "label": "Resource Points"
+          },
+          "resourcePoints": 1
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "9ccbe9bb-6f29-4e3b-a2ff-3cd402ee1471"
+      },
+      {
+        "desc": "<p>At 6th level, you learn two spells of your choice from any class. A spell you choose must be of a level you can cast, as shown on the Bard table, or a cantrip. The chosen spells count as bard spells for you but don’t count against the number of bard spells you know</p>",
+        "value": "additionalMagicalSecrets",
+        "label": "Additional Magical Secrets",
+        "levelAvailable": "6",
+        "attribute": [
+          {
+            "value": "hideOnSheet",
+            "label": "Hide On Sheet"
+          },
+          {
+            "value": "prerequisites",
+            "label": "Has Requirements"
+          }
+        ],
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "featureSpells": [
+          {
+            "attribute": [
+              {
+                "value": "providesOptions",
+                "label": "Provides Options"
+              }
+            ],
+            "selectionCount": 2,
+            "type": [
+              {
+                "value": "all",
+                "label": "All"
+              }
+            ]
+          }
+        ],
+        "requirements": {
+          "options": [
+            {
+              "value": "canCastLevel",
+              "label": "Can Cast"
+            }
+          ]
+        },
+        "id": "de39b524-d0de-46d1-865b-efd1bc74b6db"
+      },
+      {
+        "desc": "<p>Starting at 14th level, when you make an ability check, you can expend one use of Bardic Inspiration. Roll a Bardic Inspiration die and add the number rolled to your ability check. You can choose to do so after you roll the die for the ability check, but before the GM tells you whether you succeed or fail.</p>",
+        "value": "peerlessSkill",
+        "label": "Peerless Skill",
+        "levelAvailable": "14",
+        "attribute": [
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "charges": {
+          "limit": {
+            "value": "resourcePoints",
+            "label": "Resource Points"
+          },
+          "resourcePoints": 1
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "92a30e58-b5ef-49c6-abf8-ff3814e75549"
+      }
+    ],
+    "id": "5fcf36b8-36ea-4b36-8ff7-59a7db4e3b32",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "lifeDomain",
+    "label": "Life Domain",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "cleric",
+      "label": "Cleric"
+    },
+    "desc": "<p>The Life domain focuses on the vibrant positive energy — one of the fundamental forces of the universe — that sustains all life. The gods of life promote vitality and health through healing the sick and wounded, caring for those in need, and driving away the forces of death and undeath. Almost any non-evil deity can claim influence over this domain, particularly agricultural deities (such as Chauntea, Arawai, and Demeter), sun gods (such as Lathander, Pelor, and Re-Horakhty), gods of healing or endurance (such as Ilmater, Mishakal, Apollo, and Diancecht), and gods of home and community (such as Hestia, Hathor, and Boldrei).&nbsp;</p>",
+    "features": [
+      {
+        "desc": "<p>Your domain has a list of spells that you gain at the cleric levels noted in the domain description. Once you gain a domain spell, you always have it prepared, and it doesn’t count against the number of spells you can prepare each day.</p><p></p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 404px\"><colgroup><col style=\"width: 131px\"><col style=\"width: 273px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p><strong>Cleric Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>1st</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>bless</em>, <em>cure wounds</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>lesser restoration</em>, <em>spiritual weapon</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>beacon of hope</em>, <em>revivify</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>death ward</em>, <em>guardian of faith</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"131\" style=\"width: 131px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"273\" style=\"width: 273px;\"><p><em>mass cure wounds</em>, <em>raise dead</em></p></td></tr></tbody></table>",
+        "value": "lifeDomainSpells",
+        "label": "Life Domain Spells",
+        "levelAvailable": "1",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "hideOnSheet",
+            "label": "Hide On Sheet"
+          }
+        ],
+        "featureSpells": [
+          {
+            "attribute": [
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              },
+              {
+                "value": "usesSlot",
+                "label": "Uses Spell Slot"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "bless",
+                    "label": "Bless"
+                  },
+                  {
+                    "value": "cureWounds",
+                    "label": "Cure Wounds"
+                  }
+                ],
+                "level": {
+                  "value": "1",
+                  "label": "1"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "lesserRestoration",
+                    "label": "Lesser Restoration"
+                  },
+                  {
+                    "value": "spiritualWeapon",
+                    "label": "Spiritual Weapon"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "beaconOfHope",
+                    "label": "Beacon of Hope"
+                  },
+                  {
+                    "value": "revivify",
+                    "label": "Revivify"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "deathWard",
+                    "label": "Death Ward"
+                  },
+                  {
+                    "value": "guardianOfFaith",
+                    "label": "Guardian of Faith"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "massCureWounds",
+                    "label": "Mass Cure Wounds"
+                  },
+                  {
+                    "value": "raiseDead",
+                    "label": "Raise Dead"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ]
+          }
+        ],
+        "id": "69fa68e5-a749-4bbe-ab0f-6929251294ed"
+      },
+      {
+        "desc": "<p>When you choose this domain at 1st level, you gain proficiency with heavy armor.</p>",
+        "value": "bonusProficiency",
+        "label": "Bonus Proficiency",
+        "levelAvailable": "1",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "proficiencies": [
+          {
+            "category": {
+              "value": "properties",
+              "label": "Item Properties"
+            },
+            "level": {
+              "value": "proficient",
+              "label": "Full"
+            },
+            "properties": {
+              "type": [
+                {
+                  "value": "heavyArmor",
+                  "label": "Heavy Armor"
+                }
+              ],
+              "category": {
+                "value": "armor",
+                "label": "Armor"
+              }
+            },
+            "id": "9cbd2533-595c-4dc0-968c-9758bf7f6f72"
+          }
+        ],
+        "id": "d5a2f33b-32f3-40c8-b013-dc34f1287017"
+      },
+      {
+        "desc": "<p>Also starting at 1st level, your healing spells are more effective. Whenever you use a spell of 1st level or higher to restore hit points to a creature, the creature regains additional hit points equal to 2 + the spell’s level.</p>",
+        "value": "discipleOfLife",
+        "label": "Disciple of Life",
+        "levelAvailable": "1",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "modifiers": [
+          {
+            "category": {
+              "value": "spellDamage",
+              "label": "Spell Damage"
+            },
+            "mode": {
+              "value": "bonus",
+              "label": "Bonus"
+            },
+            "method": {
+              "value": "setAmount",
+              "label": "Set Value"
+            },
+            "setAmount": 2,
+            "damage": {
+              "type": [
+                {
+                  "value": "healing",
+                  "label": "Healing"
+                }
+              ]
+            },
+            "id": "264370f5-0ce5-4266-98b5-2d5512c87d10"
+          },
+          {
+            "category": {
+              "value": "spellDamage",
+              "label": "Spell Damage"
+            },
+            "mode": {
+              "value": "bonus",
+              "label": "Bonus"
+            },
+            "method": {
+              "value": "spellLevel",
+              "label": "Spell level"
+            },
+            "damage": {
+              "type": [
+                {
+                  "value": "healing",
+                  "label": "Healing"
+                }
+              ]
+            },
+            "id": "ad49623d-9471-4afa-b260-5d85c6a2f8ed"
+          }
+        ],
+        "id": "35c49496-66e3-48c3-9a19-a9b650a2fea0"
+      },
+      {
+        "desc": "<p>Starting at 2nd level, you can use your Channel Divinity to heal the badly injured.</p><p>As an action, you present your holy symbol and evoke healing energy that can restore a number of hit points equal to five times your cleric level. Choose any creatures within 30 feet of you, and divide those hit points among them. This feature can restore a creature to no more than half of its hit point maximum. You can’t use this feature on an undead or a construct.</p>",
+        "value": "channelDivinityPreserveLife",
+        "label": "Channel Divinity: Preserve Life",
+        "levelAvailable": "2",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          },
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "doesDamage",
+            "label": "Inflicts Damage"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "damage": {
+          "primary": {
+            "attribute": {
+              "value": "damagePool",
+              "label": "Damage Pool"
+            },
+            "type": {
+              "value": "healing",
+              "label": "Healing"
+            },
+            "pool": {
+              "multiplier": 5
+            }
+          }
+        },
+        "charges": {
+          "limit": {
+            "value": "resourcePoints",
+            "label": "Resource Points"
+          },
+          "resourcePoints": 1
+        },
+        "id": "32274725-6f36-4861-a857-beb06b66f486"
+      },
+      {
+        "desc": "<p>Beginning at 6th level, the healing spells you cast on others heal you as well. When you cast a spell of 1st level or higher that restores hit points to a creature other than you, you regain hit points equal to 2 + the spell’s level.</p>",
+        "value": "blessedHealer",
+        "label": "Blessed Healer",
+        "levelAvailable": "6",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "ef772d8c-376d-4672-9eb3-1647fa600568"
+      },
+      {
+        "desc": "<p>At 8th level, you gain the ability to infuse your weapon strikes with divine energy. Once on each of your turns when you hit a creature with a weapon attack, you can cause the attack to deal an extra 1d8 radiant damage to the target. When you reach 14th level, the extra damage increases to 2d8.</p>",
+        "value": "divineStrike",
+        "label": "Divine Strike",
+        "levelAvailable": "8",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "doesDamage",
+            "label": "Inflicts Damage"
+          }
+        ],
+        "damage": {
+          "attribute": [
+            {
+              "value": "addToWeaponAttack",
+              "label": "Add to Weapon Attack"
+            }
+          ]
+        },
+        "id": "ea9d3fae-f7a6-4ec6-91e3-f014e9310552"
+      },
+      {
+        "desc": "<p>Starting at 17th level, when you would normally roll one or more dice to restore hit points with a spell, you instead use the highest number possible for each die. For example, instead of restoring 2d6 hit points to a creature, you restore 12.</p>",
+        "value": "supremeHealing",
+        "label": "Supreme Healing",
+        "levelAvailable": "17",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "modifiers": [
+          {
+            "category": {
+              "value": "spellDamage",
+              "label": "Spell Damage"
+            },
+            "mode": {
+              "value": "maxDamage",
+              "label": "Max Damage"
+            },
+            "damage": {
+              "type": [
+                {
+                  "value": "healing",
+                  "label": "Healing"
+                }
+              ]
+            },
+            "id": "fb6b3f34-e5c6-4380-8817-c965434b0626"
+          }
+        ],
+        "id": "f4204a38-2c7c-4fa9-8d4f-0edc0f2ccc99"
+      }
+    ],
+    "id": "afeeb8e2-24fd-4c0b-afd7-04bf9bda53c3",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "circleOfTheLand",
+    "label": "Circle of the Land",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "druid",
+      "label": "Druid"
+    },
+    "attribute": [
+      {
+        "value": "subtypes",
+        "label": "Subtypes"
+      }
+    ],
+    "desc": "<p>The Circle of the Land is made up of mystics and sages who safeguard ancient knowledge and rites through a vast oral tradition. These druids meet within sacred circles of trees or standing stones to whisper primal secrets in Druidic. The circle’s wisest members preside as the chief priests of communities that hold to the Old Faith and serve as advisors to the rulers of those folk. As a member of this circle, your magic is influenced by the land where you were initiated into the circle’s mysterious rites.</p>",
+    "subtypes": [
+      {
+        "id": "a013212d-03e3-41c2-9813-6da8c34f8753",
+        "value": "arctic",
+        "label": "Arctic"
+      },
+      {
+        "id": "4eda978e-46fe-49df-b0b4-bb1876e1fd88",
+        "value": "coast",
+        "label": "Coast"
+      },
+      {
+        "id": "07406a2f-b194-444c-972d-2edd035cf271",
+        "value": "desert",
+        "label": "Desert"
+      },
+      {
+        "id": "91b169cf-3192-42f3-a7d9-791021587c36",
+        "value": "forest",
+        "label": "Forest"
+      },
+      {
+        "id": "45a306f3-c5db-46ad-a22f-1948ab137985",
+        "value": "grassland",
+        "label": "Grassland"
+      },
+      {
+        "id": "c924d685-c38f-4160-a5cb-1df38a2ff6b7",
+        "value": "mountain",
+        "label": "Mountain"
+      },
+      {
+        "id": "e779214c-18b2-4473-ad44-85878392eecf",
+        "value": "swamp",
+        "label": "Swamp"
+      }
+    ],
+    "features": [
+      {
+        "desc": "<p>When you choose this circle at 2nd level, you learn one additional druid cantrip of your choice. This cantrip doesn’t count against the number of druid cantrips you know.</p>",
+        "value": "bonusCantrip",
+        "label": "Bonus Cantrip",
+        "levelAvailable": "2",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "hideOnSheet",
+            "label": "Hide On Sheet"
+          }
+        ],
+        "targets": 1,
+        "featureSpells": [
+          {
+            "attribute": [
+              {
+                "value": "levelLimit",
+                "label": "Limit By Level"
+              },
+              {
+                "value": "providesOptions",
+                "label": "Provides Options"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "classLimit",
+                "label": "Limit By Class"
+              }
+            ],
+            "selectionCount": 1,
+            "classLimit": [
+              {
+                "value": "druid",
+                "label": "Druid"
+              }
+            ],
+            "levelLimit": [
+              {
+                "value": "0",
+                "label": "0"
+              }
+            ],
+            "type": [
+              {
+                "value": "all",
+                "label": "All"
+              }
+            ]
+          }
+        ],
+        "id": "ebc5389d-b550-4a2f-b6fd-589217a3a23d"
+      },
+      {
+        "desc": "<p>Starting at 2nd level, you can regain some of your magical energy by sitting in meditation and communing with nature. During a short rest, you choose expended spell slots to recover. The spell slots can have a combined level that is equal to or less than half your druid level (rounded up), and none of the slots can be 6th level or higher. You can’t use this feature again until you finish a long rest.</p><p>For example, when you are a 4th-level druid, you can recover up to two levels worth of spell slots. You can recover either a 2nd-level slot or two 1st-level slots.</p>",
+        "value": "naturalRecovery",
+        "label": "Natural Recovery",
+        "levelAvailable": "2",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "charges": {
+          "reset": {
+            "value": "longRest",
+            "label": "Long Rest"
+          },
+          "limit": {
+            "value": "setAmount",
+            "label": "Set Value"
+          },
+          "setAmount": 1
+        },
+        "targets": 1,
+        "id": "0b4d7abd-4962-4fa1-827b-75bf4cdda31e"
+      },
+      {
+        "desc": "<p>Your mystical connection to the land infuses you with the ability to cast certain spells. At 3rd, 5th, 7th, and 9th level you gain access to circle spells connected to the land where you became a druid. Choose that land—arctic, coast, desert, forest, grassland, mountain, or swamp—and consult the associated list of spells</p><p>Once you gain access to a circle spell, you always have it prepared, and it doesn’t count against the number of spells you can prepare each day. If you gain access to a spell that doesn’t appear on the druid spell list, the spell is nonetheless a druid spell for you.</p><h5><strong>Arctic</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 417px\"><colgroup><col style=\"width: 136px\"><col style=\"width: 281px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>hold person</em>, <em>spike growth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>sleet storm</em>, <em>slow</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>freedom of movement</em>, <em>ice storm</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>commune with nature</em>, <em>cone of cold</em>&nbsp;</p></td></tr></tbody></table><h5><strong>Coast</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 418px\"><colgroup><col style=\"width: 139px\"><col style=\"width: 279px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>mirror image</em>, <em>misty step</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>water breathing</em>, <em>water walk</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>control water</em>,<em> freedom of movement</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>conjure elemental</em>, <em>scrying</em></p></td></tr></tbody></table><h5><strong>Desert</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 418px\"><colgroup><col style=\"width: 141px\"><col style=\"width: 277px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>blur</em>, <em>silence</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>create food and water</em>, <em>protection from energy</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>blight</em>, <em>hallucinatory terrain</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>insect plague</em>, <em>wall of stone</em></p></td></tr></tbody></table><h5><strong>Forest</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 421px\"><colgroup><col style=\"width: 141px\"><col style=\"width: 280px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>barkskin</em>, <em>spider climb</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>call lightning</em>, <em>plant growth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>divination</em>, <em>freedom of movement</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"141\" style=\"width: 141px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>commune with nature</em>, <em>tree stride</em></p></td></tr></tbody></table><h5><strong>Grassland</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 421px\"><colgroup><col style=\"width: 140px\"><col style=\"width: 281px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>invisibility</em>, <em>pass without trace</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>daylight</em>, <em>haste</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>divination</em>, <em>freedom of movement</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"281\" style=\"width: 281px;\"><p><em>dream</em>, <em>insect plague</em></p></td></tr></tbody></table><h5><strong>Mountain</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 421px\"><colgroup><col style=\"width: 142px\"><col style=\"width: 279px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>spider climb</em>, <em>spike growth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>lightning bolt</em>, <em>meld into stone</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>stone shape</em>, <em>stoneskin</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"142\" style=\"width: 142px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"279\" style=\"width: 279px;\"><p><em>passwall</em>, <em>wall of stone</em></p></td></tr></tbody></table><h5><strong>Swamp</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 423px\"><colgroup><col style=\"width: 143px\"><col style=\"width: 280px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p><strong>Druid Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>darkness</em>, <em>acid arrow</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>water walk</em>, <em>stinking cloud</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>7th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>freedom of movement</em>, <em>locate creature</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"143\" style=\"width: 143px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"280\" style=\"width: 280px;\"><p><em>insect plague</em>, <em>scrying</em></p></td></tr></tbody></table>",
+        "value": "circleSpells",
+        "label": "Circle Spells",
+        "levelAvailable": "3, 5, 7, 9",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "hideOnSheet",
+            "label": "Hide On Sheet"
+          }
+        ],
+        "targets": 1,
+        "featureSpells": [
+          {
+            "attribute": [
+              {
+                "value": "spellsByLevel",
+                "label": "Add Spells By Level"
+              },
+              {
+                "value": "subtypeSpecific",
+                "label": "Subtype Specific"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "holdPerson",
+                    "label": "Hold Person"
+                  },
+                  {
+                    "value": "spikeGrowth",
+                    "label": "Spike Growth"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "sleetStorm",
+                    "label": "Sleet Storm"
+                  },
+                  {
+                    "value": "slow",
+                    "label": "Slow"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "freedomOfMovement",
+                    "label": "Freedom of Movement"
+                  },
+                  {
+                    "value": "iceStorm",
+                    "label": "Ice Storm"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "communeWithNature",
+                    "label": "Commune With Nature"
+                  },
+                  {
+                    "value": "coneOfCold",
+                    "label": "Cone of Cold"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ],
+            "subtype": {
+              "value": "arctic",
+              "label": "Arctic"
+            }
+          },
+          {
+            "attribute": [
+              {
+                "value": "subtypeSpecific",
+                "label": "Subtype Specific"
+              },
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "mirrorImage",
+                    "label": "Mirror Image"
+                  },
+                  {
+                    "value": "mistyStep",
+                    "label": "Misty Step"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "waterBreathing",
+                    "label": "Water Breathing"
+                  },
+                  {
+                    "value": "waterWalk",
+                    "label": "Water Walk"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "controlWater",
+                    "label": "Control Water"
+                  },
+                  {
+                    "value": "freedomOfMovement",
+                    "label": "Freedom of Movement"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "conjureElemental",
+                    "label": "Conjure Elemental"
+                  },
+                  {
+                    "value": "scrying",
+                    "label": "Scrying"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ],
+            "subtype": {
+              "value": "coast",
+              "label": "Coast"
+            }
+          },
+          {
+            "attribute": [
+              {
+                "value": "subtypeSpecific",
+                "label": "Subtype Specific"
+              },
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "blur",
+                    "label": "Blur"
+                  },
+                  {
+                    "value": "silence",
+                    "label": "Silence"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "createFoodAndWater",
+                    "label": "Create Food and Water"
+                  },
+                  {
+                    "value": "protectionFromEnergy",
+                    "label": "Protection from Energy"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "blight",
+                    "label": "Blight"
+                  },
+                  {
+                    "value": "hallucinatoryTerrain",
+                    "label": "Hallucinatory Terrain"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "insectPlague",
+                    "label": "Insect Plague"
+                  },
+                  {
+                    "value": "wallOfStone",
+                    "label": "Wall of Stone"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ],
+            "subtype": {
+              "value": "desert",
+              "label": "Desert"
+            }
+          },
+          {
+            "attribute": [
+              {
+                "value": "subtypeSpecific",
+                "label": "Subtype Specific"
+              },
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "barkskin",
+                    "label": "Barkskin"
+                  },
+                  {
+                    "value": "spiderClimb",
+                    "label": "Spider Climb"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "callLightning",
+                    "label": "Call Lightning"
+                  },
+                  {
+                    "value": "plantGrowth",
+                    "label": "Plant Growth"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "divination",
+                    "label": "Divination"
+                  },
+                  {
+                    "value": "freedomOfMovement",
+                    "label": "Freedom of Movement"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "communeWithNature",
+                    "label": "Commune With Nature"
+                  },
+                  {
+                    "value": "treeStride",
+                    "label": "Tree Stride"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ],
+            "subtype": {
+              "value": "forest",
+              "label": "Forest"
+            }
+          },
+          {
+            "attribute": [
+              {
+                "value": "subtypeSpecific",
+                "label": "Subtype Specific"
+              },
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "invisibility",
+                    "label": "Invisibility"
+                  },
+                  {
+                    "value": "passWithoutATrace",
+                    "label": "Pass Without a Trace"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "daylight",
+                    "label": "Daylight"
+                  },
+                  {
+                    "value": "haste",
+                    "label": "Haste"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "divination",
+                    "label": "Divination"
+                  },
+                  {
+                    "value": "freedomOfMovement",
+                    "label": "Freedom of Movement"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "dream",
+                    "label": "Dream"
+                  },
+                  {
+                    "value": "insectPlague",
+                    "label": "Insect Plague"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ],
+            "subtype": {
+              "value": "grassland",
+              "label": "Grassland"
+            }
+          },
+          {
+            "attribute": [
+              {
+                "value": "subtypeSpecific",
+                "label": "Subtype Specific"
+              },
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "spiderClimb",
+                    "label": "Spider Climb"
+                  },
+                  {
+                    "value": "spikeGrowth",
+                    "label": "Spike Growth"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "lightningBolt",
+                    "label": "Lightning Bolt"
+                  },
+                  {
+                    "value": "meldIntoStone",
+                    "label": "Meld Into Stone"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "stoneShape",
+                    "label": "Stone Shape"
+                  },
+                  {
+                    "value": "stoneskin",
+                    "label": "Stoneskin"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "passwall",
+                    "label": "Passwall"
+                  },
+                  {
+                    "value": "wallOfStone",
+                    "label": "Wall of Stone"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ],
+            "subtype": {
+              "value": "mountain",
+              "label": "Mountain"
+            }
+          },
+          {
+            "attribute": [
+              {
+                "value": "subtypeSpecific",
+                "label": "Subtype Specific"
+              },
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              },
+              {
+                "value": "isPrepared",
+                "label": "Always Prepared"
+              },
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "darkness",
+                    "label": "Darkness"
+                  },
+                  {
+                    "value": "acidArrow",
+                    "label": "Acid Arrow"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "stinkingCloud",
+                    "label": "Stinking Cloud"
+                  },
+                  {
+                    "value": "waterWalk",
+                    "label": "Water Walk"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "freedomOfMovement",
+                    "label": "Freedom of Movement"
+                  },
+                  {
+                    "value": "locateCreature",
+                    "label": "Locate Creature"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "insectPlague",
+                    "label": "Insect Plague"
+                  },
+                  {
+                    "value": "scrying",
+                    "label": "Scrying"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ],
+            "subtype": {
+              "value": "swamp",
+              "label": "Swamp"
+            }
+          }
+        ],
+        "id": "f125c7ce-8ba4-4575-9504-1809fb71b84f"
+      },
+      {
+        "desc": "<p>Starting at 6th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard.</p><p>In addition, you have advantage on saving throws against plants that are magically created or manipulated to impede movement, such those created by the <em>entangle</em> spell.</p>",
+        "value": "landsStride",
+        "label": "Land's Stride",
+        "levelAvailable": "6",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "targets": 1,
+        "id": "8fb90d32-e1b3-4fa8-8a61-eab9fd8fb390"
+      },
+      {
+        "desc": "<p>When you reach 10th level, you can’t be charmed or frightened by elementals or fey, and you are immune to poison and disease.</p>",
+        "value": "naturesWard",
+        "label": "Nature's Ward",
+        "levelAvailable": "10",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "targets": 1,
+        "modifiers": [
+          {
+            "category": {
+              "value": "condition",
+              "label": "Condition"
+            },
+            "mode": {
+              "value": "immunity",
+              "label": "Immunity"
+            },
+            "conditions": {
+              "type": [
+                {
+                  "value": "poisoned",
+                  "label": "Poisoned"
+                }
+              ]
+            },
+            "id": "812fa9cc-718c-4f4b-8529-a8efb0c24afa"
+          }
+        ],
+        "id": "c25d6f4a-ff85-4749-8b7b-1aaa2630f89a"
+      },
+      {
+        "desc": "<p>When you reach 14th level, creatures of the natural world sense your connection to nature and become hesitant to attack you. When a beast or plant creature attacks you, that creature must make a Wisdom saving throw against your druid spell save DC. On a failed save, the creature must choose a different target, or the attack automatically misses. On a successful save, the creature is immune to this effect for 24 hours.</p><p>The creature is aware of this effect before it makes its attack against you.</p>",
+        "value": "naturesSanctuary",
+        "label": "Nature's Sanctuary",
+        "levelAvailable": "14",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "targets": 1,
+        "id": "1b4d0f7f-1601-4d37-93a1-c54662d6e62e"
+      }
+    ],
+    "id": "a6ec1e27-b592-4398-b405-9467d10a6aa6",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "champion",
+    "label": "Champion",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "fighter",
+      "label": "Fighter"
+    },
+    "attribute": [
+      {
+        "value": "classStyle",
+        "label": "Has Class Style"
+      }
+    ],
+    "desc": "<p>The archetypal Champion focuses on the development of raw physical power honed to deadly perfection. Those who model themselves on this archetype combine rigorous training with physical excellence to deal devastating blows.</p>",
+    "features": [
+      {
+        "desc": "<p>Beginning when you choose this archetype at 3rd level, your weapon attacks score a critical hit on a roll of 19 or 20.</p>",
+        "value": "improvedCritical",
+        "label": "Improved Critical",
+        "levelAvailable": "3",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "dae4c5e1-d355-4004-aa27-243c8ba3a16b"
+      },
+      {
+        "desc": "<p>Starting at 7th level, you can add half your proficiency bonus (round up) to any Strength, Dexterity, or Constitution check you make that doesn’t already use your proficiency bonus.</p><p>In addition, when you make a running long jump, the distance you can cover increases by a number of feet equal to your Strength modifier.</p>",
+        "value": "remarkableAthlete",
+        "label": "Remarkable Athlete",
+        "levelAvailable": "7",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "98fa141a-f06e-4dc3-b1d8-adba7a26b1eb"
+      },
+      {
+        "desc": "<p>Starting at 15th level, your weapon attacks score a critical hit on a roll of 18–20.</p>",
+        "value": "superiorCritical",
+        "label": "Superior Critical",
+        "levelAvailable": "15",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "cf7a1d45-c192-4916-8640-36e0e33dbcc2"
+      },
+      {
+        "desc": "<p>At 18th level, you attain the pinnacle of resilience in battle. At the start of each of your turns, you regain hit points equal to 5 + your Constitution modifier if you have no more than half of your hit points left. You don’t gain this benefit if you have 0 hit points.</p>",
+        "value": "survivor",
+        "label": "Survivor",
+        "levelAvailable": "18",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "1654b808-1553-42b7-923f-547ab4686f62"
+      },
+      {
+        "desc": "<p>You adopt a particular style of fighting as your specialty. Choose one of the following options. You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
+        "value": "additionalFightingStyle",
+        "label": "Additional Fighting Style",
+        "levelAvailable": "1",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "hideOnSheet",
+            "label": "Hide On Sheet"
+          },
+          {
+            "value": "prerequisites",
+            "label": "Has Requirements"
+          }
+        ],
+        "targets": 1,
+        "options": [
+          {
+            "desc": "<p>You gain a +2 bonus to attack rolls you make with ranged weapons.</p>",
+            "value": "archery",
+            "label": "Archery",
+            "levelAvailable": "1",
+            "modifiers": [
+              {
+                "category": {
+                  "value": "rangeAttack",
+                  "label": "Range Attack"
+                },
+                "mode": {
+                  "value": "bonus",
+                  "label": "Bonus"
+                },
+                "method": {
+                  "value": "setAmount",
+                  "label": "Set Value"
+                },
+                "setAmount": 2,
+                "id": "4d65244d-33d3-490d-a69a-a7e2b6fbc954"
+              }
+            ],
+            "id": "eb7cbd8e-ccc4-4776-8749-e1cab57bb397"
+          },
+          {
+            "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
+            "value": "defense",
+            "label": "Defense",
+            "levelAvailable": "1",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                }
+              ],
+              "equipped": [
+                {
+                  "category": {
+                    "value": "armor",
+                    "label": "Armor"
+                  }
+                }
+              ]
+            },
+            "modifiers": [
+              {
+                "category": {
+                  "value": "armorClass",
+                  "label": "Armor Class"
+                },
+                "mode": {
+                  "value": "bonus",
+                  "label": "Bonus"
+                },
+                "method": {
+                  "value": "setAmount",
+                  "label": "Set Value"
+                },
+                "setAmount": 1,
+                "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
+              }
+            ],
+            "id": "54fa0eea-ccc4-482d-b374-fff898f45740"
+          },
+          {
+            "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
+            "value": "dueling",
+            "label": "Dueling",
+            "levelAvailable": "1",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "notEquipped",
+                  "label": "Not Equipped"
+                }
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "melee",
+                        "label": "Melee"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "twoHanded",
+                        "label": "Two Handed"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "id": "de695959-dd9a-4c54-8328-eaa76ee9fcc6"
+          },
+          {
+            "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
+            "value": "greatWeaponFighting",
+            "label": "Great Weapon Fighting",
+            "levelAvailable": "1",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                }
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "twoHanded",
+                        "label": "Two Handed"
+                      },
+                      {
+                        "value": "melee",
+                        "label": "Melee"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "id": "6ee3e3db-f274-4b3c-98c4-fc8ce63dfdd8"
+          },
+          {
+            "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
+            "value": "protection",
+            "label": "Protection",
+            "levelAvailable": "1",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              },
+              {
+                "value": "isAction",
+                "label": "Action Type"
+              }
+            ],
+            "action": {
+              "type": {
+                "value": "reaction",
+                "label": "Reaction"
+              }
+            },
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                }
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": {
+                    "value": "shield",
+                    "label": "Shield"
+                  },
+                  "item": {
+                    "type": [
+                      {
+                        "value": "metalShield",
+                        "label": "Shield"
+                      },
+                      {
+                        "value": "woodenShield",
+                        "label": "Shield"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "id": "58cd8295-5303-4850-a856-d851755f32b5"
+          },
+          {
+            "desc": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
+            "value": "twoWeaponFighting",
+            "label": "Two-Weapon Fighting",
+            "levelAvailable": "1",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "notEquipped",
+                  "label": "Not Equipped"
+                }
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 2,
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "melee",
+                        "label": "Melee"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "twoHanded",
+                        "label": "Two Handed"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "id": "6733af29-3128-4ef3-bb7e-55ab2998567b"
+          }
+        ],
+        "requirements": {
+          "options": [
+            {
+              "value": "optionNotAcquired",
+              "label": "Option Not Acquired"
+            }
+          ]
+        },
+        "id": "c6ced359-5fdc-4fae-a027-5114f4e6dc75"
+      }
+    ],
+    "id": "0f5626dc-cb4d-45ec-9c88-c7449cb5a3f1",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "wayOfTheOpenHand",
+    "label": "Way of the Open Hand",
+    "desc": "<p>Monks of the Way of the Open Hand are the ultimate masters of martial arts combat, whether armed or unarmed. They learn techniques to push and trip their opponents, manipulate ki to heal damage to their bodies, and practice advanced meditation that can protect them from harm.</p>",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "monk",
+      "label": "Monk"
+    },
+    "features": [
+      {
+        "desc": "<p>Starting when you choose this tradition at 3rd level, you can manipulate your enemy’s ki when you harness your own. Whenever you hit a creature with one of the attacks granted by your Flurry of Blows, you can impose one of the following effects on that target:</p><ul><li><p>It must succeed on a Dexterity saving throw or be knocked prone.</p></li><li><p>It must make a Strength saving throw. If it fails, you can push it up to 15 feet away from you.</p></li><li><p>It can’t take reactions until the end of your next turn.</p></li></ul>",
+        "value": "openHandTechnique",
+        "label": "Open Hand Technique",
+        "levelAvailable": "3",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "d4f7e7d8-6a36-4478-8869-84b5ee0a27da"
+      },
+      {
+        "desc": "<p>At 6th level, you gain the ability to heal yourself. As an action, you can regain hit points equal to three times your monk level. You must finish a long rest before you can use this feature again.</p>",
+        "value": "wholenessBody",
+        "label": "Wholeness Body",
+        "levelAvailable": "6",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "doesDamage",
+            "label": "Inflicts Damage"
+          },
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "damage": {
+          "primary": {
+            "attribute": {
+              "value": "setPerLevel",
+              "label": "Set Per Level"
+            },
+            "type": {
+              "value": "healing",
+              "label": "Healing"
+            }
+          },
+          "setPerLevel": [
+            {
+              "level": "6",
+              "primary": 18
+            },
+            {
+              "level": "7",
+              "primary": 21
+            },
+            {
+              "level": "8",
+              "primary": 24
+            },
+            {
+              "level": "9",
+              "primary": 27
+            },
+            {
+              "level": "10",
+              "primary": 30
+            },
+            {
+              "level": "11",
+              "primary": 33
+            },
+            {
+              "level": "12",
+              "primary": 36
+            },
+            {
+              "level": "13",
+              "primary": 39
+            },
+            {
+              "level": "14",
+              "primary": 42
+            },
+            {
+              "level": "15",
+              "primary": 45
+            },
+            {
+              "level": "16",
+              "primary": 48
+            },
+            {
+              "level": "17",
+              "primary": 51
+            },
+            {
+              "level": "18",
+              "primary": 54
+            },
+            {
+              "level": "19",
+              "primary": 57
+            },
+            {
+              "level": "20",
+              "primary": 60
+            }
+          ]
+        },
+        "charges": {
+          "reset": {
+            "value": "longRest",
+            "label": "Long Rest"
+          },
+          "limit": {
+            "value": "setAmount",
+            "label": "Set Value"
+          },
+          "setAmount": 1
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "6895830c-5970-4697-a735-eaa86ce7e092"
+      },
+      {
+        "desc": "<p>Beginning at 11th level, you can enter a special meditation that surrounds you with an aura of peace. At the end of a long rest, you gain the effect of a <em>sanctuary</em> spell that lasts until the start of your next long rest (the spell can end early as normal). The saving throw DC for the spell equals 8 + your Wisdom modifier + your proficiency bonus.</p>",
+        "value": "tranquility",
+        "label": "Tranquility",
+        "levelAvailable": "11",
+        "saveAbility": {
+          "type": {
+            "value": "wis",
+            "label": "Widsom"
+          },
+          "minAmount": 8,
+          "attribute": [
+            {
+              "value": "addAbilityModifier",
+              "label": "Add Ability Modifier"
+            },
+            {
+              "value": "addProficiencyBonus",
+              "label": "Add Proficiency Bonus"
+            }
+          ]
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "6c59e747-a982-4bd9-8231-9420770aa01a"
+      },
+      {
+        "desc": "<p>At 17th level, you gain the ability to set up lethal vibrations in someone’s body. When you hit a creature with an unarmed strike, you can spend 3 ki points to start these imperceptible vibrations, which last for a number of days equal to your monk level. The vibrations are harmless unless you use your action to end them. To do so, you and the target must be on the same plane of existence. When you use this action, the creature must make a Constitution saving throw. If it fails, it is reduced to 0 hit points. If it succeeds, it takes 10d10 necrotic damage.</p><p>You can have only one creature under the effect of this feature at a time. You can choose to end the vibrations harmlessly without using an action.</p>",
+        "value": "quiveringPalm",
+        "label": "Quivering Palm",
+        "levelAvailable": "17",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "requiresSave",
+            "label": "Save Required"
+          },
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          },
+          {
+            "value": "doesDamage",
+            "label": "Inflicts Damage"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "damage": {
+          "primary": {
+            "type": {
+              "value": "necrotic",
+              "label": "Necrotic"
+            },
+            "dieCount": 10,
+            "dieValue": {
+              "value": 10,
+              "label": 10
+            }
+          }
+        },
+        "charges": {
+          "limit": {
+            "value": "resourcePoints",
+            "label": "Resource Points"
+          },
+          "resourcePoints": 3
+        },
+        "saveAbility": {
+          "type": {
+            "value": "con",
+            "label": "Constitution"
+          },
+          "minAmount": 8,
+          "attribute": [
+            {
+              "value": "addAbilityModifier",
+              "label": "Add Ability Modifier"
+            },
+            {
+              "value": "addProficiencyBonus",
+              "label": "Add Proficiency Bonus"
+            }
+          ],
+          "abilityModifier": {
+            "type": {
+              "value": "wis",
+              "label": "Widsom"
+            }
+          }
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "bd4c7eae-2949-4d18-8f3d-61c2ffd966ec"
+      }
+    ],
+    "id": "db21b4c9-9b4b-458d-a93b-24a97c959667",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "oathOfDevotion",
+    "label": "Oath of Devotion",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "paladin",
+      "label": "Paladin"
+    },
+    "desc": "<p>The Oath of Devotion binds a paladin to the loftiest ideals of justice, virtue, and order. Sometimes called cavaliers, white knights, or holy warriors, these paladins meet the ideal of the knight in shining armor, acting with honor in pursuit of justice and the greater good. They hold themselves to the highest standards of conduct, and some, for better or worse, hold the rest of the world to the same standards. Many who swear this oath are devoted to gods of law and good and use their gods’ tenets as the measure of their devotion. They hold angels—the perfect servants of good—as their ideals, and incorporate images of angelic wings into their helmets or coats of arms.</p><blockquote><p><strong>TENETS OF DEVOTION</strong></p><p>Though the exact words and strictures of the Oath of Devotion vary, paladins of this oath share these tenets.</p><p><strong>Honesty.</strong> Don’t lie or cheat. Let your word be your promise.</p><p><strong>Courage.</strong> Never fear to act, though caution is wise.</p><p><strong>Compassion.</strong> Aid others, protect the weak, and punish those who threaten them. Show mercy to your foes, but temper it with wis.</p><p><strong>Honor.</strong> Treat others with fairness, and let your honorable deeds be an example to them. Do as much good as possible while causing the least amount of harm.</p><p><strong>Duty.</strong> Be responsible for your actions and their consequences, protect those entrusted to your care, and obey those who have just authority over you.</p></blockquote>",
+    "attribute": [
+      {
+        "value": "hasResourcePoints",
+        "label": "Has Resource Points"
+      }
+    ],
+    "resource": {
+      "value": "channelDivinity",
+      "label": "Channel Divinity",
+      "desc": "<p>When you take this oath at 3rd level, you gain the following two Channel Divinity options.</p>",
+      "levelAvailable": 3,
+      "charges": {
+        "reset": {
+          "value": "shortRest",
+          "label": "Short Rest"
+        },
+        "method": {
+          "value": "setAmount",
+          "label": "Set Value"
+        },
+        "setAmount": 1
+      }
+    },
+    "features": [
+      {
+        "desc": "<p>As an action, you can imbue one weapon that you are holding with positive energy, using your Channel Divinity. For 1 minute, you add your Charisma modifier to attack rolls made with that weapon (with a minimum bonus of +1). The weapon also emits bright light in a 20-foot radius and dim light 20 feet beyond that. If the weapon is not already magical, it becomes magical for the duration.</p><p>You can end this effect on your turn as part of any other action. If you are no longer holding or carrying this weapon, or if you fall unconscious, this effect ends.</p>",
+        "value": "channelDivinitySacredWeapon",
+        "label": "Channel Divinity: Sacred Weapon",
+        "levelAvailable": "3",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "charges": {
+          "limit": {
+            "value": "resourcePoints",
+            "label": "Resource Points"
+          },
+          "resourcePoints": 1
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "42cf0b89-22e8-4f1f-91c7-18a368981007"
+      },
+      {
+        "desc": "<p>As an action, you present your holy symbol and speak a prayer censuring fiends and undead, using your Channel Divinity. Each fiend or undead that can see or hear you within 30 feet of you must make a Wisdom saving throw. If the creature fails its saving throw, it is turned for 1 minute or until it takes damage.</p><p>A turned creature must spend its turns trying to move as far away from you as it can, and it can’t willingly move to a space within 30 feet of you. It also can’t take reactions. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If there’s nowhere to move, the creature can use the Dodge action.</p>",
+        "value": "channelDivinityTurnTheUnholy",
+        "label": "Channel Divinity: Turn the Unholy",
+        "levelAvailable": "3",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "requiresSave",
+            "label": "Save Required"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "saveAbility": {
+          "type": {
+            "value": "wis",
+            "label": "Widsom"
+          }
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "11056960-2125-4013-93cc-aa68781a69b2"
+      },
+      {
+        "desc": "<p>You gain oath spells at the paladin levels listed.<br></p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 416px\"><colgroup><col style=\"width: 139px\"><col style=\"width: 277px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p><strong>Paladin Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>protection from evil and good</em>, <em>sanctuary</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>lesser restoration</em>, <em>zone of truth</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>9th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>beacon of hope</em>, <em>dispel magic</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>13th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>freedom of movement</em>, <em>guardian of faith</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"139\" style=\"width: 139px;\"><p>17th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"277\" style=\"width: 277px;\"><p><em>commune</em>, <em>flame strike</em></p></td></tr></tbody></table>",
+        "value": "oathOfDevotionSpells",
+        "label": "Oath of Devotion Spells",
+        "levelAvailable": "3, 5, 9, 13, 17",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "featureSpells": [
+          {
+            "attribute": [
+              {
+                "value": "spellsByLevel",
+                "label": "Spells By Level"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "protectionFromEvilAndGood",
+                    "label": "Protection from Evil and Good"
+                  },
+                  {
+                    "value": "sanctuary",
+                    "label": "Sanctuary"
+                  }
+                ],
+                "level": 3
+              },
+              {
+                "spells": [
+                  {
+                    "value": "lesserRestoration",
+                    "label": "Lesser Restoration"
+                  },
+                  {
+                    "value": "zoneOfTruth",
+                    "label": "Zone of Truth"
+                  }
+                ],
+                "level": 5
+              },
+              {
+                "spells": [
+                  {
+                    "value": "beaconOfHope",
+                    "label": "Beacon of Hope"
+                  },
+                  {
+                    "value": "dispelMagic",
+                    "label": "Dispel Magic"
+                  }
+                ],
+                "level": 9
+              },
+              {
+                "spells": [
+                  {
+                    "value": "freedomOfMovement",
+                    "label": "Freedom of Movement"
+                  },
+                  {
+                    "value": "guardianOfFaith",
+                    "label": "Guardian of Faith"
+                  }
+                ],
+                "level": 13
+              },
+              {
+                "spells": [
+                  {
+                    "value": "commune",
+                    "label": "Commune"
+                  },
+                  {
+                    "value": "flameStrike",
+                    "label": "Flame Strike"
+                  }
+                ],
+                "level": 17
+              }
+            ]
+          }
+        ],
+        "id": "ed79f466-87d8-4b08-bbc6-8da80d7685c7"
+      },
+      {
+        "desc": "<p>Starting at 7th level, you and friendly creatures within 10 feet of you can’t be charmed while you are conscious.</p><p>At 18th level, the range of this aura increases to 30 feet.</p>",
+        "value": "auraOfDevotion",
+        "label": "Aura of Devotion",
+        "levelAvailable": "7",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "modifiers": [
+          {
+            "category": {
+              "value": "condition",
+              "label": "Condition"
+            },
+            "mode": {
+              "value": "immunity",
+              "label": "Immunity"
+            },
+            "conditions": {
+              "type": [
+                {
+                  "value": "charmed",
+                  "label": "Charmed"
+                }
+              ]
+            },
+            "id": "feac462f-094d-4d47-856f-d6b9af37c8f7"
+          }
+        ],
+        "id": "5505f75c-9884-4251-9441-fe704965e563"
+      },
+      {
+        "desc": "<p>Beginning at 15th level, you are always under the effects of a <em>protection from evil and good</em> spell.</p>",
+        "value": "purityOfSpirit",
+        "label": "Purity of Spirit",
+        "levelAvailable": "15",
+        "charges": {
+          "multiplier": 1
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "fcbd4e99-e6dd-4e82-9cb5-0e7f110ebd9e"
+      },
+      {
+        "desc": "<p>At 20th level, as an action, you can emanate an aura of sunlight. For 1 minute, bright light shines from you in a 30-foot radius, and dim light shines 30 feet beyond that.</p><p>Whenever an enemy creature starts its turn in the bright light, the creature takes 10 radiant damage.</p><p>In addition, for the duration, you have advantage on saving throws against spells cast by fiends or undead.</p><p>Once you use this feature, you can’t use it again until you finish a long rest.</p>",
+        "value": "holyNimbus",
+        "label": "Holy Nimbus",
+        "levelAvailable": "20",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "charges": {
+          "reset": {
+            "value": "longRest",
+            "label": "Long Rest"
+          },
+          "limit": {
+            "value": "setAmount",
+            "label": "Set Value"
+          },
+          "setAmount": 1,
+          "multiplier": 1
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "f4e8996c-e02d-4220-92e2-e9f068b820fb"
+      }
+    ],
+    "id": "c59060ad-11b2-439d-b0cc-84bb48c2b60c",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "hunter",
+    "label": "Hunter",
+    "desc": "<p>Emulating the Hunter archetype means accepting your place as a bulwark between the people you protect and the terrors of the wilderness. As you walk the Hunter’s path, you learn specialized techniques for fighting the threats you face, from rampaging ogres to towering giants and terrifying dragons.</p>",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "ranger",
+      "label": "Ranger"
+    },
+    "features": [
+      {
+        "desc": "<p>At 3rd level, you gain one of the following features of your choice.</p>",
+        "value": "huntersPrey",
+        "label": "Hunter's Prey",
+        "levelAvailable": "3",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "options": [
+          {
+            "desc": "<p>Your tenacity can wear down the most potent foes. When you hit a creature with a weapon attack, the creature takes an extra 1d8 damage if it’s below its hit point maximum. You can deal this extra damage only once per turn.</p>",
+            "value": "colossusSlayer",
+            "label": "Colossus Slayer",
+            "levelAvailable": "3",
+            "id": "bf18b841-2ba2-4255-9b58-f790b5f1bde0"
+          },
+          {
+            "desc": "<p>When a Large or larger creature within 5 feet of you hits or misses you with an attack, you can use your reaction to attack that creature immediately after its attack, provided that you can see the creature.</p>",
+            "value": "giantKiller",
+            "label": "Giant Killer",
+            "levelAvailable": "3",
+            "attribute": [
+              {
+                "value": "isAction",
+                "label": "Action Type"
+              }
+            ],
+            "action": {
+              "type": {
+                "value": "reaction",
+                "label": "Reaction"
+              }
+            },
+            "id": "10b3605b-510b-4c73-8dec-cf3374c548ee"
+          },
+          {
+            "desc": "<p>Once on each of your turns when you make a weapon attack, you can make another attack with the same weapon against a different creature that is within 5 feet of the original target and within range of your weapon.</p>",
+            "value": "hordeBreaker",
+            "label": "Horde Breaker",
+            "levelAvailable": "3",
+            "id": "6f1a1abf-2887-4c8e-96af-fcf006bcf337"
+          }
+        ],
+        "id": "9ac23f21-b86c-49a0-82bf-a2498a2708d0"
+      },
+      {
+        "desc": "<p>At 7th level, you gain one of the following features of your choice.</p>",
+        "value": "defensiveTactics",
+        "label": "Defensive Tactics",
+        "levelAvailable": "7",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "options": [
+          {
+            "desc": "<p>Opportunity attacks against you are made with disadvantage.</p>",
+            "value": "escapeTheHorde",
+            "label": "Escape the Horde",
+            "levelAvailable": "7",
+            "id": "c6d19178-fb96-4430-bad1-39eed5b3703b"
+          },
+          {
+            "desc": "<p>When a creature hits you with an attack, you gain a +4 bonus to AC against all subsequent attacks made by that creature for the rest of the turn.</p>",
+            "value": "multiattackDefense",
+            "label": "Multiattack Defense",
+            "levelAvailable": "7",
+            "id": "f933690a-f071-4234-a1bd-c9e09eef926e"
+          },
+          {
+            "desc": "<p>You have advantage on saving throws against being frightened.</p>",
+            "value": "steelWill",
+            "label": "Steel Will",
+            "levelAvailable": "7",
+            "modifiers": [
+              {
+                "category": {
+                  "value": "conditionSave",
+                  "label": "Condition Save"
+                },
+                "mode": {
+                  "value": "advantage",
+                  "label": "Advantage"
+                },
+                "conditions": {
+                  "type": [
+                    {
+                      "value": "frightened",
+                      "label": "Frightened"
+                    }
+                  ]
+                },
+                "id": "256e2a4a-4454-490c-a6fa-285bb41ec895"
+              }
+            ],
+            "id": "2703989b-7be6-4924-8e49-fca33645efaa"
+          }
+        ],
+        "id": "e3ea7519-5b4e-4fa2-89b6-47ae1e2ce943"
+      },
+      {
+        "desc": "<p>At 11th level, you gain one of the following features of your choice.</p>",
+        "value": "multiattack",
+        "label": "Multiattack",
+        "levelAvailable": "11",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "options": [
+          {
+            "desc": "<p>You can use your action to make a ranged attack against any number of creatures within 10 feet of a point you can see within your weapon’s range. You must have ammunition for each target, as normal, and you make a separate attack roll for each target.</p>",
+            "value": "volley",
+            "label": "Volley",
+            "levelAvailable": "11",
+            "attribute": [
+              {
+                "value": "isAction",
+                "label": "Action Type"
+              }
+            ],
+            "action": {
+              "type": {
+                "value": "action",
+                "label": "Action"
+              }
+            },
+            "id": "66e31a25-93c5-4916-9183-380a1599496f"
+          },
+          {
+            "desc": "<p>You can use your action to make a melee attack against any number of creatures within 5 feet of you, with a separate attack roll for each target.</p>",
+            "value": "whirlwindAttack",
+            "label": "Whirlwind Attack",
+            "levelAvailable": "11",
+            "attribute": [
+              {
+                "value": "isAction",
+                "label": "Action Type"
+              }
+            ],
+            "action": {
+              "type": {
+                "value": "action",
+                "label": "Action"
+              }
+            },
+            "id": "4a6a58f7-5fa2-4553-bc2a-e89975463a17"
+          }
+        ],
+        "id": "1baeaf61-817c-47a9-8481-37a5bf46ded8"
+      },
+      {
+        "desc": "<p>At 15th level, you gain one of the following features of your choice.</p>",
+        "value": "superiorHuntersDefense",
+        "label": "Superior Hunter's Defense",
+        "levelAvailable": "15",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "options": [
+          {
+            "desc": "<p>When you are subjected to an effect, such as a red dragon’s fiery breath or a <em>lightning bolt</em> spell, that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.</p>",
+            "value": "evasion",
+            "label": "Evasion",
+            "levelAvailable": "15",
+            "id": "ac47a9ec-9d07-4241-8999-f0f313ab343c"
+          },
+          {
+            "desc": "<p>When a hostile creature misses you with a melee attack, you can use your reaction to force that creature to repeat the same attack against another creature (other than itself) of your choice.</p>",
+            "value": "standAgainstTheTide",
+            "label": "Stand Against the Tide",
+            "levelAvailable": "15",
+            "attribute": [
+              {
+                "value": "isAction",
+                "label": "Action Type"
+              }
+            ],
+            "action": {
+              "type": {
+                "value": "reaction",
+                "label": "Reaction"
+              }
+            },
+            "id": "54683a97-335c-4756-89c7-10d2511fd9db"
+          },
+          {
+            "desc": "<p>When an attacker that you can see hits you with an attack, you can use your reaction to halve the attack’s damage against you.</p>",
+            "value": "uncannyDodge",
+            "label": "Uncanny Dodge",
+            "levelAvailable": "15",
+            "attribute": [
+              {
+                "value": "isAction",
+                "label": "Action Type"
+              }
+            ],
+            "action": {
+              "type": {
+                "value": "reaction",
+                "label": "Reaction"
+              }
+            },
+            "id": "9b224ee4-821d-48aa-a407-3d05f7030945"
+          }
+        ],
+        "id": "961c42d7-070c-4abf-bf90-0c6ce26f6a9c"
+      }
+    ],
+    "id": "6c1d6f3a-8ff0-4d87-ad98-690af627a4c2",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "thief",
+    "label": "Thief",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "rogue",
+      "label": "Rogue"
+    },
+    "desc": "<p>You hone your skills in the larcenous arts. Burglars, bandits, cutpurses, and other criminals typically follow this archetype, but so do rogues who prefer to think of themselves as professional treasure seekers, explorers, delvers, and investigators. In addition to improving your agility and stealth, you learn skills useful for delving into ancient ruins, reading unfamiliar languages, and using magic items you normally couldn’t employ.</p>",
+    "features": [
+      {
+        "desc": "<p>Starting at 3rd level, you can use the bonus action granted by your Cunning Action to make a Dexterity (Sleight of Hand) check, use your thieves’ tools to disarm a trap or open a lock, or take the Use an Object action.</p>",
+        "value": "fastHands",
+        "label": "Fast Hands",
+        "levelAvailable": "3",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "bonusAction",
+            "label": "Bonus Action"
+          }
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "7188e51f-b237-4b9a-bab8-594d0528b45c"
+      },
+      {
+        "desc": "<p>When you choose this archetype at 3rd level, you gain the ability to climb faster than normal; climbing no longer costs you extra movement.</p><p>In addition, when you make a running jump, the distance you cover increases by a number of feet equal to your Dexterity modifier.</p>",
+        "value": "secondStoryWork",
+        "label": "Second-Story Work",
+        "levelAvailable": "3",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "063ffa2d-24d0-4898-a3ad-3dd34e2894d7"
+      },
+      {
+        "desc": "<p>Starting at 9th level, you have advantage on a Dexterity (Stealth) check if you move no more than half your speed on the same turn.</p>",
+        "value": "supremeSneak",
+        "label": "Supreme Sneak",
+        "levelAvailable": "9",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "6192c990-5c61-4d7e-a3fc-0f0ea20e9a6b"
+      },
+      {
+        "desc": "<p>By 13th level, you have learned enough about the workings of magic that you can improvise the use of items even when they are not intended for you. You ignore all class, race, and level requirements on the use of magic items.</p>",
+        "value": "useMagicDevice",
+        "label": "Use Magic Device",
+        "levelAvailable": "13",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "48acc90f-0d8c-4279-a709-7bdc6735e2ec"
+      },
+      {
+        "desc": "<p>When you reach 17th level, you have become adept at laying ambushes and quickly escaping danger. You can take two turns during the first round of any combat. You take your first turn at your normal initiative and your second turn at your initiative minus 10. You can’t use this feature when you are surprised.</p>",
+        "value": "thiefsReflexes",
+        "label": "Thief's Reflexes",
+        "levelAvailable": "17",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "c865e1e6-69d0-4451-8278-1b7533c49968"
+      }
+    ],
+    "id": "2a46dc25-ec5d-4046-8242-e7ee62ef608b",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "draconicBloodline",
+    "label": "Draconic Bloodline",
+    "desc": "<p>Your innate magic comes from draconic magic that was mingled with your blood or that of your ancestors. Most often, sorcerers with this origin trace their descent back to a mighty sorcerer of ancient times who made a bargain with a dragon or who might even have claimed a dragon parent. Some of these bloodlines are well established in the world, but most are obscure. Any given sorcerer could be the first of a new bloodline, as a result of a pact or some other exceptional circumstance.</p>",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "sorcerer",
+      "label": "Sorcerer"
+    },
+    "features": [
+      {
+        "desc": "<p>At 1st level, you choose one type of dragon as your ancestor. The damage type associated with each dragon is used by features you gain later.</p><h5><strong>Draconic Ancestry</strong></h5><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 295px\"><colgroup><col style=\"width: 140px\"><col style=\"width: 155px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p><strong>Dragon</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p><strong>Damage Type</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Black</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Acid</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Blue</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Lightning</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Brass</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Fire</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Bronze</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Lightning</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Copper</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Acid</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Gold</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Fire</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Green</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Poison</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Red</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Fire</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>Silver</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Cold</p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"140\" style=\"width: 140px;\"><p>White</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"155\" style=\"width: 155px;\"><p>Cold</p></td></tr></tbody></table><p>You can speak, read, and write Draconic. Additionally, whenever you make a Charisma check when interacting with dragons, your proficiency bonus is doubled if it applies to the check.</p>",
+        "value": "dragonAncestor",
+        "label": "Dragon Ancestor",
+        "levelAvailable": "1",
+        "ancestry": [
+          {
+            "attribute": [
+              {
+                "value": "providesOptions",
+                "label": "Provides Options"
+              }
+            ],
+            "origin": {
+              "value": "dragonborn",
+              "label": "Dragonborn"
+            },
+            "selectionCount": 1,
+            "options": [
+              {
+                "value": "all",
+                "label": "All"
+              }
+            ]
+          }
+        ],
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "proficiencies": [
+          {
+            "category": {
+              "value": "languages",
+              "label": "Languages"
+            },
+            "level": {
+              "value": "proficient",
+              "label": "Proficient"
+            },
+            "languages": {
+              "type": [
+                {
+                  "value": "draconic",
+                  "label": "Draconic"
+                }
+              ]
+            },
+            "id": "95f30373-5cc0-491a-860c-7811216ccfc7"
+          }
+        ],
+        "id": "1c608ee3-a070-4ac0-add3-fbfe273ad8f8"
+      },
+      {
+        "desc": "<p>Starting at 6th level, when you cast a spell that deals damage of the type associated with your draconic ancestry, you can add your Charisma modifier to one damage roll of that spell. At the same time, you can spend 1 sorcery point to gain resistance to that damage type for 1 hour.</p>",
+        "value": "elementalAffinity",
+        "label": "Elemental Affinity",
+        "levelAvailable": "6",
+        "attribute": [
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "charges": {
+          "limit": {
+            "value": "resourcePoints",
+            "label": "Resource Points"
+          },
+          "resourcePoints": 1
+        },
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "0278e65f-2714-4f8e-8dd3-11f740f66899"
+      },
+      {
+        "desc": "<p>At 14th level, you gain the ability to sprout a pair of dragon wings from your back, gaining a flying speed equal to your current speed. You can create these wings as a bonus action on your turn. They last until you dismiss them as a bonus action on your turn.</p><p>You can’t manifest your wings while wearing armor unless the armor is made to accommodate them, and clothing not made to accommodate your wings might be destroyed when you manifest them.</p>",
+        "value": "dragonWings",
+        "label": "Dragon Wings",
+        "levelAvailable": "14",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "prerequisites",
+            "label": "Has Requirements"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "bonusAction",
+            "label": "Bonus Action"
+          }
+        },
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "modifiers": [
+          {
+            "category": {
+              "value": "speed",
+              "label": "Speed"
+            },
+            "mode": {
+              "value": "setAmount",
+              "label": "Set Value"
+            },
+            "method": {
+              "value": "setAmount",
+              "label": "Set Value"
+            },
+            "setAmount": 30,
+            "speeds": {
+              "type": [
+                {
+                  "value": "flying",
+                  "label": "Flying"
+                }
+              ]
+            },
+            "id": "4e421e8e-4798-4786-8ab4-7cd30a30b26a"
+          }
+        ],
+        "requirements": {
+          "notEquipped": [
+            {
+              "category": {
+                "value": "armor",
+                "label": "Armor"
+              }
+            }
+          ],
+          "options": [
+            {
+              "value": "notEquipped",
+              "label": "Not Equipped"
+            }
+          ]
+        },
+        "id": "7ba4cd3a-9495-4495-8682-ba91f38d7e72"
+      },
+      {
+        "desc": "<p>Beginning at 18th level, you can channel the dread presence of your dragon ancestor, causing those around you to become awestruck or frightened. As an action, you can spend 5 sorcery points to draw on this power and exude an aura of awe or fear (your choice) to a distance of 60 feet. For 1 minute or until you lose your concentration (as if you were casting a concentration spell), each hostile creature that starts its turn in this aura must succeed on a Wisdom saving throw or be charmed (if you chose awe) or frightened (if you chose fear) until the aura ends. A creature that succeeds on this saving throw is immune to your aura for 24 hours.</p>",
+        "value": "draconicPresence",
+        "label": "Draconic Presence",
+        "levelAvailable": "18",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "requiresSave",
+            "label": "Save Required"
+          },
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "charges": {
+          "limit": {
+            "value": "resourcePoints",
+            "label": "Resource Points"
+          },
+          "resourcePoints": 5
+        },
+        "targets": 1,
+        "saveAbility": {
+          "type": {
+            "value": "wis",
+            "label": "Widsom"
+          }
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "69e3b8da-d215-4404-9a46-865153853569"
+      }
+    ],
+    "id": "8da499f8-2f3a-49ed-aa3c-6afa0193c7af",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "schoolOfEvocation",
+    "label": "School of Evocation",
+    "desc": "<p>You focus your study on magic that creates powerful elemental effects such as bitter cold, searing flame, rolling thunder, crackling lightning, and burning acid. Some evokers find employment in military forces, serving as artillery to blast enemy armies from afar. Others use their spectacular power to protect the weak, while some seek their own gain as bandits, adventurers, or aspiring tyrants.</p>",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "wizard",
+      "label": "Wizard"
+    },
+    "features": [
+      {
+        "desc": "<p>Beginning when you select this school at 2nd level, the gold and time you must spend to copy an evocation spell into your spellbook is halved.</p>",
+        "value": "evocationSavant",
+        "label": "Evocation Savant",
+        "levelAvailable": "2",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "0305206a-cac7-4685-847f-b277c71435c5"
+      },
+      {
+        "desc": "<p>Beginning at 2nd level, you can create pockets of relative safety within the effects of your evocation spells. When you cast an evocation spell that affects other creatures that you can see, you can choose a number of them equal to 1 + the spell’s level. The chosen creatures automatically succeed on their saving throws against the spell, and they take no damage if they would normally take half damage on a successful save.</p>",
+        "value": "sculptSpells",
+        "label": "Sculpt Spells",
+        "levelAvailable": "2",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "611c2dcc-712d-4f55-8e48-ab4db55a7cc1"
+      },
+      {
+        "desc": "<p>Starting at 6th level, your damaging cantrips affect even creatures that avoid the brunt of the effect. When a creature succeeds on a saving throw against your cantrip, the creature takes half the cantrip’s damage (if any) but suffers no additional effect from the cantrip.</p>",
+        "value": "potentCantrip",
+        "label": "Potent Cantrip",
+        "levelAvailable": "6",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "aa811896-8bf0-4f79-95d8-141fa41a4610"
+      },
+      {
+        "desc": "<p>Beginning at 10th level, you can add your Intelligence modifier to one damage roll of any wizard evocation spell you cast.</p>",
+        "value": "empoweredEvocation",
+        "label": "Empowered Evocation",
+        "levelAvailable": "10",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "4e1dc244-f2ed-4482-871b-bb7847e778e1"
+      },
+      {
+        "desc": "<p>Starting at 14th level, you can increase the power of your simpler spells. When you cast a wizard spell of 1st through 5th level that deals damage, you can deal maximum damage with that spell.</p><p>The first time you do so, you suffer no adverse effect. If you use this feature again before you finish a long rest, you take 2d12 necrotic damage for each level of the spell, immediately after you cast it. Each time you use this feature again before finishing a long rest, the necrotic damage per spell level increases by 1d12. This damage ignores resistance and immunity.</p>",
+        "value": "overchannel",
+        "label": "Overchannel",
+        "levelAvailable": "14",
+        "targets": 1,
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "e4c578d6-9ee1-4546-a9e5-e74604c36393"
+      }
+    ],
+    "id": "53ec5a45-4a9a-4dfc-ac6f-1294d958d1ca",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "pathOfTheBerserker",
+    "label": "Path of the Berserker",
+    "desc": "<p>For some barbarians, rage is a means to an end— that end being violence. The Path of the Berserker is a path of untrammeled fury, slick with blood. As you enter the berserker’s rage, you thrill in the chaos of battle, heedless of your own health or well-being.</p>",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "barbarian",
+      "label": "Barbarian"
+    },
+    "features": [
+      {
+        "desc": "<p>Starting when you choose this path at 3rd level, you can go into a frenzy when you rage. If you do so, for the duration of your rage you can make a single melee weapon attack as a bonus action on each of your turns after this one. When your rage ends, you suffer one level of exhaustion (as described in appendix PH-A).</p>",
+        "value": "frenzy",
+        "label": "Frenzy",
+        "levelAvailable": "3",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "a53770f6-b533-4ac5-b83f-cff1b3e0f6bd"
+      },
+      {
+        "desc": "<p>Beginning at 6th level, you can’t be charmed or frightened while raging. If you are charmed or frightened when you enter your rage, the effect is suspended for the duration of the rage.</p>",
+        "value": "mindlessRage",
+        "label": "Mindless Rage",
+        "levelAvailable": "6",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "f2a353f1-5608-4a0f-97dd-a13ca5ceb2d1"
+      },
+      {
+        "desc": "<p>Intimidating Presence Beginning at 10th level, you can use your action to frighten someone with your menacing presence. When you do so, choose one creature that you can see within 30 feet of you. If the creature can see or hear you, it must succeed on a Wisdom saving throw (DC equal to 8 + your proficiency bonus + your Charisma modifier) or be frightened of you until the end of your next turn. On subsequent turns, you can use your action to extend the duration of this effect on the frightened creature until the end of your next turn. This effect ends if the creature ends its turn out of line of sight or more than 60 feet away from you.</p><p>If the creature succeeds on its saving throw, you can’t use this feature on that creature again for 24 hours.</p>",
+        "value": "intimidatingPresence",
+        "label": "Intimidating Presence",
+        "levelAvailable": "10",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          },
+          {
+            "value": "requiresSave",
+            "label": "Save Required"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "action",
+            "label": "Action"
+          }
+        },
+        "saveAbility": {
+          "type": {
+            "value": "wis",
+            "label": "Widsom"
+          },
+          "minAmount": 8,
+          "attribute": [
+            {
+              "value": "addAbilityModifier",
+              "label": "Add Ability Modifier"
+            },
+            {
+              "value": "addProficiencyBonus",
+              "label": "Add Proficiency Bonus"
+            }
+          ],
+          "abilityModifier": {
+            "type": {
+              "value": "cha",
+              "label": "Charisma"
+            }
+          }
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "5096057d-7f14-4959-81d3-cfb9781d4e65"
+      },
+      {
+        "desc": "<p>Starting at 14th level, when you take damage from a creature that is within 5 feet of you, you can use your reaction to make a melee weapon attack against that creature.</p>",
+        "value": "retaliation",
+        "label": "Retaliation",
+        "levelAvailable": "14",
+        "attribute": [
+          {
+            "value": "isAction",
+            "label": "Action Type"
+          }
+        ],
+        "action": {
+          "type": {
+            "value": "reaction",
+            "label": "Reaction"
+          }
+        },
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "id": "b2cfa431-37a3-4ba2-9040-192d651bcbc2"
+      }
+    ],
+    "id": "ab91fea2-917c-4ca2-bc4c-c7967cd35d16",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  },
+  {
+    "value": "theFiend",
+    "label": "The Fiend",
+    "category": {
+      "value": "subclass",
+      "label": "Subclass"
+    },
+    "parentClass": {
+      "value": "warlock",
+      "label": "Warlock"
+    },
+    "desc": "<p>You have made a pact with a fiend from the lower planes of existence, a being whose aims are evil, even if you strive against those aims. Such beings desire the corruption or destruction of all things, ultimately including you. Fiends powerful enough to forge a pact include demon lords such as Demogorgon, Orcus, Fraz’Urb-luu, and Baphomet; archdevils such as Asmodeus, Dispater, Mephistopheles, and Belial; pit fiends and balors that are especially mighty; and ultroloths and other lords of the yugoloths.</p>",
+    "features": [
+      {
+        "desc": "<p>The Fiend lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you.</p><table class=\"RichTextEditor_editor_table__1pu01sk8\" style=\"width: 405px\"><colgroup><col style=\"width: 136px\"><col style=\"width: 269px\"></colgroup><tbody><tr><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p><strong>Spell Level</strong></p></th><th class=\"RichTextEditor_editor_table_th__1pu01sk9\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><strong>Spells</strong></p></th></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>1st</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>burning hands</em>, <em>command</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>2nd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>blindness/deafness</em>, <em>scorching ray</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>3rd</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>fireball</em>, <em>stinking cloud</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>4th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>fire shield</em>, <em>wall of fire</em></p></td></tr><tr><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"136\" style=\"width: 136px;\"><p>5th</p></td><td class=\"RichTextEditor_editor_table_td__1pu01ska\" colspan=\"1\" rowspan=\"1\" colwidth=\"269\" style=\"width: 269px;\"><p><em>flame strike</em>, <em>hallow</em></p></td></tr></tbody></table>",
+        "value": "expandedSpellList",
+        "label": "Expanded Spell List",
+        "levelAvailable": "1",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "targets": 1,
+        "featureSpells": [
+          {
+            "attribute": [
+              {
+                "value": "expandsSpellList",
+                "label": "Expands Spell List"
+              },
+              {
+                "value": "spellsByLevel",
+                "label": "Add Spells By Level"
+              }
+            ],
+            "levelLimit": [
+              {
+                "label": 1
+              },
+              {
+                "label": 2
+              },
+              {
+                "label": 3
+              },
+              {
+                "label": 4
+              },
+              {
+                "label": 5
+              }
+            ],
+            "type": [
+              {
+                "value": "blindnessDeafness",
+                "label": "Blindness / Deafness",
+                "level": 2,
+                "desc": "<p>You can blind or deafen a foe. Choose one creature that you can see within range to make a Constitution saving throw. If it fails, the target is either blinded or deafened (your choice) for the duration. At the end of each of its turns, the target can make a Constitution saving throw. On a success, the spell ends.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, you can target one additional creature for each slot level above 2nd.</p>"
+              },
+              {
+                "value": "burningHands",
+                "label": "Burning Hands",
+                "level": 1,
+                "desc": "<p>As you hold your hands with thumbs touching and fingers spread, a thin sheet of flames shoots forth from your outstretched fingertips. Each creature in a 15-foot cone must make a Dexterity saving throw. A creature takes 3d6 fire damage on a failed save, or half as much damage on a successful one.</p><p>The fire ignites any flammable objects in the area that aren't being worn or carried.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.</p>"
+              },
+              {
+                "value": "commune",
+                "label": "Commune",
+                "level": 5,
+                "desc": "<p>You contact your deity or a divine proxy and ask up to three questions that can be answered with a yes or no. You must ask your questions before the spell ends. You receive a correct answer for each question.</p><p>Divine beings aren't necessarily omniscient, so you might receive \"unclear\" as an answer if a question pertains to information that lies beyond the deity's knowledge. In a case where a one-word answer could be misleading or contrary to the deity's interests, the GM might offer a short phrase as an answer instead.</p><p>If you cast the spell two or more times before finishing your next long rest, there is a cumulative 25 percent chance for each casting after the first that you get no answer. The GM makes this roll in secret.</p>"
+              },
+              {
+                "value": "fireShield",
+                "label": "Fire Shield",
+                "level": 4,
+                "desc": "<p>Thin and wispy flames wreathe your body for the duration, shedding bright light in a 10-foot radius and dim light for an additional 10 feet. You can end the spell early by using an action to dismiss it.</p><p>The flames provide you with a warm shield or a chill shield, as you choose. The warm shield grants you resistance to cold damage, and the chill shield grants you resistance to fire damage.</p><p>In addition, whenever a creature within 5 feet of you hits you with a melee attack, the shield erupts with flame. The attacker takes 2d8 fire damage from a warm shield, or 2d8 cold damage from a chill shield.</p>"
+              },
+              {
+                "value": "fireball",
+                "label": "Fireball",
+                "level": 3,
+                "desc": "<p>A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one.</p><p>The fire spreads around corners. It ignites flammable objects in the area that aren't being worn or carried.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.</p>"
+              },
+              {
+                "value": "flameStrike",
+                "label": "Flame Strike",
+                "level": 5,
+                "desc": "<p>A vertical column of divine fire roars down from the heavens in a location you specify. Each creature in a 10-foot-radius, 40-foot-high cylinder centered on a point within range must make a Dexterity saving throw. A creature takes 4d6 fire damage and 4d6 radiant damage on a failed save, or half as much damage on a successful one.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 6th level or higher, the fire damage or the radiant damage (your choice) increases by 1d6 for each slot level above 5th.</p>"
+              },
+              {
+                "value": "hallow",
+                "label": "Hallow",
+                "level": 5,
+                "desc": "<p>You touch a point and infuse an area around it with holy (or unholy) power. The area can have a radius up to 60 feet, and the spell fails if the radius includes an area already under the effect a <strong>hallow</strong> spell. The affected area is subject to the following effects.</p><p>First, celestials, elementals, fey, fiends, and undead can't enter the area, nor can such creatures charm, frighten, or possess creatures within it. Any creature charmed, frightened, or possessed by such a creature is no longer charmed, frightened, or possessed upon entering the area. You can exclude one or more of those types of creatures from this effect.</p><p>Second, you can bind an extra effect to the area. Choose the effect from the following list, or choose an effect offered by the GM. Some of these effects apply to creatures in the area; you can designate whether the effect applies to all creatures, creatures that follow a specific deity or leader, or creatures of a specific sort, such as orcs or trolls. When a creature that would be affected enters the spell's area for the first time on a turn or starts its turn there, it can make a Charisma saving throw. On a success, the creature ignores the extra effect until it leaves the area.</p><p><strong>Courage.</strong> Affected creatures can't be frightened while in the area.</p><p><strong>Darkness.</strong> Darkness fills the area. Normal light, as well as magical light created by spells of a lower level than the slot you used to cast this spell, can't illuminate the area.</p><p><strong>Daylight.</strong> Bright light fills the area. Magical darkness created by spells of a lower level than the slot you used to cast this spell can't extinguish the light.</p><p><strong>Energy Protection.</strong> Affected creatures in the area have resistance to one damage type of your choice, except for bludgeoning, piercing, or slashing.</p><p><strong>Energy Vulnerability.</strong> Affected creatures in the area have vulnerability to one damage type of your choice, except for bludgeoning, piercing, or slashing.</p><p><strong>Everlasting Rest.</strong> Dead bodies interred in the area can't be turned into undead.</p><p><strong>Extradimensional Interference.</strong> Affected creatures can't move or travel using teleportation or by extradimensional or interplanar means.</p><p><strong>Fear.</strong> Affected creatures are frightened while in the area.</p><p><strong>Silence.</strong> No sound can emanate from within the area, and no sound can reach into it.</p><p><strong>Tongues.</strong> Affected creatures can communicate with any other creature in the area, even if they don't share a common language.</p>"
+              },
+              {
+                "value": "scorchingRay",
+                "label": "Scorching Ray",
+                "level": 2,
+                "desc": "<p>You create three rays of fire and hurl them at targets within range. You can hurl them at one target or several.</p><p>Make a ranged spell attack for each ray. On a hit, the target takes 2d6 fire damage.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, you create one additional ray for each slot level above 2nd.</p>"
+              },
+              {
+                "value": "stinkingCloud",
+                "label": "Stinking Cloud",
+                "level": 3,
+                "desc": "<p>You create a 20-foot-radius sphere of yellow, nauseating gas centered on a point within range. The cloud spreads around corners, and its area is heavily obscured. The cloud lingers in the air for the duration.</p><p>Each creature that is completely within the cloud at the start of its turn must make a Constitution saving throw against poison. On a failed save, the creature spends its action that turn retching and reeling. Creatures that don't need to breathe or are immune to poison automatically succeed on this saving throw.</p><p>A moderate wind (at least 10 miles per hour) disperses the cloud after 4 rounds. A strong wind (at least 20 miles per hour) disperses it after 1 round.</p>"
+              },
+              {
+                "value": "wallOfFire",
+                "label": "Wall of Fire",
+                "level": 4,
+                "desc": "<p>You create a wall of fire on a solid surface within range. You can make the wall up to 60 feet long, 20 feet high, and 1 foot thick, or a ringed wall up to 20 feet in diameter, 20 feet high, and 1 foot thick. The wall is opaque and lasts for the duration.</p><p>When the wall appears, each creature within its area must make a Dexterity saving throw. On a failed save, a creature takes 5d8 fire damage, or half as much damage on a successful save.</p><p>One side of the wall, selected by you when you cast this spell, deals 5d8 fire damage to each creature that ends its turn within 10 feet of that side or inside the wall. A creature takes the same damage when it enters the wall for the first time on a turn or ends its turn there. The other side of the wall deals no damage.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 5th level or higher, the damage increases by 1d8 for each slot level above 4th.</p>"
+              }
+            ],
+            "spellsByLevel": [
+              {
+                "spells": [
+                  {
+                    "value": "burningHands",
+                    "label": "Burning Hands",
+                    "level": 1,
+                    "desc": "<p>As you hold your hands with thumbs touching and fingers spread, a thin sheet of flames shoots forth from your outstretched fingertips. Each creature in a 15-foot cone must make a Dexterity saving throw. A creature takes 3d6 fire damage on a failed save, or half as much damage on a successful one.</p><p>The fire ignites any flammable objects in the area that aren't being worn or carried.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.</p>"
+                  },
+                  {
+                    "value": "command",
+                    "label": "Command",
+                    "level": 1,
+                    "desc": "<p>You speak a one-word command to a creature you can see within range. The target must succeed on a Wisdom saving throw or follow the command on its next turn. The spell has no effect if the target is undead, if it doesn't understand your language, or if your command is directly harmful to it.</p><p>Some typical commands and their effects follow. You might issue a command other than one described here. If you do so, the DM determines how the target behaves. If the target can't follow your command, the spell ends.</p><p><strong><em>Approach.</em></strong> The target moves toward you by the shortest and most direct route, ending its turn if it moves within 5 feet of you.</p><p><strong><em>Drop.</em></strong> The target drops whatever it is holding and then ends its turn.</p><p><strong><em>Flee.</em></strong> The target spends its turn moving away from you by the fastest available means.</p><p><strong><em>Grovel.</em></strong> The target falls prone and then ends its turn.</p><p><strong><em>Halt.</em></strong> The target doesn't move and takes no actions. A flying creature stays aloft, provided that it is able to do so. If it must move to stay aloft, it flies the minimum distance needed to remain in the air.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 2nd level or higher, you can affect one additional creature for each slot level above 1st. The creatures must be within 30 feet of each other when you target them.</p>"
+                  }
+                ],
+                "level": {
+                  "value": "1",
+                  "label": "1"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "blindnessDeafness",
+                    "label": "Blindness / Deafness",
+                    "level": 2,
+                    "desc": "<p>You can blind or deafen a foe. Choose one creature that you can see within range to make a Constitution saving throw. If it fails, the target is either blinded or deafened (your choice) for the duration. At the end of each of its turns, the target can make a Constitution saving throw. On a success, the spell ends.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, you can target one additional creature for each slot level above 2nd.</p>"
+                  },
+                  {
+                    "value": "scorchingRay",
+                    "label": "Scorching Ray",
+                    "level": 2,
+                    "desc": "<p>You create three rays of fire and hurl them at targets within range. You can hurl them at one target or several.</p><p>Make a ranged spell attack for each ray. On a hit, the target takes 2d6 fire damage.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, you create one additional ray for each slot level above 2nd.</p>"
+                  }
+                ],
+                "level": {
+                  "value": "2",
+                  "label": "2"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "fireball",
+                    "label": "Fireball",
+                    "level": 3,
+                    "desc": "<p>A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one.</p><p>The fire spreads around corners. It ignites flammable objects in the area that aren't being worn or carried.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.</p>"
+                  },
+                  {
+                    "value": "stinkingCloud",
+                    "label": "Stinking Cloud",
+                    "level": 3,
+                    "desc": "<p>You create a 20-foot-radius sphere of yellow, nauseating gas centered on a point within range. The cloud spreads around corners, and its area is heavily obscured. The cloud lingers in the air for the duration.</p><p>Each creature that is completely within the cloud at the start of its turn must make a Constitution saving throw against poison. On a failed save, the creature spends its action that turn retching and reeling. Creatures that don't need to breathe or are immune to poison automatically succeed on this saving throw.</p><p>A moderate wind (at least 10 miles per hour) disperses the cloud after 4 rounds. A strong wind (at least 20 miles per hour) disperses it after 1 round.</p>"
+                  }
+                ],
+                "level": {
+                  "value": "3",
+                  "label": "3"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "fireShield",
+                    "label": "Fire Shield",
+                    "level": 4,
+                    "desc": "<p>Thin and wispy flames wreathe your body for the duration, shedding bright light in a 10-foot radius and dim light for an additional 10 feet. You can end the spell early by using an action to dismiss it.</p><p>The flames provide you with a warm shield or a chill shield, as you choose. The warm shield grants you resistance to cold damage, and the chill shield grants you resistance to fire damage.</p><p>In addition, whenever a creature within 5 feet of you hits you with a melee attack, the shield erupts with flame. The attacker takes 2d8 fire damage from a warm shield, or 2d8 cold damage from a chill shield.</p>"
+                  },
+                  {
+                    "value": "wallOfFire",
+                    "label": "Wall of Fire",
+                    "level": 4,
+                    "desc": "<p>You create a wall of fire on a solid surface within range. You can make the wall up to 60 feet long, 20 feet high, and 1 foot thick, or a ringed wall up to 20 feet in diameter, 20 feet high, and 1 foot thick. The wall is opaque and lasts for the duration.</p><p>When the wall appears, each creature within its area must make a Dexterity saving throw. On a failed save, a creature takes 5d8 fire damage, or half as much damage on a successful save.</p><p>One side of the wall, selected by you when you cast this spell, deals 5d8 fire damage to each creature that ends its turn within 10 feet of that side or inside the wall. A creature takes the same damage when it enters the wall for the first time on a turn or ends its turn there. The other side of the wall deals no damage.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 5th level or higher, the damage increases by 1d8 for each slot level above 4th.</p>"
+                  }
+                ],
+                "level": {
+                  "value": "4",
+                  "label": "4"
+                }
+              },
+              {
+                "spells": [
+                  {
+                    "value": "flameStrike",
+                    "label": "Flame Strike",
+                    "level": 5,
+                    "desc": "<p>A vertical column of divine fire roars down from the heavens in a location you specify. Each creature in a 10-foot-radius, 40-foot-high cylinder centered on a point within range must make a Dexterity saving throw. A creature takes 4d6 fire damage and 4d6 radiant damage on a failed save, or half as much damage on a successful one.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 6th level or higher, the fire damage or the radiant damage (your choice) increases by 1d6 for each slot level above 5th.</p>"
+                  },
+                  {
+                    "value": "hallow",
+                    "label": "Hallow",
+                    "level": 5,
+                    "desc": "<p>You touch a point and infuse an area around it with holy (or unholy) power. The area can have a radius up to 60 feet, and the spell fails if the radius includes an area already under the effect a <strong>hallow</strong> spell. The affected area is subject to the following effects.</p><p>First, celestials, elementals, fey, fiends, and undead can't enter the area, nor can such creatures charm, frighten, or possess creatures within it. Any creature charmed, frightened, or possessed by such a creature is no longer charmed, frightened, or possessed upon entering the area. You can exclude one or more of those types of creatures from this effect.</p><p>Second, you can bind an extra effect to the area. Choose the effect from the following list, or choose an effect offered by the GM. Some of these effects apply to creatures in the area; you can designate whether the effect applies to all creatures, creatures that follow a specific deity or leader, or creatures of a specific sort, such as orcs or trolls. When a creature that would be affected enters the spell's area for the first time on a turn or starts its turn there, it can make a Charisma saving throw. On a success, the creature ignores the extra effect until it leaves the area.</p><p><strong>Courage.</strong> Affected creatures can't be frightened while in the area.</p><p><strong>Darkness.</strong> Darkness fills the area. Normal light, as well as magical light created by spells of a lower level than the slot you used to cast this spell, can't illuminate the area.</p><p><strong>Daylight.</strong> Bright light fills the area. Magical darkness created by spells of a lower level than the slot you used to cast this spell can't extinguish the light.</p><p><strong>Energy Protection.</strong> Affected creatures in the area have resistance to one damage type of your choice, except for bludgeoning, piercing, or slashing.</p><p><strong>Energy Vulnerability.</strong> Affected creatures in the area have vulnerability to one damage type of your choice, except for bludgeoning, piercing, or slashing.</p><p><strong>Everlasting Rest.</strong> Dead bodies interred in the area can't be turned into undead.</p><p><strong>Extradimensional Interference.</strong> Affected creatures can't move or travel using teleportation or by extradimensional or interplanar means.</p><p><strong>Fear.</strong> Affected creatures are frightened while in the area.</p><p><strong>Silence.</strong> No sound can emanate from within the area, and no sound can reach into it.</p><p><strong>Tongues.</strong> Affected creatures can communicate with any other creature in the area, even if they don't share a common language.</p>"
+                  }
+                ],
+                "level": {
+                  "value": "5",
+                  "label": "5"
+                }
+              }
+            ]
+          }
+        ],
+        "id": "6abde924-3613-45a3-8093-a66e07561dcf"
+      },
+      {
+        "desc": "<p>Starting at 1st level, when you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).</p>",
+        "value": "darkOnesBlessing",
+        "label": "Dark One's Blessing",
+        "levelAvailable": "1",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "targets": 1,
+        "id": "a5debc9f-3a9d-49d8-a81e-002fb98ab539"
+      },
+      {
+        "desc": "<p>Starting at 6th level, you can call on your patron to alter fate in your favor. When you make an ability check or a saving throw, you can use this feature to add a d10 to your roll. You can do so after seeing the initial roll but before any of the roll’s effects occur.</p><p>Once you use this feature, you can’t use it again until you finish a short or long rest.</p>",
+        "value": "darkOnesOwnLuck",
+        "label": "Dark One's Own Luck",
+        "levelAvailable": "6",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "charges": {
+          "reset": {
+            "value": "shortRest",
+            "label": "Short Rest"
+          },
+          "limit": {
+            "value": "setAmount",
+            "label": "Set Value"
+          },
+          "setAmount": 1
+        },
+        "targets": 1,
+        "id": "af2d347d-8aac-435b-b5cf-7da89ee9f1a3"
+      },
+      {
+        "desc": "<p>Starting at 10th level, you can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature. Damage from magical weapons or silver weapons ignores this resistance.</p>",
+        "value": "fiendishResilience",
+        "label": "Fiendish Resilience",
+        "levelAvailable": "10",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          }
+        ],
+        "charges": {
+          "reset": {
+            "value": "shortRest",
+            "label": "Short Rest"
+          },
+          "limit": {
+            "value": "setAmount",
+            "label": "Set Value"
+          },
+          "setAmount": 1
+        },
+        "targets": 1,
+        "id": "895500e3-79a7-4bf3-85dd-0a7e4d3d593a"
+      },
+      {
+        "desc": "<p>Starting at 14th level, when you hit a creature with an attack, you can use this feature to instantly transport the target through the lower planes. The creature disappears and hurtles through a nightmare landscape.</p><p>At the end of your next turn, the target returns to the space it previously occupied, or the nearest unoccupied space. If the target is not a fiend, it takes 10d10 psychic damage as it reels from its horrific experience.</p><p>Once you use this feature, you can’t use it again until you finish a long rest.</p>",
+        "value": "hurlThroughHell",
+        "label": "Hurl Through Hell",
+        "levelAvailable": "14",
+        "type": {
+          "value": "feature",
+          "label": "Feature"
+        },
+        "attribute": [
+          {
+            "value": "limitUse",
+            "label": "Limit Use"
+          },
+          {
+            "value": "doesDamage",
+            "label": "Inflicts Damage"
+          }
+        ],
+        "damage": {
+          "primary": {
+            "dieCount": 10,
+            "dieValue": {
+              "value": 10,
+              "label": 10
+            },
+            "type": {
+              "value": "psychic",
+              "label": "Psychic"
+            }
+          }
+        },
+        "charges": {
+          "reset": {
+            "value": "longRest",
+            "label": "Long Rest"
+          },
+          "limit": {
+            "value": "setAmount",
+            "label": "Set Value"
+          },
+          "setAmount": 1
+        },
+        "targets": 1,
+        "id": "d9ffc261-095f-4e19-9684-296e16e8e041"
+      }
+    ],
+    "id": "5ce4c39a-373b-46bc-9537-3a731f42ee04",
+    "ownerId": "master",
+    "createdAt": "2024-09-12T11:05:10.351Z",
+    "updatedAt": "2024-09-12T11:05:10.351Z",
+    "systemId": "4045f389-f0a7-48e7-bb9e-3822d526d9d4"
+  }
+]

@@ -1,4 +1,4 @@
-type AncestryFeature implements BaseFields {
+type AncestryFeature {
   id: ID!
   label: String
   value: String
@@ -22,7 +22,7 @@ type AncestryFeature implements BaseFields {
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [Subfeature]
+  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }
 
@@ -34,7 +34,7 @@ type AncestryOption {
   features: [AncestryFeature]
 }
 
-type Ancestry implements BaseFields {
+type Ancestry {
   id: ID!
   label: String!
   value: String!
@@ -55,7 +55,7 @@ type Traits {
   speeds: RaceSpeed
 }
 
-type Race implements BaseFields {
+type Race {
   id: ID!
   label: String!
   value: String!
@@ -63,7 +63,7 @@ type Race implements BaseFields {
   desc: String
   playable: String
   category: ID!
-  lineage: [ID!]
+  lineages: [ID!]
   ancestry: Ancestry
   details: [Detail]
   traits: Traits

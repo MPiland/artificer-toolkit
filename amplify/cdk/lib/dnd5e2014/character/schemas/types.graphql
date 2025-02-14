@@ -99,6 +99,7 @@ type CharacterFeature {
   backgroundId: ID
   featId: ID
   optionIndex: Int
+  level: Int
 }
 
 ## Ability Scores

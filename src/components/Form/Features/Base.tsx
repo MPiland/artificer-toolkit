@@ -5,19 +5,18 @@ import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { FeatureDataType, SectionName, UpdateState } from '../../../types/form'
 import Row from '../../Row/Row'
 import Select from '../../Select/Select'
-import { feature_content_header, feature_list, form_content } from '../Form.css'
+import { feature_list, form_content } from '../Form.css'
 import { sprinkles } from '../../../css/sprinkles.css'
-import ScrollArea from '../../ScrollArea/ScrollArea'
 import SectionsList from './Sections/SectionsList'
 import Requirements from '../Generic/Requirements'
 import Damage from '../Generic/Damage'
 import LimitUse from '../Generic/LimitUse'
-import { FeatureEnum } from '../../../../amplify/API'
+import { FeatureEnum, FeatureOption } from '../../../../amplify/gql/types'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
-import { Attributes, Categories, Ranges, Shapes } from '../../../types/enums'
+import { Categories, Ranges, Shapes } from '../../../types/enums'
 import { FeatureContext } from './FeatureContext'
-import Loading from '../../Loading/Loading'
+import { useEnumChecks } from '../../../hooks/useEnumChecks'
 
 const Base = ({
   featureData,
@@ -33,75 +32,103 @@ const Base = ({
   const {
     featureStep,
     setFeatureStep,
-    optionDataReset,
-    sectionDataReset,
+    resetOption,
+    resetSection,
     setSectionStep,
+    resetSubfeature,
     updateSectionData,
     updateOptionData,
     updateSubfeatureData,
     sectionSteps,
   } = use(FeatureContext)
 
+  const { hasPrerequisites, limitUse, doesDamage, hasRange, isAction, requiresSave, addAbilityModifier, limitTargets } =
+    useEnumChecks({
+      data: featureData,
+    })
+
   const { data: system } = useGetSystemQuery()
 
   const selectSection = (sectionStep: SectionName) => {
-    if (featureData.__typename !== 'AncestryFeature' && featureData[sectionStep]?.length > 0) {
+    if (
+      sectionStep === 'options' &&
+      featureData.__typename !== 'FeatureOption' &&
+      featureData.__typename !== 'FeatureSubfeature'
+    ) {
+      // Add Option content
+      resetOption()
+      const optionIndex = featureData?.options?.length || 0
+      const newOption: FeatureOption = {
+        __typename: 'FeatureOption',
+        id: '',
+      }
+      updateOptionData({ type: 'reset', value: newOption })
+      updateOptionData({ type: 'initialReset', value: optionIndex })
+      updateOptionData({ type: 'index', value: optionIndex })
+      return setFeatureStep('option')
+    }
+    if (sectionStep === 'subfeatures' && featureData.__typename === 'FeatureOption') {
+      // Add Subfeature content
+      resetSubfeature()
+      const subfeatureIndex = featureData.subfeatures?.length > 0 ? featureData.subfeatures.length : 0
+      updateSubfeatureData({ type: 'index', value: subfeatureIndex })
+      return setFeatureStep('subfeature')
+    }
+    if (sectionStep === 'ancestries' && featureData.__typename !== 'AncestryFeature') {
       updateSectionData({ type: 'index', value: featureData[sectionStep]?.length })
     } else {
       updateSectionData({ type: 'index', value: 0 })
     }
-
-    if (
-      featureStep === 'option' &&
-      featureData.__typename !== 'FeatureOption' &&
-      featureData.__typename !== 'Subfeature'
-    ) {
-      // Add Option content
-      optionDataReset()
-      const optionIndex = featureData.options?.length > 0 ? featureData.options.length : 0
-      updateOptionData({ type: 'index', value: optionIndex })
-      return setFeatureStep('option')
-    }
-    if (
-      featureStep === 'subfeature' &&
-      featureData.__typename !== 'Subfeature' &&
-      featureData.__typename !== 'AncestryFeature'
-    ) {
-      // Add Option content
-      optionDataReset()
-      const subfeatureIndex = featureData[sectionStep]?.length > 0 ? featureData.subfeatures.length : 0
-      updateSubfeatureData({ type: 'index', value: subfeatureIndex })
-      return setFeatureStep('subfeature')
-    }
     // Add Section
-    sectionDataReset()
+    resetSection()
     setSectionStep(sectionStep)
   }
 
-  return !featureData || !system ? (
-    <Loading />
-  ) : (
+  const hasAnySections = sectionSteps.some((step) => {
+    if (step === 'ancestries') return featureData.__typename !== 'AncestryFeature' && featureData[step]?.length > 0
+
+    if (step === 'options') {
+      return (
+        featureData.__typename !== 'FeatureOption' &&
+        featureData.__typename !== 'FeatureSubfeature' &&
+        featureData[step]?.length > 0
+      )
+    }
+
+    if (step === 'subfeatures') {
+      return featureData.__typename === 'FeatureOption' && featureData[step]?.length > 0
+    }
+
+    return featureData[step]?.length > 0
+  })
+
+  console.log({ featureData })
+
+  return (
     <>
-      <Row className={feature_content_header}>
+      <Row>
         <Input
-          name={`value`}
+          name='label'
           autoComplete='off'
           label={`${valueLabel} Name`}
           required={true}
-          value={featureData?.value}
+          value={featureData?.label}
           errorMsg='Name must not be blank'
           onChange={updateFeatureData}
         />
-        <Dropdown
-          name={`category`}
-          options={system.categories.filter((category) => category.features)}
-          label='Feature Category'
-          value={featureData?.category}
-          onChange={updateFeatureData}
-          required={true}
-        />
-        {featureData?.category === Categories.base && (
+        {featureStep !== 'ancestry' && (
+          <Dropdown
+            name={`category`}
+            options={system.categories.filter((category) => category.features)}
+            label='Feature Category'
+            value={featureData?.category}
+            onChange={updateFeatureData}
+            required={true}
+          />
+        )}
+        {(featureData?.category === Categories.feature || featureStep === 'ancestry') && (
           <Select
+            name='section'
             handleChange={selectSection as (arg: string) => void}
             placeholder='Add...'
             label={'Add Section'}
@@ -109,7 +136,7 @@ const Base = ({
           />
         )}
       </Row>
-      <ScrollArea scrollDirection='vertical' className={form_content}>
+      <div className={form_content}>
         {featureData?.category === Categories.subclass && (
           <RichTextEditor
             label='Feature detail'
@@ -141,31 +168,36 @@ const Base = ({
                 onChange={updateFeatureData}
               />
             )}
-          {(steps[stepIndex].id !== 'ancestry' || (steps[stepIndex].id === 'ancestry' && featureStep === 'option')) &&
-            featureData?.category === Categories.feature && (
-              <Dropdown
-                multiSelect={true}
-                name='attributes'
-                options={system.attributes.filter(
-                  (attribute) =>
-                    attribute.features.includes(FeatureEnum.all) ||
-                    (formData.__typename === 'Equipment' && attribute.features.includes(FeatureEnum.equipment)) ||
-                    (featureData.__typename !== 'FeatureOption' &&
-                      featureData.__typename !== 'Subfeature' &&
-                      featureData?.options?.length > 0 &&
-                      attribute.features.includes(FeatureEnum.options))
-                )}
-                label='Feature Attribute'
-                value={featureData?.attributes}
-                onChange={updateFeatureData}
-              />
-            )}
-          {featureData?.attributes?.some((attribute) => attribute === Attributes.isAction) && (
+          {(featureData?.category === Categories.feature || featureStep === 'ancestry') && (
+            <Dropdown
+              multiSelect={true}
+              name='attributes'
+              options={system.attributes.filter((attribute) => {
+                if (attribute?.features?.length > 0) {
+                  if (formData.__typename === 'Equipment') {
+                    return attribute?.features?.includes(FeatureEnum.equipment)
+                  }
+                  if (
+                    (featureData.__typename === 'Feature' || featureData.__typename === 'AncestryFeature') &&
+                    featureData?.options?.length > 0
+                  ) {
+                    return attribute?.features?.length > 0 && attribute?.features?.includes(FeatureEnum.options)
+                  }
+                  return attribute?.features?.length > 0 && attribute?.features?.includes(FeatureEnum.all)
+                }
+                return false
+              })}
+              label='Feature Attribute'
+              value={featureData?.attributes}
+              onChange={updateFeatureData}
+            />
+          )}
+          {isAction && (
             <>
               <Dropdown
                 name='actions.primary.id'
                 label='Action Type'
-                value={featureData?.actions.primary.id}
+                value={featureData?.actions?.primary.id}
                 options={system.actions}
                 required={true}
                 onChange={updateFeatureData}
@@ -173,76 +205,79 @@ const Base = ({
             </>
           )}
         </Row>
-        {featureData?.attributes?.some((attribute) => attribute === Attributes.hasRange) &&
-          featureData.range &&
-          'id' in featureData.range && (
-            <>
-              <Row className={sprinkles({ mb: 'space-3' })}>
-                <Dropdown
-                  name='range.id'
-                  label='Range'
-                  value={featureData?.range?.id}
-                  options={system.spells.ranges}
-                  required={true}
-                  onChange={updateFeatureData}
-                />
-                {featureData?.range?.id !== Ranges.touch &&
-                  featureData.range?.id !== Ranges.sight &&
-                  featureData.range?.id !== Ranges.unlimited && (
-                    <>
+        {hasRange && (
+          <>
+            <Row className={sprinkles({ mb: 'space-3' })}>
+              <Dropdown
+                name='range.id'
+                label='Range'
+                value={featureData?.range?.id}
+                options={system.spells.ranges}
+                required={true}
+                onChange={updateFeatureData}
+              />
+              {featureData?.range?.id !== Ranges.touch &&
+                featureData.range?.id !== Ranges.sight &&
+                featureData.range?.id !== Ranges.unlimited && (
+                  <>
+                    {featureData?.range?.id !== Ranges.self && (
                       <Input
                         validation='num'
                         name='range.minRange'
                         errorMsg='Please enter a valid number greater than 0'
                         label='Min. Range'
                         autoComplete='off'
-                        required={featureData.range?.id === Ranges.distance ? true : false}
+                        required={featureData?.range?.id === Ranges.distance || false}
                         value={featureData?.range?.minRange}
                         onChange={updateFeatureData}
                       />
-                      <Input
-                        validation='num'
-                        name='range.maxRange'
-                        errorMsg='Must contain only numbers'
-                        label='Max Range'
-                        autoComplete='off'
-                        required={featureData.range?.id === Ranges.distance ? true : false}
-                        value={featureData?.range?.maxRange}
-                        onChange={updateFeatureData}
-                      />
-                      <Dropdown
-                        name='range.unit'
-                        label='UoM'
-                        value={featureData?.range?.unit}
-                        options={Object.values(system.rules.measurements.imperial).flatMap(
-                          (rule) => Array.isArray(rule) && rule
-                        )}
-                        required={featureData.range?.id === Ranges.distance ? true : false}
-                        onChange={updateFeatureData}
-                      />
-                    </>
-                  )}
-                {featureData.attributes?.some((attribute) => attribute === Attributes.limitTargets) && (
-                  <Input
-                    name='targets'
-                    value={featureData?.targets}
-                    label='No. of Targets'
-                    validation='num'
-                    errorMsg='Must contain only numbers'
-                    onChange={updateFeatureData}
-                    placeholder='1'
-                  />
+                    )}
+                    <Input
+                      validation='num'
+                      name='range.maxRange'
+                      errorMsg='Must contain only numbers'
+                      label='Max Range'
+                      autoComplete='off'
+                      required={featureData?.range?.id === Ranges.distance || false}
+                      value={featureData?.range?.maxRange}
+                      onChange={updateFeatureData}
+                    />
+                    <Dropdown
+                      name='range.unit'
+                      label='UoM'
+                      value={featureData?.range?.unit}
+                      options={Object.values(system.rules.measurements.imperial).flatMap(
+                        (rule) => Array.isArray(rule) && rule
+                      )}
+                      required={featureData?.range?.id === Ranges.distance || false}
+                      onChange={updateFeatureData}
+                    />
+                  </>
                 )}
-              </Row>
-              <Row>
-                <Dropdown
-                  name='shape.id'
-                  label='Shape'
-                  options={system.spells.shapes}
-                  value={featureData?.shape?.id}
+              {limitTargets && (
+                <Input
+                  name='targets'
+                  value={featureData?.targets}
+                  label='No. of Targets'
+                  validation='num'
+                  errorMsg='Must contain only numbers'
                   onChange={updateFeatureData}
+                  placeholder='1'
                 />
-                {featureData?.shape?.id !== Shapes.none && featureData.shape?.id !== Shapes.weapon && (
+              )}
+            </Row>
+            <Row>
+              <Dropdown
+                name='shape.id'
+                label='Shape'
+                options={system.spells.shapes}
+                value={featureData?.shape?.id}
+                required={true}
+                onChange={updateFeatureData}
+              />
+              {featureData?.shape?.id !== Shapes.none &&
+                featureData.shape?.id !== Shapes.weapon &&
+                featureData.shape?.id !== Shapes.cone && (
                   <>
                     <Input
                       validation='cur'
@@ -258,36 +293,38 @@ const Base = ({
                       name='shape.unit'
                       label='UoM'
                       value={featureData?.shape?.unit}
-                      options={Object.values(system.rules.measurements.imperial).flatMap(
-                        (rule) => Array.isArray(rule) && rule
-                      )}
+                      options={system.rules.measurements.imperial.length}
                       required={true}
                       onChange={updateFeatureData}
                     />
                   </>
                 )}
-              </Row>
-            </>
-          )}
-        {featureData?.attributes?.some((attribute) => attribute === Attributes.requiresSave) && (
+            </Row>
+          </>
+        )}
+        {requiresSave && (
           <Row className={sprinkles({ mb: 'space-3' })}>
             <Dropdown
               name='saveAbility.attributes'
               multiSelect={true}
               label='Save Attribute'
               value={featureData?.saveAbility?.attributes}
-              options={system.attributes.filter((attribute) => attribute.features.includes(FeatureEnum.saveAbilities))}
+              options={system.attributes.filter((attribute) => {
+                if (attribute?.features?.length > 0) {
+                  return attribute?.features?.includes(FeatureEnum.saveAbilities)
+                }
+              })}
               onChange={updateFeatureData}
             />
             <Dropdown
               name='saveAbility.id'
               label='DC Ability'
-              value={featureData?.saveAbility.id}
+              value={featureData?.saveAbility?.id}
               options={system.abilities}
               required={true}
               onChange={updateFeatureData}
             />
-            {featureData?.saveAbility?.attributes?.some((attribute) => attribute === Attributes.addAbilityModifier) && (
+            {addAbilityModifier && (
               <Dropdown
                 name='saveAbility.abilityModifier'
                 label='Modifier Ability'
@@ -309,13 +346,15 @@ const Base = ({
             />
           </Row>
         )}
-        <Requirements formData={featureData} updateFormData={updateFeatureData} />
-        <LimitUse formData={featureData} updateFormData={updateFeatureData} />
-        <Damage formData={featureData} updateFormData={updateFeatureData} />
-        <div className={feature_list}>
-          <SectionsList featureData={featureData} updateFeatureData={updateFeatureData} />
-        </div>
-      </ScrollArea>
+        {hasPrerequisites && <Requirements formData={featureData} updateFormData={updateFeatureData} />}
+        {limitUse && <LimitUse formData={featureData} updateFormData={updateFeatureData} />}
+        {doesDamage && <Damage formData={featureData} updateFormData={updateFeatureData} />}
+        {hasAnySections && (
+          <div className={feature_list}>
+            <SectionsList featureData={featureData} updateFeatureData={updateFeatureData} />
+          </div>
+        )}
+      </div>
     </>
   )
 }

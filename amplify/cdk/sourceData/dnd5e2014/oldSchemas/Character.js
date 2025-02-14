@@ -33,7 +33,7 @@ const modSchema = new Schema({
     ],
     default: undefined,
   },
-  dicePerLevel: {
+  diePerLevel: {
     type: [{ level: Number, dieCount: Number, dieValue: Number }],
     default: undefined,
   },

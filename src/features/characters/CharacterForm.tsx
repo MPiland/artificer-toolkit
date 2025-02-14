@@ -4,22 +4,25 @@ import { Step } from '../../types/form'
 import { useAddNewCharacterMutation, useUpdateCharacterMutation } from './charactersApi'
 import { Outlet } from 'react-router-dom'
 import { FormContext } from '../../components/Form/FormContext'
-
-const stepsArray = [
-  { id: 'details', label: 'Details' },
-  { id: 'race', label: 'Race' },
-  { id: 'class', label: 'Class' },
-  { id: 'abilities', label: 'Abilities' },
-  { id: 'equipment', label: 'Equipment' },
-  { id: 'background', label: 'Background' },
-] satisfies Step[]
+import { isEqual } from 'lodash'
 
 const CharacterForm = () => {
-  const { setSteps } = use(FormContext)
+  const { setSteps, steps } = use(FormContext)
+
+  const stepsArray = [
+    { id: 'details', label: 'Details' },
+    { id: 'race', label: 'Race' },
+    { id: 'class', label: 'Class' },
+    { id: 'abilities', label: 'Abilities' },
+    { id: 'equipment', label: 'Equipment' },
+    { id: 'background', label: 'Background' },
+  ] satisfies Step[]
 
   useEffect(() => {
-    setSteps(stepsArray)
-  }, [setSteps])
+    if (!isEqual(steps, stepsArray)) {
+      setSteps(stepsArray)
+    }
+  }, [setSteps, stepsArray, steps])
 
   return (
     <>

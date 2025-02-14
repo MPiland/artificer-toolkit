@@ -1,103 +1,88 @@
 import parse from 'html-react-parser'
 import { useLocation } from 'react-router-dom'
 import { useListRacesQuery } from './racesApi'
-import Spinner from '../../components/Spinner/Spinner'
 import Collapse from '../../components/Collapse/Collapse'
-import { useEffect, useState } from 'react'
-import { isEqual } from 'lodash'
-import { feature_header } from './RaceShort.css'
+import { useCallback, useMemo } from 'react'
+import { Feature, Race } from '../../../amplify/gql/types'
+import { Categories } from '../../types/enums'
 
 const RaceShort = () => {
   const location: any = useLocation()
 
-  const [parentRaces, setParentRaces] = useState<any[]>([])
-  const [features, setFeatures] = useState<any[]>([])
+  const { data: races } = useListRacesQuery()
 
-  const {
-    data: races,
-    isFetching,
-    isPending,
-  } = useListRacesQuery() as { data: any[]; isFetching: boolean; isPending: boolean }
-  const race = location.state.item
+  const race: Race = location.state.item
+  const raceLineages = races.filter((sRace) => race?.lineages?.includes(sRace.id))
 
-  useEffect(() => {
-    if (race.lineage?.length > 0) {
-      race.lineage.forEach((lineage: any) => {
-        const parentRacesArray = [...parentRaces]
-        const race = races.find((race: any) => race._id === lineage._id)
-        if (!parentRacesArray.includes(race)) {
-          parentRacesArray.push(race)
-          setParentRaces(parentRacesArray)
-        }
-      })
+  const setFormRaces = useCallback(() => {
+    const racesArray: Race[] = []
+    if (race) {
+      racesArray.push(race)
     }
-  }, [parentRaces, race.lineage, races])
-
-  useEffect(() => {
-    const featuresArray = [...features]
-    if (race.features?.length > 0) {
-      race.features?.map((feature: any) => {
-        if (!featuresArray.some((featureClone: any) => featureClone._id === feature._id)) {
-          featuresArray.push(feature)
-        }
-      })
-    }
-    if (parentRaces?.length > 0) {
-      parentRaces?.map((race: any) => {
-        if (race.features?.length > 0) {
-          race.features?.map((feature: any) => {
-            if (!featuresArray.some((featureClone: any) => featureClone._id === feature._id)) {
-              featuresArray.push(feature)
-            }
-          })
-        }
+    if (raceLineages) {
+      raceLineages?.forEach((lineage) => {
+        racesArray.push(lineage)
       })
     }
 
-    if (featuresArray.length > 0) {
-      featuresArray.sort((a: any, b: any) => {
-        if (a.value === b.value) {
-          return a.desc.localeCompare(b.desc)
-        } else {
-          return a.value.localeCompare(b.value)
+    return racesArray
+  }, [race, raceLineages])
+
+  const formRaces = useMemo(() => setFormRaces(), [setFormRaces])
+
+  const createFeatures = useCallback(() => {
+    const featureArrayUpdated: Feature[] = []
+
+    formRaces.forEach((raceObject) => {
+      // Default full features based off the raceObject
+      const fullFeatures = raceObject?.features
+
+      /* Inject feature into array based off type
+        If lineage or base, use base race Id
+        If ancestry, use the ancestry Id
+        This will allow for removing erroneous features using unique identifiers */
+      fullFeatures?.forEach((feature: Feature) => {
+        if (!featureArrayUpdated.some((aFeature) => aFeature.id === feature.id)) {
+          featureArrayUpdated.push(feature)
         }
       })
-    }
+    })
 
-    if (!isEqual(featuresArray, features)) {
-      setFeatures(featuresArray)
-    }
-  }, [features, parentRaces, race.features])
+    featureArrayUpdated.sort((a, b) => a.value.localeCompare(b.value))
 
-  return isPending || isFetching || !race ? (
-    <Spinner />
-  ) : (
+    return featureArrayUpdated
+  }, [formRaces])
+
+  const features = useMemo(() => createFeatures(), [createFeatures])
+
+  return (
     <>
-      {race?.detail?.length > 0 && parse(race?.detail[0].desc)}
-      {parentRaces?.length > 0 && parentRaces?.map((race) => race?.detail?.length > 0 && parse(race?.detail[0].desc))}
-      {race?.category?.name === 'subrace' && race?.desc && parse(race?.desc)}
-      {race?.trait?.area?.length > 0 &&
-        race.trait.area.map((area: any, index: number) => (
+      {race?.details?.length > 0 && parse(race?.details[0].desc)}
+      {raceLineages?.length > 0 &&
+        raceLineages?.map((race) => race?.details?.length > 0 && parse(race?.details[0].desc))}
+      {race?.category === Categories.subrace && race?.desc && parse(race?.desc)}
+      {race?.traits?.details.length > 0 &&
+        race.traits.details.map((detail, index) => (
           <Collapse key={index}>
-            <Collapse.Header title={area.value} startOpened={true} className={feature_header} />
-            <Collapse.Body>{area.desc && parse(area.desc)}</Collapse.Body>
+            <Collapse.Header title={detail.label} startOpened={true} />
+            <Collapse.Body>{detail.desc && parse(detail.desc)}</Collapse.Body>
           </Collapse>
         ))}
-      {parentRaces?.length > 0 &&
-        parentRaces?.map(
+      {raceLineages?.length > 0 &&
+        raceLineages?.map(
           (race) =>
-            race?.trait?.area?.length > 0 &&
-            race.trait.area.map((area: any, index: number) => (
+            race?.traits?.details?.length > 0 &&
+            race.traits.details.map((detail, index) => (
               <Collapse key={index}>
-                <Collapse.Header title={area.value} startOpened={true} className={feature_header} />
-                <Collapse.Body>{area.desc && parse(area.desc)}</Collapse.Body>
+                <Collapse.Header title={detail.label} startOpened={true} />
+                <Collapse.Body>{detail.desc && parse(detail.desc)}</Collapse.Body>
               </Collapse>
             ))
         )}
       {features?.length > 0 &&
-        features.map((feature: any, index: number) => (
+        features.map((feature, index) => (
           <Collapse key={index}>
-            <Collapse.Header title={feature.value} startOpened={true} className={feature_header} />
+            <Collapse.Header title={feature.label} startOpened={true} />
             <Collapse.Body>{feature.desc && parse(feature.desc)}</Collapse.Body>
           </Collapse>
         ))}

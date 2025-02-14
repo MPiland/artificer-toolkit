@@ -1,54 +1,5 @@
 import { PropertyPath } from 'lodash'
 
-export type Filter = {
-  key: string
-  array?: any[]
-  dataObject?: any
-  mapKey?: string
-  type: 'equal' | 'notEqual'
-  dataField?: string | null
-  matchingKey?: string
-}
-
-export type RowInput = {
-  value?: string
-  breakpoint?: string[]
-  options?: any[]
-  validation?: 'num' | 'cur' | 'die'
-  errorMsg?: string
-  name?: string
-  readOnly?: boolean
-  type?: 'input' | 'select'
-  filter?: Filter[]
-  multiple?: boolean
-  required?: boolean
-  optionalKey?: string
-  placeholder?: string
-  id?: string
-}
-
-export type RowHeader = {
-  label?:
-    | string
-    | {
-        sortOn: string
-        orderKey?: string
-        order?: Array<{ [key: number]: string }>
-        filter?: {
-          filterOn: string | PropertyPath
-          filterKey: string
-        }
-        subSort?: {
-          sortOn: string
-          orderKey?: string
-        }
-      }
-  value?: string
-  required?: boolean
-  breakpoint?: string[]
-  defaultSort?: boolean
-}
-
 export type SortConfig = {
   key: {
     orderKey?: string | PropertyPath

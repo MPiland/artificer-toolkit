@@ -23,6 +23,7 @@ enum DamageEnum {
 enum SpellEnum {
   all
   upcast
+  damage
 }
 
 enum AllEnum {
@@ -282,7 +283,7 @@ type SystemPrerequisite {
   classes: [ClassesEnum]
 }
 
-type System implements BaseFields {
+type System {
   id: ID!
   value: String!
   label: String!
@@ -362,7 +363,7 @@ type Range {
   unit: ID
 }
 
-type Spell implements BaseFields {
+type Spell {
   id: ID!
   label: String!
   value: String!
@@ -393,7 +394,7 @@ type SpellConnection {
   message: String
 }
 
-type AncestryFeature implements BaseFields {
+type AncestryFeature {
   id: ID!
   label: String
   value: String
@@ -417,7 +418,7 @@ type AncestryFeature implements BaseFields {
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [Subfeature]
+  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }
 
@@ -429,7 +430,7 @@ type AncestryOption {
   features: [AncestryFeature]
 }
 
-type Ancestry implements BaseFields {
+type Ancestry {
   id: ID!
   label: String!
   value: String!
@@ -450,7 +451,7 @@ type Traits {
   speeds: RaceSpeed
 }
 
-type Race implements BaseFields {
+type Race {
   id: ID!
   label: String!
   value: String!
@@ -458,7 +459,7 @@ type Race implements BaseFields {
   desc: String
   playable: String
   category: ID!
-  lineage: [ID!]
+  lineages: [ID!]
   ancestry: Ancestry
   details: [Detail]
   traits: Traits
@@ -474,35 +475,9 @@ type RaceConnection {
   message: String
 }
 
-## Base Interfaces
-interface BaseFields {
-  label: String
-  value: String
-  desc: String
-}
-
-interface DieFields {
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-}
-
-type DamageFields implements DieFields {
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-  attribute: ID
-  id: ID
-  ability: ID
-  setAmount: Int
-  multiplier: Int
-  minAmount: Int
-  maxAmount: Int
-  pool: DamagePool
-}
-
 ## Basic Types
-type Detail implements BaseFields {
+
+type Detail {
   label: String!
   value: String!
   desc: String
@@ -513,13 +488,6 @@ type SaveAbility {
   minAmount: Int
   attributes: [ID]
   abilityModifier: ID
-}
-
-type GenericRange {
-  minRange: Int
-  maxRange: Int
-  distance: Int
-  unit: ID!
 }
 
 type EquipmentGroup {
@@ -537,6 +505,19 @@ type EquipmentGroup {
 }
 
 ## Damage Related
+
+type DamageFields {
+  dieConfig: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePool
+}
+
 type DamagePool {
   attribute: ID
   setAmount: Int
@@ -549,21 +530,23 @@ type DamagePool {
 
 type SetPerLevel {
   level: String
-  amount: Int
+  primary: Int
+  secondary: Int
+  bonus: Int
 }
 
-type DicePerLevel implements DieFields {
+type DiePerLevel {
   level: String
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  primary: DamageFields
+  secondary: DamageFields
+  bonus: DamageFields
 }
 
 type Damage {
   attributes: [ID]
   damageSave: [ID]
   setPerLevel: [SetPerLevel]
-  dicePerLevel: [DicePerLevel]
+  diePerLevel: [DiePerLevel]
   primary: DamageFields
   secondary: DamageFields
   bonus: DamageFields
@@ -571,6 +554,7 @@ type Damage {
 }
 
 ## Charges
+
 type UsesPerLevel {
   level: Int
   uses: Int
@@ -590,6 +574,7 @@ type Charge {
 }
 
 ## Prerequisites
+
 type EquipPrerequisite {
   numberEquipped: Int
   category: ID
@@ -616,6 +601,7 @@ type Prerequisite {
 }
 
 ## Feature Related
+
 type FeatureFeat {
   id: ID!
   attributes: [ID]
@@ -624,7 +610,17 @@ type FeatureFeat {
   subtype: ID
 }
 
-type FeatureModifier implements DieFields {
+type ModifierDiePerLevel {
+  level: String
+  dieConfig: String
+}
+
+type ModifierSetPerLevel {
+  level: String
+  setAmount: Int
+}
+
+type FeatureModifier {
   id: ID!
   subtype: ID
   attributes: [ID]
@@ -638,12 +634,10 @@ type FeatureModifier implements DieFields {
   maxAmount: Int
   minAmount: Int
   setAmount: Int
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  dieConfig: String
   feature: ID
-  dicePerLevel: [DicePerLevel]
-  setPerLevel: [SetPerLevel]
+  diePerLevel: [ModifierDiePerLevel]
+  setPerLevel: [ModifierSetPerLevel]
   skills: [ID]
   saveAbilities: [ID]
   abilities: [ID]
@@ -741,7 +735,7 @@ type ActionGroup {
   secondary: ActionProperty
 }
 
-type Subfeature implements BaseFields {
+type FeatureSubfeature {
   id: ID!
   label: String
   value: String
@@ -753,7 +747,7 @@ type Subfeature implements BaseFields {
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  range: GenericRange
+  range: Range
   shape: Shape
   targets: Int
   feats: [FeatureFeat]
@@ -768,7 +762,7 @@ type Subfeature implements BaseFields {
   levelAvailable: String
 }
 
-type FeatureOption implements BaseFields {
+type FeatureOption {
   id: ID!
   label: String
   value: String
@@ -780,7 +774,7 @@ type FeatureOption implements BaseFields {
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  range: GenericRange
+  range: Range
   shape: Shape
   targets: Int
   feats: [FeatureFeat]
@@ -793,10 +787,10 @@ type FeatureOption implements BaseFields {
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [Subfeature]
+  subfeatures: [FeatureSubfeature]
 }
 
-type Feature implements BaseFields {
+type Feature {
   id: ID!
   label: String
   value: String
@@ -808,7 +802,7 @@ type Feature implements BaseFields {
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  range: GenericRange
+  range: Range
   shape: Shape
   targets: Int
   feats: [FeatureFeat]
@@ -821,11 +815,11 @@ type Feature implements BaseFields {
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [Subfeature]
+  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }
 
-type Feat implements BaseFields {
+type Feat {
   id: ID!
   label: String!
   value: String!
@@ -889,11 +883,17 @@ type Cost {
 type Contains {
   equipment: ID!
   quantity: Int!
-  contains: [Contains]  
+  contains: [Contains]
   currencies: [Currency]
 }
 
-type Equipment implements BaseFields {
+type EquipmentRange {
+  minAmount: Int
+  maxAmount: Int
+  unit: ID!
+}
+
+type Equipment {
   id: ID!
   label: String!
   value: String!
@@ -918,7 +918,7 @@ type Equipment implements BaseFields {
   armorClass: Int
   prerequisities: Prerequisite
   speed: Speed
-  range: GenericRange
+  range: EquipmentRange
   contains: [Contains]
   features: [Feature]
   ownerId: ID!
@@ -932,27 +932,16 @@ type EquipmentConnection {
   nextToken: String
   message: String
 }
-type Hitpoint implements DieFields {
+
+type Hitpoint {
   ability: ID
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  dieConfig: String
 }
 
-type StartingGold implements DieFields {
+type StartingGold {
   multiplier: Int!
   currency: ID!
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-}
-
-type EquipmentOption {
-  groups: [EquipmentGroup]
-}
-
-type StartingEquipment {
-  options: [EquipmentOption]
+  dieConfig: String
 }
 
 type PrepareLimitLevel {
@@ -1013,7 +1002,7 @@ type Subtype {
   value: String!
 }
 
-type Class implements BaseFields {
+type Class {
   id: ID!
   label: String!
   value: String!
@@ -1023,7 +1012,7 @@ type Class implements BaseFields {
   details: [Detail]
   hitpoint: Hitpoint
   startingGold: StartingGold
-  equipment: [StartingEquipment]
+  equipment: [[[EquipmentGroup]]]
   proficiencies: [FeatureProficiency]
   spellcasting: Spellcasting
   levelAttributes: [LevelAttribute]
@@ -1144,6 +1133,7 @@ type CharacterFeature {
   backgroundId: ID
   featId: ID
   optionIndex: Int
+  level: Int
 }
 
 ## Ability Scores
@@ -1310,7 +1300,7 @@ type BackgroundCurrency {
   platinum: Int
 }
 
-type Background implements BaseFields {
+type Background {
   id: ID!
   label: String!
   value: String!
@@ -1350,6 +1340,7 @@ enum DamageEnumInput {
 enum SpellEnumInput {
   all
   upcast
+  damage
 }
 
 enum AllEnumInput {
@@ -1743,7 +1734,7 @@ input AncestryFeatureInput {
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [SubfeatureInput]
+  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }
 
@@ -1784,7 +1775,7 @@ input RaceInput {
   desc: String
   playable: String!
   category: ID!
-  lineage: [ID!]
+  lineages: [ID!]
   ancestry: AncestryInput
   details: [DetailInput]
   traits: TraitsInput
@@ -1799,21 +1790,8 @@ input BatchRacesInput {
   data: RaceInput!
 }
 
-input DamageFieldsInput {
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
-  attribute: ID
-  id: ID
-  ability: ID
-  setAmount: Int
-  multiplier: Int
-  minAmount: Int
-  maxAmount: Int
-  pool: DamagePoolInput
-}
-
 ## Basic Types
+
 input DetailInput {
   label: String!
   value: String!
@@ -1825,13 +1803,6 @@ input SaveAbilityInput {
   minAmount: Int
   attributes: [ID]
   abilityModifier: ID
-}
-
-input GenericRangeInput {
-  minRange: Int
-  maxRange: Int
-  distance: Int
-  unit: ID!
 }
 
 input EquipmentGroupInput {
@@ -1849,6 +1820,19 @@ input EquipmentGroupInput {
 }
 
 ## Damage Related
+
+input DamageFieldsInput {
+  dieConfig: String
+  attribute: ID
+  id: ID
+  ability: ID
+  setAmount: Int
+  multiplier: Int
+  minAmount: Int
+  maxAmount: Int
+  pool: DamagePoolInput
+}
+
 input DamagePoolInput {
   attribute: ID
   setAmount: Int
@@ -1861,21 +1845,23 @@ input DamagePoolInput {
 
 input SetPerLevelInput {
   level: String
-  amount: Int
+  primary: Int
+  secondary: Int
+  bonus: Int
 }
 
-input DicePerLevelInput {
+input DiePerLevelInput {
   level: String
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  primary: DamageFieldsInput
+  secondary: DamageFieldsInput
+  bonus: DamageFieldsInput
 }
 
 input DamageInput {
   attributes: [ID]
   damageSave: [ID]
   setPerLevel: [SetPerLevelInput]
-  dicePerLevel: [DicePerLevelInput]
+  diePerLevel: [DiePerLevelInput]
   primary: DamageFieldsInput
   secondary: DamageFieldsInput
   bonus: DamageFieldsInput
@@ -1883,6 +1869,7 @@ input DamageInput {
 }
 
 ## Charges
+
 input UsesPerLevelInput {
   level: Int
   uses: Int
@@ -1902,6 +1889,7 @@ input ChargeInput {
 }
 
 ## Prerequisites
+
 input EquipPrerequisiteInput {
   numberEquipped: Int
   category: ID
@@ -1928,12 +1916,23 @@ input PrerequisiteInput {
 }
 
 ## Feature Related
+
 input FeatureFeatInput {
   id: ID!
   attributes: [ID]
   feats: [ID]
   selectionCount: Int
   subtype: ID
+}
+
+input ModifierDiePerLevelInput {
+  level: String
+  dieConfig: String
+}
+
+input ModifierSetPerLevelInput {
+  level: String
+  setAmount: Int
 }
 
 input FeatureModifierInput {
@@ -1950,12 +1949,10 @@ input FeatureModifierInput {
   maxAmount: Int
   minAmount: Int
   setAmount: Int
-  dieCount: Int
-  dieValue: Int
-  dieShort: String
+  dieConfig: String
   feature: ID
-  dicePerLevel: [DicePerLevelInput]
-  setPerLevel: [SetPerLevelInput]
+  diePerLevel: [ModifierDiePerLevelInput]
+  setPerLevel: [ModifierSetPerLevelInput]
   skills: [ID]
   saveAbilities: [ID]
   abilities: [ID]
@@ -2053,7 +2050,7 @@ input ActionGroupInput {
   secondary: ActionPropertyInput
 }
 
-input SubfeatureInput {
+input FeatureSubfeatureInput {
   id: ID!
   label: String
   value: String
@@ -2065,7 +2062,7 @@ input SubfeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: GenericRangeInput
+  range: RangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -2092,7 +2089,7 @@ input FeatureOptionInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: GenericRangeInput
+  range: RangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -2105,7 +2102,7 @@ input FeatureOptionInput {
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [SubfeatureInput]
+  subfeatures: [FeatureSubfeatureInput]
 }
 
 input FeatureInput {
@@ -2120,7 +2117,7 @@ input FeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  range: GenericRangeInput
+  range: RangeInput
   shape: ShapeInput
   targets: Int
   feats: [FeatureFeatInput]
@@ -2133,7 +2130,7 @@ input FeatureInput {
   saveAbility: SaveAbilityInput
   selectionCount: Int
   levelAvailable: String
-  subfeatures: [SubfeatureInput]
+  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }
 
@@ -2204,6 +2201,12 @@ input ContainsInput {
   currencies: [CurrencyInput]
 }
 
+input EquipmentRangeInput {
+  minAmount: Int
+  maxAmount: Int
+  unit: ID!
+}
+
 input EquipmentInput {
   id: ID
   label: String!
@@ -2229,7 +2232,7 @@ input EquipmentInput {
   armorClass: Int
   prerequisities: PrerequisiteInput
   speed: SpeedInput
-  range: GenericRangeInput
+  range: EquipmentRangeInput
   contains: [ContainsInput]
   features: [FeatureInput]
   ownerId: String
@@ -2245,23 +2248,13 @@ input BatchEquipmentInput {
 
 input HitpointInput {
   ability: ID
-  dieCount: Int
-  dieValue: Int
+  dieConfig: String
 }
 
 input StartingGoldInput {
   multiplier: Int!
   currency: ID!
-  dieCount: Int
-  dieValue: Int
-}
-
-input EquipmentOptionInput {
-  groups: [EquipmentGroupInput]
-}
-
-input StartingEquipmentInput {
-  options: [EquipmentOptionInput]
+  dieConfig: String
 }
 
 input PrepareLimitLevelInput {
@@ -2332,7 +2325,7 @@ input ClassInput {
   details: [DetailInput]
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
-  equipment: [StartingEquipmentInput]
+  equipment: [[[EquipmentGroupInput]]]
   proficiencies: [FeatureProficiencyInput]
   spellcasting: SpellcastingInput
   levelAttributes: [LevelAttributeInput]
@@ -2452,6 +2445,7 @@ input CharacterFeatureInput {
   backgroundId: ID
   featId: ID
   optionIndex: Int
+  level: Int
 }
 
 ## Ability ScoresInput
@@ -2643,7 +2637,7 @@ type Query {
   listSystems(limit: Int, nextToken: String): SystemConnection!
   listMasterSpells: [Spell!]
   getSpell(id: ID!): Spell
-  listSpells(limit: Int, nextToken: String, systemId: String!): SpellConnection!
+  listSpells(systemId: String!): SpellConnection!
   listMasterRaces: [Race!]
   getRace(id: ID!): Race
   listRaces(limit: Int, nextToken: String, systemId: String!): RaceConnection!
@@ -2655,12 +2649,12 @@ type Query {
   listEquipment(limit: Int, nextToken: String, systemId: String!): EquipmentConnection!
   listMasterClasses: [Class!]
   getClass(id: ID!): Class
-  listClasses(limit: Int, nextToken: String, systemId: String!): ClassConnection!
+  listClasses(systemId: String!): ClassConnection!
   getCharacter(id: ID!): Character
   listCharacters(limit: Int, nextToken: String, systemId: String!): CharacterConnection!
   listMasterBackgrounds: [Background!]
   getBackground(id: ID!): Background
-  listBackgrounds(limit: Int, nextToken: String, systemId: String!): BackgroundConnection!
+  listBackgrounds(systemId: String!): BackgroundConnection!
     }
 
     type Mutation {

@@ -3,15 +3,18 @@ import Form from '../../components/Form/Form'
 import { useAddNewFeatMutation, useUpdateFeatMutation } from './featsApi'
 import { Step } from '../../types/form'
 import { FormContext } from '../../components/Form/FormContext'
+import { isEqual } from 'lodash'
 
 const FeatForm = () => {
-  const { setSteps } = use(FormContext)
+  const { setSteps, steps } = use(FormContext)
 
   const stepsArray = [{ id: 'features', label: 'Features' }] satisfies Step[]
 
   useEffect(() => {
-    setSteps(stepsArray)
-  }, [setSteps, stepsArray])
+    if (!isEqual(steps, stepsArray)) {
+      setSteps(stepsArray)
+    }
+  }, [setSteps, stepsArray, steps])
 
   return <Form useAddNewItemMutation={useAddNewFeatMutation} useUpdateItemMutation={useUpdateFeatMutation} />
 }

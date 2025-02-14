@@ -9,7 +9,7 @@ import { DropdownOption } from '../../../../types/components'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { useListEquipmentQuery } from '../../../../features/equipment/equipmentApi'
 import { Attributes, Categories, ProficiencyCategories } from '../../../../types/enums'
-import { Class, ClassesEnum, FeatureProficiency, SectionEnum } from '../../../../../amplify/API'
+import { Class, ClassesEnum, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
 
 type CategoryType = 'skills' | 'equipment' | 'abilities' | 'saveAbilities' | 'properties' | 'languages'
@@ -24,9 +24,9 @@ const Expertise = () => {
   const { data: system } = useGetSystemQuery()
   const { data: items } = useListEquipmentQuery()
 
-  const providesOptions = sectionData.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+  const providesOptions = sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
-  const sectionCategory = system.proficiencies.categories.find((category) => category.id === sectionData.category)
+  const sectionCategory = system.proficiencies.categories.find((category) => category.id === sectionData?.category)
 
   const categoryName = sectionCategory?.value as CategoryType
 
@@ -43,13 +43,13 @@ const Expertise = () => {
             attribute.classes.includes(ClassesEnum.subclass)
         )}
         label={`${startCase('proficiency')} Attributes`}
-        value={sectionData.attributes}
+        value={sectionData?.attributes}
         onChange={updateSectionData}
       />
       <Dropdown
         name={`category`}
         label='Proficiency Category'
-        value={sectionData.category}
+        value={sectionData?.category}
         options={system.proficiencies.categories}
         required={true}
         onChange={updateSectionData}
@@ -71,8 +71,8 @@ const Expertise = () => {
           />
         ) : (
           <>
-            {(sectionData.category === ProficiencyCategories.properties ||
-              sectionData.category !== ProficiencyCategories.equipment) && (
+            {(sectionData?.category === ProficiencyCategories.properties ||
+              sectionData?.category !== ProficiencyCategories.equipment) && (
               <>
                 <Dropdown
                   name={`${categoryName as 'properties' | 'equipment'}.category`}
@@ -110,7 +110,7 @@ const Expertise = () => {
             )}
           </>
         ))}
-      {sectionData.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+      {sectionData?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
         formData.__typename === 'Class' &&
         formData.category === Categories.subclass && (
           <Dropdown
@@ -128,7 +128,7 @@ const Expertise = () => {
           name={`selectionCount`}
           label='# of Selections'
           autoComplete='off'
-          value={sectionData.selectionCount}
+          value={sectionData?.selectionCount}
           errorMsg='Must contain only numbers'
           required={true}
           onChange={updateSectionData}

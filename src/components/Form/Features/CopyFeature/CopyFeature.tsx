@@ -1,16 +1,17 @@
-import { useListRacesQuery } from '../../features/races/racesApi'
-import { useListClassesQuery } from '../../features/classes/classesApi'
-import { useListEquipmentQuery } from '../../features/equipment/equipmentApi'
+import { useListRacesQuery } from '../../../../features/races/racesApi'
+import { useListClassesQuery } from '../../../../features/classes/classesApi'
+import { useListEquipmentQuery } from '../../../../features/equipment/equipmentApi'
 import { useNavigate } from 'react-router-dom'
-import Modal from '../Modal/Modal'
+import Modal from '../../../Modal/Modal'
 import { useEffect, useState, use } from 'react'
-import Row from '../Row/Row'
-import Dropdown from '../Dropdown/Dropdown'
-import Button from '../Button/Button'
-import { sprinkles } from '../../css/sprinkles.css'
-import { FormContext } from '../Form/FormContext'
-import { Class, Equipment, Feature, Race } from '../../../amplify/API'
-import { FormDataType, UpdateState } from '../../types/form'
+import Row from '../../../Row/Row'
+import Dropdown from '../../../Dropdown/Dropdown'
+import Button from '../../../Button/Button'
+import { sprinkles } from '../../../../css/sprinkles.css'
+import { FormContext } from '../../FormContext'
+import { Class, Equipment, Feature, Race } from '../../../../../amplify/gql/types'
+import { UpdateState } from '../../../../types/form'
+import { FeatureContext } from '../FeatureContext'
 
 type CopySelection = {
   filter: Race['id'] | Class['id'] | Equipment['id']
@@ -18,12 +19,10 @@ type CopySelection = {
   feature: Feature['id']
 }
 
-const Copy = () => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: FormDataType
-    updateFormData: (arg: UpdateState<FormDataType>) => void
-  }
+const CopyFeature = () => {
   const navigate = useNavigate()
+  const { formData, updateFormData } = use(FormContext)
+  const { setFeatureStep, updateFeatureData } = use(FeatureContext)
 
   const [selection, setSelection] = useState<CopySelection>(null)
   const [features, setFeatures] = useState<any[]>([])
@@ -46,30 +45,30 @@ const Copy = () => {
       setFeatures(featureArray)
     }
 
-    if (selection.filter) {
-      if (selection.filterBy === 'races') {
-        const raceFeature = races?.find((race) => race.id === selection.filter).features
+    if (selection?.filter) {
+      if (selection?.filterBy === 'races') {
+        const raceFeature = races?.find((race) => race.id === selection?.filter).features
 
         setFeatures(raceFeature)
       }
-      if (selection.filterBy === 'equipment') {
-        const equipmentFeature = equipment?.find((equipment) => equipment.id === selection.filter).features
+      if (selection?.filterBy === 'equipment') {
+        const equipmentFeature = equipment?.find((equipment) => equipment.id === selection?.filter).features
 
         setFeatures(equipmentFeature)
       }
-      if (selection.filterBy === 'classes') {
-        const classFeature = classes?.find((uClass) => uClass.id === selection.filter).features
+      if (selection?.filterBy === 'classes') {
+        const classFeature = classes?.find((uClass) => uClass.id === selection?.filter).features
 
         setFeatures(classFeature)
       }
     }
 
-    if (selection.feature) {
-      const feature = features?.find((feature) => feature._id === selection.feature)
+    if (selection?.feature) {
+      const feature = features?.find((feature) => feature._id === selection?.feature)
 
       setSelectedFeature(feature)
     }
-  }, [races, classes, equipment, selection.filter, features, selection.filterBy, selection.feature])
+  }, [races, classes, equipment, selection?.filter, features, selection?.filterBy, selection?.feature])
 
   const handleSetFilterBy = (e: UpdateState<CopySelection>) => {
     if (e.type === 'update') {
@@ -103,6 +102,10 @@ const Copy = () => {
         path: `features.${featureIndex}`,
         value: selectedFeature,
       })
+      updateFeatureData({ type: 'index', value: featureIndex })
+      updateFeatureData({ type: 'reset', value: selectedFeature })
+      updateFeatureData({ type: 'initialReset', value: selectedFeature })
+      setFeatureStep('feature')
       navigate(-1)
     }
   }
@@ -142,7 +145,7 @@ const Copy = () => {
                 label='Race'
                 onChange={handleSetFilter}
                 name='filter'
-                value={selection.filter}
+                value={selection?.filter}
               />
             )}
             {selection?.filterBy === 'classes' && (
@@ -151,7 +154,7 @@ const Copy = () => {
                 label='Class'
                 onChange={handleSetFilter}
                 name='filter'
-                value={selection.filter}
+                value={selection?.filter}
               />
             )}
             {selection?.filterBy === 'equipment' && (
@@ -160,14 +163,14 @@ const Copy = () => {
                 label='Equipment'
                 onChange={handleSetFilter}
                 name='filter'
-                value={selection.filter}
+                value={selection?.filter}
               />
             )}
             <Dropdown
               label='Feature'
               onChange={handleSetFeature}
               name='feature'
-              value={selection.feature}
+              value={selection?.feature}
               options={features}
             />
           </Row>
@@ -175,7 +178,7 @@ const Copy = () => {
             color='primary'
             onClick={() => handleSelect()}
             className={sprinkles({ mt: 'space-3', width: 'size-full' })}
-            disabled={!selection.feature}
+            disabled={!selection?.feature}
           >
             Copy
           </Button>
@@ -185,4 +188,4 @@ const Copy = () => {
   )
 }
 
-export default Copy
+export default CopyFeature

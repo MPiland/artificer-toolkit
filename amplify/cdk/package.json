@@ -7,14 +7,23 @@
   "scripts": {
     "predeploy": "node build.mjs",
     "deploy": "cdk deploy",
+    "postdeploy": "npx graphql-codegen --config codegen.ts --debug",
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^5.0.3",
+    "@0no-co/graphqlsp": "^1.12.16",
+    "@eddeee888/gcg-typescript-resolver-files": "^0.12.0",
+    "@graphql-codegen/cli": "^5.0.4",
+    "@graphql-codegen/client-preset": "4.6.1",
+    "@graphql-codegen/import-types-preset": "^3.0.0",
+    "@graphql-codegen/introspection": "4.0.3",
+    "@graphql-codegen/near-operation-file-preset": "^3.0.0",
+    "@graphql-codegen/schema-ast": "^4.1.0",
     "@graphql-codegen/typescript": "^4.1.0",
+    "@graphql-codegen/typescript-document-nodes": "^4.0.13",
     "@graphql-codegen/typescript-operations": "^4.3.0",
     "@graphql-codegen/typescript-react-query": "^6.1.0",
     "@parcel/watcher": "^2.4.1",
@@ -22,6 +31,8 @@
     "@types/node": "22.5.4",
     "aws-cdk": "^2.160.0",
     "esbuild": "^0.24.0",
+    "gql-generator-node": "^2.1.16",
+    "graphql-tools": "^9.0.11",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
@@ -36,6 +47,9 @@
     "codegen": "^0.1.0",
     "constructs": "^10.0.0",
     "glob": "^11.0.0",
+    "graphql": "^16.10.0",
+    "graphql-operation-generator": "^1.0.2",
+    "graphql-scalars": "^1.24.1",
     "source-map-support": "^0.5.21",
     "three": "^0.171.0"
   }

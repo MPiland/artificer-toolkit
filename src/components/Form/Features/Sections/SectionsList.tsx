@@ -8,7 +8,7 @@ import { feature_description } from '../../Form.css'
 import parse from 'html-react-parser'
 import { FeatureContext } from '../FeatureContext'
 import { sectionSteps } from '../../../../types/form'
-import { Feature, FeatureOption, Subfeature } from '../../../../../amplify/API'
+import { Feature, FeatureOption, FeatureSubfeature } from '../../../../../amplify/gql/types'
 
 const SectionsList = ({
   featureData,
@@ -30,7 +30,7 @@ const SectionsList = ({
   const handleEdit = (
     sectionStep: SectionName,
     sectionIndex: number,
-    sectionItem: SectionDataType | FeatureOption | Subfeature
+    sectionItem: SectionDataType | FeatureOption | FeatureSubfeature
   ) => {
     updateSectionData({ type: 'index', value: sectionIndex })
     if (featureStep === 'subfeature') {
@@ -61,7 +61,7 @@ const SectionsList = ({
   return (
     <>
       {sectionSteps.map((sectionStep, index) => {
-        let sections: SectionDataType[] | FeatureOption[] | Subfeature[]
+        let sections: SectionDataType[] | FeatureOption[] | FeatureSubfeature[]
         if (featureData.__typename === 'AncestryFeature') {
           sections =
             featureData[sectionStep as Exclude<SectionName, 'ancestries'>] ||
@@ -69,7 +69,7 @@ const SectionsList = ({
             featureData?.subfeatures
         } else {
           sections =
-            featureData[sectionStep] ||
+            featureData[sectionStep as Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>] ||
             (featureData as Feature)?.options ||
             (featureData as Feature | FeatureOption)?.subfeatures
         }
@@ -89,46 +89,53 @@ const SectionsList = ({
                       key={sIndex}
                       handleRemove={() => handleRemove(sectionStep, sIndex)}
                       handleEdit={() => handleEdit(sectionStep, sIndex, section)}
+                      expandable={section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature'}
                     >
                       {featureStep !== 'subfeature' && `${startCase(sectionStep)} ${sIndex + 1}`}
-                      {(section.__typename === 'FeatureOption' || section.__typename === 'Subfeature') &&
+                      {(section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') &&
                         section?.value != null &&
                         section?.value}
                     </Accordion.Header>
-                    {(featureStep === 'option' || featureStep === 'subfeature') && (
-                      <>
-                        <Accordion.Content>
-                          <div className={feature_description}>
-                            {(section.__typename === 'FeatureOption' || section.__typename === 'Subfeature') &&
-                              section?.desc &&
-                              parse(section?.desc)}
-                          </div>
-                        </Accordion.Content>
-                        <Accordion.Footer>
-                          <Group justifyContentVariant='start'>
-                            {sectionSteps.map((fSectionStep, fSIndex) => {
-                              return (
-                                <span
-                                  key={fSIndex}
-                                  className={sprinkles({
-                                    me: 'space-3',
-                                  })}
-                                >
-                                  {(section.__typename === 'FeatureOption' || section.__typename === 'Subfeature') &&
-                                  section[fSectionStep]?.length > 0 ? (
-                                    <strong key={fSIndex}>
-                                      {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
-                                    </strong>
-                                  ) : (
-                                    `${startCase(fSectionStep.charAt(0))}: 0`
-                                  )}
-                                </span>
-                              )
-                            })}
-                          </Group>
-                        </Accordion.Footer>
-                      </>
-                    )}
+                    {(featureStep === 'option' || featureStep === 'subfeature') &&
+                      (section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') && (
+                        <>
+                          <Accordion.Content>
+                            <div className={feature_description}>
+                              {(section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') &&
+                                section?.desc &&
+                                parse(section?.desc)}
+                            </div>
+                          </Accordion.Content>
+
+                          <Accordion.Footer>
+                            <Group justifyContentVariant='start'>
+                              {sectionSteps.map(
+                                (
+                                  fSectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>,
+                                  fSIndex
+                                ) => {
+                                  return (
+                                    <span
+                                      key={fSIndex}
+                                      className={sprinkles({
+                                        me: 'space-3',
+                                      })}
+                                    >
+                                      {section[fSectionStep]?.length > 0 ? (
+                                        <strong key={fSIndex}>
+                                          {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
+                                        </strong>
+                                      ) : (
+                                        `${startCase(fSectionStep.charAt(0))}: 0`
+                                      )}
+                                    </span>
+                                  )
+                                }
+                              )}
+                            </Group>
+                          </Accordion.Footer>
+                        </>
+                      )}
                   </Accordion.Wrapper>
                 )
               })}

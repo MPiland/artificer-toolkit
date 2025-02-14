@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import { useListClassesQuery } from '../classes/classesApi'
 import { useListRacesQuery } from '../races/racesApi'
-import { Character as CharacterState } from '../../../amplify/API'
+import { Character as CharacterState } from '../../../amplify/gql/types'
 
 const Character = () => {
   const location = useLocation()

@@ -12,7 +12,7 @@ import { TbX } from 'react-icons/tb'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
 import { useIsFetching } from '@tanstack/react-query'
-import { Background, EquipmentEnum } from '../../../../amplify/API'
+import { Background, EquipmentEnum } from '../../../../amplify/gql/types'
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import { use } from 'react'
@@ -78,14 +78,6 @@ const BackgroundEquipment = () => {
                   id: equipment.id,
                 }))}
                 multiSelect={true}
-                filters={[
-                  {
-                    key: 'category',
-                    dataObject: equipmentGroup,
-                    type: 'equal',
-                    mapKey: 'properties',
-                  },
-                ]}
                 onChange={updateFormData}
               />
               <Dropdown
@@ -100,18 +92,6 @@ const BackgroundEquipment = () => {
                   }
                 })}
                 multiSelect={true}
-                filters={[
-                  {
-                    key: 'category._id',
-                    dataObject: equipmentGroup,
-                    type: 'equal',
-                  },
-                  {
-                    key: 'properties.type',
-                    dataObject: equipmentGroup,
-                    type: 'equal',
-                  },
-                ]}
                 onChange={updateFormData}
               />
               {equipmentGroup.attributes?.some((attribute) => attribute === Attributes.providesOptions) ? (

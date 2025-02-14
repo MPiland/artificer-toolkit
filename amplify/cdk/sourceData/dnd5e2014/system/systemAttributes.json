@@ -50,13 +50,6 @@
     "features": ["all"]
   },
   {
-    "label": "DC Required",
-    "value": "dcRequired",
-    "id": "c046e268-1275-4c2b-b647-cfc85eb39b9a",
-    "features": ["all"],
-    "equipment": ["all"]
-  },
-  {
     "value": "prerequisites",
     "label": "Prerequisites",
     "id": "40a91f3a-8909-4593-8a5f-b66b364602bb",
@@ -99,7 +92,7 @@
     "label": "Provides Options",
     "id": "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
     "sections": ["all"],
-    "equipment": ["all"]
+    "equipment": ["all", "classes"]
   },
   {
     "value": "isRitual",
@@ -293,14 +286,14 @@
     "value": "primaryDamage",
     "label": "Primary Damage",
     "id": "cb47b615-2a96-4617-870a-9051ab4b95cf",
-    "damage": ["all"],
     "spells": ["upcast"]
   },
   {
     "value": "bonusDamage",
     "label": "Bonus Damage",
     "id": "412e4b5f-f202-4519-851f-03965749051a",
-    "damage": ["equipment"]
+    "damage": ["all"],
+    "spells": ["damage"]
   },
   {
     "value": "range",
@@ -330,8 +323,8 @@
     "value": "secondaryDamage",
     "label": "Secondary Damage",
     "id": "90ed849a-a870-419c-b58b-451afeeff7bb",
-    "damage": ["equipment"],
-    "spells": ["upcast"]
+    "damage": ["all"],
+    "spells": ["damage"]
   },
   {
     "value": "setAmount",
@@ -347,7 +340,7 @@
     "damage": ["main"]
   },
   {
-    "value": "dicePerLevel",
+    "value": "diePerLevel",
     "label": "Die Per Level",
     "id": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
     "damage": ["main"]
@@ -397,9 +390,11 @@
   },
   {
     "value": "requiresSave",
-    "label": "Requires Save",
+    "label": "DC Required",
     "id": "13e4400f-aeed-4a6a-a2f3-9f661862ddd9",
-    "spells": ["all"]
+    "spells": ["all"],
+    "features": ["all"],
+    "equipment": ["all"]
   },
   {
     "value": "canUpcast",

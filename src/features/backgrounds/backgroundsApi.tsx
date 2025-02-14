@@ -1,8 +1,8 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listBackgrounds } from '../../../amplify/graphql/queries'
-import { createBackground, deleteBackground, updateBackground } from '../../../amplify/graphql/mutations'
-import { BackgroundInput, Background } from '../../../amplify/API'
+import { listBackgrounds } from '../../../amplify/gql/queries'
+import { createBackground, deleteBackground, updateBackground } from '../../../amplify/gql/mutations'
+import { BackgroundInput, Background } from '../../../amplify/gql/types'
 import useSystemPref from '../../hooks/useSystemPref'
 
 const client = generateClient()

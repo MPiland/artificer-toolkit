@@ -4,14 +4,15 @@ import { card_group, card_header, card_header_title, main_card, subrace_card } f
 import clsx from 'clsx'
 import { useListRacesQuery } from '../../../../features/races/racesApi'
 import { Categories } from '../../../../types/enums'
+import { Race } from '../../../../../amplify/gql/types'
 
 const RaceSelection = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
   const { data: races } = useListRacesQuery()
-  const handleShowDetail = (item: any, context: string) => {
-    navigate(`race/detail/short/${item.name}`, {
+  const handleShowDetail = (item: Race, context: string) => {
+    navigate(`race/detail/short/${item.value}`, {
       state: {
         background: location,
         item: item,
@@ -21,48 +22,47 @@ const RaceSelection = () => {
     })
   }
 
-  return races
-    ?.filter((race) => race.category === Categories.base)
-    .map((race, raceIndex: number) => {
+  return races.map((race, raceIndex) => {
+    if (race.category === Categories.base) {
       return (
         <div key={raceIndex} className={card_group}>
           <div
             className={clsx(main_card, {
               ['clickable']: !races
                 ?.filter((race) => race.category === Categories.subrace)
-                .some((subrace) => subrace?.lineage?.some((lineage) => lineage === race.id)),
+                .some((subrace) => subrace?.lineages?.some((lineage) => lineage === race.id)),
             })}
             onClick={() =>
               !races
                 ?.filter((race) => race.category === Categories.subrace)
-                .some((subrace) => subrace?.lineage.some((lineage) => lineage === race.id)) &&
+                .some((subrace) => subrace?.lineages?.some((lineage) => lineage === race.id)) &&
               handleShowDetail(race, 'race')
             }
           >
-            <h3 className={clsx(card_header_title, card_header)}>{race.value}</h3>
+            <h3 className={clsx(card_header_title, card_header)}>{race.label}</h3>
           </div>
-          {races
-            ?.filter((race) => race.category === Categories.subrace)
-            .some((subrace) => subrace?.lineage.some((lineage) => lineage === race.id)) && (
-            <>
-              {races
-                ?.filter((race) => race.category === Categories.subrace)
-                .filter((subrace) => subrace?.lineage.some((lineage) => lineage === race.id))
-                .map((subrace, subraceIndex: number) => (
-                  <Fragment key={subraceIndex}>
-                    <div
-                      className={clsx(subrace_card, main_card, 'clickable')}
-                      onClick={() => handleShowDetail(subrace, 'race')}
-                    >
-                      <h3 className={clsx(card_header_title, card_header)}>{subrace.value}</h3>
-                    </div>
-                  </Fragment>
-                ))}
-            </>
-          )}
+          <>
+            {races
+              ?.filter((race) => race.category === Categories.subrace)
+              .map((subrace, subraceIndex) => {
+                if (subrace.lineages?.some((lineage) => lineage === race.id)) {
+                  return (
+                    <Fragment key={subraceIndex}>
+                      <div
+                        className={clsx(subrace_card, main_card, 'clickable')}
+                        onClick={() => handleShowDetail(subrace, 'race')}
+                      >
+                        <h3 className={clsx(card_header_title, card_header)}>{subrace.label}</h3>
+                      </div>
+                    </Fragment>
+                  )
+                }
+              })}
+          </>
         </div>
       )
-    })
+    }
+  })
 }
 
 export default RaceSelection

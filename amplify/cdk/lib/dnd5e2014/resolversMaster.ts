@@ -16,7 +16,6 @@ import * as backgroundResolvers from './background/resolvers/backgroundResolvers
 import * as masterFeatResolvers from './feat/resolvers/masterFeatResolvers'
 import * as featResolvers from './feat/resolvers/featResolvers'
 import * as characterResolvers from './character/resolvers/characterResolvers'
-import * as dieShortResolvers from './generic/dieShort/dieShortResolver'
 
 export function createResolvers(api: GraphqlApi, stack: Stack) {
   const tables = createTables(stack)
@@ -36,9 +35,4 @@ export function createResolvers(api: GraphqlApi, stack: Stack) {
   masterFeatResolvers.addResolvers(api, tables.masterFeats)
   featResolvers.addResolvers(api, tables.feats)
   characterResolvers.addResolvers(api, tables.characters)
-  dieShortResolvers.addResolvers(api, 'Hitpoint')
-  dieShortResolvers.addResolvers(api, 'StartingGold')
-  dieShortResolvers.addResolvers(api, 'DamageFields')
-  dieShortResolvers.addResolvers(api, 'DicePerLevel')
-  dieShortResolvers.addResolvers(api, 'FeatureModifier')
 }
