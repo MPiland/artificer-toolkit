@@ -22746,8 +22746,8 @@ query ListMasterEquipment {
 	}
 	range {
 		__typename
-		minAmount
-		maxAmount
+		minRange
+		maxRange
 		unit
 	}
 	contains {
@@ -24854,8 +24854,8 @@ query GetEquipment($id: ID!) {
 	}
 	range {
 		__typename
-		minAmount
-		maxAmount
+		minRange
+		maxRange
 		unit
 	}
 	contains {
@@ -26964,8 +26964,8 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 		}
 		range {
 			__typename
-			minAmount
-			maxAmount
+			minRange
+			maxRange
 			unit
 		}
 		contains {

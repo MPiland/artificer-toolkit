@@ -26,8 +26,8 @@ type Contains {
 }
 
 type EquipmentRange {
-  minAmount: Int
-  maxAmount: Int
+  minRange: Int
+  maxRange: Int
   unit: ID!
 }
 

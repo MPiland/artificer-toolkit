@@ -22755,8 +22755,8 @@ mutation CreateEquipment($input: EquipmentInput!) {
 	}
 	range {
 		__typename
-		minAmount
-		maxAmount
+		minRange
+		maxRange
 		unit
 	}
 	contains {
@@ -24863,8 +24863,8 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 	}
 	range {
 		__typename
-		minAmount
-		maxAmount
+		minRange
+		maxRange
 		unit
 	}
 	contains {
@@ -26978,8 +26978,8 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 	}
 	range {
 		__typename
-		minAmount
-		maxAmount
+		minRange
+		maxRange
 		unit
 	}
 	contains {

@@ -1,18 +1,18 @@
 import { StateCreator } from 'zustand'
 import { addField, removeField, updateField, reset, CombinedSlice } from './useStore'
-import { Subfeature } from '../../amplify/gql/types'
+import { FeatureSubfeature } from '../../amplify/gql/types'
 import { DeepKeyOf } from '../types/form'
 import { produce } from 'immer'
 
 export interface SubfeatureSlice {
-  subfeatureData: Subfeature
+  subfeatureData: FeatureSubfeature
   subfeatureIndex: number
-  initialSubfeatureData: Subfeature
-  updateSubfeatureField: (arg: { path: DeepKeyOf<Subfeature>; value: any }) => void
-  addSubfeatureField: (arg: { path: DeepKeyOf<Subfeature>; value?: any }) => void
-  removeSubfeatureField: (arg: { path: DeepKeyOf<Subfeature> }) => void
-  subfeatureReset: (arg: { value: Subfeature }) => void
-  initialSubfeatureReset: (arg: { value: Subfeature }) => void
+  initialSubfeatureData: FeatureSubfeature
+  updateSubfeatureField: (arg: { path: DeepKeyOf<FeatureSubfeature>; value: any }) => void
+  addSubfeatureField: (arg: { path: DeepKeyOf<FeatureSubfeature>; value?: any }) => void
+  removeSubfeatureField: (arg: { path: DeepKeyOf<FeatureSubfeature> }) => void
+  subfeatureReset: (arg: { value: FeatureSubfeature }) => void
+  initialSubfeatureReset: (arg: { value: FeatureSubfeature }) => void
   updateSubfeatureIndex: (arg: { value: number }) => void
   resetSubfeature: () => void
 }

@@ -25,7 +25,7 @@ const Spells = () => {
 
   const providesOptions = sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
-  const [spellsArray, setSpellsArray] = useState<Array<Spell>>([])
+  const [spellsArray, setSpellsArray] = useState<Spell[]>([])
 
   // Set spells array
   useEffect(() => {
@@ -105,13 +105,6 @@ const Spells = () => {
             label='Class Limit'
             value={sectionData?.classLimit}
             options={classes}
-            filters={[
-              {
-                matchingKey: 'subclass',
-                key: 'category',
-                type: 'notEqual',
-              },
-            ]}
             required={true}
             onChange={updateSectionData}
           />
@@ -213,11 +206,7 @@ const Spells = () => {
               <Dropdown
                 name={`spellsByLevel.${index}.level`}
                 value={String(setLevel.level)}
-                options={spells?.map((spell) => ({
-                  value: String(spell.level),
-                  label: String(spell.level),
-                  id: String(spell.level),
-                }))}
+                options={spells}
                 errorMsg='Please enter a whole number'
                 onChange={updateSectionData}
                 required={true}
@@ -235,11 +224,7 @@ const Spells = () => {
                 <Dropdown
                   name={`spellsByLevel.${index}.spellLevel`}
                   value={String(setLevel.spellLevel)}
-                  options={spells?.map((spell) => ({
-                    value: String(spell.level),
-                    label: String(spell.level),
-                    id: String(spell.level),
-                  }))}
+                  options={spells}
                   errorMsg='Please enter a valid die value'
                   onChange={updateSectionData}
                   required={true}

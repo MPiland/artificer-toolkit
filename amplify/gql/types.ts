@@ -1150,14 +1150,14 @@ export type EquipmentInput = {
 
 export type EquipmentRange = {
   __typename: 'EquipmentRange';
-  maxAmount?: Maybe<Scalars['Int']['output']>;
-  minAmount?: Maybe<Scalars['Int']['output']>;
+  maxRange?: Maybe<Scalars['Int']['output']>;
+  minRange?: Maybe<Scalars['Int']['output']>;
   unit: Scalars['ID']['output'];
 };
 
 export type EquipmentRangeInput = {
-  maxAmount?: InputMaybe<Scalars['Int']['input']>;
-  minAmount?: InputMaybe<Scalars['Int']['input']>;
+  maxRange?: InputMaybe<Scalars['Int']['input']>;
+  minRange?: InputMaybe<Scalars['Int']['input']>;
   unit: Scalars['ID']['input'];
 };
 
