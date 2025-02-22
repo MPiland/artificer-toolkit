@@ -564,7 +564,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         }
 
         if (section.attributes?.some((attribute) => attribute === Attributes.levelLimit)) {
-          options = (options as Array<Spell>).filter((spell) => section.levelLimit === spell.level)
+          options = (options as Array<Spell>).filter((spell) => section.levelLimit.includes(String(spell.level)))
         }
 
         const stateIndex = formData?.spellcasting?.additional?.length || 0
