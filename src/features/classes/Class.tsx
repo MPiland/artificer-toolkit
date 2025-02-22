@@ -66,11 +66,11 @@ const Class = () => {
             })}`
           )
         }
-        if (childReqOption.spellsKnown && childReqOption.spellsKnown?.length > 0) {
+        if (childReqOption.spellsObtained && childReqOption.spellsObtained?.length > 0) {
           childReqsText.push(
-            `Spell(s) Known: ${childReqOption.spellsKnown?.map((spellId, index) => {
+            `Spell(s) Known: ${childReqOption.spellsObtained?.map((spellId, index) => {
               const spell = spells.find((spellItem) => spellItem.id === spellId)
-              if (childReqOption.spellsKnown?.length > 1 && index !== childReqOption.spellsKnown?.length - 1) {
+              if (childReqOption.spellsObtained?.length > 1 && index !== childReqOption.spellsObtained?.length - 1) {
                 return `${spell.label}, `
               } else {
                 return `${spell.label}`
@@ -78,15 +78,15 @@ const Class = () => {
             })}`
           )
         }
-        if (childReqOption.featuresKnown && childReqOption.featuresKnown?.length > 0) {
+        if (childReqOption.featuresObtained && childReqOption.featuresObtained?.length > 0) {
           let featureText = ''
-          childReqOption.featuresKnown?.map((featureId, index) => {
+          childReqOption.featuresObtained?.map((featureId, index) => {
             const feature = classItem.features.find((cFeature) => featureId === cFeature.id)
             featureText += `${feature.label}`
-            const featureLength = childReqOption.featuresKnown?.length
-            if (childReqOption.optionsKnown?.length > 0) {
-              childReqOption.optionsKnown?.map((optionId, reqOptionIndex) => {
-                const optionLength = childReqOption.optionsKnown?.length
+            const featureLength = childReqOption.featuresObtained?.length
+            if (childReqOption.optionsObtained?.length > 0) {
+              childReqOption.optionsObtained?.map((optionId, reqOptionIndex) => {
+                const optionLength = childReqOption.optionsObtained?.length
                 const option = feature.options?.find((fOption) => fOption.id === optionId)
                 if (option) {
                   if (featureLength > 1 && reqOptionIndex !== optionLength - 1) {
@@ -167,8 +167,8 @@ const Class = () => {
                                     (reqId) =>
                                       reqId === Prerequisites.abilityScore ||
                                       reqId === Prerequisites.skillProficiency ||
-                                      reqId === Prerequisites.spellsKnown ||
-                                      reqId === Prerequisites.featuresKnown
+                                      reqId === Prerequisites.spellsObtained ||
+                                      reqId === Prerequisites.featuresObtained
                                   ) && (
                                     <p>
                                       <em className={sprinkles({ mb: 'space-3' })}>
@@ -230,8 +230,8 @@ const Class = () => {
                                       (reqId) =>
                                         reqId === Prerequisites.abilityScore ||
                                         reqId === Prerequisites.skillProficiency ||
-                                        reqId === Prerequisites.spellsKnown ||
-                                        reqId === Prerequisites.featuresKnown
+                                        reqId === Prerequisites.spellsObtained ||
+                                        reqId === Prerequisites.featuresObtained
                                     ) && (
                                       <p>
                                         <em className={sprinkles({ mb: 'space-3' })}>
@@ -279,8 +279,8 @@ const Class = () => {
                               (reqId) =>
                                 reqId === Prerequisites.abilityScore ||
                                 reqId === Prerequisites.skillProficiency ||
-                                reqId === Prerequisites.spellsKnown ||
-                                reqId === Prerequisites.featuresKnown
+                                reqId === Prerequisites.spellsObtained ||
+                                reqId === Prerequisites.featuresObtained
                             ) && (
                               <p>
                                 <em className={sprinkles({ mb: 'space-3' })}>
