@@ -183,7 +183,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "acid"
@@ -314,7 +314,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "lightning"
@@ -445,7 +445,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "fire"
@@ -576,7 +576,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "lightning"
@@ -707,7 +707,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "acid"
@@ -834,7 +834,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "fire"
@@ -961,7 +961,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "poison"
@@ -1088,7 +1088,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "fire"
@@ -1215,7 +1215,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "cold"
@@ -1342,7 +1342,7 @@
                   "mode": {
                     "value": "resistance"
                   },
-                  "damage": {
+                  "damages": {
                     "type": [
                       {
                         "value": "cold"
@@ -1617,7 +1617,7 @@
               "value": "advantage",
               "label": "Advantage"
             },
-            "damage": {
+            "damages": {
               "type": [
                 {
                   "value": "poison",
@@ -1636,7 +1636,7 @@
               "value": "resistance",
               "label": "Resistance"
             },
-            "damage": {
+            "damages": {
               "type": [
                 {
                   "value": "poison",
@@ -1880,6 +1880,94 @@
               "value": "hitpoints",
               "label": "Hit Points"
             },
+            "mode": {
+              "value": "bonus"
+            },
+            "method": {
+              "value": "setPerLevel"
+            },
+            "setPerLevel": [
+              {
+                "level": 1,
+                "setAmount": 1
+              },
+              {
+                "level": 2,
+                "setAmount": 1
+              },
+              {
+                "level": 3,
+                "setAmount": 1
+              },
+              {
+                "level": 4,
+                "setAmount": 1
+              },
+              {
+                "level": 5,
+                "setAmount": 1
+              },
+              {
+                "level": 6,
+                "setAmount": 1
+              },
+              {
+                "level": 7,
+                "setAmount": 1
+              },
+              {
+                "level": 8,
+                "setAmount": 1
+              },
+              {
+                "level": 9,
+                "setAmount": 1
+              },
+              {
+                "level": 10,
+                "setAmount": 1
+              },
+              {
+                "level": 11,
+                "setAmount": 1
+              },
+              {
+                "level": 12,
+                "setAmount": 1
+              },
+              {
+                "level": 13,
+                "setAmount": 1
+              },
+              {
+                "level": 14,
+                "setAmount": 1
+              },
+              {
+                "level": 15,
+                "setAmount": 1
+              },
+              {
+                "level": 16,
+                "setAmount": 1
+              },
+              {
+                "level": 17,
+                "setAmount": 1
+              },
+              {
+                "level": 18,
+                "setAmount": 1
+              },
+              {
+                "level": 19,
+                "setAmount": 1
+              },
+              {
+                "level": 20,
+                "setAmount": 1
+              }
+            ],
             "id": "cb6a30b8-29fa-4574-b0ab-bff2e75e4eed"
           }
         ],
@@ -2059,6 +2147,16 @@
               "value": "conditionSave",
               "label": "Condition Save"
             },
+            "mode": {
+              "value": "advantage"
+            },
+            "conditions": {
+              "type": [
+                {
+                  "value": "charmed"
+                }
+              ]
+            },
             "id": "3bb4fc8e-065e-4043-9c32-47eaf55f57cf"
           }
         ],
@@ -2214,7 +2312,7 @@
         "value": "cantrip",
         "label": "Cantrip",
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
@@ -2243,7 +2341,7 @@
             ],
             "levelLimit": [
               {
-                "level": 0
+                "level": "0"
               }
             ],
             "type": [
@@ -3722,7 +3820,7 @@
               "value": "resistance",
               "label": "Resistance"
             },
-            "damage": {
+            "damages": {
               "type": [
                 {
                   "value": "fire",
@@ -3757,7 +3855,7 @@
           "setAmount": 1
         },
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {

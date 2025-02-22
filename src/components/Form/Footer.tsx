@@ -219,8 +219,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         })
       }
     }
-    setFeatureStep(null)
-    return setSectionStep(null)
+    return setFeatureStep('feature')
   }
 
   // Save feature hierachy and clear states

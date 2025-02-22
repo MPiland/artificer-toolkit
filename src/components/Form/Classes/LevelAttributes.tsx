@@ -5,6 +5,7 @@ import { Class } from '../../../../amplify/gql/types'
 import { Attributes } from '../../../types/enums'
 import Row from '../../Row/Row'
 import Input from '../../Input/Input'
+import { useEnumChecks } from '../../../hooks/useEnumChecks'
 
 const LevelAttributes = ({
   formData,
@@ -13,30 +14,37 @@ const LevelAttributes = ({
   formData: Class
   updateFormData: (arg: UpdateState<Class>) => void
 }) => {
+  const { isSpellcaster, hasResourcePoints, limitKnownSpells } = useEnumChecks({ data: formData })
   // Add level attribute table
   useEffect(() => {
     if (
       !formData.levelAttributes &&
-      (formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) ||
-        (formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) &&
-          formData.resource?.method === Attributes.setPerLevel))
+      (isSpellcaster || (hasResourcePoints && formData.resource?.method === Attributes.setPerLevel))
     ) {
       updateFormData({
         type: 'add',
         path: 'levelAttributes',
       })
     }
-  }, [formData.levelAttributes, updateFormData, formData.category, formData.attributes, formData.resource?.method])
+  }, [
+    formData.levelAttributes,
+    updateFormData,
+    formData.category,
+    isSpellcaster,
+    hasResourcePoints,
+    formData.resource?.method,
+  ])
 
   const spellSlots = (index?: number) => {
     const labels: ReactNode[] = []
     const inputs: ReactNode[] = []
     for (let i = 0; i < formData.spellcasting?.maxSpellLevel; i++) {
-      labels.push(<span>`${i + 1}`</span>)
+      labels.push(<span>{i + 1}</span>)
       inputs.push(
         <Input
+          key={`${index}-${i}`}
           name={`spellSlots.${i}.count`}
-          value={formData.levelAttributes[index].spellSlots[i].count}
+          value={formData.levelAttributes?.[index]?.spellSlots?.[i]?.slotCount}
           validation='num'
           required={true}
         />
@@ -47,80 +55,68 @@ const LevelAttributes = ({
   }
 
   return (
-    (formData.attributes?.some((attributeItem: any) => attributeItem.name === 'spellCaster') ||
-      (formData.attributes?.some((attributeItem: any) => attributeItem.name === 'resource') &&
-        formData.resource?.method === Attributes.setPerLevel)) && (
-      <>
-        <Collapse>
-          <Collapse.Header title={'Level Attributes'} startOpened={formData.id == null} />
-          <Collapse.Body>
-            <Row spacing='spaceBetween' cellSize='auto'>
-              <span>Level</span>
-              {formData.attributes?.some((attributeItem: any) => attributeItem.name === 'resource') && (
-                <span>`${formData.resource?.label ?? 'Resource'} Points`</span>
-              )}
-              {formData.attributes?.some((attributeItem: any) => attributeItem.name === 'spellCaster') && (
-                <>
-                  <span>Cantrips Known</span>
-                  {formData.spellcasting?.attributes?.some(
-                    (attribute) => attribute === Attributes.limitKnownSpells
-                  ) && <span>Spells Known</span>}
+    <Collapse>
+      <Collapse.Header title={'Level Attributes'} startOpened={formData.id == null} />
+      <Collapse.Body>
+        <Row spacing='spaceBetween' cellSize='auto'>
+          <span>Level</span>
+          {hasResourcePoints && <span>{formData.resource?.label ?? 'Resource'} Points</span>}
+          {isSpellcaster && (
+            <>
+              <span>Cantrips Known</span>
+              {limitKnownSpells && <span>Spells Known</span>}
 
-                  {formData.spellcasting?.maxSpellLevel && spellSlots().labels.map((label) => label)}
-                </>
-              )}
-            </Row>
-            {formData?.levelAttributes?.map((setLevel, index) => (
-              <Row key={index} spacing='spaceBetween' cellSize='auto'>
+              {formData.spellcasting?.maxSpellLevel && spellSlots().labels.map((label) => label)}
+            </>
+          )}
+        </Row>
+        {formData?.levelAttributes?.map((setLevel, index) => (
+          <Row key={index} spacing='spaceBetween' cellSize='auto'>
+            <Input
+              name={`levelAttributes.${index}.level`}
+              value={setLevel.level}
+              validation='num'
+              errorMsg='Please enter a whole number'
+              onChange={updateFormData}
+              required={true}
+            />
+            {hasResourcePoints && (
+              <Input
+                name={`levelAttributes.${index}.resourcePoints`}
+                value={setLevel.resourcePoints}
+                validation='num'
+                errorMsg='Please enter a whole number'
+                onChange={updateFormData}
+                required={true}
+              />
+            )}
+            {isSpellcaster && (
+              <>
                 <Input
-                  name={`levelAttributes.${index}.level`}
-                  value={setLevel.level}
+                  name={`levelAttributes.${index}.cantripsKnownLimit`}
+                  value={setLevel.cantripsKnownLimit}
                   validation='num'
                   errorMsg='Please enter a whole number'
                   onChange={updateFormData}
                   required={true}
                 />
-                {formData.attributes?.some((attribute) => attribute === Attributes.hasResourcePoints) && (
+                {limitKnownSpells && (
                   <Input
-                    name={`levelAttributes.${index}.resourcePoints`}
-                    value={setLevel.resourcePoints}
+                    name={`levelAttributes.${index}.spellsKnownLimit`}
+                    value={setLevel.spellsKnownLimit}
                     validation='num'
                     errorMsg='Please enter a whole number'
                     onChange={updateFormData}
                     required={true}
                   />
                 )}
-                {formData.attributes?.some((attribute) => attribute === Attributes.spellcaster) && (
-                  <>
-                    <Input
-                      name={`levelAttributes.${index}.cantripsKnownLimit`}
-                      value={setLevel.cantripsKnownLimit}
-                      validation='num'
-                      errorMsg='Please enter a whole number'
-                      onChange={updateFormData}
-                      required={true}
-                    />
-                    {formData.spellcasting?.attributes?.some(
-                      (attribute) => attribute === Attributes.limitKnownSpells
-                    ) && (
-                      <Input
-                        name={`levelAttributes.${index}.spellsKnownLimit`}
-                        value={setLevel.spellsKnownLimit}
-                        validation='num'
-                        errorMsg='Please enter a whole number'
-                        onChange={updateFormData}
-                        required={true}
-                      />
-                    )}
-                    {formData.spellcasting?.maxSpellLevel && spellSlots(index).inputs.map((input) => input)}
-                  </>
-                )}
-              </Row>
-            ))}
-          </Collapse.Body>
-        </Collapse>
-      </>
-    )
+                {formData.spellcasting?.maxSpellLevel && spellSlots(index).inputs.map((input) => input)}
+              </>
+            )}
+          </Row>
+        ))}
+      </Collapse.Body>
+    </Collapse>
   )
 }
 

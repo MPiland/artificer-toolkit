@@ -34,9 +34,9 @@ const AttributeForm = () => {
     hasPrerequisites,
     isSpellcaster,
     canUpcast,
-    equipmentProficiencyPrerequisite,
-    equippedPrerequisite,
-    notEquippedPrerequisite,
+    equipmentProficiency,
+    equipped,
+    notEquipped,
     stackable,
     isAction,
     secondaryAction,
@@ -120,7 +120,7 @@ const AttributeForm = () => {
             },
             {
               condition:
-                !equipmentProficiencyPrerequisite && formData.prerequisites?.equipmentProficiencies?.length > 0,
+                !equipmentProficiency && formData.prerequisites?.equipmentProficiencies?.length > 0,
               cleanup: () =>
                 updateFormData<typeof formData>({
                   type: 'remove',
@@ -128,7 +128,7 @@ const AttributeForm = () => {
                 }),
             },
             {
-              condition: !equippedPrerequisite && formData.prerequisites?.equipped?.length > 0,
+              condition: !equipped && formData.prerequisites?.equipped?.length > 0,
               cleanup: () =>
                 updateFormData<typeof formData>({
                   type: 'remove',
@@ -136,7 +136,7 @@ const AttributeForm = () => {
                 }),
             },
             {
-              condition: !notEquippedPrerequisite && formData.prerequisites?.notEquipped?.length > 0,
+              condition: !notEquipped && formData.prerequisites?.notEquipped?.length > 0,
               cleanup: () =>
                 updateFormData<typeof formData>({
                   type: 'remove',
@@ -161,9 +161,9 @@ const AttributeForm = () => {
     isWeapon,
     doesDamage,
     hasPrerequisites,
-    equipmentProficiencyPrerequisite,
-    equippedPrerequisite,
-    notEquippedPrerequisite,
+    equipmentProficiency,
+    equipped,
+    notEquipped,
     isSpecial,
   ])
 
@@ -474,8 +474,8 @@ const AttributeForm = () => {
                   {formData.subtypes?.map((subtype, index) => (
                     <Row key={index} cellSize='auto'>
                       <Input<typeof formData>
-                        name={`subtypes.${index}.value`}
-                        value={subtype.value}
+                        name={`subtypes.${index}.label`}
+                        value={subtype.label}
                         onChange={updateFormData}
                       />
                     </Row>

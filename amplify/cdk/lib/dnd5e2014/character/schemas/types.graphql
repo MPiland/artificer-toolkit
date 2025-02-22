@@ -9,7 +9,7 @@ type CharacterModifier {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterSense {
@@ -23,7 +23,7 @@ type CharacterSense {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterFeat {
@@ -36,7 +36,7 @@ type CharacterFeat {
   equipmentId: ID
   backgroundId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterProficiency {
@@ -50,7 +50,7 @@ type CharacterProficiency {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterExpertise {
@@ -64,7 +64,7 @@ type CharacterExpertise {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterSpell {
@@ -86,7 +86,7 @@ type CharacterSpell {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterFeature {
@@ -98,7 +98,7 @@ type CharacterFeature {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
   level: Int
 }
 

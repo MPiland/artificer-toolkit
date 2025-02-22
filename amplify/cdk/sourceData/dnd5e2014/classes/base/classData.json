@@ -182,7 +182,7 @@
               "value": "abilityScoreModifier",
               "label": "Ability"
             },
-            "modifierAbility": {
+            "methodAbility": {
               "type": {
                 "value": "dex",
                 "label": "Dexterity",
@@ -205,7 +205,7 @@
               "value": "abilityScoreModifier",
               "label": "Ability"
             },
-            "modifierAbility": {
+            "methodAbility": {
               "type": {
                 "value": "con",
                 "label": "Constitution",
@@ -350,15 +350,38 @@
           "value": "feature",
           "label": "Feature"
         },
-        "attribute": [
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
-          }
-        ],
         "targets": 1,
         "modifiers": [
           {
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "notEquipped",
+                  "label": "Not Equipped"
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": {
+                    "value": "armor",
+                    "label": "Armor"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "heavyArmor"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
             "category": {
               "value": "speed",
               "label": "Speed"
@@ -375,22 +398,13 @@
             "speeds": {
               "type": [
                 {
-                  "value": "all",
-                  "label": "All"
+                  "value": "walking"
                 }
               ]
             },
             "id": "b3dbc6a0-4624-4bd5-bd22-c1937ec2010f"
           }
         ],
-        "requirements": {
-          "options": [
-            {
-              "value": "notEquipped",
-              "label": "Not Equipped"
-            }
-          ]
-        },
         "id": "fe690195-882f-4f21-ade1-8fb500c21eab"
       },
       {
@@ -880,7 +894,12 @@
           "label": "Limit Known Spells"
         }
       ],
-      "maxSpellLevel": 9
+      "maxSpellLevel": 9,
+      "ability": {
+        "type": {
+          "value": "cha"
+        }
+      }
     },
     "levelAttribute": [
       {
@@ -1436,15 +1455,18 @@
           "value": "feature",
           "label": "Feature"
         },
-        "attribute": [
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
-          }
-        ],
         "targets": 1,
         "proficiencies": [
           {
+            "attribute": [
+              {
+                "value": "providesOptions"
+              },
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
             "category": {
               "value": "skills",
               "label": "Skills"
@@ -1462,6 +1484,13 @@
                 {
                   "value": "all",
                   "label": "All"
+                }
+              ]
+            },
+            "requirements": {
+              "options": [
+                {
+                  "value": "notProficient"
                 }
               ]
             },
@@ -1563,12 +1592,6 @@
           "value": "feature",
           "label": "Feature"
         },
-        "attribute": [
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
-          }
-        ],
         "targets": 1,
         "expertise": [
           {
@@ -1576,8 +1599,19 @@
               {
                 "value": "providesOptions",
                 "label": "Provides Options"
+              },
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
               }
             ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "proficient"
+                }
+              ]
+            },
             "selectionCount": 2,
             "category": {
               "value": "skills",
@@ -1702,19 +1736,29 @@
           "value": "feature",
           "label": "Feature"
         },
-        "attribute": [
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
-          }
-        ],
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
                 "value": "providesOptions",
                 "label": "Provides Options"
+              },
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "canCastLevel"
+                }
+              ]
+            },
+            "classLimit": [
+              {
+                "value": "bard"
               }
             ],
             "selectionCount": 2,
@@ -1853,8 +1897,7 @@
           "properties": {
             "type": [
               {
-                "value": "musicalInstrument",
-                "label": "Musical Instrument"
+                "value": "musicalInstrument"
               }
             ]
           }
@@ -2148,7 +2191,12 @@
           "value": "spellAbility",
           "label": "Spell Ability"
         }
-      ]
+      ],
+      "ability": {
+        "type": {
+          "value": "wis"
+        }
+      }
     },
     "levelAttribute": [
       {
@@ -3771,7 +3819,12 @@
           "value": "spellAbility",
           "label": "Spell Ability"
         }
-      ]
+      ],
+      "ability": {
+        "type": {
+          "value": "wis"
+        }
+      }
     },
     "detail": [
       {
@@ -4494,14 +4547,28 @@
             "value": "defense",
             "label": "Defense",
             "levelAvailable": "1",
-            "attribute": [
-              {
-                "value": "prerequisites",
-                "label": "Has Requirements"
-              }
-            ],
             "modifiers": [
               {
+                "attribute": [
+                  {
+                    "value": "prerequisites",
+                    "label": "Has Requirements"
+                  }
+                ],
+                "requirements": {
+                  "options": [
+                    {
+                      "value": "hasEquipped"
+                    }
+                  ]
+                },
+                "equipped": [
+                  {
+                    "category": {
+                      "value": "armor"
+                    }
+                  }
+                ],
                 "category": {
                   "value": "armorClass",
                   "label": "Armor Class"
@@ -4541,53 +4608,68 @@
             "value": "dueling",
             "label": "Dueling",
             "levelAvailable": "1",
-            "attribute": [
+            "modifiers": [
               {
-                "value": "prerequisites",
-                "label": "Has Requirements"
+                "mode": {
+                  "value": "bonus"
+                },
+                "category": {
+                  "value": "meleeAttack"
+                },
+                "method": {
+                  "value": "setAmount"
+                },
+                "setAmount": 2,
+                "attribute": [
+                  {
+                    "value": "prerequisites",
+                    "label": "Has Requirements"
+                  }
+                ],
+                "requirements": {
+                  "options": [
+                    {
+                      "value": "hasEquipped",
+                      "label": "Equipped"
+                    }
+                  ],
+                  "equipped": [
+                    {
+                      "numberEquipped": 1,
+                      "category": {
+                        "value": "weapon",
+                        "label": "Weapon"
+                      },
+                      "properties": {
+                        "type": [
+                          {
+                            "value": "melee",
+                            "label": "Melee"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "notEquipped": [
+                    {
+                      "category": {
+                        "value": "weapon",
+                        "label": "Weapon"
+                      },
+                      "properties": {
+                        "type": [
+                          {
+                            "value": "twoHanded",
+                            "label": "Two Handed"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "id": "65f5b35a-82c0-40c5-959f-f41a872647c9"
               }
             ],
-            "requirements": {
-              "options": [
-                {
-                  "value": "hasEquipped",
-                  "label": "Equipped"
-                }
-              ],
-              "equipped": [
-                {
-                  "numberEquipped": 1,
-                  "category": {
-                    "value": "weapon",
-                    "label": "Weapon"
-                  },
-                  "properties": {
-                    "type": [
-                      {
-                        "value": "melee",
-                        "label": "Melee"
-                      }
-                    ]
-                  }
-                }
-              ],
-              "notEquipped": [
-                {
-                  "category": {
-                    "value": "weapon",
-                    "label": "Weapon"
-                  },
-                  "properties": {
-                    "type": [
-                      {
-                        "value": "twoHanded",
-                        "label": "Two Handed"
-                      }
-                    ]
-                  }
-                }
-              ]
-            },
             "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
@@ -5568,7 +5650,7 @@
               "value": "abilityScoreModifier",
               "label": "Ability"
             },
-            "modifierAbility": {
+            "methodAbility": {
               "type": {
                 "value": "dex",
                 "label": "Dexterity"
@@ -5589,7 +5671,7 @@
               "value": "abilityScoreModifier",
               "label": "Ability"
             },
-            "modifierAbility": {
+            "methodAbility": {
               "type": {
                 "value": "wis",
                 "label": "Widsom"
@@ -5652,7 +5734,7 @@
               "value": "abilityScoreModifier",
               "label": "Ability"
             },
-            "modifierAbility": {
+            "methodAbility": {
               "type": {
                 "value": "dex",
                 "label": "Dexterity"
@@ -5717,6 +5799,9 @@
             {
               "value": "notEquipped",
               "label": "Not Equipped"
+            },
+            {
+              "value": "hasEquipped"
             }
           ],
           "notEquipped": [
@@ -5744,6 +5829,33 @@
                   {
                     "value": "heavy",
                     "label": "Heavy"
+                  }
+                ]
+              }
+            },
+            {
+              "category": {
+                "value": "armor"
+              }
+            },
+            {
+              "category": {
+                "value": "shield"
+              }
+            }
+          ],
+          "equipped": [
+            {
+              "category": {
+                "value": "weapon"
+              },
+              "properties": {
+                "type": [
+                  {
+                    "value": "simple"
+                  },
+                  {
+                    "value": "melee"
                   }
                 ]
               }
@@ -5884,38 +5996,66 @@
           "value": "feature",
           "label": "Feature"
         },
-        "attribute": [
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
-          }
-        ],
         "targets": 1,
         "modifiers": [
           {
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
             "category": {
               "value": "speed",
               "label": "Speed"
             },
+            "mode": {
+              "value": "bonus"
+            },
+            "method": {
+              "value": "setPerLevel"
+            },
+            "setPerLevel": [
+              {
+                "level": 2,
+                "setAmount": 10
+              },
+              {
+                "level": 6,
+                "setAmount": 15
+              },
+              {
+                "level": 10,
+                "setAmount": 20
+              },
+              {
+                "level": 14,
+                "setAmount": 25
+              },
+              {
+                "level": 18,
+                "setAmount": 30
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "notEquipped",
+                  "label": "Not Equipped"
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": {
+                    "value": "armor",
+                    "label": "Armor"
+                  }
+                }
+              ]
+            },
             "id": "94993d06-0dd0-4dc0-98b4-7791db3825ed"
           }
         ],
-        "requirements": {
-          "options": [
-            {
-              "value": "notEquipped",
-              "label": "Not Equipped"
-            }
-          ],
-          "notEquipped": [
-            {
-              "category": {
-                "value": "armor",
-                "label": "Armor"
-              }
-            }
-          ]
-        },
         "id": "7192d21f-9d66-4133-a232-3f7573562a32"
       },
       {
@@ -6318,7 +6458,7 @@
           "resourcePoints": 4
         },
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "type": [
               {
@@ -6982,7 +7122,12 @@
           "value": "classLevel",
           "label": "Class Level"
         }
-      ]
+      ],
+      "ability": {
+        "type": {
+          "value": "cha"
+        }
+      }
     },
     "detail": [
       {
@@ -7145,14 +7290,14 @@
             "value": "defense",
             "label": "Defense",
             "levelAvailable": "1",
-            "attribute": [
-              {
-                "value": "prerequisites",
-                "label": "Has Requirements"
-              }
-            ],
             "modifiers": [
               {
+                "attribute": [
+                  {
+                    "value": "prerequisites",
+                    "label": "Has Requirements"
+                  }
+                ],
                 "category": {
                   "value": "armorClass",
                   "label": "Armor Class"
@@ -7166,25 +7311,25 @@
                   "label": "Set Value"
                 },
                 "setAmount": 1,
+                "requirements": {
+                  "options": [
+                    {
+                      "value": "hasEquipped",
+                      "label": "Equipped"
+                    }
+                  ],
+                  "equipped": [
+                    {
+                      "category": {
+                        "value": "armor",
+                        "label": "Armor"
+                      }
+                    }
+                  ]
+                },
                 "id": "23312b94-ce75-4d52-9624-79cf79b56923"
               }
             ],
-            "requirements": {
-              "options": [
-                {
-                  "value": "hasEquipped",
-                  "label": "Equipped"
-                }
-              ],
-              "equipped": [
-                {
-                  "category": {
-                    "value": "armor",
-                    "label": "Armor"
-                  }
-                }
-              ]
-            },
             "id": "2eab63d1-20b4-4743-b123-3b4582378df4"
           },
           {
@@ -7212,7 +7357,7 @@
                   "value": "setAmount",
                   "label": "Set Value"
                 },
-                "setAmount": 1,
+                "setAmount": 2,
                 "id": "c7257b6e-766c-4d78-b276-fe3d7572ffa1"
               }
             ],
@@ -7233,6 +7378,13 @@
                   "category": {
                     "value": "weapon",
                     "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "melee"
+                      }
+                    ]
                   }
                 }
               ],
@@ -7241,6 +7393,13 @@
                   "category": {
                     "value": "weapon",
                     "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "twoHanded"
+                      }
+                    ]
                   }
                 }
               ]
@@ -8204,7 +8363,12 @@
           "label": "Limit Known Spells"
         }
       ],
-      "maxSpellLevel": 5
+      "maxSpellLevel": 5,
+      "ability": {
+        "type": {
+          "value": "wis"
+        }
+      }
     },
     "detail": [
       {
@@ -8321,14 +8485,14 @@
             "value": "defense",
             "label": "Defense",
             "levelAvailable": "2",
-            "attribute": [
-              {
-                "value": "prerequisites",
-                "label": "Has Requirements"
-              }
-            ],
             "modifiers": [
               {
+                "attribute": [
+                  {
+                    "value": "prerequisites",
+                    "label": "Has Requirements"
+                  }
+                ],
                 "category": {
                   "value": "armorClass",
                   "label": "Armor Class"
@@ -8344,25 +8508,25 @@
                 "armorClass": {
                   "setAmount": 1
                 },
+                "requirements": {
+                  "options": [
+                    {
+                      "value": "hasEquipped",
+                      "label": "Equipped"
+                    }
+                  ],
+                  "equipped": [
+                    {
+                      "category": {
+                        "value": "armor",
+                        "label": "Armor"
+                      }
+                    }
+                  ]
+                },
                 "id": "8b164887-4ae5-48ab-af57-d51bee6e1a9b"
               }
             ],
-            "requirements": {
-              "options": [
-                {
-                  "value": "hasEquipped",
-                  "label": "Equipped"
-                }
-              ],
-              "equipped": [
-                {
-                  "category": {
-                    "value": "armor",
-                    "label": "Armor"
-                  }
-                }
-              ]
-            },
             "id": "d3a743d2-b438-48e3-b4b2-79e3fc0e1b31"
           },
           {
@@ -8370,14 +8534,14 @@
             "value": "dueling",
             "label": "Dueling",
             "levelAvailable": "2",
-            "attribute": [
-              {
-                "value": "prerequisites",
-                "label": "Has Requirements"
-              }
-            ],
             "modifiers": [
               {
+                "attribute": [
+                  {
+                    "value": "prerequisites",
+                    "label": "Has Requirements"
+                  }
+                ],
                 "category": {
                   "value": "meleeDamage",
                   "label": "Melee Damage"
@@ -8391,46 +8555,53 @@
                   "label": "Set Value"
                 },
                 "setAmount": 2,
+                "requirements": {
+                  "options": [
+                    {
+                      "value": "notEquipped",
+                      "label": "Not Equipped"
+                    },
+                    {
+                      "value": "hasEquipped",
+                      "label": "Equipped"
+                    }
+                  ],
+                  "equipped": [
+                    {
+                      "numberEquipped": 1,
+                      "category": {
+                        "value": "weapon",
+                        "label": "Weapon"
+                      },
+                      "properties": {
+                        "type": [
+                          {
+                            "value": "melee"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "notEquipped": [
+                    {
+                      "category": {
+                        "value": "weapon",
+                        "label": "Weapon"
+                      },
+                      "properties": {
+                        "type": [
+                          {
+                            "value": "twoHanded",
+                            "label": "Two Handed"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
                 "id": "c977ce5b-2cec-4010-891b-cac42654c31f"
               }
             ],
-            "requirements": {
-              "options": [
-                {
-                  "value": "notEquipped",
-                  "label": "Not Equipped"
-                },
-                {
-                  "value": "hasEquipped",
-                  "label": "Equipped"
-                }
-              ],
-              "equipped": [
-                {
-                  "numberEquipped": 1,
-                  "category": {
-                    "value": "weapon",
-                    "label": "Weapon"
-                  }
-                }
-              ],
-              "notEquipped": [
-                {
-                  "category": {
-                    "value": "weapon",
-                    "label": "Weapon"
-                  },
-                  "properties": {
-                    "type": [
-                      {
-                        "value": "twoHanded",
-                        "label": "Two Handed"
-                      }
-                    ]
-                  }
-                }
-              ]
-            },
             "id": "2f960468-530e-4247-9d0b-29b686a62e78"
           },
           {
@@ -8683,10 +8854,6 @@
           }
         },
         "items": {
-          "level": {
-            "value": "proficient",
-            "label": "Full"
-          },
           "type": [
             {
               "value": "woodenShield",
@@ -9139,12 +9306,6 @@
               "value": "feature",
               "label": "Feature"
             },
-            "attribute": [
-              {
-                "value": "prerequisites",
-                "label": "Has Requirements"
-              }
-            ],
             "expertise": [
               {
                 "category": {
@@ -9158,6 +9319,10 @@
                   {
                     "value": "providesOptions",
                     "label": "Provides Options"
+                  },
+                  {
+                    "value": "prerequisites",
+                    "label": "Has Requirements"
                   }
                 ],
                 "selectionCount": 1,
@@ -9173,25 +9338,16 @@
                     }
                   ]
                 },
+                "requirements": {
+                  "options": [
+                    {
+                      "value": "proficient"
+                    }
+                  ]
+                },
                 "id": "ebd81d84-a003-4a2d-8fad-bc2880579cfa"
               }
             ],
-            "requirements": {
-              "options": [
-                {
-                  "value": "skillProficiency",
-                  "label": "Skill Proficiency"
-                }
-              ],
-              "skillProficiency": {
-                "type": [
-                  {
-                    "value": "all",
-                    "label": "All"
-                  }
-                ]
-              }
-            },
             "id": "85e55750-50b7-4b5e-947d-e6497fed4e7d"
           }
         ],
@@ -10532,7 +10688,12 @@
           "value": "limitKnownSpells",
           "label": "Limit Known Spells"
         }
-      ]
+      ],
+      "ability": {
+        "type": {
+          "value": "cha"
+        }
+      }
     },
     "resource": {
       "value": "sorcery",
@@ -11399,7 +11560,12 @@
         }
       ],
       "magicName": "Pact Magic",
-      "maxSpellLevel": 5
+      "maxSpellLevel": 5,
+      "ability": {
+        "type": {
+          "value": "cha"
+        }
+      }
     },
     "multiclass": {
       "primaryAbility": {
@@ -11452,8 +11618,46 @@
             "levelAvailable": "2",
             "attribute": [
               {
-                "value": "prerequisites",
-                "label": "Has Requirements"
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "spellsObtained"
+                }
+              ],
+              "spellsObtained": {
+                "type": [
+                  {
+                    "value": "eldritchBlast"
+                  }
+                ]
+              }
+            },
+            "modifiers": [
+              {
+                "category": {
+                  "value": "spell"
+                },
+                "mode": {
+                  "value": "bonus"
+                },
+                "method": {
+                  "value": "abilityScoreModifier"
+                },
+                "methodAbility": {
+                  "value": "cha"
+                },
+                "spellCategory": {
+                  "value": "spellDamage"
+                },
+                "spell": {
+                  "type": {
+                    "value": "eldritchBlast"
+                  }
+                },
+                "id": "d5081a9b-797e-4060-ba9e-688353c69601"
               }
             ],
             "id": "ec28ca1f-607f-42d1-9d5b-742547dd960f"
@@ -11462,6 +11666,24 @@
             "desc": "<p>You can cast <em>mage armor</em> on yourself at will, without expending a spell slot or material components.</p>",
             "value": "armorOfShadows",
             "label": "Armor of Shadows",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  },
+                  {
+                    "value": "selfOnly"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "mageArmor"
+                  }
+                ],
+                "id": "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7"
+              }
+            ],
             "levelAvailable": "2",
             "id": "1d52c514-cf47-4a71-8827-ace56fb9f7df"
           },
@@ -11469,6 +11691,24 @@
             "desc": "<p>You can cast levitate on yourself at will, without expending a spell slot or material components.</p>",
             "value": "ascendantStep",
             "label": "Ascendant Step",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  },
+                  {
+                    "value": "selfOnly"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "levitate"
+                  }
+                ],
+                "id": "9ae5449a-3d5b-4738-923c-3b4d414f6af2"
+              }
+            ],
             "levelAvailable": "9",
             "id": "700369d7-92f1-449f-a911-fdbf1ba3a9b6"
           },
@@ -11476,6 +11716,21 @@
             "desc": "<p>You can cast speak with animals at will, without expending a spell slot.</p>",
             "value": "beastSpeech",
             "label": "Beast Speech",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "speakWithAnimals"
+                  }
+                ],
+                "id": "edb5b6dd-881f-4215-9b42-e8eddd85f361"
+              }
+            ],
             "levelAvailable": "2",
             "id": "1fc44be0-3056-4969-bc81-c572a2932f0b"
           },
@@ -11484,6 +11739,27 @@
             "value": "beguilingInfluence",
             "label": "Beguiling Influence",
             "levelAvailable": "2",
+            "proficiencies": [
+              {
+                "category": {
+                  "value": "skills"
+                },
+                "skills": {
+                  "type": [
+                    {
+                      "value": "deception"
+                    },
+                    {
+                      "value": "persuasion"
+                    }
+                  ]
+                },
+                "level": {
+                  "value": "proficient"
+                },
+                "id": "fd202076-0c46-4dbb-8676-c6c1ce769985"
+              }
+            ],
             "id": "0d9dd763-770f-4a98-befc-206f7e923628"
           },
           {
@@ -11491,23 +11767,33 @@
             "value": "bewitchingWhispers",
             "label": "Bewitching Whispers",
             "levelAvailable": "7",
-            "attribute": [
+            "spells": [
               {
-                "value": "limitUse",
-                "label": "Limit Use"
+                "attribute": [
+                  {
+                    "value": "limitUse",
+                    "label": "Limit Use"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "compulsion"
+                  }
+                ],
+                "id": "2b71d085-73e0-4b36-ad63-1b6ae5540405"
               }
             ],
-            "charges": {
-              "reset": {
-                "value": "longRest",
-                "label": "Long Rest"
-              },
-              "limit": {
-                "value": "setAmount",
-                "label": "Set Value"
-              },
-              "setAmount": 1
-            },
             "id": "2e7d8c5d-f71c-4f98-98c5-6073654ed58b"
           },
           {
@@ -11517,8 +11803,47 @@
             "levelAvailable": "2",
             "attribute": [
               {
-                "value": "prerequisites",
-                "label": "Has Requirements"
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "featuresObtained"
+                }
+              ],
+              "featuresObtained": {
+                "type": [
+                  {
+                    "value": "pactOfTheTome"
+                  }
+                ]
+              }
+            },
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "providesOptions"
+                  }
+                ],
+                "levelLimit": [
+                  {
+                    "value": "1"
+                  }
+                ],
+                "attributeLimit": [
+                  {
+                    "value": "isRitual"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "all"
+                  }
+                ],
+                "selectionCount": 2,
+                "id": "1f0c3aa2-fd83-488a-bdea-782ea28e4d27"
               }
             ],
             "id": "df28ea93-5350-4f87-93e9-9215f0aacc3e"
@@ -11534,6 +11859,49 @@
                 "label": "Has Requirements"
               }
             ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionsObtained"
+                }
+              ],
+              "optionsObtained": {
+                "type": [
+                  {
+                    "value": "pactOfTheChain"
+                  }
+                ]
+              }
+            },
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  },
+                  {
+                    "value": "limitUse"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "holdMonster"
+                  }
+                ],
+                "id": "7af1b6de-0386-4901-b24a-ec84349a61bc"
+              }
+            ],
             "id": "fe0587c4-89a8-4b1e-aac4-e2bf56ffe74c"
           },
           {
@@ -11541,30 +11909,50 @@
             "value": "devilsSight",
             "label": "Devil's Sight",
             "levelAvailable": "2",
+            "senses": [
+              {
+                "type": [
+                  {
+                    "value": "devilsSight"
+                  }
+                ],
+                "id": "d68d046a-8984-49b1-8496-8cbea89ce699"
+              }
+            ],
             "id": "ad74164e-7547-4eeb-a535-810c725845e5"
           },
           {
             "desc": "<p>You can cast confusion once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
             "value": "dreadfulWord",
             "label": "Dreadful Word",
-            "levelAvailable": "7",
-            "attribute": [
+            "spells": [
               {
-                "value": "limitUse",
-                "label": "Limit Use"
+                "attribute": [
+                  {
+                    "value": "limitUse",
+                    "label": "Limit Use"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "confusion"
+                  }
+                ],
+                "id": "89ac519b-ef16-40b2-bb1f-8044b4229439"
               }
             ],
-            "charges": {
-              "reset": {
-                "value": "longRest",
-                "label": "Long Rest"
-              },
-              "limit": {
-                "value": "setAmount",
-                "label": "Set Value"
-              },
-              "setAmount": 1
-            },
+            "levelAvailable": "7",
             "id": "2c60f7ce-a1ce-4e44-8fac-8afdb4138a4d"
           },
           {
@@ -11572,6 +11960,21 @@
             "value": "eldritchSight",
             "label": "Eldritch Sight",
             "levelAvailable": "2",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "detectMagic"
+                  }
+                ],
+                "id": "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c"
+              }
+            ],
             "id": "e7c3e572-e58e-4017-a7ac-88c8b36dc49c"
           },
           {
@@ -11581,8 +11984,38 @@
             "levelAvailable": "2",
             "attribute": [
               {
-                "value": "prerequisites",
-                "label": "Has Requirements"
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "spellsObtained"
+                }
+              ],
+              "spellsObtained": {
+                "type": [
+                  {
+                    "value": "eldritchBlast"
+                  }
+                ]
+              }
+            },
+            "modifiers": [
+              {
+                "category": {
+                  "value": "spell"
+                },
+                "spellCategory": {
+                  "value": "spellRange"
+                },
+                "spell": {
+                  "type": {
+                    "value": "eldritchBlast"
+                  }
+                },
+                "maxRange": 300,
+                "id": "eeaa713f-fa49-40d9-b322-a2ff2b5238b6"
               }
             ],
             "id": "6797f8ca-8998-4fd0-90c2-b63332ed763c"
@@ -11599,7 +12032,29 @@
             "value": "fiendishVigor",
             "label": "Fiendish Vigor",
             "levelAvailable": "2",
-            "id": "ead58838-3121-49b6-ba08-e563fd8bf79d"
+            "id": "ead58838-3121-49b6-ba08-e563fd8bf79d",
+            "spells": [
+              {
+                "attributes": [
+                  {
+                    "value": "castAtWill"
+                  },
+                  {
+                    "value": "castAtLevel"
+                  },
+                  {
+                    "value": "selfOnly"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "falseLife"
+                  }
+                ],
+                "spellLevel": 1,
+                "id": "71751cac-b6e6-4952-8ee6-472d8716731e"
+              }
+            ]
           },
           {
             "desc": "<p>You can use your action to touch a willing humanoid and perceive through its senses until the end of your next turn. As long as the creature is on the same plane of existence as you, you can use your action on subsequent turns to maintain this connection, extending the duration until the end of your next turn. While perceiving through the other creature’s senses, you benefit from any special senses possessed by that creature, and you are blinded and deafened to your own surroundings.</p>",
@@ -11627,29 +12082,46 @@
             "levelAvailable": "2",
             "attribute": [
               {
-                "value": "doesDamage",
-                "label": "Inflicts Damage"
+                "value": "prerequisites"
               }
             ],
-            "damage": {
-              "attribute": [
+            "requirements": {
+              "options": [
                 {
-                  "value": "bonusDamage",
-                  "label": "Bonus Damage"
-                },
-                {
-                  "value": "addToWeaponAttack",
-                  "label": "Add to Weapon Attack"
+                  "value": "optionsObtained"
                 }
               ],
-              "bonus": {
-                "attribute": {
-                  "value": "abilityBonus",
-                  "label": "Ability Bonus"
-                },
-                "minAmount": 1
+              "optionsObtained": {
+                "type": [
+                  {
+                    "value": "pactOfTheBlade"
+                  }
+                ]
               }
             },
+            "modifiers": [
+              {
+                "mode": {
+                  "value": "bonus"
+                },
+                "category": {
+                  "value": "meleeDamage"
+                },
+                "method": {
+                  "value": "abilityScoreModifier"
+                },
+                "methodAbility": {
+                  "value": "cha"
+                },
+                "damageType": {
+                  "type": {
+                    "value": "necrotic"
+                  }
+                },
+                "minAmount": 1,
+                "id": "437564bd-b8f7-4fbb-adeb-65ac0e5e2478"
+              }
+            ],
             "id": "22daa832-4422-422e-a6e8-30f6ab288174"
           },
           {
@@ -11657,6 +12129,21 @@
             "value": "maskOfManyFaces",
             "label": "Mask of Many Faces",
             "levelAvailable": "2",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "disguiseSelf"
+                  }
+                ],
+                "id": "80f8a51a-a386-4913-a988-28fe26ab2d2d"
+              }
+            ],
             "id": "8e83d32d-4163-4cb8-a7e7-5ec7c400ad6e"
           },
           {
@@ -11664,6 +12151,21 @@
             "value": "masterOfMyriadForms",
             "label": "Master of Myriad Forms",
             "levelAvailable": "15",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "alterSelf"
+                  }
+                ],
+                "id": "c0371b9d-5334-4a43-9146-940b3fffd745"
+              }
+            ],
             "id": "419c4ba1-4a7c-4121-87e4-cc1519ae2bca"
           },
           {
@@ -11671,23 +12173,33 @@
             "value": "minionsOfChaos",
             "label": "Minions of Chaos",
             "levelAvailable": "9",
-            "attribute": [
+            "spells": [
               {
-                "value": "limitUse",
-                "label": "Limit Use"
+                "attribute": [
+                  {
+                    "value": "limitUse",
+                    "label": "Limit Use"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "conjureElemental"
+                  }
+                ],
+                "id": "a425b2db-6e7e-4fee-a362-c109065ad5e7"
               }
             ],
-            "charges": {
-              "reset": {
-                "value": "longRest",
-                "label": "Long Rest"
-              },
-              "limit": {
-                "value": "setAmount",
-                "label": "Set Value"
-              },
-              "setAmount": 1
-            },
             "id": "c387232b-1586-4bbd-a46c-854b01473ea4"
           },
           {
@@ -11695,23 +12207,33 @@
             "value": "mireTheMind",
             "label": "Mire the Mind",
             "levelAvailable": "5",
-            "attribute": [
+            "spells": [
               {
-                "value": "limitUse",
-                "label": "Limit Use"
+                "attribute": [
+                  {
+                    "value": "limitUse",
+                    "label": "Limit Use"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "slow"
+                  }
+                ],
+                "id": "541f2049-96db-45ac-b16e-540b2f0a2fdb"
               }
             ],
-            "charges": {
-              "reset": {
-                "value": "longRest",
-                "label": "Long Rest"
-              },
-              "limit": {
-                "value": "setAmount",
-                "label": "Set Value"
-              },
-              "setAmount": 1
-            },
             "id": "e9e5c3fa-0d95-40e8-bbca-812f367fd3ab"
           },
           {
@@ -11719,6 +12241,21 @@
             "value": "mistyVisions",
             "label": "Misty Visions",
             "levelAvailable": "2",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "silentImage"
+                  }
+                ],
+                "id": "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5"
+              }
+            ],
             "id": "cce5c4a3-ba62-4a2f-9fb4-48d45897b705"
           },
           {
@@ -11745,6 +12282,24 @@
             "value": "otherworldlyLeap",
             "label": "Otherworldly Leap",
             "levelAvailable": "9",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  },
+                  {
+                    "value": "selfOnly"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "jump"
+                  }
+                ],
+                "id": "3c23dac5-6d88-4f77-92ce-33b201cc33da"
+              }
+            ],
             "id": "02d536aa-ffeb-4163-8edb-a3596b90f42f"
           },
           {
@@ -11758,6 +12313,20 @@
                 "label": "Has Requirements"
               }
             ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "spellsObtained"
+                }
+              ],
+              "spellsObtained": {
+                "type": [
+                  {
+                    "value": "eldritchBlast"
+                  }
+                ]
+              }
+            },
             "id": "fbd46aa3-bb70-4582-be72-14802a47690e"
           },
           {
@@ -11765,23 +12334,33 @@
             "value": "sculptorOfFlesh",
             "label": "Sculptor of Flesh",
             "levelAvailable": "7",
-            "attribute": [
+            "spells": [
               {
-                "value": "limitUse",
-                "label": "Limit Use"
+                "attribute": [
+                  {
+                    "value": "limitUse",
+                    "label": "Limit Use"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "polymorph"
+                  }
+                ],
+                "id": "dc054179-2608-4c9f-b2d9-1f1abe03191d"
               }
             ],
-            "charges": {
-              "reset": {
-                "value": "longRest",
-                "label": "Long Rest"
-              },
-              "limit": {
-                "value": "setAmount",
-                "label": "Set Value"
-              },
-              "setAmount": 1
-            },
             "id": "a1144ee2-3e27-452f-8403-58e3c55da2c5"
           },
           {
@@ -11789,23 +12368,33 @@
             "value": "signOfIllOmen",
             "label": "Sign of Ill Omen",
             "levelAvailable": "5",
-            "attribute": [
+            "spells": [
               {
-                "value": "limitUse",
-                "label": "Limit Use"
+                "attribute": [
+                  {
+                    "value": "limitUse",
+                    "label": "Limit Use"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "bestowCurse"
+                  }
+                ],
+                "id": "9b5731b8-9035-435c-a842-79810e924ba4"
               }
             ],
-            "charges": {
-              "reset": {
-                "value": "longRest",
-                "label": "Long Rest"
-              },
-              "limit": {
-                "value": "setAmount",
-                "label": "Set Value"
-              },
-              "setAmount": 1
-            },
             "id": "efce2b56-ae73-406d-a8e4-18d556e315b7"
           },
           {
@@ -11813,23 +12402,33 @@
             "value": "thiefOfFiveFates",
             "label": "Thief of Five Fates",
             "levelAvailable": "2",
-            "attribute": [
+            "spells": [
               {
-                "value": "limitUse",
-                "label": "Limit Use"
+                "attribute": [
+                  {
+                    "value": "limitUse",
+                    "label": "Limit Use"
+                  }
+                ],
+                "charges": {
+                  "reset": {
+                    "value": "longRest",
+                    "label": "Long Rest"
+                  },
+                  "limit": {
+                    "value": "setAmount",
+                    "label": "Set Value"
+                  },
+                  "setAmount": 1
+                },
+                "type": [
+                  {
+                    "value": "bane"
+                  }
+                ],
+                "id": "0aa56743-2538-40df-923a-83eee86bf793"
               }
             ],
-            "charges": {
-              "reset": {
-                "value": "longRest",
-                "label": "Long Rest"
-              },
-              "limit": {
-                "value": "setAmount",
-                "label": "Set Value"
-              },
-              "setAmount": 1
-            },
             "id": "10606fbf-c451-4c9c-96d3-81b8a7ccfd54"
           },
           {
@@ -11839,10 +12438,23 @@
             "levelAvailable": "5",
             "attribute": [
               {
-                "value": "prerequisites",
-                "label": "Has Requirements"
+                "value": "prerequisites"
               }
             ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionsObtained"
+                }
+              ],
+              "optionsObtained": {
+                "type": [
+                  {
+                    "value": "pactOfTheBlade"
+                  }
+                ]
+              }
+            },
             "id": "4a724f86-0110-462f-8fcb-b07dca531236"
           },
           {
@@ -11850,6 +12462,21 @@
             "value": "visionsOfDistantRealms",
             "label": "Visions of Distant Realms",
             "levelAvailable": "15",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "arcaneEye"
+                  }
+                ],
+                "id": "4704fe4c-a8b9-4e84-863e-2524a39f8827"
+              }
+            ],
             "id": "d44cfeda-7d5e-46a8-921f-ec490d910b09"
           },
           {
@@ -11859,10 +12486,23 @@
             "levelAvailable": "2",
             "attribute": [
               {
-                "value": "prerequisites",
-                "label": "Has Requirements"
+                "value": "prerequisites"
               }
             ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionsObtained"
+                }
+              ],
+              "optionsObtained": {
+                "type": [
+                  {
+                    "value": "pactOfTheBlade"
+                  }
+                ]
+              }
+            },
             "id": "be1104cb-d246-4779-aec8-3c16776b6d92"
           },
           {
@@ -11870,12 +12510,37 @@
             "value": "whispersOfTheGrave",
             "label": "Whispers of the Grave",
             "levelAvailable": "9",
+            "spells": [
+              {
+                "attribute": [
+                  {
+                    "value": "castAtWill"
+                  }
+                ],
+                "type": [
+                  {
+                    "value": "speakWithDead"
+                  }
+                ],
+                "id": "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+              }
+            ],
             "id": "5b16544a-735f-4991-8a27-eb17eb52e7e5"
           },
           {
             "desc": "<p>You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.</p>",
             "value": "witchSight",
             "label": "Witch Sight",
+            "senses": [
+              {
+                "type": [
+                  {
+                    "value": "witchSight"
+                  }
+                ],
+                "id": "378191b1-5830-4a21-bf8c-ccfd92b0e5e5"
+              }
+            ],
             "levelAvailable": "15",
             "id": "676310c3-da16-4ec7-8c37-9cb4ba9af49d"
           }
@@ -13038,7 +13703,12 @@
           "label": "Class Level"
         }
       ],
-      "maxSpellLevel": 9
+      "maxSpellLevel": 9,
+      "ability": {
+        "type": {
+          "value": "int"
+        }
+      }
     },
     "hitpoint": {
       "dieCount": 1,
@@ -13169,7 +13839,7 @@
           "setAmount": 2
         },
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
@@ -13185,7 +13855,11 @@
                 "label": "Provides Options"
               }
             ],
-            "levelLimit": [0],
+            "levelLimit": [
+              {
+                "value": 0
+              }
+            ],
             "selectionCount": 2,
             "classLimit": [
               {

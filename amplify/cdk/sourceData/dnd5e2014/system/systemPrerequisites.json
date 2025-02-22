@@ -4,6 +4,7 @@
     "label": "Has Equipped",
     "id": "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
     "features": ["all"],
+    "sections": ["all"],
     "equipment": ["all"]
   },
   {
@@ -11,6 +12,7 @@
     "label": "Not Equipped",
     "id": "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
     "features": ["all"],
+    "sections": ["all"],
     "equipment": ["all"]
   },
   {
@@ -18,6 +20,7 @@
     "label": "Skill Proficiency",
     "id": "f603f26f-6cb6-4995-82f3-ba4cdefd4e55",
     "features": ["all"],
+    "sections": ["all"],
     "equipment": ["all"]
   },
   {
@@ -25,6 +28,7 @@
     "label": "Item Proficiency",
     "id": "f3a3bcb0-8e8a-4d9e-80ef-279fb97ba60e",
     "features": ["all"],
+    "sections": ["all"],
     "equipment": ["all"]
   },
   {
@@ -32,42 +36,63 @@
     "label": "Ability Score",
     "id": "096cf44a-60ec-4f6c-b42c-3c46e12530bb",
     "features": ["all"],
+    "sections": ["all"],
     "equipment": ["all"]
   },
   {
     "value": "notProficient",
     "label": "Not Proficient",
     "id": "3e8abd1f-614c-4b5e-9429-e5819a868c8d",
+    "sections": ["all"],
     "features": ["all"]
   },
   {
-    "value": "spellsKnown",
-    "label": "Spells Known",
+    "value": "proficient",
+    "label": "Proficient",
+    "id": "2da4575c-bac4-403e-bf66-1360fcdb28b3",
+    "sections": ["all"],
+    "features": ["all"]
+  },
+  {
+    "value": "spellsObtained",
+    "label": "Spells Obtained",
     "id": "de774c82-b1d6-4f6c-b73c-84cf370c60ff",
+    "sections": ["spells"],
     "features": ["all"]
   },
   {
     "value": "canCastLevel",
     "label": "Can Cast Level",
     "id": "2b2cac99-dfc5-45a0-b4a6-1970179ebcd9",
+    "sections": ["spells"],
     "features": ["all"]
   },
   {
-    "value": "optionNotAcquired",
-    "label": "Option Not Acquired",
+    "value": "optionNotObtained",
+    "label": "Option Not Obtained",
     "id": "3fe944fc-a9d5-4afa-929a-c8b2805d70e3",
+    "sections": ["all"],
     "features": ["all"]
   },
   {
     "id": "293010e4-fe1f-4982-8a80-6a232eafe19f",
-    "value": "featuresKnown",
-    "label": "Features Known",
-    "features": ["options"]
+    "value": "featuresObtained",
+    "label": "Features Obtained",
+    "sections": ["all"],
+    "features": ["all"]
+  },
+  {
+    "id": "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
+    "value": "optionsObtained",
+    "label": "Options Obtained",
+    "sections": ["all"],
+    "features": ["all"]
   },
   {
     "value": "characterSize",
     "label": "Character Size",
     "id": "d5def5fd-4b6e-411b-994d-3e830912093e",
+    "sections": ["all"],
     "features": ["equipment"],
     "equipment": ["all"]
   }

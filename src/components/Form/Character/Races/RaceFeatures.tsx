@@ -122,7 +122,7 @@ const RaceFeatures = ({
 
                               // Repeat Dropdown component based on selectionCount
                               const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                                const optionIndex = index & featureIndex
+                                const optionIndex = `${index}${featureIndex}`
 
                                 const { options, label, path, exist } = getSectionOptions({
                                   section,
@@ -159,12 +159,12 @@ const RaceFeatures = ({
         features?.length > 0 &&
         features
           ?.filter((feature) => feature?.ancestryId != null)
-          .map((feature, featureIndex) => {
+          .map((feature, fIndex) => {
             const fullFeature: Feature | AncestryFeature = fullAncestry?.features?.find(
               (aFeature) => aFeature.id === feature.id
             )
             return (
-              <Collapse key={featureIndex}>
+              <Collapse key={fIndex}>
                 <Collapse.Header title={fullFeature?.label} className={feature_card_header} />
                 <Collapse.Body>
                   {fullFeature?.desc && parse(fullFeature?.desc)}
@@ -182,7 +182,7 @@ const RaceFeatures = ({
 
                               // Repeat Dropdown component based on selectionCount
                               const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                                const optionIndex = index & featureIndex
+                                const optionIndex = `${index}${fIndex}`
 
                                 const { options, label, path, exist } = getSectionOptions({
                                   section,

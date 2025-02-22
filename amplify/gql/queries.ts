@@ -2990,6 +2990,41 @@ query ListMasterRaces {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -3040,14 +3075,52 @@ query ListMasterRaces {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -3073,6 +3146,41 @@ query ListMasterRaces {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -3096,6 +3204,41 @@ query ListMasterRaces {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -3104,6 +3247,58 @@ query ListMasterRaces {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -3123,6 +3318,58 @@ query ListMasterRaces {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -3154,9 +3401,9 @@ query ListMasterRaces {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -3401,6 +3648,41 @@ query ListMasterRaces {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -3451,14 +3733,52 @@ query ListMasterRaces {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -3484,6 +3804,41 @@ query ListMasterRaces {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -3507,6 +3862,41 @@ query ListMasterRaces {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -3515,6 +3905,58 @@ query ListMasterRaces {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -3534,6 +3976,58 @@ query ListMasterRaces {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -3565,9 +4059,9 @@ query ListMasterRaces {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -3813,6 +4307,41 @@ query ListMasterRaces {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -3863,14 +4392,52 @@ query ListMasterRaces {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -3896,6 +4463,41 @@ query ListMasterRaces {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -3919,6 +4521,41 @@ query ListMasterRaces {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -3927,6 +4564,58 @@ query ListMasterRaces {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -3946,6 +4635,58 @@ query ListMasterRaces {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -3977,9 +4718,9 @@ query ListMasterRaces {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -4224,6 +4965,41 @@ query ListMasterRaces {
 							feats
 							selectionCount
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						modifiers {
 							__typename
@@ -4274,14 +5050,52 @@ query ListMasterRaces {
 								resourcePoints
 							}
 							range
+							minRange
+							maxRange
 							shape
 							size
 							duration
 							unit
 							conditions
 							damageTypes
+							damageType
 							spell
 							spellCategory
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						proficiencies {
 							__typename
@@ -4307,6 +5121,41 @@ query ListMasterRaces {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						expertise {
 							__typename
@@ -4330,6 +5179,41 @@ query ListMasterRaces {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						senses {
 							__typename
@@ -4338,6 +5222,58 @@ query ListMasterRaces {
 							selectionCount
 							subtype
 							ids
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						spells {
 							__typename
@@ -4357,6 +5293,58 @@ query ListMasterRaces {
 								spellLevel
 							}
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						prerequisites {
 							__typename
@@ -4388,9 +5376,9 @@ query ListMasterRaces {
 								abilities
 								score
 							}
-							spellsKnown
-							featuresKnown
-							optionsKnown
+							spellsObtained
+							featuresObtained
+							optionsObtained
 							size
 						}
 						saveAbility {
@@ -4663,6 +5651,41 @@ query ListMasterRaces {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -4713,14 +5736,52 @@ query ListMasterRaces {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -4746,6 +5807,41 @@ query ListMasterRaces {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -4769,6 +5865,41 @@ query ListMasterRaces {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -4777,6 +5908,58 @@ query ListMasterRaces {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -4796,6 +5979,58 @@ query ListMasterRaces {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -4827,9 +6062,9 @@ query ListMasterRaces {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -5074,6 +6309,41 @@ query ListMasterRaces {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -5124,14 +6394,52 @@ query ListMasterRaces {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -5157,6 +6465,41 @@ query ListMasterRaces {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -5180,6 +6523,41 @@ query ListMasterRaces {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -5188,6 +6566,58 @@ query ListMasterRaces {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -5207,6 +6637,58 @@ query ListMasterRaces {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -5238,9 +6720,9 @@ query ListMasterRaces {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -5486,6 +6968,41 @@ query ListMasterRaces {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -5536,14 +7053,52 @@ query ListMasterRaces {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -5569,6 +7124,41 @@ query ListMasterRaces {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -5592,6 +7182,41 @@ query ListMasterRaces {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -5600,6 +7225,58 @@ query ListMasterRaces {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -5619,6 +7296,58 @@ query ListMasterRaces {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -5650,9 +7379,9 @@ query ListMasterRaces {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -5897,6 +7626,41 @@ query ListMasterRaces {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -5947,14 +7711,52 @@ query ListMasterRaces {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -5980,6 +7782,41 @@ query ListMasterRaces {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -6003,6 +7840,41 @@ query ListMasterRaces {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -6011,6 +7883,58 @@ query ListMasterRaces {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -6030,6 +7954,58 @@ query ListMasterRaces {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -6061,9 +8037,9 @@ query ListMasterRaces {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -6333,6 +8309,41 @@ query GetRace($id: ID!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -6383,14 +8394,52 @@ query GetRace($id: ID!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -6416,6 +8465,41 @@ query GetRace($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -6439,6 +8523,41 @@ query GetRace($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -6447,6 +8566,58 @@ query GetRace($id: ID!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -6466,6 +8637,58 @@ query GetRace($id: ID!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -6497,9 +8720,9 @@ query GetRace($id: ID!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -6744,6 +8967,41 @@ query GetRace($id: ID!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -6794,14 +9052,52 @@ query GetRace($id: ID!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -6827,6 +9123,41 @@ query GetRace($id: ID!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -6850,6 +9181,41 @@ query GetRace($id: ID!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -6858,6 +9224,58 @@ query GetRace($id: ID!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -6877,6 +9295,58 @@ query GetRace($id: ID!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -6908,9 +9378,9 @@ query GetRace($id: ID!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -7156,6 +9626,41 @@ query GetRace($id: ID!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -7206,14 +9711,52 @@ query GetRace($id: ID!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -7239,6 +9782,41 @@ query GetRace($id: ID!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -7262,6 +9840,41 @@ query GetRace($id: ID!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -7270,6 +9883,58 @@ query GetRace($id: ID!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -7289,6 +9954,58 @@ query GetRace($id: ID!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -7320,9 +10037,9 @@ query GetRace($id: ID!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -7567,6 +10284,41 @@ query GetRace($id: ID!) {
 							feats
 							selectionCount
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						modifiers {
 							__typename
@@ -7617,14 +10369,52 @@ query GetRace($id: ID!) {
 								resourcePoints
 							}
 							range
+							minRange
+							maxRange
 							shape
 							size
 							duration
 							unit
 							conditions
 							damageTypes
+							damageType
 							spell
 							spellCategory
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						proficiencies {
 							__typename
@@ -7650,6 +10440,41 @@ query GetRace($id: ID!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						expertise {
 							__typename
@@ -7673,6 +10498,41 @@ query GetRace($id: ID!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						senses {
 							__typename
@@ -7681,6 +10541,58 @@ query GetRace($id: ID!) {
 							selectionCount
 							subtype
 							ids
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						spells {
 							__typename
@@ -7700,6 +10612,58 @@ query GetRace($id: ID!) {
 								spellLevel
 							}
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						prerequisites {
 							__typename
@@ -7731,9 +10695,9 @@ query GetRace($id: ID!) {
 								abilities
 								score
 							}
-							spellsKnown
-							featuresKnown
-							optionsKnown
+							spellsObtained
+							featuresObtained
+							optionsObtained
 							size
 						}
 						saveAbility {
@@ -8006,6 +10970,41 @@ query GetRace($id: ID!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -8056,14 +11055,52 @@ query GetRace($id: ID!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -8089,6 +11126,41 @@ query GetRace($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -8112,6 +11184,41 @@ query GetRace($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -8120,6 +11227,58 @@ query GetRace($id: ID!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -8139,6 +11298,58 @@ query GetRace($id: ID!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -8170,9 +11381,9 @@ query GetRace($id: ID!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -8417,6 +11628,41 @@ query GetRace($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -8467,14 +11713,52 @@ query GetRace($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -8500,6 +11784,41 @@ query GetRace($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -8523,6 +11842,41 @@ query GetRace($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -8531,6 +11885,58 @@ query GetRace($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -8550,6 +11956,58 @@ query GetRace($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -8581,9 +12039,9 @@ query GetRace($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -8829,6 +12287,41 @@ query GetRace($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -8879,14 +12372,52 @@ query GetRace($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -8912,6 +12443,41 @@ query GetRace($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -8935,6 +12501,41 @@ query GetRace($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -8943,6 +12544,58 @@ query GetRace($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -8962,6 +12615,58 @@ query GetRace($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -8993,9 +12698,9 @@ query GetRace($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -9240,6 +12945,41 @@ query GetRace($id: ID!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -9290,14 +13030,52 @@ query GetRace($id: ID!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -9323,6 +13101,41 @@ query GetRace($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -9346,6 +13159,41 @@ query GetRace($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -9354,6 +13202,58 @@ query GetRace($id: ID!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -9373,6 +13273,58 @@ query GetRace($id: ID!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -9404,9 +13356,9 @@ query GetRace($id: ID!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -9678,6 +13630,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -9728,14 +13715,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -9761,6 +13786,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -9784,6 +13844,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -9792,6 +13887,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -9811,6 +13958,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -9842,9 +14041,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -10089,6 +14288,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							feats
 							selectionCount
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						modifiers {
 							__typename
@@ -10139,14 +14373,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								resourcePoints
 							}
 							range
+							minRange
+							maxRange
 							shape
 							size
 							duration
 							unit
 							conditions
 							damageTypes
+							damageType
 							spell
 							spellCategory
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						proficiencies {
 							__typename
@@ -10172,6 +14444,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						expertise {
 							__typename
@@ -10195,6 +14502,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						senses {
 							__typename
@@ -10203,6 +14545,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							selectionCount
 							subtype
 							ids
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						spells {
 							__typename
@@ -10222,6 +14616,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								spellLevel
 							}
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						prerequisites {
 							__typename
@@ -10253,9 +14699,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								abilities
 								score
 							}
-							spellsKnown
-							featuresKnown
-							optionsKnown
+							spellsObtained
+							featuresObtained
+							optionsObtained
 							size
 						}
 						saveAbility {
@@ -10501,6 +14947,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							feats
 							selectionCount
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						modifiers {
 							__typename
@@ -10551,14 +15032,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								resourcePoints
 							}
 							range
+							minRange
+							maxRange
 							shape
 							size
 							duration
 							unit
 							conditions
 							damageTypes
+							damageType
 							spell
 							spellCategory
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						proficiencies {
 							__typename
@@ -10584,6 +15103,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						expertise {
 							__typename
@@ -10607,6 +15161,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						senses {
 							__typename
@@ -10615,6 +15204,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							selectionCount
 							subtype
 							ids
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						spells {
 							__typename
@@ -10634,6 +15275,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								spellLevel
 							}
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						prerequisites {
 							__typename
@@ -10665,9 +15358,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								abilities
 								score
 							}
-							spellsKnown
-							featuresKnown
-							optionsKnown
+							spellsObtained
+							featuresObtained
+							optionsObtained
 							size
 						}
 						saveAbility {
@@ -10912,6 +15605,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								feats
 								selectionCount
 								subtype
+								prerequisites {
+									__typename
+									options
+									skillProficiencies
+									equipmentProficiencies {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									equipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									notEquipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									abilityScore {
+										__typename
+										abilities
+										score
+									}
+									spellsObtained
+									featuresObtained
+									optionsObtained
+									size
+								}
 							}
 							modifiers {
 								__typename
@@ -10962,14 +15690,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 									resourcePoints
 								}
 								range
+								minRange
+								maxRange
 								shape
 								size
 								duration
 								unit
 								conditions
 								damageTypes
+								damageType
 								spell
 								spellCategory
+								prerequisites {
+									__typename
+									options
+									skillProficiencies
+									equipmentProficiencies {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									equipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									notEquipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									abilityScore {
+										__typename
+										abilities
+										score
+									}
+									spellsObtained
+									featuresObtained
+									optionsObtained
+									size
+								}
 							}
 							proficiencies {
 								__typename
@@ -10995,6 +15761,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 									category
 									properties
 								}
+								prerequisites {
+									__typename
+									options
+									skillProficiencies
+									equipmentProficiencies {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									equipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									notEquipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									abilityScore {
+										__typename
+										abilities
+										score
+									}
+									spellsObtained
+									featuresObtained
+									optionsObtained
+									size
+								}
 							}
 							expertise {
 								__typename
@@ -11018,6 +15819,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 									category
 									properties
 								}
+								prerequisites {
+									__typename
+									options
+									skillProficiencies
+									equipmentProficiencies {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									equipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									notEquipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									abilityScore {
+										__typename
+										abilities
+										score
+									}
+									spellsObtained
+									featuresObtained
+									optionsObtained
+									size
+								}
 							}
 							senses {
 								__typename
@@ -11026,6 +15862,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								selectionCount
 								subtype
 								ids
+								prerequisites {
+									__typename
+									options
+									skillProficiencies
+									equipmentProficiencies {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									equipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									notEquipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									abilityScore {
+										__typename
+										abilities
+										score
+									}
+									spellsObtained
+									featuresObtained
+									optionsObtained
+									size
+								}
+								charges {
+									__typename
+									reset
+									limit
+									ability
+									skill
+									usesPerLevel {
+										__typename
+										level
+										uses
+									}
+									minAmount
+									addAmount
+									setAmount
+									multiplier
+									resourcePoints
+								}
 							}
 							spells {
 								__typename
@@ -11045,6 +15933,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 									spellLevel
 								}
 								subtype
+								prerequisites {
+									__typename
+									options
+									skillProficiencies
+									equipmentProficiencies {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									equipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									notEquipped {
+										__typename
+										numberEquipped
+										category
+										equipment
+										properties
+									}
+									abilityScore {
+										__typename
+										abilities
+										score
+									}
+									spellsObtained
+									featuresObtained
+									optionsObtained
+									size
+								}
+								charges {
+									__typename
+									reset
+									limit
+									ability
+									skill
+									usesPerLevel {
+										__typename
+										level
+										uses
+									}
+									minAmount
+									addAmount
+									setAmount
+									multiplier
+									resourcePoints
+								}
 							}
 							prerequisites {
 								__typename
@@ -11076,9 +16016,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 									abilities
 									score
 								}
-								spellsKnown
-								featuresKnown
-								optionsKnown
+								spellsObtained
+								featuresObtained
+								optionsObtained
 								size
 							}
 							saveAbility {
@@ -11351,6 +16291,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -11401,14 +16376,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -11434,6 +16447,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -11457,6 +16505,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -11465,6 +16548,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -11484,6 +16619,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -11515,9 +16702,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -11762,6 +16949,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -11812,14 +17034,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -11845,6 +17105,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -11868,6 +17163,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -11876,6 +17206,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -11895,6 +17277,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -11926,9 +17360,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -12174,6 +17608,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -12224,14 +17693,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -12257,6 +17764,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -12280,6 +17822,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -12288,6 +17865,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -12307,6 +17936,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -12338,9 +18019,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -12585,6 +18266,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -12635,14 +18351,52 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -12668,6 +18422,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -12691,6 +18480,41 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -12699,6 +18523,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -12718,6 +18594,58 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -12749,9 +18677,9 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -13337,6 +19265,41 @@ query ListMasterFeats {
 		feats
 		selectionCount
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	modifiers {
 		__typename
@@ -13387,14 +19350,52 @@ query ListMasterFeats {
 			resourcePoints
 		}
 		range
+		minRange
+		maxRange
 		shape
 		size
 		duration
 		unit
 		conditions
 		damageTypes
+		damageType
 		spell
 		spellCategory
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	proficiencies {
 		__typename
@@ -13419,6 +19420,41 @@ query ListMasterFeats {
 			ids
 			category
 			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
 		}
 	}
 	expertise {
@@ -13445,6 +19481,41 @@ query ListMasterFeats {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	senses {
 		__typename
@@ -13453,6 +19524,58 @@ query ListMasterFeats {
 		selectionCount
 		subtype
 		ids
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spells {
 		__typename
@@ -13472,6 +19595,58 @@ query ListMasterFeats {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spellcasting {
 		__typename
@@ -13491,6 +19666,58 @@ query ListMasterFeats {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	prerequisites {
 		__typename
@@ -13522,9 +19749,9 @@ query ListMasterFeats {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	saveAbility {
@@ -13769,6 +19996,41 @@ query ListMasterFeats {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -13819,14 +20081,52 @@ query ListMasterFeats {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -13852,6 +20152,41 @@ query ListMasterFeats {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -13875,6 +20210,41 @@ query ListMasterFeats {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -13883,6 +20253,58 @@ query ListMasterFeats {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -13902,6 +20324,58 @@ query ListMasterFeats {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -13933,9 +20407,9 @@ query ListMasterFeats {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -14180,6 +20654,41 @@ query ListMasterFeats {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -14230,14 +20739,52 @@ query ListMasterFeats {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -14263,6 +20810,41 @@ query ListMasterFeats {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -14286,6 +20868,41 @@ query ListMasterFeats {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -14294,6 +20911,58 @@ query ListMasterFeats {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -14313,6 +20982,58 @@ query ListMasterFeats {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -14344,9 +21065,9 @@ query ListMasterFeats {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -14592,6 +21313,41 @@ query ListMasterFeats {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -14642,14 +21398,52 @@ query ListMasterFeats {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -14675,6 +21469,41 @@ query ListMasterFeats {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -14698,6 +21527,41 @@ query ListMasterFeats {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -14706,6 +21570,58 @@ query ListMasterFeats {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -14725,6 +21641,58 @@ query ListMasterFeats {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -14756,9 +21724,9 @@ query ListMasterFeats {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -15003,6 +21971,41 @@ query ListMasterFeats {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -15053,14 +22056,52 @@ query ListMasterFeats {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -15086,6 +22127,41 @@ query ListMasterFeats {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -15109,6 +22185,41 @@ query ListMasterFeats {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -15117,6 +22228,58 @@ query ListMasterFeats {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -15136,6 +22299,58 @@ query ListMasterFeats {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -15167,9 +22382,9 @@ query ListMasterFeats {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -15417,6 +22632,41 @@ query ListMasterFeats {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -15467,14 +22717,52 @@ query ListMasterFeats {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -15500,6 +22788,41 @@ query ListMasterFeats {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -15523,6 +22846,41 @@ query ListMasterFeats {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -15531,6 +22889,58 @@ query ListMasterFeats {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -15550,6 +22960,58 @@ query ListMasterFeats {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -15581,9 +23043,9 @@ query ListMasterFeats {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -15828,6 +23290,41 @@ query ListMasterFeats {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -15878,14 +23375,52 @@ query ListMasterFeats {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -15911,6 +23446,41 @@ query ListMasterFeats {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -15934,6 +23504,41 @@ query ListMasterFeats {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -15942,6 +23547,58 @@ query ListMasterFeats {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -15961,6 +23618,58 @@ query ListMasterFeats {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -15992,9 +23701,9 @@ query ListMasterFeats {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -16576,6 +24285,41 @@ query GetFeat($id: ID!) {
 		feats
 		selectionCount
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	modifiers {
 		__typename
@@ -16626,14 +24370,52 @@ query GetFeat($id: ID!) {
 			resourcePoints
 		}
 		range
+		minRange
+		maxRange
 		shape
 		size
 		duration
 		unit
 		conditions
 		damageTypes
+		damageType
 		spell
 		spellCategory
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	proficiencies {
 		__typename
@@ -16658,6 +24440,41 @@ query GetFeat($id: ID!) {
 			ids
 			category
 			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
 		}
 	}
 	expertise {
@@ -16684,6 +24501,41 @@ query GetFeat($id: ID!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	senses {
 		__typename
@@ -16692,6 +24544,58 @@ query GetFeat($id: ID!) {
 		selectionCount
 		subtype
 		ids
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spells {
 		__typename
@@ -16711,6 +24615,58 @@ query GetFeat($id: ID!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spellcasting {
 		__typename
@@ -16730,6 +24686,58 @@ query GetFeat($id: ID!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	prerequisites {
 		__typename
@@ -16761,9 +24769,9 @@ query GetFeat($id: ID!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	saveAbility {
@@ -17008,6 +25016,41 @@ query GetFeat($id: ID!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -17058,14 +25101,52 @@ query GetFeat($id: ID!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -17091,6 +25172,41 @@ query GetFeat($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -17114,6 +25230,41 @@ query GetFeat($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -17122,6 +25273,58 @@ query GetFeat($id: ID!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -17141,6 +25344,58 @@ query GetFeat($id: ID!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -17172,9 +25427,9 @@ query GetFeat($id: ID!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -17419,6 +25674,41 @@ query GetFeat($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -17469,14 +25759,52 @@ query GetFeat($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -17502,6 +25830,41 @@ query GetFeat($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -17525,6 +25888,41 @@ query GetFeat($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -17533,6 +25931,58 @@ query GetFeat($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -17552,6 +26002,58 @@ query GetFeat($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -17583,9 +26085,9 @@ query GetFeat($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -17831,6 +26333,41 @@ query GetFeat($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -17881,14 +26418,52 @@ query GetFeat($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -17914,6 +26489,41 @@ query GetFeat($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -17937,6 +26547,41 @@ query GetFeat($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -17945,6 +26590,58 @@ query GetFeat($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -17964,6 +26661,58 @@ query GetFeat($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -17995,9 +26744,9 @@ query GetFeat($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -18242,6 +26991,41 @@ query GetFeat($id: ID!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -18292,14 +27076,52 @@ query GetFeat($id: ID!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -18325,6 +27147,41 @@ query GetFeat($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -18348,6 +27205,41 @@ query GetFeat($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -18356,6 +27248,58 @@ query GetFeat($id: ID!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -18375,6 +27319,58 @@ query GetFeat($id: ID!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -18406,9 +27402,9 @@ query GetFeat($id: ID!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -18656,6 +27652,41 @@ query GetFeat($id: ID!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -18706,14 +27737,52 @@ query GetFeat($id: ID!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -18739,6 +27808,41 @@ query GetFeat($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -18762,6 +27866,41 @@ query GetFeat($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -18770,6 +27909,58 @@ query GetFeat($id: ID!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -18789,6 +27980,58 @@ query GetFeat($id: ID!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -18820,9 +28063,9 @@ query GetFeat($id: ID!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -19067,6 +28310,41 @@ query GetFeat($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -19117,14 +28395,52 @@ query GetFeat($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -19150,6 +28466,41 @@ query GetFeat($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -19173,6 +28524,41 @@ query GetFeat($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -19181,6 +28567,58 @@ query GetFeat($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -19200,6 +28638,58 @@ query GetFeat($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -19231,9 +28721,9 @@ query GetFeat($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -19817,6 +29307,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -19867,14 +29392,52 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -19899,6 +29462,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				ids
 				category
 				properties
+			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
 			}
 		}
 		expertise {
@@ -19925,6 +29523,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -19933,6 +29566,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -19952,6 +29637,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spellcasting {
 			__typename
@@ -19971,6 +29708,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -20002,9 +29791,9 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -20249,6 +30038,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -20299,14 +30123,52 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -20332,6 +30194,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -20355,6 +30252,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -20363,6 +30295,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -20382,6 +30366,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -20413,9 +30449,9 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -20660,6 +30696,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -20710,14 +30781,52 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -20743,6 +30852,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -20766,6 +30910,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -20774,6 +30953,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -20793,6 +31024,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -20824,9 +31107,9 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -21072,6 +31355,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -21122,14 +31440,52 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -21155,6 +31511,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -21178,6 +31569,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -21186,6 +31612,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -21205,6 +31683,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -21236,9 +31766,9 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -21483,6 +32013,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -21533,14 +32098,52 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -21566,6 +32169,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -21589,6 +32227,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -21597,6 +32270,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -21616,6 +32341,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -21647,9 +32424,9 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -21897,6 +32674,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -21947,14 +32759,52 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -21980,6 +32830,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -22003,6 +32888,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -22011,6 +32931,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -22030,6 +33002,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -22061,9 +33085,9 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -22308,6 +33332,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -22358,14 +33417,52 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -22391,6 +33488,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -22414,6 +33546,41 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -22422,6 +33589,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -22441,6 +33660,58 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -22472,9 +33743,9 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -22734,9 +34005,9 @@ query ListMasterEquipment {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	speed {
@@ -23183,6 +34454,41 @@ query ListMasterEquipment {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -23233,14 +34539,52 @@ query ListMasterEquipment {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -23266,6 +34610,41 @@ query ListMasterEquipment {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -23289,6 +34668,41 @@ query ListMasterEquipment {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -23297,6 +34711,58 @@ query ListMasterEquipment {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -23316,6 +34782,58 @@ query ListMasterEquipment {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -23347,9 +34865,9 @@ query ListMasterEquipment {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -23594,6 +35112,41 @@ query ListMasterEquipment {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -23644,14 +35197,52 @@ query ListMasterEquipment {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -23677,6 +35268,41 @@ query ListMasterEquipment {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -23700,6 +35326,41 @@ query ListMasterEquipment {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -23708,6 +35369,58 @@ query ListMasterEquipment {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -23727,6 +35440,58 @@ query ListMasterEquipment {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -23758,9 +35523,9 @@ query ListMasterEquipment {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -24006,6 +35771,41 @@ query ListMasterEquipment {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -24056,14 +35856,52 @@ query ListMasterEquipment {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -24089,6 +35927,41 @@ query ListMasterEquipment {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -24112,6 +35985,41 @@ query ListMasterEquipment {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -24120,6 +36028,58 @@ query ListMasterEquipment {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -24139,6 +36099,58 @@ query ListMasterEquipment {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -24170,9 +36182,9 @@ query ListMasterEquipment {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -24417,6 +36429,41 @@ query ListMasterEquipment {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -24467,14 +36514,52 @@ query ListMasterEquipment {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -24500,6 +36585,41 @@ query ListMasterEquipment {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -24523,6 +36643,41 @@ query ListMasterEquipment {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -24531,6 +36686,58 @@ query ListMasterEquipment {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -24550,6 +36757,58 @@ query ListMasterEquipment {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -24581,9 +36840,9 @@ query ListMasterEquipment {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -24842,9 +37101,9 @@ query GetEquipment($id: ID!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	speed {
@@ -25291,6 +37550,41 @@ query GetEquipment($id: ID!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -25341,14 +37635,52 @@ query GetEquipment($id: ID!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -25374,6 +37706,41 @@ query GetEquipment($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -25397,6 +37764,41 @@ query GetEquipment($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -25405,6 +37807,58 @@ query GetEquipment($id: ID!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -25424,6 +37878,58 @@ query GetEquipment($id: ID!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -25455,9 +37961,9 @@ query GetEquipment($id: ID!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -25702,6 +38208,41 @@ query GetEquipment($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -25752,14 +38293,52 @@ query GetEquipment($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -25785,6 +38364,41 @@ query GetEquipment($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -25808,6 +38422,41 @@ query GetEquipment($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -25816,6 +38465,58 @@ query GetEquipment($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -25835,6 +38536,58 @@ query GetEquipment($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -25866,9 +38619,9 @@ query GetEquipment($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -26114,6 +38867,41 @@ query GetEquipment($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -26164,14 +38952,52 @@ query GetEquipment($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -26197,6 +39023,41 @@ query GetEquipment($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -26220,6 +39081,41 @@ query GetEquipment($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -26228,6 +39124,58 @@ query GetEquipment($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -26247,6 +39195,58 @@ query GetEquipment($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -26278,9 +39278,9 @@ query GetEquipment($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -26525,6 +39525,41 @@ query GetEquipment($id: ID!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -26575,14 +39610,52 @@ query GetEquipment($id: ID!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -26608,6 +39681,41 @@ query GetEquipment($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -26631,6 +39739,41 @@ query GetEquipment($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -26639,6 +39782,58 @@ query GetEquipment($id: ID!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -26658,6 +39853,58 @@ query GetEquipment($id: ID!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -26689,9 +39936,9 @@ query GetEquipment($id: ID!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -26952,9 +40199,9 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		speed {
@@ -27381,6 +40628,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -27431,14 +40713,52 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -27464,6 +40784,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -27487,6 +40842,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -27495,6 +40885,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -27514,6 +40956,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -27545,9 +41039,9 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -27792,6 +41286,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -27842,14 +41371,52 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -27875,6 +41442,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -27898,6 +41500,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -27906,6 +41543,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -27925,6 +41614,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -27956,9 +41697,9 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -28204,6 +41945,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -28254,14 +42030,52 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -28287,6 +42101,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -28310,6 +42159,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -28318,6 +42202,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -28337,6 +42273,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -28368,9 +42356,9 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -28615,6 +42603,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -28665,14 +42688,52 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -28698,6 +42759,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -28721,6 +42817,41 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -28729,6 +42860,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -28748,6 +42931,58 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -28779,9 +43014,9 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -28872,6 +43107,41 @@ query ListMasterClasses {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	spellcasting {
 		__typename
@@ -28911,8 +43181,7 @@ query ListMasterClasses {
 		level
 		spellSlots {
 			__typename
-			level
-			count
+			slotCount
 		}
 		resourcePoints
 		spellsKnownLimit
@@ -29201,6 +43470,41 @@ query ListMasterClasses {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -29251,14 +43555,52 @@ query ListMasterClasses {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -29284,6 +43626,41 @@ query ListMasterClasses {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -29307,6 +43684,41 @@ query ListMasterClasses {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -29315,6 +43727,58 @@ query ListMasterClasses {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -29334,6 +43798,58 @@ query ListMasterClasses {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -29365,9 +43881,9 @@ query ListMasterClasses {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -29612,6 +44128,41 @@ query ListMasterClasses {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -29662,14 +44213,52 @@ query ListMasterClasses {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -29695,6 +44284,41 @@ query ListMasterClasses {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -29718,6 +44342,41 @@ query ListMasterClasses {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -29726,6 +44385,58 @@ query ListMasterClasses {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -29745,6 +44456,58 @@ query ListMasterClasses {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -29776,9 +44539,9 @@ query ListMasterClasses {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -30024,6 +44787,41 @@ query ListMasterClasses {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -30074,14 +44872,52 @@ query ListMasterClasses {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -30107,6 +44943,41 @@ query ListMasterClasses {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -30130,6 +45001,41 @@ query ListMasterClasses {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -30138,6 +45044,58 @@ query ListMasterClasses {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -30157,6 +45115,58 @@ query ListMasterClasses {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -30188,9 +45198,9 @@ query ListMasterClasses {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -30435,6 +45445,41 @@ query ListMasterClasses {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -30485,14 +45530,52 @@ query ListMasterClasses {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -30518,6 +45601,41 @@ query ListMasterClasses {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -30541,6 +45659,41 @@ query ListMasterClasses {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -30549,6 +45702,58 @@ query ListMasterClasses {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -30568,6 +45773,58 @@ query ListMasterClasses {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -30599,9 +45856,9 @@ query ListMasterClasses {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -30688,6 +45945,41 @@ query GetClass($id: ID!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	spellcasting {
 		__typename
@@ -30727,8 +46019,7 @@ query GetClass($id: ID!) {
 		level
 		spellSlots {
 			__typename
-			level
-			count
+			slotCount
 		}
 		resourcePoints
 		spellsKnownLimit
@@ -31017,6 +46308,41 @@ query GetClass($id: ID!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -31067,14 +46393,52 @@ query GetClass($id: ID!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -31100,6 +46464,41 @@ query GetClass($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -31123,6 +46522,41 @@ query GetClass($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -31131,6 +46565,58 @@ query GetClass($id: ID!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -31150,6 +46636,58 @@ query GetClass($id: ID!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -31181,9 +46719,9 @@ query GetClass($id: ID!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -31428,6 +46966,41 @@ query GetClass($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -31478,14 +47051,52 @@ query GetClass($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -31511,6 +47122,41 @@ query GetClass($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -31534,6 +47180,41 @@ query GetClass($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -31542,6 +47223,58 @@ query GetClass($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -31561,6 +47294,58 @@ query GetClass($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -31592,9 +47377,9 @@ query GetClass($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -31840,6 +47625,41 @@ query GetClass($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -31890,14 +47710,52 @@ query GetClass($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -31923,6 +47781,41 @@ query GetClass($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -31946,6 +47839,41 @@ query GetClass($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -31954,6 +47882,58 @@ query GetClass($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -31973,6 +47953,58 @@ query GetClass($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -32004,9 +48036,9 @@ query GetClass($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -32251,6 +48283,41 @@ query GetClass($id: ID!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -32301,14 +48368,52 @@ query GetClass($id: ID!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -32334,6 +48439,41 @@ query GetClass($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -32357,6 +48497,41 @@ query GetClass($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -32365,6 +48540,58 @@ query GetClass($id: ID!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -32384,6 +48611,58 @@ query GetClass($id: ID!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -32415,9 +48694,9 @@ query GetClass($id: ID!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -32506,6 +48785,41 @@ query ListClasses($systemId: String!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		spellcasting {
 			__typename
@@ -32545,8 +48859,7 @@ query ListClasses($systemId: String!) {
 			level
 			spellSlots {
 				__typename
-				level
-				count
+				slotCount
 			}
 			resourcePoints
 			spellsKnownLimit
@@ -32835,6 +49148,41 @@ query ListClasses($systemId: String!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -32885,14 +49233,52 @@ query ListClasses($systemId: String!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -32918,6 +49304,41 @@ query ListClasses($systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -32941,6 +49362,41 @@ query ListClasses($systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -32949,6 +49405,58 @@ query ListClasses($systemId: String!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -32968,6 +49476,58 @@ query ListClasses($systemId: String!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -32999,9 +49559,9 @@ query ListClasses($systemId: String!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -33246,6 +49806,41 @@ query ListClasses($systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -33296,14 +49891,52 @@ query ListClasses($systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -33329,6 +49962,41 @@ query ListClasses($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -33352,6 +50020,41 @@ query ListClasses($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -33360,6 +50063,58 @@ query ListClasses($systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -33379,6 +50134,58 @@ query ListClasses($systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -33410,9 +50217,9 @@ query ListClasses($systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -33658,6 +50465,41 @@ query ListClasses($systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -33708,14 +50550,52 @@ query ListClasses($systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -33741,6 +50621,41 @@ query ListClasses($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -33764,6 +50679,41 @@ query ListClasses($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -33772,6 +50722,58 @@ query ListClasses($systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -33791,6 +50793,58 @@ query ListClasses($systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -33822,9 +50876,9 @@ query ListClasses($systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -34069,6 +51123,41 @@ query ListClasses($systemId: String!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -34119,14 +51208,52 @@ query ListClasses($systemId: String!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -34152,6 +51279,41 @@ query ListClasses($systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -34175,6 +51337,41 @@ query ListClasses($systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -34183,6 +51380,58 @@ query ListClasses($systemId: String!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -34202,6 +51451,58 @@ query ListClasses($systemId: String!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -34233,9 +51534,9 @@ query ListClasses($systemId: String!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -35193,6 +52494,41 @@ query ListMasterBackgrounds {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	features {
 		__typename
@@ -35427,6 +52763,41 @@ query ListMasterBackgrounds {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -35477,14 +52848,52 @@ query ListMasterBackgrounds {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -35510,6 +52919,41 @@ query ListMasterBackgrounds {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -35533,6 +52977,41 @@ query ListMasterBackgrounds {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -35541,6 +53020,58 @@ query ListMasterBackgrounds {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -35560,6 +53091,58 @@ query ListMasterBackgrounds {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -35591,9 +53174,9 @@ query ListMasterBackgrounds {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -35838,6 +53421,41 @@ query ListMasterBackgrounds {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -35888,14 +53506,52 @@ query ListMasterBackgrounds {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -35921,6 +53577,41 @@ query ListMasterBackgrounds {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -35944,6 +53635,41 @@ query ListMasterBackgrounds {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -35952,6 +53678,58 @@ query ListMasterBackgrounds {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -35971,6 +53749,58 @@ query ListMasterBackgrounds {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -36002,9 +53832,9 @@ query ListMasterBackgrounds {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -36250,6 +54080,41 @@ query ListMasterBackgrounds {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -36300,14 +54165,52 @@ query ListMasterBackgrounds {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -36333,6 +54236,41 @@ query ListMasterBackgrounds {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -36356,6 +54294,41 @@ query ListMasterBackgrounds {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -36364,6 +54337,58 @@ query ListMasterBackgrounds {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -36383,6 +54408,58 @@ query ListMasterBackgrounds {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -36414,9 +54491,9 @@ query ListMasterBackgrounds {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -36661,6 +54738,41 @@ query ListMasterBackgrounds {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -36711,14 +54823,52 @@ query ListMasterBackgrounds {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -36744,6 +54894,41 @@ query ListMasterBackgrounds {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -36767,6 +54952,41 @@ query ListMasterBackgrounds {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -36775,6 +54995,58 @@ query ListMasterBackgrounds {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -36794,6 +55066,58 @@ query ListMasterBackgrounds {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -36825,9 +55149,9 @@ query ListMasterBackgrounds {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -36909,6 +55233,41 @@ query GetBackground($id: ID!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	features {
 		__typename
@@ -37143,6 +55502,41 @@ query GetBackground($id: ID!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -37193,14 +55587,52 @@ query GetBackground($id: ID!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -37226,6 +55658,41 @@ query GetBackground($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -37249,6 +55716,41 @@ query GetBackground($id: ID!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -37257,6 +55759,58 @@ query GetBackground($id: ID!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -37276,6 +55830,58 @@ query GetBackground($id: ID!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -37307,9 +55913,9 @@ query GetBackground($id: ID!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -37554,6 +56160,41 @@ query GetBackground($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -37604,14 +56245,52 @@ query GetBackground($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -37637,6 +56316,41 @@ query GetBackground($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -37660,6 +56374,41 @@ query GetBackground($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -37668,6 +56417,58 @@ query GetBackground($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -37687,6 +56488,58 @@ query GetBackground($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -37718,9 +56571,9 @@ query GetBackground($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -37966,6 +56819,41 @@ query GetBackground($id: ID!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -38016,14 +56904,52 @@ query GetBackground($id: ID!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -38049,6 +56975,41 @@ query GetBackground($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -38072,6 +57033,41 @@ query GetBackground($id: ID!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -38080,6 +57076,58 @@ query GetBackground($id: ID!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -38099,6 +57147,58 @@ query GetBackground($id: ID!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -38130,9 +57230,9 @@ query GetBackground($id: ID!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -38377,6 +57477,41 @@ query GetBackground($id: ID!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -38427,14 +57562,52 @@ query GetBackground($id: ID!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -38460,6 +57633,41 @@ query GetBackground($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -38483,6 +57691,41 @@ query GetBackground($id: ID!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -38491,6 +57734,58 @@ query GetBackground($id: ID!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -38510,6 +57805,58 @@ query GetBackground($id: ID!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -38541,9 +57888,9 @@ query GetBackground($id: ID!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -38626,6 +57973,41 @@ query ListBackgrounds($systemId: String!) {
 				ids
 				category
 				properties
+			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
 			}
 		}
 		features {
@@ -38861,6 +58243,41 @@ query ListBackgrounds($systemId: String!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -38911,14 +58328,52 @@ query ListBackgrounds($systemId: String!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -38944,6 +58399,41 @@ query ListBackgrounds($systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -38967,6 +58457,41 @@ query ListBackgrounds($systemId: String!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -38975,6 +58500,58 @@ query ListBackgrounds($systemId: String!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -38994,6 +58571,58 @@ query ListBackgrounds($systemId: String!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -39025,9 +58654,9 @@ query ListBackgrounds($systemId: String!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -39272,6 +58901,41 @@ query ListBackgrounds($systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -39322,14 +58986,52 @@ query ListBackgrounds($systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -39355,6 +59057,41 @@ query ListBackgrounds($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -39378,6 +59115,41 @@ query ListBackgrounds($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -39386,6 +59158,58 @@ query ListBackgrounds($systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -39405,6 +59229,58 @@ query ListBackgrounds($systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -39436,9 +59312,9 @@ query ListBackgrounds($systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -39684,6 +59560,41 @@ query ListBackgrounds($systemId: String!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -39734,14 +59645,52 @@ query ListBackgrounds($systemId: String!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -39767,6 +59716,41 @@ query ListBackgrounds($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -39790,6 +59774,41 @@ query ListBackgrounds($systemId: String!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -39798,6 +59817,58 @@ query ListBackgrounds($systemId: String!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -39817,6 +59888,58 @@ query ListBackgrounds($systemId: String!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -39848,9 +59971,9 @@ query ListBackgrounds($systemId: String!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -40095,6 +60218,41 @@ query ListBackgrounds($systemId: String!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -40145,14 +60303,52 @@ query ListBackgrounds($systemId: String!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -40178,6 +60374,41 @@ query ListBackgrounds($systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -40201,6 +60432,41 @@ query ListBackgrounds($systemId: String!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -40209,6 +60475,58 @@ query ListBackgrounds($systemId: String!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -40228,6 +60546,58 @@ query ListBackgrounds($systemId: String!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -40259,9 +60629,9 @@ query ListBackgrounds($systemId: String!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {

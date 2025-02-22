@@ -29,8 +29,7 @@ type Spellcasting {
 }
 
 type SpellSlot {
-  level: Int
-  count: Int
+  slotCount: Int
 }
 
 type LevelAttribute {

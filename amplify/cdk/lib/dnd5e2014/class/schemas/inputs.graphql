@@ -29,8 +29,7 @@ input SpellcastingInput {
 }
 
 input SpellSlotInput {
-  level: Int
-  count: Int
+  slotCount: Int
 }
 
 input LevelAttributeInput {

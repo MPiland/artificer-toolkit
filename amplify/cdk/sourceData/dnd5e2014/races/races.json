@@ -104,7 +104,7 @@
                 ],
                 "primary": {
                   "attribute": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
-                  "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
+                  "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f"
                 }
               },
               "charges": {
@@ -142,7 +142,7 @@
                   "category": "f03223d4-22ee-4866-8abf-1757791d356c",
                   "type": "7b202c09-bdd0-43df-8225-6232de134e3d",
                   "damageTypes": [
-                    "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
+                    "07d1c78c-4c5d-4a94-a781-7ee80320944f"
                   ]
                 }
               ]
@@ -468,7 +468,7 @@
                 ],
                 "primary": {
                   "attribute": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
-                  "id": "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
+                  "id": "07d1c78c-4c5d-4a94-a781-7ee80320944f"
                 }
               },
               "charges": {
@@ -506,7 +506,7 @@
                   "category": "f03223d4-22ee-4866-8abf-1757791d356c",
                   "type": "7b202c09-bdd0-43df-8225-6232de134e3d",
                   "damageTypes": [
-                    "22e6119f-fad5-44b1-92e7-be0bd9b8333d"
+                    "07d1c78c-4c5d-4a94-a781-7ee80320944f"
                   ]
                 }
               ]
@@ -648,7 +648,7 @@
                 ],
                 "primary": {
                   "attribute": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
-                  "id": "f8473724-d388-4387-8e2b-967ed5c90934"
+                  "id": "a77dd525-f359-49df-b5b9-cf9069d5ea24"
                 }
               },
               "charges": {
@@ -684,7 +684,7 @@
                   "category": "f03223d4-22ee-4866-8abf-1757791d356c",
                   "type": "7b202c09-bdd0-43df-8225-6232de134e3d",
                   "damageTypes": [
-                    "f8473724-d388-4387-8e2b-967ed5c90934"
+                    "a77dd525-f359-49df-b5b9-cf9069d5ea24"
                   ]
                 }
               ]
@@ -974,7 +974,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -985,7 +985,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1101,7 +1101,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -1136,7 +1136,7 @@
             "category": "1c2b4037-ba93-4edc-8299-323e60dc934e",
             "type": "3a173c5b-0be0-4c2f-807e-52c5117acc92",
             "damageTypes": [
-              "f8473724-d388-4387-8e2b-967ed5c90934"
+              "a77dd525-f359-49df-b5b9-cf9069d5ea24"
             ],
             "id": "d2a77dfd-9f67-4757-bed6-4a4bb27995fa"
           },
@@ -1144,7 +1144,7 @@
             "category": "36a69e52-6bb8-4fdd-93a5-1adf6fc51897",
             "type": "7b202c09-bdd0-43df-8225-6232de134e3d",
             "damageTypes": [
-              "f8473724-d388-4387-8e2b-967ed5c90934"
+              "a77dd525-f359-49df-b5b9-cf9069d5ea24"
             ],
             "id": "f125ebe3-e5f0-4c54-8a7b-0b69da8dff3c"
           }
@@ -1263,7 +1263,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1283,6 +1283,90 @@
         "modifiers": [
           {
             "category": "e33fba7e-27f1-4562-a270-90baa234e1aa",
+            "type": "f6478862-a92b-4596-8420-c0fa958db719",
+            "method": "064697c0-eb11-4b6a-81b9-f2ecdd722194",
+            "setPerLevel": [
+              {
+                "level": 1,
+                "setAmount": 1
+              },
+              {
+                "level": 2,
+                "setAmount": 1
+              },
+              {
+                "level": 3,
+                "setAmount": 1
+              },
+              {
+                "level": 4,
+                "setAmount": 1
+              },
+              {
+                "level": 5,
+                "setAmount": 1
+              },
+              {
+                "level": 6,
+                "setAmount": 1
+              },
+              {
+                "level": 7,
+                "setAmount": 1
+              },
+              {
+                "level": 8,
+                "setAmount": 1
+              },
+              {
+                "level": 9,
+                "setAmount": 1
+              },
+              {
+                "level": 10,
+                "setAmount": 1
+              },
+              {
+                "level": 11,
+                "setAmount": 1
+              },
+              {
+                "level": 12,
+                "setAmount": 1
+              },
+              {
+                "level": 13,
+                "setAmount": 1
+              },
+              {
+                "level": 14,
+                "setAmount": 1
+              },
+              {
+                "level": 15,
+                "setAmount": 1
+              },
+              {
+                "level": 16,
+                "setAmount": 1
+              },
+              {
+                "level": 17,
+                "setAmount": 1
+              },
+              {
+                "level": 18,
+                "setAmount": 1
+              },
+              {
+                "level": 19,
+                "setAmount": 1
+              },
+              {
+                "level": 20,
+                "setAmount": 1
+              }
+            ],
             "id": "cb6a30b8-29fa-4574-b0ab-bff2e75e4eed"
           }
         ]
@@ -1368,7 +1452,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -1418,6 +1502,10 @@
         "modifiers": [
           {
             "category": "e7012bf9-4e83-4e31-888f-d4674d4ef865",
+            "type": "3a173c5b-0be0-4c2f-807e-52c5117acc92",
+            "conditions": [
+              "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
+            ],
             "id": "3bb4fc8e-065e-4043-9c32-47eaf55f57cf"
           }
         ],
@@ -1476,7 +1564,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1515,7 +1603,7 @@
         "value": "cantrip",
         "label": "Cantrip",
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attributes": [
               "1bec624b-14c4-4fe7-baa5-277277394bbf",
@@ -1529,7 +1617,7 @@
             ],
             "levelLimit": [
               {
-                "level": 0
+                "level": "0"
               }
             ],
             "ids": [
@@ -1632,7 +1720,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -1705,7 +1793,7 @@
     "desc": "<p>As a lightfoot halfling, you can easily hide from notice, even using other people as cover. You’re inclined to be affable and get along well with others. In the Forgotten Realms, lightfoot halflings have spread the farthest and thus are the most common variety.</p><p>Lightfoots are more prone to wanderlust than other halflings, and often dwell alongside other races or take up a nomadic life. In the world of Greyhawk, these halflings are called hairfeet or tallfellows.</p>",
     "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
     "lineage": [
-      "f7094296-51b5-41ec-a54b-2bf11921abb8"
+      "154a78f7-c188-46a0-92a1-14b4676564ea"
     ],
     "features": [
       {
@@ -1720,7 +1808,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1814,7 +1902,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1938,7 +2026,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -2035,7 +2123,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2142,7 +2230,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -2157,7 +2245,7 @@
             "selectionCount": 2,
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2332,7 +2420,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -2343,7 +2431,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2490,7 +2578,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2501,7 +2589,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -2556,7 +2644,7 @@
           "setAmount": 1
         },
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attributes": [
               "4b29c54a-b258-42ec-a877-4fbd6873f760",
@@ -2564,30 +2652,21 @@
             ],
             "spellsByLevel": [
               {
-                "featureSpells": [
-                  {
-                    "value": "thaumaturgy",
-                    "label": "Thaumaturgy"
-                  }
+                "spells": [
+                  "8797d60d-e2ac-494d-b744-cf5b0ddbbc81"
                 ],
                 "level": 1
               },
               {
-                "featureSpells": [
-                  {
-                    "value": "hellishRebuke",
-                    "label": "Hellish Rebuke"
-                  }
+                "spells": [
+                  "7eab50fa-bb69-47c3-b98d-86971b7a0467"
                 ],
                 "level": 3,
                 "spellLevel": 2
               },
               {
-                "featureSpells": [
-                  {
-                    "value": "darkness",
-                    "label": "Darkness"
-                  }
+                "spells": [
+                  "aaed445e-9fd5-4fe5-9eb7-5119fe59b32b"
                 ],
                 "level": 5
               }

@@ -9,7 +9,7 @@ input CharacterModifierInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterSenseInput {
@@ -23,7 +23,7 @@ input CharacterSenseInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterFeatInput {
@@ -36,7 +36,7 @@ input CharacterFeatInput {
   equipmentId: ID
   backgroundId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterProficiencyInput {
@@ -50,7 +50,7 @@ input CharacterProficiencyInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterExpertiseInput {
@@ -64,7 +64,7 @@ input CharacterExpertiseInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterSpellInput {
@@ -86,7 +86,7 @@ input CharacterSpellInput {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterFeatureInput {
@@ -98,7 +98,7 @@ input CharacterFeatureInput {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
   level: Int
 }
 

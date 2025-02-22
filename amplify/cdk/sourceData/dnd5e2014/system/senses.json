@@ -29,5 +29,20 @@
     "type": ["creature", "monster"],
     "creatureDesc": "<p>Many creatures in fantasy gaming worlds, especially those that dwell underground, have darkvision. Within a specified range, a creature with darkvision can see in darkness as if the darkness were dim light, so areas of darkness are only lightly obscured as far as that creature is concerned. However, the creature can't discern color in darkness, only shades of gray.</p>",
     "monsterDesc": "<p>A monster with truesight can, out to a specific range, see in normal and magical darkness, see invisible creatures and objects, automatically detect visual illusions and succeed on saving throws against them, and perceive the original form of a shapechanger or a creature that is transformed by magic. Furthermore, the monster can see into the Ethereal Plane within the same range.</p>"
+  },
+  {
+    "id": "0c3b869f-7dda-4049-aa57-368c412c089c",
+    "label": "Devil's Sight",
+    "value": "devilsSight",
+    "type": ["creature", "monster"],
+    "creatureDesc": "<p>A creature with Devil's Sight can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.</p>",
+    "monsterDesc": "<p>A monster with Devil's Sight can see normally in darkness, both magical and nonmagical, to a distance of 120 feet.</p>"
+  },
+  {
+    "id": "c148efc1-4188-4510-a819-b6f12ce987dc",
+    "value": "witchSight",
+    "label": "Witch Sight",
+    "type": ["creature"],
+    "creatureDesc": "<p>A creature with Witch Sight can see the true form of any shapechanger or creature concealed by illusion or transmutation magic for any creature within 30 feet and within line of sight.</p>"
   }
 ]

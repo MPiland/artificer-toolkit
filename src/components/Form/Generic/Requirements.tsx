@@ -11,62 +11,60 @@ import Group from '../../Group/Group'
 import Button from '../../Button/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
-import { use, useEffect } from 'react'
+import { useEffect } from 'react'
 import Collapse from '../../Collapse/Collapse'
-import { Character, Feat, FeatureEnum, Spell } from '../../../../amplify/gql/types'
-import { Attributes, Prerequisites as PrerequisitesEnum } from '../../../types/enums'
-import { FeatureDataType, FormDataType, UpdateState } from '../../../types/form'
-import { FeatureContext } from '../Features/FeatureContext'
+import { Character, Feat, FeatureAncestry, FeatureEnum, Spell } from '../../../../amplify/gql/types'
+import { FeatureDataType, FormDataType, SectionDataType, UpdateState } from '../../../types/form'
+import { useEnumChecks } from '../../../hooks/useEnumChecks'
 
 const Prerequisites = ({
   formData,
   updateFormData,
 }: {
-  formData: FeatureDataType | Feat
-  updateFormData: (state: UpdateState<FormDataType | FeatureDataType>) => void
+  formData: FeatureDataType | Feat | Exclude<SectionDataType, FeatureAncestry>
+  updateFormData: (state: UpdateState<FormDataType | FeatureDataType | SectionDataType>) => void
 }) => {
-  const { featureStep } = use(FeatureContext)
-
   const { data: system } = useGetSystemQuery()
   const { data: spells } = useListSpellsQuery()
   const { data: equipment } = useListEquipmentQuery()
 
+  const {
+    hasPrerequisites,
+    equipmentProficiency,
+    equipped,
+    notEquipped,
+    spellsObtained,
+    featuresObtained,
+    optionsObtained,
+    skillProficiency,
+    abilityScore,
+  } = useEnumChecks({ data: formData })
+
   // Add/Remove prerequisites array
   useEffect(() => {
-    if (formData.attributes?.some((attribute: any) => attribute === Attributes.prerequisites)) {
-      if (
-        formData.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipmentProficiency) &&
-        !(formData.prerequisites?.equipmentProficiencies?.length > 0)
-      ) {
+    if (hasPrerequisites) {
+      if (equipmentProficiency && !(formData.prerequisites?.equipmentProficiencies?.length > 0)) {
         updateFormData({
           type: 'add',
           path: 'prerequisites.equipmentProficiencies',
         })
       }
 
-      if (
-        formData.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipped) &&
-        !(formData.prerequisites?.equipped?.length > 0)
-      ) {
+      if (equipped && !(formData.prerequisites?.equipped?.length > 0)) {
         updateFormData({
           type: 'add',
           path: 'prerequisites.equipped',
         })
       }
 
-      if (
-        formData.prerequisites?.options?.some((option) => option === PrerequisitesEnum.notEquipped) &&
-        !(formData.prerequisites?.notEquipped?.length > 0)
-      ) {
+      if (notEquipped && !(formData.prerequisites?.notEquipped?.length > 0)) {
         updateFormData({
           type: 'add',
           path: 'prerequisites.notEquipped',
         })
       }
     }
-  }, [formData?.attributes, updateFormData, formData.prerequisites])
-
-  console.log({ prereq: formData?.prerequisites?.options, formData })
+  }, [updateFormData, hasPrerequisites, equipmentProficiency, equipped, notEquipped, formData.prerequisites])
 
   return (
     <Collapse>
@@ -79,31 +77,30 @@ const Prerequisites = ({
             label='Prerequisites'
             options={system.prerequisites.filter(
               (prerequisite) =>
-                prerequisite?.features.includes(FeatureEnum.all) &&
-                (featureStep === 'option' ? prerequisite?.features.includes(FeatureEnum.options) : true)
+                prerequisite?.features?.length > 0 &&
+                (prerequisite?.features.includes(FeatureEnum.all) ||
+                  (formData.__typename === 'FeatureOption' && prerequisite?.features.includes(FeatureEnum.options)))
             )}
             value={formData?.prerequisites?.options}
             required={true}
             onChange={updateFormData}
           />
-          {formData?.prerequisites?.options?.some((prerequisite) => prerequisite === PrerequisitesEnum.spellsKnown) && (
+          {spellsObtained && (
             <Dropdown<typeof formData>
               multiSelect={true}
-              name='prerequisites.spellsKnown'
-              value={formData?.prerequisites.spellsKnown}
+              name='prerequisites.spellsObtained'
+              value={formData?.prerequisites.spellsObtained}
               label='Spell'
               options={spells as DropdownOption[]}
               onChange={updateFormData}
             />
           )}
-          {formData?.prerequisites?.options?.some(
-            (prerequisite) => prerequisite === PrerequisitesEnum.featuresKnown
-          ) && (
+          {featuresObtained && (
             <>
               <Dropdown<typeof formData>
                 multiSelect={true}
-                name='prerequisites.featuresKnown'
-                value={formData?.prerequisites?.featuresKnown}
+                name='prerequisites.featuresObtained'
+                value={formData?.prerequisites?.featuresObtained}
                 label='Feature'
                 options={(formData as Exclude<FormDataType, Spell | Character>).features.map((feature) => ({
                   label: feature.label,
@@ -112,32 +109,33 @@ const Prerequisites = ({
                 }))}
                 onChange={updateFormData}
               />
-              {formData?.prerequisites?.featuresKnown?.some(
-                (feature: any) =>
-                  (formData as Exclude<FormDataType, Spell | Character>).features.find(
-                    (sFeature) => sFeature.id === feature
-                  ).options?.length > 0
-              ) && (
-                <Dropdown<typeof formData>
-                  multiSelect={true}
-                  name='prerequisites.optionsKnown'
-                  value={formData?.prerequisites?.optionsKnown}
-                  label='Feature Option'
-                  options={formData?.prerequisites?.featuresKnown?.flatMap((feature: any) =>
-                    (formData as Exclude<FormDataType, Spell | Character>).features
-                      .find((sFeature) => sFeature.id === feature)
-                      .options.map((option) => ({
-                        label: option.label,
-                        value: option.value,
-                        id: option.id,
-                      }))
-                  )}
-                  onChange={updateFormData}
-                />
-              )}
             </>
           )}
-          {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.skillProficiency) && (
+          {optionsObtained &&
+            formData?.prerequisites?.optionsObtained?.some(
+              (feature) =>
+                (formData as Exclude<FormDataType, Spell | Character>).features.find(
+                  (sFeature) => sFeature.id === feature
+                ).options?.length > 0
+            ) && (
+              <Dropdown<typeof formData>
+                multiSelect={true}
+                name='prerequisites.optionsObtained'
+                value={formData?.prerequisites?.optionsObtained}
+                label='Feature Option'
+                options={formData?.prerequisites?.featuresObtained?.flatMap((feature) =>
+                  (formData as Exclude<FormDataType, Spell | Character>).features
+                    .find((sFeature) => sFeature.id === feature)
+                    .options.map((option) => ({
+                      label: option.label,
+                      value: option.value,
+                      id: option.id,
+                    }))
+                )}
+                onChange={updateFormData}
+              />
+            )}
+          {skillProficiency && (
             <Dropdown<typeof formData>
               multiSelect={true}
               name='prerequisites.skillProficiencies'
@@ -147,7 +145,7 @@ const Prerequisites = ({
               onChange={updateFormData}
             />
           )}
-          {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.abilityScore) && (
+          {abilityScore && (
             <>
               <Dropdown<typeof formData>
                 multiSelect={true}
@@ -170,7 +168,7 @@ const Prerequisites = ({
             </>
           )}
         </Row>
-        {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipmentProficiency) && (
+        {equipmentProficiency && (
           <>
             <Divider label='Equipment Proficiency' />
             {formData?.prerequisites?.equipmentProficiencies?.map((equipmentProficieny, index) => (
@@ -265,7 +263,7 @@ const Prerequisites = ({
             ))}
           </>
         )}
-        {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.equipped) && (
+        {equipped && (
           <>
             <Divider label='Equipped' />
             {formData?.prerequisites?.equipped?.map((equipPrerequisite, index) => (
@@ -366,7 +364,7 @@ const Prerequisites = ({
             ))}
           </>
         )}
-        {formData?.prerequisites?.options?.some((option) => option === PrerequisitesEnum.notEquipped) && (
+        {notEquipped && (
           <>
             <Divider label={'Not Equipped'} />
             {formData?.prerequisites?.notEquipped?.map((notEquipPrerequisite, index) => (

@@ -8,7 +8,7 @@ import { feature_description } from '../../Form.css'
 import parse from 'html-react-parser'
 import { FeatureContext } from '../FeatureContext'
 import { sectionSteps } from '../../../../types/form'
-import { Feature, FeatureOption, FeatureSubfeature } from '../../../../../amplify/gql/types'
+import { FeatureOption, FeatureSubfeature } from '../../../../../amplify/gql/types'
 
 const SectionsList = ({
   featureData,
@@ -33,7 +33,7 @@ const SectionsList = ({
     sectionItem: SectionDataType | FeatureOption | FeatureSubfeature
   ) => {
     updateSectionData({ type: 'index', value: sectionIndex })
-    if (featureStep === 'subfeature') {
+    if (sectionStep === 'subfeatures') {
       updateSubfeatureData({
         type: 'reset',
         value: sectionItem,
@@ -41,7 +41,7 @@ const SectionsList = ({
       updateSubfeatureData({ type: 'index', value: sectionIndex })
       updateSubfeatureData({ type: 'initialReset', value: sectionItem })
       return setFeatureStep('subfeature')
-    } else if (featureStep === 'option') {
+    } else if (sectionStep === 'options') {
       updateOptionData({
         type: 'reset',
         value: sectionItem,
@@ -67,11 +67,12 @@ const SectionsList = ({
             featureData[sectionStep as Exclude<SectionName, 'ancestries'>] ||
             featureData?.options ||
             featureData?.subfeatures
+        } else if (featureData.__typename === 'FeatureOption') {
+          sections = featureData[sectionStep as Exclude<SectionName, 'ancestries' | 'options'>]
+        } else if (featureData.__typename === 'FeatureSubfeature') {
+          sections = featureData[sectionStep as Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>]
         } else {
-          sections =
-            featureData[sectionStep as Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>] ||
-            (featureData as Feature)?.options ||
-            (featureData as Feature | FeatureOption)?.subfeatures
+          sections = featureData[sectionStep as Exclude<SectionName, 'ancestries'>]
         }
         return (
           sections?.length > 0 && (
@@ -91,12 +92,12 @@ const SectionsList = ({
                       handleEdit={() => handleEdit(sectionStep, sIndex, section)}
                       expandable={section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature'}
                     >
-                      {featureStep !== 'subfeature' && `${startCase(sectionStep)} ${sIndex + 1}`}
                       {(section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') &&
-                        section?.value != null &&
-                        section?.value}
+                      section?.value != null
+                        ? section?.label
+                        : featureStep !== 'subfeature' && `${startCase(sectionStep)} ${sIndex + 1}`}
                     </Accordion.Header>
-                    {(featureStep === 'option' || featureStep === 'subfeature') &&
+                    {(section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') &&
                       (section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') && (
                         <>
                           <Accordion.Content>

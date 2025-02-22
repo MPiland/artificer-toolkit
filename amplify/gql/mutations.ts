@@ -2995,6 +2995,41 @@ mutation CreateRace($input: RaceInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -3045,14 +3080,52 @@ mutation CreateRace($input: RaceInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -3078,6 +3151,41 @@ mutation CreateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -3101,6 +3209,41 @@ mutation CreateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -3109,6 +3252,58 @@ mutation CreateRace($input: RaceInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -3128,6 +3323,58 @@ mutation CreateRace($input: RaceInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -3159,9 +3406,9 @@ mutation CreateRace($input: RaceInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -3406,6 +3653,41 @@ mutation CreateRace($input: RaceInput!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -3456,14 +3738,52 @@ mutation CreateRace($input: RaceInput!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -3489,6 +3809,41 @@ mutation CreateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -3512,6 +3867,41 @@ mutation CreateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -3520,6 +3910,58 @@ mutation CreateRace($input: RaceInput!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -3539,6 +3981,58 @@ mutation CreateRace($input: RaceInput!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -3570,9 +4064,9 @@ mutation CreateRace($input: RaceInput!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -3818,6 +4312,41 @@ mutation CreateRace($input: RaceInput!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -3868,14 +4397,52 @@ mutation CreateRace($input: RaceInput!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -3901,6 +4468,41 @@ mutation CreateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -3924,6 +4526,41 @@ mutation CreateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -3932,6 +4569,58 @@ mutation CreateRace($input: RaceInput!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -3951,6 +4640,58 @@ mutation CreateRace($input: RaceInput!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -3982,9 +4723,9 @@ mutation CreateRace($input: RaceInput!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -4229,6 +4970,41 @@ mutation CreateRace($input: RaceInput!) {
 							feats
 							selectionCount
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						modifiers {
 							__typename
@@ -4279,14 +5055,52 @@ mutation CreateRace($input: RaceInput!) {
 								resourcePoints
 							}
 							range
+							minRange
+							maxRange
 							shape
 							size
 							duration
 							unit
 							conditions
 							damageTypes
+							damageType
 							spell
 							spellCategory
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						proficiencies {
 							__typename
@@ -4312,6 +5126,41 @@ mutation CreateRace($input: RaceInput!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						expertise {
 							__typename
@@ -4335,6 +5184,41 @@ mutation CreateRace($input: RaceInput!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						senses {
 							__typename
@@ -4343,6 +5227,58 @@ mutation CreateRace($input: RaceInput!) {
 							selectionCount
 							subtype
 							ids
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						spells {
 							__typename
@@ -4362,6 +5298,58 @@ mutation CreateRace($input: RaceInput!) {
 								spellLevel
 							}
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						prerequisites {
 							__typename
@@ -4393,9 +5381,9 @@ mutation CreateRace($input: RaceInput!) {
 								abilities
 								score
 							}
-							spellsKnown
-							featuresKnown
-							optionsKnown
+							spellsObtained
+							featuresObtained
+							optionsObtained
 							size
 						}
 						saveAbility {
@@ -4668,6 +5656,41 @@ mutation CreateRace($input: RaceInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -4718,14 +5741,52 @@ mutation CreateRace($input: RaceInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -4751,6 +5812,41 @@ mutation CreateRace($input: RaceInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -4774,6 +5870,41 @@ mutation CreateRace($input: RaceInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -4782,6 +5913,58 @@ mutation CreateRace($input: RaceInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -4801,6 +5984,58 @@ mutation CreateRace($input: RaceInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -4832,9 +6067,9 @@ mutation CreateRace($input: RaceInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -5079,6 +6314,41 @@ mutation CreateRace($input: RaceInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -5129,14 +6399,52 @@ mutation CreateRace($input: RaceInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -5162,6 +6470,41 @@ mutation CreateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -5185,6 +6528,41 @@ mutation CreateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -5193,6 +6571,58 @@ mutation CreateRace($input: RaceInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -5212,6 +6642,58 @@ mutation CreateRace($input: RaceInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -5243,9 +6725,9 @@ mutation CreateRace($input: RaceInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -5491,6 +6973,41 @@ mutation CreateRace($input: RaceInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -5541,14 +7058,52 @@ mutation CreateRace($input: RaceInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -5574,6 +7129,41 @@ mutation CreateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -5597,6 +7187,41 @@ mutation CreateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -5605,6 +7230,58 @@ mutation CreateRace($input: RaceInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -5624,6 +7301,58 @@ mutation CreateRace($input: RaceInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -5655,9 +7384,9 @@ mutation CreateRace($input: RaceInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -5902,6 +7631,41 @@ mutation CreateRace($input: RaceInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -5952,14 +7716,52 @@ mutation CreateRace($input: RaceInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -5985,6 +7787,41 @@ mutation CreateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -6008,6 +7845,41 @@ mutation CreateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -6016,6 +7888,58 @@ mutation CreateRace($input: RaceInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -6035,6 +7959,58 @@ mutation CreateRace($input: RaceInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -6066,9 +8042,9 @@ mutation CreateRace($input: RaceInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -6338,6 +8314,41 @@ mutation UpdateRace($input: RaceInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -6388,14 +8399,52 @@ mutation UpdateRace($input: RaceInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -6421,6 +8470,41 @@ mutation UpdateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -6444,6 +8528,41 @@ mutation UpdateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -6452,6 +8571,58 @@ mutation UpdateRace($input: RaceInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -6471,6 +8642,58 @@ mutation UpdateRace($input: RaceInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -6502,9 +8725,9 @@ mutation UpdateRace($input: RaceInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -6749,6 +8972,41 @@ mutation UpdateRace($input: RaceInput!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -6799,14 +9057,52 @@ mutation UpdateRace($input: RaceInput!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -6832,6 +9128,41 @@ mutation UpdateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -6855,6 +9186,41 @@ mutation UpdateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -6863,6 +9229,58 @@ mutation UpdateRace($input: RaceInput!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -6882,6 +9300,58 @@ mutation UpdateRace($input: RaceInput!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -6913,9 +9383,9 @@ mutation UpdateRace($input: RaceInput!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -7161,6 +9631,41 @@ mutation UpdateRace($input: RaceInput!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -7211,14 +9716,52 @@ mutation UpdateRace($input: RaceInput!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -7244,6 +9787,41 @@ mutation UpdateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -7267,6 +9845,41 @@ mutation UpdateRace($input: RaceInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -7275,6 +9888,58 @@ mutation UpdateRace($input: RaceInput!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -7294,6 +9959,58 @@ mutation UpdateRace($input: RaceInput!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -7325,9 +10042,9 @@ mutation UpdateRace($input: RaceInput!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -7572,6 +10289,41 @@ mutation UpdateRace($input: RaceInput!) {
 							feats
 							selectionCount
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						modifiers {
 							__typename
@@ -7622,14 +10374,52 @@ mutation UpdateRace($input: RaceInput!) {
 								resourcePoints
 							}
 							range
+							minRange
+							maxRange
 							shape
 							size
 							duration
 							unit
 							conditions
 							damageTypes
+							damageType
 							spell
 							spellCategory
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						proficiencies {
 							__typename
@@ -7655,6 +10445,41 @@ mutation UpdateRace($input: RaceInput!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						expertise {
 							__typename
@@ -7678,6 +10503,41 @@ mutation UpdateRace($input: RaceInput!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						senses {
 							__typename
@@ -7686,6 +10546,58 @@ mutation UpdateRace($input: RaceInput!) {
 							selectionCount
 							subtype
 							ids
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						spells {
 							__typename
@@ -7705,6 +10617,58 @@ mutation UpdateRace($input: RaceInput!) {
 								spellLevel
 							}
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						prerequisites {
 							__typename
@@ -7736,9 +10700,9 @@ mutation UpdateRace($input: RaceInput!) {
 								abilities
 								score
 							}
-							spellsKnown
-							featuresKnown
-							optionsKnown
+							spellsObtained
+							featuresObtained
+							optionsObtained
 							size
 						}
 						saveAbility {
@@ -8011,6 +10975,41 @@ mutation UpdateRace($input: RaceInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -8061,14 +11060,52 @@ mutation UpdateRace($input: RaceInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -8094,6 +11131,41 @@ mutation UpdateRace($input: RaceInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -8117,6 +11189,41 @@ mutation UpdateRace($input: RaceInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -8125,6 +11232,58 @@ mutation UpdateRace($input: RaceInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -8144,6 +11303,58 @@ mutation UpdateRace($input: RaceInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -8175,9 +11386,9 @@ mutation UpdateRace($input: RaceInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -8422,6 +11633,41 @@ mutation UpdateRace($input: RaceInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -8472,14 +11718,52 @@ mutation UpdateRace($input: RaceInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -8505,6 +11789,41 @@ mutation UpdateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -8528,6 +11847,41 @@ mutation UpdateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -8536,6 +11890,58 @@ mutation UpdateRace($input: RaceInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -8555,6 +11961,58 @@ mutation UpdateRace($input: RaceInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -8586,9 +12044,9 @@ mutation UpdateRace($input: RaceInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -8834,6 +12292,41 @@ mutation UpdateRace($input: RaceInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -8884,14 +12377,52 @@ mutation UpdateRace($input: RaceInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -8917,6 +12448,41 @@ mutation UpdateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -8940,6 +12506,41 @@ mutation UpdateRace($input: RaceInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -8948,6 +12549,58 @@ mutation UpdateRace($input: RaceInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -8967,6 +12620,58 @@ mutation UpdateRace($input: RaceInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -8998,9 +12703,9 @@ mutation UpdateRace($input: RaceInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -9245,6 +12950,41 @@ mutation UpdateRace($input: RaceInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -9295,14 +13035,52 @@ mutation UpdateRace($input: RaceInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -9328,6 +13106,41 @@ mutation UpdateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -9351,6 +13164,41 @@ mutation UpdateRace($input: RaceInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -9359,6 +13207,58 @@ mutation UpdateRace($input: RaceInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -9378,6 +13278,58 @@ mutation UpdateRace($input: RaceInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -9409,9 +13361,9 @@ mutation UpdateRace($input: RaceInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -9688,6 +13640,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -9738,14 +13725,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -9771,6 +13796,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -9794,6 +13854,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -9802,6 +13897,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -9821,6 +13968,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -9852,9 +14051,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -10099,6 +14298,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -10149,14 +14383,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -10182,6 +14454,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -10205,6 +14512,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -10213,6 +14555,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -10232,6 +14626,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -10263,9 +14709,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -10511,6 +14957,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						feats
 						selectionCount
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					modifiers {
 						__typename
@@ -10561,14 +15042,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							resourcePoints
 						}
 						range
+						minRange
+						maxRange
 						shape
 						size
 						duration
 						unit
 						conditions
 						damageTypes
+						damageType
 						spell
 						spellCategory
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					proficiencies {
 						__typename
@@ -10594,6 +15113,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					expertise {
 						__typename
@@ -10617,6 +15171,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							category
 							properties
 						}
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
 					}
 					senses {
 						__typename
@@ -10625,6 +15214,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						selectionCount
 						subtype
 						ids
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					spells {
 						__typename
@@ -10644,6 +15285,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							spellLevel
 						}
 						subtype
+						prerequisites {
+							__typename
+							options
+							skillProficiencies
+							equipmentProficiencies {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							equipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							notEquipped {
+								__typename
+								numberEquipped
+								category
+								equipment
+								properties
+							}
+							abilityScore {
+								__typename
+								abilities
+								score
+							}
+							spellsObtained
+							featuresObtained
+							optionsObtained
+							size
+						}
+						charges {
+							__typename
+							reset
+							limit
+							ability
+							skill
+							usesPerLevel {
+								__typename
+								level
+								uses
+							}
+							minAmount
+							addAmount
+							setAmount
+							multiplier
+							resourcePoints
+						}
 					}
 					prerequisites {
 						__typename
@@ -10675,9 +15368,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							abilities
 							score
 						}
-						spellsKnown
-						featuresKnown
-						optionsKnown
+						spellsObtained
+						featuresObtained
+						optionsObtained
 						size
 					}
 					saveAbility {
@@ -10922,6 +15615,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							feats
 							selectionCount
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						modifiers {
 							__typename
@@ -10972,14 +15700,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 								resourcePoints
 							}
 							range
+							minRange
+							maxRange
 							shape
 							size
 							duration
 							unit
 							conditions
 							damageTypes
+							damageType
 							spell
 							spellCategory
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						proficiencies {
 							__typename
@@ -11005,6 +15771,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						expertise {
 							__typename
@@ -11028,6 +15829,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 								category
 								properties
 							}
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
 						}
 						senses {
 							__typename
@@ -11036,6 +15872,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							selectionCount
 							subtype
 							ids
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						spells {
 							__typename
@@ -11055,6 +15943,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 								spellLevel
 							}
 							subtype
+							prerequisites {
+								__typename
+								options
+								skillProficiencies
+								equipmentProficiencies {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								equipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								notEquipped {
+									__typename
+									numberEquipped
+									category
+									equipment
+									properties
+								}
+								abilityScore {
+									__typename
+									abilities
+									score
+								}
+								spellsObtained
+								featuresObtained
+								optionsObtained
+								size
+							}
+							charges {
+								__typename
+								reset
+								limit
+								ability
+								skill
+								usesPerLevel {
+									__typename
+									level
+									uses
+								}
+								minAmount
+								addAmount
+								setAmount
+								multiplier
+								resourcePoints
+							}
 						}
 						prerequisites {
 							__typename
@@ -11086,9 +16026,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 								abilities
 								score
 							}
-							spellsKnown
-							featuresKnown
-							optionsKnown
+							spellsObtained
+							featuresObtained
+							optionsObtained
 							size
 						}
 						saveAbility {
@@ -11361,6 +16301,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -11411,14 +16386,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -11444,6 +16457,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -11467,6 +16515,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -11475,6 +16558,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -11494,6 +16629,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -11525,9 +16712,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -11772,6 +16959,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -11822,14 +17044,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -11855,6 +17115,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -11878,6 +17173,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -11886,6 +17216,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -11905,6 +17287,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -11936,9 +17370,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -12184,6 +17618,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -12234,14 +17703,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -12267,6 +17774,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -12290,6 +17832,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -12298,6 +17875,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -12317,6 +17946,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -12348,9 +18029,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -12595,6 +18276,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -12645,14 +18361,52 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -12678,6 +18432,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -12701,6 +18490,41 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -12709,6 +18533,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -12728,6 +18604,58 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -12759,9 +18687,9 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -13344,6 +19272,41 @@ mutation CreateFeat($input: FeatInput!) {
 		feats
 		selectionCount
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	modifiers {
 		__typename
@@ -13394,14 +19357,52 @@ mutation CreateFeat($input: FeatInput!) {
 			resourcePoints
 		}
 		range
+		minRange
+		maxRange
 		shape
 		size
 		duration
 		unit
 		conditions
 		damageTypes
+		damageType
 		spell
 		spellCategory
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	proficiencies {
 		__typename
@@ -13426,6 +19427,41 @@ mutation CreateFeat($input: FeatInput!) {
 			ids
 			category
 			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
 		}
 	}
 	expertise {
@@ -13452,6 +19488,41 @@ mutation CreateFeat($input: FeatInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	senses {
 		__typename
@@ -13460,6 +19531,58 @@ mutation CreateFeat($input: FeatInput!) {
 		selectionCount
 		subtype
 		ids
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spells {
 		__typename
@@ -13479,6 +19602,58 @@ mutation CreateFeat($input: FeatInput!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spellcasting {
 		__typename
@@ -13498,6 +19673,58 @@ mutation CreateFeat($input: FeatInput!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	prerequisites {
 		__typename
@@ -13529,9 +19756,9 @@ mutation CreateFeat($input: FeatInput!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	saveAbility {
@@ -13776,6 +20003,41 @@ mutation CreateFeat($input: FeatInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -13826,14 +20088,52 @@ mutation CreateFeat($input: FeatInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -13859,6 +20159,41 @@ mutation CreateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -13882,6 +20217,41 @@ mutation CreateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -13890,6 +20260,58 @@ mutation CreateFeat($input: FeatInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -13909,6 +20331,58 @@ mutation CreateFeat($input: FeatInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -13940,9 +20414,9 @@ mutation CreateFeat($input: FeatInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -14187,6 +20661,41 @@ mutation CreateFeat($input: FeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -14237,14 +20746,52 @@ mutation CreateFeat($input: FeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -14270,6 +20817,41 @@ mutation CreateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -14293,6 +20875,41 @@ mutation CreateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -14301,6 +20918,58 @@ mutation CreateFeat($input: FeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -14320,6 +20989,58 @@ mutation CreateFeat($input: FeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -14351,9 +21072,9 @@ mutation CreateFeat($input: FeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -14599,6 +21320,41 @@ mutation CreateFeat($input: FeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -14649,14 +21405,52 @@ mutation CreateFeat($input: FeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -14682,6 +21476,41 @@ mutation CreateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -14705,6 +21534,41 @@ mutation CreateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -14713,6 +21577,58 @@ mutation CreateFeat($input: FeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -14732,6 +21648,58 @@ mutation CreateFeat($input: FeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -14763,9 +21731,9 @@ mutation CreateFeat($input: FeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -15010,6 +21978,41 @@ mutation CreateFeat($input: FeatInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -15060,14 +22063,52 @@ mutation CreateFeat($input: FeatInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -15093,6 +22134,41 @@ mutation CreateFeat($input: FeatInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -15116,6 +22192,41 @@ mutation CreateFeat($input: FeatInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -15124,6 +22235,58 @@ mutation CreateFeat($input: FeatInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -15143,6 +22306,58 @@ mutation CreateFeat($input: FeatInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -15174,9 +22389,9 @@ mutation CreateFeat($input: FeatInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -15424,6 +22639,41 @@ mutation CreateFeat($input: FeatInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -15474,14 +22724,52 @@ mutation CreateFeat($input: FeatInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -15507,6 +22795,41 @@ mutation CreateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -15530,6 +22853,41 @@ mutation CreateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -15538,6 +22896,58 @@ mutation CreateFeat($input: FeatInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -15557,6 +22967,58 @@ mutation CreateFeat($input: FeatInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -15588,9 +23050,9 @@ mutation CreateFeat($input: FeatInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -15835,6 +23297,41 @@ mutation CreateFeat($input: FeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -15885,14 +23382,52 @@ mutation CreateFeat($input: FeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -15918,6 +23453,41 @@ mutation CreateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -15941,6 +23511,41 @@ mutation CreateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -15949,6 +23554,58 @@ mutation CreateFeat($input: FeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -15968,6 +23625,58 @@ mutation CreateFeat($input: FeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -15999,9 +23708,9 @@ mutation CreateFeat($input: FeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -16583,6 +24292,41 @@ mutation UpdateFeat($input: FeatInput!) {
 		feats
 		selectionCount
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	modifiers {
 		__typename
@@ -16633,14 +24377,52 @@ mutation UpdateFeat($input: FeatInput!) {
 			resourcePoints
 		}
 		range
+		minRange
+		maxRange
 		shape
 		size
 		duration
 		unit
 		conditions
 		damageTypes
+		damageType
 		spell
 		spellCategory
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	proficiencies {
 		__typename
@@ -16665,6 +24447,41 @@ mutation UpdateFeat($input: FeatInput!) {
 			ids
 			category
 			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
 		}
 	}
 	expertise {
@@ -16691,6 +24508,41 @@ mutation UpdateFeat($input: FeatInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	senses {
 		__typename
@@ -16699,6 +24551,58 @@ mutation UpdateFeat($input: FeatInput!) {
 		selectionCount
 		subtype
 		ids
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spells {
 		__typename
@@ -16718,6 +24622,58 @@ mutation UpdateFeat($input: FeatInput!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spellcasting {
 		__typename
@@ -16737,6 +24693,58 @@ mutation UpdateFeat($input: FeatInput!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	prerequisites {
 		__typename
@@ -16768,9 +24776,9 @@ mutation UpdateFeat($input: FeatInput!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	saveAbility {
@@ -17015,6 +25023,41 @@ mutation UpdateFeat($input: FeatInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -17065,14 +25108,52 @@ mutation UpdateFeat($input: FeatInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -17098,6 +25179,41 @@ mutation UpdateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -17121,6 +25237,41 @@ mutation UpdateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -17129,6 +25280,58 @@ mutation UpdateFeat($input: FeatInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -17148,6 +25351,58 @@ mutation UpdateFeat($input: FeatInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -17179,9 +25434,9 @@ mutation UpdateFeat($input: FeatInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -17426,6 +25681,41 @@ mutation UpdateFeat($input: FeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -17476,14 +25766,52 @@ mutation UpdateFeat($input: FeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -17509,6 +25837,41 @@ mutation UpdateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -17532,6 +25895,41 @@ mutation UpdateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -17540,6 +25938,58 @@ mutation UpdateFeat($input: FeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -17559,6 +26009,58 @@ mutation UpdateFeat($input: FeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -17590,9 +26092,9 @@ mutation UpdateFeat($input: FeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -17838,6 +26340,41 @@ mutation UpdateFeat($input: FeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -17888,14 +26425,52 @@ mutation UpdateFeat($input: FeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -17921,6 +26496,41 @@ mutation UpdateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -17944,6 +26554,41 @@ mutation UpdateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -17952,6 +26597,58 @@ mutation UpdateFeat($input: FeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -17971,6 +26668,58 @@ mutation UpdateFeat($input: FeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -18002,9 +26751,9 @@ mutation UpdateFeat($input: FeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -18249,6 +26998,41 @@ mutation UpdateFeat($input: FeatInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -18299,14 +27083,52 @@ mutation UpdateFeat($input: FeatInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -18332,6 +27154,41 @@ mutation UpdateFeat($input: FeatInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -18355,6 +27212,41 @@ mutation UpdateFeat($input: FeatInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -18363,6 +27255,58 @@ mutation UpdateFeat($input: FeatInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -18382,6 +27326,58 @@ mutation UpdateFeat($input: FeatInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -18413,9 +27409,9 @@ mutation UpdateFeat($input: FeatInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -18663,6 +27659,41 @@ mutation UpdateFeat($input: FeatInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -18713,14 +27744,52 @@ mutation UpdateFeat($input: FeatInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -18746,6 +27815,41 @@ mutation UpdateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -18769,6 +27873,41 @@ mutation UpdateFeat($input: FeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -18777,6 +27916,58 @@ mutation UpdateFeat($input: FeatInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -18796,6 +27987,58 @@ mutation UpdateFeat($input: FeatInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -18827,9 +28070,9 @@ mutation UpdateFeat($input: FeatInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -19074,6 +28317,41 @@ mutation UpdateFeat($input: FeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -19124,14 +28402,52 @@ mutation UpdateFeat($input: FeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -19157,6 +28473,41 @@ mutation UpdateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -19180,6 +28531,41 @@ mutation UpdateFeat($input: FeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -19188,6 +28574,58 @@ mutation UpdateFeat($input: FeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -19207,6 +28645,58 @@ mutation UpdateFeat($input: FeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -19238,9 +28728,9 @@ mutation UpdateFeat($input: FeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -19829,6 +29319,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 		feats
 		selectionCount
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	modifiers {
 		__typename
@@ -19879,14 +29404,52 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			resourcePoints
 		}
 		range
+		minRange
+		maxRange
 		shape
 		size
 		duration
 		unit
 		conditions
 		damageTypes
+		damageType
 		spell
 		spellCategory
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	proficiencies {
 		__typename
@@ -19911,6 +29474,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			ids
 			category
 			properties
+		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
 		}
 	}
 	expertise {
@@ -19937,6 +29535,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	senses {
 		__typename
@@ -19945,6 +29578,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 		selectionCount
 		subtype
 		ids
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spells {
 		__typename
@@ -19964,6 +29649,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	spellcasting {
 		__typename
@@ -19983,6 +29720,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			spellLevel
 		}
 		subtype
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
+		charges {
+			__typename
+			reset
+			limit
+			ability
+			skill
+			usesPerLevel {
+				__typename
+				level
+				uses
+			}
+			minAmount
+			addAmount
+			setAmount
+			multiplier
+			resourcePoints
+		}
 	}
 	prerequisites {
 		__typename
@@ -20014,9 +29803,9 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	saveAbility {
@@ -20261,6 +30050,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -20311,14 +30135,52 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -20344,6 +30206,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -20367,6 +30264,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -20375,6 +30307,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -20394,6 +30378,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -20425,9 +30461,9 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -20672,6 +30708,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -20722,14 +30793,52 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -20755,6 +30864,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -20778,6 +30922,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -20786,6 +30965,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -20805,6 +31036,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -20836,9 +31119,9 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -21084,6 +31367,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -21134,14 +31452,52 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -21167,6 +31523,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -21190,6 +31581,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -21198,6 +31624,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -21217,6 +31695,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -21248,9 +31778,9 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -21495,6 +32025,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -21545,14 +32110,52 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -21578,6 +32181,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -21601,6 +32239,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -21609,6 +32282,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -21628,6 +32353,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -21659,9 +32436,9 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -21909,6 +32686,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -21959,14 +32771,52 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -21992,6 +32842,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -22015,6 +32900,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -22023,6 +32943,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -22042,6 +33014,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -22073,9 +33097,9 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -22320,6 +33344,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -22370,14 +33429,52 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -22403,6 +33500,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -22426,6 +33558,41 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -22434,6 +33601,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -22453,6 +33672,58 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -22484,9 +33755,9 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -22743,9 +34014,9 @@ mutation CreateEquipment($input: EquipmentInput!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	speed {
@@ -23192,6 +34463,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -23242,14 +34548,52 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -23275,6 +34619,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -23298,6 +34677,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -23306,6 +34720,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -23325,6 +34791,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -23356,9 +34874,9 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -23603,6 +35121,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -23653,14 +35206,52 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -23686,6 +35277,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -23709,6 +35335,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -23717,6 +35378,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -23736,6 +35449,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -23767,9 +35532,9 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -24015,6 +35780,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -24065,14 +35865,52 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -24098,6 +35936,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -24121,6 +35994,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -24129,6 +36037,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -24148,6 +36108,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -24179,9 +36191,9 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -24426,6 +36438,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -24476,14 +36523,52 @@ mutation CreateEquipment($input: EquipmentInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -24509,6 +36594,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -24532,6 +36652,41 @@ mutation CreateEquipment($input: EquipmentInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -24540,6 +36695,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -24559,6 +36766,58 @@ mutation CreateEquipment($input: EquipmentInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -24590,9 +36849,9 @@ mutation CreateEquipment($input: EquipmentInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -24851,9 +37110,9 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	speed {
@@ -25300,6 +37559,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -25350,14 +37644,52 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -25383,6 +37715,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -25406,6 +37773,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -25414,6 +37816,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -25433,6 +37887,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -25464,9 +37970,9 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -25711,6 +38217,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -25761,14 +38302,52 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -25794,6 +38373,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -25817,6 +38431,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -25825,6 +38474,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -25844,6 +38545,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -25875,9 +38628,9 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -26123,6 +38876,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -26173,14 +38961,52 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -26206,6 +39032,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -26229,6 +39090,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -26237,6 +39133,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -26256,6 +39204,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -26287,9 +39287,9 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -26534,6 +39534,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -26584,14 +39619,52 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -26617,6 +39690,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -26640,6 +39748,41 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -26648,6 +39791,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -26667,6 +39862,58 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -26698,9 +39945,9 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -26966,9 +40213,9 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 			abilities
 			score
 		}
-		spellsKnown
-		featuresKnown
-		optionsKnown
+		spellsObtained
+		featuresObtained
+		optionsObtained
 		size
 	}
 	speed {
@@ -27415,6 +40662,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -27465,14 +40747,52 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -27498,6 +40818,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -27521,6 +40876,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -27529,6 +40919,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -27548,6 +40990,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -27579,9 +41073,9 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -27826,6 +41320,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -27876,14 +41405,52 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -27909,6 +41476,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -27932,6 +41534,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -27940,6 +41577,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -27959,6 +41648,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -27990,9 +41731,9 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -28238,6 +41979,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -28288,14 +42064,52 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -28321,6 +42135,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -28344,6 +42193,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -28352,6 +42236,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -28371,6 +42307,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -28402,9 +42390,9 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -28649,6 +42637,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -28699,14 +42722,52 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -28732,6 +42793,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -28755,6 +42851,41 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -28763,6 +42894,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -28782,6 +42965,58 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -28813,9 +43048,9 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -28903,6 +43138,41 @@ mutation CreateClass($input: ClassInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	spellcasting {
 		__typename
@@ -28942,8 +43212,7 @@ mutation CreateClass($input: ClassInput!) {
 		level
 		spellSlots {
 			__typename
-			level
-			count
+			slotCount
 		}
 		resourcePoints
 		spellsKnownLimit
@@ -29232,6 +43501,41 @@ mutation CreateClass($input: ClassInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -29282,14 +43586,52 @@ mutation CreateClass($input: ClassInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -29315,6 +43657,41 @@ mutation CreateClass($input: ClassInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -29338,6 +43715,41 @@ mutation CreateClass($input: ClassInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -29346,6 +43758,58 @@ mutation CreateClass($input: ClassInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -29365,6 +43829,58 @@ mutation CreateClass($input: ClassInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -29396,9 +43912,9 @@ mutation CreateClass($input: ClassInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -29643,6 +44159,41 @@ mutation CreateClass($input: ClassInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -29693,14 +44244,52 @@ mutation CreateClass($input: ClassInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -29726,6 +44315,41 @@ mutation CreateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -29749,6 +44373,41 @@ mutation CreateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -29757,6 +44416,58 @@ mutation CreateClass($input: ClassInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -29776,6 +44487,58 @@ mutation CreateClass($input: ClassInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -29807,9 +44570,9 @@ mutation CreateClass($input: ClassInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -30055,6 +44818,41 @@ mutation CreateClass($input: ClassInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -30105,14 +44903,52 @@ mutation CreateClass($input: ClassInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -30138,6 +44974,41 @@ mutation CreateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -30161,6 +45032,41 @@ mutation CreateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -30169,6 +45075,58 @@ mutation CreateClass($input: ClassInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -30188,6 +45146,58 @@ mutation CreateClass($input: ClassInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -30219,9 +45229,9 @@ mutation CreateClass($input: ClassInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -30466,6 +45476,41 @@ mutation CreateClass($input: ClassInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -30516,14 +45561,52 @@ mutation CreateClass($input: ClassInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -30549,6 +45632,41 @@ mutation CreateClass($input: ClassInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -30572,6 +45690,41 @@ mutation CreateClass($input: ClassInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -30580,6 +45733,58 @@ mutation CreateClass($input: ClassInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -30599,6 +45804,58 @@ mutation CreateClass($input: ClassInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -30630,9 +45887,9 @@ mutation CreateClass($input: ClassInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -30719,6 +45976,41 @@ mutation UpdateClass($input: ClassInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	spellcasting {
 		__typename
@@ -30758,8 +46050,7 @@ mutation UpdateClass($input: ClassInput!) {
 		level
 		spellSlots {
 			__typename
-			level
-			count
+			slotCount
 		}
 		resourcePoints
 		spellsKnownLimit
@@ -31048,6 +46339,41 @@ mutation UpdateClass($input: ClassInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -31098,14 +46424,52 @@ mutation UpdateClass($input: ClassInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -31131,6 +46495,41 @@ mutation UpdateClass($input: ClassInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -31154,6 +46553,41 @@ mutation UpdateClass($input: ClassInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -31162,6 +46596,58 @@ mutation UpdateClass($input: ClassInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -31181,6 +46667,58 @@ mutation UpdateClass($input: ClassInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -31212,9 +46750,9 @@ mutation UpdateClass($input: ClassInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -31459,6 +46997,41 @@ mutation UpdateClass($input: ClassInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -31509,14 +47082,52 @@ mutation UpdateClass($input: ClassInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -31542,6 +47153,41 @@ mutation UpdateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -31565,6 +47211,41 @@ mutation UpdateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -31573,6 +47254,58 @@ mutation UpdateClass($input: ClassInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -31592,6 +47325,58 @@ mutation UpdateClass($input: ClassInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -31623,9 +47408,9 @@ mutation UpdateClass($input: ClassInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -31871,6 +47656,41 @@ mutation UpdateClass($input: ClassInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -31921,14 +47741,52 @@ mutation UpdateClass($input: ClassInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -31954,6 +47812,41 @@ mutation UpdateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -31977,6 +47870,41 @@ mutation UpdateClass($input: ClassInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -31985,6 +47913,58 @@ mutation UpdateClass($input: ClassInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -32004,6 +47984,58 @@ mutation UpdateClass($input: ClassInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -32035,9 +48067,9 @@ mutation UpdateClass($input: ClassInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -32282,6 +48314,41 @@ mutation UpdateClass($input: ClassInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -32332,14 +48399,52 @@ mutation UpdateClass($input: ClassInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -32365,6 +48470,41 @@ mutation UpdateClass($input: ClassInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -32388,6 +48528,41 @@ mutation UpdateClass($input: ClassInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -32396,6 +48571,58 @@ mutation UpdateClass($input: ClassInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -32415,6 +48642,58 @@ mutation UpdateClass($input: ClassInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -32446,9 +48725,9 @@ mutation UpdateClass($input: ClassInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -32542,6 +48821,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	spellcasting {
 		__typename
@@ -32581,8 +48895,7 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 		level
 		spellSlots {
 			__typename
-			level
-			count
+			slotCount
 		}
 		resourcePoints
 		spellsKnownLimit
@@ -32871,6 +49184,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -32921,14 +49269,52 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -32954,6 +49340,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -32977,6 +49398,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -32985,6 +49441,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -33004,6 +49512,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -33035,9 +49595,9 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -33282,6 +49842,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -33332,14 +49927,52 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -33365,6 +49998,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -33388,6 +50056,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -33396,6 +50099,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -33415,6 +50170,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -33446,9 +50253,9 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -33694,6 +50501,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -33744,14 +50586,52 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -33777,6 +50657,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -33800,6 +50715,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -33808,6 +50758,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -33827,6 +50829,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -33858,9 +50912,9 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -34105,6 +51159,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -34155,14 +51244,52 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -34188,6 +51315,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -34211,6 +51373,41 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -34219,6 +51416,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -34238,6 +51487,58 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -34269,9 +51570,9 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -35248,6 +52549,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	features {
 		__typename
@@ -35482,6 +52818,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -35532,14 +52903,52 @@ mutation CreateBackground($input: BackgroundInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -35565,6 +52974,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -35588,6 +53032,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -35596,6 +53075,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -35615,6 +53146,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -35646,9 +53229,9 @@ mutation CreateBackground($input: BackgroundInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -35893,6 +53476,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -35943,14 +53561,52 @@ mutation CreateBackground($input: BackgroundInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -35976,6 +53632,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -35999,6 +53690,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -36007,6 +53733,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -36026,6 +53804,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -36057,9 +53887,9 @@ mutation CreateBackground($input: BackgroundInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -36305,6 +54135,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -36355,14 +54220,52 @@ mutation CreateBackground($input: BackgroundInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -36388,6 +54291,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -36411,6 +54349,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -36419,6 +54392,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -36438,6 +54463,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -36469,9 +54546,9 @@ mutation CreateBackground($input: BackgroundInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -36716,6 +54793,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -36766,14 +54878,52 @@ mutation CreateBackground($input: BackgroundInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -36799,6 +54949,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -36822,6 +55007,41 @@ mutation CreateBackground($input: BackgroundInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -36830,6 +55050,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -36849,6 +55121,58 @@ mutation CreateBackground($input: BackgroundInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -36880,9 +55204,9 @@ mutation CreateBackground($input: BackgroundInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -36964,6 +55288,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	features {
 		__typename
@@ -37198,6 +55557,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -37248,14 +55642,52 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -37281,6 +55713,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -37304,6 +55771,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -37312,6 +55814,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -37331,6 +55885,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -37362,9 +55968,9 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -37609,6 +56215,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -37659,14 +56300,52 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -37692,6 +56371,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -37715,6 +56429,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -37723,6 +56472,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -37742,6 +56543,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -37773,9 +56626,9 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -38021,6 +56874,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -38071,14 +56959,52 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -38104,6 +57030,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -38127,6 +57088,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -38135,6 +57131,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -38154,6 +57202,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -38185,9 +57285,9 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -38432,6 +57532,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -38482,14 +57617,52 @@ mutation UpdateBackground($input: BackgroundInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -38515,6 +57688,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -38538,6 +57746,41 @@ mutation UpdateBackground($input: BackgroundInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -38546,6 +57789,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -38565,6 +57860,58 @@ mutation UpdateBackground($input: BackgroundInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -38596,9 +57943,9 @@ mutation UpdateBackground($input: BackgroundInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {
@@ -38687,6 +58034,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 			category
 			properties
 		}
+		prerequisites {
+			__typename
+			options
+			skillProficiencies
+			equipmentProficiencies {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			equipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			notEquipped {
+				__typename
+				numberEquipped
+				category
+				equipment
+				properties
+			}
+			abilityScore {
+				__typename
+				abilities
+				score
+			}
+			spellsObtained
+			featuresObtained
+			optionsObtained
+			size
+		}
 	}
 	features {
 		__typename
@@ -38921,6 +58303,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 			feats
 			selectionCount
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		modifiers {
 			__typename
@@ -38971,14 +58388,52 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				resourcePoints
 			}
 			range
+			minRange
+			maxRange
 			shape
 			size
 			duration
 			unit
 			conditions
 			damageTypes
+			damageType
 			spell
 			spellCategory
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		proficiencies {
 			__typename
@@ -39004,6 +58459,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		expertise {
 			__typename
@@ -39027,6 +58517,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				category
 				properties
 			}
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
 		}
 		senses {
 			__typename
@@ -39035,6 +58560,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 			selectionCount
 			subtype
 			ids
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		spells {
 			__typename
@@ -39054,6 +58631,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				spellLevel
 			}
 			subtype
+			prerequisites {
+				__typename
+				options
+				skillProficiencies
+				equipmentProficiencies {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				equipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				notEquipped {
+					__typename
+					numberEquipped
+					category
+					equipment
+					properties
+				}
+				abilityScore {
+					__typename
+					abilities
+					score
+				}
+				spellsObtained
+				featuresObtained
+				optionsObtained
+				size
+			}
+			charges {
+				__typename
+				reset
+				limit
+				ability
+				skill
+				usesPerLevel {
+					__typename
+					level
+					uses
+				}
+				minAmount
+				addAmount
+				setAmount
+				multiplier
+				resourcePoints
+			}
 		}
 		prerequisites {
 			__typename
@@ -39085,9 +58714,9 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				abilities
 				score
 			}
-			spellsKnown
-			featuresKnown
-			optionsKnown
+			spellsObtained
+			featuresObtained
+			optionsObtained
 			size
 		}
 		saveAbility {
@@ -39332,6 +58961,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -39382,14 +59046,52 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -39415,6 +59117,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -39438,6 +59175,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -39446,6 +59218,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -39465,6 +59289,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -39496,9 +59372,9 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -39744,6 +59620,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				feats
 				selectionCount
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			modifiers {
 				__typename
@@ -39794,14 +59705,52 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					resourcePoints
 				}
 				range
+				minRange
+				maxRange
 				shape
 				size
 				duration
 				unit
 				conditions
 				damageTypes
+				damageType
 				spell
 				spellCategory
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			proficiencies {
 				__typename
@@ -39827,6 +59776,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			expertise {
 				__typename
@@ -39850,6 +59834,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					category
 					properties
 				}
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
 			}
 			senses {
 				__typename
@@ -39858,6 +59877,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				selectionCount
 				subtype
 				ids
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			spells {
 				__typename
@@ -39877,6 +59948,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					spellLevel
 				}
 				subtype
+				prerequisites {
+					__typename
+					options
+					skillProficiencies
+					equipmentProficiencies {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					equipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					notEquipped {
+						__typename
+						numberEquipped
+						category
+						equipment
+						properties
+					}
+					abilityScore {
+						__typename
+						abilities
+						score
+					}
+					spellsObtained
+					featuresObtained
+					optionsObtained
+					size
+				}
+				charges {
+					__typename
+					reset
+					limit
+					ability
+					skill
+					usesPerLevel {
+						__typename
+						level
+						uses
+					}
+					minAmount
+					addAmount
+					setAmount
+					multiplier
+					resourcePoints
+				}
 			}
 			prerequisites {
 				__typename
@@ -39908,9 +60031,9 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					abilities
 					score
 				}
-				spellsKnown
-				featuresKnown
-				optionsKnown
+				spellsObtained
+				featuresObtained
+				optionsObtained
 				size
 			}
 			saveAbility {
@@ -40155,6 +60278,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					feats
 					selectionCount
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				modifiers {
 					__typename
@@ -40205,14 +60363,52 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 						resourcePoints
 					}
 					range
+					minRange
+					maxRange
 					shape
 					size
 					duration
 					unit
 					conditions
 					damageTypes
+					damageType
 					spell
 					spellCategory
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				proficiencies {
 					__typename
@@ -40238,6 +60434,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				expertise {
 					__typename
@@ -40261,6 +60492,41 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 						category
 						properties
 					}
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
 				}
 				senses {
 					__typename
@@ -40269,6 +60535,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					selectionCount
 					subtype
 					ids
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				spells {
 					__typename
@@ -40288,6 +60606,58 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 						spellLevel
 					}
 					subtype
+					prerequisites {
+						__typename
+						options
+						skillProficiencies
+						equipmentProficiencies {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						equipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						notEquipped {
+							__typename
+							numberEquipped
+							category
+							equipment
+							properties
+						}
+						abilityScore {
+							__typename
+							abilities
+							score
+						}
+						spellsObtained
+						featuresObtained
+						optionsObtained
+						size
+					}
+					charges {
+						__typename
+						reset
+						limit
+						ability
+						skill
+						usesPerLevel {
+							__typename
+							level
+							uses
+						}
+						minAmount
+						addAmount
+						setAmount
+						multiplier
+						resourcePoints
+					}
 				}
 				prerequisites {
 					__typename
@@ -40319,9 +60689,9 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 						abilities
 						score
 					}
-					spellsKnown
-					featuresKnown
-					optionsKnown
+					spellsObtained
+					featuresObtained
+					optionsObtained
 					size
 				}
 				saveAbility {

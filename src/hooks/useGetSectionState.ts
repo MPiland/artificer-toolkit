@@ -58,10 +58,10 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   const { data: backgrounds } = useListBackgroundsQuery()
 
   const getStateProficiencies = ({ categoryName }: { categoryName?: keyof typeof ProficiencyCategories }) => {
-    const existing: Array<{ index: number; id: string }> = []
+    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
 
     const sections = formData.proficiencies
-    sections?.forEach((section) => {
+    sections?.forEach((section, index) => {
       let fullSections: Array<FeatureProficiency>
       let fullFeature: Feature | FeatureOption | AncestryFeature
       const featureId = section.featureId
@@ -74,9 +74,13 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       const equipmentId = section.equipmentId
       const optionId = section.optionId
       const optionIndex = section.optionIndex
+      // For section states (proficiencies, expertise, etc.)
       if (optionId) {
-        // If the section provided options and they were chosen, add them to the existing ID array first.
-        existing.push({ index: optionIndex, id: optionId })
+        // This handles feature options that contain sections
+        existing.push({ index, optionIndex, optionId, id: proficiencyId })
+      } else if (optionIndex) {
+        // This handles direct section options
+        existing.push({ index, optionIndex, id: proficiencyId })
       }
       if (classId) {
         const fullClass = classes.find((uClass) => uClass.id === classId)
@@ -120,7 +124,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         }
       }
 
-      fullSections?.forEach((proficiency) => {
+      fullSections?.forEach((proficiency, pIndex) => {
         // If the sections do not provide options, pass the set ids from the category/subcategory
         // The ones that did provides options are already set in the above in if options condition
         if (!proficiency?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
@@ -129,17 +133,17 @@ const useGetSections = ({ formData }: { formData: Character }) => {
               if (categoryName === 'equipment') {
                 const proficiencyState = proficiency[categoryName]
                 for (const id in proficiencyState.ids) {
-                  existing.push({ index: optionIndex, id })
+                  existing.push({ index: pIndex, id })
                 }
               } else if (categoryName === 'properties') {
                 const proficiencyState = proficiency[categoryName]
                 for (const property in proficiencyState.properties) {
-                  existing.push({ index: optionIndex, id: property })
+                  existing.push({ index: pIndex, id: property })
                 }
               } else {
                 // If the proficiency is skills, saveAbilities, or languages, pass the ids
                 for (const id in proficiency[categoryName]) {
-                  existing.push({ index: optionIndex, id: id })
+                  existing.push({ index: pIndex, id: id })
                 }
               }
             }
@@ -152,10 +156,10 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   }
 
   const getStateExpertise = ({ categoryName }: { categoryName?: keyof typeof ProficiencyCategories }) => {
-    const existing: Array<{ index: number; id: string }> = []
+    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
 
     const sections = formData.expertise
-    sections?.forEach((section) => {
+    sections?.forEach((section, index) => {
       let fullSections: Array<FeatureExpertise>
       let fullFeature: Feature | FeatureOption | AncestryFeature
       const featureId = section.featureId
@@ -169,8 +173,11 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       const optionId = section.optionId
       const optionIndex = section.optionIndex
       if (optionId) {
-        // If the section provided options and they were chosen, add them to the existing ID array first.
-        existing.push({ index: optionIndex, id: optionId })
+        // This handles feature options that contain sections
+        existing.push({ index, optionIndex, optionId, id: expertiseId })
+      } else if (optionIndex) {
+        // This handles direct section options
+        existing.push({ index, optionIndex, id: expertiseId })
       }
       if (classId) {
         const fullClass = classes.find((uClass) => uClass.id === classId)
@@ -208,7 +215,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           (option) => option.id === optionId
         ).expertise
       } else {
-        fullSections?.forEach((expertise) => {
+        fullSections?.forEach((expertise, eIndex) => {
           // If the sections do not provide options, pass the set ids from the category/subcategory
           // The ones that did provides options are already set in the above in if options condition
           if (!expertise?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
@@ -217,17 +224,17 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                 if (categoryName === 'equipment') {
                   const expertiseState = expertise[categoryName]
                   for (const id in expertiseState.ids) {
-                    existing.push({ index: optionIndex, id })
+                    existing.push({ index: eIndex, id })
                   }
                 } else if (categoryName === 'properties') {
                   const expertiseState = expertise[categoryName]
                   for (const property in expertiseState.properties) {
-                    existing.push({ index: optionIndex, id: property })
+                    existing.push({ index: eIndex, id: property })
                   }
                 } else {
                   // If the expertise is skills, saveAbilities, or languages, pass the ids
                   for (const id in expertise[categoryName]) {
-                    existing.push({ index: optionIndex, id: id })
+                    existing.push({ index: eIndex, id: id })
                   }
                 }
               }
@@ -241,10 +248,10 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   }
 
   const getStateFeats = () => {
-    const existing: Array<{ index: number; id: string }> = []
+    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
 
     const sections = formData.feats
-    sections?.forEach((section) => {
+    sections?.forEach((section, index) => {
       let fullSections: Array<FeatureFeat>
       let fullFeature: Feature | FeatureOption | AncestryFeature
       const featureId = section.featureId
@@ -257,8 +264,11 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       const optionId = section.optionId
       const optionIndex = section.optionIndex
       if (optionId) {
-        // If the section provided options and they were chosen, add them to the existing ID array first.
-        existing.push({ index: optionIndex, id: optionId })
+        // This handles feature options that contain sections
+        existing.push({ index, optionIndex, optionId, id: featId })
+      } else if (optionIndex) {
+        // This handles direct section options
+        existing.push({ index, optionIndex, id: featId })
       }
       if (classId) {
         const fullClass = classes.find((uClass) => uClass.id === classId)
@@ -295,12 +305,12 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           (option) => option.id === optionId
         ).feats
       } else {
-        fullSections?.forEach((feat) => {
+        fullSections?.forEach((feat, fIndex) => {
           // If the sections do not provide options, pass the set ids from the category/subcategory
           // The ones that did provides options are already set in the above in if options condition
           if (!feat?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
             if (feat.id === featId) {
-              existing.push({ index: optionIndex, id: feat.id })
+              existing.push({ index: fIndex, id: feat.id })
             }
           }
         })
@@ -311,10 +321,10 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   }
 
   const getStateSenses = () => {
-    const existing: Array<{ index: number; id: string }> = []
+    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
 
     const sections = formData.senses
-    sections?.forEach((section) => {
+    sections?.forEach((section, index) => {
       let fullSections: Array<FeatureSense>
       let fullFeature: Feature | FeatureOption | AncestryFeature
       const featureId = section.featureId
@@ -328,8 +338,11 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       const optionIndex = section.optionIndex
       const senseId = section.senseId
       if (optionId) {
-        // If the section provided options and they were chosen, add them to the existing ID array first.
-        existing.push({ index: optionIndex, id: optionId })
+        // This handles feature options that contain sections
+        existing.push({ index, optionIndex, optionId, id: senseId })
+      } else if (optionIndex) {
+        // This handles direct section options
+        existing.push({ index, optionIndex, id: senseId })
       }
       if (classId) {
         const fullClass = classes.find((uClass) => uClass.id === classId)
@@ -367,12 +380,12 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           (option) => option.id === optionId
         ).senses
       } else {
-        fullSections?.forEach((sense) => {
+        fullSections?.forEach((sense, sIndex) => {
           // If the sections do not provide options, pass the set ids from the category/subcategory
           // The ones that did provides options are already set in the above in if options condition
           if (!sense?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
             if (sense.id === senseId) {
-              existing.push({ index: optionIndex, id: sense.id })
+              existing.push({ index: sIndex, id: sense.id })
             }
           }
         })
@@ -389,7 +402,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   }: {
     section: SectionDataType
     sectionStep: SectionName
-    optionIndex: number
+    optionIndex: string
   }) => {
     // Initiation state index used to set the state option index selected on the form state
 
@@ -400,7 +413,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     let options: Array<{ id: string; label: string; value: string }> = []
 
     // Initiate the exiting id array
-    let existing: Array<{ index: number; id: string }> = []
+    let existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
 
     let label: string
 
@@ -423,33 +436,28 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
         // If the Proficiency options are equipment or properties (equipment properties), these are handled differently due to potential filtering options
         if (categoryName === 'equipment' || categoryName === 'properties') {
-          const { properties, ids, category: equipmentCategory } = section[categoryName]
+          const categoryData = section[categoryName]
 
-          // If the proficient category is an equipment option
-          if (categoryName === 'equipment') {
-            if (ids.some((id) => id === 'all')) {
-              if (properties?.length > 0) {
-                options = equipment.filter((equipment) =>
-                  equipment?.category != null
-                    ? equipment?.category === equipmentCategory
-                    : equipment &&
-                      properties?.some((pProperty) =>
-                        equipment?.properties?.some((eProperty) => eProperty === pProperty)
-                      )
-                )
-              } else {
+          if ('ids' in categoryData || 'properties' in categoryData) {
+            const { properties, ids, category: equipmentCategory } = categoryData
+
+            if ('ids' in categoryData) {
+              if (ids.some((id) => id === 'all')) {
                 options = equipment
+                  .filter((sEquipment) => sEquipment?.category === equipmentCategory)
+                  .filter((sEquipment) => {
+                    if (properties?.length > 0) {
+                      return sEquipment?.properties?.some((property) => properties.includes(property))
+                    }
+                    return true
+                  })
+              } else {
+                options = equipment.filter((equipment) => ids.includes(equipment.id))
               }
             } else {
-              options = equipment.filter((equipment) => ids.includes(equipment.id))
-            }
-
-            // Else the proficient category is an equipment property
-          } else {
-            if (ids.some((id) => id === 'all')) {
-              options = system.equipment.properties
-            } else {
-              options = system.equipment.properties.filter((property) => ids.includes(property.id))
+              options = ids.some((id) => id === 'all')
+                ? system.equipment.properties
+                : system.equipment.properties.filter((property) => ids.includes(property.id))
             }
           }
         } else if (categoryName === 'saveAbilities') {
@@ -463,13 +471,13 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           if (section[categoryName]?.some((cOption) => cOption === 'all')) {
             options = system[categoryName]
           } else {
-            options = system[categoryName]?.filter((ability) => section[categoryName]?.includes(ability.id))
+            options = system[categoryName]?.filter((cOption) => section[categoryName]?.includes(cOption.id))
           }
         }
         if (sectionStep === 'proficiencies') {
           existing = getStateProficiencies({ categoryName: categoryName })
         } else {
-          // Filter out options that have already been selected
+          // Filter expertise options that have a proficiency
           existing = getStateExpertise({ categoryName: categoryName })
           const existingProficiencies = getStateProficiencies({ categoryName: categoryName })
           options = options?.filter((option) =>
@@ -528,17 +536,19 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         label = 'Sense'
       }
       if (sectionStep !== 'expertise') {
-        options = options?.filter((option) => !existing.flatMap((existing) => existing.id).includes(option.id))
+        options = options?.filter((option) => {
+          const existingSelection = existing.find((existObj) => existObj.id === option.id)
+          return !existingSelection || existingSelection.optionIndex === optionIndex
+        })
       }
 
-      exist = formData[sectionStep]?.find((section) => section.optionIndex === optionIndex)?.optionId
+      const existOption = existing.find((existObj) => existObj.optionIndex === optionIndex)
 
       path = `${sectionStep}.${stateIndex}`
 
-      if (exist != null) {
-        const existIndex = formData[sectionStep]?.findIndex((section) => section.optionIndex === optionIndex)
-
-        path = `${sectionStep}.${existIndex}`
+      if (existOption?.index > -1) {
+        path = `${sectionStep}.${existOption.index}`
+        exist = existOption.id
       }
     } else {
       if (sectionStep === 'spells' && section.__typename === 'FeatureSpell') {
@@ -576,7 +586,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     return { options, path, label, exist }
   }
 
-  const getFeatureOptions = ({ options, optionIndex }: { options: Array<FeatureOption>; optionIndex: number }) => {
+  const getFeatureOptions = ({ options, optionIndex }: { options: Array<FeatureOption>; optionIndex: string }) => {
     const featureIndex = formData.features.length || 0
     let path: DeepKeyOf<typeof formData> = `features.${featureIndex}`
 
@@ -658,7 +668,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                   sEquipment.properties.some((eProperty) => proficiency?.equipment.properties.includes(eProperty))
                 )
                 .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.value, value: sEquipment.value }))
+                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
             )
           } else {
             filteredEquipment.push(
@@ -871,33 +881,89 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       senses: CharacterSense
     }
 
+    // Initialize with existing data and validate against current formData
     const sections: { [K in keyof SectionTypeMap]: SectionTypeMap[K][] } = {
-      feats: [],
-      modifiers: [],
-      proficiencies: [],
-      expertise: [],
-      senses: [],
+      feats: [...(formData.feats || [])].filter(
+        (section) =>
+          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.raceId && section.raceId === formData.race) ||
+          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
+      ),
+      modifiers: [...(formData.modifiers || [])].filter(
+        (section) =>
+          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.raceId && section.raceId === formData.race) ||
+          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
+      ),
+      proficiencies: [...(formData.proficiencies || [])].filter(
+        (section) =>
+          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.raceId && section.raceId === formData.race) ||
+          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
+      ),
+      expertise: [...(formData.expertise || [])].filter(
+        (section) =>
+          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.raceId && section.raceId === formData.race) ||
+          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
+      ),
+      senses: [...(formData.senses || [])].filter(
+        (section) =>
+          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.raceId && section.raceId === formData.race) ||
+          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
+      ),
     }
 
     type SectionStep = keyof typeof sections
 
-    const pushToSection = (step: SectionStep, obj: any) => {
+    const pushToSection = (step: keyof typeof sections, obj: any) => {
       switch (step) {
-        case 'feats':
-          sections.feats.push(obj as CharacterFeat)
+        case 'feats': {
+          const exists = sections.feats.some(
+            (section) => section.featureId === obj.featureId && section.featId === obj.featId
+          )
+          if (!exists) {
+            sections.feats.push(obj as CharacterFeat)
+          }
           break
-        case 'proficiencies':
-          sections.proficiencies.push(obj as CharacterProficiency)
+        }
+        case 'proficiencies': {
+          const exists = sections.proficiencies.some(
+            (section) => section.featureId === obj.featureId && section.proficiencyId === obj.proficiencyId
+          )
+          if (!exists) {
+            sections.proficiencies.push(obj as CharacterProficiency)
+          }
           break
-        case 'expertise':
-          sections.expertise.push(obj as CharacterExpertise)
+        }
+        case 'expertise': {
+          const exists = sections.expertise.some(
+            (section) => section.featureId === obj.featureId && section.expertiseId === obj.expertiseId
+          )
+          if (!exists) {
+            sections.expertise.push(obj as CharacterExpertise)
+          }
           break
-        case 'modifiers':
-          sections.modifiers.push(obj as CharacterModifier)
+        }
+        case 'modifiers': {
+          const exists = sections.modifiers.some(
+            (section) => section.featureId === obj.featureId && section.modifierId === obj.modifierId
+          )
+          if (!exists) {
+            sections.modifiers.push(obj as CharacterModifier)
+          }
           break
-        case 'senses':
-          sections.senses.push(obj as CharacterSense)
+        }
+        case 'senses': {
+          const exists = sections.senses.some(
+            (section) => section.featureId === obj.featureId && section.senseId === obj.senseId
+          )
+          if (!exists) {
+            sections.senses.push(obj as CharacterSense)
+          }
           break
+        }
       }
     }
 
@@ -1051,7 +1117,6 @@ const useGetSections = ({ formData }: { formData: Character }) => {
               if (method === ModifierMethods.setGlobally) {
                 if (featureMod?.abilities && featureMod?.abilities?.includes(score.ability)) {
                   if (cModifier.classId != null) {
-                    console.log({ featureMod, charClass })
                     classScore += featureMod.setAmount
                     modifierScore += featureMod.setAmount
                   }
@@ -1064,8 +1129,6 @@ const useGetSections = ({ formData }: { formData: Character }) => {
             }
           }
         })
-
-        console.log({ classScore })
 
         calculatedScore += raceScore
         calculatedScore += classScore

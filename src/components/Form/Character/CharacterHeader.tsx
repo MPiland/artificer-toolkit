@@ -9,7 +9,7 @@ import {
   character_header_item_label,
 } from './Character.css'
 import Collapse from '../../Collapse/Collapse'
-import { Character} from '../../../../amplify/gql/types'
+import { Character } from '../../../../amplify/gql/types'
 import { useListRacesQuery } from '../../../features/races/racesApi'
 import { useListClassesQuery } from '../../../features/classes/classesApi'
 import { UpdateState } from '../../../types/form'
@@ -31,7 +31,7 @@ const CharacterHeader = () => {
 
   return (
     <>
-      <Collapse className={sprinkles({ mb: 'space-3' })}>
+      <Collapse className={sprinkles({ mb: 'space-3', mx: 'space-4' })}>
         <Collapse.Header title='Character Details' startOpened={true} />
         <Collapse.Body className={character_header_body}>
           <Group directionVariant='column' alignItemsVariant='start' className={character_header_group}>

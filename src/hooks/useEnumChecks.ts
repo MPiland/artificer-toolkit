@@ -8,9 +8,11 @@ import {
   EquipmentProperties,
   Prerequisites,
 } from '../types/enums'
-import { FeatureDataType, FormDataType } from '../types/form'
+import { FeatureDataType, FormDataType, SectionDataType } from '../types/form'
 
-export const useEnumChecks = ({ data }: { data: FormDataType | FeatureDataType | Damage }) => {
+type EnumCheck = FormDataType | FeatureDataType | Damage | SectionDataType
+
+export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
   // Attributes
   const isSpellcaster = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.spellcaster)
   const doesDamage = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.doesDamage)
@@ -40,23 +42,41 @@ export const useEnumChecks = ({ data }: { data: FormDataType | FeatureDataType |
     'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.secondaryDamage)
   const bonusDamage =
     'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.bonusDamage)
+  const limitKnownSpells =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.limitKnownSpells)
+  const spellsByLevel =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel)
+  const classLimit = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.classLimit)
+  const levelLimit = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.levelLimit)
+  const attributeLimit =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.attributeLimit)
+  const castAtLevel =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.castAtLevel)
+  const subtypeSpecific =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific)
+  const providesOptions =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
   // Prerequisites
-  const notEquippedPrerequisite =
+  const notEquipped =
     'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.notEquipped)
-  const equippedPrerequisite =
+  const equipped =
     'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.equipped)
-  const equipmentProficiencyPrerequisite =
+  const equipmentProficiency =
     'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.equipmentProficiency)
-  const abilityScorePrerequisite =
+  const abilityScore =
     'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.abilityScore)
-  const skillProficiencyPrerequisite =
+  const skillProficiency =
     'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.skillProficiency)
-  const notProficientPrerequisite =
+  const notProficient =
     'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.notProficient)
-  const spellsKnownPrerequisite =
-    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.spellsKnown)
-  const characterSizePrerequisite =
+  const spellsObtained =
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.spellsObtained)
+  const optionsObtained =
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.optionsObtained)
+  const featuresObtained =
+    'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.featuresObtained)
+  const characterSize =
     'prerequisites' in data && data?.prerequisites?.options?.some((preq) => preq === Prerequisites.characterSize)
 
   // Equipment Categories
@@ -67,14 +87,20 @@ export const useEnumChecks = ({ data }: { data: FormDataType | FeatureDataType |
   const isTool = 'category' in data && data?.category === EquipmentCategories.tool
 
   // Equipment Properties
-  const isSpecial = 'properties' in data && data?.properties?.some((prop) => prop === EquipmentProperties.special)
-  const isHeavyArmor = 'properties' in data && data?.properties?.some((prop) => prop === EquipmentProperties.heavyArmor)
+  const isSpecial =
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.special)
+  const isHeavyArmor =
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.heavyArmor)
   const isMediumArmor =
-    'properties' in data && data?.properties?.some((prop) => prop === EquipmentProperties.mediumArmor)
-  const isLightArmor = 'properties' in data && data?.properties?.some((prop) => prop === EquipmentProperties.lightArmor)
-  const isVersatile = 'properties' in data && data?.properties?.some((prop) => prop === EquipmentProperties.versatile)
-  const isTwoHanded = 'properties' in data && data?.properties?.some((prop) => prop === EquipmentProperties.twoHanded)
-  const isFinesse = 'properties' in data && data?.properties?.some((prop) => prop === EquipmentProperties.finesse)
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.mediumArmor)
+  const isLightArmor =
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.lightArmor)
+  const isVersatile =
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.versatile)
+  const isTwoHanded =
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.twoHanded)
+  const isFinesse =
+    'properties' in data && (data.properties as string[])?.some((prop) => prop === EquipmentProperties.finesse)
 
   // Charges Resets
   const resetsOnLongRest = 'reset' in data && data?.reset === ChargesResets.longRest
@@ -122,16 +148,26 @@ export const useEnumChecks = ({ data }: { data: FormDataType | FeatureDataType |
     limitTargets,
     bonusDamage,
     secondaryDamage,
+    limitKnownSpells,
+    spellsByLevel,
+    levelLimit,
+    attributeLimit,
+    classLimit,
+    castAtLevel,
+    subtypeSpecific,
+    providesOptions,
 
     // Prerequisites
-    notEquippedPrerequisite,
-    equippedPrerequisite,
-    equipmentProficiencyPrerequisite,
-    abilityScorePrerequisite,
-    skillProficiencyPrerequisite,
-    spellsKnownPrerequisite,
-    characterSizePrerequisite,
-    notProficientPrerequisite,
+    notEquipped,
+    equipped,
+    equipmentProficiency,
+    abilityScore,
+    skillProficiency,
+    spellsObtained,
+    characterSize,
+    notProficient,
+    featuresObtained,
+    optionsObtained,
 
     // Equipment Categories
     isWeapon,

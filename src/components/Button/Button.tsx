@@ -47,7 +47,7 @@ const Button = ({
         button,
         button_height[height],
         button_radius[borderRadius],
-        button_color[color],
+        button_color[disabled ? 'main' : color],
         button_style[style],
         assignInlineVars({
           [button_width]: width,

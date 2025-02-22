@@ -108,7 +108,7 @@
         "modifiers": [
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
-            "type": "6a038302-1ac7-482f-acdc-3e1502e04397",
+            "type": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "setAmount": 10,
             "id": "1cd3309a-9ae4-4412-9b9b-364774377b4c"
@@ -117,14 +117,14 @@
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+            "methodAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
             "id": "f206ac85-d89e-473d-8936-c14f9f45f259"
           },
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "492f208f-6e7a-4a69-bbf2-047389576246",
+            "methodAbility": "492f208f-6e7a-4a69-bbf2-047389576246",
             "id": "49a5dc0d-8a4a-463f-89f7-031f8674e9cf"
           }
         ],
@@ -215,27 +215,35 @@
         "label": "Fast Movement",
         "levelAvailable": "5",
         "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
         "targets": 1,
         "modifiers": [
           {
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
+              ],
+              "notEquipped": [
+                {
+                  "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea",
+                  "properties": [
+                    "f0de1c52-9141-4d5a-bc4b-76110edf8e3e"
+                  ]
+                }
+              ]
+            },
             "category": "0168aa65-99ea-4381-9997-11f12f7adbfc",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
             "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "setAmount": 10,
             "speeds": [
-              "all"
+              "90475eca-c659-4556-9c5c-35f322788ed0"
             ],
             "id": "b3dbc6a0-4624-4bd5-bd22-c1937ec2010f"
           }
         ],
-        "prerequisites": {
-          "options": [
-            "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
-          ]
-        },
         "id": "fe690195-882f-4f21-ade1-8fb500c21eab"
       },
       {
@@ -487,9 +495,10 @@
         "becce5cb-5f1e-4de8-9aca-74324f507063",
         "9b919427-7c38-4ccd-aecd-6c032a047b57"
       ],
-      "maxSpellLevel": 9
+      "maxSpellLevel": 9,
+      "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 1,
         "spellSlots": [
@@ -995,7 +1004,7 @@
       "levelAvailable": 1,
       "charges": {
         "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-        "limit": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
+        "limit": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
         "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
       }
     },
@@ -1010,18 +1019,24 @@
         "label": "Jack of All Trades",
         "levelAvailable": "2",
         "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
         "targets": 1,
         "proficiencies": [
           {
+            "attributes": [
+              "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
             "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
             "level": "cb68f387-1e4f-4bbf-87af-34fca3ef4937",
             "rounding": "7a7dc0de-c6bb-4afe-9507-5446c1b85a67",
             "skills": [
               "all"
             ],
+            "prerequisites": {
+              "options": [
+                "3e8abd1f-614c-4b5e-9429-e5819a868c8d"
+              ]
+            },
             "id": "ebcd4791-c5ef-4082-b7ca-1536747003c0"
           }
         ],
@@ -1086,15 +1101,18 @@
         "label": "Expertise",
         "levelAvailable": "3, 10",
         "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
         "targets": 1,
         "expertise": [
           {
             "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
+              "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "prerequisites": {
+              "options": [
+                "4b6510ec-9e6e-4f83-945f-84f418393c0c"
+              ]
+            },
             "selectionCount": 2,
             "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
             "skills": [
@@ -1172,14 +1190,20 @@
         "label": "Magical Secrets",
         "levelAvailable": "10, 14, 18",
         "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
+              "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "2b2cac99-dfc5-45a0-b4a6-1970179ebcd9"
+              ]
+            },
+            "classLimit": [
+              "f988a487-d53c-47ec-9c5d-881866ffc27e"
             ],
             "selectionCount": 2,
             "ids": [
@@ -1249,7 +1273,7 @@
           ],
           "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e",
           "properties": [
-            "e915836c-d4dd-434d-934b-5eb8d8d053e3"
+            "96ae55ee-79fa-44e8-9fb8-c96d713a6424"
           ]
         },
         "id": "5d3cd8f8-cdc6-4bd2-91c9-65e0260d42d6"
@@ -1396,9 +1420,10 @@
       "attributes": [
         "b7ad7cc0-736d-416b-aed6-a374857adcd0",
         "becce5cb-5f1e-4de8-9aca-74324f507063"
-      ]
+      ],
+      "ability": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 1,
         "spellSlots": [
@@ -1900,7 +1925,7 @@
       "levelAvailable": 2,
       "charges": {
         "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-        "limit": "0a010337-44d9-491e-9fb2-bc94961fe2a2"
+        "limit": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
       }
     },
     "multiclass": {
@@ -2217,7 +2242,7 @@
     "value": "druid",
     "label": "Druid",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 1,
         "spellSlots": [
@@ -2694,7 +2719,8 @@
       "attributes": [
         "becce5cb-5f1e-4de8-9aca-74324f507063",
         "b7ad7cc0-736d-416b-aed6-a374857adcd0"
-      ]
+      ],
+      "ability": "458fdf58-0496-4701-86d0-7bc234009276"
     },
     "details": [
       {
@@ -2749,7 +2775,7 @@
         },
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 2,
           "multiplier": 1
         },
@@ -3087,11 +3113,21 @@
             "value": "defense",
             "label": "Defense",
             "levelAvailable": "1",
-            "attributes": [
-              "40a91f3a-8909-4593-8a5f-b66b364602bb"
-            ],
             "modifiers": [
               {
+                "attributes": [
+                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
+                ],
+                "prerequisites": {
+                  "options": [
+                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                  ]
+                },
+                "equipped": [
+                  {
+                    "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+                  }
+                ],
                 "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
@@ -3116,31 +3152,40 @@
             "value": "dueling",
             "label": "Dueling",
             "levelAvailable": "1",
-            "attributes": [
-              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            "modifiers": [
+              {
+                "type": "f6478862-a92b-4596-8420-c0fa958db719",
+                "category": "6387fe43-b305-4121-bfb4-b337df754868",
+                "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                "setAmount": 2,
+                "attributes": [
+                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
+                ],
+                "prerequisites": {
+                  "options": [
+                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                  ],
+                  "equipped": [
+                    {
+                      "numberEquipped": 1,
+                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                      "properties": [
+                        "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+                      ]
+                    }
+                  ],
+                  "notEquipped": [
+                    {
+                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                      "properties": [
+                        "71b5b42c-f4bc-4319-85ab-9e888d00743c"
+                      ]
+                    }
+                  ]
+                },
+                "id": "65f5b35a-82c0-40c5-959f-f41a872647c9"
+              }
             ],
-            "prerequisites": {
-              "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-              ],
-              "equipped": [
-                {
-                  "numberEquipped": 1,
-                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-                  "properties": [
-                    "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-                  ]
-                }
-              ],
-              "notEquipped": [
-                {
-                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-                  "properties": [
-                    "71b5b42c-f4bc-4319-85ab-9e888d00743c"
-                  ]
-                }
-              ]
-            },
             "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
@@ -3248,7 +3293,7 @@
         },
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1,
           "multiplier": 1
         },
@@ -3562,7 +3607,7 @@
     "value": "monk",
     "label": "Monk",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 1,
         "resourcePoints": 0
@@ -3667,7 +3712,7 @@
       "levelAvailable": 2,
       "charges": {
         "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-        "limit": "0a010337-44d9-491e-9fb2-bc94961fe2a2"
+        "limit": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
       }
     },
     "details": [
@@ -3710,7 +3755,7 @@
         "modifiers": [
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
-            "type": "6a038302-1ac7-482f-acdc-3e1502e04397",
+            "type": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "setAmount": 10,
             "id": "c0dffd36-fb03-4398-ac07-54474dc09f34"
@@ -3719,14 +3764,14 @@
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+            "methodAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
             "id": "403a761b-68bb-4161-bd36-076765441afc"
           },
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "458fdf58-0496-4701-86d0-7bc234009276",
+            "methodAbility": "458fdf58-0496-4701-86d0-7bc234009276",
             "id": "2651b997-ab2d-4406-a173-ba1fb00a224a"
           }
         ],
@@ -3760,17 +3805,14 @@
             "category": "b35b941f-8ad6-461f-8640-7540dc8e4934",
             "type": "5430dc37-daf9-4a47-b210-5791c3118c50",
             "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
-            "modifierAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
+            "methodAbility": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc",
             "id": "a817e0d6-1c59-4a0f-b98b-f8f80b39c596"
           },
           {
             "category": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
             "unarmedDamage": {
-              "id": "6a038302-1ac7-482f-acdc-3e1502e04397",
-              "method": {
-                "value": "diePerLevel",
-                "label": "Die Per Level"
-              },
+              "type": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+              "method": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
               "diePerLevel": [
                 {
                   "level": 1,
@@ -3795,7 +3837,8 @@
         ],
         "prerequisites": {
           "options": [
-            "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
+            "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+            "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
           ],
           "notEquipped": [
             {
@@ -3808,6 +3851,21 @@
               "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
               "properties": [
                 "1ce89a34-1e5e-4773-af2a-212df276371b"
+              ]
+            },
+            {
+              "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+            },
+            {
+              "category": "81990afe-e34a-48cb-aece-5e7c46088615"
+            }
+          ],
+          "equipped": [
+            {
+              "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+              "properties": [
+                "ab95948e-73af-4cd6-ac18-a22841fb5773",
+                "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
               ]
             }
           ]
@@ -3898,26 +3956,50 @@
         "label": "Unarmored Movement",
         "levelAvailable": "2, 6, 10, 14, 18",
         "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
-        "attributes": [
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
-        ],
         "targets": 1,
         "modifiers": [
           {
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
             "category": "0168aa65-99ea-4381-9997-11f12f7adbfc",
+            "type": "f6478862-a92b-4596-8420-c0fa958db719",
+            "method": "064697c0-eb11-4b6a-81b9-f2ecdd722194",
+            "setPerLevel": [
+              {
+                "level": 2,
+                "setAmount": 10
+              },
+              {
+                "level": 6,
+                "setAmount": 15
+              },
+              {
+                "level": 10,
+                "setAmount": 20
+              },
+              {
+                "level": 14,
+                "setAmount": 25
+              },
+              {
+                "level": 18,
+                "setAmount": 30
+              }
+            ],
+            "prerequisites": {
+              "options": [
+                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
+              ],
+              "notEquipped": [
+                {
+                  "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+                }
+              ]
+            },
             "id": "94993d06-0dd0-4dc0-98b4-7791db3825ed"
           }
         ],
-        "prerequisites": {
-          "options": [
-            "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
-          ],
-          "notEquipped": [
-            {
-              "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-            }
-          ]
-        },
         "id": "7192d21f-9d66-4133-a232-3f7573562a32"
       },
       {
@@ -4170,7 +4252,7 @@
           "resourcePoints": 4
         },
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "ids": [
               "15386a31-3864-4d02-b87c-5e4d4c3e5b4e"
@@ -4323,7 +4405,7 @@
     "value": "paladin",
     "label": "Paladin",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 2,
         "spellSlots": [
@@ -4636,7 +4718,8 @@
       "maxSpellLevel": 5,
       "attributes": [
         "b7ad7cc0-736d-416b-aed6-a374857adcd0"
-      ]
+      ],
+      "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
     "details": [
       {
@@ -4682,7 +4765,7 @@
         },
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
+          "limit": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
           "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7",
           "minAmount": 1,
           "addAmount": 1,
@@ -4738,28 +4821,28 @@
             "value": "defense",
             "label": "Defense",
             "levelAvailable": "1",
-            "attributes": [
-              "40a91f3a-8909-4593-8a5f-b66b364602bb"
-            ],
             "modifiers": [
               {
+                "attributes": [
+                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
+                ],
                 "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
                 "setAmount": 1,
+                "prerequisites": {
+                  "options": [
+                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                  ],
+                  "equipped": [
+                    {
+                      "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+                    }
+                  ]
+                },
                 "id": "23312b94-ce75-4d52-9624-79cf79b56923"
               }
             ],
-            "prerequisites": {
-              "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-              ],
-              "equipped": [
-                {
-                  "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-                }
-              ]
-            },
             "id": "2eab63d1-20b4-4743-b123-3b4582378df4"
           },
           {
@@ -4775,7 +4858,7 @@
                 "category": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
-                "setAmount": 1,
+                "setAmount": 2,
                 "id": "c7257b6e-766c-4d78-b276-fe3d7572ffa1"
               }
             ],
@@ -4787,12 +4870,18 @@
               "equipped": [
                 {
                   "numberEquipped": 1,
-                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                  "properties": [
+                    "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+                  ]
                 }
               ],
               "notEquipped": [
                 {
-                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                  "properties": [
+                    "71b5b42c-f4bc-4319-85ab-9e888d00743c"
+                  ]
                 }
               ]
             },
@@ -4967,7 +5056,7 @@
         },
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
+          "limit": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
           "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7",
           "minAmount": 1,
           "multiplier": 1
@@ -5146,7 +5235,7 @@
     "value": "ranger",
     "label": "Ranger",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 2,
         "spellSlots": [
@@ -5461,7 +5550,8 @@
       "attributes": [
         "9b919427-7c38-4ccd-aecd-6c032a047b57"
       ],
-      "maxSpellLevel": 5
+      "maxSpellLevel": 5,
+      "ability": "458fdf58-0496-4701-86d0-7bc234009276"
     },
     "details": [
       {
@@ -5542,30 +5632,30 @@
             "value": "defense",
             "label": "Defense",
             "levelAvailable": "2",
-            "attributes": [
-              "40a91f3a-8909-4593-8a5f-b66b364602bb"
-            ],
             "modifiers": [
               {
+                "attributes": [
+                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
+                ],
                 "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
                 "armorClass": {
                   "setAmount": 1
                 },
+                "prerequisites": {
+                  "options": [
+                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                  ],
+                  "equipped": [
+                    {
+                      "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+                    }
+                  ]
+                },
                 "id": "8b164887-4ae5-48ab-af57-d51bee6e1a9b"
               }
             ],
-            "prerequisites": {
-              "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-              ],
-              "equipped": [
-                {
-                  "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-                }
-              ]
-            },
             "id": "d3a743d2-b438-48e3-b4b2-79e3fc0e1b31"
           },
           {
@@ -5573,38 +5663,41 @@
             "value": "dueling",
             "label": "Dueling",
             "levelAvailable": "2",
-            "attributes": [
-              "40a91f3a-8909-4593-8a5f-b66b364602bb"
-            ],
             "modifiers": [
               {
+                "attributes": [
+                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
+                ],
                 "category": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
                 "setAmount": 2,
+                "prerequisites": {
+                  "options": [
+                    "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                  ],
+                  "equipped": [
+                    {
+                      "numberEquipped": 1,
+                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                      "properties": [
+                        "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+                      ]
+                    }
+                  ],
+                  "notEquipped": [
+                    {
+                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                      "properties": [
+                        "71b5b42c-f4bc-4319-85ab-9e888d00743c"
+                      ]
+                    }
+                  ]
+                },
                 "id": "c977ce5b-2cec-4010-891b-cac42654c31f"
               }
             ],
-            "prerequisites": {
-              "options": [
-                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-              ],
-              "equipped": [
-                {
-                  "numberEquipped": 1,
-                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
-                }
-              ],
-              "notEquipped": [
-                {
-                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-                  "properties": [
-                    "71b5b42c-f4bc-4319-85ab-9e888d00743c"
-                  ]
-                }
-              ]
-            },
             "id": "2f960468-530e-4247-9d0b-29b686a62e78"
           },
           {
@@ -5753,7 +5846,7 @@
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654",
             "df5b0efb-0ab4-44e8-845a-13f109331d9b",
-            "21a0ad2e-c7df-4c9b-9c66-ba57b58cf5e2"
+            "81990afe-e34a-48cb-aece-5e7c46088615"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
@@ -5769,7 +5862,6 @@
           "category": "81990afe-e34a-48cb-aece-5e7c46088615"
         },
         "equipment": {
-          "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
           "ids": [
             "57c6cbc8-9bb2-4e11-9dc6-2622d7482282",
             "cd2f1dfa-0906-475d-b8f4-25a553513511"
@@ -6001,9 +6093,6 @@
             "value": "skillsAndTool",
             "label": "Skills and Tool",
             "id": "85e55750-50b7-4b5e-947d-e6497fed4e7d",
-            "attributes": [
-              "40a91f3a-8909-4593-8a5f-b66b364602bb"
-            ],
             "expertise": [
               {
                 "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
@@ -6011,24 +6100,22 @@
               },
               {
                 "attributes": [
-                  "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
+                  "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
+                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
                 ],
                 "selectionCount": 1,
                 "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
                 "skills": [
                   "all"
                 ],
+                "prerequisites": {
+                  "options": [
+                    "4b6510ec-9e6e-4f83-945f-84f418393c0c"
+                  ]
+                },
                 "id": "ebd81d84-a003-4a2d-8fad-bc2880579cfa"
               }
-            ],
-            "prerequisites": {
-              "options": [
-                "f603f26f-6cb6-4995-82f3-ba4cdefd4e55"
-              ],
-              "skillProficiency": [
-                "all"
-              ]
-            }
+            ]
           }
         ],
         "id": "86f6c5eb-d871-4f0d-abae-903b297e2387"
@@ -6253,7 +6340,7 @@
         ],
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1
         },
         "targets": 1,
@@ -6458,7 +6545,7 @@
     "value": "sorcerer",
     "label": "Sorcerer",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 1,
         "spellSlots": [
@@ -6984,7 +7071,8 @@
       "maxSpellLevel": 9,
       "attributes": [
         "9b919427-7c38-4ccd-aecd-6c032a047b57"
-      ]
+      ],
+      "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
     "resource": {
       "value": "sorcery",
@@ -6993,7 +7081,7 @@
       "levelAvailable": 2,
       "charges": {
         "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-        "limit": "0a010337-44d9-491e-9fb2-bc94961fe2a2"
+        "limit": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
       }
     },
     "hitpoint": {
@@ -7332,7 +7420,7 @@
     "value": "warlock",
     "label": "Warlock",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 1,
         "spellSlots": [
@@ -7570,7 +7658,8 @@
         "9b919427-7c38-4ccd-aecd-6c032a047b57"
       ],
       "magicName": "Pact Magic",
-      "maxSpellLevel": 5
+      "maxSpellLevel": 5,
+      "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
     "multiclass": {
       "primaryAbility": {
@@ -7608,12 +7697,43 @@
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "prerequisites": {
+              "options": [
+                "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+              ],
+              "spellsObtained": [
+                "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
+              ]
+            },
+            "modifiers": [
+              {
+                "category": "c0ea7ecb-1dd9-419a-8220-32a0db629401",
+                "type": "f6478862-a92b-4596-8420-c0fa958db719",
+                "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
+                "methodAbility": "def276fe-3fa5-4af7-95ad-a37113815cc7",
+                "spellCategory": "4e160791-f35b-4673-8d18-7fcf40f0ab2d",
+                "spell": "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4",
+                "id": "d5081a9b-797e-4060-ba9e-688353c69601"
+              }
+            ],
             "id": "ec28ca1f-607f-42d1-9d5b-742547dd960f"
           },
           {
             "desc": "<p>You can cast <em>mage armor</em> on yourself at will, without expending a spell slot or material components.</p>",
             "value": "armorOfShadows",
             "label": "Armor of Shadows",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
+                  "a5a64799-6105-4d1f-a849-cb6ef41b0823"
+                ],
+                "ids": [
+                  "5fec8c3c-400e-4744-afb2-4de520c1b65a"
+                ],
+                "id": "c7c8dde1-0889-4cdc-8a45-1ce621b4d6d7"
+              }
+            ],
             "levelAvailable": "2",
             "id": "1d52c514-cf47-4a71-8827-ace56fb9f7df"
           },
@@ -7621,6 +7741,18 @@
             "desc": "<p>You can cast levitate on yourself at will, without expending a spell slot or material components.</p>",
             "value": "ascendantStep",
             "label": "Ascendant Step",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
+                  "a5a64799-6105-4d1f-a849-cb6ef41b0823"
+                ],
+                "ids": [
+                  "e86c6aa3-5ffc-42e2-97b8-d1171d038fa7"
+                ],
+                "id": "9ae5449a-3d5b-4738-923c-3b4d414f6af2"
+              }
+            ],
             "levelAvailable": "9",
             "id": "700369d7-92f1-449f-a911-fdbf1ba3a9b6"
           },
@@ -7628,6 +7760,17 @@
             "desc": "<p>You can cast speak with animals at will, without expending a spell slot.</p>",
             "value": "beastSpeech",
             "label": "Beast Speech",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0"
+                ],
+                "ids": [
+                  "562b0f16-93e1-4d41-9fbf-d52fb2abb8d7"
+                ],
+                "id": "edb5b6dd-881f-4215-9b42-e8eddd85f361"
+              }
+            ],
             "levelAvailable": "2",
             "id": "1fc44be0-3056-4969-bc81-c572a2932f0b"
           },
@@ -7636,6 +7779,17 @@
             "value": "beguilingInfluence",
             "label": "Beguiling Influence",
             "levelAvailable": "2",
+            "proficiencies": [
+              {
+                "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
+                "skills": [
+                  "1382f52c-2281-441f-8fb2-608a274a13d3",
+                  "7377834f-6811-4151-bdf0-a621409221db"
+                ],
+                "level": "4b6510ec-9e6e-4f83-945f-84f418393c0c",
+                "id": "fd202076-0c46-4dbb-8676-c6c1ce769985"
+              }
+            ],
             "id": "0d9dd763-770f-4a98-befc-206f7e923628"
           },
           {
@@ -7643,14 +7797,22 @@
             "value": "bewitchingWhispers",
             "label": "Bewitching Whispers",
             "levelAvailable": "7",
-            "attributes": [
-              "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+            "spells": [
+              {
+                "attributes": [
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "6407ccc0-0ac0-45aa-bf28-8b65d44da1b5"
+                ],
+                "id": "2b71d085-73e0-4b36-ad63-1b6ae5540405"
+              }
             ],
-            "charges": {
-              "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-              "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
-              "setAmount": 1
-            },
             "id": "2e7d8c5d-f71c-4f98-98c5-6073654ed58b"
           },
           {
@@ -7660,6 +7822,32 @@
             "levelAvailable": "2",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "293010e4-fe1f-4982-8a80-6a232eafe19f"
+              ],
+              "featuresObtained": [
+                "e7720a82-404d-4ead-bb98-e0dcd10a277f"
+              ]
+            },
+            "spells": [
+              {
+                "attributes": [
+                  "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
+                ],
+                "levelLimit": [
+                  1
+                ],
+                "attributeLimit": [
+                  "5dd4f91e-074d-47c0-8c34-db750ea75b05"
+                ],
+                "ids": [
+                  "all"
+                ],
+                "selectionCount": 2,
+                "id": "1f0c3aa2-fd83-488a-bdea-782ea28e4d27"
+              }
             ],
             "id": "df28ea93-5350-4f87-93e9-9215f0aacc3e"
           },
@@ -7671,6 +7859,31 @@
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "prerequisites": {
+              "options": [
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+              ],
+              "optionsObtained": [
+                "7436bad8-4e7c-4164-9a6a-d1600388bb21"
+              ]
+            },
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "0459e559-2416-4037-85c2-22c3d00e8c65"
+                ],
+                "id": "7af1b6de-0386-4901-b24a-ec84349a61bc"
+              }
+            ],
             "id": "fe0587c4-89a8-4b1e-aac4-e2bf56ffe74c"
           },
           {
@@ -7678,21 +7891,37 @@
             "value": "devilsSight",
             "label": "Devil's Sight",
             "levelAvailable": "2",
+            "senses": [
+              {
+                "ids": [
+                  "0c3b869f-7dda-4049-aa57-368c412c089c"
+                ],
+                "id": "d68d046a-8984-49b1-8496-8cbea89ce699"
+              }
+            ],
             "id": "ad74164e-7547-4eeb-a535-810c725845e5"
           },
           {
             "desc": "<p>You can cast confusion once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
             "value": "dreadfulWord",
             "label": "Dreadful Word",
-            "levelAvailable": "7",
-            "attributes": [
-              "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+            "spells": [
+              {
+                "attributes": [
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "be0f561b-8a66-4920-a566-373035244020"
+                ],
+                "id": "89ac519b-ef16-40b2-bb1f-8044b4229439"
+              }
             ],
-            "charges": {
-              "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-              "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
-              "setAmount": 1
-            },
+            "levelAvailable": "7",
             "id": "2c60f7ce-a1ce-4e44-8fac-8afdb4138a4d"
           },
           {
@@ -7700,6 +7929,17 @@
             "value": "eldritchSight",
             "label": "Eldritch Sight",
             "levelAvailable": "2",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0"
+                ],
+                "ids": [
+                  "7e9de771-9072-4c46-a4e7-c0ec4987064c"
+                ],
+                "id": "9f197f16-e2d3-4b0b-bc94-b8bc5522ed7c"
+              }
+            ],
             "id": "e7c3e572-e58e-4017-a7ac-88c8b36dc49c"
           },
           {
@@ -7709,6 +7949,23 @@
             "levelAvailable": "2",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+              ],
+              "spellsObtained": [
+                "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
+              ]
+            },
+            "modifiers": [
+              {
+                "category": "c0ea7ecb-1dd9-419a-8220-32a0db629401",
+                "spellCategory": "69da6ffc-75cc-423f-b4df-d25761887059",
+                "spell": "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4",
+                "maxRange": 300,
+                "id": "eeaa713f-fa49-40d9-b322-a2ff2b5238b6"
+              }
             ],
             "id": "6797f8ca-8998-4fd0-90c2-b63332ed763c"
           },
@@ -7724,7 +7981,21 @@
             "value": "fiendishVigor",
             "label": "Fiendish Vigor",
             "levelAvailable": "2",
-            "id": "ead58838-3121-49b6-ba08-e563fd8bf79d"
+            "id": "ead58838-3121-49b6-ba08-e563fd8bf79d",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
+                  "ecee08e1-2f04-404b-bdc7-7eadcb9656e1",
+                  "a5a64799-6105-4d1f-a849-cb6ef41b0823"
+                ],
+                "ids": [
+                  "5dd55017-bff1-497b-b957-1978ba8189da"
+                ],
+                "spellLevel": 1,
+                "id": "71751cac-b6e6-4952-8ee6-472d8716731e"
+              }
+            ]
           },
           {
             "desc": "<p>You can use your action to touch a willing humanoid and perceive through its senses until the end of your next turn. As long as the creature is on the same plane of existence as you, you can use your action on subsequent turns to maintain this connection, extending the duration until the end of your next turn. While perceiving through the other creature’s senses, you benefit from any special senses possessed by that creature, and you are blinded and deafened to your own surroundings.</p>",
@@ -7747,18 +8018,27 @@
             "label": "Lifedrinker",
             "levelAvailable": "2",
             "attributes": [
-              "348c49e2-a25e-42d6-8357-390530243929"
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
-            "damage": {
-              "attributes": [
-                "412e4b5f-f202-4519-851f-03965749051a",
-                "5ad88a48-ca9e-4bb5-b005-6600effbc620"
+            "prerequisites": {
+              "options": [
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
               ],
-              "bonus": {
-                "attributes": "cfbc3740-2afc-448e-a7d4-0cd1ad530fef",
-                "minAmount": 1
-              }
+              "optionsObtained": [
+                "18667f47-2768-45bf-8b2e-4f7f101180ec"
+              ]
             },
+            "modifiers": [
+              {
+                "type": "f6478862-a92b-4596-8420-c0fa958db719",
+                "category": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+                "method": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
+                "methodAbility": "def276fe-3fa5-4af7-95ad-a37113815cc7",
+                "damageType": "d5fe15a7-2c6e-4153-a7a3-259ac1dbe759",
+                "minAmount": 1,
+                "id": "437564bd-b8f7-4fbb-adeb-65ac0e5e2478"
+              }
+            ],
             "id": "22daa832-4422-422e-a6e8-30f6ab288174"
           },
           {
@@ -7766,6 +8046,17 @@
             "value": "maskOfManyFaces",
             "label": "Mask of Many Faces",
             "levelAvailable": "2",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0"
+                ],
+                "ids": [
+                  "d5b56611-1827-4808-8877-f09652ade1bd"
+                ],
+                "id": "80f8a51a-a386-4913-a988-28fe26ab2d2d"
+              }
+            ],
             "id": "8e83d32d-4163-4cb8-a7e7-5ec7c400ad6e"
           },
           {
@@ -7773,6 +8064,17 @@
             "value": "masterOfMyriadForms",
             "label": "Master of Myriad Forms",
             "levelAvailable": "15",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0"
+                ],
+                "ids": [
+                  "bbd7b495-d3c0-49a3-a98d-10de2e968379"
+                ],
+                "id": "c0371b9d-5334-4a43-9146-940b3fffd745"
+              }
+            ],
             "id": "419c4ba1-4a7c-4121-87e4-cc1519ae2bca"
           },
           {
@@ -7780,14 +8082,22 @@
             "value": "minionsOfChaos",
             "label": "Minions of Chaos",
             "levelAvailable": "9",
-            "attributes": [
-              "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+            "spells": [
+              {
+                "attributes": [
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "18a36477-d972-4894-aa12-f7e6193d9b34"
+                ],
+                "id": "a425b2db-6e7e-4fee-a362-c109065ad5e7"
+              }
             ],
-            "charges": {
-              "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-              "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
-              "setAmount": 1
-            },
             "id": "c387232b-1586-4bbd-a46c-854b01473ea4"
           },
           {
@@ -7795,14 +8105,22 @@
             "value": "mireTheMind",
             "label": "Mire the Mind",
             "levelAvailable": "5",
-            "attributes": [
-              "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+            "spells": [
+              {
+                "attributes": [
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "dddf13e5-0ed0-4ce6-a24b-e22c9accb648"
+                ],
+                "id": "541f2049-96db-45ac-b16e-540b2f0a2fdb"
+              }
             ],
-            "charges": {
-              "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-              "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
-              "setAmount": 1
-            },
             "id": "e9e5c3fa-0d95-40e8-bbca-812f367fd3ab"
           },
           {
@@ -7810,6 +8128,17 @@
             "value": "mistyVisions",
             "label": "Misty Visions",
             "levelAvailable": "2",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0"
+                ],
+                "ids": [
+                  "227dbc97-30df-4ae0-b3fa-d46275e38fcf"
+                ],
+                "id": "244cbfcd-61bf-4a44-9512-ab16ab4ff0e5"
+              }
+            ],
             "id": "cce5c4a3-ba62-4a2f-9fb4-48d45897b705"
           },
           {
@@ -7832,6 +8161,18 @@
             "value": "otherworldlyLeap",
             "label": "Otherworldly Leap",
             "levelAvailable": "9",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
+                  "a5a64799-6105-4d1f-a849-cb6ef41b0823"
+                ],
+                "ids": [
+                  "fd662d25-0e19-42e9-877c-fe1558713a2b"
+                ],
+                "id": "3c23dac5-6d88-4f77-92ce-33b201cc33da"
+              }
+            ],
             "id": "02d536aa-ffeb-4163-8edb-a3596b90f42f"
           },
           {
@@ -7842,6 +8183,14 @@
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "prerequisites": {
+              "options": [
+                "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+              ],
+              "spellsObtained": [
+                "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
+              ]
+            },
             "id": "fbd46aa3-bb70-4582-be72-14802a47690e"
           },
           {
@@ -7849,14 +8198,22 @@
             "value": "sculptorOfFlesh",
             "label": "Sculptor of Flesh",
             "levelAvailable": "7",
-            "attributes": [
-              "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+            "spells": [
+              {
+                "attributes": [
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "5c32d5f4-183f-4e9b-aee8-6ba511adeca3"
+                ],
+                "id": "dc054179-2608-4c9f-b2d9-1f1abe03191d"
+              }
             ],
-            "charges": {
-              "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-              "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
-              "setAmount": 1
-            },
             "id": "a1144ee2-3e27-452f-8403-58e3c55da2c5"
           },
           {
@@ -7864,14 +8221,22 @@
             "value": "signOfIllOmen",
             "label": "Sign of Ill Omen",
             "levelAvailable": "5",
-            "attributes": [
-              "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+            "spells": [
+              {
+                "attributes": [
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "b153b35b-c6a6-4d31-98f6-cddbd03d27fa"
+                ],
+                "id": "9b5731b8-9035-435c-a842-79810e924ba4"
+              }
             ],
-            "charges": {
-              "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-              "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
-              "setAmount": 1
-            },
             "id": "efce2b56-ae73-406d-a8e4-18d556e315b7"
           },
           {
@@ -7879,14 +8244,22 @@
             "value": "thiefOfFiveFates",
             "label": "Thief of Five Fates",
             "levelAvailable": "2",
-            "attributes": [
-              "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+            "spells": [
+              {
+                "attributes": [
+                  "408bd86e-2ed9-4da6-9932-0e99a6e40e17"
+                ],
+                "charges": {
+                  "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
+                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "setAmount": 1
+                },
+                "ids": [
+                  "4d96e5c6-2761-425c-9fc2-a87bd217f32e"
+                ],
+                "id": "0aa56743-2538-40df-923a-83eee86bf793"
+              }
             ],
-            "charges": {
-              "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-              "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
-              "setAmount": 1
-            },
             "id": "10606fbf-c451-4c9c-96d3-81b8a7ccfd54"
           },
           {
@@ -7897,6 +8270,14 @@
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "prerequisites": {
+              "options": [
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+              ],
+              "optionsObtained": [
+                "18667f47-2768-45bf-8b2e-4f7f101180ec"
+              ]
+            },
             "id": "4a724f86-0110-462f-8fcb-b07dca531236"
           },
           {
@@ -7904,6 +8285,17 @@
             "value": "visionsOfDistantRealms",
             "label": "Visions of Distant Realms",
             "levelAvailable": "15",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0"
+                ],
+                "ids": [
+                  "2e4244f0-916b-4a62-8096-58f6b5f59de9"
+                ],
+                "id": "4704fe4c-a8b9-4e84-863e-2524a39f8827"
+              }
+            ],
             "id": "d44cfeda-7d5e-46a8-921f-ec490d910b09"
           },
           {
@@ -7914,6 +8306,14 @@
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "prerequisites": {
+              "options": [
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+              ],
+              "optionsObtained": [
+                "18667f47-2768-45bf-8b2e-4f7f101180ec"
+              ]
+            },
             "id": "be1104cb-d246-4779-aec8-3c16776b6d92"
           },
           {
@@ -7921,12 +8321,31 @@
             "value": "whispersOfTheGrave",
             "label": "Whispers of the Grave",
             "levelAvailable": "9",
+            "spells": [
+              {
+                "attributes": [
+                  "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0"
+                ],
+                "ids": [
+                  "038e8e21-8e3a-49ae-925a-2986e49c8fc4"
+                ],
+                "id": "66fd3fcb-2be2-4069-9061-4b9c7bc12e1d"
+              }
+            ],
             "id": "5b16544a-735f-4991-8a27-eb17eb52e7e5"
           },
           {
             "desc": "<p>You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.</p>",
             "value": "witchSight",
             "label": "Witch Sight",
+            "senses": [
+              {
+                "ids": [
+                  "c148efc1-4188-4510-a819-b6f12ce987dc"
+                ],
+                "id": "378191b1-5830-4a21-bf8c-ccfd92b0e5e5"
+              }
+            ],
             "levelAvailable": "15",
             "id": "676310c3-da16-4ec7-8c37-9cb4ba9af49d"
           }
@@ -8013,7 +8432,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1
         },
         "targets": 1,
@@ -8030,7 +8449,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1
         },
         "targets": 1,
@@ -8047,7 +8466,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1
         },
         "targets": 1,
@@ -8064,7 +8483,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1
         },
         "targets": 1,
@@ -8081,7 +8500,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1
         },
         "targets": 1,
@@ -8266,7 +8685,7 @@
     "value": "wizard",
     "label": "Wizard",
     "category": "b62cef0d-a4be-4cfe-94ee-c80a7aaaabc7",
-    "levelAttribute": [
+    "levelAttributes": [
       {
         "level": 1,
         "spellSlots": [
@@ -8769,7 +9188,8 @@
         "b7ad7cc0-736d-416b-aed6-a374857adcd0",
         "ee9294ea-90a0-4c70-92d6-6ee8f4d31f15"
       ],
-      "maxSpellLevel": 9
+      "maxSpellLevel": 9,
+      "ability": "d0cd6776-ef2c-4589-8a18-175a160b8ef4"
     },
     "hitpoint": {
       "ability": "492f208f-6e7a-4a69-bbf2-047389576246",
@@ -8787,7 +9207,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 1
         },
         "targets": 1,
@@ -8845,11 +9265,11 @@
         ],
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
+          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
           "setAmount": 2
         },
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attributes": [
               "1bec624b-14c4-4fe7-baa5-277277394bbf",
@@ -8857,7 +9277,9 @@
               "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
             ],
             "levelLimit": [
-              0
+              {
+                "value": 0
+              }
             ],
             "selectionCount": 2,
             "classLimit": [

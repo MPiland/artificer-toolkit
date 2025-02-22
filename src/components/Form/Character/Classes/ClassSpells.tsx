@@ -5,7 +5,14 @@ import { get, isEqual, set } from 'lodash'
 import { useCallback, useEffect, useMemo } from 'react'
 import Group from '../../../Group/Group'
 import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
-import { Character, CharacterClass, Class, Spell, ClassSpellList, CharacterSpell } from '../../../../../amplify/gql/types'
+import {
+  Character,
+  CharacterClass,
+  Class,
+  Spell,
+  ClassSpellList,
+  CharacterSpell,
+} from '../../../../../amplify/gql/types'
 import { Attributes, Measurement, Rounding } from '../../../../types/enums'
 import { UpdateState } from '../../../../types/form'
 
@@ -349,22 +356,25 @@ const ClassSpells = ({
   const knownSpellCount = spellList?.flatMap((listObject) => listObject.spells.map((oSpell) => oSpell)).length || 0
 
   const handleAddSpell = (spell: Spell, type: 'known' | 'prepared') => {
-    let spellList: Omit<ClassSpellList, '__typename'>[] = JSON.parse(
-      JSON.stringify(formData.spellcasting?.[type] || [])
-    )
+    let spellList: ClassSpellList[] = JSON.parse(JSON.stringify(formData.spellcasting?.[type] || []))
     if (spellList?.length > 0) {
-      let spellObjectIndex = spellList.findIndex((listObject) => listObject.level === spell.level)
-      if (spellObjectIndex !== -1) {
-        spellList[spellObjectIndex].spells = [
-          ...spellList[spellObjectIndex].spells,
+      let spellLevelIndex = spellList.findIndex((listObject) => listObject.level === spell.level)
+      if (spellLevelIndex !== -1) {
+        spellList[spellLevelIndex].spells = [
+          ...spellList[spellLevelIndex].spells,
           { id: spell.id, classId: uClass.id, __typename: 'ClassSpell' },
         ]
       } else {
-        spellObjectIndex = spellList.length
-        spellList[spellObjectIndex].spells.push({ id: spell.id, classId: uClass.id, __typename: 'ClassSpell' })
+        spellLevelIndex = spellList.length || 0
+        spellList[spellLevelIndex] = {
+          __typename: 'ClassSpellList',
+          level: spell.level,
+          spells: [{ id: spell.id, classId: uClass.id, __typename: 'ClassSpell' }],
+        }
       }
     } else {
       spellList.push({
+        __typename: 'ClassSpellList',
         level: spell.level,
         spells: [{ id: spell.id, classId: uClass.id, __typename: 'ClassSpell' }],
       })
@@ -392,7 +402,7 @@ const ClassSpells = ({
   const handleRemoveSpell = (spell: Spell, type: 'known' | 'prepared') => {
     const spellList: ClassSpellList[] = JSON.parse(JSON.stringify(formData.spellcasting?.[type]))
     const spellObjectIndex = spellList.findIndex((listObject) => listObject.level === spell.level)
-    const spellArray = spellList[spellObjectIndex].spells.filter((tSpell) => tSpell.id !== spell.id)
+    const spellArray = spellList[spellObjectIndex]?.spells?.filter((tSpell) => tSpell.id !== spell.id)
 
     if (!(spellArray.length > 0)) {
       if (spellList.length === 1) {
@@ -461,34 +471,34 @@ const ClassSpells = ({
                     <Collapse.Header title={`Level ${listObject.level}`} />
                     <Collapse.Body>
                       {listObject.spells?.map((spell, sIndex) => {
-                        const stateSpell = spells.find((sSpell) => sSpell.id === spell.id)
+                        const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
                         const spellFound = formData.spellcasting?.prepared
                           ?.flatMap((listObject) => listObject.spells)
-                          ?.find((lSpell) => stateSpell.id === lSpell.id)
+                          ?.find((lSpell) => fullSpell.id === lSpell.id)
+                        const disabled =
+                          (preparesSpells
+                            ? preparedSpellCount >= maxPreparedSpells()
+                            : knownSpellCount >= maxSpellsKnown) && !spellFound
                         return (
                           <Collapse key={sIndex}>
-                            <Collapse.Header title={stateSpell.label} startOpened={false}>
+                            <Collapse.Header title={fullSpell.label} startOpened={false}>
                               <Button
                                 color={spellFound != null ? 'danger' : 'primary'}
                                 height='full'
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   if (spellFound != null) {
-                                    handleRemoveSpell(stateSpell, !preparesSpells ? 'known' : 'prepared')
+                                    handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
                                   } else {
-                                    handleAddSpell(stateSpell, !preparesSpells ? 'known' : 'prepared')
+                                    handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
                                   }
                                 }}
-                                disabled={
-                                  formData.spellcasting?.prepared
-                                    ?.filter((listObject) => listObject.level > 0)
-                                    .flatMap((prepared) => prepared.spells)?.length === maxPreparedSpells()
-                                }
+                                disabled={disabled}
                               >
-                                {spellFound != null ? 'Remove' : 'Add'}
+                                {spellFound != null ? 'Remove' : disabled ? '---' : 'Add'}
                               </Button>
                             </Collapse.Header>
-                            <Collapse.Body>{stateSpell?.desc && parse(stateSpell?.desc)}</Collapse.Body>
+                            <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
                           </Collapse>
                         )
                       })}
@@ -529,6 +539,13 @@ const ClassSpells = ({
                         ?.flatMap((cantripObject) => cantripObject.spells)
                         ?.find((oSpell) => spell.id === oSpell.id)
                       const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
+                      const cantripDisabled = cantripsKnownCount === maxCantripsKnown && !cantripFound
+                      const spellDisabled =
+                        spellFound?.alwaysPrepared ||
+                        ((preparesSpells
+                          ? preparedSpellCount >= maxPreparedSpells()
+                          : knownSpellCount >= maxSpellsKnown) &&
+                          !spellFound)
                       return (
                         <Collapse key={sIndex}>
                           <Collapse.Header title={fullSpell.label} startOpened={false}>
@@ -544,8 +561,9 @@ const ClassSpells = ({
                                     handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
                                   }
                                 }}
+                                disabled={cantripDisabled}
                               >
-                                {cantripFound != null ? 'Remove' : 'Add'}
+                                {cantripFound != null ? 'Remove' : cantripDisabled ? '---' : 'Add'}
                               </Button>
                             ) : (
                               <Button
@@ -559,9 +577,9 @@ const ClassSpells = ({
                                     handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
                                   }
                                 }}
-                                disabled={spellFound?.alwaysPrepared}
+                                disabled={spellDisabled}
                               >
-                                {spellFound != null ? 'Remove' : 'Add'}
+                                {spellFound != null ? 'Remove' : spellDisabled ? '---' : 'Add'}
                               </Button>
                             )}
                           </Collapse.Header>

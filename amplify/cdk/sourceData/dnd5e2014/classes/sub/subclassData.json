@@ -17,17 +17,13 @@
         "value": "bonusProficiencies",
         "label": "Bonus Proficiencies",
         "levelAvailable": "3",
-        "attribute": [
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
-          },
+        "attribute": [          
           {
             "value": "hideOnSheet",
             "label": "Hide On Sheet"
           }
         ],
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -59,14 +55,6 @@
             "id": "174394b5-8ee1-4787-b596-7cc29cf44329"
           }
         ],
-        "requirements": {
-          "options": [
-            {
-              "value": "notProficient",
-              "label": "Not Proficient"
-            }
-          ]
-        },
         "id": "0487515d-2442-4d22-a2d6-5188854334e1"
       },
       {
@@ -97,7 +85,7 @@
           },
           "resourcePoints": 1
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -112,22 +100,22 @@
           {
             "value": "hideOnSheet",
             "label": "Hide On Sheet"
-          },
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
           }
         ],
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
                 "value": "providesOptions",
                 "label": "Provides Options"
+              },
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
               }
             ],
             "selectionCount": 2,
@@ -136,17 +124,18 @@
                 "value": "all",
                 "label": "All"
               }
-            ]
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "canCastLevel",
+                  "label": "Can Cast"
+                }
+              ]
+            },
+            "id": "90db1b68-32e8-42ee-b51a-0c96e8f017cd" 
           }
         ],
-        "requirements": {
-          "options": [
-            {
-              "value": "canCastLevel",
-              "label": "Can Cast"
-            }
-          ]
-        },
         "id": "de39b524-d0de-46d1-865b-efd1bc74b6db"
       },
       {
@@ -167,7 +156,7 @@
           },
           "resourcePoints": 1
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -198,7 +187,7 @@
         "value": "lifeDomainSpells",
         "label": "Life Domain Spells",
         "levelAvailable": "1",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -208,7 +197,7 @@
             "label": "Hide On Sheet"
           }
         ],
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
@@ -216,11 +205,7 @@
                 "label": "Spells By Level"
               },
               {
-                "value": "usesSlot",
-                "label": "Uses Spell Slot"
-              },
-              {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -319,7 +304,7 @@
         "value": "bonusProficiency",
         "label": "Bonus Proficiency",
         "levelAvailable": "1",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -355,7 +340,7 @@
         "value": "discipleOfLife",
         "label": "Disciple of Life",
         "levelAvailable": "1",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -415,7 +400,7 @@
         "value": "channelDivinityPreserveLife",
         "label": "Channel Divinity: Preserve Life",
         "levelAvailable": "2",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -468,7 +453,7 @@
         "value": "blessedHealer",
         "label": "Blessed Healer",
         "levelAvailable": "6",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -479,7 +464,7 @@
         "value": "divineStrike",
         "label": "Divine Strike",
         "levelAvailable": "8",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -504,7 +489,7 @@
         "value": "supremeHealing",
         "label": "Supreme Healing",
         "levelAvailable": "17",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -599,7 +584,7 @@
         "value": "bonusCantrip",
         "label": "Bonus Cantrip",
         "levelAvailable": "2",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -610,7 +595,7 @@
           }
         ],
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
@@ -622,7 +607,7 @@
                 "label": "Provides Options"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -639,8 +624,7 @@
             ],
             "levelLimit": [
               {
-                "value": "0",
-                "label": "0"
+                "value": "0"
               }
             ],
             "type": [
@@ -658,7 +642,7 @@
         "value": "naturalRecovery",
         "label": "Natural Recovery",
         "levelAvailable": "2",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -687,7 +671,7 @@
         "value": "circleSpells",
         "label": "Circle Spells",
         "levelAvailable": "3, 5, 7, 9",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -698,7 +682,7 @@
           }
         ],
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
@@ -710,7 +694,7 @@
                 "label": "Subtype Specific"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -800,7 +784,7 @@
                 "label": "Spells By Level"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -890,7 +874,7 @@
                 "label": "Spells By Level"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -980,7 +964,7 @@
                 "label": "Spells By Level"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -1070,7 +1054,7 @@
                 "label": "Spells By Level"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -1160,7 +1144,7 @@
                 "label": "Spells By Level"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -1250,7 +1234,7 @@
                 "label": "Spells By Level"
               },
               {
-                "value": "isPrepared",
+                "value": "alwaysPrepared",
                 "label": "Always Prepared"
               },
               {
@@ -1337,7 +1321,7 @@
         "value": "landsStride",
         "label": "Land's Stride",
         "levelAvailable": "6",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1349,7 +1333,7 @@
         "value": "naturesWard",
         "label": "Nature's Ward",
         "levelAvailable": "10",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1382,7 +1366,7 @@
         "value": "naturesSanctuary",
         "label": "Nature's Sanctuary",
         "levelAvailable": "14",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1420,7 +1404,7 @@
         "value": "improvedCritical",
         "label": "Improved Critical",
         "levelAvailable": "3",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1431,7 +1415,7 @@
         "value": "remarkableAthlete",
         "label": "Remarkable Athlete",
         "levelAvailable": "7",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1442,7 +1426,7 @@
         "value": "superiorCritical",
         "label": "Superior Critical",
         "levelAvailable": "15",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1453,7 +1437,7 @@
         "value": "survivor",
         "label": "Survivor",
         "levelAvailable": "18",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1464,7 +1448,7 @@
         "value": "additionalFightingStyle",
         "label": "Additional Fighting Style",
         "levelAvailable": "1",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1766,7 +1750,7 @@
         "requirements": {
           "options": [
             {
-              "value": "optionNotAcquired",
+              "value": "optionNotObtained",
               "label": "Option Not Acquired"
             }
           ]
@@ -1798,7 +1782,7 @@
         "value": "openHandTechnique",
         "label": "Open Hand Technique",
         "levelAvailable": "3",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1914,7 +1898,7 @@
           },
           "setAmount": 1
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -1942,7 +1926,7 @@
             }
           ]
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2020,7 +2004,7 @@
             }
           }
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2097,7 +2081,7 @@
           },
           "resourcePoints": 1
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2130,7 +2114,7 @@
             "label": "Widsom"
           }
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2141,11 +2125,11 @@
         "value": "oathOfDevotionSpells",
         "label": "Oath of Devotion Spells",
         "levelAvailable": "3, 5, 9, 13, 17",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
@@ -2229,7 +2213,7 @@
         "value": "auraOfDevotion",
         "label": "Aura of Devotion",
         "levelAvailable": "7",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2264,7 +2248,7 @@
         "charges": {
           "multiplier": 1
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2303,7 +2287,7 @@
           "setAmount": 1,
           "multiplier": 1
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2335,7 +2319,7 @@
         "label": "Hunter's Prey",
         "levelAvailable": "3",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2382,7 +2366,7 @@
         "label": "Defensive Tactics",
         "levelAvailable": "7",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2438,7 +2422,7 @@
         "label": "Multiattack",
         "levelAvailable": "11",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2490,7 +2474,7 @@
         "label": "Superior Hunter's Defense",
         "levelAvailable": "15",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2580,7 +2564,7 @@
             "label": "Bonus Action"
           }
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2591,7 +2575,7 @@
         "value": "secondStoryWork",
         "label": "Second-Story Work",
         "levelAvailable": "3",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2602,7 +2586,7 @@
         "value": "supremeSneak",
         "label": "Supreme Sneak",
         "levelAvailable": "9",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2613,7 +2597,7 @@
         "value": "useMagicDevice",
         "label": "Use Magic Device",
         "levelAvailable": "13",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2624,7 +2608,7 @@
         "value": "thiefsReflexes",
         "label": "Thief's Reflexes",
         "levelAvailable": "17",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2677,7 +2661,7 @@
           }
         ],
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2723,7 +2707,7 @@
           "resourcePoints": 1
         },
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2738,10 +2722,6 @@
           {
             "value": "isAction",
             "label": "Action Type"
-          },
-          {
-            "value": "prerequisites",
-            "label": "Has Requirements"
           }
         ],
         "action": {
@@ -2751,12 +2731,33 @@
           }
         },
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
         "modifiers": [
           {
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "notEquipped": [
+                {
+                  "category": {
+                    "value": "armor",
+                    "label": "Armor"
+                  }
+                }
+              ],
+              "options": [
+                {
+                  "value": "notEquipped",
+                  "label": "Not Equipped"
+                }
+              ]
+            },
             "category": {
               "value": "speed",
               "label": "Speed"
@@ -2781,22 +2782,6 @@
             "id": "4e421e8e-4798-4786-8ab4-7cd30a30b26a"
           }
         ],
-        "requirements": {
-          "notEquipped": [
-            {
-              "category": {
-                "value": "armor",
-                "label": "Armor"
-              }
-            }
-          ],
-          "options": [
-            {
-              "value": "notEquipped",
-              "label": "Not Equipped"
-            }
-          ]
-        },
         "id": "7ba4cd3a-9495-4495-8682-ba91f38d7e72"
       },
       {
@@ -2838,7 +2823,7 @@
             "label": "Widsom"
           }
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2870,7 +2855,7 @@
         "label": "Evocation Savant",
         "levelAvailable": "2",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2882,7 +2867,7 @@
         "label": "Sculpt Spells",
         "levelAvailable": "2",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2894,7 +2879,7 @@
         "label": "Potent Cantrip",
         "levelAvailable": "6",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2906,7 +2891,7 @@
         "label": "Empowered Evocation",
         "levelAvailable": "10",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2918,7 +2903,7 @@
         "label": "Overchannel",
         "levelAvailable": "14",
         "targets": 1,
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2949,7 +2934,7 @@
         "value": "frenzy",
         "label": "Frenzy",
         "levelAvailable": "3",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -2960,7 +2945,7 @@
         "value": "mindlessRage",
         "label": "Mindless Rage",
         "levelAvailable": "6",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -3010,7 +2995,7 @@
             }
           }
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -3033,7 +3018,7 @@
             "label": "Reaction"
           }
         },
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -3064,38 +3049,34 @@
         "value": "expandedSpellList",
         "label": "Expanded Spell List",
         "levelAvailable": "1",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
         "targets": 1,
-        "featureSpells": [
+        "spells": [
           {
             "attribute": [
               {
                 "value": "expandsSpellList",
                 "label": "Expands Spell List"
-              },
-              {
-                "value": "spellsByLevel",
-                "label": "Add Spells By Level"
               }
             ],
             "levelLimit": [
               {
-                "label": 1
+                "value": "1"
               },
               {
-                "label": 2
+                "value": "2"
               },
               {
-                "label": 3
+                "value": "3"
               },
               {
-                "label": 4
+                "value": "4"
               },
               {
-                "label": 5
+                "value": "5"
               }
             ],
             "type": [
@@ -3159,108 +3140,6 @@
                 "level": 4,
                 "desc": "<p>You create a wall of fire on a solid surface within range. You can make the wall up to 60 feet long, 20 feet high, and 1 foot thick, or a ringed wall up to 20 feet in diameter, 20 feet high, and 1 foot thick. The wall is opaque and lasts for the duration.</p><p>When the wall appears, each creature within its area must make a Dexterity saving throw. On a failed save, a creature takes 5d8 fire damage, or half as much damage on a successful save.</p><p>One side of the wall, selected by you when you cast this spell, deals 5d8 fire damage to each creature that ends its turn within 10 feet of that side or inside the wall. A creature takes the same damage when it enters the wall for the first time on a turn or ends its turn there. The other side of the wall deals no damage.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 5th level or higher, the damage increases by 1d8 for each slot level above 4th.</p>"
               }
-            ],
-            "spellsByLevel": [
-              {
-                "spells": [
-                  {
-                    "value": "burningHands",
-                    "label": "Burning Hands",
-                    "level": 1,
-                    "desc": "<p>As you hold your hands with thumbs touching and fingers spread, a thin sheet of flames shoots forth from your outstretched fingertips. Each creature in a 15-foot cone must make a Dexterity saving throw. A creature takes 3d6 fire damage on a failed save, or half as much damage on a successful one.</p><p>The fire ignites any flammable objects in the area that aren't being worn or carried.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 2nd level or higher, the damage increases by 1d6 for each slot level above 1st.</p>"
-                  },
-                  {
-                    "value": "command",
-                    "label": "Command",
-                    "level": 1,
-                    "desc": "<p>You speak a one-word command to a creature you can see within range. The target must succeed on a Wisdom saving throw or follow the command on its next turn. The spell has no effect if the target is undead, if it doesn't understand your language, or if your command is directly harmful to it.</p><p>Some typical commands and their effects follow. You might issue a command other than one described here. If you do so, the DM determines how the target behaves. If the target can't follow your command, the spell ends.</p><p><strong><em>Approach.</em></strong> The target moves toward you by the shortest and most direct route, ending its turn if it moves within 5 feet of you.</p><p><strong><em>Drop.</em></strong> The target drops whatever it is holding and then ends its turn.</p><p><strong><em>Flee.</em></strong> The target spends its turn moving away from you by the fastest available means.</p><p><strong><em>Grovel.</em></strong> The target falls prone and then ends its turn.</p><p><strong><em>Halt.</em></strong> The target doesn't move and takes no actions. A flying creature stays aloft, provided that it is able to do so. If it must move to stay aloft, it flies the minimum distance needed to remain in the air.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 2nd level or higher, you can affect one additional creature for each slot level above 1st. The creatures must be within 30 feet of each other when you target them.</p>"
-                  }
-                ],
-                "level": {
-                  "value": "1",
-                  "label": "1"
-                }
-              },
-              {
-                "spells": [
-                  {
-                    "value": "blindnessDeafness",
-                    "label": "Blindness / Deafness",
-                    "level": 2,
-                    "desc": "<p>You can blind or deafen a foe. Choose one creature that you can see within range to make a Constitution saving throw. If it fails, the target is either blinded or deafened (your choice) for the duration. At the end of each of its turns, the target can make a Constitution saving throw. On a success, the spell ends.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, you can target one additional creature for each slot level above 2nd.</p>"
-                  },
-                  {
-                    "value": "scorchingRay",
-                    "label": "Scorching Ray",
-                    "level": 2,
-                    "desc": "<p>You create three rays of fire and hurl them at targets within range. You can hurl them at one target or several.</p><p>Make a ranged spell attack for each ray. On a hit, the target takes 2d6 fire damage.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 3rd level or higher, you create one additional ray for each slot level above 2nd.</p>"
-                  }
-                ],
-                "level": {
-                  "value": "2",
-                  "label": "2"
-                }
-              },
-              {
-                "spells": [
-                  {
-                    "value": "fireball",
-                    "label": "Fireball",
-                    "level": 3,
-                    "desc": "<p>A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much damage on a successful one.</p><p>The fire spreads around corners. It ignites flammable objects in the area that aren't being worn or carried.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 4th level or higher, the damage increases by 1d6 for each slot level above 3rd.</p>"
-                  },
-                  {
-                    "value": "stinkingCloud",
-                    "label": "Stinking Cloud",
-                    "level": 3,
-                    "desc": "<p>You create a 20-foot-radius sphere of yellow, nauseating gas centered on a point within range. The cloud spreads around corners, and its area is heavily obscured. The cloud lingers in the air for the duration.</p><p>Each creature that is completely within the cloud at the start of its turn must make a Constitution saving throw against poison. On a failed save, the creature spends its action that turn retching and reeling. Creatures that don't need to breathe or are immune to poison automatically succeed on this saving throw.</p><p>A moderate wind (at least 10 miles per hour) disperses the cloud after 4 rounds. A strong wind (at least 20 miles per hour) disperses it after 1 round.</p>"
-                  }
-                ],
-                "level": {
-                  "value": "3",
-                  "label": "3"
-                }
-              },
-              {
-                "spells": [
-                  {
-                    "value": "fireShield",
-                    "label": "Fire Shield",
-                    "level": 4,
-                    "desc": "<p>Thin and wispy flames wreathe your body for the duration, shedding bright light in a 10-foot radius and dim light for an additional 10 feet. You can end the spell early by using an action to dismiss it.</p><p>The flames provide you with a warm shield or a chill shield, as you choose. The warm shield grants you resistance to cold damage, and the chill shield grants you resistance to fire damage.</p><p>In addition, whenever a creature within 5 feet of you hits you with a melee attack, the shield erupts with flame. The attacker takes 2d8 fire damage from a warm shield, or 2d8 cold damage from a chill shield.</p>"
-                  },
-                  {
-                    "value": "wallOfFire",
-                    "label": "Wall of Fire",
-                    "level": 4,
-                    "desc": "<p>You create a wall of fire on a solid surface within range. You can make the wall up to 60 feet long, 20 feet high, and 1 foot thick, or a ringed wall up to 20 feet in diameter, 20 feet high, and 1 foot thick. The wall is opaque and lasts for the duration.</p><p>When the wall appears, each creature within its area must make a Dexterity saving throw. On a failed save, a creature takes 5d8 fire damage, or half as much damage on a successful save.</p><p>One side of the wall, selected by you when you cast this spell, deals 5d8 fire damage to each creature that ends its turn within 10 feet of that side or inside the wall. A creature takes the same damage when it enters the wall for the first time on a turn or ends its turn there. The other side of the wall deals no damage.</p><p><strong><em>At Higher Levels.</em></strong> When you cast this spell using a spell slot of 5th level or higher, the damage increases by 1d8 for each slot level above 4th.</p>"
-                  }
-                ],
-                "level": {
-                  "value": "4",
-                  "label": "4"
-                }
-              },
-              {
-                "spells": [
-                  {
-                    "value": "flameStrike",
-                    "label": "Flame Strike",
-                    "level": 5,
-                    "desc": "<p>A vertical column of divine fire roars down from the heavens in a location you specify. Each creature in a 10-foot-radius, 40-foot-high cylinder centered on a point within range must make a Dexterity saving throw. A creature takes 4d6 fire damage and 4d6 radiant damage on a failed save, or half as much damage on a successful one.</p><p><strong>At Higher Levels.</strong> When you cast this spell using a spell slot of 6th level or higher, the fire damage or the radiant damage (your choice) increases by 1d6 for each slot level above 5th.</p>"
-                  },
-                  {
-                    "value": "hallow",
-                    "label": "Hallow",
-                    "level": 5,
-                    "desc": "<p>You touch a point and infuse an area around it with holy (or unholy) power. The area can have a radius up to 60 feet, and the spell fails if the radius includes an area already under the effect a <strong>hallow</strong> spell. The affected area is subject to the following effects.</p><p>First, celestials, elementals, fey, fiends, and undead can't enter the area, nor can such creatures charm, frighten, or possess creatures within it. Any creature charmed, frightened, or possessed by such a creature is no longer charmed, frightened, or possessed upon entering the area. You can exclude one or more of those types of creatures from this effect.</p><p>Second, you can bind an extra effect to the area. Choose the effect from the following list, or choose an effect offered by the GM. Some of these effects apply to creatures in the area; you can designate whether the effect applies to all creatures, creatures that follow a specific deity or leader, or creatures of a specific sort, such as orcs or trolls. When a creature that would be affected enters the spell's area for the first time on a turn or starts its turn there, it can make a Charisma saving throw. On a success, the creature ignores the extra effect until it leaves the area.</p><p><strong>Courage.</strong> Affected creatures can't be frightened while in the area.</p><p><strong>Darkness.</strong> Darkness fills the area. Normal light, as well as magical light created by spells of a lower level than the slot you used to cast this spell, can't illuminate the area.</p><p><strong>Daylight.</strong> Bright light fills the area. Magical darkness created by spells of a lower level than the slot you used to cast this spell can't extinguish the light.</p><p><strong>Energy Protection.</strong> Affected creatures in the area have resistance to one damage type of your choice, except for bludgeoning, piercing, or slashing.</p><p><strong>Energy Vulnerability.</strong> Affected creatures in the area have vulnerability to one damage type of your choice, except for bludgeoning, piercing, or slashing.</p><p><strong>Everlasting Rest.</strong> Dead bodies interred in the area can't be turned into undead.</p><p><strong>Extradimensional Interference.</strong> Affected creatures can't move or travel using teleportation or by extradimensional or interplanar means.</p><p><strong>Fear.</strong> Affected creatures are frightened while in the area.</p><p><strong>Silence.</strong> No sound can emanate from within the area, and no sound can reach into it.</p><p><strong>Tongues.</strong> Affected creatures can communicate with any other creature in the area, even if they don't share a common language.</p>"
-                  }
-                ],
-                "level": {
-                  "value": "5",
-                  "label": "5"
-                }
-              }
             ]
           }
         ],
@@ -3271,7 +3150,7 @@
         "value": "darkOnesBlessing",
         "label": "Dark One's Blessing",
         "levelAvailable": "1",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -3283,7 +3162,7 @@
         "value": "darkOnesOwnLuck",
         "label": "Dark One's Own Luck",
         "levelAvailable": "6",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -3312,7 +3191,7 @@
         "value": "fiendishResilience",
         "label": "Fiendish Resilience",
         "levelAvailable": "10",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },
@@ -3341,7 +3220,7 @@
         "value": "hurlThroughHell",
         "label": "Hurl Through Hell",
         "levelAvailable": "14",
-        "type": {
+        "category": {
           "value": "feature",
           "label": "Feature"
         },

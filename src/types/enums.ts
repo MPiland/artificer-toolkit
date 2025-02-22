@@ -80,11 +80,13 @@ export enum Prerequisites {
   equipmentProficiency = 'f603f26f-6cb6-4995-82f3-ba4cdefd4e55',
   abilityScore = '096cf44a-60ec-4f6c-b42c-3c46e12530bb',
   notProficient = '3e8abd1f-614c-4b5e-9429-e5819a868c8d',
-  spellsKnown = 'de774c82-b1d6-4f6c-b73c-84cf370c60ff',
+  spellsObtained = 'de774c82-b1d6-4f6c-b73c-84cf370c60ff',
   canCast = '2b2cac99-dfc5-45a0-b4a6-1970179ebcd9',
   optionNotAcquired = '3fe944fc-a9d5-4afa-929a-c8b2805d70e3',
-  featuresKnown = '293010e4-fe1f-4982-8a80-6a232eafe19f',
+  featuresObtained = '293010e4-fe1f-4982-8a80-6a232eafe19f',
   characterSize = 'd5def5fd-4b6e-411b-994d-3e830912093e',
+  proficient = '2da4575c-bac4-403e-bf66-1360fcdb28b3',
+  optionsObtained = '5d93f79b-230e-464e-bef3-50bcd68f4b9f',
 }
 
 export enum ChargesResets {

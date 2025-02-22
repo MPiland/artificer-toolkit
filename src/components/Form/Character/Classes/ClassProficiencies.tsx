@@ -1,9 +1,9 @@
 import Collapse from '../../../Collapse/Collapse'
 import Dropdown from '../../../Dropdown/Dropdown'
-import { startCase } from 'lodash'
+import { get, startCase } from 'lodash'
 import { feature_card_header, option_dropdown } from '../Character.css'
 import { numberToWords } from '../../../../utils/formatting'
-import { Character, CharacterClass, Class } from '../../../../../amplify/gql/types'
+import { Character, CharacterClass, CharacterProficiency, Class } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
 import useGetSections from '../../../../hooks/useGetSectionState'
 
@@ -40,9 +40,9 @@ const ClassProficiencies = ({
 
             const dropdowns = () =>
               Array.from({ length: selectionCount ?? 0 }, (_, index) => {
-                const optionIndex = index & pIndex & classIndex
+                const optionIndex = `${index}${pIndex}${classIndex}`
 
-                const { options, path, exist } = getSectionOptions({
+                const { options, path } = getSectionOptions({
                   section: fullProficiency,
                   sectionStep: 'proficiencies',
                   optionIndex,
@@ -56,8 +56,26 @@ const ClassProficiencies = ({
                     className={option_dropdown}
                     label={`${startCase(key)} Option`}
                     options={options}
-                    onChange={updateFormData}
-                    value={exist}
+                    onChange={(e) => {
+                      if (e.type === 'update') {
+                        updateFormData({
+                          type: 'update',
+                          path,
+                          value: {
+                            proficiencyId: e.value,
+                            classId: fullClass.id,
+                            optionIndex,
+                            __typename: 'CharacterProficiency',
+                          },
+                        })
+                      } else {
+                        updateFormData({
+                          type: 'remove',
+                          path,
+                        })
+                      }
+                    }}
+                    value={(get(formData, path) as CharacterProficiency)?.proficiencyId}
                   />
                 )
               })
@@ -70,7 +88,7 @@ const ClassProficiencies = ({
               }
               propertyArray.forEach((iProperty, pIndex) => {
                 if (selectionCount != null) {
-                  typeText += `${iProperty.value}s`
+                  typeText += `${iProperty.label}s`
                 }
 
                 if (propertyArray.length > 1 && propertyArray.length < 3) {

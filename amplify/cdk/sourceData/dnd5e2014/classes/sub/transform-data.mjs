@@ -105,6 +105,12 @@ const mapping = {
     options: {
       replace: (obj) => findIdInLookup(obj?.value, '../../system/systemPrerequisites.json'),
     },
+    option: {
+      replace: (obj) => findIdInLookup(obj?.value, '../../system/systemPrerequisites.json'),
+      newKey: {
+        fn: () => 'options',
+      },
+    },
     newKey: 'prerequisites',
   },
   'prerequisites': {
@@ -167,16 +173,21 @@ const mapping = {
       newKey: 'modifiers',
     },
     spells: {
-      newKey: 'featureSpells',
-    },
-    senses: {
-      newKey: 'senses',
-    },
-    expertise: {
-      newKey: 'expertise',
-    },
-    feats: {
-      newKey: 'feats',
+      spell: {
+        replace: (obj) => findIdInLookup(obj.value, '../../spells/spellData.json'),
+        absorbKey: {
+          key: (obj) => {
+            for (const key in obj) {
+              if (key === 'type') {
+                return key
+              }
+            }
+          },
+        },
+      },
+      newKey: {
+        fn: () => 'spells',
+      },
     },
   },
   'modifiers': {
@@ -204,6 +215,9 @@ const mapping = {
       },
       newKey: 'damageTypes',
     },
+  },
+  'subtype': {
+    replace: (obj) => findIdInLookup(obj.value, 'subclassData.json'),
   },
   'options': {
     modifier: {
@@ -331,7 +345,7 @@ const mapping = {
     levelLimit: {
       replace: (obj) => {
         if (obj.value) {
-          return Number(obj.value)
+          return String(obj.value)
         } else {
           return obj
         }

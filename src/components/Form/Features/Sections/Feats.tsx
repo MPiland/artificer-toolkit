@@ -7,21 +7,26 @@ import { startCase } from 'lodash'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { useListFeatsQuery } from '../../../../features/feats/featsApi'
 import { FeatureContext } from '../FeatureContext'
-import { Attributes, Categories } from '../../../../types/enums'
+import {  Categories } from '../../../../types/enums'
 import { Class, FeatureFeat, SectionEnum } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
+import { useEnumChecks } from '../../../../hooks/useEnumChecks'
+import Prerequisites from '../../Generic/Requirements'
 
 const Feats = () => {
   const { formData } = use(FormContext)
+
   const { sectionData, updateSectionData } = use(FeatureContext) as {
     sectionData: FeatureFeat
     updateSectionData: (arg: UpdateState<FeatureFeat>) => void
   }
 
   const { data: system } = useGetSystemQuery()
-  const { data: feats } = useListFeatsQuery()
+  const { data: feats } = useListFeatsQuery()  
 
-  const providesOptions = sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+  const { subtypeSpecific, providesOptions, hasPrerequisites } = useEnumChecks({
+    data: sectionData,
+  })
 
   return (
     <>
@@ -48,7 +53,7 @@ const Feats = () => {
           required={true}
           onChange={updateSectionData}
         />
-        {sectionData?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+        {subtypeSpecific &&
           formData.__typename === 'Class' &&
           formData.category === Categories.subclass && (
             <Dropdown
@@ -73,6 +78,7 @@ const Feats = () => {
           />
         )}
       </Row>
+      {hasPrerequisites && <Prerequisites formData={sectionData} updateFormData={updateSectionData} />}
     </>
   )
 }

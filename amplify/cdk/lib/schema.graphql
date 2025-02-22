@@ -594,9 +594,9 @@ type Prerequisite {
   equipped: [EquipPrerequisite]
   notEquipped: [EquipPrerequisite]
   abilityScore: AbilityScore
-  spellsKnown: [ID]
-  featuresKnown: [ID]
-  optionsKnown: [ID]
+  spellsObtained: [ID]
+  featuresObtained: [ID]
+  optionsObtained: [ID]
   size: [ID]
 }
 
@@ -608,6 +608,7 @@ type FeatureFeat {
   feats: [ID]
   selectionCount: Int
   subtype: ID
+  prerequisites: Prerequisite
 }
 
 type ModifierDiePerLevel {
@@ -644,14 +645,18 @@ type FeatureModifier {
   speeds: [ID]
   charge: Charge
   range: ID
+  minRange: Int
+  maxRange: Int
   shape: ID
   size: Int
   duration: ID
   unit: ID
   conditions: [ID]
   damageTypes: [ID]
+  damageType: ID
   spell: ID
   spellCategory: ID
+  prerequisites: Prerequisite
 }
 
 type ProficiencyProperties {
@@ -673,6 +678,7 @@ type FeatureProficiency {
   languages: [ID]
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
+  prerequisites: Prerequisite
 }
 
 type FeatureExpertise {
@@ -686,6 +692,7 @@ type FeatureExpertise {
   languages: [ID]
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
+  prerequisites: Prerequisite
 }
 
 type FeatureSense {
@@ -694,6 +701,8 @@ type FeatureSense {
   selectionCount: Int
   subtype: ID
   ids: [ID!]
+  prerequisites: Prerequisite
+  charges: Charge
 }
 
 type SpellsByLevel {
@@ -708,12 +717,14 @@ type FeatureSpell {
   attributes: [ID]
   selectionCount: Int
   classLimit: [ID]
-  levelLimit: Int
+  levelLimit: [String]
   attributeLimit: [ID]
   ability: ID
   spellLevel: Int
   spellsByLevel: [SpellsByLevel]
   subtype: ID
+  prerequisites: Prerequisite
+  charges: Charge
 }
 
 type FeatureAncestry {
@@ -964,8 +975,7 @@ type Spellcasting {
 }
 
 type SpellSlot {
-  level: Int
-  count: Int
+  slotCount: Int
 }
 
 type LevelAttribute {
@@ -1043,7 +1053,7 @@ type CharacterModifier {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterSense {
@@ -1057,7 +1067,7 @@ type CharacterSense {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterFeat {
@@ -1070,7 +1080,7 @@ type CharacterFeat {
   equipmentId: ID
   backgroundId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterProficiency {
@@ -1084,7 +1094,7 @@ type CharacterProficiency {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterExpertise {
@@ -1098,7 +1108,7 @@ type CharacterExpertise {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterSpell {
@@ -1120,7 +1130,7 @@ type CharacterSpell {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 type CharacterFeature {
@@ -1132,7 +1142,7 @@ type CharacterFeature {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
   level: Int
 }
 
@@ -1909,9 +1919,9 @@ input PrerequisiteInput {
   equipped: [EquipPrerequisiteInput]
   notEquipped: [EquipPrerequisiteInput]
   abilityScore: AbilityScoreInput
-  spellsKnown: [ID]
-  featuresKnown: [ID]
-  optionsKnown: [ID]
+  spellsObtained: [ID]
+  featuresObtained: [ID]
+  optionsObtained: [ID]
   size: [ID]
 }
 
@@ -1923,6 +1933,7 @@ input FeatureFeatInput {
   feats: [ID]
   selectionCount: Int
   subtype: ID
+  prerequisites: PrerequisiteInput
 }
 
 input ModifierDiePerLevelInput {
@@ -1959,14 +1970,18 @@ input FeatureModifierInput {
   speeds: [ID]
   charge: ChargeInput
   range: ID
+  minRange: Int
+  maxRange: Int
   shape: ID
   size: Int
   duration: ID
   unit: ID
   conditions: [ID]
   damageTypes: [ID]
-  spell: ID
+  damageType: ID
+  spells: ID
   spellCategory: ID
+  prerequisites: PrerequisiteInput
 }
 
 input ProficiencyPropertiesInput {
@@ -1988,6 +2003,7 @@ input FeatureProficiencyInput {
   languages: [ID]
   properties: ProficiencyPropertiesInput
   equipment: ProficiencyPropertiesInput
+  prerequisites: PrerequisiteInput
 }
 
 input FeatureExpertiseInput {
@@ -2001,6 +2017,7 @@ input FeatureExpertiseInput {
   languages: [ID]
   properties: ProficiencyPropertiesInput
   equipment: ProficiencyPropertiesInput
+  prerequisites: PrerequisiteInput
 }
 
 input FeatureSenseInput {
@@ -2009,6 +2026,8 @@ input FeatureSenseInput {
   selectionCount: Int
   subtype: ID
   ids: [ID!]
+  prerequisites: PrerequisiteInput
+  charges: ChargeInput
 }
 
 input SpellsByLevelInput {
@@ -2023,12 +2042,14 @@ input FeatureSpellInput {
   attributes: [ID]
   selectionCount: Int
   classLimit: [ID]
-  levelLimit: Int
+  levelLimit: [String]
   attributeLimit: [ID]
   ability: ID
   spellLevel: Int
   spellsByLevel: [SpellsByLevelInput]
   subtype: ID
+  prerequisites: PrerequisiteInput
+  charges: ChargeInput
 }
 
 input FeatureAncestryInput {
@@ -2277,8 +2298,7 @@ input SpellcastingInput {
 }
 
 input SpellSlotInput {
-  level: Int
-  count: Int
+  slotCount: Int
 }
 
 input LevelAttributeInput {
@@ -2355,7 +2375,7 @@ input CharacterModifierInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterSenseInput {
@@ -2369,7 +2389,7 @@ input CharacterSenseInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterFeatInput {
@@ -2382,7 +2402,7 @@ input CharacterFeatInput {
   equipmentId: ID
   backgroundId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterProficiencyInput {
@@ -2396,7 +2416,7 @@ input CharacterProficiencyInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterExpertiseInput {
@@ -2410,7 +2430,7 @@ input CharacterExpertiseInput {
   backgroundId: ID
   featId: ID
   optionId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterSpellInput {
@@ -2432,7 +2452,7 @@ input CharacterSpellInput {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
 }
 
 input CharacterFeatureInput {
@@ -2444,7 +2464,7 @@ input CharacterFeatureInput {
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: Int
+  optionIndex: String
   level: Int
 }
 

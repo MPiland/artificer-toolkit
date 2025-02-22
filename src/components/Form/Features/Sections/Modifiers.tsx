@@ -20,9 +20,12 @@ import {
   Ranges,
 } from '../../../../types/enums'
 import { getKeyFromId, getModifierProperties } from '../../../../utils/form'
+import { useEnumChecks } from '../../../../hooks/useEnumChecks'
+import Prerequisites from '../../Generic/Requirements'
 
 const Modifiers = () => {
   const { formData } = use(FormContext)
+
   const { sectionData, updateSectionData } = use(FeatureContext) as {
     sectionData: FeatureModifier
     updateSectionData: (arg: UpdateState<FeatureModifier>) => void
@@ -31,7 +34,9 @@ const Modifiers = () => {
   const { data: system } = useGetSystemQuery()
   const { data: spells } = useListSpellsQuery()
 
-  const providesOptions = sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+  const { subtypeSpecific, providesOptions, hasPrerequisites, doesDamage } = useEnumChecks({
+    data: sectionData,
+  })
 
   const [modTypes, setModTypes] = useState<typeof system.modifiers.types>([])
   const [modMethods, setModMethods] = useState<typeof system.modifiers.methods>(null)
@@ -45,7 +50,7 @@ const Modifiers = () => {
   const path = getModifierProperties({
     category: categoryName,
   })
-  
+
   // Set if selected category has type options
   useEffect(() => {
     setTypeOptions(
@@ -108,19 +113,21 @@ const Modifiers = () => {
       if (sectionData?.spellCategory === ModifierSpellCategories.spellDamage) {
         return spell.attributes?.some((attribute) => attribute === Attributes.doesDamage)
       }
-      if (sectionData?.spellCategory === ModifierSpellCategories.spellRange) {
-        return spell.range && spell.range.minRange && spell.range.maxRange
+      if (sectionData?.spellCategory === ModifierSpellCategories.spellRange && spell.range != null) {
+        return true
       }
-      if (sectionData?.spellCategory === ModifierSpellCategories.spellShape) {
-        return spell.shape && spell.shape.id && spell.shape.size
+      if (sectionData?.spellCategory === ModifierSpellCategories.spellShape && spell.shape != null) {
+        return true
       }
-      if (sectionData?.spellCategory === ModifierSpellCategories.spellDuration) {
-        return spell.duration && spell.duration.id && spell.duration
+      if (sectionData?.spellCategory === ModifierSpellCategories.spellDuration && spell.duration != null) {
+        return true
       }
       return false
     })
     setSpellsArray(filteredSpells)
-  }, [sectionData?.spellCategory, spells])
+  }, [sectionData?.spellCategory, spells, doesDamage])
+
+  console.log({ sectionData })
 
   // Add/Remove die per level Table
   useEffect(() => {
@@ -381,82 +388,78 @@ const Modifiers = () => {
               </>
             )
           ))}
-        {sectionData?.category !== ModifierCategories.spell &&
-          sectionData?.method != null &&
-          sectionData?.method !== ModifierMethods.setPerLevel && (
-            <>
-              {(sectionData?.type === ModifierTypes.bonus || sectionData?.type === ModifierTypes.setAmount) && (
-                <>
-                  {sectionData?.method === ModifierMethods.setGlobally ? (
-                    <Input
-                      validation='num'
-                      name='setAmount'
-                      label='Set Value'
-                      errorMsg='Must contain only numbers'
-                      autoComplete='off'
-                      value={sectionData?.setAmount}
-                      required={true}
-                      onChange={updateSectionData}
-                    />
-                  ) : sectionData?.method === ModifierMethods.abilityScoreModifier ? (
+        {sectionData?.method != null && sectionData?.method !== ModifierMethods.setPerLevel && (
+          <>
+            {(sectionData?.type === ModifierTypes.bonus || sectionData?.type === ModifierTypes.setAmount) && (
+              <>
+                {sectionData?.method === ModifierMethods.setGlobally ? (
+                  <Input
+                    validation='num'
+                    name='setAmount'
+                    label='Set Value'
+                    errorMsg='Must contain only numbers'
+                    autoComplete='off'
+                    value={sectionData?.setAmount}
+                    required={true}
+                    onChange={updateSectionData}
+                  />
+                ) : sectionData?.method === ModifierMethods.abilityScoreModifier ? (
+                  <Dropdown
+                    name='methodAbility'
+                    label='Method Ability'
+                    value={sectionData?.methodAbility}
+                    options={system.abilities}
+                    required={true}
+                    onChange={updateSectionData}
+                  />
+                ) : (
+                  sectionData?.method === ModifierMethods.skillModifier && (
                     <Dropdown
-                      name='methodAbility'
-                      label='Method Ability'
-                      value={sectionData?.methodAbility}
-                      options={system.abilities}
+                      name='methodSkill'
+                      label='Method Skill'
+                      value={sectionData?.methodSkill}
+                      options={system.skills}
                       required={true}
                       onChange={updateSectionData}
                     />
-                  ) : (
-                    sectionData?.method === ModifierMethods.skillModifier && (
-                      <Dropdown
-                        name='methodSkill'
-                        label='Method Skill'
-                        value={sectionData?.methodSkill}
-                        options={system.skills}
-                        required={true}
-                        onChange={updateSectionData}
-                      />
-                    )
-                  )}
-                </>
-              )}
-              {sectionData?.method !== ModifierMethods.setGlobally && (
-                <>
-                  <Input
-                    validation='num'
-                    name='multiplier'
-                    label='Multiplier'
-                    errorMsg='Must contain only whole numbers'
-                    autoComplete='off'
-                    value={sectionData?.multiplier}
-                    onChange={updateSectionData}
-                  />
-                  <Input
-                    validation='num'
-                    name='minAmount'
-                    label='Minimum Value'
-                    errorMsg='Must contain only whole numbers'
-                    autoComplete='off'
-                    value={sectionData?.minAmount}
-                    onChange={updateSectionData}
-                  />
-                </>
-              )}
-            </>
-          )}
-        {sectionData?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
-          formData.__typename === 'Class' &&
-          sectionData?.category != null && (
-            <Dropdown
-              name='subtype'
-              label='Subclass Subtype'
-              value={sectionData?.subtype}
-              options={formData?.subtypes}
-              required={true}
-              onChange={updateSectionData}
-            />
-          )}
+                  )
+                )}
+              </>
+            )}
+            {sectionData?.method !== ModifierMethods.setGlobally && (
+              <>
+                <Input
+                  validation='num'
+                  name='multiplier'
+                  label='Multiplier'
+                  errorMsg='Must contain only whole numbers'
+                  autoComplete='off'
+                  value={sectionData?.multiplier}
+                  onChange={updateSectionData}
+                />
+                <Input
+                  validation='num'
+                  name='minAmount'
+                  label='Minimum Value'
+                  errorMsg='Must contain only whole numbers'
+                  autoComplete='off'
+                  value={sectionData?.minAmount}
+                  onChange={updateSectionData}
+                />
+              </>
+            )}
+          </>
+        )}
+        {subtypeSpecific && formData.__typename === 'Class' && sectionData?.category != null && (
+          <Dropdown
+            name='subtype'
+            label='Subclass Subtype'
+            value={sectionData?.subtype}
+            options={formData?.subtypes}
+            required={true}
+            onChange={updateSectionData}
+          />
+        )}
         {providesOptions && (
           <Input
             validation='num'
@@ -470,6 +473,7 @@ const Modifiers = () => {
           />
         )}
       </Row>
+      {hasPrerequisites && <Prerequisites formData={sectionData} updateFormData={updateSectionData} />}
       {sectionData?.type === ModifierTypes.setDie &&
         sectionData?.method === ModifierMethods.setPerLevel &&
         sectionData?.diePerLevel?.length > 0 && (

@@ -117,9 +117,9 @@ type Prerequisite {
   equipped: [EquipPrerequisite]
   notEquipped: [EquipPrerequisite]
   abilityScore: AbilityScore
-  spellsKnown: [ID]
-  featuresKnown: [ID]
-  optionsKnown: [ID]
+  spellsObtained: [ID]
+  featuresObtained: [ID]
+  optionsObtained: [ID]
   size: [ID]
 }
 
@@ -131,6 +131,7 @@ type FeatureFeat {
   feats: [ID]
   selectionCount: Int
   subtype: ID
+  prerequisites: Prerequisite
 }
 
 type ModifierDiePerLevel {
@@ -167,14 +168,18 @@ type FeatureModifier {
   speeds: [ID]
   charge: Charge
   range: ID
+  minRange: Int
+  maxRange: Int
   shape: ID
   size: Int
   duration: ID
   unit: ID
   conditions: [ID]
   damageTypes: [ID]
+  damageType: ID
   spell: ID
   spellCategory: ID
+  prerequisites: Prerequisite
 }
 
 type ProficiencyProperties {
@@ -196,6 +201,7 @@ type FeatureProficiency {
   languages: [ID]
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
+  prerequisites: Prerequisite
 }
 
 type FeatureExpertise {
@@ -209,6 +215,7 @@ type FeatureExpertise {
   languages: [ID]
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
+  prerequisites: Prerequisite
 }
 
 type FeatureSense {
@@ -217,6 +224,7 @@ type FeatureSense {
   selectionCount: Int
   subtype: ID
   ids: [ID!]
+  prerequisites: Prerequisite 
 }
 
 type SpellsByLevel {
@@ -231,12 +239,14 @@ type FeatureSpell {
   attributes: [ID]
   selectionCount: Int
   classLimit: [ID]
-  levelLimit: Int
+  levelLimit: [String]
   attributeLimit: [ID]
   ability: ID
   spellLevel: Int
   spellsByLevel: [SpellsByLevel]
   subtype: ID
+  prerequisites: Prerequisite
+  charges: Charge
 }
 
 type FeatureAncestry {

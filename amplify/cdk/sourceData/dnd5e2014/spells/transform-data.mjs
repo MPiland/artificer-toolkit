@@ -4,6 +4,8 @@ const outputPath = './spells.json'
 
 const data = JSON.parse(fs.readFileSync('./spellData.json', 'utf8'))
 
+const valueToIdCache = new Map()
+
 const mapping = {
   'dieValue': {
     replace: (obj) => obj.value,
@@ -84,7 +86,7 @@ const mapping = {
           '../system/spellShapes.json',
           '../system/damageTypes.json',
           '../system/spellCategories.json',
-          '../system/spellRanges.json',
+          '../system/spellDurations.json',
         ])
       },
       newKey: {
@@ -123,26 +125,22 @@ const merge = [
 ]
 
 function findIdInLookup(targetValue, filepath) {
+  if (valueToIdCache.has(targetValue)) {
+    return valueToIdCache.get(targetValue)
+  }
   if (Array.isArray(filepath)) {
     for (const path of filepath) {
       if (typeof path === 'string') {
         const id = findIdInLookup(targetValue, path)
-        if (id) return id
+        if (id) {
+          valueToIdCache.set(targetValue, id)
+          return id
+        }
       }
     }
   } else {
-    // 1. Create a cache on the function itself (if it doesn't exist)
-    findIdInLookup.cache = findIdInLookup.cache || {}
-
-    // 2. Check if the result for this file and targetValue is already cached
-    if (findIdInLookup.cache[filepath]?.[targetValue]) {
-      const cacheValue = findIdInLookup.cache[filepath][targetValue]
-      return cacheValue
-    }
-
     const lookupData = JSON.parse(fs.readFileSync(filepath, 'utf8'))
 
-    // 3. Recursive call to find the ID (this is the core logic)
     const foundId = (function findId(data) {
       if (Array.isArray(data)) {
         for (const item of data) {
@@ -150,21 +148,17 @@ function findIdInLookup(targetValue, filepath) {
           if (id) return id
         }
       } else if (typeof data === 'object' && data !== null) {
-        if (data.value === targetValue) {
-          return data.id // Found a match!
-        } else {
-          for (const key in data) {
-            const id = findId(data[key])
-            if (id) return id
-          }
+        if (data.value === targetValue && data.id) {
+          valueToIdCache.set(targetValue, data.id)
+          return data.id
+        }
+        for (const key in data) {
+          const id = findId(data[key])
+          if (id) return id
         }
       }
       return null
-    })(lookupData) // Immediately invoke the function with lookupData
-
-    // 4. Cache the result for future lookups
-    findIdInLookup.cache[filepath] = findIdInLookup.cache[filepath] || {}
-    findIdInLookup.cache[filepath][targetValue] = foundId
+    })(lookupData)
 
     return foundId
   }
@@ -200,32 +194,58 @@ const processObject = (data, mapping, parentKey = null) => {
           }
         })
 
+        // Recursively process the value to apply mappings to nested properties
+        if (Array.isArray(value)) {
+          transformedData[key] = value.map((item) => {
+            if (Array.isArray(item)) {
+              return item.map((subItem) => {
+                if (Array.isArray(subItem)) {
+                  return subItem.map((innerItem) => {
+                    return transformData(innerItem, mapping, key)
+                  })
+                } else {
+                  return transformData(subItem, mapping, key)
+                }
+              })
+            } else {
+              return transformData(item, mapping, key)
+            }
+          })
+        } else if (typeof value === 'object' && value !== null) {
+          transformedData[key] = transformData(value, mapping, key)
+        } else {
+          transformedData[key] = value
+        }
+
         // Apply specific mapping if exists
         const specificMapping = mapping[key]
         if (specificMapping) {
-          if (Array.isArray(value)) {
+          if (Array.isArray(transformedData[key])) {
             // Apply the mapping to each item in the array
-            value = value.map((item) => replaceKey(item, specificMapping))
+            transformedData[key] = transformedData[key].map((item) => {
+              return replaceKey(item, specificMapping, key)
+            })
           } else {
-            value = replaceKey(value, specificMapping)
+            transformedData[key] = replaceKey(transformedData[key], specificMapping, key)
           }
         }
 
         // Apply wildcard mapping if exists for this key
         const wildcardMapping = mapping['*']?.[key]
         if (wildcardMapping) {
-          if (Array.isArray(value)) {
-            // Apply the wildcard mapping to each item in the array
-            value = value.map((item) => replaceKey(item, wildcardMapping))
+          if (Array.isArray(transformedData[key])) {
+            transformedData[key] = transformedData[key].map((item) => {
+              return replaceKey(item, wildcardMapping, key)
+            })
           } else {
-            value = replaceKey(value, wildcardMapping)
+            transformedData[key] = replaceKey(transformedData[key], wildcardMapping, key)
           }
         }
 
         if (specificMapping && specificMapping?.newKey) {
           if (typeof specificMapping.newKey === 'object') {
             if (!specificMapping?.newKey.excludeParent || !specificMapping?.newKey.excludeParent?.includes(parentKey)) {
-              keyMap = specificMapping.newKey.fn(value)
+              keyMap = specificMapping.newKey.fn(transformedData[key])
             }
           } else {
             keyMap = specificMapping.newKey
@@ -233,20 +253,16 @@ const processObject = (data, mapping, parentKey = null) => {
         } else if (wildcardMapping && wildcardMapping?.newKey) {
           if (typeof wildcardMapping.newKey === 'object') {
             if (!wildcardMapping?.newKey.excludeParent?.includes(parentKey)) {
-              keyMap = wildcardMapping.newKey.fn(value)
+              keyMap = wildcardMapping.newKey.fn(transformedData[key])
             }
           } else {
             keyMap = wildcardMapping.newKey
           }
         }
 
-        // Recursively process the value to apply mappings to nested properties
-        if (Array.isArray(value)) {
-          transformedData[keyMap] = value.map((item) => transformData(item, mapping, key))
-        } else if (typeof value === 'object' && value !== null) {
-          transformedData[keyMap] = transformData(value, mapping, key)
-        } else {
-          transformedData[keyMap] = value
+        if (keyMap !== key) {
+          transformedData[keyMap] = transformedData[key]
+          delete transformedData[key]
         }
 
         const moveTo =
@@ -317,7 +333,7 @@ function moveKey(data, mapping) {
   return data
 }
 
-function replaceKey(data, mapping) {
+function replaceKey(data, mapping, parentKey = null) {
   if (data == null) {
     return
   }
@@ -327,7 +343,7 @@ function replaceKey(data, mapping) {
   if (mapping?.replace) {
     transformedValue = mapping.replace(transformedValue)
   } else {
-    transformedValue = transformData(data, mapping)
+    transformedValue = transformData(data, mapping, parentKey)
   }
 
   return transformedValue || data

@@ -18,7 +18,6 @@ export const scroll_area_wrapper = style({
       marginRight: '-1rem',
       paddingRight: '1rem',
       paddingBottom: '1rem',
-      width: '100%',
     },
   },
 })

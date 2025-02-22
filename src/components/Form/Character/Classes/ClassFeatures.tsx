@@ -70,8 +70,7 @@ const ClassFeature = ({
                   </>
                 )}
                 {!(fullFeature?.options?.length > 0)
-                  ? // If feature doesn't have options, then check for sections
-                    sectionSteps.map(
+                  ? sectionSteps.map(
                       (sectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>, nameIndex) => (
                         <Fragment key={nameIndex}>
                           {fullFeature[sectionStep]?.length > 0 &&
@@ -82,7 +81,7 @@ const ClassFeature = ({
 
                                 // Repeat Dropdown component based on selectionCount
                                 const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                                  const optionIndex = index & fIndex & classIndex
+                                  const optionIndex = `${index}${fIndex}${classIndex}`
 
                                   const { options, label, path, exist } = getSectionOptions({
                                     section,
@@ -125,7 +124,7 @@ const ClassFeature = ({
                       const selectionCount = fullFeature?.selectionCount || 1
 
                       const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                        const optionIndex = index & fIndex & classIndex
+                        const optionIndex = `${index}${fIndex}${classIndex}`
 
                         const { path, exist } = getFeatureOptions({
                           options: fullFeature.options,
@@ -185,7 +184,7 @@ const ClassFeature = ({
 
                                       // Repeat Dropdown component based on selectionCount
                                       const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                                        const optionIndex = index & fIndex & classIndex
+                                        const optionIndex = `${index}${fIndex}${classIndex}`
 
                                         const { options, label, path, exist } = getSectionOptions({
                                           section,

@@ -27,7 +27,14 @@
     "label": "Limit Use",
     "value": "limitUse",
     "id": "408bd86e-2ed9-4da6-9932-0e99a6e40e17",
-    "features": ["all"]
+    "features": ["all"],
+    "sections": ["spells"]
+  },
+  {
+    "label": "Self Only",
+    "value": "selfOnly",
+    "id": "a5a64799-6105-4d1f-a849-cb6ef41b0823",
+    "sections": ["spells"]
   },
   {
     "value": "isAction",
@@ -107,12 +114,6 @@
     "id": "854fdc5a-6168-4b35-96af-d3b3713edf4c",
     "sections": ["spells"],
     "spells": ["all"]
-  },
-  {
-    "value": "usesSlot",
-    "label": "Uses Spell Slot",
-    "id": "ba23bfae-3039-4c7f-a98a-474b76e85cc6",
-    "sections": ["spells"]
   },
   {
     "value": "optionalAbility",
@@ -431,5 +432,11 @@
     "label": "Has Class Style",
     "id": "3764d329-dff1-4d17-8d22-ef9a0f5bc60d",
     "classes": ["subclass"]
+  },
+  {
+    "value": "castAtWill",
+    "label": "Cast At Will",
+    "id": "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
+    "sections": ["spells"]
   }
 ]

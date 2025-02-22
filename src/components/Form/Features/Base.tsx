@@ -5,7 +5,7 @@ import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { FeatureDataType, SectionName, UpdateState } from '../../../types/form'
 import Row from '../../Row/Row'
 import Select from '../../Select/Select'
-import { feature_list, form_content } from '../Form.css'
+import { feature_list } from '../Form.css'
 import { sprinkles } from '../../../css/sprinkles.css'
 import SectionsList from './Sections/SectionsList'
 import Requirements from '../Generic/Requirements'
@@ -30,7 +30,6 @@ const Base = ({
   const { formData, steps, stepIndex } = use(FormContext)
 
   const {
-    featureStep,
     setFeatureStep,
     resetOption,
     resetSection,
@@ -116,7 +115,7 @@ const Base = ({
           errorMsg='Name must not be blank'
           onChange={updateFeatureData}
         />
-        {featureStep !== 'ancestry' && (
+        {featureData.__typename !== 'AncestryFeature' && featureData.__typename !== 'FeatureOption' && (
           <Dropdown
             name={`category`}
             options={system.categories.filter((category) => category.features)}
@@ -126,17 +125,19 @@ const Base = ({
             required={true}
           />
         )}
-        {(featureData?.category === Categories.feature || featureStep === 'ancestry') && (
+        {(featureData?.category === Categories.feature ||
+          featureData.__typename === 'AncestryFeature' ||
+          featureData.__typename === 'FeatureOption') && (
           <Select
             name='section'
-            handleChange={selectSection as (arg: string) => void}
+            handleChange={selectSection}
             placeholder='Add...'
             label={'Add Section'}
             options={sectionSteps}
           />
         )}
       </Row>
-      <div className={form_content}>
+      <>
         {featureData?.category === Categories.subclass && (
           <RichTextEditor
             label='Feature detail'
@@ -156,37 +157,30 @@ const Base = ({
         <Row className={sprinkles({ mb: 'space-3' })}>
           {formData.__typename !== 'Equipment' &&
             formData.__typename !== 'Background' &&
-            !(steps[stepIndex].id === 'ancestry' && featureStep !== 'option') && (
+            !(steps[stepIndex].id === 'ancestry' && featureData.__typename === 'FeatureOption') && (
               <Input
                 name={`levelAvailable`}
                 autoComplete='off'
                 label='Level(s) Available'
-                required={formData.__typename === 'Race' || featureStep === 'option' ? false : true}
+                required={formData.__typename === 'Race' || featureData.__typename === 'FeatureOption' ? false : true}
                 value={featureData?.levelAvailable}
                 validation='num'
                 errorMsg='Must contain whole numbers and commas only'
                 onChange={updateFeatureData}
               />
             )}
-          {(featureData?.category === Categories.feature || featureStep === 'ancestry') && (
+          {(featureData?.category === Categories.feature || featureData.__typename === 'AncestryFeature') && (
             <Dropdown
               multiSelect={true}
               name='attributes'
-              options={system.attributes.filter((attribute) => {
-                if (attribute?.features?.length > 0) {
-                  if (formData.__typename === 'Equipment') {
-                    return attribute?.features?.includes(FeatureEnum.equipment)
-                  }
-                  if (
-                    (featureData.__typename === 'Feature' || featureData.__typename === 'AncestryFeature') &&
-                    featureData?.options?.length > 0
-                  ) {
-                    return attribute?.features?.length > 0 && attribute?.features?.includes(FeatureEnum.options)
-                  }
-                  return attribute?.features?.length > 0 && attribute?.features?.includes(FeatureEnum.all)
-                }
-                return false
-              })}
+              options={system.attributes.filter(
+                (attribute) =>
+                  attribute?.features?.length > 0 &&
+                  ((formData.__typename === 'Equipment' && attribute?.features?.includes(FeatureEnum.equipment)) ||
+                    ((featureData.__typename === 'FeatureOption' || featureData.__typename === 'AncestryFeature') &&
+                      attribute?.features?.includes(FeatureEnum.options))) &&
+                  attribute?.features?.includes(FeatureEnum.all)
+              )}
               label='Feature Attribute'
               value={featureData?.attributes}
               onChange={updateFeatureData}
@@ -309,11 +303,10 @@ const Base = ({
               multiSelect={true}
               label='Save Attribute'
               value={featureData?.saveAbility?.attributes}
-              options={system.attributes.filter((attribute) => {
-                if (attribute?.features?.length > 0) {
-                  return attribute?.features?.includes(FeatureEnum.saveAbilities)
-                }
-              })}
+              options={system.attributes.filter(
+                (attribute) =>
+                  attribute?.features?.length > 0 && attribute?.features?.includes(FeatureEnum.saveAbilities)
+              )}
               onChange={updateFeatureData}
             />
             <Dropdown
@@ -354,7 +347,7 @@ const Base = ({
             <SectionsList featureData={featureData} updateFeatureData={updateFeatureData} />
           </div>
         )}
-      </div>
+      </>
     </>
   )
 }

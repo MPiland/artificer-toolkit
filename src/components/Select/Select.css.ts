@@ -78,7 +78,6 @@ export const select_menu = style({
       display: 'flex',
       maxHeight: '10rem',
       borderRadius: theme.border.radius,
-      overflowY: 'auto',
       zIndex: 1000,
       backgroundColor: theme.vars.component.content.backgroundColor.main,
       color: theme.vars.typography.color.main,
