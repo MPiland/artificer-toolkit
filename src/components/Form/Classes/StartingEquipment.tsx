@@ -117,7 +117,7 @@ const StartingEquipment = () => {
                                         directionVariant='row'
                                         justifyContentVariant='end'
                                         alignItemsVariant='center'
-                                        flexWrapVariant='nowrap'
+                                        flexWrapVariant='noWrap'
                                       >
                                         <Row
                                           className={clsx({

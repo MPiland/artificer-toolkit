@@ -1,10 +1,5 @@
-import { Fragment } from 'react'
 import { sprinkles } from '../../../css/sprinkles.css'
-import {
-  character_header_body,
-  character_header_item,
-  character_header_item_divider,
-} from './Character.css'
+import { character_header_body, character_header_item, character_header_item_divider } from './Character.css'
 import Collapse from '../../Collapse/Collapse'
 import { Character } from '../../../../amplify/gql/types'
 import { useListRacesQuery } from '../../../features/races/racesApi'
@@ -37,7 +32,7 @@ const CharacterHeader = () => {
         <Collapse.Header title='Character Details' startOpened={true} />
         <Collapse.Body className={character_header_body}>
           <Row cols={{ base: 2 }} className={sprinkles({ mb: 'space-x' })}>
-            <Row cols={{ base: 1, md: 3 }} cellSize={'default'} className={sprinkles({ mb: 'space-x' })}>
+            <Row cols={{ base: 1, md: 'auto' }} cellSize={'default'} className={sprinkles({ mb: 'space-x' })}>
               <div className={character_header_item}>
                 <span>
                   {'Name: '}
@@ -53,22 +48,23 @@ const CharacterHeader = () => {
                 {!sm && <hr className={character_header_item_divider} />}
               </div>
               <div className={character_header_item}>
-                <span>{`Class(es): ${
-                  formData.classes?.length > 0
+                <span>
+                  {formData.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
+                  {formData.classes?.length > 0
                     ? formData.classes?.map((uClass, index) => {
                         const fullClass = classes.find((aClass) => aClass.id === uClass.id)
                         return (
-                          <Fragment key={index}>
+                          <span key={index}>
                             {`${fullClass.label} (Lvl. ${uClass.level})`}
                             {index !== formData.classes.length - 1 && formData.classes.length > 1 && ' / '}
-                          </Fragment>
+                          </span>
                         )
                       })
-                    : '---'
-                }`}</span>
+                    : '---'}
+                </span>
               </div>
             </Row>
-            <Row cellSize={'auto'} className={sprinkles({ mb: 'space-x' })}>
+            <Row  cols={{ base: 1, md: 3, lg: 'auto' }} cellSize={'default'} className={sprinkles({ mb: 'space-x' })}>
               {formData.abilities?.scores?.map((score, index) => {
                 const ability = system.abilities.find((sAbility) => sAbility.id === score.ability)
 

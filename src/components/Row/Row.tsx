@@ -11,9 +11,9 @@ type ColsAutoType = {
 }
 
 type ColsSetType = {
-  lg?: number
-  md?: number
-  base?: number
+  lg?: number | 'auto'
+  md?: number | 'auto'
+  base?: number | 'auto'
 }
 
 interface RowProps {
@@ -65,6 +65,9 @@ const Row = ({
   const childElements = useMemo(() => flattenChildren(children), [children])
 
   const totalChildren = childElements.length
+  const colAutoLg = `calc((100% - ${columnGap * 4}px) / 5)`
+  const colAutoMd = `calc((100% - ${columnGap * 4}px) / 4)`
+  const colAutoSm = `calc((100% - ${columnGap * 4}px) / 2)`
 
   const calculatedWidths = useCallback(() => {
     let startWidth: string = ''
@@ -82,43 +85,57 @@ const Row = ({
       middleWidth = `calc((100% - (${endWidth} + ${startWidth} + (${totalChildren * columnGap}px))) / ${colCount})`
     } else if (cols) {
       const colSet = cols as ColsSetType
+      const colLg =
+        colSet.lg === 'auto'
+          ? `calc((100% - ${columnGap * (totalChildren - 1)}px) / ${totalChildren})`
+          : `calc((100% - ${columnGap * (colSet.lg - 1)}px) / ${colSet.lg})`
+      const colMd =
+        colSet.md === 'auto'
+          ? `calc((100% - ${columnGap * (totalChildren - 1)}px) / ${totalChildren})`
+          : `calc((100% - ${columnGap * (colSet.md - 1)}px) / ${colSet.md})`
+      const colBase =
+        colSet.base === 'auto'
+          ? `calc((100% - ${columnGap * (totalChildren - 1)}px) / ${totalChildren})`
+          : `calc((100% - ${columnGap * (colSet.base - 1)}px) / ${colSet.base})`
       if (lg) {
         if (colSet.lg) {
-          columnWidth = `calc((100% - ${columnGap * (colSet.lg - 1)}px) / ${colSet.lg})`
+          columnWidth = colLg
         } else if (colSet.md) {
-          columnWidth = `calc((100% - ${columnGap * (colSet.md - 1)}px) / ${colSet.md})`
+          columnWidth = colMd
         } else if (colSet.base) {
-          columnWidth = `calc((100% - ${columnGap * (colSet.base - 1)}px)/ ${colSet.base})`
+          columnWidth = colBase
+        } else {
+          columnWidth = colAutoLg
         }
       } else if (md) {
         if (colSet.md) {
-          columnWidth = `calc((100% - ${columnGap * (colSet.md - 1)}px) / ${colSet.md})`
+          columnWidth = colMd
         } else if (colSet.base) {
-          columnWidth = `calc((100% - ${columnGap * (colSet.base - 1)}px) / ${colSet.base})`
+          columnWidth = colBase
         } else {
-          columnWidth = `calc((100% - ${columnGap * 4}px) / 4)`
+          columnWidth = colAutoMd
         }
       } else {
         if (colSet.base) {
-          columnWidth = `calc((100% - ${columnGap * (colSet.base - 1)}px) / ${colSet.base})`
+          columnWidth = colBase
         } else {
-          columnWidth = `calc((100% - ${columnGap * 2}px) / 2)`
+          columnWidth = colAutoSm
         }
       }
     } else {
       if (lg) {
-        columnWidth = `calc((100% - ${columnGap * 5}px) / 5)`
+        columnWidth = colAutoLg
       }
       if (md) {
-        columnWidth = `calc((100% - ${columnGap * 4}px) / 4)`
+        columnWidth = colAutoMd
       }
       if (!lg && !md) {
-        columnWidth = `calc((100% - ${columnGap * 2}px) / 2)`
+        columnWidth = colAutoSm
       }
     }
 
     return { startWidth, middleWidth, endWidth, columnWidth }
-  }, [totalChildren, cols, lg, md, columnGap])
+  }, [totalChildren, cols, lg, md, columnGap, colAutoLg, colAutoMd, colAutoSm])
 
   const { startWidth, middleWidth, endWidth, columnWidth } = useMemo(() => calculatedWidths(), [calculatedWidths])
 
