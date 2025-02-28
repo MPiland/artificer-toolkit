@@ -402,3 +402,8 @@ export enum AbilityGenerate {
   manual = '10e22411-2e4f-4f46-a487-aeda49f8b5e2',
   pointBuy = '258a046e-a301-4280-965e-67d228362871',
 }
+
+export enum StartingEquipmentOption {
+  equipment = '67d370d9-80e4-47ac-9741-4cb7c17c1ec1',
+  gold = 'd748d1e1-17aa-40d4-af18-612c8f513fcf',
+}
