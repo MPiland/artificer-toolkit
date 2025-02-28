@@ -271,7 +271,7 @@ export type Character = {
   ancestry?: Maybe<CharacterAncestry>;
   classes?: Maybe<Array<Maybe<CharacterClass>>>;
   desc?: Maybe<Scalars['String']['output']>;
-  equipment?: Maybe<Array<Maybe<Contains>>>;
+  equipment?: Maybe<CharacterEquipment>;
   expertise?: Maybe<Array<Maybe<CharacterExpertise>>>;
   feats?: Maybe<Array<Maybe<CharacterFeat>>>;
   features?: Maybe<Array<Maybe<CharacterFeature>>>;
@@ -337,6 +337,19 @@ export type CharacterConnection = {
   items?: Maybe<Array<Character>>;
   message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
+};
+
+export type CharacterEquipment = {
+  __typename: 'CharacterEquipment';
+  currencies?: Maybe<Array<Maybe<EquipmentCurrency>>>;
+  equipment?: Maybe<Array<Maybe<Contains>>>;
+  possessions?: Maybe<Array<Maybe<Possessions>>>;
+};
+
+export type CharacterEquipmentInput = {
+  currencies?: InputMaybe<Array<InputMaybe<EquipmentCurrencyInput>>>;
+  equipment?: InputMaybe<Array<InputMaybe<ContainsInput>>>;
+  possessions?: InputMaybe<Array<InputMaybe<PossessionsInput>>>;
 };
 
 export type CharacterExpertise = {
@@ -428,7 +441,7 @@ export type CharacterInput = {
   ancestry?: InputMaybe<CharacterAncestryInput>;
   classes?: InputMaybe<Array<InputMaybe<CharacterClassInput>>>;
   desc?: InputMaybe<Scalars['String']['input']>;
-  equipment?: InputMaybe<Array<InputMaybe<ContainsInput>>>;
+  equipment?: InputMaybe<CharacterEquipmentInput>;
   expertise?: InputMaybe<CharacterExpertiseInput>;
   feats?: InputMaybe<Array<InputMaybe<CharacterFeatInput>>>;
   features?: InputMaybe<Array<InputMaybe<CharacterFeatureInput>>>;
@@ -623,14 +636,18 @@ export type CharacterSpellcastingInput = {
 
 export type CharacterStartingEquipment = {
   __typename: 'CharacterStartingEquipment';
+  equipment?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  goldOption?: Maybe<Scalars['ID']['output']>;
   option: Scalars['ID']['output'];
-  remainingGold?: Maybe<Scalars['Int']['output']>;
+  spentGold?: Maybe<Scalars['Int']['output']>;
   totalGold?: Maybe<Scalars['Int']['output']>;
 };
 
 export type CharacterStartingEquipmentInput = {
+  equipment?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  goldOption?: InputMaybe<Scalars['ID']['input']>;
   option: Scalars['ID']['input'];
-  remainingGold?: InputMaybe<Scalars['Int']['input']>;
+  spentGold?: InputMaybe<Scalars['Int']['input']>;
   totalGold?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -803,14 +820,14 @@ export enum ClassesEnumInput {
 export type Contains = {
   __typename: 'Contains';
   contains?: Maybe<Array<Maybe<Contains>>>;
-  currencies?: Maybe<Array<Maybe<Currency>>>;
+  currencies?: Maybe<Array<Maybe<EquipmentCurrency>>>;
   equipment: Scalars['ID']['output'];
   quantity: Scalars['Int']['output'];
 };
 
 export type ContainsInput = {
   contains?: InputMaybe<Array<InputMaybe<ContainsInput>>>;
-  currencies?: InputMaybe<Array<InputMaybe<CurrencyInput>>>;
+  currencies?: InputMaybe<Array<InputMaybe<EquipmentCurrencyInput>>>;
   equipment: Scalars['ID']['input'];
   quantity: Scalars['Int']['input'];
 };
@@ -828,6 +845,7 @@ export type CostInput = {
 
 export type Currency = {
   __typename: 'Currency';
+  abbreviation?: Maybe<Scalars['String']['output']>;
   conversions?: Maybe<CurrencyConversion>;
   desc?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
@@ -853,6 +871,7 @@ export type CurrencyConversionInput = {
 };
 
 export type CurrencyInput = {
+  abbreviation?: InputMaybe<Scalars['String']['input']>;
   conversions?: InputMaybe<CurrencyConversionInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
@@ -1063,6 +1082,17 @@ export type EquipmentConnection = {
   items?: Maybe<Array<Equipment>>;
   message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
+};
+
+export type EquipmentCurrency = {
+  __typename: 'EquipmentCurrency';
+  amount?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+};
+
+export type EquipmentCurrencyInput = {
+  amount?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
 };
 
 export enum EquipmentEnum {
@@ -2043,6 +2073,21 @@ export type PointBuy = {
 export type PointBuyInput = {
   distributed?: InputMaybe<Array<InputMaybe<DistributedInput>>>;
   pointsLeft?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type Possessions = {
+  __typename: 'Possessions';
+  desc?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  value: Scalars['String']['output'];
+};
+
+export type PossessionsInput = {
+  desc?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  label: Scalars['String']['input'];
+  value: Scalars['String']['input'];
 };
 
 export type PrepareLimit = {

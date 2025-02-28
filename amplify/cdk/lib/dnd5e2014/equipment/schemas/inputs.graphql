@@ -18,11 +18,16 @@ input CostInput {
   currency: ID!
 }
 
+input EquipmentCurrencyInput {
+  id: ID!
+  amount: Int
+}
+
 input ContainsInput {
   equipment: ID!
   quantity: Int!
   contains: [ContainsInput]  
-  currencies: [CurrencyInput]
+  currencies: [EquipmentCurrencyInput]
 }
 
 input EquipmentRangeInput {

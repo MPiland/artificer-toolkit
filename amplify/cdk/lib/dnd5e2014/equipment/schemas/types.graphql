@@ -18,11 +18,16 @@ type Cost {
   currency: ID!
 }
 
+type EquipmentCurrency {
+  id: ID!
+  amount: Int
+}
+
 type Contains {
   equipment: ID!
   quantity: Int!
   contains: [Contains]
-  currencies: [Currency]
+  currencies: [EquipmentCurrency]
 }
 
 type EquipmentRange {

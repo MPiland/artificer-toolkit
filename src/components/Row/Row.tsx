@@ -27,6 +27,7 @@ interface RowProps {
   rowGap?: number
   spacing?: 'spaceBetween' | 'spaceAround' | 'flexStart' | 'flexEnd'
   colAlign?: 'start' | 'end' | 'center'
+  colJustify?: 'start' | 'end' | 'center' | 'spaceBetween' | 'spaceAround' | 'spaceEvenly'
 }
 
 const flattenChildren = (children: ReactNode): ReactNode[] => {
@@ -57,6 +58,7 @@ const Row = ({
   rowGap = 16,
   spacing = 'flexStart',
   colAlign = 'start',
+  colJustify = 'start',
 }: RowProps) => {
   const rowRef = useRef<HTMLDivElement>(null)
   const lg = useMediaQuery('(min-width: 1300px)')
@@ -168,7 +170,7 @@ const Row = ({
       {childElements?.map((child, index) => {
         return (
           child && (
-            <Column key={index} width={colWidth(index)} align={colAlign}>
+            <Column key={index} width={colWidth(index)} align={colAlign} justify={colJustify}>
               {child}
             </Column>
           )

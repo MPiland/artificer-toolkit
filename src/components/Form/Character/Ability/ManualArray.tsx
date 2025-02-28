@@ -96,7 +96,7 @@ const ManualArray = ({
           value: rolls,
         })
       }
-      
+
       if (!formData.abilities?.manualRolled?.configuration) {
         updates.push({
           type: 'update',
@@ -111,7 +111,6 @@ const ManualArray = ({
       ) {
         setRollConfiguration(formData.abilities?.manualRolled?.configuration as RollConfig)
       }
-
 
       // Apply all updates at once
       if (updates.length > 0) {
@@ -198,8 +197,10 @@ const ManualArray = ({
 
     try {
       // Call rollDice function with the input string
-      const { kept, rolled } = await rollDice(rollConfiguration) // Example input, replace it with the actual input
-      results = { ...results, kept: kept, rolled: rolled }
+      const rollResult = await rollDice(rollConfiguration)
+
+      // Example input, replace it with the actual input
+      results = { ...results, ...rollResult }
       results.kept.forEach((result) => {
         total += result.value
       })
@@ -275,8 +276,8 @@ const ManualArray = ({
 
   const rollResult = (gIndex: number, rIndex: number) => {
     const diceResults = []
-    const { numDice } = parseDiceRoll(rollConfiguration)
-    for (let i = 0; i < Number(numDice); i++) {
+    const { numDie } = parseDiceRoll(rollConfiguration)
+    for (let i = 0; i < Number(numDie); i++) {
       const value = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.[i]?.value
       const id = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.[i]?.id
       const kept = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.kept?.some(
@@ -428,7 +429,7 @@ const ManualArray = ({
                   </Group>
                   <Row cols={{ base: 2, md: rollGroup?.length }} className={dice_group}>
                     {rollGroup?.map((roll, rIndex) => {
-                      const { numDice, dieType } = parseDiceRoll(rollConfiguration)
+                      const { numDie, dieType } = parseDiceRoll(rollConfiguration)
                       return (
                         <Group
                           directionVariant='column'
@@ -453,7 +454,7 @@ const ManualArray = ({
                                 />
                                 {formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.length >
                                   0 && (
-                                  <Row cols={{ base: numDice }} className={roll_score_group} cellSize='auto'>
+                                  <Row cols={{ base: numDie }} className={roll_score_group} cellSize='auto'>
                                     {rollResult(gIndex, rIndex)}
                                   </Row>
                                 )}

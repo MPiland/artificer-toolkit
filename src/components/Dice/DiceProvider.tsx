@@ -252,10 +252,10 @@ const useDiceOptions = () => {
       const rollStrings = input.split(' ') as RollConfig[]
 
       for (let i = 0; i < rollStrings.length; i++) {
-        const { numDice, dieType, rerollType, rerollCondition, rerollValue, keepType, keepCount, dropType, dropCount } =
+        const { numDie, dieType, rerollType, rerollCondition, rerollValue, keepType, keepCount, dropType, dropCount } =
           parseDiceRoll(rollStrings[i])
         diceRolls.push({
-          quantity: numDice ? parseInt(numDice) : 1,
+          quantity: numDie ? parseInt(numDie) : 1,
           die: (dieType ? parseInt(dieType) : 4) as DieType,
           rerollType: rerollType,
           rerollCondition: rerollCondition,

@@ -79,6 +79,7 @@ type Currency {
   value: String!
   label: String!
   desc: String
+  abbreviation: String
   conversions: CurrencyConversion
 }
 
@@ -890,11 +891,16 @@ type Cost {
   currency: ID!
 }
 
+type EquipmentCurrency {
+  id: ID!
+  amount: Int
+}
+
 type Contains {
   equipment: ID!
   quantity: Int!
   contains: [Contains]
-  currencies: [Currency]
+  currencies: [EquipmentCurrency]
 }
 
 type EquipmentRange {
@@ -1263,8 +1269,23 @@ type CharacterClass {
 
 type CharacterStartingEquipment {
   option: ID!
+  goldOption: ID
   totalGold: Int
-  remainingGold: Int
+  spentGold: Int
+  equipment: [ID]
+}
+
+type Possessions {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+}
+
+type CharacterEquipment {
+  possessions: [Possessions]
+  equipment: [Contains]
+  currencies: [EquipmentCurrency]
 }
 
 type Character {
@@ -1280,7 +1301,7 @@ type Character {
   classes: [CharacterClass]
   spellcasting: CharacterSpellcasting
   startingEquipment: CharacterStartingEquipment
-  equipment: [Contains]
+  equipment: CharacterEquipment
   features: [CharacterFeature]
   feats: [CharacterFeat]
   proficiencies: [CharacterProficiency]
@@ -1401,6 +1422,7 @@ input CurrencyInput {
   value: String!
   label: String!
   desc: String
+  abbreviation: String
   conversions: CurrencyConversionInput
 }
 
@@ -2210,11 +2232,16 @@ input CostInput {
   currency: ID!
 }
 
+input EquipmentCurrencyInput {
+  id: ID!
+  amount: Int
+}
+
 input ContainsInput {
   equipment: ID!
   quantity: Int!
   contains: [ContainsInput]  
-  currencies: [CurrencyInput]
+  currencies: [EquipmentCurrencyInput]
 }
 
 input EquipmentRangeInput {
@@ -2586,8 +2613,23 @@ input CharacterClassInput {
 
 input CharacterStartingEquipmentInput {
   option: ID!
+  goldOption: ID
   totalGold: Int
-  remainingGold: Int
+  spentGold: Int
+  equipment: [ID]
+}
+
+input PossessionsInput {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+}
+
+input CharacterEquipmentInput {
+  possessions: [PossessionsInput]
+  equipment: [ContainsInput]
+  currencies: [EquipmentCurrencyInput]
 }
 
 input CharacterInput {
@@ -2603,7 +2645,7 @@ input CharacterInput {
   classes: [CharacterClassInput]
   spellcasting: CharacterSpellcastingInput
   startingEquipment: CharacterStartingEquipmentInput
-  equipment: [ContainsInput]
+  equipment: CharacterEquipmentInput
   features: [CharacterFeatureInput]
   feats: [CharacterFeatInput]
   proficiencies: CharacterProficiencyInput

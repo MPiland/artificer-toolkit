@@ -142,7 +142,9 @@ const useFormOptions = () => {
     features: <FeatureWrapper />,
     contains: <Contains />,
     proficiencies: <Proficiencies />,
-    equipment: formData.__typename === 'Background' ? <BackgroundEquipment /> : <Equipment />,
+    equipment: (
+      <DiceProvider>{formData.__typename === 'Background' ? <BackgroundEquipment /> : <Equipment />}</DiceProvider>
+    ),
     startingEquipment: <StartingEquipment />,
     race: <Races />,
     class: <CharacterClasses />,

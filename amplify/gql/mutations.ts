@@ -153,6 +153,7 @@ mutation CreateSystem($input: SystemInput!) {
 		value
 		label
 		desc
+		abbreviation
 		conversions {
 			__typename
 			copper
@@ -634,6 +635,7 @@ mutation UpdateSystem($input: SystemInput!) {
 		value
 		label
 		desc
+		abbreviation
 		conversions {
 			__typename
 			copper
@@ -1122,6 +1124,7 @@ mutation BatchCreateSystems($input: BatchSystemsInput!) {
 		value
 		label
 		desc
+		abbreviation
 		conversions {
 			__typename
 			copper
@@ -33315,154 +33318,61 @@ mutation CreateEquipment($input: EquipmentInput!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {
@@ -36343,154 +36253,61 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {
@@ -39378,154 +39195,61 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {
@@ -50571,14 +50295,21 @@ mutation CreateCharacter($input: CharacterInput!) {
 	startingEquipment {
 		__typename
 		option
+		goldOption
 		totalGold
-		remainingGold
+		spentGold
+		equipment
 	}
 	equipment {
 		__typename
-		equipment
-		quantity
-		contains {
+		possessions {
+			__typename
+			id
+			label
+			value
+			desc
+		}
+		equipment {
 			__typename
 			equipment
 			quantity
@@ -50624,154 +50355,61 @@ mutation CreateCharacter($input: CharacterInput!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {
@@ -51012,14 +50650,21 @@ mutation UpdateCharacter($input: CharacterInput!) {
 	startingEquipment {
 		__typename
 		option
+		goldOption
 		totalGold
-		remainingGold
+		spentGold
+		equipment
 	}
 	equipment {
 		__typename
-		equipment
-		quantity
-		contains {
+		possessions {
+			__typename
+			id
+			label
+			value
+			desc
+		}
+		equipment {
 			__typename
 			equipment
 			quantity
@@ -51065,154 +50710,61 @@ mutation UpdateCharacter($input: CharacterInput!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {

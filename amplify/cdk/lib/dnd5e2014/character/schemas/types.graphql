@@ -220,8 +220,23 @@ type CharacterClass {
 
 type CharacterStartingEquipment {
   option: ID!
+  goldOption: ID
   totalGold: Int
-  remainingGold: Int
+  spentGold: Int
+  equipment: [ID]
+}
+
+type Possessions {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+}
+
+type CharacterEquipment {
+  possessions: [Possessions]
+  equipment: [Contains]
+  currencies: [EquipmentCurrency]
 }
 
 type Character {
@@ -237,7 +252,7 @@ type Character {
   classes: [CharacterClass]
   spellcasting: CharacterSpellcasting
   startingEquipment: CharacterStartingEquipment
-  equipment: [Contains]
+  equipment: CharacterEquipment
   features: [CharacterFeature]
   feats: [CharacterFeat]
   proficiencies: [CharacterProficiency]

@@ -51,19 +51,32 @@ export const generateRandomPoints = (numPoints: number, minDistance: number, cen
 }
 
 export const parseDiceRoll = (rollString: RollConfig) => {
+  if (!rollString)
+    return {
+      numDie: 0,
+      dieType: 0,
+      keepType: '',
+      keepCount: 0,
+      dropType: '',
+      dropCount: 0,
+      rerollType: '',
+      rerollCondition: '',
+      rerollValue: 0,
+    }
+
   const rollRegex =
-    /(?<numDice>\d*)d(?<dieType>\d+)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
+    /(?<numDie>\d*)d(?<dieType>\d+)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
   const match = rollString.match(rollRegex)
-  
+
   if (!match) {
     console.log('No dice match')
   }
 
-  const { numDice, dieType, keepType, keepCount, dropType, dropCount, rerollType, rerollCondition, rerollValue } =
+  const { numDie, dieType, keepType, keepCount, dropType, dropCount, rerollType, rerollCondition, rerollValue } =
     match?.groups as any
 
   return {
-    numDice,
+    numDie,
     dieType,
     keepType,
     keepCount,

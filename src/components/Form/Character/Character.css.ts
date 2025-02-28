@@ -158,7 +158,7 @@ export const character_header_group_label = style({
 export const character_header_item = style({
   '@layer': {
     [app]: {
-      width: 'auto',
+      width: '100%',
       display: 'flex',
       flexDirection: 'row',
       height: '100%',

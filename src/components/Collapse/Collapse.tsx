@@ -6,12 +6,11 @@ import {
   collapse_wrapper,
   collapse_header_icon,
   collapse_content,
-  collapse_header_left,
-  collapse_header_right,
   collapse_header_group,
 } from './Collapse.css'
 import clsx from 'clsx'
 import Group from '../Group/Group'
+import { sprinkles } from '../../css/sprinkles.css'
 
 const Header = ({
   startOpened,
@@ -70,10 +69,10 @@ const Header = ({
 
   return (
     <div className={clsx(collapse_header, { [className]: className })} onClick={handleClick} ref={headerRef}>
-      <Group className={collapse_header_group}>
-        {leftSide && <span className={collapse_header_left}>{leftSide}</span>}
-        <h3>{title}</h3>
-        {rightSide && <span className={collapse_header_right}>{rightSide}</span>}
+      <Group className={collapse_header_group} flexWrapVariant='noWrap' justifyContentVariant='spaceBetween'>
+        {leftSide}
+        <h3 className={sprinkles({ me: 'space-4' })}>{title}</h3>
+        {rightSide}
       </Group>
       <Group alignItemsVariant='end' className={collapse_header_group}>
         {children}

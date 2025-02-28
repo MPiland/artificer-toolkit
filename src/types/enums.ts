@@ -407,3 +407,11 @@ export enum StartingEquipmentOption {
   equipment = '67d370d9-80e4-47ac-9741-4cb7c17c1ec1',
   gold = 'd748d1e1-17aa-40d4-af18-612c8f513fcf',
 }
+
+export enum Currency {
+  copper = '622c63f5-041a-429a-8cc5-ac17fb13d160',
+  silver = '563e0322-3cc3-4fcc-8cfa-2253383e5daf',
+  electrum = 'e14508e4-a326-444f-8ee8-d253ee7b18a9',
+  gold = '2b9c4330-14d4-473a-aed7-52a8eb1906ce',
+  platinum = 'd9447a5b-c73c-4aa1-85ea-2fbc827bcecf',
+}

@@ -24,7 +24,7 @@ const ClassShort = () => {
 
   const hitpointAbility = system.abilities.find((ability) => ability.id === fullClass.hitpoint?.ability)
 
-  const { numDice, dieType } = parseDiceRoll(fullClass.hitpoint?.dieConfig as RollConfig)
+  const { numDie, dieType } = parseDiceRoll(fullClass.hitpoint?.dieConfig as RollConfig)
 
   return (
     <>
@@ -38,11 +38,11 @@ const ClassShort = () => {
           </div>
           <div>
             <strong>{'Hit Points at 1st Level: '}</strong>
-            {`${numDice * dieType} + your ${hitpointAbility?.label} modifier`}
+            {`${numDie * dieType} + your ${hitpointAbility?.label} modifier`}
           </div>
           <div>
             <strong>{'Hit Points at Higher Levels: '}</strong>
-            {`${fullClass.hitpoint?.dieConfig} (or ${Math.round(numDice * (dieType / 2) + 0.5)}) + your ${
+            {`${fullClass.hitpoint?.dieConfig} (or ${Math.round(numDie * (dieType / 2) + 0.5)}) + your ${
               hitpointAbility?.label
             } modifier per ${fullClass.label} level after 1st`}
           </div>

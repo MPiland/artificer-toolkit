@@ -4,11 +4,13 @@ import { size } from '../../css/size.css'
 
 export const column_align = createVar('column_align')
 export const column_width = createVar('column_width')
+export const column_justify = createVar('column_justify')
 
 export const column = style({
   '@layer': {
     [app]: {
-      alignContent: column_align,
+      alignItems: column_align,
+      justifyItems: column_justify,
       width: column_width,
     },
   },

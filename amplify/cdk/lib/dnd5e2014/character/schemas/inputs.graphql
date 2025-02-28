@@ -225,8 +225,23 @@ input CharacterClassInput {
 
 input CharacterStartingEquipmentInput {
   option: ID!
+  goldOption: ID
   totalGold: Int
-  remainingGold: Int
+  spentGold: Int
+  equipment: [ID]
+}
+
+input PossessionsInput {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+}
+
+input CharacterEquipmentInput {
+  possessions: [PossessionsInput]
+  equipment: [ContainsInput]
+  currencies: [EquipmentCurrencyInput]
 }
 
 input CharacterInput {
@@ -242,7 +257,7 @@ input CharacterInput {
   classes: [CharacterClassInput]
   spellcasting: CharacterSpellcastingInput
   startingEquipment: CharacterStartingEquipmentInput
-  equipment: [ContainsInput]
+  equipment: CharacterEquipmentInput
   features: [CharacterFeatureInput]
   feats: [CharacterFeatInput]
   proficiencies: CharacterProficiencyInput

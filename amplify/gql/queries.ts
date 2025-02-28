@@ -153,6 +153,7 @@ query ListMasterSystems {
 		value
 		label
 		desc
+		abbreviation
 		conversions {
 			__typename
 			copper
@@ -634,6 +635,7 @@ query GetSystem($id: ID!) {
 		value
 		label
 		desc
+		abbreviation
 		conversions {
 			__typename
 			copper
@@ -1117,6 +1119,7 @@ query ListSystems($limit: Int, $nextToken: String) {
 			value
 			label
 			desc
+			abbreviation
 			conversions {
 				__typename
 				copper
@@ -33306,154 +33309,61 @@ query ListMasterEquipment {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {
@@ -36334,154 +36244,61 @@ query GetEquipment($id: ID!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {
@@ -39360,138 +39177,55 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		features {
@@ -50538,14 +50272,21 @@ query GetCharacter($id: ID!) {
 	startingEquipment {
 		__typename
 		option
+		goldOption
 		totalGold
-		remainingGold
+		spentGold
+		equipment
 	}
 	equipment {
 		__typename
-		equipment
-		quantity
-		contains {
+		possessions {
+			__typename
+			id
+			label
+			value
+			desc
+		}
+		equipment {
 			__typename
 			equipment
 			quantity
@@ -50591,154 +50332,61 @@ query GetCharacter($id: ID!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		currencies {
 			__typename
 			id
-			value
-			label
-			desc
-			conversions {
-				__typename
-				copper
-				silver
-				gold
-				electrum
-				platinum
-			}
+			amount
 		}
 	}
 	features {
@@ -50981,14 +50629,21 @@ query ListCharacters($limit: Int, $nextToken: String, $systemId: String!) {
 		startingEquipment {
 			__typename
 			option
+			goldOption
 			totalGold
-			remainingGold
+			spentGold
+			equipment
 		}
 		equipment {
 			__typename
-			equipment
-			quantity
-			contains {
+			possessions {
+				__typename
+				id
+				label
+				value
+				desc
+			}
+			equipment {
 				__typename
 				equipment
 				quantity
@@ -51030,138 +50685,55 @@ query ListCharacters($limit: Int, $nextToken: String, $systemId: String!) {
 											currencies {
 												__typename
 												id
-												value
-												label
-												desc
-												conversions { __typename }
+												amount
 											}
 										}
 										currencies {
 											__typename
 											id
-											value
-											label
-											desc
-											conversions {
-												__typename
-												copper
-												silver
-												gold
-												electrum
-												platinum
-											}
+											amount
 										}
 									}
 									currencies {
 										__typename
 										id
-										value
-										label
-										desc
-										conversions {
-											__typename
-											copper
-											silver
-											gold
-											electrum
-											platinum
-										}
+										amount
 									}
 								}
 								currencies {
 									__typename
 									id
-									value
-									label
-									desc
-									conversions {
-										__typename
-										copper
-										silver
-										gold
-										electrum
-										platinum
-									}
+									amount
 								}
 							}
 							currencies {
 								__typename
 								id
-								value
-								label
-								desc
-								conversions {
-									__typename
-									copper
-									silver
-									gold
-									electrum
-									platinum
-								}
+								amount
 							}
 						}
 						currencies {
 							__typename
 							id
-							value
-							label
-							desc
-							conversions {
-								__typename
-								copper
-								silver
-								gold
-								electrum
-								platinum
-							}
+							amount
 						}
 					}
 					currencies {
 						__typename
 						id
-						value
-						label
-						desc
-						conversions {
-							__typename
-							copper
-							silver
-							gold
-							electrum
-							platinum
-						}
+						amount
 					}
 				}
 				currencies {
 					__typename
 					id
-					value
-					label
-					desc
-					conversions {
-						__typename
-						copper
-						silver
-						gold
-						electrum
-						platinum
-					}
+					amount
 				}
 			}
 			currencies {
 				__typename
 				id
-				value
-				label
-				desc
-				conversions {
-					__typename
-					copper
-					silver
-					gold
-					electrum
-					platinum
-				}
+				amount
 			}
 		}
 		features {

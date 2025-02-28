@@ -74,6 +74,7 @@ type Currency {
   value: String!
   label: String!
   desc: String
+  abbreviation: String
   conversions: CurrencyConversion
 }
 
