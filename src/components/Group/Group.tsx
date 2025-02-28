@@ -15,7 +15,7 @@ const Group = ({
   directionVariant?: 'column' | 'row'
   justifyContentVariant?: 'spaceBetween' | 'start' | 'end' | 'center' | 'spaceAround'
   alignItemsVariant?: 'center' | 'start' | 'end'
-  flexWrapVariant?: 'wrap' | 'nowrap'
+  flexWrapVariant?: 'wrap' | 'noWrap'
   className?: any
   onClick?: () => void
 }) => {

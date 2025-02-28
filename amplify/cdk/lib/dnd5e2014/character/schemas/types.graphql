@@ -119,10 +119,6 @@ type RollType {
   kept: [Roll]!
 }
 
-type RollGroup {
-  rolls: [RollType]
-}
-
 type Manual {
   ability: ID
   score: Int
@@ -130,7 +126,7 @@ type Manual {
 
 type ManualRolled {
   configuration: String!
-  rollGroups: [RollGroup]
+  rollGroups: [[RollType]]
   manual: [Manual]
 }
 

@@ -21,11 +21,12 @@ interface RowProps {
   children: ReactNode
   className?: string | number | symbol | any
   onClick?: () => void
-  cellSize?: 'default' | 'auto'
+  cellSize?: 'full' | 'auto' | 'default'
   rowWidth?: 'full' | 'auto'
   columnGap?: number
   rowGap?: number
   spacing?: 'spaceBetween' | 'spaceAround' | 'flexStart' | 'flexEnd'
+  colAlign?: 'start' | 'end' | 'center'
 }
 
 const flattenChildren = (children: ReactNode): ReactNode[] => {
@@ -55,10 +56,11 @@ const Row = ({
   columnGap = 16,
   rowGap = 16,
   spacing = 'flexStart',
+  colAlign = 'start',
 }: RowProps) => {
   const rowRef = useRef<HTMLDivElement>(null)
   const lg = useMediaQuery('(min-width: 1300px)')
-  const md = useMediaQuery('(min-width: 762px) and (max-width: 1300px)')
+  const md = useMediaQuery('(min-width: 568px) and (max-width: 1300px)')
 
   const childElements = useMemo(() => flattenChildren(children), [children])
 
@@ -84,21 +86,21 @@ const Row = ({
         if (colSet.lg) {
           columnWidth = `calc((100% - ${columnGap * (colSet.lg - 1)}px) / ${colSet.lg})`
         } else if (colSet.md) {
-          columnWidth = `calc((100% - ${columnGap * colSet.md}px) / ${colSet.md})`
+          columnWidth = `calc((100% - ${columnGap * (colSet.md - 1)}px) / ${colSet.md})`
         } else if (colSet.base) {
-          columnWidth = `calc((100% - ${columnGap * colSet.base}px)/ ${colSet.base})`
+          columnWidth = `calc((100% - ${columnGap * (colSet.base - 1)}px)/ ${colSet.base})`
         }
       } else if (md) {
         if (colSet.md) {
-          columnWidth = `calc((100% - ${columnGap * colSet.md}px) / ${colSet.md})`
+          columnWidth = `calc((100% - ${columnGap * (colSet.md - 1)}px) / ${colSet.md})`
         } else if (colSet.base) {
-          columnWidth = `calc((100% - ${columnGap * colSet.base}px) / ${colSet.base})`
+          columnWidth = `calc((100% - ${columnGap * (colSet.base - 1)}px) / ${colSet.base})`
         } else {
           columnWidth = `calc((100% - ${columnGap * 4}px) / 4)`
         }
       } else {
         if (colSet.base) {
-          columnWidth = `calc((100% - ${columnGap * colSet.base}px) / ${colSet.base})`
+          columnWidth = `calc((100% - ${columnGap * (colSet.base - 1)}px) / ${colSet.base})`
         } else {
           columnWidth = `calc((100% - ${columnGap * 2}px) / 2)`
         }
@@ -120,6 +122,25 @@ const Row = ({
 
   const { startWidth, middleWidth, endWidth, columnWidth } = useMemo(() => calculatedWidths(), [calculatedWidths])
 
+  const colWidth = (index: number) => {
+    // If using the ColsAutoType (start/end)
+    if (cols && 'start' in cols) {
+      if (index < (cols as ColsAutoType).start) {
+        return startWidth
+      } else if (cols && 'end' in cols && index === totalChildren - 1) {
+        return endWidth
+      } else {
+        // For middle columns: respect cellSize
+        return cellSize === 'default' ? middleWidth : cellSize
+      }
+    }
+    // If using the ColsSetType or default column logic
+    else {
+      // When cellSize is auto, use fit-content but preserve the column count
+      return cellSize === 'default' ? columnWidth : cellSize
+    }
+  }
+
   return (
     <div
       className={clsx({ [className]: className }, row[rowWidth], row[spacing])}
@@ -128,21 +149,9 @@ const Row = ({
       ref={rowRef}
     >
       {childElements?.map((child, index) => {
-        const colWidth =
-          cellSize === 'auto'
-            ? `calc((100% - (${totalChildren * columnGap}px)) / ${
-                childElements.length
-              })`
-            : cols && 'start' in cols
-            ? index < (cols as ColsAutoType).start
-              ? startWidth
-              : cols && 'end' in cols && index === totalChildren - 1
-              ? endWidth
-              : middleWidth
-            : columnWidth
         return (
           child && (
-            <Column key={index} width={colWidth}>
+            <Column key={index} width={colWidth(index)} align={colAlign}>
               {child}
             </Column>
           )

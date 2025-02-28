@@ -1,8 +1,5 @@
 import { useMemo } from 'react'
-import {
-  ability_card_group,
-  system_select,
-} from '../Character.css'
+import { ability_card_group, system_select } from '../Character.css'
 import Dropdown from '../../../Dropdown/Dropdown'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import Row from '../../../Row/Row'
@@ -32,7 +29,7 @@ const AbilitiesForm = () => {
 
   return (
     <>
-      {createPortal(<Scene />, form)}
+      {form && createPortal(<Scene />, form)}
       <Dropdown
         name='abilities.selectedSystem'
         options={system.rules.abilityGenerateMethod}
@@ -46,7 +43,7 @@ const AbilitiesForm = () => {
       {pointSystem === AbilityGenerate.standardArray && (
         <StandardArray formData={formData} updateFormData={updateFormData} />
       )}
-      <Row cols={{ md: 3, base: 2 }} spacing='spaceAround' className={ability_card_group}>
+      <Row cols={{ md: 3, base: 1 }} spacing='spaceBetween' className={ability_card_group}>
         {formData.abilities?.scores?.map((score, index) => {
           const ability = system.abilities.find((ability) => ability.id === score.ability)
           return <AbilityCard key={index} score={score} ability={ability} />

@@ -1,5 +1,13 @@
 import { useState, useMemo, useRef, ReactNode } from 'react'
-import { useFloating, useInteractions, useTypeahead, useListNavigation } from '@floating-ui/react'
+import {
+  useInteractions,
+  useTypeahead,
+  useListNavigation,
+  useFloatingRootContext,
+  useRole,
+  useClick,
+  useDismiss,
+} from '@floating-ui/react'
 import { FloatingContext } from './FloatingContext'
 
 export interface FloatingOptionsProps {
@@ -11,45 +19,62 @@ export interface FloatingOptionsProps {
 const useFloatingOptions = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [reference, setReference] = useState<HTMLElement | null>(null)
+  const [floating, setFloating] = useState<HTMLElement | null>(null)
+  const [isOpen, setIsOpen] = useState<boolean>(false)
 
   const elementsRef = useRef([])
   const labelsRef = useRef([])
 
-  const { refs, context, floatingStyles, ...rest } = useFloating({
+  const rootContext = useFloatingRootContext({
+    open: isOpen,
+    onOpenChange: setIsOpen,
     elements: {
       reference,
+      floating,
     },
   })
 
-  const { getReferenceProps, getItemProps } = useInteractions([
-    useListNavigation(context, {
+  const { getReferenceProps, getItemProps, getFloatingProps } = useInteractions([
+    useListNavigation(rootContext, {
       listRef: elementsRef,
       activeIndex,
       onNavigate: setActiveIndex,
       loop: true,
     }),
-    useTypeahead(context, {
+    useTypeahead(rootContext, {
       listRef: labelsRef,
       activeIndex,
       onMatch: setActiveIndex,
     }),
+    useRole(rootContext, { role: 'menu' }),
+    useClick(rootContext),
+    useDismiss(rootContext),
   ])
 
   return useMemo(
     () => ({
-      refs,
-      context,
+      rootContext,
       activeIndex,
       elementsRef,
       labelsRef,
-      floatingStyles,
+      getReferenceProps,
+      getItemProps,
+      getFloatingProps,
+      reference,
+      setReference,
+      setFloating,
+    }),
+    [
+      rootContext,
+      activeIndex,
+      elementsRef,
+      labelsRef,
       getReferenceProps,
       getItemProps,
       reference,
       setReference,
-      ...rest,
-    }),
-    [refs, context, floatingStyles, activeIndex, getReferenceProps, getItemProps, rest, reference, setReference]
+      getFloatingProps,
+    ]
   )
 }
 

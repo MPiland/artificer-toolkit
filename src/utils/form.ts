@@ -112,3 +112,34 @@ export const validate = (resetValidation: boolean = false): boolean => {
 
   return isValid
 }
+
+export const calculateModifier = (score: number, type: 'bonus' | 'modifier') => {
+  let scoreString: string = ''
+  if (!score) {
+    return '--'
+  }
+  if (type === 'bonus') {
+    if (score > 0) {
+      scoreString += '+'
+    }
+    if (score < 0) {
+      scoreString += '-'
+    }
+
+    scoreString += `${score}`
+  }
+  if (type === 'modifier') {
+    const subtracted = score - 10
+    const modifier = Math.round(subtracted / 2)
+    if (modifier > 0) {
+      scoreString += '+'
+    }
+    if (modifier < 0) {
+      scoreString += '-'
+    }
+
+    scoreString += `${Math.abs(modifier)}`
+  }
+
+  return scoreString
+}

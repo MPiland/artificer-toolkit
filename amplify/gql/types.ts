@@ -1549,7 +1549,6 @@ export type FeatureProficiencyInput = {
 export type FeatureSense = {
   __typename: 'FeatureSense';
   attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  charges?: Maybe<Charge>;
   id: Scalars['ID']['output'];
   ids?: Maybe<Array<Scalars['ID']['output']>>;
   prerequisites?: Maybe<Prerequisite>;
@@ -1749,13 +1748,13 @@ export type ManualRolled = {
   __typename: 'ManualRolled';
   configuration: Scalars['String']['output'];
   manual?: Maybe<Array<Maybe<Manual>>>;
-  rollGroups?: Maybe<Array<Maybe<RollGroup>>>;
+  rollGroups?: Maybe<Array<Maybe<Array<Maybe<RollType>>>>>;
 };
 
 export type ManualRolledInput = {
   configuration: Scalars['String']['input'];
   manual?: InputMaybe<Array<InputMaybe<ManualInput>>>;
-  rollGroups?: InputMaybe<Array<InputMaybe<RollGroupInput>>>;
+  rollGroups?: InputMaybe<Array<InputMaybe<Array<InputMaybe<RollTypeInput>>>>>;
 };
 
 export type ModifierCategoryType = {
@@ -2339,15 +2338,6 @@ export type Roll = {
   die: Scalars['Int']['output'];
   id?: Maybe<Scalars['String']['output']>;
   value: Scalars['Int']['output'];
-};
-
-export type RollGroup = {
-  __typename: 'RollGroup';
-  rolls?: Maybe<Array<Maybe<RollType>>>;
-};
-
-export type RollGroupInput = {
-  rolls?: InputMaybe<Array<InputMaybe<RollTypeInput>>>;
 };
 
 export type RollInput = {

@@ -146,16 +146,6 @@ export const character_header_body = style({
   },
 })
 
-export const character_header_group = style({
-  '@layer': {
-    [app]: {
-      marginRight: size['size-3'],
-      marginBottom: size['size-3'],
-      width: 'auto',
-    },
-  },
-})
-
 export const character_header_group_label = style({
   '@layer': {
     [app]: {
@@ -169,22 +159,19 @@ export const character_header_item = style({
   '@layer': {
     [app]: {
       width: 'auto',
+      display: 'flex',
+      flexDirection: 'row',
+      height: '100%',
     },
   },
 })
 
-export const character_header_item_divier = style({
+export const character_header_item_divider = style({
   '@layer': {
     [app]: {
-      margin: `0 ${size['size-3']}`,
-    },
-  },
-})
-
-export const character_header_item_label = style({
-  '@layer': {
-    [app]: {
-      marginRight: size['size-1'],
+      alignContent: 'center',
+      margin: `0 auto`,
+      height: '100%',
     },
   },
 })
@@ -241,15 +228,6 @@ export const dice_group_footer = style({
     [app]: {
       width: '100%',
       marginTop: size['size-3'],
-    },
-  },
-})
-
-export const dice_group_divider = style({
-  '@layer': {
-    [app]: {
-      height: '3px',
-      width: '100%',
     },
   },
 })
@@ -346,6 +324,8 @@ export const ability_card = style({
     [app]: {
       display: 'flex',
       flexDirection: 'column',
+      border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      borderRadius: theme.border.radius,
     },
   },
 })
@@ -460,6 +440,34 @@ export const point_counter_label = style({
     [app]: {
       fontSize: '18px',
       fontWeight: '400',
+    },
+  },
+})
+
+export const point_buy_option = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gridTemplateColumns: '1fr auto',
+      width: '100%',
+      alignItems: 'center',
+      gap: space['space-2'],
+    },
+  },
+})
+
+export const point_buy_option_label = style({
+  '@layer': {
+    [app]: {
+      textAlign: 'left',
+    },
+  },
+})
+
+export const point_buy_option_diff = style({
+  '@layer': {
+    [app]: {
+      textAlign: 'right',
     },
   },
 })

@@ -58,6 +58,8 @@ const ScrollArea = ({
     dragDirection: null,
     active: false,
     mousePos: { x: 0, y: 0 },
+    needsVerticalScroll: false,
+    needsHorizontalScroll: false,
   })
 
   const [leftArrowVisible, setLeftArrowVisible] = useState<boolean>(false)
@@ -90,6 +92,8 @@ const ScrollArea = ({
             scrollWidth,
             verticalThumbSize,
             horizontalThumbSize,
+            needsVerticalScroll,
+            needsHorizontalScroll,
           })
 
           dispatch({
@@ -328,6 +332,7 @@ const ScrollArea = ({
       className={clsx(scroll_area_wrapper, {
         [wrapperClassName]: wrapperClassName,
         ['overflow_hidden']: scrollWrapperOverflow === 'hidden',
+        ['horizontal']: scrollDirection === 'horizontal' && scrollState.needsHorizontalScroll,
       })}
       ref={scrollWrapperRef}
       id={wrapperId}

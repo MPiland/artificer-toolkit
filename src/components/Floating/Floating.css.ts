@@ -63,10 +63,10 @@ export const floating_option = style({
           backgroundColor: 'rgb(118, 184, 255)',
           borderRadius: theme.border.radius,
         },
-        '&:hover': {
-          backgroundColor: 'rgb(118, 184, 255)',
-          borderRadius: theme.border.radius,
-        },
+        // '&:hover': {
+        //   backgroundColor: 'rgb(118, 184, 255)',
+        //   borderRadius: theme.border.radius,
+        // },
       },
     },
   },

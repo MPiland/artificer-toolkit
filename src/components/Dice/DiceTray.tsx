@@ -6,16 +6,13 @@ import { DiceContext } from './DiceContext'
 import { use } from 'react'
 
 const DiceTray = () => {
-  const { renderDice, diceInstances, setCanvasHeight, setCanvasWidth } = use(DiceContext)
+  const { dice, setDice } = use(DiceContext)
   const { width, height } = useThree((state) => state.viewport)
 
   useEffect(() => {
-    setCanvasHeight(height)
-  }, [height, setCanvasHeight])
-
-  useEffect(() => {
-    setCanvasWidth(width)
-  }, [width, setCanvasWidth])
+    setDice.canvasHeight(height)
+    setDice.canvasWidth(width)
+  }, [height, setDice, width])
 
   // Calculate positions and sizes for the walls
   const wallThickness = 2 // Adjust as needed
@@ -54,7 +51,7 @@ const DiceTray = () => {
             color='purple'
             transparent={true}
           />
-          {renderDice && diceInstances}
+          {dice.renderDice && dice.instances}
         </Physics>
       </Suspense>
     </>

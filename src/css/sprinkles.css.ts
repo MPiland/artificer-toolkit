@@ -72,6 +72,7 @@ const responsiveProperties = defineProperties({
     borderWidth: borderSize,
     boxShadow: shadows,
     textAlign: ['center', 'left', 'right', 'justify'],
+    whiteSpace: ['normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap'],
   },
   'shorthands': {
     p: ['paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight'],
@@ -92,6 +93,7 @@ const responsiveProperties = defineProperties({
     inset: ['top', 'left', 'right', 'bottom'],
     fs: ['fontSize'],
     ta: ['textAlign'],
+    ws: ['whiteSpace'],
   },
 })
 

@@ -6,39 +6,9 @@ import {
   ability_card_info_value,
   ability_card_info,
 } from '../Character.css'
+import { calculateModifier } from '../../../../utils/form'
 
 const AbilityCard = ({ ability, score }: { ability: GenericType; score: Scores }) => {
-  const calculateModifier = (score: number, type: 'bonus' | 'modifier') => {
-    let scoreString: string = ''
-    if (!score) {
-      return '--'
-    }
-    if (type === 'bonus') {
-      if (score > 0) {
-        scoreString += '+'
-      }
-      if (score < 0) {
-        scoreString += '-'
-      }
-
-      scoreString += `${score}`
-    }
-    if (type === 'modifier') {
-      const subtracted = score - 10
-      const modifier = Math.round(subtracted / 2)
-      if (modifier > 0) {
-        scoreString += '+'
-      }
-      if (modifier < 0) {
-        scoreString += '-'
-      }
-
-      scoreString += `${Math.abs(modifier)}`
-    }
-
-    return scoreString
-  }
-
   return (
     <div className={ability_card}>
       <div className={ability_card_header}>

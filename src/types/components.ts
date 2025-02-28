@@ -1,4 +1,5 @@
 import { PropertyPath } from 'lodash'
+import { ReactNode } from 'react'
 
 export type SortConfig = {
   key: {
@@ -27,19 +28,20 @@ export type ReducerAction = {
 }
 
 export type DropdownOption = {
-  label: string | number | null | undefined
+  label: string | number | null | undefined | ReactNode
   value: string | number | null | undefined
   id: string
   [key: string]: any
+  renderedLabel?: string | number | null | undefined | ReactNode
 }
 
-export type DiceType = 4 | 6 | 8 | 10 | 12 | 20 | 100
+export type DieType = 4 | 6 | 8 | 10 | 12 | 20 | 100
 export type KeepType = 'kh' | 'kl'
 export type DropType = 'dh' | 'dl'
 export type RerollType = 'r' | 'ro'
 export type RerollCondition = '>' | '<' | '==='
 
-export type RollConfig = `${number}d${DiceType}${'' | `${KeepType}${number}`}${'' | `${DropType}${number}`}${
+export type RollConfig = `${number}d${DieType}${'' | `${KeepType}${number}`}${'' | `${DropType}${number}`}${
   | ''
   | `${RerollType}${'' | RerollCondition}${number}`}`
 
@@ -51,10 +53,14 @@ export type DiceResult = {
 
 export type DiceConfig = {
   quantity: number
-  type: DiceType
+  die: DieType
   rerollType?: RerollType
   rerollCondition?: RerollCondition
   rerollValue?: number
+  keepType?: KeepType
+  keepCount?: number
+  dropType?: DropType
+  dropCount?: number
 }
 
 export type DiceRolls = {

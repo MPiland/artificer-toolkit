@@ -138,7 +138,7 @@ export const flexWrap = styleVariants({
       },
     },
   ],
-  nowrap: [
+  noWrap: [
     base,
     {
       '@layer': {

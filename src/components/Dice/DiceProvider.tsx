@@ -1,5 +1,5 @@
-import { ReactElement, useCallback, useEffect, useRef, useState, ReactNode } from 'react'
-import { DiceConfig, DiceResult, Point, RollConfig } from '../../types/components'
+import { ReactElement, useCallback, ReactNode, useMemo, useEffect, useRef } from 'react'
+import { DiceConfig, DiceResult, DieType, Point, RollConfig } from '../../types/components'
 import {
   generateRandomLinearVelocity,
   generateRandomRotation,
@@ -9,100 +9,150 @@ import {
 import Dice, { DiceProps } from './Dice'
 import { Vector3Tuple } from '@react-three/rapier'
 import { DiceContext } from './DiceContext'
+import { useStore } from '../../store/useStore'
 
 const useDiceOptions = () => {
-  const [diceConfig, setDiceConfig] = useState<DiceConfig[]>([])
-  const [diceResults, setDiceResults] = useState<DiceResult[]>([])
-  const [renderDice, setRenderDice] = useState(true)
-  const [isRolling, setIsRolling] = useState<boolean>(false)
-  const [diceInstances, setDiceInstances] = useState<ReactElement<DiceProps>[]>([])
-  const [canvasWidth, setCanvasWidth] = useState<number>(0)
-  const [canvasHeight, setCanvasHeight] = useState<number>(0)
+  const rollPromiseResolver = useRef<((result: { rolled: DiceResult[]; kept: DiceResult[] }) => void) | null>(null)
 
-  const diceResultsRef = useRef<DiceResult[]>([])
-  const diceConfigRef = useRef<DiceConfig[]>([])
-  const diceInstancesRef = useRef<ReactElement<DiceProps>[]>([])
-  const canvasHeightRef = useRef<number>(0)
-  const canvasWidthRef = useRef<number>(0)
+  const {
+    dice,
+    setDiceConfig,
+    setDiceInstances,
+    setDiceResults,
+    setCanvasHeight,
+    setCanvasWidth,
+    setIsRolling,
+    setRenderDice,
+    setRerollCount,
+    resetDice,
+  } = useStore()
 
-  const generateUniqueId = () => {
-    return Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36)
-  }
-
-  useEffect(() => {
-    diceResultsRef.current = diceResults
-  }, [diceResults])
-
-  useEffect(() => {
-    diceConfigRef.current = diceConfig
-  }, [diceConfig])
-
-  useEffect(() => {
-    diceInstancesRef.current = diceInstances
-  }, [diceInstances])
-
-  useEffect(() => {
-    canvasHeightRef.current = canvasHeight
-  }, [canvasHeight])
-
-  useEffect(() => {
-    canvasWidthRef.current = canvasWidth
-  }, [canvasWidth])
+  const setDice = useMemo(
+    () => ({
+      config: setDiceConfig,
+      instances: setDiceInstances,
+      results: setDiceResults,
+      canvasHeight: setCanvasHeight,
+      canvasWidth: setCanvasWidth,
+      isRolling: setIsRolling,
+      render: setRenderDice,
+      rerollCount: setRerollCount,
+    }),
+    [
+      setDiceConfig,
+      setDiceInstances,
+      setDiceResults,
+      setCanvasHeight,
+      setCanvasWidth,
+      setIsRolling,
+      setRenderDice,
+      setRerollCount,
+    ]
+  )
 
   // Create instances of dice using random positioning based on center point and then creating the velocity based on the position of each instance
-  const generateDiceInstances = (configArray: DiceConfig[], positions: Point[]) => {
-    let positionIndex = 0
-    const linearVelocity = generateRandomLinearVelocity(canvasWidthRef.current, canvasHeightRef.current)
+  const generateDiceInstances = useCallback(
+    (configArray: DiceConfig[], positions: Point[]) => {
+      let positionIndex = 0
+      const linearVelocity = generateRandomLinearVelocity(dice.canvasWidth, dice.canvasHeight)
 
-    return configArray.flatMap(({ quantity, type }) => {
-      const instances: ReactElement<DiceProps>[] = []
-      for (let i = 0; i < quantity; i++) {
-        const { x, y, z } = positions[positionIndex]
-        const adjustedPosition: Vector3Tuple = [x, y, z]
-        const rotation = generateRandomRotation()
-        instances.push(
-          <Dice
-            type={type}
-            position={adjustedPosition}
-            linearVelocity={linearVelocity}
-            rotation={rotation}
-            friction={1}
-            gravityScale={8.7}
-            restitution={0}
-            key={generateUniqueId()}
-            id={generateUniqueId()}
-          />
-        )
-        positionIndex++
+      return configArray.flatMap(({ quantity, die }) => {
+        const instances: ReactElement<DiceProps>[] = []
+        for (let i = 0; i < quantity; i++) {
+          const { x, y, z } = positions[positionIndex]
+          const adjustedPosition: Vector3Tuple = [x, y, z]
+          const rotation = generateRandomRotation()
+          instances.push(
+            <Dice
+              die={die}
+              position={adjustedPosition}
+              linearVelocity={linearVelocity}
+              rotation={rotation}
+              friction={1}
+              gravityScale={8.7}
+              restitution={0}
+              key={generateUniqueId()}
+              id={generateUniqueId()}
+            />
+          )
+          positionIndex++
+        }
+        return instances
+      })
+    },
+    [dice.canvasHeight, dice.canvasWidth]
+  )
+
+  const diceInstancesGeneration = useCallback(
+    (configArray: DiceConfig[]) => {
+      const startPosition: Point = { x: 0, y: 0, z: 12 }
+      const totalQuantity = configArray.reduce((total, { quantity }) => total + quantity, 0)
+      const positions = generateRandomPoints(totalQuantity, 3, startPosition)
+      return generateDiceInstances(configArray, positions)
+    },
+    [generateDiceInstances]
+  )
+
+  const reroll = useCallback(async () => {
+    const rollTracker = dice.config.map((configObject) => ({ die: configObject.die, rollCount: 0 }))
+
+    const diceInstancesClone = [...dice.instances]
+    const diceResultsClone = [...dice.results]
+    const rerollConfig: DiceConfig[] = []
+
+    dice.config.forEach((config) => {
+      const tracker = rollTracker.find((tracker) => tracker.die === config.die)
+
+      if (config.rerollType && config.rerollValue && tracker) {
+        const rerollType = config.rerollType
+        if (rerollType === 'r' || (rerollType === 'ro' && tracker.rollCount === 0)) {
+          const rerollValue = config.rerollValue
+          const rerollCondition = config.rerollCondition || '==='
+          let rerollCount: number = 0
+
+          for (let i = diceResultsClone.length - 1; i >= 0; i--) {
+            if (eval(`${diceResultsClone[i].value} ${rerollCondition} ${rerollValue}`)) {
+              const rerollIndex = diceInstancesClone.findIndex((instance) => {
+                return instance.props.id === diceResultsClone[i].id
+              })
+              if (rerollIndex !== -1) {
+                diceInstancesClone.splice(rerollIndex, 1)
+                diceResultsClone.splice(i, 1)
+                rerollCount += 1
+              }
+            }
+          }
+
+          if (rerollCount > 0) {
+            tracker.rollCount += 1
+            rerollConfig.push({
+              ...config,
+              quantity: rerollCount,
+              rerollType: config.rerollType,
+              rerollCondition: config.rerollCondition,
+              rerollValue: config.rerollValue,
+            })
+          }
+        }
       }
-      return instances
     })
-  }
 
-  const diceInstancesGeneration = (configArray: DiceConfig[]) => {
-    const startPosition: Point = { x: 0, y: 0, z: 12 }
-    const totalQuantity = configArray.reduce((total, { quantity }) => total + quantity, 0)
-    const positions = generateRandomPoints(totalQuantity, 3, startPosition)
-    return generateDiceInstances(configArray, positions)
-  }
+    if (rerollConfig.length > 0) {
+      setDice.results(diceResultsClone)
+      const rerollInstances = diceInstancesGeneration(rerollConfig)
+      diceInstancesClone.push(...rerollInstances)
+      setDice.instances(diceInstancesClone)
+    }
+  }, [dice.config, dice.instances, dice.results, setDice, diceInstancesGeneration])
 
-  const updateDiceResult = async (die: number, value: number, id: string) => {
-    setDiceResults((prevResults) => {
-      const newResults = [...prevResults, { die, value, id }]
-      diceResultsRef.current = newResults
-      return newResults
-    })
-  }
-
-  const diceResultObject = useCallback((input: string) => {
-    const rolled = [...diceResultsRef.current]
-    const rollStrings = input.split(' ')
+  const diceResultObject = useCallback(() => {
+    const rolled = [...dice.results]
     let kept = [...rolled]
 
-    rollStrings.forEach((rollString: RollConfig) => {
-      const { keepType, keepCount, dropType, dropCount, dieType } = parseDiceRoll(rollString)
+    dice.config.forEach((config) => {
+      const { keepType, keepCount, dropType, dropCount, die } = config
       if (keepType || dropType) {
-        let diceOfType = rolled.filter((result) => result.die === parseInt(dieType))
+        let diceOfType = rolled.filter((result) => result.die === die)
 
         if (dropType && dropCount) {
           diceOfType.sort((a, b) => a.value! - b.value!)
@@ -122,143 +172,114 @@ const useDiceOptions = () => {
           }
         }
 
-        kept = kept.filter((result) => result.die !== parseInt(dieType)).concat(diceOfType)
+        kept = kept.filter((result) => result.die !== die).concat(diceOfType)
       }
     })
-    setDiceResults([])
+    setDice.results([])
     return { rolled, kept }
-  }, [])
+  }, [dice.results, setDice, dice.config])
 
-  const checkResults = async (diceRolls: DiceConfig[]) => {
-    const expectedResultsCount = diceRolls.reduce((acc, roll) => acc + roll.quantity, 0)
-
-    while (diceResultsRef.current.length !== expectedResultsCount || expectedResultsCount === 0) {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-
-    return true
-  }
-
-  const checkReroll = async (diceRolls: DiceConfig[]) => {
-    let rerollNeeded = false
-    const rollTracker = diceConfigRef.current.map((configObject) => ({ type: configObject.type, rollCount: 0 }))
-
-    do {
-      rerollNeeded = false
-      const diceConfigClone = [...diceConfigRef.current]
-      const diceInstancesClone = [...diceInstancesRef.current]
-      const diceResultsClone = [...diceResultsRef.current]
-      const rerollConfig: DiceConfig[] = []
-
-      diceConfigClone.forEach((configObject) => {
-        const tracker = rollTracker.find((tracker) => tracker.type === configObject.type)
-
-        if (configObject.rerollType && configObject.rerollValue && tracker) {
-          const rerollType = configObject.rerollType
-          if (rerollType === 'r' || (rerollType === 'ro' && tracker.rollCount === 0)) {
-            const rerollValue = configObject.rerollValue
-            const rerollCondition = configObject.rerollCondition ?? '==='
-            let rerollCount: number = 0
-
-            for (let i = diceResultsClone.length - 1; i >= 0; i--) {
-              if (eval(`${diceResultsClone[i].value} ${rerollCondition} ${rerollValue}`)) {
-                const rerollIndex = diceInstancesClone.findIndex((instance) => {
-                  return instance.props.id === diceResultsClone[i].id
-                })
-                if (rerollIndex !== -1) {
-                  diceInstancesClone.splice(rerollIndex, 1)
-                  diceResultsClone.splice(i, 1)
-                  rerollCount += 1
-                  rerollNeeded = true
-                }
-              }
-            }
-
-            if (rerollCount > 0) {
-              tracker.rollCount += 1
-              rerollConfig.push({
-                ...configObject,
-                quantity: rerollCount,
-                rerollType: configObject.rerollType,
-                rerollCondition: configObject.rerollCondition,
-                rerollValue: configObject.rerollValue,
-              })
-            }
+  useEffect(() => {
+    const rollCount = dice.config.reduce((acc, roll) => acc + roll.quantity, 0)
+    if (dice.results.length === rollCount && rollCount > 0) {
+      dice.config.forEach((config) => {
+        if (config.rerollType === 'r' || config.rerollType === 'ro') {
+          const dieReroll = dice.results.some(
+            (result) => result.die === config.die && result.value === config.rerollValue
+          )
+          // if (dieReroll) {
+          if (dieReroll && (config.rerollType === 'r' || (config.rerollType === 'ro' && dice.rerollCount < 1))) {
+            setDice.rerollCount(dice.rerollCount + 1)
+            reroll()
           }
         }
       })
+    }
+  }, [dice.config, dice.results, reroll, setDice, dice.rerollCount])
 
-      // If rerolls were performed, update state and continue checking
-      if (rerollNeeded) {
-        setDiceResults(diceResultsClone)
-        diceResultsRef.current = diceResultsClone
-        const rerollInstances = diceInstancesGeneration(rerollConfig)
-        diceInstancesClone.push(...rerollInstances)
-        setDiceInstances(diceInstancesClone)
-      } else {
-        return
+  useEffect(() => {
+    // Only proceed if we're rolling and have a resolver
+    if (!dice.isRolling || !rollPromiseResolver.current) return
+
+    const rollCount = dice.config.reduce((acc, roll) => acc + roll.quantity, 0)
+
+    // Check if all dice have reported results
+    if (dice.results.length === rollCount && rollCount > 0) {
+      // Check if any need rerolling
+      const needsReroll = dice.config.some(
+        (config) =>
+          (config.rerollType === 'r' || (config.rerollType === 'ro' && dice.rerollCount < 1)) &&
+          dice.results.some((result) => result.die === config.die && result.value === config.rerollValue)
+      )
+
+      if (!needsReroll) {
+        // All done! Calculate results and resolve
+        const result = diceResultObject()
+        rollPromiseResolver.current(result)
+        rollPromiseResolver.current = null
       }
+    }
+  }, [dice.results, dice.config, dice.isRolling, setDice, diceResultObject, dice.rerollCount])
 
-      await checkResults(diceRolls)
-    } while (rerollNeeded)
+  useEffect(() => {
+    return () => {
+      // Clear resolver if component unmounts during a roll
+      if (rollPromiseResolver.current) {
+        rollPromiseResolver.current = null
+      }
+    }
+  }, [])
+
+  const generateUniqueId = () => {
+    return Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36)
+  }
+
+  const updateDiceResult = async (die: number, value: number, id: string) => {
+    const results = [...dice.results, { die, value, id }]
+    setDice.results(results)
   }
 
   const rollDice = async (input: RollConfig) => {
     return new Promise<{ rolled: DiceResult[]; kept: DiceResult[] }>((resolve) => {
-      setRenderDice(true)
-      setIsRolling(true)
-      setDiceResults([])
-      const diceRolls: any[] = []
+      rollPromiseResolver.current = resolve
+
+      setDice.render(true)
+      setDice.isRolling(true)
+
+      setDice.results([])
+
+      const diceRolls: DiceConfig[] = []
       const rollStrings = input.split(' ') as RollConfig[]
 
       for (let i = 0; i < rollStrings.length; i++) {
-        const { numDice, dieType, rerollType, rerollCondition, rerollValue } = parseDiceRoll(rollStrings[i])
+        const { numDice, dieType, rerollType, rerollCondition, rerollValue, keepType, keepCount, dropType, dropCount } =
+          parseDiceRoll(rollStrings[i])
         diceRolls.push({
           quantity: numDice ? parseInt(numDice) : 1,
-          type: dieType ? parseInt(dieType) : 4,
+          die: (dieType ? parseInt(dieType) : 4) as DieType,
           rerollType: rerollType,
           rerollCondition: rerollCondition,
           rerollValue: parseInt(rerollValue),
+          keepType: keepType,
+          keepCount: parseInt(keepCount),
+          dropType: dropType,
+          dropCount: parseInt(dropCount),
         })
       }
-      setDiceConfig(diceRolls)
+
+      setDice.config(diceRolls)
+
       const generatedDice = diceInstancesGeneration(diceRolls)
-      setDiceInstances(generatedDice)
-      checkResults(diceRolls).then(() =>
-        checkReroll(diceRolls).then(() => {
-          const result = diceResultObject(input)
-          resolve(result)
-        })
-      )
+      setDice.instances(generatedDice)
     })
   }
 
-  const resetState = () => {
-    setDiceInstances([])
-    setDiceConfig([])
-    setDiceResults([])
-    setRenderDice(false)
-    setIsRolling(false)
-  }
-
   const value = {
-    diceConfig,
-    setDiceConfig,
-    diceResults,
-    setDiceResults,
+    dice,
+    setDice,
     rollDice,
     updateDiceResult,
-    renderDice,
-    setRenderDice,
-    isRolling,
-    setIsRolling,
-    diceInstances,
-    setDiceInstances,
-    canvasHeight,
-    setCanvasHeight,
-    canvasWidth,
-    setCanvasWidth,
-    resetState,
+    resetDice,
   }
 
   return value

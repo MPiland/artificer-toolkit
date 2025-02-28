@@ -71,19 +71,23 @@ const NoAuthHeader = ({ lg }: { lg: boolean }) => {
 const AuthHeader = ({ lg }: { lg: boolean }) => {
   const { collapsed, setCollapsed } = use(LayoutContext)
   return !lg ? (
-    <div className={header_item_group}>
-      <Hamburger
-        onClick={(e) => {
-          e.stopPropagation()
-          setCollapsed((prev) => !prev)
-        }}
-        collapsed={collapsed}
-      />
-      <div className={header_title}>
-        Artificer Toolkit
-        <ILogo />
+    <>
+      <div className={header_item_group}>
+        <Hamburger
+          onClick={(e) => {
+            e.stopPropagation()
+            setCollapsed((prev) => !prev)
+          }}
+          collapsed={collapsed}
+        />
       </div>
-    </div>
+      <div className={header_item_group}>
+        <div className={header_title}>
+          Artificer Toolkit
+          <ILogo />
+        </div>
+      </div>
+    </>
   ) : (
     <div className={header_item_group}>
       <div className={header_title}>

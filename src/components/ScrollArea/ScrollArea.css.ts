@@ -1,6 +1,5 @@
 import { style, styleVariants, createVar, globalStyle } from '@vanilla-extract/css'
 import { app } from '../../css/layers.css'
-import { theme } from '../../css/theme.css'
 import { space } from '../../css/size.css'
 
 export const thumb_height = createVar()
@@ -17,7 +16,12 @@ export const scroll_area_wrapper = style({
       overflow: 'hidden',
       marginRight: '-1rem',
       paddingRight: '1rem',
-      paddingBottom: '1rem',
+
+      selectors: {
+        '&.horizontal': {
+          paddingBottom: '1rem',
+        },
+      },
     },
   },
 })
@@ -90,9 +94,7 @@ export const scroll_arrow = style({
   '@layer': {
     [app]: {
       width: '1.25rem',
-      backgroundColor: theme.vars.typography.color.main,
       height: '100%',
-      position: 'absolute',
       display: 'flex',
       alignItems: 'center',
       zIndex: 2,

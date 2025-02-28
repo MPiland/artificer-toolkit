@@ -6,6 +6,7 @@ import Row from '../../../Row/Row'
 import { Character, Scores } from '../../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { AbilityGenerate } from '../../../../types/enums'
+import { isEqual } from 'lodash'
 
 const StandardArray = ({
   formData,
@@ -16,19 +17,25 @@ const StandardArray = ({
 }) => {
   const { data: system } = useGetSystemQuery()
 
+  const pointSystem = system.rules.abilityGenerateMethod.find((method) => method.id === AbilityGenerate.standardArray)
+
   useEffect(() => {
     if (formData.abilities?.standardArray?.length > 0) {
-      formData.abilities?.scores?.forEach((ability: any, aIndex: number) => {
-        const score = formData.abilities?.standardArray?.find(
-          (arrayValue: any) => ability._id === arrayValue?.ability?._id
-        )?.score
+      formData.abilities?.scores?.forEach((aScore, aIndex) => {
+        const arrayObject = formData.abilities?.standardArray?.find(
+          (arrayValue) => aScore.ability === arrayValue?.ability
+        )
 
-        if (score) {
-          updateFormData({
-            type: 'update',
-            path: `abilities.scores.${aIndex}.baseScore`,
-            value: score,
-          })
+        if (arrayObject?.score) {
+          const score = pointSystem?.options.find((option) => option.id === arrayObject.score).value
+
+          if (!isEqual(score, arrayObject.score)) {
+            updateFormData({
+              type: 'update',
+              path: `abilities.scores.${aIndex}.baseScore`,
+              value: score,
+            })
+          }
         } else {
           updateFormData({
             type: 'update',
@@ -38,13 +45,14 @@ const StandardArray = ({
         }
       })
     }
-  }, [formData.abilities, updateFormData])
+  }, [formData.abilities, updateFormData, pointSystem])
 
   const handleStandardArray = (e: UpdateState<Character>, score: Scores, index: number) => {
     if (e.type === 'update') {
       const valueObject: string = e.value
+      console.log({ valueObject })
       if (valueObject) {
-        const standardArrayObject: { ability: string; score: string } = {
+        const standardArrayObject: { ability: string; score: string | number } = {
           ability: score.ability,
           score: e.value,
         }
@@ -54,38 +62,40 @@ const StandardArray = ({
           value: standardArrayObject,
         })
       }
-
+    }
+    if (e.type === 'remove') {
       return updateFormData({
         type: 'update',
         path: `abilities.standardArray.${index}`,
-        value: undefined,
+        value: [],
       })
     }
   }
 
   return (
     <Row cols={{ base: 2, md: formData.abilities?.scores?.length }} className={ability_group}>
-      {formData.abilities?.scores?.map((score, index) => (
-        <Dropdown<Character>
-          key={index}
-          name={'ability' as DeepKeyOf<Character>}
-          label='Dice Value'
-          value={
-            system.rules.abilityGenerateMethod
-              .find((method) => method.id === AbilityGenerate.standardArray)
-              .options.find((option) => option.id === formData.abilities?.standardArray?.[index]?.score).id
-          }
-          options={system.rules.abilityGenerateMethod
-            .find((method) => method.id === AbilityGenerate.standardArray)
-            .options.filter(
+      {formData.abilities?.scores?.map((score, index) => {
+        const ability = system.abilities.find((sAbility) => sAbility.id === score.ability)
+        const currentIndex = formData.abilities?.standardArray?.findIndex(
+          (sAbility) => sAbility?.ability === score.ability
+        )
+        const current = formData.abilities?.standardArray?.[currentIndex]?.score
+        return (
+          <Dropdown<Character>
+            key={index}
+            name={'ability' as DeepKeyOf<Character>}
+            label={`${ability?.label}`}
+            value={current}
+            options={pointSystem.options.filter(
               (option) =>
                 !formData.abilities?.standardArray?.some(
-                  (aValue, vIndex) => aValue?.score === option.id && vIndex !== index
+                  (sAbility) => sAbility?.score === option.id && sAbility.ability !== ability.id
                 )
             )}
-          onChange={(e) => handleStandardArray(e, score, index)}
-        />
-      ))}
+            onChange={(e) => handleStandardArray(e, score, index)}
+          />
+        )
+      })}
     </Row>
   )
 }

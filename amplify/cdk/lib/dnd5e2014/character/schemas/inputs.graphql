@@ -119,10 +119,6 @@ input RollTypeInput {
   kept: [RollInput]!
 }
 
-input RollGroupInput {
-  rolls: [RollTypeInput]
-}
-
 input ManualInput {
   ability: ID
   score: Int
@@ -130,7 +126,7 @@ input ManualInput {
 
 input ManualRolledInput {
   configuration: String!
-  rollGroups: [RollGroupInput]
+  rollGroups: [[RollTypeInput]]
   manual: [ManualInput]
 }
 

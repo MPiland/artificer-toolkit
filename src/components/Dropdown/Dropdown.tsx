@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo, useCallback } from 'react'
+import { useEffect, useState, useRef, useMemo, useCallback, ReactNode } from 'react'
 import {
   dropdown_container,
   dropdown_input,
@@ -145,12 +145,18 @@ const Dropdown = <T,>({
     return selectedOptions
   }, [filteredOptions, selectedOptions])
 
-  const selectedLabels: string | string[] = useMemo(() => {
+  const selectedLabels: string | string[] | ReactNode = useMemo(() => {
     if (!activeOptions || !filteredOptions?.length) return null
     if (Array.isArray(activeOptions)) {
-      return activeOptions.map((id) => String(filteredOptions.find((opt) => opt.id === id)?.label))
+      return activeOptions.map((id) => {
+        const option = filteredOptions.find((opt) => opt.id === id)
+        if (option.renderedLabel) {
+          return option.renderedLabel
+        }
+        return option?.label
+      })
     }
-    return String(filteredOptions.find((opt) => opt.id === activeOptions)?.label)
+    return filteredOptions.find((opt) => opt.id === activeOptions)?.label
   }, [activeOptions, filteredOptions])
 
   const handleValueSelect = (option: DropdownOption) => {
@@ -204,13 +210,13 @@ const Dropdown = <T,>({
   return (
     <div className={clsx(dropdown, { [className]: className })}>
       <Floating>
-        <Floating.Anchor className={dropdown_wrapper}>
+        <div className={dropdown_wrapper}>
           {label && (
             <label className={clsx(dropdown_label, { ['required']: required })} htmlFor={id || name}>
               {label}
             </label>
           )}
-          <div
+          <Floating.Anchor
             className={clsx(
               dropdown_container,
               'dropdown',
@@ -257,8 +263,8 @@ const Dropdown = <T,>({
                 <TbChevronDown />
               )}
             </span>
-          </div>
-        </Floating.Anchor>
+          </Floating.Anchor>
+        </div>
         <Floating.Tooltip
           className={'invalid'}
           open={error}
@@ -278,7 +284,12 @@ const Dropdown = <T,>({
 
               return (
                 <Floating.Option
-                  option={{ id: option.id, label: String(option.label), value: String(option.value) }}
+                  option={{
+                    id: option.id,
+                    label: option.label,
+                    value: String(option.value),
+                    renderedLabel: option?.renderedLabel,
+                  }}
                   key={optionIndex}
                   selected={selected}
                   onSelect={(option: DropdownOption) => handleValueSelect(option)}

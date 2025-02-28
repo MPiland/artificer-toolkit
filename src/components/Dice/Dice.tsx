@@ -1,13 +1,14 @@
 import { useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import { RapierRigidBody, RigidBody, Vector3Tuple, useRapier } from '@react-three/rapier'
+import { RapierRigidBody, RigidBody, Vector3Tuple } from '@react-three/rapier'
 import { useEffect, useMemo, useRef, useState, use } from 'react'
 import { Mesh, MeshStandardMaterial, Vector4Like } from 'three'
 import { Vector } from 'three/examples/jsm/Addons.js'
 import { DiceContext } from './DiceContext'
+import { DieType } from '../../types/components'
 
 export interface DiceProps {
-  type: number
+  die: DieType
   position?: Vector3Tuple
   linearVelocity?: Vector3Tuple
   rotation?: Vector3Tuple
@@ -23,43 +24,30 @@ const Dice = ({
   rotation = [0, 0, 0],
   gravityScale = 0,
   friction = 0,
-  type,
+  die,
   restitution = 0,
   id,
   ...props
 }: DiceProps) => {
-  const useDiceModel = (type: number) => {
-    const path = `/models/d${type}.glb`
+  const useDiceModel = (die: DieType) => {
+    const path = `/models/d${die}.glb`
     return useGLTF(path)
   }
 
-  const { world } = useRapier()
-
-  const { nodes } = useDiceModel(type)
+  const { nodes } = useDiceModel(die)
   const rigidBodyRef = useRef<RapierRigidBody>(null)
   const [diceValue, setDiceValue] = useState<number | null>(null)
-  const { updateDiceResult } = use(DiceContext)
+  const { updateDiceResult, dice } = use(DiceContext)
 
   useEffect(() => {
-    if (diceValue != null) {
-      updateDiceResult(type, diceValue, id)
+    if (diceValue != null && !dice.results?.some((result) => result.id === id)) {
+      updateDiceResult(die, diceValue, id)
     }
-    //eslint-disable-next-line
-  }, [diceValue])
-
-  useEffect(() => {
-    const rigidBody = rigidBodyRef.current
-    return () => {
-      if (rigidBody) {
-        // Assuming you have access to the physics world
-        world.removeRigidBody(rigidBody)
-      }
-    }
-  }, [world])
+  }, [diceValue, id, die, updateDiceResult, dice])
 
   const faceNormals = useMemo(() => {
     let normalsArray: any[] = []
-    if (type === 6) {
+    if (die === 6) {
       normalsArray = [
         { normal: [0, 0, 1], value: 1 }, // Top face
         { normal: [0, 1, 0], value: 3 }, // Front face
@@ -69,7 +57,7 @@ const Dice = ({
         { normal: [0, 0, -1], value: 6 }, // Bottom face
       ]
     }
-    if (type === 8) {
+    if (die === 8) {
       normalsArray = [
         { normal: [2.28130119239722e-8, -1.03597722045378e-5, 1], value: 1 },
         { normal: [-0.816496729850769, 0.471400797367095, 0.333338171243667], value: 4 },
@@ -81,7 +69,7 @@ const Dice = ({
         { normal: [0.816496551036834, -0.471401154994964, -0.333338350057601], value: 5 },
       ]
     }
-    if (type === 10) {
+    if (die === 10) {
       normalsArray = [
         { normal: [0.437134623527526, -0.899395883083343, 0.000552834128029644], value: 4 },
         { normal: [0.707298755645752, -0.343545466661453, -0.61782282590866], value: 0 },
@@ -95,7 +83,7 @@ const Dice = ({
         { normal: [-0.437134504318237, 0.899396002292633, -0.000552673358470201], value: 5 },
       ]
     }
-    if (type === 12) {
+    if (die === 12) {
       normalsArray = [
         { normal: [1.65957381170755e-8, -0.894290745258331, -0.447486490011215], value: 10 },
         { normal: [-0.850650787353515, -0.276256829500198, -0.447297871112823], value: 11 },
@@ -111,7 +99,7 @@ const Dice = ({
         { normal: [-1.550610591039e-7, 0.894290626049041, 0.447486519813537], value: 3 },
       ]
     }
-    if (type === 20) {
+    if (die === 20) {
       normalsArray = [
         { normal: [-0.333373129367828, 0.57734203338623, 0.745344579219818], value: 13 },
         { normal: [-0.745371520519256, 0.577318429946899, -0.333353817462921], value: 4 },
@@ -135,7 +123,7 @@ const Dice = ({
         { normal: [2.22839680645847e-5, -7.0385385697591e-6, -1], value: 20 },
       ]
     }
-    if (type === 100) {
+    if (die === 100) {
       normalsArray = [
         { normal: [0.437134653329849, -0.899395883083343, 0.000552878831513226], value: 60 },
         { normal: [0.707298636436462, -0.343545317649841, -0.61782306432724], value: 40 },
@@ -150,7 +138,7 @@ const Dice = ({
       ]
     }
     return normalsArray
-  }, [type])
+  }, [die])
 
   const applyRotationMatrix = (vector: number[], matrix: number[]) => {
     const [x, y, z] = vector
@@ -249,14 +237,16 @@ const Dice = ({
   }
 
   useFrame(() => {
-    if (rigidBodyRef.current) {
-      const isMoving = rigidBodyRef.current.isMoving()
+    const body = rigidBodyRef.current
+    if (body) {
+      const isMoving = body.isMoving()
 
       if (!isMoving && diceValue == null) {
-        let diceValue = null
-        const position = rigidBodyRef.current.translation()
-        const rotation = rigidBodyRef.current.rotation()
-        if (type !== 4) {
+        const position = body.translation()
+        const rotation = body.rotation()
+
+        let calculatedValue = null
+        if (die !== 4) {
           // Dice is at rest, calculate top face
           const up = [0, 0, 1]
           const rotationMatrix = quaternionToMatrix(rotation)
@@ -269,16 +259,16 @@ const Dice = ({
 
             if (dotProduct > maxDot) {
               maxDot = dotProduct
-              diceValue = value
+              calculatedValue = value
             }
           }
-          setDiceValue(diceValue)
+          setDiceValue(calculatedValue)
         } else {
           const topVertexIndex = calculateTopVertex(position, rotation)
 
           // Map the top vertex index to the corresponding number on the dice
-          diceValue = mapVertexToNumber(topVertexIndex)
-          setDiceValue(diceValue ?? null)
+          calculatedValue = mapVertexToNumber(topVertexIndex)
+          setDiceValue(calculatedValue || null)
         }
       }
     }
@@ -297,10 +287,10 @@ const Dice = ({
       mass={2000}
       includeInvisible
     >
-      <mesh {...props} geometry={(nodes[`d${type}`] as Mesh).geometry} castShadow receiveShadow>
+      <mesh {...props} geometry={(nodes[`d${die}`] as Mesh).geometry} castShadow receiveShadow>
         <meshStandardMaterial
           attach='material'
-          map={((nodes[`d${type}`] as Mesh).material as MeshStandardMaterial).map}
+          map={((nodes[`d${die}`] as Mesh).material as MeshStandardMaterial).map}
         />
       </mesh>
     </RigidBody>

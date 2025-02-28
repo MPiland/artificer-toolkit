@@ -68,6 +68,7 @@ export const dropdown_container = style({
 
       selectors: {
         '&:focus-within': {
+          outline: 'none',
           border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
         },
         '&.invalid': {
@@ -133,6 +134,13 @@ export const dropdown_menu = style({
       backgroundColor: theme.vars.component.input.backgroundColor,
       border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.input.border.color.main}`,
       borderRadius: theme.border.radius,
+
+      selectors: {
+        '&:focus-within': {
+          outline: 'none',
+          border: `${theme.border.size.emphasis} ${theme.border.style} ${theme.vars.component.input.border.color.focus}`,
+        },
+      },
     },
   },
 })

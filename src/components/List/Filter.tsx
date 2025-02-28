@@ -15,7 +15,7 @@ import { useMediaQuery } from 'usehooks-ts'
 
 // const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
 const Filter = () => {
-  const sm = useMediaQuery('screen and (max-width: 567px)')
+  const sm = useMediaQuery('(max-width: 567px)')
 
   return (
     <Collapse style='borderless'>

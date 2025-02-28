@@ -3282,23 +3282,6 @@ query ListMasterRaces {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -3939,23 +3922,6 @@ query ListMasterRaces {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -4599,23 +4565,6 @@ query ListMasterRaces {
 							optionsObtained
 							size
 						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
 					}
 					spells {
 						__typename
@@ -5256,23 +5205,6 @@ query ListMasterRaces {
 								featuresObtained
 								optionsObtained
 								size
-							}
-							charges {
-								__typename
-								reset
-								limit
-								ability
-								skill
-								usesPerLevel {
-									__typename
-									level
-									uses
-								}
-								minAmount
-								addAmount
-								setAmount
-								multiplier
-								resourcePoints
 							}
 						}
 						spells {
@@ -5943,23 +5875,6 @@ query ListMasterRaces {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -6600,23 +6515,6 @@ query ListMasterRaces {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -7260,23 +7158,6 @@ query ListMasterRaces {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -7917,23 +7798,6 @@ query ListMasterRaces {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -8601,23 +8465,6 @@ query GetRace($id: ID!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -9258,23 +9105,6 @@ query GetRace($id: ID!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -9918,23 +9748,6 @@ query GetRace($id: ID!) {
 							optionsObtained
 							size
 						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
 					}
 					spells {
 						__typename
@@ -10575,23 +10388,6 @@ query GetRace($id: ID!) {
 								featuresObtained
 								optionsObtained
 								size
-							}
-							charges {
-								__typename
-								reset
-								limit
-								ability
-								skill
-								usesPerLevel {
-									__typename
-									level
-									uses
-								}
-								minAmount
-								addAmount
-								setAmount
-								multiplier
-								resourcePoints
 							}
 						}
 						spells {
@@ -11262,23 +11058,6 @@ query GetRace($id: ID!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -11919,23 +11698,6 @@ query GetRace($id: ID!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -12579,23 +12341,6 @@ query GetRace($id: ID!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -13236,23 +12981,6 @@ query GetRace($id: ID!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -13922,23 +13650,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							optionsObtained
 							size
 						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
 					}
 					spells {
 						__typename
@@ -14579,23 +14290,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								featuresObtained
 								optionsObtained
 								size
-							}
-							charges {
-								__typename
-								reset
-								limit
-								ability
-								skill
-								usesPerLevel {
-									__typename
-									level
-									uses
-								}
-								minAmount
-								addAmount
-								setAmount
-								multiplier
-								resourcePoints
 							}
 						}
 						spells {
@@ -15239,23 +14933,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 								optionsObtained
 								size
 							}
-							charges {
-								__typename
-								reset
-								limit
-								ability
-								skill
-								usesPerLevel {
-									__typename
-									level
-									uses
-								}
-								minAmount
-								addAmount
-								setAmount
-								multiplier
-								resourcePoints
-							}
 						}
 						spells {
 							__typename
@@ -15896,23 +15573,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 									featuresObtained
 									optionsObtained
 									size
-								}
-								charges {
-									__typename
-									reset
-									limit
-									ability
-									skill
-									usesPerLevel {
-										__typename
-										level
-										uses
-									}
-									minAmount
-									addAmount
-									setAmount
-									multiplier
-									resourcePoints
 								}
 							}
 							spells {
@@ -16583,23 +16243,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -17240,23 +16883,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -17900,23 +17526,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -18557,23 +18166,6 @@ query ListRaces($limit: Int, $nextToken: String, $systemId: String!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -19559,23 +19151,6 @@ query ListMasterFeats {
 			optionsObtained
 			size
 		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
 	}
 	spells {
 		__typename
@@ -20288,23 +19863,6 @@ query ListMasterFeats {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -20945,23 +20503,6 @@ query ListMasterFeats {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -21605,23 +21146,6 @@ query ListMasterFeats {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -22262,23 +21786,6 @@ query ListMasterFeats {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -22924,23 +22431,6 @@ query ListMasterFeats {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -23581,23 +23071,6 @@ query ListMasterFeats {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -24579,23 +24052,6 @@ query GetFeat($id: ID!) {
 			optionsObtained
 			size
 		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
 	}
 	spells {
 		__typename
@@ -25308,23 +24764,6 @@ query GetFeat($id: ID!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -25965,23 +25404,6 @@ query GetFeat($id: ID!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -26625,23 +26047,6 @@ query GetFeat($id: ID!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -27282,23 +26687,6 @@ query GetFeat($id: ID!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -27944,23 +27332,6 @@ query GetFeat($id: ID!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -28601,23 +27972,6 @@ query GetFeat($id: ID!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -29601,23 +28955,6 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -30330,23 +29667,6 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -30987,23 +30307,6 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -31647,23 +30950,6 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -32304,23 +31590,6 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -32966,23 +32235,6 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -33623,23 +32875,6 @@ query ListFeats($limit: Int, $nextToken: String, $systemId: String!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -34746,23 +33981,6 @@ query ListMasterEquipment {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -35403,23 +34621,6 @@ query ListMasterEquipment {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -36063,23 +35264,6 @@ query ListMasterEquipment {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -36720,23 +35904,6 @@ query ListMasterEquipment {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -37842,23 +37009,6 @@ query GetEquipment($id: ID!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -38499,23 +37649,6 @@ query GetEquipment($id: ID!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -39159,23 +38292,6 @@ query GetEquipment($id: ID!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -39816,23 +38932,6 @@ query GetEquipment($id: ID!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -40920,23 +40019,6 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -41577,23 +40659,6 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -42237,23 +41302,6 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -42894,23 +41942,6 @@ query ListEquipment($limit: Int, $nextToken: String, $systemId: String!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -43762,23 +42793,6 @@ query ListMasterClasses {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -44419,23 +43433,6 @@ query ListMasterClasses {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -45079,23 +44076,6 @@ query ListMasterClasses {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -45736,23 +44716,6 @@ query ListMasterClasses {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -46600,23 +45563,6 @@ query GetClass($id: ID!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -47257,23 +46203,6 @@ query GetClass($id: ID!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -47917,23 +46846,6 @@ query GetClass($id: ID!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -48574,23 +47486,6 @@ query GetClass($id: ID!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -49440,23 +48335,6 @@ query ListClasses($systemId: String!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -50097,23 +48975,6 @@ query ListClasses($systemId: String!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -50757,23 +49618,6 @@ query ListClasses($systemId: String!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -51415,23 +50259,6 @@ query ListClasses($systemId: String!) {
 							optionsObtained
 							size
 						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
 					}
 					spells {
 						__typename
@@ -51578,24 +50405,21 @@ query GetCharacter($id: ID!) {
 			configuration
 			rollGroups {
 				__typename
-				rolls {
+				score
+				ability
+				rolling
+				applied
+				rolled {
 					__typename
-					score
-					ability
-					rolling
-					applied
-					rolled {
-						__typename
-						die
-						value
-						id
-					}
-					kept {
-						__typename
-						die
-						value
-						id
-					}
+					die
+					value
+					id
+				}
+				kept {
+					__typename
+					die
+					value
+					id
 				}
 			}
 			manual {
@@ -52024,24 +50848,21 @@ query ListCharacters($limit: Int, $nextToken: String, $systemId: String!) {
 				configuration
 				rollGroups {
 					__typename
-					rolls {
+					score
+					ability
+					rolling
+					applied
+					rolled {
 						__typename
-						score
-						ability
-						rolling
-						applied
-						rolled {
-							__typename
-							die
-							value
-							id
-						}
-						kept {
-							__typename
-							die
-							value
-							id
-						}
+						die
+						value
+						id
+					}
+					kept {
+						__typename
+						die
+						value
+						id
 					}
 				}
 				manual {
@@ -53055,23 +51876,6 @@ query ListMasterBackgrounds {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -53712,23 +52516,6 @@ query ListMasterBackgrounds {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -54372,23 +53159,6 @@ query ListMasterBackgrounds {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -55029,23 +53799,6 @@ query ListMasterBackgrounds {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -55794,23 +54547,6 @@ query GetBackground($id: ID!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -56451,23 +55187,6 @@ query GetBackground($id: ID!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -57111,23 +55830,6 @@ query GetBackground($id: ID!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -57768,23 +56470,6 @@ query GetBackground($id: ID!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -58535,23 +57220,6 @@ query ListBackgrounds($systemId: String!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -59192,23 +57860,6 @@ query ListBackgrounds($systemId: String!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -59852,23 +58503,6 @@ query ListBackgrounds($systemId: String!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -60509,23 +59143,6 @@ query ListBackgrounds($systemId: String!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {

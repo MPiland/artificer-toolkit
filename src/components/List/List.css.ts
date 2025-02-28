@@ -12,11 +12,13 @@ export const list_wrapper = style({
     [app]: {
       display: 'flex',
       flexDirection: 'row',
+      flexGrow: 1,
       position: 'relative',
-      width: '100%',
-      height: '100%',
       overflow: 'hidden',
       columnGap: space['space-2'],
+      marginRight: '-1rem',
+      paddingRight: '1rem',
+      paddingBottom: '1rem',
     },
   },
 })

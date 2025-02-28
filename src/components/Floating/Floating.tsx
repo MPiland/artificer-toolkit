@@ -1,4 +1,4 @@
-import { isValidElement, cloneElement, ReactNode, HTMLProps, ElementType, useState, useRef, use } from 'react'
+import { ReactNode, HTMLProps, useRef, use, MouseEvent as ReactMouseEvent, KeyboardEvent } from 'react'
 import {
   useMergeRefs,
   FloatingPortal,
@@ -6,19 +6,15 @@ import {
   FloatingFocusManager,
   FloatingList,
   useListItem,
-  useFloating as useFloatingUI,
-  useRole,
-  useClick,
-  useHover,
-  useFocus,
-  useDismiss,
-  useInteractions,
+  useFloating,
   flip,
   offset,
   shift,
   autoUpdate,
   Placement,
   arrow,
+  useInteractions,
+  useHover,
 } from '@floating-ui/react'
 import { FloatingContext } from './FloatingContext'
 import FloatingProvider, { FloatingOptionsProps } from './FloatingProvider'
@@ -32,34 +28,31 @@ const Floating = ({ children }: { children: ReactNode } & FloatingOptionsProps) 
 
 const Anchor = function FloatingAnchor({
   children,
-  asChild = false,
   className,
   ref: propRef,
   ...props
 }: HTMLProps<HTMLElement> & {
-  asChild?: boolean
-  as?: ElementType
   ref?: React.Ref<HTMLElement>
 }) {
   const context = use(FloatingContext)
   const childrenRef = (children as any).ref
   const ref = useMergeRefs([context.setReference, propRef, childrenRef])
 
-  if (asChild && isValidElement(children)) {
-    const childProps = typeof children.props === 'object' ? children.props : {}
-    return cloneElement(
-      children,
-      context?.getReferenceProps({
-        ref,
-        ...props,
-        ...childProps,
-        className,
-      })
-    )
-  }
-
   return (
-    <div ref={ref} className={className} {...context.getReferenceProps(props)}>
+    <div
+      ref={ref}
+      className={className}
+      {...context.getReferenceProps({
+        ...props,
+        onClick: (e: ReactMouseEvent<HTMLElement, MouseEvent>) => {
+          props.onClick?.(e)
+        },
+        onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+          console.log({ key: e.key })
+          props.onKeyDown?.(e)
+        },
+      })}
+    >
       {children}
     </div>
   )
@@ -78,33 +71,27 @@ const Menu = function FloatingMenu({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
   showArrow = false,
-  initialOpen = false,
   style,
   boundary = 'app',
   placement = 'bottom-start',
   ...props
 }: MenuProps) {
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(initialOpen)
-
   const arrowRef = useRef(null)
 
-  const open = controlledOpen ?? uncontrolledOpen
-  const setOpen = setControlledOpen ?? setUncontrolledOpen
+  const floatingContext = use(FloatingContext)
+
+  const open = controlledOpen || floatingContext.rootContext.open
+  const onOpenChange = setControlledOpen || floatingContext.rootContext.onOpenChange
 
   const appMain = document.getElementById('app-main')
   const formContent = document.getElementById('form-content')
 
-  const context = use(FloatingContext)
-
-  const {
-    refs,
-    floatingStyles,
-    context: menuContext,
-  } = useFloatingUI({
+  const { floatingStyles, context } = useFloating({
+    rootContext: floatingContext.rootContext,
     placement,
     whileElementsMounted: autoUpdate,
     open,
-    onOpenChange: setOpen,
+    onOpenChange,
     middleware: [
       offset(5),
       flip({
@@ -116,44 +103,39 @@ const Menu = function FloatingMenu({
       arrow({ element: arrowRef }),
     ],
     elements: {
-      reference: context.reference,
+      reference: floatingContext.reference,
     },
   })
 
-  const role = useRole(menuContext, { role: 'menu' })
-  const click = useClick(menuContext, {
-    enabled: controlledOpen == null,
-  })
-  const hover = useHover(menuContext, {
-    move: false,
-    enabled: controlledOpen == null,
-  })
-  const focus = useFocus(menuContext, {
-    enabled: controlledOpen == null,
-  })
-  const dismiss = useDismiss(menuContext)
-
-  const { getFloatingProps } = useInteractions([click, hover, focus, dismiss, role])
-
-  if (!open) return null
+  if (!context.open) return null
 
   return (
     <FloatingPortal root={boundary === 'form' ? formContent ?? appMain : appMain}>
-      <FloatingFocusManager context={menuContext} closeOnFocusOut={true} modal={false}>
+      <FloatingFocusManager
+        context={floatingContext.rootContext}
+        closeOnFocusOut={true}
+        returnFocus={true}
+        modal={false}
+      >
         <div
-          ref={refs.setFloating}
+          ref={floatingContext.setFloating}
           style={{
             ...floatingStyles,
             ...style,
           }}
-          {...getFloatingProps()}
+          {...floatingContext.getFloatingProps({
+            onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+              console.log({ key: e.key })
+              props.onKeyDown?.(e)
+            },
+          })}
           className={clsx(floating_content, props.className)}
         >
-          <FloatingList elementsRef={context.elementsRef} labelsRef={context.labelsRef}>
+          <FloatingList elementsRef={floatingContext.elementsRef} labelsRef={floatingContext.labelsRef}>
             {props.children}
           </FloatingList>
           {showArrow && (
-            <FloatingArrow ref={arrowRef} context={menuContext} className={clsx(floating_arrow, props.className)} />
+            <FloatingArrow ref={arrowRef} context={context} className={clsx(floating_arrow, props.className)} />
           )}
         </div>
       </FloatingFocusManager>
@@ -168,39 +150,34 @@ type TooltipProps = HTMLProps<HTMLDivElement> & {
   onOpenChange?: (open: boolean) => void
   showArrow?: boolean
   placement?: Placement
+  hover?: boolean
 }
 
 const Tooltip = function FloatingTooltip({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
   showArrow = false,
-  initialOpen = false,
   style,
   boundary = 'app',
   placement = 'bottom',
+  hover = false,
   ...props
 }: TooltipProps) {
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(initialOpen)
-
   const arrowRef = useRef(null)
 
-  const open = controlledOpen ?? uncontrolledOpen
-  const setOpen = setControlledOpen ?? setUncontrolledOpen
+  const floatingContext = use(FloatingContext)
+
+  const open = controlledOpen ?? floatingContext.rootContext.open
+  const onOpenChange = setControlledOpen ?? floatingContext.rootContext.onOpenChange
 
   const appMain = document.getElementById('app-main')
   const formContent = document.getElementById('form-content')
 
-  const context = use(FloatingContext)
-
-  const {
-    refs,
-    floatingStyles,
-    context: tooltipContext,
-  } = useFloatingUI({
+  const { floatingStyles, context: tooltipContext } = useFloating({
     placement,
     whileElementsMounted: autoUpdate,
     open,
-    onOpenChange: setOpen,
+    onOpenChange,
     middleware: [
       offset(10),
       flip({
@@ -212,20 +189,27 @@ const Tooltip = function FloatingTooltip({
       arrow({ element: arrowRef }),
     ],
     elements: {
-      reference: context.reference,
+      reference: floatingContext.reference,
     },
   })
+
+  const { getFloatingProps: tooltipFloatingProps } = useInteractions([
+    useHover(floatingContext.rootContext, {
+      enabled: hover,
+    }),
+  ])
 
   if (!open) return null
 
   return (
     <FloatingPortal root={boundary === 'form' ? formContent ?? appMain : appMain}>
       <div
-        ref={refs.setFloating}
+        ref={floatingContext.setFloating}
         style={{
           ...floatingStyles,
           ...style,
         }}
+        {...tooltipFloatingProps()}
         className={clsx(floating_content, props.className)}
       >
         {props.children}
@@ -238,8 +222,8 @@ const Tooltip = function FloatingTooltip({
 }
 
 type OptionProps = Omit<HTMLProps<HTMLDivElement>, 'onSelect'> & {
-  option: { id: string; label: string; value: string }
-  onSelect: (option: { id: string; label: string; value: string }) => void
+  option: { id: string; label: string | number | ReactNode; value: string; renderedLabel?: string | number | ReactNode }
+  onSelect: (option: { id: string; label: string | number | ReactNode; value: string }) => void
   selected: boolean
 }
 
@@ -268,7 +252,7 @@ const Option = function DropdownOption({ option, selected, onSelect, ref: propRe
         },
       })}
     >
-      <span>{option.label}</span>
+      <span>{option?.renderedLabel || option.label}</span>
       <span className={floating_option_right_side}>{selected && <TbCheck />}</span>
     </div>
   )

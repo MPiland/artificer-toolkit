@@ -108,7 +108,7 @@
         "modifiers": [
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
-            "type": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "type": "6a038302-1ac7-482f-acdc-3e1502e04397",
             "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "setAmount": 10,
             "id": "1cd3309a-9ae4-4412-9b9b-364774377b4c"
@@ -1004,7 +1004,7 @@
       "levelAvailable": 1,
       "charges": {
         "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-        "limit": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
+        "limit": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
         "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
       }
     },
@@ -1110,7 +1110,7 @@
             ],
             "prerequisites": {
               "options": [
-                "4b6510ec-9e6e-4f83-945f-84f418393c0c"
+                "2da4575c-bac4-403e-bf66-1360fcdb28b3"
               ]
             },
             "selectionCount": 2,
@@ -2775,7 +2775,7 @@
         },
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 2,
           "multiplier": 1
         },
@@ -3293,7 +3293,7 @@
         },
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1,
           "multiplier": 1
         },
@@ -3712,7 +3712,7 @@
       "levelAvailable": 2,
       "charges": {
         "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-        "limit": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        "limit": "0a010337-44d9-491e-9fb2-bc94961fe2a2"
       }
     },
     "details": [
@@ -3755,7 +3755,7 @@
         "modifiers": [
           {
             "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
-            "type": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+            "type": "6a038302-1ac7-482f-acdc-3e1502e04397",
             "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "setAmount": 10,
             "id": "c0dffd36-fb03-4398-ac07-54474dc09f34"
@@ -3811,8 +3811,11 @@
           {
             "category": "7218423b-56cf-44b8-bac9-8c62a6cb2e55",
             "unarmedDamage": {
-              "type": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
-              "method": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
+              "id": "6a038302-1ac7-482f-acdc-3e1502e04397",
+              "method": {
+                "value": "diePerLevel",
+                "label": "Die Per Level"
+              },
               "diePerLevel": [
                 {
                   "level": 1,
@@ -4765,7 +4768,7 @@
         },
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
+          "limit": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
           "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7",
           "minAmount": 1,
           "addAmount": 1,
@@ -5056,7 +5059,7 @@
         },
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "dc943fe2-04be-4bfe-a935-4bc70fecac3d",
+          "limit": "0bc73f5e-e99a-470d-b95d-bbdc4005331f",
           "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7",
           "minAmount": 1,
           "multiplier": 1
@@ -5846,7 +5849,7 @@
           "ids": [
             "786e4da5-d0a7-4d30-9232-864950691654",
             "df5b0efb-0ab4-44e8-845a-13f109331d9b",
-            "81990afe-e34a-48cb-aece-5e7c46088615"
+            "21a0ad2e-c7df-4c9b-9c66-ba57b58cf5e2"
           ],
           "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
         },
@@ -6110,7 +6113,7 @@
                 ],
                 "prerequisites": {
                   "options": [
-                    "4b6510ec-9e6e-4f83-945f-84f418393c0c"
+                    "2da4575c-bac4-403e-bf66-1360fcdb28b3"
                   ]
                 },
                 "id": "ebd81d84-a003-4a2d-8fad-bc2880579cfa"
@@ -6340,7 +6343,7 @@
         ],
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1
         },
         "targets": 1,
@@ -7081,7 +7084,7 @@
       "levelAvailable": 2,
       "charges": {
         "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-        "limit": "064697c0-eb11-4b6a-81b9-f2ecdd722194"
+        "limit": "0a010337-44d9-491e-9fb2-bc94961fe2a2"
       }
     },
     "hitpoint": {
@@ -7804,7 +7807,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -7875,7 +7878,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -7912,7 +7915,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -8089,7 +8092,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -8112,7 +8115,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -8205,7 +8208,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -8228,7 +8231,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -8251,7 +8254,7 @@
                 ],
                 "charges": {
                   "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-                  "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                  "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
                   "setAmount": 1
                 },
                 "ids": [
@@ -8432,7 +8435,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1
         },
         "targets": 1,
@@ -8449,7 +8452,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1
         },
         "targets": 1,
@@ -8466,7 +8469,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1
         },
         "targets": 1,
@@ -8483,7 +8486,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1
         },
         "targets": 1,
@@ -8500,7 +8503,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1
         },
         "targets": 1,
@@ -9207,7 +9210,7 @@
         ],
         "charges": {
           "reset": "5ea2bd3d-0b92-4c8a-910a-02be01719fcb",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 1
         },
         "targets": 1,
@@ -9265,7 +9268,7 @@
         ],
         "charges": {
           "reset": "c245fd8b-f343-4fb1-a6c4-5bc35ca43ac7",
-          "limit": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+          "limit": "f21220f9-96db-4369-ba11-88c87d631fac",
           "setAmount": 2
         },
         "targets": 1,

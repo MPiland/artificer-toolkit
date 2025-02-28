@@ -3287,23 +3287,6 @@ mutation CreateRace($input: RaceInput!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -3944,23 +3927,6 @@ mutation CreateRace($input: RaceInput!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -4604,23 +4570,6 @@ mutation CreateRace($input: RaceInput!) {
 							optionsObtained
 							size
 						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
 					}
 					spells {
 						__typename
@@ -5261,23 +5210,6 @@ mutation CreateRace($input: RaceInput!) {
 								featuresObtained
 								optionsObtained
 								size
-							}
-							charges {
-								__typename
-								reset
-								limit
-								ability
-								skill
-								usesPerLevel {
-									__typename
-									level
-									uses
-								}
-								minAmount
-								addAmount
-								setAmount
-								multiplier
-								resourcePoints
 							}
 						}
 						spells {
@@ -5948,23 +5880,6 @@ mutation CreateRace($input: RaceInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -6605,23 +6520,6 @@ mutation CreateRace($input: RaceInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -7265,23 +7163,6 @@ mutation CreateRace($input: RaceInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -7922,23 +7803,6 @@ mutation CreateRace($input: RaceInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -8606,23 +8470,6 @@ mutation UpdateRace($input: RaceInput!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -9263,23 +9110,6 @@ mutation UpdateRace($input: RaceInput!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -9923,23 +9753,6 @@ mutation UpdateRace($input: RaceInput!) {
 							optionsObtained
 							size
 						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
 					}
 					spells {
 						__typename
@@ -10580,23 +10393,6 @@ mutation UpdateRace($input: RaceInput!) {
 								featuresObtained
 								optionsObtained
 								size
-							}
-							charges {
-								__typename
-								reset
-								limit
-								ability
-								skill
-								usesPerLevel {
-									__typename
-									level
-									uses
-								}
-								minAmount
-								addAmount
-								setAmount
-								multiplier
-								resourcePoints
 							}
 						}
 						spells {
@@ -11267,23 +11063,6 @@ mutation UpdateRace($input: RaceInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -11924,23 +11703,6 @@ mutation UpdateRace($input: RaceInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -12584,23 +12346,6 @@ mutation UpdateRace($input: RaceInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -13241,23 +12986,6 @@ mutation UpdateRace($input: RaceInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -13932,23 +13660,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -14589,23 +14300,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							featuresObtained
 							optionsObtained
 							size
-						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
 						}
 					}
 					spells {
@@ -15249,23 +14943,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 							optionsObtained
 							size
 						}
-						charges {
-							__typename
-							reset
-							limit
-							ability
-							skill
-							usesPerLevel {
-								__typename
-								level
-								uses
-							}
-							minAmount
-							addAmount
-							setAmount
-							multiplier
-							resourcePoints
-						}
 					}
 					spells {
 						__typename
@@ -15906,23 +15583,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 								featuresObtained
 								optionsObtained
 								size
-							}
-							charges {
-								__typename
-								reset
-								limit
-								ability
-								skill
-								usesPerLevel {
-									__typename
-									level
-									uses
-								}
-								minAmount
-								addAmount
-								setAmount
-								multiplier
-								resourcePoints
 							}
 						}
 						spells {
@@ -16593,23 +16253,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -17250,23 +16893,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -17910,23 +17536,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -18567,23 +18176,6 @@ mutation BatchCreateRaces($input: BatchRacesInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -19566,23 +19158,6 @@ mutation CreateFeat($input: FeatInput!) {
 			optionsObtained
 			size
 		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
 	}
 	spells {
 		__typename
@@ -20295,23 +19870,6 @@ mutation CreateFeat($input: FeatInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -20952,23 +20510,6 @@ mutation CreateFeat($input: FeatInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -21612,23 +21153,6 @@ mutation CreateFeat($input: FeatInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -22269,23 +21793,6 @@ mutation CreateFeat($input: FeatInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -22931,23 +22438,6 @@ mutation CreateFeat($input: FeatInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -23588,23 +23078,6 @@ mutation CreateFeat($input: FeatInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -24586,23 +24059,6 @@ mutation UpdateFeat($input: FeatInput!) {
 			optionsObtained
 			size
 		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
 	}
 	spells {
 		__typename
@@ -25315,23 +24771,6 @@ mutation UpdateFeat($input: FeatInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -25972,23 +25411,6 @@ mutation UpdateFeat($input: FeatInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -26632,23 +26054,6 @@ mutation UpdateFeat($input: FeatInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -27289,23 +26694,6 @@ mutation UpdateFeat($input: FeatInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -27951,23 +27339,6 @@ mutation UpdateFeat($input: FeatInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -28608,23 +27979,6 @@ mutation UpdateFeat($input: FeatInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -29613,23 +28967,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 			optionsObtained
 			size
 		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
 	}
 	spells {
 		__typename
@@ -30342,23 +29679,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -30999,23 +30319,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -31659,23 +30962,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -32316,23 +31602,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -32978,23 +32247,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -33635,23 +32887,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -34755,23 +33990,6 @@ mutation CreateEquipment($input: EquipmentInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -35412,23 +34630,6 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -36072,23 +35273,6 @@ mutation CreateEquipment($input: EquipmentInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -36729,23 +35913,6 @@ mutation CreateEquipment($input: EquipmentInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -37851,23 +37018,6 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -38508,23 +37658,6 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -39168,23 +38301,6 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -39825,23 +38941,6 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -40954,23 +40053,6 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -41611,23 +40693,6 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -42271,23 +41336,6 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -42928,23 +41976,6 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -43793,23 +42824,6 @@ mutation CreateClass($input: ClassInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -44450,23 +43464,6 @@ mutation CreateClass($input: ClassInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -45110,23 +44107,6 @@ mutation CreateClass($input: ClassInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -45767,23 +44747,6 @@ mutation CreateClass($input: ClassInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -46631,23 +45594,6 @@ mutation UpdateClass($input: ClassInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -47288,23 +46234,6 @@ mutation UpdateClass($input: ClassInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -47948,23 +46877,6 @@ mutation UpdateClass($input: ClassInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -48605,23 +47517,6 @@ mutation UpdateClass($input: ClassInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -49476,23 +48371,6 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -50133,23 +49011,6 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -50793,23 +49654,6 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -51451,23 +50295,6 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 						optionsObtained
 						size
 					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
-					}
 				}
 				spells {
 					__typename
@@ -51611,24 +50438,21 @@ mutation CreateCharacter($input: CharacterInput!) {
 			configuration
 			rollGroups {
 				__typename
-				rolls {
+				score
+				ability
+				rolling
+				applied
+				rolled {
 					__typename
-					score
-					ability
-					rolling
-					applied
-					rolled {
-						__typename
-						die
-						value
-						id
-					}
-					kept {
-						__typename
-						die
-						value
-						id
-					}
+					die
+					value
+					id
+				}
+				kept {
+					__typename
+					die
+					value
+					id
 				}
 			}
 			manual {
@@ -52055,24 +50879,21 @@ mutation UpdateCharacter($input: CharacterInput!) {
 			configuration
 			rollGroups {
 				__typename
-				rolls {
+				score
+				ability
+				rolling
+				applied
+				rolled {
 					__typename
-					score
-					ability
-					rolling
-					applied
-					rolled {
-						__typename
-						die
-						value
-						id
-					}
-					kept {
-						__typename
-						die
-						value
-						id
-					}
+					die
+					value
+					id
+				}
+				kept {
+					__typename
+					die
+					value
+					id
 				}
 			}
 			manual {
@@ -53110,23 +51931,6 @@ mutation CreateBackground($input: BackgroundInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -53767,23 +52571,6 @@ mutation CreateBackground($input: BackgroundInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -54427,23 +53214,6 @@ mutation CreateBackground($input: BackgroundInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -55084,23 +53854,6 @@ mutation CreateBackground($input: BackgroundInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -55849,23 +54602,6 @@ mutation UpdateBackground($input: BackgroundInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -56506,23 +55242,6 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -57166,23 +55885,6 @@ mutation UpdateBackground($input: BackgroundInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -57823,23 +56525,6 @@ mutation UpdateBackground($input: BackgroundInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {
@@ -58595,23 +57280,6 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 				optionsObtained
 				size
 			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
 		}
 		spells {
 			__typename
@@ -59252,23 +57920,6 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					featuresObtained
 					optionsObtained
 					size
-				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
 				}
 			}
 			spells {
@@ -59912,23 +58563,6 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 					optionsObtained
 					size
 				}
-				charges {
-					__typename
-					reset
-					limit
-					ability
-					skill
-					usesPerLevel {
-						__typename
-						level
-						uses
-					}
-					minAmount
-					addAmount
-					setAmount
-					multiplier
-					resourcePoints
-				}
 			}
 			spells {
 				__typename
@@ -60569,23 +59203,6 @@ mutation BatchCreateBackgrounds($input: BatchBackgroundsInput!) {
 						featuresObtained
 						optionsObtained
 						size
-					}
-					charges {
-						__typename
-						reset
-						limit
-						ability
-						skill
-						usesPerLevel {
-							__typename
-							level
-							uses
-						}
-						minAmount
-						addAmount
-						setAmount
-						multiplier
-						resourcePoints
 					}
 				}
 				spells {

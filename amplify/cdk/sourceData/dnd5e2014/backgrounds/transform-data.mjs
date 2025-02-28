@@ -172,20 +172,27 @@ const merge = [
 ]
 
 function findIdInLookup(targetValue, filepath) {
-  if (valueToIdCache.has(targetValue)) {
-    return valueToIdCache.get(targetValue)
-  }
   if (Array.isArray(filepath)) {
     for (const path of filepath) {
       if (typeof path === 'string') {
+        const cacheKey = `${path}:${targetValue}`
+        if (valueToIdCache.has(cacheKey)) {
+          return valueToIdCache.get(cacheKey)
+        }
+
         const id = findIdInLookup(targetValue, path)
         if (id) {
-          valueToIdCache.set(targetValue, id)
+          valueToIdCache.set(cacheKey, id)
           return id
         }
       }
     }
   } else {
+    const cacheKey = `${filepath}:${targetValue}`
+    if (valueToIdCache.has(cacheKey)) {
+      return valueToIdCache.get(cacheKey)
+    }
+
     const lookupData = JSON.parse(fs.readFileSync(filepath, 'utf8'))
 
     const foundId = (function findId(data) {
@@ -196,7 +203,7 @@ function findIdInLookup(targetValue, filepath) {
         }
       } else if (typeof data === 'object' && data !== null) {
         if (data.value === targetValue && data.id) {
-          valueToIdCache.set(targetValue, data.id)
+          valueToIdCache.set(cacheKey, data.id)
           return data.id
         }
         for (const key in data) {
@@ -211,7 +218,10 @@ function findIdInLookup(targetValue, filepath) {
   }
 }
 
-const processObject = (data, mapping, parentKey = null) => {
+const processData = (data, currentMapping = mapping, parentKey = null) => {
+  if (Array.isArray(data)) {
+    return data.map((item) => processData(item, mapping, parentKey))
+  }
   if (typeof data === 'object' && data !== null) {
     let transformedData = {}
 
@@ -248,24 +258,24 @@ const processObject = (data, mapping, parentKey = null) => {
               return item.map((subItem) => {
                 if (Array.isArray(subItem)) {
                   return subItem.map((innerItem) => {
-                    return transformData(innerItem, mapping, key)
+                    return processData(innerItem, currentMapping, key)
                   })
                 } else {
-                  return transformData(subItem, mapping, key)
+                  return processData(subItem, currentMapping, key)
                 }
               })
             } else {
-              return transformData(item, mapping, key)
+              return processData(item, currentMapping, key)
             }
           })
         } else if (typeof value === 'object' && value !== null) {
-          transformedData[key] = transformData(value, mapping, key)
+          transformedData[key] = processData(value, currentMapping, key)
         } else {
           transformedData[key] = value
         }
 
         // Apply specific mapping if exists
-        const specificMapping = mapping[key]
+        const specificMapping = currentMapping[key]
         if (specificMapping) {
           if (Array.isArray(transformedData[key])) {
             // Apply the mapping to each item in the array
@@ -310,6 +320,9 @@ const processObject = (data, mapping, parentKey = null) => {
         if (keyMap !== key) {
           transformedData[keyMap] = transformedData[key]
           delete transformedData[key]
+          if (currentMapping[keyMap] && typeof transformedData[keyMap] === 'object') {
+            transformedData[keyMap] = processData(transformedData[keyMap], currentMapping, keyMap)
+          }
         }
 
         const moveTo =
@@ -333,15 +346,6 @@ const processObject = (data, mapping, parentKey = null) => {
     return transformedData
   }
 
-  return data
-}
-
-function transformData(data, mapping, parentKey = null) {
-  if (Array.isArray(data)) {
-    return data.map((item) => processObject(item, mapping, parentKey))
-  } else if (typeof data === 'object' && data !== null) {
-    return processObject(data, mapping, parentKey)
-  }
   return data
 }
 
@@ -390,7 +394,7 @@ function replaceKey(data, mapping, parentKey = null) {
   if (mapping?.replace) {
     transformedValue = mapping.replace(transformedValue)
   } else {
-    transformedValue = transformData(data, mapping, parentKey)
+    transformedValue = processData(data, mapping, parentKey)
   }
 
   return transformedValue || data
@@ -419,6 +423,6 @@ function mergeKeys(data, mergeConfig) {
   return data
 }
 
-const updateData = transformData(data, mapping)
+const updateData = processData(data)
 
 fs.writeFileSync(outputPath, JSON.stringify(updateData, null, 2))

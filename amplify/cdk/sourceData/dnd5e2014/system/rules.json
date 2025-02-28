@@ -138,43 +138,43 @@
         },
         {
           "id": "36b113bd-1896-48ae-a4d9-8cabe7bd45ba",
-          "label": "9 (-1 Point)",
+          "label": "9",
           "reduce": 1,
           "value": "9"
         },
         {
           "id": "cd643402-dd71-4355-8306-26655a6835f2",
-          "label": "10 (-2 Point)",
+          "label": "10",
           "reduce": 2,
           "value": "10"
         },
         {
           "id": "fe8e8df2-7512-49a6-af78-cceb7365157d",
-          "label": "11 (-3 Point)",
+          "label": "11",
           "reduce": 3,
           "value": "11"
         },
         {
           "id": "7c99f6ad-013c-44a7-a758-da2a2e473a99",
-          "label": "12 (-4 Point)",
+          "label": "12",
           "reduce": 4,
           "value": 12
         },
         {
           "id": "f8a95f45-d610-4cf1-a6ce-6a962f93dad2",
-          "label": "13 (-5 Point)",
+          "label": "13",
           "reduce": 5,
           "value": "13"
         },
         {
           "id": "b166fa94-c614-4855-b271-e4ffab4bb788",
-          "label": "14 (-7 Point)",
+          "label": "14",
           "reduce": 7,
           "value": "14"
         },
         {
           "id": "1fbe7693-2553-4d4b-a1ac-6445ad870507",
-          "label": "15 (-9 Point)",
+          "label": "15",
           "reduce": 9,
           "value": "15"
         }

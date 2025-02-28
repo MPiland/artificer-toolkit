@@ -1,12 +1,9 @@
 import { Fragment } from 'react'
-import Group from '../../Group/Group'
 import { sprinkles } from '../../../css/sprinkles.css'
 import {
   character_header_body,
-  character_header_group,
   character_header_item,
-  character_header_item_divier,
-  character_header_item_label,
+  character_header_item_divider,
 } from './Character.css'
 import Collapse from '../../Collapse/Collapse'
 import { Character } from '../../../../amplify/gql/types'
@@ -16,6 +13,9 @@ import { UpdateState } from '../../../types/form'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { calculateModifier } from '../../../utils/form'
+import { useMediaQuery } from 'usehooks-ts'
+import Row from '../../Row/Row'
 
 const CharacterHeader = () => {
   const { formData } = use(FormContext) as {
@@ -29,55 +29,68 @@ const CharacterHeader = () => {
 
   const race = races.find((aRace) => aRace.id === formData.race)
 
+  const sm = useMediaQuery('(max-width: 567px)')
+
   return (
     <>
       <Collapse className={sprinkles({ mb: 'space-3', mx: 'space-4' })}>
         <Collapse.Header title='Character Details' startOpened={true} />
         <Collapse.Body className={character_header_body}>
-          <Group directionVariant='column' alignItemsVariant='start' className={character_header_group}>
-            <Group>
-              <Group className={character_header_item}>
-                <span className={character_header_item_label}>Name:</span>
-                {formData.label ?? '--'}
-                <span className={character_header_item_divier}>|</span>
-              </Group>
-              <Group className={character_header_item}>
-                <span className={character_header_item_label}>Race: </span>
-                {race?.label || '---'}
-                <span className={character_header_item_divier}>|</span>
-              </Group>
-              <Group className={character_header_item}>
-                <span className={character_header_item_label}>Class(es): </span>
-                {formData.classes?.length > 0
-                  ? formData.classes?.map((uClass, index) => {
-                      const fullClass = classes.find((aClass) => aClass.id === uClass.id)
-                      return (
-                        <Fragment key={index}>
-                          {`${fullClass.label} (Lvl. ${uClass.level})`}
-                          {index !== formData.classes.length - 1 && formData.classes.length > 1 && ' / '}
-                        </Fragment>
-                      )
-                    })
-                  : '---'}
-              </Group>
-            </Group>
-          </Group>
-          <Group directionVariant='column' alignItemsVariant='start' className={character_header_group}>
-            <Group justifyContentVariant='spaceBetween'>
+          <Row cols={{ base: 2 }} className={sprinkles({ mb: 'space-x' })}>
+            <Row cols={{ base: 1, md: 3 }} cellSize={'default'} className={sprinkles({ mb: 'space-x' })}>
+              <div className={character_header_item}>
+                <span>
+                  {'Name: '}
+                  {formData.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
+                </span>
+                {!sm && <hr className={character_header_item_divider} />}
+              </div>
+              <div className={character_header_item}>
+                <span>
+                  {'Race: '}
+                  {race?.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
+                </span>
+                {!sm && <hr className={character_header_item_divider} />}
+              </div>
+              <div className={character_header_item}>
+                <span>{`Class(es): ${
+                  formData.classes?.length > 0
+                    ? formData.classes?.map((uClass, index) => {
+                        const fullClass = classes.find((aClass) => aClass.id === uClass.id)
+                        return (
+                          <Fragment key={index}>
+                            {`${fullClass.label} (Lvl. ${uClass.level})`}
+                            {index !== formData.classes.length - 1 && formData.classes.length > 1 && ' / '}
+                          </Fragment>
+                        )
+                      })
+                    : '---'
+                }`}</span>
+              </div>
+            </Row>
+            <Row cellSize={'auto'} className={sprinkles({ mb: 'space-x' })}>
               {formData.abilities?.scores?.map((score, index) => {
                 const ability = system.abilities.find((sAbility) => sAbility.id === score.ability)
+
+                const modifier = calculateModifier(score.calculatedScore, 'modifier')
                 return (
-                  <Group className={character_header_item} key={index} justifyContentVariant='start'>
-                    <span className={character_header_item_label}>{`${ability.value.toUpperCase()}:`}</span>
-                    {score.calculatedScore > 0 || score.baseScore > 0 ? score.calculatedScore ?? score.baseScore : '--'}
-                    {index !== formData.abilities?.scores?.length - 1 && (
-                      <span className={character_header_item_divier}>|</span>
+                  <div className={character_header_item} key={index}>
+                    <span>
+                      {`${ability.value.toUpperCase()}: `}
+                      {score.calculatedScore > 0 ? (
+                        <span className={sprinkles({ ws: 'nowrap' })}>{`${score.calculatedScore} (${modifier})`}</span>
+                      ) : (
+                        <span className={sprinkles({ ws: 'nowrap' })}>---</span>
+                      )}
+                    </span>
+                    {!sm && index !== formData.abilities?.scores?.length - 1 && (
+                      <hr className={character_header_item_divider} />
                     )}
-                  </Group>
+                  </div>
                 )
               })}
-            </Group>
-          </Group>
+            </Row>
+          </Row>
         </Collapse.Body>
       </Collapse>
     </>

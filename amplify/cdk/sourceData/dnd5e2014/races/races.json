@@ -974,7 +974,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -985,7 +985,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1101,7 +1101,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -1263,7 +1263,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1452,7 +1452,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -1564,7 +1564,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1720,7 +1720,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -1793,7 +1793,7 @@
     "desc": "<p>As a lightfoot halfling, you can easily hide from notice, even using other people as cover. You’re inclined to be affable and get along well with others. In the Forgotten Realms, lightfoot halflings have spread the farthest and thus are the most common variety.</p><p>Lightfoots are more prone to wanderlust than other halflings, and often dwell alongside other races or take up a nomadic life. In the world of Greyhawk, these halflings are called hairfeet or tallfellows.</p>",
     "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
     "lineage": [
-      "154a78f7-c188-46a0-92a1-14b4676564ea"
+      "f7094296-51b5-41ec-a54b-2bf11921abb8"
     ],
     "features": [
       {
@@ -1808,7 +1808,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -1902,7 +1902,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2026,7 +2026,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -2123,7 +2123,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2230,7 +2230,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -2245,7 +2245,7 @@
             "selectionCount": 2,
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2420,7 +2420,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [
@@ -2431,7 +2431,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2578,7 +2578,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 1,
             "abilities": [
@@ -2589,7 +2589,7 @@
           {
             "category": "cc8af2eb-9dab-40b7-a7e7-d5815ecd32f9",
             "type": "f6478862-a92b-4596-8420-c0fa958db719",
-            "method": "f21220f9-96db-4369-ba11-88c87d631fac",
+            "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
             "maxAmount": 20,
             "setAmount": 2,
             "abilities": [

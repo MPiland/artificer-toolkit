@@ -701,8 +701,7 @@ type FeatureSense {
   selectionCount: Int
   subtype: ID
   ids: [ID!]
-  prerequisites: Prerequisite
-  charges: Charge
+  prerequisites: Prerequisite 
 }
 
 type SpellsByLevel {
@@ -1163,10 +1162,6 @@ type RollType {
   kept: [Roll]!
 }
 
-type RollGroup {
-  rolls: [RollType]
-}
-
 type Manual {
   ability: ID
   score: Int
@@ -1174,7 +1169,7 @@ type Manual {
 
 type ManualRolled {
   configuration: String!
-  rollGroups: [RollGroup]
+  rollGroups: [[RollType]]
   manual: [Manual]
 }
 
@@ -2485,10 +2480,6 @@ input RollTypeInput {
   kept: [RollInput]!
 }
 
-input RollGroupInput {
-  rolls: [RollTypeInput]
-}
-
 input ManualInput {
   ability: ID
   score: Int
@@ -2496,7 +2487,7 @@ input ManualInput {
 
 input ManualRolledInput {
   configuration: String!
-  rollGroups: [RollGroupInput]
+  rollGroups: [[RollTypeInput]]
   manual: [ManualInput]
 }
 

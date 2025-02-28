@@ -9,6 +9,8 @@ type ScrollState = {
   dragDirection: 'vertical' | 'horizontal' | 'both' | null
   active: boolean
   mousePos: { x: number; y: number }
+  needsVerticalScroll: boolean
+  needsHorizontalScroll: boolean
 }
 
 type ScrollAction =
@@ -30,6 +32,8 @@ type ScrollAction =
       scrollWidth: number
       verticalThumbSize: number
       horizontalThumbSize: number
+      needsVerticalScroll: boolean
+      needsHorizontalScroll: boolean
     }
   | {
       type: 'SET_DRAG'
@@ -106,6 +110,8 @@ export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollS
         scrollWidth: action.scrollWidth,
         verticalThumbSize: action.verticalThumbSize,
         horizontalThumbSize: action.horizontalThumbSize,
+        needsVerticalScroll: action.needsVerticalScroll,
+        needsHorizontalScroll: action.needsHorizontalScroll,
       }
     }
 

@@ -10,6 +10,7 @@ import { AncestryOption, Feature, FeatureOption, FeatureSubfeature } from '../..
 import { SectionSlice, sectionSlice } from './sectionSlice'
 import { subfeatureSlice, SubfeatureSlice } from './subfeatureSlice'
 import { ancestrySlice, AncestrySlice } from './ancestrySlice'
+import { diceSlice, DiceSlice } from './diceSlice'
 
 export type SupportedStates =
   | FormDataType
@@ -18,8 +19,15 @@ export type SupportedStates =
   | AncestryOption
   | SectionDataType
   | FeatureSubfeature
+  | DiceSlice
 
-export type CombinedSlice = FormSlice & FeatureSlice & OptionSlice & SectionSlice & SubfeatureSlice & AncestrySlice
+export type CombinedSlice = FormSlice &
+  FeatureSlice &
+  OptionSlice &
+  SectionSlice &
+  SubfeatureSlice &
+  AncestrySlice &
+  DiceSlice
 
 const isNumber = (str: string): boolean => {
   return !isNaN(parseFloat(str)) && isFinite(Number(str))
@@ -148,6 +156,7 @@ export const useStore = create<CombinedSlice>()(
       ...sectionSlice(...a),
       ...subfeatureSlice(...a),
       ...ancestrySlice(...a),
+      ...diceSlice(...a),
     }),
     {
       name: 'at-app-form',
