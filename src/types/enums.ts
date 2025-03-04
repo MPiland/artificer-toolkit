@@ -82,7 +82,7 @@ export enum Prerequisites {
   notProficient = '3e8abd1f-614c-4b5e-9429-e5819a868c8d',
   spellsObtained = 'de774c82-b1d6-4f6c-b73c-84cf370c60ff',
   canCast = '2b2cac99-dfc5-45a0-b4a6-1970179ebcd9',
-  optionNotAcquired = '3fe944fc-a9d5-4afa-929a-c8b2805d70e3',
+  optionNotObtained = '3fe944fc-a9d5-4afa-929a-c8b2805d70e3',
   featuresObtained = '293010e4-fe1f-4982-8a80-6a232eafe19f',
   characterSize = 'd5def5fd-4b6e-411b-994d-3e830912093e',
   proficient = '2da4575c-bac4-403e-bf66-1360fcdb28b3',

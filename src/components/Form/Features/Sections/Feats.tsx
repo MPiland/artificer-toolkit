@@ -1,17 +1,17 @@
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { useListFeatsQuery } from '../../../../features/feats/featsApi'
 import { FeatureContext } from '../FeatureContext'
-import {  Categories } from '../../../../types/enums'
+import { Categories } from '../../../../types/enums'
 import { Class, FeatureFeat, SectionEnum } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Generic/Requirements'
+import Prerequisites from '../../Subforms/Requirements'
+import Grid from '../../../Grid/Grid'
 
 const Feats = () => {
   const { formData } = use(FormContext)
@@ -22,15 +22,15 @@ const Feats = () => {
   }
 
   const { data: system } = useGetSystemQuery()
-  const { data: feats } = useListFeatsQuery()  
+  const { data: feats } = useListFeatsQuery()
 
   const { subtypeSpecific, providesOptions, hasPrerequisites } = useEnumChecks({
     data: sectionData,
   })
 
   return (
-    <>
-      <Row>
+    <Grid>
+      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -44,6 +44,8 @@ const Feats = () => {
           value={sectionData?.attributes}
           onChange={updateSectionData}
         />
+      </Grid.Item>
+      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           name='feats'
           multiSelect={true}
@@ -53,19 +55,21 @@ const Feats = () => {
           required={true}
           onChange={updateSectionData}
         />
-        {subtypeSpecific &&
-          formData.__typename === 'Class' &&
-          formData.category === Categories.subclass && (
-            <Dropdown
-              name='subtype'
-              label='Subtype'
-              value={sectionData?.subtype}
-              options={formData?.subtypes}
-              required={true}
-              onChange={updateSectionData}
-            />
-          )}
-        {providesOptions && (
+      </Grid.Item>
+      {subtypeSpecific && formData.__typename === 'Class' && formData.category === Categories.subclass && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Dropdown
+            name='subtype'
+            label='Subtype'
+            value={sectionData?.subtype}
+            options={formData?.subtypes}
+            required={true}
+            onChange={updateSectionData}
+          />
+        </Grid.Item>
+      )}
+      {providesOptions && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Input
             validation='num'
             name='selectionCount'
@@ -76,10 +80,14 @@ const Feats = () => {
             required={true}
             onChange={updateSectionData}
           />
-        )}
-      </Row>
-      {hasPrerequisites && <Prerequisites formData={sectionData} updateFormData={updateSectionData} />}
-    </>
+        </Grid.Item>
+      )}
+      {hasPrerequisites && (
+        <Grid.Item>
+          <Prerequisites formData={sectionData} updateFormData={updateSectionData} />
+        </Grid.Item>
+      )}
+    </Grid>
   )
 }
 

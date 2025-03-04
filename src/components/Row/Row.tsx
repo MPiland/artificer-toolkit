@@ -168,12 +168,27 @@ const Row = ({
       ref={rowRef}
     >
       {childElements?.map((child, index) => {
+        if (!isValidElement(child)) return child
+
+        // Extract non-DOM props to prevent React warnings
+        const element = child as React.ReactElement<{
+          className?: string
+          style?: React.CSSProperties
+          children?: React.ReactNode
+        }>
+
+        // Return a Column that wraps the child's content while preserving relevant props
         return (
-          child && (
-            <Column key={index} width={colWidth(index)} align={colAlign} justify={colJustify}>
-              {child}
-            </Column>
-          )
+          <Column
+            key={index}
+            width={colWidth(index)}
+            align={colAlign}
+            justify={colJustify}
+            className={element.props.className}
+            style={element.props.style}
+          >
+            {element.props.children}
+          </Column>
         )
       })}
     </div>

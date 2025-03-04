@@ -1,6 +1,5 @@
 import { app } from '../../css/layers.css'
-import { style, styleVariants } from '@vanilla-extract/css'
-import { createVar } from '@vanilla-extract/css'
+import { style, styleVariants, createVar } from '@vanilla-extract/css'
 import { space } from '../../css/size.css'
 
 export const column_gap = createVar('column_gap')

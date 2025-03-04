@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import Collapse from '../../../Collapse/Collapse'
@@ -21,7 +20,8 @@ import {
 } from '../../../../types/enums'
 import { getKeyFromId, getModifierProperties } from '../../../../utils/form'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Generic/Requirements'
+import Prerequisites from '../../Subforms/Requirements'
+import Grid from '../../../Grid/Grid'
 
 const Modifiers = () => {
   const { formData } = use(FormContext)
@@ -50,6 +50,16 @@ const Modifiers = () => {
   const path = getModifierProperties({
     category: categoryName,
   })
+
+  useEffect(() => {
+    if (sectionData.__typename == null) {
+      updateSectionData({
+        type: 'update',
+        path: '__typename',
+        value: 'FeatureModifier',
+      })
+    }
+  }, [updateSectionData, sectionData.__typename])
 
   // Set if selected category has type options
   useEffect(() => {
@@ -127,13 +137,15 @@ const Modifiers = () => {
     setSpellsArray(filteredSpells)
   }, [sectionData?.spellCategory, spells, doesDamage])
 
-  console.log({ sectionData })
-
   // Add/Remove die per level Table
   useEffect(() => {
     if (
-      (sectionData?.diePerLevel || sectionData?.diePerLevel?.length > 0) &&
-      (sectionData?.type !== ModifierTypes.setDie || sectionData?.method !== ModifierMethods.setPerLevel)
+      ((sectionData?.type !== ModifierTypes.setDie &&
+        sectionData?.type !== ModifierTypes.bonusDie &&
+        sectionData?.type !== ModifierTypes.penaltyDie) ||
+        sectionData?.method !== ModifierMethods.setPerLevel ||
+        !modMethods?.some((method) => method.id === ModifierMethods.setPerLevel)) &&
+      sectionData?.diePerLevel?.length > 0
     ) {
       updateSectionData({
         type: 'remove',
@@ -141,8 +153,11 @@ const Modifiers = () => {
       })
     }
     if (
-      sectionData?.type === ModifierTypes.setDie &&
+      (sectionData?.type === ModifierTypes.setDie ||
+        sectionData?.type === ModifierTypes.bonusDie ||
+        sectionData?.type === ModifierTypes.penaltyDie) &&
       sectionData?.method === ModifierMethods.setPerLevel &&
+      modMethods?.some((method) => method.id === ModifierMethods.setPerLevel) &&
       (!sectionData?.diePerLevel || !(sectionData?.diePerLevel?.length > 0))
     ) {
       updateSectionData({
@@ -150,13 +165,17 @@ const Modifiers = () => {
         path: 'diePerLevel',
       })
     }
-  }, [sectionData, updateSectionData, sectionData?.type, sectionData?.method])
+  }, [sectionData, updateSectionData, sectionData?.type, sectionData?.method, modMethods])
 
   // Add/remove setPerLevel table
   useEffect(() => {
     if (
-      (sectionData?.setPerLevel || sectionData?.setPerLevel?.length > 0) &&
-      (sectionData?.type !== ModifierTypes.setAmount || sectionData?.method !== ModifierMethods.setPerLevel)
+      ((sectionData?.type !== ModifierTypes.setAmount &&
+        sectionData?.type !== ModifierTypes.bonus &&
+        sectionData?.type !== ModifierTypes.penalty) ||
+        sectionData?.method !== ModifierMethods.setPerLevel ||
+        !modMethods?.some((method) => method.id === ModifierMethods.setPerLevel)) &&
+      sectionData?.setPerLevel?.length > 0
     ) {
       updateSectionData({
         type: 'remove',
@@ -164,8 +183,11 @@ const Modifiers = () => {
       })
     }
     if (
-      sectionData?.type === ModifierTypes.setAmount &&
+      (sectionData?.type === ModifierTypes.setAmount ||
+        sectionData?.type === ModifierTypes.bonus ||
+        sectionData?.type === ModifierTypes.penalty) &&
       sectionData?.method === ModifierMethods.setPerLevel &&
+      modMethods?.some((method) => method.id === ModifierMethods.setPerLevel) &&
       (!sectionData?.setPerLevel || !(sectionData?.setPerLevel?.length > 0))
     ) {
       updateSectionData({
@@ -173,206 +195,202 @@ const Modifiers = () => {
         path: 'setPerLevel',
       })
     }
-  }, [sectionData, updateSectionData])
+  }, [sectionData?.type, sectionData?.method, sectionData?.setPerLevel, updateSectionData, modMethods])
+
+  console.log({ sectionData })
 
   return (
     <>
-      <Row>
-        <Dropdown
-          multiSelect={true}
-          name='attributes'
-          options={system.attributes.filter(
-            (attribute) =>
-              attribute?.sections?.length > 0 &&
-              attribute?.sections?.includes(SectionEnum.all) &&
-              (formData as Class).category === Categories.subclass &&
-              attribute?.sections?.includes(SectionEnum.subclasses)
-          )}
-          label='Attrbutes'
-          value={sectionData?.attributes}
-          onChange={updateSectionData}
-        />
-        <Dropdown
-          name='category'
-          label='Modifier Category'
-          value={sectionData?.category}
-          options={system.modifiers.categories}
-          required={true}
-          onChange={updateSectionData}
-        />
+      <Grid>
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Dropdown
+            multiSelect={true}
+            name='attributes'
+            options={system.attributes.filter(
+              (attribute) =>
+                attribute?.sections?.length > 0 &&
+                attribute?.sections?.includes(SectionEnum.all) &&
+                (formData as Class).category === Categories.subclass &&
+                attribute?.sections?.includes(SectionEnum.subclasses)
+            )}
+            label='Attrbutes'
+            value={sectionData?.attributes}
+            onChange={updateSectionData}
+          />
+        </Grid.Item>
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Dropdown
+            name='category'
+            label='Modifier Category'
+            value={sectionData?.category}
+            options={system.modifiers.categories}
+            required={true}
+            onChange={updateSectionData}
+          />
+        </Grid.Item>
         {sectionData?.category === ModifierCategories.spell && (
           <>
-            <Dropdown
-              name='spellCategory'
-              label='Spell Category'
-              value={sectionData?.spellCategory}
-              options={system.modifiers.spellCategories}
-              required={true}
-              onChange={updateSectionData}
-            />
-            <Dropdown
-              name='spell'
-              label='Spell'
-              value={sectionData?.spell}
-              options={spellsArray}
-              required={true}
-              onChange={updateSectionData}
-            />
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Dropdown
+                name='spellCategory'
+                label='Spell Category'
+                value={sectionData?.spellCategory}
+                options={system.modifiers.spellCategories}
+                required={true}
+                onChange={updateSectionData}
+              />
+            </Grid.Item>
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Dropdown
+                name='spell'
+                label='Spell'
+                value={sectionData?.spell}
+                options={spellsArray}
+                required={true}
+                onChange={updateSectionData}
+              />
+            </Grid.Item>
           </>
         )}
         {modTypes?.length > 0 && sectionCategory != null && (
-          <Dropdown
-            name='type'
-            label='Modifier Type'
-            value={sectionData?.type}
-            options={modTypes}
-            required={true}
-            onChange={updateSectionData}
-          />
-        )}
-        {typeOptions && sectionData?.category !== ModifierCategories.spell && (
-          <Dropdown
-            name={`${path}`}
-            multiSelect={true}
-            label={`${sectionCategory.label}`}
-            value={sectionData[path]}
-            options={
-              sectionData?.category === ModifierCategories.saveAbilities
-                ? system.abilities
-                : sectionData?.category === ModifierCategories.conditionSave
-                ? system.conditions
-                : sectionData?.category === ModifierCategories.spellDC ||
-                  sectionData?.category === ModifierCategories.damageSave
-                ? system.damageTypes
-                : system[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
-            }
-            required={true}
-            onChange={updateSectionData}
-          />
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Dropdown
+              name='type'
+              label='Modifier Type'
+              value={sectionData?.type}
+              options={modTypes}
+              required={true}
+              onChange={updateSectionData}
+            />
+          </Grid.Item>
         )}
         {modMethods != null && modMethods?.length > 0 && (
-          <Dropdown
-            name='method'
-            label='Method'
-            value={sectionData?.method}
-            options={modMethods}
-            required={true}
-            onChange={updateSectionData}
-          />
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Dropdown
+              name='method'
+              label='Method'
+              value={sectionData?.method}
+              options={modMethods}
+              required={true}
+              onChange={updateSectionData}
+            />
+          </Grid.Item>
+        )}
+        {typeOptions && sectionData?.category !== ModifierCategories.spell && sectionData?.category != null && (
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Dropdown
+              name={`${path}`}
+              multiSelect={true}
+              label={`${sectionCategory.label}`}
+              value={sectionData[path]}
+              options={
+                sectionData?.category === ModifierCategories.saveAbilities
+                  ? system.abilities
+                  : sectionData?.category === ModifierCategories.conditionSave
+                  ? system.conditions
+                  : sectionData?.category === ModifierCategories.spellDC ||
+                    sectionData?.category === ModifierCategories.damageSave
+                  ? system.damageTypes
+                  : system[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
+              }
+              required={true}
+              onChange={updateSectionData}
+            />
+          </Grid.Item>
         )}
         {sectionData?.category === ModifierCategories.charge && sectionData?.type === ModifierTypes.useReset && (
           <>
-            <Dropdown
-              name='charge.reset'
-              label='Reset Option'
-              value={sectionData?.charge?.reset}
-              options={system.charges.resets}
-              required={true}
-              onChange={updateSectionData}
-            />
-            <Dropdown
-              name='feature'
-              label='Feature'
-              value={sectionData?.feature}
-              options={[].concat(
-                (formData as Exclude<FormDataType, Spell | Character>)?.features,
-                (formData as Class).resource
-              )}
-              required={true}
-              onChange={updateSectionData}
-            />
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Dropdown
+                name='charge.reset'
+                label='Reset Option'
+                value={sectionData?.charge?.reset}
+                options={system.charges.resets}
+                required={true}
+                onChange={updateSectionData}
+              />
+            </Grid.Item>
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Dropdown
+                name='feature'
+                label='Feature'
+                value={sectionData?.feature}
+                options={[].concat(
+                  (formData as Exclude<FormDataType, Spell | Character>)?.features,
+                  (formData as Class).resource
+                )}
+                required={true}
+                onChange={updateSectionData}
+              />
+            </Grid.Item>
           </>
         )}
         {sectionData?.category === ModifierCategories.spell &&
           (sectionData?.spellCategory === ModifierSpellCategories.spellDuration ? (
             <>
-              <Dropdown
-                name='duration'
-                label='Spell Duration Type'
-                value={sectionData?.duration}
-                options={system.spells.durations}
-                required={true}
-                onChange={updateSectionData}
-              />
+              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                <Dropdown
+                  name='duration'
+                  label='Spell Duration Type'
+                  value={sectionData?.duration}
+                  options={system.spells.durations}
+                  required={true}
+                  onChange={updateSectionData}
+                />
+              </Grid.Item>
               {sectionData?.type === ModifierTypes.setAmount && (
                 <>
-                  <Input
-                    validation='num'
-                    name='setAmount'
-                    label='Duration Increment'
-                    errorMsg='Must contain only whole numbers'
-                    autoComplete='off'
-                    value={sectionData?.setAmount}
-                    onChange={updateSectionData}
-                  />
+                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Input
+                      validation='num'
+                      name='setAmount'
+                      label='Duration Increment'
+                      errorMsg='Must contain only whole numbers'
+                      autoComplete='off'
+                      value={sectionData?.setAmount}
+                      onChange={updateSectionData}
+                    />
+                  </Grid.Item>
                 </>
               )}
             </>
           ) : sectionData?.spellCategory === ModifierSpellCategories.spellRange ? (
             <>
-              <Dropdown
-                name='range'
-                label='Spell Range Type'
-                value={sectionData?.range}
-                options={system.spells.ranges}
-                required={true}
-                onChange={updateSectionData}
-              />
-              {sectionData?.type === ModifierTypes.setAmount && (
-                <>
-                  <Input
-                    validation='num'
-                    name='minAmount'
-                    label='Minimum Value'
-                    errorMsg='Must contain only whole numbers'
-                    autoComplete='off'
-                    value={sectionData?.minAmount}
-                    onChange={updateSectionData}
-                  />
-                  <Input
-                    validation='num'
-                    name='maxAmount'
-                    label='Maximum Value'
-                    errorMsg='Must contain only whole numbers'
-                    autoComplete='off'
-                    value={sectionData?.maxAmount}
-                    onChange={updateSectionData}
-                  />
-                  <Dropdown
-                    name='unit'
-                    label='UoM'
-                    value={sectionData?.unit}
-                    options={Object.values(system.rules.measurements.imperial).flatMap(
-                      (rule) => Array.isArray(rule) && rule
-                    )}
-                    required={sectionData?.range === Ranges.distance ? true : false}
-                    onChange={updateSectionData}
-                  />
-                </>
-              )}
-            </>
-          ) : (
-            sectionData?.spellCategory === ModifierSpellCategories.spellShape && (
-              <>
+              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
-                  name='shape'
-                  label='Spell Shape Type'
-                  value={sectionData?.shape}
-                  options={system.spells.shapes}
+                  name='range'
+                  label='Spell Range Type'
+                  value={sectionData?.range}
+                  options={system.spells.ranges}
                   required={true}
                   onChange={updateSectionData}
                 />
-                {sectionData?.type === ModifierTypes.setAmount && (
-                  <>
+              </Grid.Item>
+              {sectionData?.type === ModifierTypes.setAmount && (
+                <>
+                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
-                      name='size'
-                      label='Shape Size'
+                      name='minAmount'
+                      label='Minimum Value'
                       errorMsg='Must contain only whole numbers'
                       autoComplete='off'
-                      value={sectionData?.size}
+                      value={sectionData?.minAmount}
                       onChange={updateSectionData}
                     />
+                  </Grid.Item>
+                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Input
+                      validation='num'
+                      name='maxAmount'
+                      label='Maximum Value'
+                      errorMsg='Must contain only whole numbers'
+                      autoComplete='off'
+                      value={sectionData?.maxAmount}
+                      onChange={updateSectionData}
+                    />
+                  </Grid.Item>
+                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name='unit'
                       label='UoM'
@@ -380,9 +398,51 @@ const Modifiers = () => {
                       options={Object.values(system.rules.measurements.imperial).flatMap(
                         (rule) => Array.isArray(rule) && rule
                       )}
-                      required={true}
+                      required={sectionData?.range === Ranges.distance ? true : false}
                       onChange={updateSectionData}
                     />
+                  </Grid.Item>
+                </>
+              )}
+            </>
+          ) : (
+            sectionData?.spellCategory === ModifierSpellCategories.spellShape && (
+              <>
+                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Dropdown
+                    name='shape'
+                    label='Spell Shape Type'
+                    value={sectionData?.shape}
+                    options={system.spells.shapes}
+                    required={true}
+                    onChange={updateSectionData}
+                  />
+                </Grid.Item>
+                {sectionData?.type === ModifierTypes.setAmount && (
+                  <>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Input
+                        validation='num'
+                        name='size'
+                        label='Shape Size'
+                        errorMsg='Must contain only whole numbers'
+                        autoComplete='off'
+                        value={sectionData?.size}
+                        onChange={updateSectionData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        name='unit'
+                        label='UoM'
+                        value={sectionData?.unit}
+                        options={Object.values(system.rules.measurements.imperial).flatMap(
+                          (rule) => Array.isArray(rule) && rule
+                        )}
+                        required={true}
+                        onChange={updateSectionData}
+                      />
+                    </Grid.Item>
                   </>
                 )}
               </>
@@ -393,152 +453,191 @@ const Modifiers = () => {
             {(sectionData?.type === ModifierTypes.bonus || sectionData?.type === ModifierTypes.setAmount) && (
               <>
                 {sectionData?.method === ModifierMethods.setGlobally ? (
-                  <Input
-                    validation='num'
-                    name='setAmount'
-                    label='Set Value'
-                    errorMsg='Must contain only numbers'
-                    autoComplete='off'
-                    value={sectionData?.setAmount}
-                    required={true}
-                    onChange={updateSectionData}
-                  />
-                ) : sectionData?.method === ModifierMethods.abilityScoreModifier ? (
-                  <Dropdown
-                    name='methodAbility'
-                    label='Method Ability'
-                    value={sectionData?.methodAbility}
-                    options={system.abilities}
-                    required={true}
-                    onChange={updateSectionData}
-                  />
-                ) : (
-                  sectionData?.method === ModifierMethods.skillModifier && (
-                    <Dropdown
-                      name='methodSkill'
-                      label='Method Skill'
-                      value={sectionData?.methodSkill}
-                      options={system.skills}
+                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Input
+                      validation='num'
+                      name='setAmount'
+                      label='Set Value'
+                      errorMsg='Must contain only numbers'
+                      autoComplete='off'
+                      value={sectionData?.setAmount}
                       required={true}
                       onChange={updateSectionData}
                     />
+                  </Grid.Item>
+                ) : sectionData?.method === ModifierMethods.abilityScoreModifier ? (
+                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Dropdown
+                      name='methodAbility'
+                      label='Method Ability'
+                      value={sectionData?.methodAbility}
+                      options={system.abilities}
+                      required={true}
+                      onChange={updateSectionData}
+                    />
+                  </Grid.Item>
+                ) : (
+                  sectionData?.method === ModifierMethods.skillModifier && (
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        name='methodSkill'
+                        label='Method Skill'
+                        value={sectionData?.methodSkill}
+                        options={system.skills}
+                        required={true}
+                        onChange={updateSectionData}
+                      />
+                    </Grid.Item>
                   )
                 )}
               </>
             )}
             {sectionData?.method !== ModifierMethods.setGlobally && (
               <>
-                <Input
-                  validation='num'
-                  name='multiplier'
-                  label='Multiplier'
-                  errorMsg='Must contain only whole numbers'
-                  autoComplete='off'
-                  value={sectionData?.multiplier}
-                  onChange={updateSectionData}
-                />
-                <Input
-                  validation='num'
-                  name='minAmount'
-                  label='Minimum Value'
-                  errorMsg='Must contain only whole numbers'
-                  autoComplete='off'
-                  value={sectionData?.minAmount}
-                  onChange={updateSectionData}
-                />
+                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Input
+                    validation='num'
+                    name='multiplier'
+                    label='Multiplier'
+                    errorMsg='Must contain only whole numbers'
+                    autoComplete='off'
+                    value={sectionData?.multiplier}
+                    onChange={updateSectionData}
+                  />
+                </Grid.Item>
+                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                  <Input
+                    validation='num'
+                    name='minAmount'
+                    label='Minimum Value'
+                    errorMsg='Must contain only whole numbers'
+                    autoComplete='off'
+                    value={sectionData?.minAmount}
+                    onChange={updateSectionData}
+                  />
+                </Grid.Item>
               </>
             )}
           </>
         )}
         {subtypeSpecific && formData.__typename === 'Class' && sectionData?.category != null && (
-          <Dropdown
-            name='subtype'
-            label='Subclass Subtype'
-            value={sectionData?.subtype}
-            options={formData?.subtypes}
-            required={true}
-            onChange={updateSectionData}
-          />
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Dropdown
+              name='subtype'
+              label='Subclass Subtype'
+              value={sectionData?.subtype}
+              options={formData?.subtypes}
+              required={true}
+              onChange={updateSectionData}
+            />
+          </Grid.Item>
         )}
         {providesOptions && (
-          <Input
-            validation='num'
-            name={`selectionCount`}
-            label='# of Selections'
-            autoComplete='off'
-            value={sectionData?.selectionCount}
-            errorMsg='Must contain only numbers'
-            required={true}
-            onChange={updateSectionData}
-          />
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Input
+              validation='num'
+              name={`selectionCount`}
+              label='# of Selections'
+              autoComplete='off'
+              value={sectionData?.selectionCount}
+              errorMsg='Must contain only numbers'
+              required={true}
+              onChange={updateSectionData}
+            />
+          </Grid.Item>
         )}
-      </Row>
-      {hasPrerequisites && <Prerequisites formData={sectionData} updateFormData={updateSectionData} />}
-      {sectionData?.type === ModifierTypes.setDie &&
-        sectionData?.method === ModifierMethods.setPerLevel &&
-        sectionData?.diePerLevel?.length > 0 && (
-          <Collapse>
-            <Collapse.Header title='Die Per Level' />
-            <Collapse.Body>
-              <Row spacing='spaceBetween' cellSize='auto'>
-                <span>Level</span>
-                <span>Die Count</span>
-                <span>Die Value</span>
-              </Row>
-              {sectionData?.diePerLevel?.map((setLevel, index) => (
-                <Row key={index} spacing='spaceBetween' cellSize='auto'>
-                  <Input
-                    name={`diePerLevel.${index}.level`}
-                    value={setLevel.level}
-                    validation='num'
-                    errorMsg='Please enter a whole number'
-                    onChange={updateSectionData}
-                    required={true}
-                  />
-                  <Input
-                    name={`diePerLevel.${index}.dieConfig`}
-                    value={setLevel.dieConfig}
-                    validation='num'
-                    errorMsg='Please enter a valid die value'
-                    onChange={updateSectionData}
-                    required={true}
-                  />
-                </Row>
-              ))}
-            </Collapse.Body>
-          </Collapse>
+        {hasPrerequisites && (
+          <Grid.Item>
+            <Prerequisites formData={sectionData} updateFormData={updateSectionData} />
+          </Grid.Item>
         )}
-      {sectionData?.method === ModifierMethods.setPerLevel && sectionData?.setPerLevel?.length > 0 && (
-        <Collapse>
-          <Collapse.Header title='Set Per Level' />
-          <Collapse.Body>
-            <Row spacing='spaceBetween' cellSize='auto'>
-              <span>Level</span>
-              <span>Amount</span>
-            </Row>
-            {sectionData?.setPerLevel?.map((setLevel, index) => (
-              <Row key={index} spacing='spaceBetween' cellSize='auto'>
-                <Input
-                  name={`setPerLevel.${index}.level`}
-                  value={setLevel.level}
-                  validation='num'
-                  errorMsg='Please enter a whole number'
-                  onChange={updateSectionData}
-                  required={true}
-                />
-                <Input
-                  name={`setPerLevel.${index}.setAmount`}
-                  value={setLevel.setAmount}
-                  validation='num'
-                  errorMsg='Please enter a whole number'
-                  onChange={updateSectionData}
-                  required={true}
-                />
-              </Row>
-            ))}
-          </Collapse.Body>
-        </Collapse>
-      )}
+        {sectionData?.method === ModifierMethods.setPerLevel && sectionData?.diePerLevel?.length > 0 && (
+          <Grid.Item>
+            <Collapse>
+              <Collapse.Header title='Die Per Level' />
+              <Collapse.Body>
+                <Grid>
+                  <Grid.Item>
+                    <Grid>
+                      <Grid.Item colSpan={'auto'}>Level</Grid.Item>
+                      <Grid.Item colSpan={'auto'}>Die Config</Grid.Item>
+                    </Grid>
+                  </Grid.Item>
+                  {sectionData?.diePerLevel?.map((setLevel, index) => (
+                    <Grid.Item key={index}>
+                      <Grid>
+                        <Grid.Item colSpan={'auto'}>
+                          <Input
+                            name={`diePerLevel.${index}.level`}
+                            value={setLevel.level}
+                            validation='num'
+                            errorMsg='Please enter a whole number'
+                            onChange={updateSectionData}
+                            required={true}
+                          />
+                        </Grid.Item>
+                        <Grid.Item colSpan={'auto'}>
+                          <Input
+                            name={`diePerLevel.${index}.dieConfig`}
+                            value={setLevel.dieConfig}
+                            validation='num'
+                            errorMsg='Please enter a valid die value'
+                            onChange={updateSectionData}
+                            required={true}
+                          />
+                        </Grid.Item>
+                      </Grid>
+                    </Grid.Item>
+                  ))}
+                </Grid>
+              </Collapse.Body>
+            </Collapse>
+          </Grid.Item>
+        )}
+        {sectionData?.method === ModifierMethods.setPerLevel && sectionData?.setPerLevel?.length > 0 && (
+          <Grid.Item>
+            <Collapse>
+              <Collapse.Header title='Set Per Level' />
+              <Collapse.Body>
+                <Grid>
+                  <Grid.Item>
+                    <Grid>
+                      <Grid.Item colSpan={'auto'}>Level</Grid.Item>
+                      <Grid.Item colSpan={'auto'}>Amount</Grid.Item>
+                    </Grid>
+                  </Grid.Item>
+                  {sectionData?.setPerLevel?.map((setLevel, index) => (
+                    <Grid.Item key={index}>
+                      <Grid>
+                        <Grid.Item colSpan={'auto'}>
+                          <Input
+                            name={`setPerLevel.${index}.level`}
+                            value={setLevel.level}
+                            validation='num'
+                            errorMsg='Please enter a whole number'
+                            onChange={updateSectionData}
+                            required={true}
+                          />
+                        </Grid.Item>
+                        <Grid.Item colSpan={'auto'}>
+                          <Input
+                            name={`setPerLevel.${index}.setAmount`}
+                            value={setLevel.setAmount}
+                            validation='num'
+                            errorMsg='Please enter a whole number'
+                            onChange={updateSectionData}
+                            required={true}
+                          />
+                        </Grid.Item>
+                      </Grid>
+                    </Grid.Item>
+                  ))}
+                </Grid>
+              </Collapse.Body>
+            </Collapse>
+          </Grid.Item>
+        )}
+      </Grid>
     </>
   )
 }

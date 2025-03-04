@@ -287,14 +287,14 @@
     "value": "primaryDamage",
     "label": "Primary Damage",
     "id": "cb47b615-2a96-4617-870a-9051ab4b95cf",
-    "spells": ["upcast"]
+    "spells": ["upcast", "damage"]
   },
   {
     "value": "bonusDamage",
     "label": "Bonus Damage",
     "id": "412e4b5f-f202-4519-851f-03965749051a",
     "damage": ["all"],
-    "spells": ["damage"]
+    "spells": ["damage", "upcast"]
   },
   {
     "value": "range",
@@ -325,7 +325,7 @@
     "label": "Secondary Damage",
     "id": "90ed849a-a870-419c-b58b-451afeeff7bb",
     "damage": ["all"],
-    "spells": ["damage"]
+    "spells": ["damage", "upcast"]
   },
   {
     "value": "setAmount",

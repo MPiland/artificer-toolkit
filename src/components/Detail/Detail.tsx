@@ -1,6 +1,5 @@
 import { FC, ReactNode, Suspense, use, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import Row from '../Row/Row'
 import { getValueFromState } from '../../utils/formatting'
 import Group from '../Group/Group'
 import {
@@ -22,6 +21,7 @@ import CopyIcon from '../../assets/Icons/ICopy'
 import { FormDataType } from '../../types/form'
 import { Character } from '../../../amplify/gql/types'
 import Loading from '../Loading/Loading'
+import Grid from '../Grid/Grid'
 
 type colType = {
   header: string
@@ -110,10 +110,10 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
         {colsData && cols && (
           <>
             <div className={detail_col_section}>
-              <Row cols={{ lg: 4, md: 3, base: 2 }}>
+              <Grid>
                 {cols?.map((colItem, colIndex) => {
                   return (
-                    <div className={detail_col_item} key={colIndex}>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 3 }} className={detail_col_item} key={colIndex}>
                       <div className={detail_col_title}>{colItem.header}</div>
                       <div>
                         {getValueFromState({
@@ -123,10 +123,10 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
                           truncateNum: colItem?.truncate,
                         })}
                       </div>
-                    </div>
+                    </Grid.Item>
                   )
                 })}
-              </Row>
+              </Grid>
             </div>
             <hr />
           </>

@@ -25,9 +25,9 @@ export interface FeatureSlice {
 
 export const featureSlice: StateCreator<CombinedSlice, [], [], FeatureSlice> = (set) => {
   const defaultState: Pick<FeatureSlice, 'featureData' | 'initialFeatureData' | 'featureIndex' | 'featureStep'> = {
-    featureData: { id: undefined, value: undefined, label: undefined, __typename: undefined },
+    featureData: { id: undefined, value: undefined, label: undefined, __typename: 'Feature' },
 
-    initialFeatureData: { id: undefined, value: undefined, label: undefined, __typename: undefined },
+    initialFeatureData: { id: undefined, value: undefined, label: undefined, __typename: 'Feature' },
 
     featureStep: null,
 
@@ -66,8 +66,7 @@ export const featureSlice: StateCreator<CombinedSlice, [], [], FeatureSlice> = (
       ),
 
     resetFeature: () =>
-      set((state) => ({
-        ...state,
+      set(() => ({
         featureData: defaultState.featureData,
         initialFeatureData: defaultState.initialFeatureData,
         featureIndex: defaultState.featureIndex,

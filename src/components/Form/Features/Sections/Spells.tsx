@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { use } from 'react'
@@ -8,12 +7,13 @@ import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
 import { useListClassesQuery } from '../../../../features/classes/classesApi'
 import { FeatureContext } from '../FeatureContext'
-import { Attributes, Categories } from '../../../../types/enums'
+import { Categories } from '../../../../types/enums'
 import { Class, FeatureSpell, SectionEnum, Spell } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Generic/Requirements'
-import LimitUse from '../../Generic/LimitUse'
+import Prerequisites from '../../Subforms/Requirements'
+import LimitUse from '../../Subforms/LimitUse'
+import Grid from '../../../Grid/Grid'
 
 const Spells = () => {
   const { formData } = use(FormContext)
@@ -37,7 +37,7 @@ const Spells = () => {
     optionalAbility,
     hasPrerequisites,
     limitUse,
-    providesOptions
+    providesOptions,
   } = useEnumChecks({
     data: sectionData,
   })
@@ -93,8 +93,8 @@ const Spells = () => {
   }, [sectionData?.spellsByLevel, updateSectionData, spellsByLevel])
 
   return (
-    <>
-      <Row>
+    <Grid>
+      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -110,7 +110,9 @@ const Spells = () => {
           value={sectionData?.attributes}
           onChange={updateSectionData}
         />
-        {classLimit && (
+      </Grid.Item>
+      {classLimit && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='classLimit'
             multiSelect={true}
@@ -120,8 +122,10 @@ const Spells = () => {
             required={true}
             onChange={updateSectionData}
           />
-        )}
-        {levelLimit && (
+        </Grid.Item>
+      )}
+      {levelLimit && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='levelLimit'
             label='Level Limit'
@@ -135,8 +139,10 @@ const Spells = () => {
             required={true}
             onChange={updateSectionData}
           />
-        )}
-        {attributeLimit && (
+        </Grid.Item>
+      )}
+      {attributeLimit && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='attributeLimit'
             multiSelect={true}
@@ -148,8 +154,10 @@ const Spells = () => {
             required={true}
             onChange={updateSectionData}
           />
-        )}
-        {subtypeSpecific && formData.__typename === 'Class' && (
+        </Grid.Item>
+      )}
+      {subtypeSpecific && formData.__typename === 'Class' && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='subtype'
             label='Subtype'
@@ -158,9 +166,12 @@ const Spells = () => {
             required={true}
             onChange={updateSectionData}
           />
-        )}
-        {!spellsByLevel && (
-          <>
+        </Grid.Item>
+      )}
+      {!spellsByLevel && (
+        <>
+          {' '}
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='ids'
               multiSelect={true}
@@ -170,7 +181,9 @@ const Spells = () => {
               required={true}
               onChange={updateSectionData}
             />
-            {castAtLevel && (
+          </Grid.Item>
+          {castAtLevel && (
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name='spellLevel'
@@ -181,8 +194,10 @@ const Spells = () => {
                 required={true}
                 onChange={updateSectionData}
               />
-            )}
-            {optionalAbility && (
+            </Grid.Item>
+          )}
+          {optionalAbility && (
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='ability'
                 label='Ability'
@@ -191,8 +206,10 @@ const Spells = () => {
                 required={true}
                 onChange={updateSectionData}
               />
-            )}
-            {providesOptions && (
+            </Grid.Item>
+          )}
+          {providesOptions && (
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation='num'
                 name={`selectionCount`}
@@ -203,55 +220,71 @@ const Spells = () => {
                 required={true}
                 onChange={updateSectionData}
               />
-            )}
-          </>
-        )}
-      </Row>
+            </Grid.Item>
+          )}
+        </>
+      )}
       {spellsByLevel && (
         <>
-          <Row spacing='spaceBetween' cellSize='auto'>
-            <span>Level</span>
-            <span>Spell</span>
-            {sectionData?.attributes?.some((attribute) => attribute === Attributes.castAtLevel) && (
-              <span>Die Value</span>
-            )}
-          </Row>
+          <Grid.Item>
+            <Grid>
+              <Grid.Item colSpan={'auto'}>Level</Grid.Item>
+              <Grid.Item colSpan={'auto'}>Spell</Grid.Item>
+              {castAtLevel && <Grid.Item colSpan={'auto'}>Die Value</Grid.Item>}
+            </Grid>
+          </Grid.Item>
           {sectionData?.spellsByLevel?.map((setLevel, index) => (
-            <Row key={index} spacing='spaceBetween' cellSize='auto'>
-              <Dropdown
-                name={`spellsByLevel.${index}.level`}
-                value={String(setLevel.level)}
-                options={spells}
-                errorMsg='Please enter a whole number'
-                onChange={updateSectionData}
-                required={true}
-              />
-              <Dropdown
-                name={`spellsByLevel.${index}.spells`}
-                value={setLevel.spells}
-                options={spells}
-                errorMsg='Please enter a whole number'
-                onChange={updateSectionData}
-                required={true}
-                multiSelect={true}
-              />
-              {castAtLevel && (
-                <Dropdown
-                  name={`spellsByLevel.${index}.spellLevel`}
-                  value={String(setLevel.spellLevel)}
-                  options={spells}
-                  errorMsg='Please enter a valid die value'
-                  onChange={updateSectionData}
-                  required={true}
-                />
-              )}
-            </Row>
+            <Grid.Item key={index}>
+              <Grid>
+                <Grid.Item colSpan={'auto'}>
+                  <Dropdown
+                    name={`spellsByLevel.${index}.level`}
+                    value={String(setLevel.level)}
+                    options={spells}
+                    errorMsg='Please enter a whole number'
+                    onChange={updateSectionData}
+                    required={true}
+                  />
+                </Grid.Item>
+                <Grid.Item colSpan={'auto'}>
+                  <Dropdown
+                    name={`spellsByLevel.${index}.spells`}
+                    value={setLevel.spells}
+                    options={spells}
+                    errorMsg='Please enter a whole number'
+                    onChange={updateSectionData}
+                    required={true}
+                    multiSelect={true}
+                  />
+                </Grid.Item>
+                {castAtLevel && (
+                  <Grid.Item colSpan={'auto'}>
+                    <Dropdown
+                      name={`spellsByLevel.${index}.spellLevel`}
+                      value={String(setLevel.spellLevel)}
+                      options={spells}
+                      errorMsg='Please enter a valid die value'
+                      onChange={updateSectionData}
+                      required={true}
+                    />
+                  </Grid.Item>
+                )}
+              </Grid>
+            </Grid.Item>
           ))}
         </>
       )}
-      {hasPrerequisites && <Prerequisites formData={sectionData} updateFormData={updateSectionData} />}
-      {limitUse && <LimitUse formData={sectionData} updateFormData={updateSectionData} />}
-    </>
+      {hasPrerequisites && (
+        <Grid.Item>
+          <Prerequisites formData={sectionData} updateFormData={updateSectionData} />
+        </Grid.Item>
+      )}
+      {limitUse && (
+        <Grid.Item>
+          <LimitUse formData={sectionData} updateFormData={updateSectionData} />
+        </Grid.Item>
+      )}
+    </Grid>
   )
 }
 

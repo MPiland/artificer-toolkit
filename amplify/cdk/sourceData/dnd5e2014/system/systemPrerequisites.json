@@ -18,15 +18,15 @@
   {
     "value": "skillProficiency",
     "label": "Skill Proficiency",
-    "id": "f603f26f-6cb6-4995-82f3-ba4cdefd4e55",
+    "id": "b7d0a3c3-7b6f-4c0d-9e9f-0d6d8c8c8c8c",
     "features": ["all"],
     "sections": ["all"],
     "equipment": ["all"]
   },
   {
-    "value": "itemProficiency",
-    "label": "Item Proficiency",
-    "id": "f3a3bcb0-8e8a-4d9e-80ef-279fb97ba60e",
+    "value": "equipmentProficiency",
+    "label": "Equipment Proficiency",
+    "id": "f603f26f-6cb6-4995-82f3-ba4cdefd4e55",
     "features": ["all"],
     "sections": ["all"],
     "equipment": ["all"]
@@ -64,8 +64,7 @@
     "value": "canCastLevel",
     "label": "Can Cast Level",
     "id": "2b2cac99-dfc5-45a0-b4a6-1970179ebcd9",
-    "sections": ["spells"],
-    "features": ["all"]
+    "sections": ["spells"]
   },
   {
     "value": "optionNotObtained",

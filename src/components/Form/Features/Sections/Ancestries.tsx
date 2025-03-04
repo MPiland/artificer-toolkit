@@ -1,4 +1,3 @@
-import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
@@ -10,6 +9,7 @@ import { FeatureContext } from '../FeatureContext'
 import { Attributes, Categories } from '../../../../types/enums'
 import { FeatureAncestry, SectionEnum } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
+import Grid from '../../../Grid/Grid'
 
 const Ancestries = () => {
   const { formData } = use(FormContext)
@@ -27,8 +27,8 @@ const Ancestries = () => {
   const providesOptions = sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
 
   return (
-    <>
-      <Row>
+    <Grid>
+      <Grid.Item colSpan={{sm: 6, md: 4, lg: 2}}>
         <Dropdown
           multiSelect={true}
           name='attributes'
@@ -39,6 +39,8 @@ const Ancestries = () => {
           value={sectionData?.attributes}
           onChange={updateSectionData}
         />
+      </Grid.Item>
+      <Grid.Item colSpan={{sm: 6, md: 4, lg: 2}}>
         <Dropdown
           name='origin'
           label='Ancestry Origin'
@@ -47,7 +49,9 @@ const Ancestries = () => {
           required={true}
           onChange={updateSectionData}
         />
-        {ancestryOptions?.length > 0 && (
+      </Grid.Item>
+      {ancestryOptions?.length > 0 && (
+        <Grid.Item colSpan={{sm: 6, md: 4, lg: 2}}>
           <Dropdown
             name='options'
             label='Ancestry Option'
@@ -57,10 +61,12 @@ const Ancestries = () => {
             required={true}
             onChange={updateSectionData}
           />
-        )}
-        {sectionData?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
-          formData.__typename === 'Class' &&
-          formData.category === Categories.subclass && (
+        </Grid.Item>
+      )}
+      {sectionData?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) &&
+        formData.__typename === 'Class' &&
+        formData.category === Categories.subclass && (
+          <Grid.Item colSpan={{sm: 6, md: 4, lg: 2}}>
             <Dropdown
               name='subtype'
               label='Subtype'
@@ -69,8 +75,10 @@ const Ancestries = () => {
               required={true}
               onChange={updateSectionData}
             />
-          )}
-        {providesOptions && (
+          </Grid.Item>
+        )}
+      {providesOptions && (
+        <Grid.Item colSpan={{sm: 6, md: 4, lg: 2}}>
           <Input
             validation='num'
             name={`selectionCount`}
@@ -81,9 +89,9 @@ const Ancestries = () => {
             required={true}
             onChange={updateSectionData}
           />
-        )}
-      </Row>
-    </>
+        </Grid.Item>
+      )}
+    </Grid>
   )
 }
 

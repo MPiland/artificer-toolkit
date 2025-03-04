@@ -49,14 +49,14 @@ const Button = ({
         button_radius[borderRadius],
         button_color[disabled ? 'main' : color],
         button_style[style],
-        assignInlineVars({
-          [button_width]: width,
-        }),
         className
       )}
       disabled={disabled}
       onClick={(e) => onClick(e)}
       name={name}
+      style={assignInlineVars({
+        [button_width]: width,
+      })}
       {...props}
     >
       <span className={button_content}>{children}</span>

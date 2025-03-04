@@ -4,8 +4,6 @@ import {
   useTypeahead,
   useListNavigation,
   useFloatingRootContext,
-  useRole,
-  useClick,
   useDismiss,
 } from '@floating-ui/react'
 import { FloatingContext } from './FloatingContext'
@@ -46,8 +44,6 @@ const useFloatingOptions = () => {
       activeIndex,
       onMatch: setActiveIndex,
     }),
-    useRole(rootContext, { role: 'menu' }),
-    useClick(rootContext),
     useDismiss(rootContext),
   ])
 

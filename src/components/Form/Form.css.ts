@@ -12,7 +12,6 @@ export const form_wrapper = style({
       'position': 'relative',
       'height': '100%',
       'width': '100%',
-      'overflow': 'hidden',
 
       '@media': {
         'screen and (max-width: 567px)': {
@@ -26,7 +25,7 @@ export const form_wrapper = style({
 export const form_header = style({
   '@layer': {
     [app]: {
-      padding: `${space['space-3']} ${space['space-4']} 0`,
+      padding: `${space['space-4']} 0`,
       marginBottom: space['space-3'],
     },
   },

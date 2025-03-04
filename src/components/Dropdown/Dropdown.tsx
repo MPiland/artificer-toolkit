@@ -150,8 +150,8 @@ const Dropdown = <T,>({
     if (Array.isArray(activeOptions)) {
       return activeOptions.map((id) => {
         const option = filteredOptions.find((opt) => opt.id === id)
-        if (option.renderedLabel) {
-          return option.renderedLabel
+        if (option?.renderedLabel) {
+          return option?.renderedLabel
         }
         return option?.label
       })

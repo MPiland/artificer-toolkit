@@ -12,7 +12,7 @@ export const collapse_wrapper = style({
       backgroundColor: theme.vars.component.collapse.backgroundColor.main,
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
       zIndex: 0,
-      marginBottom: size['size-3'],
+      width: 'auto',
 
       selectors: {
         '&.borderless': {

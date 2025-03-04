@@ -65,8 +65,7 @@ export const sectionSlice: StateCreator<CombinedSlice, [], [], SectionSlice> = (
       ),
 
     resetSection: () =>
-      set((state) => ({
-        ...state,
+      set(() => ({
         sectionData: defaultState.sectionData,
         initialSectionData: defaultState.initialSectionData,
         sectionIndex: defaultState.sectionIndex,

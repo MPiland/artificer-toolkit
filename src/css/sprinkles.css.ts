@@ -2,16 +2,14 @@ import { defineProperties, createSprinkles, createMapValueFn, ConditionalValue }
 import { fontFamily, fontWeight, lineHeight, fontSize } from './typography.css'
 import { size, space, position } from './size.css'
 import { borderSize, borderRadius, shadows } from './border.css'
-import { layer } from '@vanilla-extract/css'
-
-export const sprinklesLayer = layer()
+import { app } from './layers.css'
 
 const responsiveProperties = defineProperties({
-  '@layer': sprinklesLayer,
+  '@layer': app,
   'conditions': {
-    mobile: { '@media': 'screen and (max-width: 767px)' },
-    tablet: { '@media': 'screen and (max-width: 1023px)' },
-    desktop: { '@media': 'screen and (max-width: 1920px)' },
+    mobile: { '@media': 'screen and (max-width: 567px)' },
+    tablet: { '@media': 'screen and (max-width: 1024px)' },
+    desktop: { '@media': 'screen and (min-width: 1025px)' },
   },
   'defaultCondition': 'desktop',
   'responsiveArray': ['desktop', 'tablet', 'mobile'],
@@ -29,9 +27,11 @@ const responsiveProperties = defineProperties({
       'space-between',
       'space-evenly',
     ],
+    justifyItems: ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
     justifySelf: ['flex-start', 'center', 'flex-end'],
     alignItems: ['stretch', 'flex-start', 'center', 'flex-end', 'baseline'],
     alignSelf: ['flex-start', 'center', 'flex-end'],
+    alignContent: ['stretch', 'flex-start', 'center', 'flex-end', 'space-around', 'space-between'],
     flex: {
       '1': '1 1 0%',
       'auto': '1 1 0%',

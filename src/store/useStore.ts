@@ -47,13 +47,13 @@ export const addField = ({
       const targetState = selector(draft)
       const existing = get(targetState, path)
 
-      if (existing) {
+      if (existing != null && existing.length > 0) {
         if (!value) {
           // If existing is an array of arrays, add a new array
           if (Array.isArray(existing) && existing.length > 0 && Array.isArray(existing[0])) {
-            get(targetState, path).push([])
+            lSet(targetState, path, [...get(targetState, path), []])
           } else {
-            get(targetState, path).push({})
+            lSet(targetState, path, [...get(targetState, path), {}])
           }
         } else {
           lSet(targetState, path, value)
@@ -90,11 +90,15 @@ export const removeField = ({
       } else {
         const newPath = statePath.slice(0, -1)
         const array = get(targetState, newPath)
-        lSet(
-          targetState,
-          newPath,
-          array.filter((_: any, index: number) => index !== Number(lastKey))
-        )
+        if (array.length > 1) {
+          lSet(
+            targetState,
+            newPath,
+            array.filter((_: any, index: number) => index !== Number(lastKey))
+          )
+        } else {
+          lSet(targetState, newPath, undefined)
+        }
       }
     })
   }

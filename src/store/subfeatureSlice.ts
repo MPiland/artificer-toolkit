@@ -19,9 +19,9 @@ export interface SubfeatureSlice {
 
 export const subfeatureSlice: StateCreator<CombinedSlice, [], [], SubfeatureSlice> = (set) => {
   const defaultState: Pick<SubfeatureSlice, 'subfeatureData' | 'initialSubfeatureData' | 'subfeatureIndex'> = {
-    subfeatureData: { id: undefined, value: undefined, label: undefined, __typename: undefined },
+    subfeatureData: { id: undefined, value: undefined, label: undefined, __typename: 'FeatureSubfeature' },
 
-    initialSubfeatureData: { id: undefined, value: undefined, label: undefined, __typename: undefined },
+    initialSubfeatureData: { id: undefined, value: undefined, label: undefined, __typename: 'FeatureSubfeature' },
 
     subfeatureIndex: 0,
   }
@@ -50,8 +50,7 @@ export const subfeatureSlice: StateCreator<CombinedSlice, [], [], SubfeatureSlic
       ),
 
     resetSubfeature: () =>
-      set((state) => ({
-        ...state,
+      set(() => ({
         subfeatureData: defaultState.subfeatureData,
         initialSubfeatureData: defaultState.initialSubfeatureData,
         subfeatureIndex: defaultState.subfeatureIndex,

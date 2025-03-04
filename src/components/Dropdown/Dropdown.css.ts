@@ -20,8 +20,9 @@ export const dropdown = style({
 export const dropdown_wrapper = style({
   '@layer': {
     [app]: {
+      minWidth: 0,
       position: 'relative',
-      width: 'inherit',
+      width: '100%',
       overflow: 'hidden',
       textWrap: 'nowrap',
       textOverflow: 'ellipsis',
@@ -62,6 +63,8 @@ export const dropdown_container = style({
       paddingLeft: size['size-3'],
       overflow: 'hidden',
       cursor: 'pointer',
+      width: '100%',
+      minWidth: 0,
       borderRadius: theme.border.radius,
       backgroundColor: theme.vars.component.input.backgroundColor,
       color: theme.vars.typography.color.main,
@@ -101,7 +104,8 @@ export const dropdown_input = style({
       position: 'relative',
       border: 'none',
       backgroundColor: 'transparent',
-      width: 'auto',
+      width: '100%',
+      minWidth: 0,
       userSelect: 'none',
       flexWrap: 'nowrap',
       overflow: 'hidden',

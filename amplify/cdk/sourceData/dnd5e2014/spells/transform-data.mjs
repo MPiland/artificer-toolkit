@@ -61,6 +61,10 @@ const mapping = {
       newKey: 'id',
     },
   },
+  'levelAttribute': {
+    newKey: 'levels',
+  },
+
   '*': {
     type: {
       replace: (obj) => {
@@ -77,8 +81,6 @@ const mapping = {
           '../system/languages.json',
           '../system/conditions.json',
           '../system/speeds.json',
-          '../system/equipmentProperties.json',
-          '../equipment/equipmentData.json',
           '../system/modifierTypes.json',
           '../system/conditions.json',
           '../system/systemCategories.json',

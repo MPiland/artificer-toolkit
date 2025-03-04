@@ -7,8 +7,8 @@ import { use } from 'react'
 import { FeatureContext } from '../Form/Features/FeatureContext'
 
 const Alert = () => {
-  const { alertType } = useParams()
-  const { isFirstStep, isLastStep, setStepIndex, stepIndex, resetForm, steps } = use(FormContext)
+  const { alertType } = useParams() as { alertType: 'step' | 'forward' | 'back' }
+  const { isFirstStep, isLastStep, setStepIndex, stepIndex, resetForm } = use(FormContext)
 
   const {
     featureStep,
@@ -26,71 +26,56 @@ const Alert = () => {
   const location = useLocation()
 
   const message = location.state?.message
+  const index = location.state?.index
+
+  const reset = () => {
+    if (sectionStep != null) {
+      resetSection()
+      setSectionStep(null)
+    } else if (featureStep === 'subfeature') {
+      resetSubfeature()
+    } else if (featureStep === 'option') {
+      resetOption()
+    } else if (featureStep === 'ancestry') {
+      resetFeature()
+    } else if (featureStep === 'ancestryOption') {
+      resetAncestry()
+    } else {
+      resetFeature()
+    }
+    setFeatureStep(null)
+  }
 
   const handleConfirmBack = () => {
     if (!isFirstStep) {
       if (featureStep == null) {
-        setStepIndex(stepIndex - 1)
-      } else if (sectionStep != null) {
-        resetSection()
-        setSectionStep(null)
-      } else if (featureStep === 'subfeature') {
-        resetSubfeature()
-        setFeatureStep('option')
-      } else if (featureStep === 'option') {
-        resetOption()
-        if (steps[stepIndex].id === 'ancestry') {
-          setFeatureStep('ancestry')
-        } else {
-          setFeatureStep('feature')
-        }
-      } else if (featureStep === 'ancestry') {
-        resetFeature()
-        setFeatureStep('ancestryOption')
-      } else if (featureStep === 'ancestryOption') {
-        resetAncestry()
-        setFeatureStep(null)
-      } else {
-        resetFeature()
-        setFeatureStep(null)
+        reset()
       }
-      return navigate(-1)
+      navigate(-1)
+      return setStepIndex(stepIndex - 1)
     } else {
       resetForm()
-      navigate('../..')
+      return navigate('../..')
     }
   }
 
   const handleConfirmForward = () => {
     if (!isLastStep) {
-      if (featureStep == null) {
-        setStepIndex(stepIndex - 1)
-      } else if (sectionStep != null) {
-        resetSection()
-        setSectionStep(null)
-      } else if (featureStep === 'subfeature') {
-        resetSubfeature()
-        setFeatureStep('option')
-      } else if (featureStep === 'option') {
-        resetOption()
-        if (steps[stepIndex].id === 'ancestry') {
-          setFeatureStep('ancestry')
-        } else {
-          setFeatureStep('feature')
-        }
-      } else if (featureStep === 'ancestry') {
-        resetFeature()
-        setFeatureStep('ancestryOption')
-      } else if (featureStep === 'ancestryOption') {
-        resetAncestry()
-        setFeatureStep(null)
-      } else {
-        resetFeature()
-        setFeatureStep(null)
+      if (featureStep != null) {
+        reset()
       }
       setStepIndex(stepIndex + 1)
+      return navigate(-1)
     }
-    navigate(-1)
+    return navigate(-1)
+  }
+
+  const handleConfirmStep = () => {
+    if (featureStep != null) {
+      reset()
+    }
+    setStepIndex(index)
+    return navigate(-1)
   }
 
   const handleCancel = () => {
@@ -107,16 +92,20 @@ const Alert = () => {
         <Modal.Footer>
           <Group directionVariant='row' justifyContentVariant='spaceBetween'>
             <Button color='main' onClick={handleCancel}>
-              {alertType === 'invalidForm' ? 'Ok' : 'Cancel'}
+              Cancel
             </Button>
-            {alertType !== 'invalidForm' && (
-              <Button
-                color='danger'
-                onClick={() => (alertType === 'forward' ? handleConfirmForward() : handleConfirmBack())}
-              >
-                Continue
-              </Button>
-            )}
+            <Button
+              color='danger'
+              onClick={() =>
+                alertType === 'step'
+                  ? handleConfirmStep()
+                  : alertType === 'forward'
+                  ? handleConfirmForward()
+                  : handleConfirmBack()
+              }
+            >
+              Continue
+            </Button>
           </Group>
         </Modal.Footer>
       </Modal.Dialogue>

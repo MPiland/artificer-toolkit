@@ -1,5 +1,4 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import Row from '../Row/Row'
 import { getValueFromState } from '../../utils/formatting'
 import Button from '../Button/Button'
 import { form_detail_body, form_detail_main, form_detail_title } from './Form.css'
@@ -13,6 +12,7 @@ import { use } from 'react'
 import { FormContext } from './FormContext'
 import { Race, Class, Character } from '../../../amplify/gql/types'
 import { UpdateState } from '../../types/form'
+import Grid from '../Grid/Grid'
 
 type colType = {
   header: string
@@ -75,18 +75,18 @@ const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
         <Modal.Content>
           {colsData && cols && (
             <>
-              <Row cols={{ lg: 4, md: 3, base: 2 }} className={sprinkles({ mb: 'space-2' })}>
+              <Grid className={sprinkles({ mb: 'space-2' })}>
                 {cols?.map((colItem, colIndex) => {
                   return (
-                    <div key={colIndex}>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 3 }} key={colIndex}>
                       <div className={form_detail_title}>{colItem.header}</div>
                       <div>
                         {getValueFromState({ input: colItem, state: colsData, truncateNum: colItem?.truncate })}
                       </div>
-                    </div>
+                    </Grid.Item>
                   )
                 })}
-              </Row>
+              </Grid>
               <hr />
             </>
           )}

@@ -34,9 +34,9 @@ import {
 import { FormContext } from '../FormContext'
 import { useStore } from '../../../store/useStore'
 import Expertise from './Sections/Expertise'
-import AncestryFeatures from '../Races/AncestryFeatures'
+import AncestryFeatures from '../Ancestry/AncestryFeatures'
 import { FeatureContext } from './FeatureContext'
-import AncestryOptions from '../Races/AncestryOptions'
+import AncestryOptions from '../Ancestry/AncestryOptions'
 
 const useFeatureOptions = () => {
   const { formData, steps, stepIndex } = use(FormContext)
@@ -405,19 +405,21 @@ const useFeatureOptions = () => {
         setDataMap.feature.push(updateSectionData)
       }
 
-      const currentStates = stateMap[lowerType]
-      const updateStates = setDataMap[lowerType]
-      const paths = getContextPaths({ title })
+      if (featureStep !== null) {
+        const currentStates = stateMap[lowerType]
+        const updateStates = setDataMap[lowerType]
+        const paths = getContextPaths({ title })
 
-      Object.values(paths).forEach((path, index) => {
-        if (index < currentStates.length) {
-          set(formClone, path, JSON.parse(JSON.stringify(currentStates[index])))
-          cloneAndSetStates({
-            state: currentStates[index],
-            updateData: updateStates[index],
-          })
-        }
-      })
+        Object.values(paths).forEach((path, index) => {
+          if (index < currentStates.length) {
+            set(formClone, path, JSON.parse(JSON.stringify(currentStates[index])))
+            cloneAndSetStates({
+              state: currentStates[index],
+              updateData: updateStates[index],
+            })
+          }
+        })
+      }
     }
 
     setStates({ title: formData.__typename === 'Feat' ? 'feats' : 'default' })

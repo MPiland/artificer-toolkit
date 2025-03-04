@@ -33,7 +33,7 @@ import Card from '../Card/Card'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { FormDataType } from '../../types/form'
 import { useDebounceCallback } from 'usehooks-ts'
-import { set, startCase } from 'lodash'
+import { startCase } from 'lodash'
 import Divider from '../Divider/Divider'
 import Button from '../Button/Button'
 import FilterIcon from '../../assets/Icons/IFilter'
@@ -41,7 +41,7 @@ import CopyIcon from '../../assets/Icons/ICopy'
 import CreateIcon from '../../assets/Icons/ICreate'
 import GridIcon from '../../assets/Icons/IGrid'
 import ListIcon from '../../assets/Icons/IList'
-import { Character, Class, Equipment, Feat, Race, Scores, Spell } from '../../../amplify/gql/types'
+import { Background, Character, Class, Equipment, Feat, Race, Scores, Spell } from '../../../amplify/gql/types'
 import { AuthContext } from '../../features/auth/AuthContext'
 import { FormContext } from '../Form/FormContext'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -61,11 +61,14 @@ const SCROLL_BOX_MIN_SIZE = 20
 const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, footerText }: ListProps) => {
   const navigate = useNavigate()
   const location = useLocation()
+
   const { mutateAsync: deleteItem } = useDeleteItem()
+
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
   const { data }: { data: FormDataType[] } = useListItems()
-  const { updateFormData, resetForm } = use(FormContext)
+  
+  const { updateFormData, fullReset } = use(FormContext)
   const { user } = use(AuthContext)
 
   const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
@@ -164,7 +167,8 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const handleCreate = async (secondary?: boolean) => {
     let stateObject: FormDataType
     try {
-      resetForm()
+      fullReset()
+
       switch (form) {
         case 'classes': {
           const category = system?.categories.find((category) =>
@@ -226,9 +230,18 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
           stateObject = featObject
           break
         }
-        case 'backgrounds':
-          set(stateObject, '__typename', 'Background')
+        case 'backgrounds': {
+          const backgroundObject: Background = {
+            id: undefined,
+            ownerId: user?.userId,
+            systemId: system.id,
+            label: undefined,
+            value: undefined,
+            __typename: 'Background',
+          }
+          stateObject = backgroundObject
           break
+        }
         case 'characters': {
           const abilityScores: Array<Scores> = []
           system.abilities.forEach((ability) =>

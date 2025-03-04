@@ -83,12 +83,12 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         existing.push({ index, optionIndex, id: proficiencyId })
       }
       if (classId) {
-        const fullClass = classes.find((uClass) => uClass.id === classId)
+        const fullClass = classes?.find((uClass) => uClass.id === classId)
 
         if (!featureId) {
-          fullSections = fullClass.proficiencies
+          fullSections = fullClass?.proficiencies
         } else {
-          fullFeature = fullClass.features.find((feature) => feature.id === featureId)
+          fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
         }
       }
       if (raceId) {
@@ -180,9 +180,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         existing.push({ index, optionIndex, id: expertiseId })
       }
       if (classId) {
-        const fullClass = classes.find((uClass) => uClass.id === classId)
+        const fullClass = classes?.find((uClass) => uClass.id === classId)
 
-        fullFeature = fullClass.features.find((feature) => feature.id === featureId)
+        fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
       }
       if (raceId) {
         const fullRace = races.find((race) => race.id === raceId)
@@ -271,9 +271,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         existing.push({ index, optionIndex, id: featId })
       }
       if (classId) {
-        const fullClass = classes.find((uClass) => uClass.id === classId)
+        const fullClass = classes?.find((uClass) => uClass.id === classId)
 
-        fullFeature = fullClass.features.find((feature) => feature.id === featureId)
+        fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
       }
       if (raceId) {
         const fullRace = races.find((race) => race.id === raceId)
@@ -345,9 +345,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         existing.push({ index, optionIndex, id: senseId })
       }
       if (classId) {
-        const fullClass = classes.find((uClass) => uClass.id === classId)
+        const fullClass = classes?.find((uClass) => uClass.id === classId)
 
-        fullFeature = fullClass.features.find((feature) => feature.id === featureId)
+        fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
       }
       if (raceId) {
         const fullRace = races.find((race) => race.id === raceId)
@@ -604,7 +604,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   }
 
   const createClassProficiencyText = ({ fullClass }: { fullClass: Class }) => {
-    const fullProficiencies = fullClass.proficiencies
+    const fullProficiencies = fullClass?.proficiencies
 
     const proficiencyObject = {} as ClassProficiency
 
@@ -796,17 +796,17 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       | Character = {}
 
     if (source) {
-      if (source.type === 'race' && source.data.__typename === 'Race') {
+      if (source?.type === 'race' && source?.data.__typename === 'Race') {
         sourceObject = {
-          race: source.data,
+          race: source?.data,
         }
       }
-      if (source.type === 'class' && source.data.__typename === 'Class') {
+      if (source?.type === 'class' && source?.data.__typename === 'Class') {
         sourceObject = {
           classes: [
             {
-              ...source.data,
-              subclass: source.subclasses?.map((subclass) => ({ id: subclass.id })),
+              ...source?.data,
+              subclass: source?.subclasses?.map((subclass) => ({ id: subclass.id })),
             },
           ],
         }
@@ -819,17 +819,17 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
     // Process class features
     sourceObject.classes?.forEach((characterClass) => {
-      const fullClass = classes.find((c) => c.id === characterClass.id)
+      const fullClass = classes?.find((c) => c.id === characterClass.id)
 
       const processClassFeatures = (source: Class) => {
-        source.features?.forEach((feature) => {
+        source?.features?.forEach((feature) => {
           const levels = feature.levelAvailable.split(/\s*,\s*/)
 
           levels.forEach((featureLevel) => {
             features.push({
               __typename: 'CharacterFeature',
               id: feature.id,
-              classId: source.id,
+              classId: source?.id,
               level: Number(featureLevel),
             })
           })
@@ -839,12 +839,12 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       processClassFeatures(fullClass)
 
       if (characterClass.__typename === 'CharacterClass') {
-        const subClass = classes.find((c) => c.id === characterClass.subclass.id)
+        const subClass = classes?.find((c) => c.id === characterClass.subclass.id)
         if (subClass) processClassFeatures(subClass)
       } else {
         if (Array.isArray(characterClass.subclass) && characterClass.subclass.length > 0) {
           characterClass.subclass.forEach((subclass) => {
-            const subClass = classes.find((c) => c.id === subclass.id)
+            const subClass = classes?.find((c) => c.id === subclass.id)
             if (subClass) processClassFeatures(subClass)
           })
         }
@@ -856,8 +856,8 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       const fullRace = races.find((r) => r.id === formData.race)
 
       const processRaceFeatures = (source: Race | AncestryOption, type?: 'ancestry') => {
-        source.features?.forEach((feature) => {
-          features.push({ __typename: 'CharacterFeature', id: feature.id, [`${type || 'race'}Id`]: source.id })
+        source?.features?.forEach((feature) => {
+          features.push({ __typename: 'CharacterFeature', id: feature.id, [`${type || 'race'}Id`]: source?.id })
         })
       }
 
@@ -885,31 +885,31 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     const sections: { [K in keyof SectionTypeMap]: SectionTypeMap[K][] } = {
       feats: [...(formData.feats || [])].filter(
         (section) =>
-          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
           (section.raceId && section.raceId === formData.race) ||
           (section.ancestryId && section.ancestryId === formData.ancestry?.id)
       ),
       modifiers: [...(formData.modifiers || [])].filter(
         (section) =>
-          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
           (section.raceId && section.raceId === formData.race) ||
           (section.ancestryId && section.ancestryId === formData.ancestry?.id)
       ),
       proficiencies: [...(formData.proficiencies || [])].filter(
         (section) =>
-          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
           (section.raceId && section.raceId === formData.race) ||
           (section.ancestryId && section.ancestryId === formData.ancestry?.id)
       ),
       expertise: [...(formData.expertise || [])].filter(
         (section) =>
-          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
           (section.raceId && section.raceId === formData.race) ||
           (section.ancestryId && section.ancestryId === formData.ancestry?.id)
       ),
       senses: [...(formData.senses || [])].filter(
         (section) =>
-          (section.classId && formData.classes?.some((c) => c.id === section.classId)) ||
+          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
           (section.raceId && section.raceId === formData.race) ||
           (section.ancestryId && section.ancestryId === formData.ancestry?.id)
       ),
@@ -983,7 +983,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           ) {
             feature[sectionStep].forEach((fSection) => {
               if (!fSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-                const sourceId = source.id
+                const sourceId = source?.id
                 const featureId = feature.id
 
                 const typename = () => {
@@ -1030,12 +1030,12 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     }
 
     // Process class features
-    formData.classes?.forEach((characterClass) => {
-      const fullClass = classes.find((c) => c.id === characterClass.id)
-      processFeatures(fullClass.features, fullClass, 'class')
+    formData?.classes?.forEach((characterClass) => {
+      const fullClass = classes?.find((c) => c.id === characterClass.id)
+      processFeatures(fullClass?.features, fullClass, 'class')
 
       if (characterClass.subclass) {
-        const subClass = classes.find((c) => c.id === characterClass.subclass.id)
+        const subClass = classes?.find((c) => c.id === characterClass.subclass.id)
         if (subClass) {
           processFeatures(subClass.features, subClass, 'class')
         }
@@ -1083,14 +1083,14 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           let featureMod: FeatureModifier
 
           if (cModifier.classId) {
-            charClass = classes.find((sClass) => sClass.id === cModifier.classId)
+            charClass = classes?.find((sClass) => sClass.id === cModifier.classId)
             featureMod = charClass?.features
               ?.find(
                 (feature) =>
                   feature.id === cModifier.featureId &&
                   feature.levelAvailable
                     .split(/\s*,\s*/)
-                    .includes(String(formData.classes.find((fClass) => fClass.id === cModifier.classId)?.level))
+                    .includes(String(formData?.classes?.find((fClass) => fClass.id === cModifier.classId)?.level))
               )
               ?.modifiers?.find((modifier) => modifier.id === cModifier.modifierId)
           }

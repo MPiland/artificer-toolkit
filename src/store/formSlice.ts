@@ -105,8 +105,7 @@ export const formSlice: StateCreator<CombinedSlice, [], [], FormSlice> = (set) =
     setValidForm: (value) => set((state) => ({ ui: { ...state.ui, validForm: { ...state.ui.validForm, ...value } } })),
 
     resetForm: () =>
-      set((state) => ({
-        ...state,
+      set(() => ({
         formData: defaultState.formData,
         initialFormData: defaultState.initialFormData,
         character: defaultState.character,

@@ -15,7 +15,7 @@ export const scroll_area_wrapper = style({
       position: 'relative',
       overflow: 'hidden',
       marginRight: '-1rem',
-      paddingRight: '1rem',
+      marginLeft: '-1rem',
 
       selectors: {
         '&.horizontal': {

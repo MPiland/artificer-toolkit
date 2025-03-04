@@ -3,14 +3,13 @@ import parse from 'html-react-parser'
 import Button from '../../Button/Button'
 import { feature_list, feature_description } from '../Form.css'
 import Accordion from '../../Accordion/Accordion'
-import ScrollArea from '../../ScrollArea/ScrollArea'
 import Group from '../../Group/Group'
 import { get, startCase } from 'lodash'
 import { sprinkles } from '../../../css/sprinkles.css'
-import Row from '../../Row/Row'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { FormContext } from '../FormContext'
 import { FeatureContext } from './FeatureContext'
+import Grid from '../../Grid/Grid'
 
 const FeaturesList = () => {
   const navigate = useNavigate()
@@ -64,70 +63,77 @@ const FeaturesList = () => {
   return (
     <>
       <Group directionVariant='column' alignItemsVariant='start'>
-        <Row cellSize='auto'>
-          <Button color='primary' style='outline' onClick={handleAddFeature}>
-            Add feature
-          </Button>
-          {steps[stepIndex].id === 'features' && (
-            <Button color='primary' style='outline' onClick={handleCopy}>
-              Copy feature
-            </Button>
-          )}
-        </Row>
+        <Grid>
+          <Grid.Item colSpan={{ sm: 6, md: 'auto' }}>
+            <Group flexWrapVariant='noWrap' justifyContentVariant='start'>
+              <Button
+                color='primary'
+                style='outline'
+                onClick={handleAddFeature}
+                className={sprinkles({ me: 'space-4' })}
+              >
+                Add feature
+              </Button>
+              {steps[stepIndex].id === 'features' && (
+                <Button color='primary' style='outline' onClick={handleCopy}>
+                  Copy feature
+                </Button>
+              )}
+            </Group>
+          </Grid.Item>
+        </Grid>
       </Group>
       {featureArray.length > 0 && (
-        <ScrollArea scrollDirection='vertical'>
-          <div className={feature_list}>
-            <Accordion<typeof formData> dataArray={featureArray} onChange={updateFormData} name='features'>
-              {featureArray?.map((featureItem: any, featureIndex: number) => (
-                <Accordion.Wrapper key={featureIndex} itemId={String(featureIndex)}>
-                  <Accordion.Header
-                    handleRemove={() => handleRemoveFeature(featureIndex)}
-                    handleEdit={() => handleEditFeature(featureIndex)}
-                  >
-                    {featureItem.label != null && featureItem.label !== ''
-                      ? featureItem.label
-                      : `feature ${featureIndex + 1}`}
-                  </Accordion.Header>
-                  {featureItem.desc && (
-                    <Accordion.Content>
-                      <div className={feature_description}>
-                        <div>
-                          {featureItem?.desc && parse(featureItem.desc)}
-                          {featureItem.options &&
-                            featureItem.options?.length > 0 &&
-                            featureItem.options?.map((option: any, index: number) => (
-                              <div key={index}>
-                                {option?.value && <strong>{option.value}</strong>}
-                                {option?.desc && parse(option.desc)}
-                              </div>
-                            ))}
-                        </div>
+        <div className={feature_list}>
+          <Accordion<typeof formData> dataArray={featureArray} onChange={updateFormData} name='features'>
+            {featureArray?.map((featureItem: any, featureIndex: number) => (
+              <Accordion.Wrapper key={featureIndex} itemId={String(featureIndex)}>
+                <Accordion.Header
+                  handleRemove={() => handleRemoveFeature(featureIndex)}
+                  handleEdit={() => handleEditFeature(featureIndex)}
+                >
+                  {featureItem.label != null && featureItem.label !== ''
+                    ? featureItem.label
+                    : `feature ${featureIndex + 1}`}
+                </Accordion.Header>
+                {featureItem.desc && (
+                  <Accordion.Content>
+                    <div className={feature_description}>
+                      <div>
+                        {featureItem?.desc && parse(featureItem.desc)}
+                        {featureItem.options &&
+                          featureItem.options?.length > 0 &&
+                          featureItem.options?.map((option: any, index: number) => (
+                            <div key={index}>
+                              {option?.value && <strong>{option.value}</strong>}
+                              {option?.desc && parse(option.desc)}
+                            </div>
+                          ))}
                       </div>
-                    </Accordion.Content>
-                  )}
-                  <Accordion.Footer>
-                    <Group justifyContentVariant='start'>
-                      {sectionSteps.map((sectionStep, sectionIndex) => {
-                        return (
-                          <span key={sectionIndex} className={sprinkles({ me: 'space-2' })}>
-                            {featureItem[sectionStep]?.length > 0 ? (
-                              <strong>
-                                {startCase(sectionStep.charAt(0))}: {featureItem[sectionStep]?.length}
-                              </strong>
-                            ) : (
-                              `${startCase(sectionStep.charAt(0))}: 0`
-                            )}
-                          </span>
-                        )
-                      })}
-                    </Group>
-                  </Accordion.Footer>
-                </Accordion.Wrapper>
-              ))}
-            </Accordion>
-          </div>
-        </ScrollArea>
+                    </div>
+                  </Accordion.Content>
+                )}
+                <Accordion.Footer>
+                  <Group justifyContentVariant='start'>
+                    {sectionSteps.map((sectionStep, sectionIndex) => {
+                      return (
+                        <span key={sectionIndex} className={sprinkles({ me: 'space-2' })}>
+                          {featureItem[sectionStep]?.length > 0 ? (
+                            <strong>
+                              {startCase(sectionStep.charAt(0))}: {featureItem[sectionStep]?.length}
+                            </strong>
+                          ) : (
+                            `${startCase(sectionStep.charAt(0))}: 0`
+                          )}
+                        </span>
+                      )
+                    })}
+                  </Group>
+                </Accordion.Footer>
+              </Accordion.Wrapper>
+            ))}
+          </Accordion>
+        </div>
       )}
       <Outlet />
     </>

@@ -1,4 +1,4 @@
-import { ReactNode, HTMLProps, useRef, use, MouseEvent as ReactMouseEvent, KeyboardEvent } from 'react'
+import { ReactNode, HTMLProps, useRef, use, KeyboardEvent } from 'react'
 import {
   useMergeRefs,
   FloatingPortal,
@@ -14,7 +14,9 @@ import {
   Placement,
   arrow,
   useInteractions,
-  useHover,
+  useDismiss,
+  useRole,
+  useClick,
 } from '@floating-ui/react'
 import { FloatingContext } from './FloatingContext'
 import FloatingProvider, { FloatingOptionsProps } from './FloatingProvider'
@@ -38,20 +40,16 @@ const Anchor = function FloatingAnchor({
   const childrenRef = (children as any).ref
   const ref = useMergeRefs([context.setReference, propRef, childrenRef])
 
+  const { getReferenceProps: anchorReferenceProps } = useInteractions([useClick(context.rootContext)])
+
   return (
     <div
       ref={ref}
       className={className}
       {...context.getReferenceProps({
         ...props,
-        onClick: (e: ReactMouseEvent<HTMLElement, MouseEvent>) => {
-          props.onClick?.(e)
-        },
-        onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
-          console.log({ key: e.key })
-          props.onKeyDown?.(e)
-        },
       })}
+      {...anchorReferenceProps()}
     >
       {children}
     </div>
@@ -107,6 +105,11 @@ const Menu = function FloatingMenu({
     },
   })
 
+  const { getFloatingProps: menuFloatingProps } = useInteractions([
+    useRole(floatingContext.rootContext, { role: 'menu' }),
+    useClick(floatingContext.rootContext),
+  ])
+
   if (!context.open) return null
 
   return (
@@ -123,12 +126,13 @@ const Menu = function FloatingMenu({
             ...floatingStyles,
             ...style,
           }}
-          {...floatingContext.getFloatingProps({
+          {...(floatingContext.getFloatingProps({
             onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
               console.log({ key: e.key })
               props.onKeyDown?.(e)
             },
-          })}
+          }))}
+          {...menuFloatingProps()}
           className={clsx(floating_content, props.className)}
         >
           <FloatingList elementsRef={floatingContext.elementsRef} labelsRef={floatingContext.labelsRef}>
@@ -160,7 +164,6 @@ const Tooltip = function FloatingTooltip({
   style,
   boundary = 'app',
   placement = 'bottom',
-  hover = false,
   ...props
 }: TooltipProps) {
   const arrowRef = useRef(null)
@@ -174,6 +177,7 @@ const Tooltip = function FloatingTooltip({
   const formContent = document.getElementById('form-content')
 
   const { floatingStyles, context: tooltipContext } = useFloating({
+    rootContext: floatingContext.rootContext,
     placement,
     whileElementsMounted: autoUpdate,
     open,
@@ -193,11 +197,7 @@ const Tooltip = function FloatingTooltip({
     },
   })
 
-  const { getFloatingProps: tooltipFloatingProps } = useInteractions([
-    useHover(floatingContext.rootContext, {
-      enabled: hover,
-    }),
-  ])
+  const { getFloatingProps: tooltipFloatingProps } = useInteractions([useDismiss(floatingContext.rootContext)])
 
   if (!open) return null
 

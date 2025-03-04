@@ -288,7 +288,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
         if (Object.values(validForm).length > 0 && !Object.values(validForm).every((value) => value === true)) {
           return handleAlert({
-            alertType: 'invalidForm',
+            alertType: 'forward',
             message: 'There are missing fields are required. Please review each step.',
           })
         }

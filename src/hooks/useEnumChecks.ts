@@ -13,6 +13,7 @@ import { FeatureDataType, FormDataType, SectionDataType } from '../types/form'
 type EnumCheck = FormDataType | FeatureDataType | Damage | SectionDataType
 
 export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
+  if (!data) return {}
   // Attributes
   const isSpellcaster = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.spellcaster)
   const doesDamage = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.doesDamage)
@@ -43,7 +44,20 @@ export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
   const bonusDamage =
     'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.bonusDamage)
   const limitKnownSpells =
-    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.limitKnownSpells)
+    'spellcasting' in data &&
+    data.spellcasting != null &&
+    'attributes' in data.spellcasting &&
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.limitKnownSpells)
+  const magicName =
+    'spellcasting' in data &&
+    data.spellcasting != null &&
+    'attributes' in data.spellcasting &&
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.magicName)
+  const preparesSpells =
+    'spellcasting' in data &&
+    data.spellcasting != null &&
+    'attributes' in data.spellcasting &&
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.preparesSpells)
   const spellsByLevel =
     'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel)
   const classLimit = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.classLimit)
@@ -156,6 +170,8 @@ export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
     castAtLevel,
     subtypeSpecific,
     providesOptions,
+    magicName,
+    preparesSpells,
 
     // Prerequisites
     notEquipped,

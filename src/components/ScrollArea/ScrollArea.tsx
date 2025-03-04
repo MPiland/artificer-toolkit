@@ -20,7 +20,7 @@ interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
   children?: ReactNode | ReactNode[]
   className?: string | number | symbol | any
   wrapperClassName?: string | number | symbol | any
-  scrollDirection: 'horizontal' | 'vertical' | 'all' | 'none'
+  scrollDirection?: 'horizontal' | 'vertical' | 'all' | 'none'
   visibility?: 'hidden' | 'visible' | 'always'
   arrows?: boolean
   [key: string]: any
