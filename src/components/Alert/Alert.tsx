@@ -5,17 +5,17 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { FormContext } from '../Form/FormContext'
 import { use } from 'react'
 import { FeatureContext } from '../Form/Features/FeatureContext'
+import { Character } from '../../../amplify/gql/types'
 
 const Alert = () => {
-  const { alertType } = useParams() as { alertType: 'step' | 'forward' | 'back' }
-  const { isFirstStep, isLastStep, setStepIndex, stepIndex, resetForm } = use(FormContext)
+  const { alertType } = useParams() as { alertType: 'step' | 'forward' | 'back' | 'reset' }
+  const { formData, updateFormData, isFirstStep, isLastStep, setStepIndex, stepIndex } = use(FormContext)
 
   const {
     featureStep,
     setFeatureStep,
     resetFeature,
     resetOption,
-    resetSubfeature,
     resetSection,
     sectionStep,
     setSectionStep,
@@ -27,35 +27,35 @@ const Alert = () => {
 
   const message = location.state?.message
   const index = location.state?.index
+  const dataSource: 'classEquipment' | 'backgroundEquipment' = location.state?.equipmentSource
 
   const reset = () => {
     if (sectionStep != null) {
       resetSection()
       setSectionStep(null)
-    } else if (featureStep === 'subfeature') {
-      resetSubfeature()
     } else if (featureStep === 'option') {
       resetOption()
+      setFeatureStep('feature')
     } else if (featureStep === 'ancestry') {
       resetFeature()
+      setFeatureStep('ancestryOption')
     } else if (featureStep === 'ancestryOption') {
       resetAncestry()
+      setFeatureStep(null)
     } else {
       resetFeature()
+      setFeatureStep(null)
     }
-    setFeatureStep(null)
   }
 
   const handleConfirmBack = () => {
     if (!isFirstStep) {
-      if (featureStep == null) {
+      if (featureStep != null) {
         reset()
+        return navigate(-1)
       }
-      navigate(-1)
-      return setStepIndex(stepIndex - 1)
-    } else {
-      resetForm()
-      return navigate('../..')
+      setStepIndex(stepIndex - 1)
+      return navigate(-1)
     }
   }
 
@@ -63,6 +63,7 @@ const Alert = () => {
     if (!isLastStep) {
       if (featureStep != null) {
         reset()
+        return navigate(-1)
       }
       setStepIndex(stepIndex + 1)
       return navigate(-1)
@@ -78,12 +79,55 @@ const Alert = () => {
     return navigate(-1)
   }
 
+  const handleClick = () => {
+    switch (alertType) {
+      case 'step':
+        handleConfirmStep()
+        break
+      case 'forward':
+        handleConfirmForward()
+        break
+      case 'back':
+        handleConfirmBack()
+        break
+      case 'reset': {
+        const formDataCopy: Character = JSON.parse(JSON.stringify(formData))
+        formDataCopy.equipment = []
+        formDataCopy.currencyGroups = []
+        if (dataSource === 'classEquipment') {
+          formDataCopy.classEquipment = {
+            ...formDataCopy.classEquipment,
+            equipmentGroups: [],
+            addedToCharacter: false,
+            option: null,
+            totalGold: 0,
+          }
+        }
+        if (dataSource === 'backgroundEquipment') {
+          formDataCopy.backgroundEquipment = {
+            ...formDataCopy.backgroundEquipment,
+            equipmentGroups: [],
+            addedToCharacter: false,
+          }
+        }
+        updateFormData({
+          type: 'reset',
+          value: formDataCopy,
+        })
+        navigate(-1)
+        break
+      }
+      default:
+        break
+    }
+  }
+
   const handleCancel = () => {
     navigate(-1)
   }
 
   return (
-    <Modal>
+    <Modal handleCloseFn={() => handleCancel()}>
       <Modal.Dialogue>
         <Modal.Header title='Alert' />
         <Modal.Content>
@@ -94,16 +138,7 @@ const Alert = () => {
             <Button color='main' onClick={handleCancel}>
               Cancel
             </Button>
-            <Button
-              color='danger'
-              onClick={() =>
-                alertType === 'step'
-                  ? handleConfirmStep()
-                  : alertType === 'forward'
-                  ? handleConfirmForward()
-                  : handleConfirmBack()
-              }
-            >
+            <Button color='danger' onClick={() => handleClick()}>
               Continue
             </Button>
           </Group>

@@ -46,6 +46,7 @@ export const main_card = style({
       height: '3.5rem',
       border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.card.border.color.main}`,
       borderRadius: theme.border.radius,
+      cursor: 'default',
 
       selectors: {
         '&.clickable:hover': {
@@ -198,6 +199,8 @@ export const dice_roll_value = style({
       'pointerEvents': 'none',
       'border': 'none',
       'height': '100%',
+      'textAlign': 'center',
+      'width': '100%',
 
       '@media': {
         'screen and (max-width: 567px)': {
@@ -213,7 +216,7 @@ export const dice_roll_value_group = style({
     [app]: {
       marginBottom: size['size-3'],
       height: '4rem',
-      flexWrap: 'nowrap',
+      width: '100%',
     },
   },
 })
@@ -258,6 +261,7 @@ export const ability_card_header = style({
       alignItems: 'center',
       fontWeight: 'bold',
       padding: `${size['size-2']} ${size['size-3']}`,
+      borderBottom: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
     },
   },
 })
@@ -295,19 +299,13 @@ export const ability_card_info_value = style({
   },
 })
 
-export const roll_score_group = style({
-  '@layer': {
-    [app]: {
-      columnGap: '.25rem',
-    },
-  },
-})
-
 export const roll_score_box = style({
   '@layer': {
     [app]: {
       'height': '1.75rem',
-      'margin': 'auto',
+      'display': 'flex',
+      'width': '100%',
+      'justifyContent': 'space-between',
 
       '@media': {
         'screen and (min-width: 710px) and (max-width: 1300px)': {
@@ -324,7 +322,7 @@ export const roll_score = style({
       'display': 'flex',
       'alignItems': 'center',
       'justifyContent': 'center',
-      'color': 'white',
+      'color': theme.vars.typography.color.main,
       'borderRadius': '.25rem',
       'height': '100%',
       'width': '1.5rem',
@@ -337,6 +335,12 @@ export const roll_score = style({
           width: '1.5rem',
         },
       },
+
+      'selectors': {
+        '&:not(.kept)': {
+          backgroundColor: 'red',
+        },
+      },
     },
   },
 })
@@ -344,7 +348,6 @@ export const roll_score = style({
 export const point_counter = style({
   '@layer': {
     [app]: {
-      width: '100%',
       display: 'flex',
       flexDirection: 'column',
       alignContent: 'center',
@@ -388,6 +391,23 @@ export const point_buy_option_diff = style({
   '@layer': {
     [app]: {
       textAlign: 'right',
+    },
+  },
+})
+
+export const starting_equipment_group_option = style({
+  '@layer': {
+    [app]: {
+      'border': `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
+      'borderRadius': theme.border.radius,
+      'padding': size['size-4'],
+      'width': '50%',
+
+      '@media': {
+        'screen and (max-width: 567px)': {
+          width: '90%',
+        },
+      },
     },
   },
 })

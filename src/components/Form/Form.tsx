@@ -63,9 +63,9 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
   return (
     <Suspense fallback={<Loading />}>
       <FeatureProvider>
-        <form className={form_wrapper} id='form_wrapper'>
+        <form className={form_wrapper} id='form-wrapper'>
           <Header />
-          <ScrollArea scrollDirection='vertical' className={form_content} wrapperId={'form_content'}>
+          <ScrollArea scrollDirection='vertical' className={form_content} wrapperId={'form-content'}>
             {formSteps[`${steps[stepIndex]?.id}`]}
           </ScrollArea>
           <Footer useAddNewItemMutation={useAddNewItemMutation} useUpdateItemMutation={useUpdateItemMutation} />

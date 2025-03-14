@@ -8,7 +8,8 @@ import { feature_description } from '../../Form.css'
 import parse from 'html-react-parser'
 import { FeatureContext } from '../FeatureContext'
 import { sectionSteps } from '../../../../types/form'
-import { FeatureOption, FeatureSubfeature } from '../../../../../amplify/gql/types'
+import { FeatureOption } from '../../../../../amplify/gql/types'
+import Grid from '../../../Grid/Grid'
 
 const SectionsList = ({
   featureData,
@@ -17,10 +18,9 @@ const SectionsList = ({
   featureData: FeatureDataType
   updateFeatureData: (state: UpdateState<FeatureDataType>) => void
 }) => {
-  const { featureStep, setFeatureStep, setSectionStep, updateSectionData, updateOptionData, updateSubfeatureData } =
-    use(FeatureContext)
+  const { featureStep, setFeatureStep, setSectionStep, updateSectionData, updateOptionData } = use(FeatureContext)
 
-  const handleRemove = (sectionStep: SectionName, sectionIndex: number) => {
+  const handleRemove = (sectionStep: SectionName | 'options', sectionIndex: number) => {
     updateFeatureData({
       type: 'remove',
       path: `${sectionStep}.${sectionIndex}`,
@@ -28,20 +28,12 @@ const SectionsList = ({
   }
 
   const handleEdit = (
-    sectionStep: SectionName,
+    sectionStep: SectionName | 'options',
     sectionIndex: number,
-    sectionItem: SectionDataType | FeatureOption | FeatureSubfeature
+    sectionItem: SectionDataType | FeatureOption
   ) => {
     updateSectionData({ type: 'index', value: sectionIndex })
-    if (sectionStep === 'subfeatures') {
-      updateSubfeatureData({
-        type: 'reset',
-        value: sectionItem,
-      })
-      updateSubfeatureData({ type: 'index', value: sectionIndex })
-      updateSubfeatureData({ type: 'initialReset', value: sectionItem })
-      return setFeatureStep('subfeature')
-    } else if (sectionStep === 'options') {
+    if (sectionStep === 'options') {
       updateOptionData({
         type: 'reset',
         value: sectionItem,
@@ -58,53 +50,47 @@ const SectionsList = ({
     updateSectionData({ type: 'initialReset', value: sectionItem })
   }
 
+  const sectionsAndOptions = [...sectionSteps, 'options'] as const
+
   return (
     <>
-      {sectionSteps.map((sectionStep, index) => {
-        let sections: SectionDataType[] | FeatureOption[] | FeatureSubfeature[]
+      {sectionsAndOptions.map((sectionStep, index) => {
+        let sections: SectionDataType[] | FeatureOption[]
         if (featureData.__typename === 'AncestryFeature') {
-          sections =
-            featureData[sectionStep as Exclude<SectionName, 'ancestries'>] ||
-            featureData?.options ||
-            featureData?.subfeatures
+          sections = featureData[sectionStep as SectionName] || featureData?.options
         } else if (featureData.__typename === 'FeatureOption') {
-          sections = featureData[sectionStep as Exclude<SectionName, 'ancestries' | 'options'>]
-        } else if (featureData.__typename === 'FeatureSubfeature') {
-          sections = featureData[sectionStep as Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>]
+          sections = featureData[sectionStep as Exclude<SectionName, 'options'>]
         } else {
-          sections = featureData[sectionStep as Exclude<SectionName, 'ancestries'>]
+          sections = featureData[sectionStep as SectionName]
         }
         return (
           sections?.length > 0 && (
-            <Accordion<FeatureDataType>
-              key={index}
-              dataArray={sections}
-              onChange={updateFeatureData}
-              name={sectionStep}
-              disableSort={featureStep !== 'option' && featureStep !== 'subfeature'}
-            >
-              {sections?.map((section, sIndex) => {
-                return (
-                  <Accordion.Wrapper key={sIndex} itemId={String(sIndex)}>
-                    <Accordion.Header
-                      key={sIndex}
-                      handleRemove={() => handleRemove(sectionStep, sIndex)}
-                      handleEdit={() => handleEdit(sectionStep, sIndex, section)}
-                      expandable={section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature'}
-                    >
-                      {(section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') &&
-                      section?.value != null
-                        ? section?.label
-                        : featureStep !== 'subfeature' && `${startCase(sectionStep)} ${sIndex + 1}`}
-                    </Accordion.Header>
-                    {(section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') &&
-                      (section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') && (
+            <Grid.Item key={index}>
+              <Accordion<FeatureDataType>
+                key={index}
+                dataArray={sections}
+                onChange={updateFeatureData}
+                name={sectionStep}
+                disableSort={featureStep !== 'option'}
+              >
+                {sections?.map((section, sIndex) => {
+                  return (
+                    <Accordion.Wrapper key={sIndex} itemId={String(sIndex)}>
+                      <Accordion.Header
+                        key={sIndex}
+                        handleRemove={() => handleRemove(sectionStep, sIndex)}
+                        handleEdit={() => handleEdit(sectionStep, sIndex, section)}
+                        expandable={section.__typename === 'FeatureOption'}
+                      >
+                        {section.__typename === 'FeatureOption' && section?.value != null
+                          ? section?.label
+                          : `${startCase(sectionStep)} ${sIndex + 1}`}
+                      </Accordion.Header>
+                      {section.__typename === 'FeatureOption' && section.__typename === 'FeatureOption' && (
                         <>
                           <Accordion.Content>
                             <div className={feature_description}>
-                              {(section.__typename === 'FeatureOption' || section.__typename === 'FeatureSubfeature') &&
-                                section?.desc &&
-                                parse(section?.desc)}
+                              {section.__typename === 'FeatureOption' && section?.desc && parse(section?.desc)}
                             </div>
                           </Accordion.Content>
 
@@ -137,10 +123,11 @@ const SectionsList = ({
                           </Accordion.Footer>
                         </>
                       )}
-                  </Accordion.Wrapper>
-                )
-              })}
-            </Accordion>
+                    </Accordion.Wrapper>
+                  )
+                })}
+              </Accordion>
+            </Grid.Item>
           )
         )
       })}

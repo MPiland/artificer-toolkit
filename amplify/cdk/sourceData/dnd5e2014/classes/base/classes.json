@@ -62,23 +62,23 @@
           "usesPerLevel": [
             {
               "level": 1,
-              "useNum": 2
+              "uses": 2
             },
             {
               "level": 3,
-              "useNum": 3
+              "uses": 3
             },
             {
               "level": 6,
-              "useNum": 4
+              "uses": 4
             },
             {
               "level": 12,
-              "useNum": 5
+              "uses": 5
             },
             {
               "level": 16,
-              "useNum": 6
+              "uses": 6
             }
           ]
         },
@@ -471,7 +471,7 @@
             "equipment": [
               "9c5123db-8648-4bda-af08-301bf155612f"
             ],
-            "quantity": 1
+            "quantity": 4
           }
         ]
       ]
@@ -1053,7 +1053,7 @@
         ],
         "damage": {
           "primary": {
-            "attributes": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
+            "attribute": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
             "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d"
           },
           "diePerLevel": [
@@ -1344,15 +1344,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "4457cba0-2f02-424c-8644-7ff57e54a089",
+              "4457cba0-2f02-424c-8644-7ff57e54a089"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "86148a46-e764-41a0-bc93-2f53533aff96"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -2195,15 +2200,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "d14d717a-9621-42e8-abfe-fbe5ae25468e",
+              "d14d717a-9621-42e8-abfe-fbe5ae25468e"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -2957,6 +2967,9 @@
         ],
         [
           {
+            "attributes": [
+              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
+            ],
             "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
             "properties": [
               "ab95948e-73af-4cd6-ac18-a22841fb5773"
@@ -2964,7 +2977,7 @@
             "equipment": [
               "all"
             ],
-            "quantity": 1
+            "selectionCount": 1
           }
         ]
       ],
@@ -2987,6 +3000,9 @@
             "properties": [
               "ab95948e-73af-4cd6-ac18-a22841fb5773",
               "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+            ],
+            "equipment": [
+              "all"
             ],
             "selectionCount": 1
           }
@@ -3082,7 +3098,7 @@
     },
     "features": [
       {
-        "desc": "<p>You adopt a particular style of fighting as your specialty. Choose one of the following options. You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
+        "desc": "<p>You adopt a particular style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
         "value": "fightingStyle",
         "label": "Fighting Style",
         "levelAvailable": "1",
@@ -3106,38 +3122,25 @@
                 "id": "0e5c8137-1a37-47b7-84ff-ed76c148dda1"
               }
             ],
-            "id": "77b313f8-4a49-481f-93cf-d1e05a7d5011"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
             "value": "defense",
             "label": "Defense",
-            "levelAvailable": "1",
-            "modifiers": [
-              {
-                "attributes": [
-                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
-                ],
-                "prerequisites": {
-                  "options": [
-                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-                  ]
-                },
-                "equipped": [
-                  {
-                    "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-                  }
-                ],
-                "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
-                "type": "f6478862-a92b-4596-8420-c0fa958db719",
-                "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
-                "setAmount": 1,
-                "id": "390bb11c-a4a8-4326-ac1d-e956e8c6e8a7"
-              }
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
             "prerequisites": {
-              "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
               ],
               "equipped": [
                 {
@@ -3145,54 +3148,62 @@
                 }
               ]
             },
+            "modifiers": [
+              {
+                "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
+                "type": "f6478862-a92b-4596-8420-c0fa958db719",
+                "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                "setAmount": 1,
+                "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
+              }
+            ],
             "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
             "value": "dueling",
             "label": "Dueling",
-            "levelAvailable": "1",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
             "modifiers": [
               {
+                "category": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
-                "category": "6387fe43-b305-4121-bfb4-b337df754868",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
                 "setAmount": 2,
-                "attributes": [
-                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
-                ],
-                "prerequisites": {
-                  "options": [
-                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-                  ],
-                  "equipped": [
-                    {
-                      "numberEquipped": 1,
-                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-                      "properties": [
-                        "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-                      ]
-                    }
-                  ],
-                  "notEquipped": [
-                    {
-                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-                      "properties": [
-                        "71b5b42c-f4bc-4319-85ab-9e888d00743c"
-                      ]
-                    }
-                  ]
-                },
-                "id": "65f5b35a-82c0-40c5-959f-f41a872647c9"
+                "id": "c7257b6e-766c-4d78-b276-fe3d7572ffa1"
               }
             ],
+            "prerequisites": {
+              "options": [
+                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                  "properties": [
+                    "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+                  ]
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                  "properties": [
+                    "71b5b42c-f4bc-4319-85ab-9e888d00743c"
+                  ]
+                }
+              ]
+            },
             "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
             "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
             "value": "greatWeaponFighting",
             "label": "Great Weapon Fighting",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
@@ -3217,7 +3228,6 @@
             "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
             "value": "protection",
             "label": "Protection",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb",
               "84916f75-92c2-4ee6-abe0-cc038128f0fc"
@@ -3374,15 +3384,15 @@
           "usesPerLevel": [
             {
               "level": 9,
-              "useNum": 1
+              "uses": 1
             },
             {
               "level": 13,
-              "useNum": 2
+              "uses": 2
             },
             {
               "level": 17,
-              "useNum": 3
+              "uses": 3
             }
           ],
           "multiplier": 1
@@ -3584,15 +3594,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a",
+              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ]
@@ -4374,15 +4389,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a",
+              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -4792,7 +4812,7 @@
             "9b8224bf-1c64-4399-b7b0-428cc2443b37"
           ],
           "primary": {
-            "attributes": "9b8224bf-1c64-4399-b7b0-428cc2443b37",
+            "attribute": "9b8224bf-1c64-4399-b7b0-428cc2443b37",
             "id": "a8d594fd-6ac9-49c8-aa26-8f6ac8d5320d",
             "pool": {
               "attributes": "5c8b45be-9612-48a9-848a-4665fec0b22c",
@@ -4809,7 +4829,7 @@
         "id": "2121ce17-088a-40fc-85cc-c99f342bc946"
       },
       {
-        "desc": "<p>At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options. You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
+        "desc": "<p>At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
         "value": "fightingStyle",
         "label": "Fighting Style",
         "levelAvailable": "2",
@@ -4823,36 +4843,41 @@
             "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
             "value": "defense",
             "label": "Defense",
-            "levelAvailable": "1",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ],
+              "equipped": [
+                {
+                  "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+                }
+              ]
+            },
             "modifiers": [
               {
-                "attributes": [
-                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
-                ],
                 "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
                 "setAmount": 1,
-                "prerequisites": {
-                  "options": [
-                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-                  ],
-                  "equipped": [
-                    {
-                      "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-                    }
-                  ]
-                },
-                "id": "23312b94-ce75-4d52-9624-79cf79b56923"
+                "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
               }
             ],
-            "id": "2eab63d1-20b4-4743-b123-3b4582378df4"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
             "value": "dueling",
             "label": "Dueling",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
@@ -4888,20 +4913,43 @@
                 }
               ]
             },
-            "id": "691d4050-eb02-48a2-bc0e-21655204edd7"
+            "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
             "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
             "value": "greatWeaponFighting",
             "label": "Great Weapon Fighting",
-            "levelAvailable": "1",
-            "id": "0449c297-c176-4210-b1e2-df6fcb07af4e"
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                  "properties": [
+                    "71b5b42c-f4bc-4319-85ab-9e888d00743c",
+                    "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+                  ]
+                }
+              ]
+            },
+            "id": "d7fd3b6a-923b-45a0-b65a-76316707727a"
           },
           {
             "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
             "value": "protection",
             "label": "Protection",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb",
               "84916f75-92c2-4ee6-abe0-cc038128f0fc"
@@ -4922,7 +4970,7 @@
                 }
               ]
             },
-            "id": "594eff6f-03de-4570-b811-854a95d65613"
+            "id": "6a9a3c37-5f6d-4ffe-ab87-6a8976eac5ea"
           }
         ],
         "id": "60a6b31d-7cd4-4a5b-a376-fcce008cb35e"
@@ -5186,15 +5234,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "d14d717a-9621-42e8-abfe-fbe5ae25468e",
               "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
             ],
-            "selectionCount": 1
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
+              "d14d717a-9621-42e8-abfe-fbe5ae25468e"
+            ],
+            "quantity": 1
           }
         ]
       ],
@@ -5603,7 +5656,7 @@
         "id": "d5ae575b-e640-499d-ae07-eec3b84ab66a"
       },
       {
-        "desc": "<p>At 2nd level, you adopt a particular style of fighting as your specialty. Choose one of the following options.&nbsp;</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
+        "desc": "<p>At 2nd level, you adopt a particular style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
         "value": "fightingStyle",
         "label": "Fighting Style",
         "levelAvailable": "2",
@@ -5628,80 +5681,83 @@
                 "id": "9e1d84aa-001c-430e-9b08-d024ba8debf6"
               }
             ],
-            "id": "b9bb490c-7bea-426f-8a49-1b67a14f3681"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
             "value": "defense",
             "label": "Defense",
-            "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ],
+              "equipped": [
+                {
+                  "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+                }
+              ]
+            },
             "modifiers": [
               {
-                "attributes": [
-                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
-                ],
                 "category": "430dbf81-4165-4b7d-8a39-1c959715e3e6",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
-                "armorClass": {
-                  "setAmount": 1
-                },
-                "prerequisites": {
-                  "options": [
-                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-                  ],
-                  "equipped": [
-                    {
-                      "category": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
-                    }
-                  ]
-                },
-                "id": "8b164887-4ae5-48ab-af57-d51bee6e1a9b"
+                "setAmount": 1,
+                "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
               }
             ],
-            "id": "d3a743d2-b438-48e3-b4b2-79e3fc0e1b31"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
             "value": "dueling",
             "label": "Dueling",
-            "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
             "modifiers": [
               {
-                "attributes": [
-                  "40a91f3a-8909-4593-8a5f-b66b364602bb"
-                ],
                 "category": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
                 "type": "f6478862-a92b-4596-8420-c0fa958db719",
                 "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
                 "setAmount": 2,
-                "prerequisites": {
-                  "options": [
-                    "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
-                    "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
-                  ],
-                  "equipped": [
-                    {
-                      "numberEquipped": 1,
-                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-                      "properties": [
-                        "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
-                      ]
-                    }
-                  ],
-                  "notEquipped": [
-                    {
-                      "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
-                      "properties": [
-                        "71b5b42c-f4bc-4319-85ab-9e888d00743c"
-                      ]
-                    }
-                  ]
-                },
-                "id": "c977ce5b-2cec-4010-891b-cac42654c31f"
+                "id": "c7257b6e-766c-4d78-b276-fe3d7572ffa1"
               }
             ],
-            "id": "2f960468-530e-4247-9d0b-29b686a62e78"
+            "prerequisites": {
+              "options": [
+                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                  "properties": [
+                    "72f57c5d-c213-4b1b-887f-1eea56f02fe2"
+                  ]
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893",
+                  "properties": [
+                    "71b5b42c-f4bc-4319-85ab-9e888d00743c"
+                  ]
+                }
+              ]
+            },
+            "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
             "desc": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
@@ -5975,15 +6031,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a",
+              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -6093,12 +6154,26 @@
           },
           {
             "desc": "<p>Choose one of your skill proficiencies and Thieves' Tool.</p>",
-            "value": "skillsAndTool",
-            "label": "Skills and Tool",
+            "value": "skillAndTool",
+            "label": "Skill and Tool",
             "id": "85e55750-50b7-4b5e-947d-e6497fed4e7d",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "expertise": [
               {
                 "category": "3d256b38-0c78-4fd6-84a5-94b43c5a024c",
+                "equipment": {
+                  "ids": [
+                    "12c8c66b-76cb-49d0-8f58-08b4aa92df5c"
+                  ],
+                  "category": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+                },
                 "id": "a23ecc39-b787-4ba7-b292-9fab0971fc68"
               },
               {
@@ -6138,7 +6213,7 @@
             "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5"
           ],
           "primary": {
-            "attributes": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
+            "attribute": "281ec9af-79ff-41d2-b2aa-c9a6ea1f5ed5",
             "id": "matchWeapon"
           },
           "diePerLevel": [
@@ -6491,16 +6566,27 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "9ae7b7d2-e2ed-473f-80eb-d49acabb6f7d",
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a",
+              "9ae7b7d2-e2ed-473f-80eb-d49acabb6f7d"
+            ],
+            "quantity": 1
+          },
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
+              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -7384,15 +7470,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a",
+              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -7688,7 +7779,46 @@
         "desc": "<p>In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.</p><p>At 2nd level, you gain two eldritch invocations of your choice. Your invocation options are detailed at the end of the class description. When you gain certain warlock levels, you gain additional invocations of your choice, as shown in the Invocations Known column of the Warlock table.</p><p>Additionally, when you gain a level in this class, you can choose one of the invocations you know and replace it with another invocation that you could learn at that level.</p><p>If an eldritch invocation has prerequisites, you must meet them to learn it. You can learn the invocation at the same time that you meet its prerequisites. A level prerequisite refers to your level in this class.</p>",
         "value": "eldritchInvocations",
         "label": "Eldritch Invocations",
-        "levelAvailable": "2,2,5,7,9,12,15,18",
+        "attributes": [
+          "87e26eca-3d18-4858-aa3e-c6efc6d15a59",
+          "2eec6a5e-a7b3-4263-84dd-d977cce4cc79"
+        ],
+        "optionsByLevel": [
+          {
+            "level": 2,
+            "count": 2
+          },
+          {
+            "level": 5,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 7,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 9,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 12,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 15,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 18,
+            "count": 1,
+            "replaceCount": 1
+          }
+        ],
         "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
         "targets": 1,
         "options": [
@@ -7702,7 +7832,8 @@
             ],
             "prerequisites": {
               "options": [
-                "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+                "de774c82-b1d6-4f6c-b73c-84cf370c60ff",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "spellsObtained": [
                 "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
@@ -7725,6 +7856,14 @@
             "desc": "<p>You can cast <em>mage armor</em> on yourself at will, without expending a spell slot or material components.</p>",
             "value": "armorOfShadows",
             "label": "Armor of Shadows",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -7744,6 +7883,14 @@
             "desc": "<p>You can cast levitate on yourself at will, without expending a spell slot or material components.</p>",
             "value": "ascendantStep",
             "label": "Ascendant Step",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -7763,6 +7910,14 @@
             "desc": "<p>You can cast speak with animals at will, without expending a spell slot.</p>",
             "value": "beastSpeech",
             "label": "Beast Speech",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -7782,6 +7937,14 @@
             "value": "beguilingInfluence",
             "label": "Beguiling Influence",
             "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "proficiencies": [
               {
                 "category": "36ae498d-4f96-4fa1-a82a-4f59866f619b",
@@ -7800,6 +7963,14 @@
             "value": "bewitchingWhispers",
             "label": "Bewitching Whispers",
             "levelAvailable": "7",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -7828,7 +7999,8 @@
             ],
             "prerequisites": {
               "options": [
-                "293010e4-fe1f-4982-8a80-6a232eafe19f"
+                "293010e4-fe1f-4982-8a80-6a232eafe19f",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "featuresObtained": [
                 "e7720a82-404d-4ead-bb98-e0dcd10a277f"
@@ -7864,7 +8036,8 @@
             ],
             "prerequisites": {
               "options": [
-                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "optionsObtained": [
                 "7436bad8-4e7c-4164-9a6a-d1600388bb21"
@@ -7894,6 +8067,14 @@
             "value": "devilsSight",
             "label": "Devil's Sight",
             "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "senses": [
               {
                 "ids": [
@@ -7908,6 +8089,14 @@
             "desc": "<p>You can cast confusion once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
             "value": "dreadfulWord",
             "label": "Dreadful Word",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -7932,6 +8121,14 @@
             "value": "eldritchSight",
             "label": "Eldritch Sight",
             "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -7955,7 +8152,8 @@
             ],
             "prerequisites": {
               "options": [
-                "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+                "de774c82-b1d6-4f6c-b73c-84cf370c60ff",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "spellsObtained": [
                 "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
@@ -7977,6 +8175,14 @@
             "value": "eyesOfTheRuneKeeper",
             "label": "Eyes of the Rune Keeper",
             "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "id": "c37e7b34-18a2-4239-9f51-84a89b0fef04"
           },
           {
@@ -7985,6 +8191,14 @@
             "label": "Fiendish Vigor",
             "levelAvailable": "2",
             "id": "ead58838-3121-49b6-ba08-e563fd8bf79d",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8005,8 +8219,14 @@
             "value": "gazeOfTwoMinds",
             "label": "Gaze of Two Minds",
             "levelAvailable": "2",
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "attributes": [
-              "84916f75-92c2-4ee6-abe0-cc038128f0fc"
+              "84916f75-92c2-4ee6-abe0-cc038128f0fc",
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
             "actions": {
               "primary": {
@@ -8025,7 +8245,8 @@
             ],
             "prerequisites": {
               "options": [
-                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "optionsObtained": [
                 "18667f47-2768-45bf-8b2e-4f7f101180ec"
@@ -8049,6 +8270,14 @@
             "value": "maskOfManyFaces",
             "label": "Mask of Many Faces",
             "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8067,6 +8296,14 @@
             "value": "masterOfMyriadForms",
             "label": "Master of Myriad Forms",
             "levelAvailable": "15",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8085,6 +8322,14 @@
             "value": "minionsOfChaos",
             "label": "Minions of Chaos",
             "levelAvailable": "9",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8108,6 +8353,14 @@
             "value": "mireTheMind",
             "label": "Mire the Mind",
             "levelAvailable": "5",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8131,6 +8384,14 @@
             "value": "mistyVisions",
             "label": "Misty Visions",
             "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8150,8 +8411,14 @@
             "label": "One with Shadows",
             "levelAvailable": "5",
             "attributes": [
-              "84916f75-92c2-4ee6-abe0-cc038128f0fc"
+              "84916f75-92c2-4ee6-abe0-cc038128f0fc",
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "actions": {
               "primary": {
                 "id": "ec034006-0d37-4687-b426-e8c4dc091b27"
@@ -8164,6 +8431,14 @@
             "value": "otherworldlyLeap",
             "label": "Otherworldly Leap",
             "levelAvailable": "9",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8188,7 +8463,8 @@
             ],
             "prerequisites": {
               "options": [
-                "de774c82-b1d6-4f6c-b73c-84cf370c60ff"
+                "de774c82-b1d6-4f6c-b73c-84cf370c60ff",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "spellsObtained": [
                 "0e3d3c41-96f6-41d8-b7fe-ff92b56a16d4"
@@ -8201,6 +8477,14 @@
             "value": "sculptorOfFlesh",
             "label": "Sculptor of Flesh",
             "levelAvailable": "7",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8224,6 +8508,14 @@
             "value": "signOfIllOmen",
             "label": "Sign of Ill Omen",
             "levelAvailable": "5",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8247,6 +8539,14 @@
             "value": "thiefOfFiveFates",
             "label": "Thief of Five Fates",
             "levelAvailable": "2",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8275,7 +8575,8 @@
             ],
             "prerequisites": {
               "options": [
-                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "optionsObtained": [
                 "18667f47-2768-45bf-8b2e-4f7f101180ec"
@@ -8288,6 +8589,14 @@
             "value": "visionsOfDistantRealms",
             "label": "Visions of Distant Realms",
             "levelAvailable": "15",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8311,7 +8620,8 @@
             ],
             "prerequisites": {
               "options": [
-                "5d93f79b-230e-464e-bef3-50bcd68f4b9f"
+                "5d93f79b-230e-464e-bef3-50bcd68f4b9f",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "optionsObtained": [
                 "18667f47-2768-45bf-8b2e-4f7f101180ec"
@@ -8324,6 +8634,14 @@
             "value": "whispersOfTheGrave",
             "label": "Whispers of the Grave",
             "levelAvailable": "9",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -8341,6 +8659,14 @@
             "desc": "<p>You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.</p>",
             "value": "witchSight",
             "label": "Witch Sight",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "senses": [
               {
                 "ids": [
@@ -8629,15 +8955,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a",
+              "44603a6b-dd7e-413e-bc2d-e1f59f37dd7a"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "85c7c9a3-ebbd-46f6-82a3-5794a87cd3d9"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -9391,15 +9722,20 @@
       [
         [
           {
-            "attributes": [
-              "3fadd608-c46e-4718-a2b5-10d50fffbbdb"
-            ],
             "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
             "equipment": [
-              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54",
+              "4ac4900c-0d2d-4991-93f1-c2c67bf30f54"
+            ],
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": "c9af75e8-fff6-4247-8db4-31f63f16b3d9",
+            "equipment": [
               "85c7c9a3-ebbd-46f6-82a3-5794a87cd3d9"
             ],
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],

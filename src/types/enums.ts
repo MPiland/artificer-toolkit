@@ -187,6 +187,7 @@ export enum Attributes {
   altType = '63ed8641-6ff4-4807-a61d-d43a0c2b6926',
   expandsSpellList = '57351a56-9b66-46cf-8c85-be7702172185',
   classStyle = '3764d329-dff1-4d17-8d22-ef9a0f5bc60d',
+  containsCurrency = "f4a91a84-5bc2-4cc3-aad9-7b9551a43b32"
 }
 
 export enum CharacterAdvancement {
@@ -215,6 +216,14 @@ export enum Terrains {
 }
 
 // Equipment
+
+export enum Currencies {
+  copper = '622c63f5-041a-429a-8cc5-ac17fb13d160',
+  silver = '563e0322-3cc3-4fcc-8cfa-2253383e5daf',
+  gold = '2b9c4330-14d4-473a-aed7-52a8eb1906ce',
+  electrum = 'e14508e4-a326-444f-8ee8-d253ee7b18a9',
+  platinum = 'd9447a5b-c73c-4aa1-85ea-2fbc827bcecf',
+}
 
 export enum EquipmentCategories {
   armor = 'ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea',

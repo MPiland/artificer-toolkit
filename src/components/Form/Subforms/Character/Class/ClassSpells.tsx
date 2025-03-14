@@ -2,39 +2,28 @@ import Collapse from '../../../../Collapse/Collapse'
 import parse from 'html-react-parser'
 import Button from '../../../../Button/Button'
 import { get, isEqual, set } from 'lodash'
-import { useCallback, useEffect, useMemo } from 'react'
+import { use, useCallback, useEffect, useMemo } from 'react'
 import Group from '../../../../Group/Group'
 import { useListSpellsQuery } from '../../../../../features/spells/spellsApi'
-import {
-  Character,
-  CharacterClass,
-  Class,
-  Spell,
-  ClassSpellList,
-  CharacterSpell,
-} from '../../../../../../amplify/gql/types'
+import { Character, Spell, ClassSpellList, CharacterSpell, Class } from '../../../../../../amplify/gql/types'
 import { Attributes, Measurement, Rounding } from '../../../../../types/enums'
 import { UpdateState } from '../../../../../types/form'
 import Grid from '../../../../Grid/Grid'
+import { FormContext } from '../../../FormContext'
+import { useEnumChecks } from '../../../../../hooks/useEnumChecks'
 
-const ClassSpells = ({
-  uClass,
-  fullClass,
-  classIndex,
-  formData,
-  updateFormData,
-}: {
-  uClass: CharacterClass
-  fullClass: Class
-  classIndex: number
-  formData: Character
-  updateFormData: (state: UpdateState<Character>) => void
-}) => {
+const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: Character
+    updateFormData: (state: UpdateState<Character>) => void
+  }
+
+  const { preparesSpells, usesSpellbook } = useEnumChecks({ data: fullClass })
   const { data: spells } = useListSpellsQuery()
 
-  const preparesSpells = fullClass?.spellcasting?.attributes?.some(
-    (attribute) => attribute === Attributes.preparesSpells
-  )
+  const classIndex = formData.classes.findIndex((c) => c.id === fullClass.id)
+
+  const uClass = formData.classes[classIndex]
 
   const casterType = preparesSpells ? 'prepared' : 'known'
 
@@ -49,8 +38,6 @@ const ClassSpells = ({
   const maxCantripsKnown = fullClass?.levelAttributes?.find(
     (levelAttribute) => levelAttribute?.level === Number(uClass.level)
   )?.cantripsKnownLimit
-
-  const usesSpellbook = fullClass?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.usesSpellbook)
 
   const createSpellArray = useCallback(() => {
     let subclassMapped: boolean = false

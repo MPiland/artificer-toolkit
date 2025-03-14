@@ -7,11 +7,11 @@ import { app } from './layers.css'
 const responsiveProperties = defineProperties({
   '@layer': app,
   'conditions': {
-    mobile: { '@media': 'screen and (max-width: 567px)' },
+    mobile: {},
     tablet: { '@media': 'screen and (max-width: 1024px)' },
     desktop: { '@media': 'screen and (min-width: 1025px)' },
   },
-  'defaultCondition': 'desktop',
+  'defaultCondition': 'mobile',
   'responsiveArray': ['desktop', 'tablet', 'mobile'],
   'properties': {
     display: ['none', 'flex', 'block', 'inline', 'inline-flex'],

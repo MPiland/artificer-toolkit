@@ -1,7 +1,6 @@
 type CharacterModifier {
   modifierId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -10,12 +9,13 @@ type CharacterModifier {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterSense {
-  senseId: ID
+  id: ID
+  senseId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -24,12 +24,12 @@ type CharacterSense {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterFeat {
   featId: ID
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -37,12 +37,17 @@ type CharacterFeat {
   backgroundId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterProficiency {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   proficiencyId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -51,12 +56,17 @@ type CharacterProficiency {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterExpertise {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   expertiseId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -65,6 +75,7 @@ type CharacterExpertise {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterSpell {
@@ -79,26 +90,32 @@ type CharacterSpell {
   requiresConcentration: Boolean
   optionalAbility: Boolean
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
+  optionId: ID
   optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterFeatureOption {
+  id: ID!
+  optionIndex: String!
+  featureLevel: Int!
 }
 
 type CharacterFeature {
   id: ID
-  option: ID
+  options: [CharacterFeatureOption]
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: String
   level: Int
 }
 
@@ -218,12 +235,29 @@ type CharacterClass {
   level: Int
 }
 
-type CharacterStartingEquipment {
+type StartingEquipment {
+  id: ID!
+  selectionId: ID
+  quantity: Int!
+}
+
+type StartingEquipmentGroup {
+  optionId: ID!
+  groupId: ID!
+  equipment: [StartingEquipment]
+}
+
+type ClassStartingEquipment {
   option: ID!
   goldOption: ID
   totalGold: Int
-  spentGold: Int
-  equipment: [ID]
+  equipmentGroups: [StartingEquipmentGroup]
+  addedToCharacter: Boolean
+}
+
+type BackgroundStartingEquipment {
+  equipmentGroups: [StartingEquipmentGroup]
+  addedToCharacter: Boolean
 }
 
 type Possessions {
@@ -233,10 +267,14 @@ type Possessions {
   desc: String
 }
 
-type CharacterEquipment {
-  possessions: [Possessions]
-  equipment: [Contains]
-  currencies: [EquipmentCurrency]
+type CharacterCurrency {
+  id: ID!
+  amount: Int!
+}
+
+type CurrencyGroup {
+  currencies: [CharacterCurrency]
+  container: ID
 }
 
 type Character {
@@ -249,10 +287,13 @@ type Character {
   abilities: CharacterAbilities
   race: ID
   ancestry: CharacterAncestry
+  background: ID
   classes: [CharacterClass]
   spellcasting: CharacterSpellcasting
-  startingEquipment: CharacterStartingEquipment
-  equipment: CharacterEquipment
+  classEquipment: ClassStartingEquipment
+  backgroundEquipment: BackgroundStartingEquipment
+  equipment: [Contains]
+  currencyGroups: [CurrencyGroup]
   features: [CharacterFeature]
   feats: [CharacterFeat]
   proficiencies: [CharacterProficiency]

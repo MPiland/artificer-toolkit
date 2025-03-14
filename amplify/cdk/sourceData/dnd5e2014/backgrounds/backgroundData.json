@@ -25,64 +25,246 @@
           "value": "feature"
         },
         "id": "12dedd0e-3ba8-400d-9d01-cf56cbb93e49"
-      }
-    ],
-    "proficiencies": [
-      {
-        "attribute": [
-          {
-            "value": "providesOptions",
-            "label": "Provides Options"
-          }
-        ],
-        "selectionCount": 2,
-        "category": {
-          "value": "languages",
-          "label": "Languages"
-        },
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "languages": {
-          "type": [
-            {
-              "value": "all",
-              "label": "All"
-            }
-          ]
-        },
-        "id": "f85bc7ee-614b-47e6-b091-65ecbb5a3b96"
       },
       {
+        "desc": "<p>Insight, Religion",
+        "label": "Skill Proficiencies",
+        "value": "skillProficiencies",
         "category": {
-          "value": "skills",
-          "label": "Skills"
+          "value": "feature"
         },
-        "level": {
-          "value": "proficient",
-          "label": "Full"
-        },
-        "skills": {
-          "type": [
-            {
-              "value": "insight",
-              "label": "Insight",
-              "desc": "Your Wisdom (Insight) check decides whether you can determine the true intentions of a creature, such as when searching out a lie or predicting someone’s next move. Doing so involves gleaning clues from body language, speech habits, and changes in mannerisms."
+        "proficiencies": [
+          {
+            "category": {
+              "value": "skills",
+              "label": "Skills"
             },
-            {
-              "value": "religion",
-              "label": "Religion",
-              "desc": "Your Intelligence (Religion) check measures your ability to recall lore about deities, rites and prayers, religious hierarchies, holy symbols, and the practices of secret cults."
-            }
-          ]
+            "level": {
+              "value": "proficient",
+              "label": "Full"
+            },
+            "skills": {
+              "type": [
+                {
+                  "value": "insight",
+                  "label": "Insight",
+                  "desc": "Your Wisdom (Insight) check decides whether you can determine the true intentions of a creature, such as when searching out a lie or predicting someone’s next move. Doing so involves gleaning clues from body language, speech habits, and changes in mannerisms."
+                },
+                {
+                  "value": "religion",
+                  "label": "Religion",
+                  "desc": "Your Intelligence (Religion) check measures your ability to recall lore about deities, rites and prayers, religious hierarchies, holy symbols, and the practices of secret cults."
+                }
+              ]
+            },
+            "id": "df0623ee-29fd-4f1d-890e-1f8865e3ef8d"
+          }
+        ]
+      },
+      {
+        "desc": "<p>Two languages of your choice",
+        "label": "Language Proficiencies",
+        "value": "Language Proficiencies",
+        "category": {
+          "value": "feature"
         },
-        "id": "df0623ee-29fd-4f1d-890e-1f8865e3ef8d"
+        "proficiencies": [
+          {
+            "attribute": [
+              {
+                "value": "providesOptions",
+                "label": "Provides Options"
+              }
+            ],
+            "selectionCount": 2,
+            "category": {
+              "value": "languages",
+              "label": "Languages"
+            },
+            "level": {
+              "value": "proficient",
+              "label": "Full"
+            },
+            "languages": {
+              "type": [
+                {
+                  "value": "all",
+                  "label": "All"
+                }
+              ]
+            },
+            "id": "f85bc7ee-614b-47e6-b091-65ecbb5a3b96"
+          }
+        ]
       }
     ],
-    "currency": {
-      "gold": 15
-    },
+    "equipment": [
+      [
+        [
+          {
+            "attribute": [
+              {
+                "value": "providesOptions"
+              }
+            ],
+            "category": {
+              "value": "adventuringGear"
+            },
+            "properties": {
+              "type": [
+                {
+                  "value": "holySymbol",
+                  "label": "Holy Symbol"
+                }
+              ]
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "all"
+                }
+              ]
+            },
+            "selectionCount": 1
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "prayerBook"
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "prayerWheel"
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "incenseStick"
+                }
+              ]
+            },
+            "quantity": 5
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "properties": {
+              "type": [
+                {
+                  "value": "clothing",
+                  "label": "Clothing"
+                }
+              ]
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "vestmentClothing"
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "properties": {
+              "type": [
+                {
+                  "value": "clothing",
+                  "label": "Clothing"
+                }
+              ]
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "commonClothes"
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ]
+      ],
+      [
+        [
+          {
+            "attribute": [
+              {
+                "value": "containsCurrency"
+              }
+            ],
+            "category": {
+              "value": "adventuringGear"
+            },
+            "properties": {
+              "type": [
+                {
+                  "value": "container",
+                  "label": "Container"
+                }
+              ]
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "pouch"
+                }
+              ]
+            },
+            "currencies": [
+              {
+                "id": "2b9c4330-14d4-473a-aed7-52a8eb1906ce",
+                "amount": 15
+              }
+            ],
+            "quantity": 1
+          }
+        ]
+      ]
+    ],
     "id": "22584465-336f-4d11-8923-9f42087dcced",
     "ownerId": "master",
     "createdAt": "2024-09-12T11:05:10.351Z",

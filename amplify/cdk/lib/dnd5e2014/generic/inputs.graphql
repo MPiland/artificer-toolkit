@@ -13,20 +13,6 @@ input SaveAbilityInput {
   abilityModifier: ID
 }
 
-input EquipmentGroupInput {
-  attributes: [ID]
-  selectionCount: Int
-  category: ID
-  equipment: [ID]
-  properties: [ID]
-  quantity: Int
-  copper: Int
-  silver: Int
-  electrum: Int
-  gold: Int
-  platinum: Int
-}
-
 ## Damage Related
 
 input DamageFieldsInput {
@@ -250,15 +236,6 @@ input FeatureSpellInput {
   charges: ChargeInput
 }
 
-input FeatureAncestryInput {
-  id: ID!
-  attributes: [ID]
-  origin: ID
-  options: [ID]
-  selectionCount: Int
-  subtype: ID
-}
-
 input ActionPropertyInput {
   id: ID
   amount: Int
@@ -269,31 +246,10 @@ input ActionGroupInput {
   secondary: ActionPropertyInput
 }
 
-input FeatureSubfeatureInput {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  ancestry: [FeatureAncestryInput]
-  attributes: [ID]
-  actions: ActionGroupInput
-  damage: DamageInput
-  charges: ChargeInput
-  range: RangeInput
-  shape: ShapeInput
-  targets: Int
-  feats: [FeatureFeatInput]
-  modifiers: [FeatureModifierInput]
-  proficiencies: [FeatureProficiencyInput]
-  expertise: [FeatureExpertiseInput]
-  senses: [FeatureSenseInput]
-  spells: [FeatureSpellInput]
-  prerequisites: PrerequisiteInput
-  saveAbility: SaveAbilityInput
-  selectionCount: Int
-  levelAvailable: String
+input OptionsByLevelInput {
+  level: Int
+  count: Int
+  replaceCount: Int
 }
 
 input FeatureOptionInput {
@@ -303,7 +259,6 @@ input FeatureOptionInput {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestryInput]
   attributes: [ID]
   actions: ActionGroupInput
   damage: DamageInput
@@ -319,9 +274,7 @@ input FeatureOptionInput {
   spells: [FeatureSpellInput]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeatureInput]
 }
 
 input FeatureInput {
@@ -331,11 +284,11 @@ input FeatureInput {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestryInput]
   attributes: [ID]
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
+  optionsByLevel: [OptionsByLevelInput]
   range: RangeInput
   shape: ShapeInput
   targets: Int
@@ -347,8 +300,6 @@ input FeatureInput {
   spells: [FeatureSpellInput]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }

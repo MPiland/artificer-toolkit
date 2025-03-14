@@ -16,11 +16,12 @@ import {
   FeatureOption,
   FeatureProficiency,
   FeatureSense,
+  FeatureSpell,
   Race,
   Scores,
   Spell,
 } from '../../amplify/gql/types'
-import { DeepKeyOf, SectionDataType, SectionName } from '../types/form'
+import { CharacterSectionData, DeepKeyOf, SectionDataType, SectionName } from '../types/form'
 import {
   Attributes,
   ModifierCategories,
@@ -38,15 +39,57 @@ import { useListRacesQuery } from '../features/races/racesApi'
 import { useListFeatsQuery } from '../features/feats/featsApi'
 import { useListBackgroundsQuery } from '../features/backgrounds/backgroundsApi'
 import { sectionSteps } from '../types/form'
+import { useCallback, useMemo } from 'react'
+import { typename, sectionIdKey, proficiencyKey } from '../utils/formatting'
+import useGetFeatures from './useGetFeatures'
 
-export type ClassProficiency = {
-  [key: string]: {
-    type: { id: string; label: string; value: string }[]
-    property?: any[]
-    selectionCount: number | null
-    proficiencyId: string
+export interface GetSectionOptionsProps {
+  section: SectionDataType
+  sectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>
+  optionIndex: string
+}
+
+export interface GetSectionOptionsResult<T> {
+  options: Array<{ id: string; label: string; value: string }>
+  path: DeepKeyOf<T>
+  label: string
+  exist?: string // Making this optional since it might not always be set
+}
+
+export interface GetFeatureOptionsProps {
+  feature: CharacterFeature
+  optionIndex: string
+}
+
+export interface GetFeatureOptionsResult<T> {
+  options: Array<{ id: string; label: string; value: string }>
+  path: DeepKeyOf<T>
+  exist?: string // Making this optional since it might not always be set
+}
+
+type OptionHandler = {
+  [key in Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>]: {
+    canHandle: (section: SectionDataType, sectionStep?: SectionName) => boolean
+    getOptions: (
+      section: SectionDataType,
+      sectionStep: SectionName
+    ) => { options: Array<{ id: string; label: string; value: string }>; label: string }
   }
 }
+
+type Existing = {
+  index: number
+  optionIndex?: string
+  optionId?: string
+  id?: string
+  featureLevel?: number
+}
+
+interface StateSections {
+  [key: string]: Existing[]
+}
+
+export const sectionIds = ['classId', 'raceId', 'backgroundId', 'equipmentId', 'ancestryId', 'featId'] as const
 
 const useGetSections = ({ formData }: { formData: Character }) => {
   const { data: classes } = useListClassesQuery()
@@ -57,492 +100,434 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   const { data: equipment } = useListEquipmentQuery()
   const { data: backgrounds } = useListBackgroundsQuery()
 
-  const getStateProficiencies = ({ categoryName }: { categoryName?: keyof typeof ProficiencyCategories }) => {
-    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
+  const { getFullFeature } = useGetFeatures({ data: formData })
 
-    const sections = formData.proficiencies
-    sections?.forEach((section, index) => {
-      let fullSections: Array<FeatureProficiency>
-      let fullFeature: Feature | FeatureOption | AncestryFeature
-      const featureId = section.featureId
-      const classId = section.classId
-      const raceId = section.raceId
-      const backgroundId = section.backgroundId
-      const featId = section.featId
-      const ancestryId = section.ancestryId
-      const proficiencyId = section.proficiencyId
-      const equipmentId = section.equipmentId
-      const optionId = section.optionId
-      const optionIndex = section.optionIndex
-      // For section states (proficiencies, expertise, etc.)
-      if (optionId) {
-        // This handles feature options that contain sections
-        existing.push({ index, optionIndex, optionId, id: proficiencyId })
-      } else if (optionIndex) {
-        // This handles direct section options
-        existing.push({ index, optionIndex, id: proficiencyId })
-      }
-      if (classId) {
-        const fullClass = classes?.find((uClass) => uClass.id === classId)
+  const getStateSections = useMemo(() => {
+    const existing: StateSections = {}
+    sectionSteps.forEach((sectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures' | 'spells'>) => {
+      existing[sectionStep] = []
 
-        if (!featureId) {
-          fullSections = fullClass?.proficiencies
-        } else {
-          fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
+      const sections = formData[sectionStep]
+      sections?.forEach((section, index) => {
+        let fullSections: Array<FeatureProficiency | FeatureSense | FeatureModifier | FeatureFeat | FeatureExpertise>
+        let fullFeature: Feature | FeatureOption | AncestryFeature
+        const featureId = section.featureId
+        const classId = section.classId
+        const raceId = section.raceId
+        const backgroundId = section.backgroundId
+        const featId = section.featId
+        const ancestryId = section.ancestryId
+        const equipmentId = section.equipmentId
+        const optionIndex = section.optionIndex
+        const optionId = section.optionId
+        const featureLevel = section.featureLevel
+
+        const existingSection: {
+          index: number
+          optionIndex?: string
+          optionId?: string
+          id?: string
+          featureLevel?: number
+        } = {
+          index,
         }
-      }
-      if (raceId) {
-        const fullRace = races.find((race) => race.id === raceId)
-        if (ancestryId) {
-          const fullAncestry = fullRace.ancestry?.options?.find((option) => option.id === ancestryId)
 
-          fullFeature = fullAncestry.features.find((feature) => feature.id === featureId)
-        } else {
-          fullFeature = fullRace.features.find((feature) => feature.id === featureId)
+        const getSectionId = (section: any) => {
+          // Map of property names to check for
+          const idProperties = [
+            { check: (s: any) => s.__typename === 'CharacterFeat', getId: (s: any) => s.featId },
+            { check: (s: any) => 'expertiseId' in s, getId: (s: any) => s.expertiseId },
+            { check: (s: any) => 'proficiencyId' in s, getId: (s: any) => s.proficiencyId },
+            { check: (s: any) => 'senseId' in s, getId: (s: any) => s.senseId },
+            { check: (s: any) => 'modifierId' in s, getId: (s: any) => s.modifierId },
+          ]
+
+          // Find the first matching property and return its ID
+          const match = idProperties.find((prop) => prop.check(section))
+          return match ? match.getId(section) : undefined
         }
-      }
-      if (featId) {
-        const fullFeat = feats.find((feat) => feat.id === featId)
 
-        fullFeature = fullFeat.features.find((feature) => feature.id === featureId)
-      }
-      if (backgroundId) {
-        const fullBackground = backgrounds.find((background) => background.id === backgroundId)
+        existingSection.id = getSectionId(section)
 
-        fullFeature = fullBackground.features.find((feature) => feature.id === featureId)
-      }
-      if (equipmentId) {
-        const fullEquipment = equipment.find((equipment) => equipment.id === equipmentId)
+        if (optionId) {
+          existingSection.optionId = optionId
+        }
+        if (optionIndex) {
+          existingSection.optionIndex = optionIndex
+        }
+        if (featureLevel) {
+          existingSection.featureLevel = featureLevel
+        }
 
-        fullFeature = fullEquipment.features.find((feature) => feature.id === featureId)
-      }
-      if (fullSections == null) {
+        existing[sectionStep].push(existingSection)
+
+        if (classId) {
+          const fullClass = classes?.find((uClass) => uClass.id === classId)
+
+          if (!featureId && sectionStep === 'proficiencies') {
+            fullSections = fullClass?.proficiencies
+          } else {
+            fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
+          }
+        }
+        if (raceId) {
+          const fullRace = races.find((race) => race.id === raceId)
+          if (ancestryId) {
+            const fullAncestry = fullRace.ancestry?.options?.find((option) => option.id === ancestryId)
+
+            fullFeature = fullAncestry.features.find((feature) => feature.id === featureId)
+          } else {
+            fullFeature = fullRace.features.find((feature) => feature.id === featureId)
+          }
+        }
+        if (featId) {
+          const fullFeat = feats.find((feat) => feat.id === featId)
+
+          fullFeature = fullFeat.features.find((feature) => feature.id === featureId)
+        }
+        if (backgroundId) {
+          const fullBackground = backgrounds.find((background) => background.id === backgroundId)
+
+          fullFeature = fullBackground.features.find((feature) => feature.id === featureId)
+        }
+        if (equipmentId) {
+          const fullEquipment = equipment.find((equipment) => equipment.id === equipmentId)
+
+          fullFeature = fullEquipment.features.find((feature) => feature.id === featureId)
+        }
+
         if ((fullFeature as Feature | AncestryFeature)?.options?.length > 0) {
+          const optionId = formData?.features
+            ?.find((f) => f.id === fullFeature?.id)
+            ?.options?.find((o) => o.optionIndex === optionIndex)?.id
+
           fullSections = (fullFeature as Feature | AncestryFeature)?.options?.find(
             (option) => option.id === optionId
-          ).proficiencies
+          )?.[sectionStep]
         }
-      }
 
-      fullSections?.forEach((proficiency, pIndex) => {
-        // If the sections do not provide options, pass the set ids from the category/subcategory
-        // The ones that did provides options are already set in the above in if options condition
-        if (!proficiency?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-          if (proficiency.id === proficiencyId) {
-            if (categoryName && categoryName !== 'initiative') {
-              if (categoryName === 'equipment') {
-                const proficiencyState = proficiency[categoryName]
-                for (const id in proficiencyState.ids) {
-                  existing.push({ index: pIndex, id })
+        fullSections?.forEach((fullSection, sIndex) => {
+          if (fullSection.__typename === 'FeatureProficiency' || fullSection.__typename === 'FeatureExpertise') {
+            const categorySection = fullFeature?.[sectionStep as 'proficiencies' | 'expertise']?.find((step) => {
+              if (section.__typename === 'CharacterProficiency') {
+                return step.id === section.proficiencyId
+              }
+              if (section.__typename === 'CharacterExpertise') {
+                return step.id === section.expertiseId
+              }
+            })
+
+            const categoryId = categorySection?.category
+            const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
+
+            // If the sections do not provide options, pass the set ids from the category/subcategory
+            // The ones that did provides options are already set in the above in if options condition
+            if (!fullSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+              if (
+                fullSection.id === (section as CharacterProficiency).proficiencyId ||
+                fullSection.id === (section as CharacterExpertise).expertiseId
+              ) {
+                if (categoryName && categoryName !== 'initiative') {
+                  if (categoryName === 'equipment') {
+                    const proficiencyState = fullSection[categoryName]
+                    for (const id in proficiencyState.ids) {
+                      existing[sectionStep as 'proficiencies' | 'expertise'].push({ index: sIndex, id })
+                    }
+                  } else if (categoryName === 'properties') {
+                    const proficiencyState = fullSection[categoryName]
+                    for (const property in proficiencyState.properties) {
+                      existing[sectionStep as 'proficiencies' | 'expertise'].push({ index: sIndex, id: property })
+                    }
+                  } else {
+                    // If the proficiency is skills, saveAbilities, or languages, pass the ids
+                    for (const id in fullSection[categoryName]) {
+                      existing[sectionStep as 'proficiencies' | 'expertise'].push({ index: sIndex, id: id })
+                    }
+                  }
                 }
-              } else if (categoryName === 'properties') {
-                const proficiencyState = proficiency[categoryName]
-                for (const property in proficiencyState.properties) {
-                  existing.push({ index: pIndex, id: property })
-                }
-              } else {
-                // If the proficiency is skills, saveAbilities, or languages, pass the ids
-                for (const id in proficiency[categoryName]) {
-                  existing.push({ index: pIndex, id: id })
+              }
+            }
+          } else {
+            // If the sections do not provide options, pass the set ids from the category/subcategory
+            // The ones that did provides options are already set in the above in if options condition
+            if (!fullSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+              const sectionId = `${typename(sectionStep, 'id')}Id` as const
+              if (sectionId in section) {
+                if (fullSection.id === section[sectionId as keyof typeof section]) {
+                  existing[sectionStep].push({ index: sIndex, id: fullSection.id })
                 }
               }
             }
           }
-        }
+        })
       })
     })
 
     return existing
-  }
+  }, [classes, equipment, feats, backgrounds, formData, races])
 
-  const getStateExpertise = ({ categoryName }: { categoryName?: keyof typeof ProficiencyCategories }) => {
-    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
+  // Private helper functions
+  const optionHandlers = useMemo((): OptionHandler => {
+    let options: Array<{ id: string; label: string; value: string }> = []
+    return {
+      proficiencies: {
+        canHandle: (section: SectionDataType, sectionStep: SectionName) =>
+          section.__typename === 'FeatureProficiency' && sectionStep === 'proficiencies',
+        getOptions: (section: FeatureProficiency) => {
+          // Get the category name based on the available enums and the id in the data
+          const categoryId = section.category
+          const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
 
-    const sections = formData.expertise
-    sections?.forEach((section, index) => {
-      let fullSections: Array<FeatureExpertise>
-      let fullFeature: Feature | FeatureOption | AncestryFeature
-      const featureId = section.featureId
-      const classId = section.classId
-      const raceId = section.raceId
-      const backgroundId = section.backgroundId
-      const featId = section.featId
-      const ancestryId = section.ancestryId
-      const expertiseId = section.expertiseId
-      const equipmentId = section.equipmentId
-      const optionId = section.optionId
-      const optionIndex = section.optionIndex
-      if (optionId) {
-        // This handles feature options that contain sections
-        existing.push({ index, optionIndex, optionId, id: expertiseId })
-      } else if (optionIndex) {
-        // This handles direct section options
-        existing.push({ index, optionIndex, id: expertiseId })
-      }
-      if (classId) {
-        const fullClass = classes?.find((uClass) => uClass.id === classId)
+          // If the Proficiency options are equipment or properties (equipment properties), these are handled differently due to potential filtering options
+          if (categoryName === 'equipment' || categoryName === 'properties') {
+            const categoryData = section[categoryName]
 
-        fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
-      }
-      if (raceId) {
-        const fullRace = races.find((race) => race.id === raceId)
-        if (ancestryId) {
-          const fullAncestry = fullRace.ancestry?.options?.find((option) => option.id === ancestryId)
+            if ('ids' in categoryData || 'properties' in categoryData) {
+              const { properties, ids, category: equipmentCategory } = categoryData
 
-          fullFeature = fullAncestry.features.find((feature) => feature.id === featureId)
-        } else {
-          fullFeature = fullRace.features.find((feature) => feature.id === featureId)
-        }
-      }
-      if (featId) {
-        const fullFeat = feats.find((feat) => feat.id === featId)
-
-        fullFeature = fullFeat.features.find((feature) => feature.id === featureId)
-      }
-      if (backgroundId) {
-        const fullBackground = backgrounds.find((background) => background.id === backgroundId)
-
-        fullFeature = fullBackground.features.find((feature) => feature.id === featureId)
-      }
-      if (equipmentId) {
-        const fullEquipment = equipment.find((equipment) => equipment.id === equipmentId)
-
-        fullFeature = fullEquipment.features.find((feature) => feature.id === featureId)
-      }
-
-      if ((fullFeature as Feature | AncestryFeature)?.options.length > 0) {
-        fullSections = (fullFeature as Feature | AncestryFeature)?.options.find(
-          (option) => option.id === optionId
-        ).expertise
-      } else {
-        fullSections?.forEach((expertise, eIndex) => {
-          // If the sections do not provide options, pass the set ids from the category/subcategory
-          // The ones that did provides options are already set in the above in if options condition
-          if (!expertise?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-            if (expertise.id === expertiseId) {
-              if (categoryName && categoryName !== 'initiative') {
-                if (categoryName === 'equipment') {
-                  const expertiseState = expertise[categoryName]
-                  for (const id in expertiseState.ids) {
-                    existing.push({ index: eIndex, id })
-                  }
-                } else if (categoryName === 'properties') {
-                  const expertiseState = expertise[categoryName]
-                  for (const property in expertiseState.properties) {
-                    existing.push({ index: eIndex, id: property })
-                  }
+              if ('ids' in categoryData) {
+                if (ids.some((id) => id === 'all')) {
+                  options = equipment
+                    .filter((sEquipment) => sEquipment?.category === equipmentCategory)
+                    .filter((sEquipment) => {
+                      if (properties?.length > 0) {
+                        return sEquipment?.properties?.some((property) => properties.includes(property))
+                      }
+                      return true
+                    })
                 } else {
-                  // If the expertise is skills, saveAbilities, or languages, pass the ids
-                  for (const id in expertise[categoryName]) {
-                    existing.push({ index: eIndex, id: id })
-                  }
+                  options = equipment.filter((equipment) => ids.includes(equipment.id))
+                }
+              } else {
+                options = ids.some((id) => id === 'all')
+                  ? system.equipment.properties
+                  : system.equipment.properties.filter((property) => ids.includes(property.id))
+              }
+            }
+          } else if (categoryName === 'saveAbilities') {
+            if (section[categoryName]?.some((saveAbility) => saveAbility === 'all')) {
+              options = system.abilities
+            } else {
+              options = system.abilities.filter((ability) => section[categoryName]?.includes(ability.id))
+            }
+            // Find all other proficient options that are not initiative
+          } else if (categoryName !== 'initiative') {
+            if (section[categoryName]?.some((cOption) => cOption === 'all')) {
+              options = system[categoryName]
+            } else {
+              options = system[categoryName]?.filter((cOption) => section[categoryName]?.includes(cOption.id))
+            }
+          }
+          return {
+            options,
+            label: system.proficiencies.categories.find((sCategory) => sCategory.id === categoryId)?.label,
+          }
+        },
+      },
+      expertise: {
+        canHandle: (section: SectionDataType, sectionStep: SectionName) =>
+          section.__typename === 'FeatureExpertise' && sectionStep === 'expertise',
+        getOptions: (section: FeatureProficiency) => {
+          // Get the category name based on the available enums and the id in the data
+          const categoryId = section.category
+          const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
+
+          // If the Proficiency options are equipment or properties (equipment properties), these are handled differently due to potential filtering options
+          if (categoryName === 'equipment' || categoryName === 'properties') {
+            const categoryData = section[categoryName]
+
+            if ('ids' in categoryData || 'properties' in categoryData) {
+              const { properties, ids, category: equipmentCategory } = categoryData
+
+              if ('ids' in categoryData) {
+                if (ids.some((id) => id === 'all')) {
+                  options = equipment
+                    .filter((sEquipment) => sEquipment?.category === equipmentCategory)
+                    .filter((sEquipment) => {
+                      if (properties?.length > 0) {
+                        return sEquipment?.properties?.some((property) => properties.includes(property))
+                      }
+                      return true
+                    })
+                } else {
+                  options = equipment.filter((equipment) => ids.includes(equipment.id))
+                }
+              } else {
+                options = ids.some((id) => id === 'all')
+                  ? system.equipment.properties
+                  : system.equipment.properties.filter((property) => ids.includes(property.id))
+              }
+            }
+          } else if (categoryName === 'saveAbilities') {
+            if (section[categoryName]?.some((saveAbility) => saveAbility === 'all')) {
+              options = system.abilities
+            } else {
+              options = system.abilities.filter((ability) => section[categoryName]?.includes(ability.id))
+            }
+            // Find all other proficient options that are not initiative
+          } else if (categoryName !== 'initiative') {
+            if (section[categoryName]?.some((cOption) => cOption === 'all')) {
+              options = system[categoryName]
+            } else {
+              options = system[categoryName]?.filter((cOption) => section[categoryName]?.includes(cOption.id))
+            }
+          }
+          return {
+            options,
+            label: system.proficiencies.categories.find((sCategory) => sCategory.id === categoryId)?.label,
+          }
+        },
+      },
+      modifiers: {
+        canHandle: (section: SectionDataType, sectionStep: SectionName) =>
+          section.__typename === 'FeatureModifier' && sectionStep === 'modifiers',
+        getOptions: (section: FeatureModifier) => {
+          // Get category name based on the ID and using the enums to match for a property key
+          const categoryId = section.category
+          const categoryName = getKeyFromId(categoryId, { ...ModifierCategories, ...ModifierSpellCategories })
+
+          // Match a property name to the category name
+          const propertyName = getModifierProperties({ category: categoryName })
+          const property = section[propertyName]
+
+          // Focus on the only ones that are arrays and therefore would be options
+          if (
+            propertyName !== 'spell' &&
+            propertyName !== 'range' &&
+            propertyName !== 'shape' &&
+            propertyName !== 'duration'
+          ) {
+            if (Array.isArray(property)) {
+              if (property.some((property) => property === 'all')) {
+                if (propertyName === 'saveAbilities') {
+                  options = system.abilities
+                } else {
+                  options = system[propertyName]
+                }
+              } else {
+                if (propertyName === 'saveAbilities') {
+                  options = system.abilities.filter((ability) => section[propertyName]?.includes(ability.id))
+                } else {
+                  options = system[propertyName]?.filter((ability) => section[propertyName]?.includes(ability.id))
                 }
               }
             }
           }
-        })
-      }
-    })
-
-    return existing
-  }
-
-  const getStateFeats = () => {
-    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
-
-    const sections = formData.feats
-    sections?.forEach((section, index) => {
-      let fullSections: Array<FeatureFeat>
-      let fullFeature: Feature | FeatureOption | AncestryFeature
-      const featureId = section.featureId
-      const classId = section.classId
-      const raceId = section.raceId
-      const backgroundId = section.backgroundId
-      const featId = section.featId
-      const ancestryId = section.ancestryId
-      const equipmentId = section.equipmentId
-      const optionId = section.optionId
-      const optionIndex = section.optionIndex
-      if (optionId) {
-        // This handles feature options that contain sections
-        existing.push({ index, optionIndex, optionId, id: featId })
-      } else if (optionIndex) {
-        // This handles direct section options
-        existing.push({ index, optionIndex, id: featId })
-      }
-      if (classId) {
-        const fullClass = classes?.find((uClass) => uClass.id === classId)
-
-        fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
-      }
-      if (raceId) {
-        const fullRace = races.find((race) => race.id === raceId)
-        if (ancestryId) {
-          const fullAncestry = fullRace.ancestry?.options?.find((option) => option.id === ancestryId)
-
-          fullFeature = fullAncestry.features.find((feature) => feature.id === featureId)
-        }
-        fullFeature = fullRace.features.find((feature) => feature.id === featureId)
-      }
-      if (featId) {
-        const fullFeat = feats.find((feat) => feat.id === featId)
-
-        fullFeature = fullFeat.features.find((feature) => feature.id === featureId)
-      }
-      if (backgroundId) {
-        const fullBackground = backgrounds.find((background) => background.id === backgroundId)
-
-        fullFeature = fullBackground.features.find((feature) => feature.id === featureId)
-      }
-      if (equipmentId) {
-        const fullEquipment = equipment.find((equipment) => equipment.id === equipmentId)
-
-        fullFeature = fullEquipment.features.find((feature) => feature.id === featureId)
-      }
-
-      if ((fullFeature as Feature | AncestryFeature)?.options.length > 0) {
-        fullSections = (fullFeature as Feature | AncestryFeature)?.options.find(
-          (option) => option.id === optionId
-        ).feats
-      } else {
-        fullSections?.forEach((feat, fIndex) => {
-          // If the sections do not provide options, pass the set ids from the category/subcategory
-          // The ones that did provides options are already set in the above in if options condition
-          if (!feat?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-            if (feat.id === featId) {
-              existing.push({ index: fIndex, id: feat.id })
+          return {
+            options,
+            label: system.modifiers.categories.find((sCategory) => sCategory.id === categoryId)?.label,
+          }
+        },
+      },
+      feats: {
+        canHandle: (section: SectionDataType, sectionStep: SectionName) =>
+          section.__typename === 'FeatureFeat' && sectionStep === 'feats',
+        getOptions: (section: FeatureFeat) => {
+          if (section.feats.some((feat) => feat === 'all')) {
+            options = feats
+          } else {
+            options = feats.filter((feat) => section.feats.includes(feat.id))
+          }
+          return {
+            options,
+            label: 'Feat',
+          }
+        },
+      },
+      senses: {
+        canHandle: (section: SectionDataType, sectionStep: SectionName) =>
+          section.__typename === 'FeatureSense' && sectionStep === 'senses',
+        getOptions: (section: FeatureSense) => {
+          {
+            if (section.ids.some((sense) => sense === 'all')) {
+              options = system.senses
+            } else {
+              options = system.senses.filter((sense) => section.ids.includes(sense.id))
+            }
+            return {
+              options,
+              label: 'Sense',
             }
           }
-        })
-      }
-    })
-
-    return existing
-  }
-
-  const getStateSenses = () => {
-    const existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
-
-    const sections = formData.senses
-    sections?.forEach((section, index) => {
-      let fullSections: Array<FeatureSense>
-      let fullFeature: Feature | FeatureOption | AncestryFeature
-      const featureId = section.featureId
-      const classId = section.classId
-      const raceId = section.raceId
-      const backgroundId = section.backgroundId
-      const featId = section.featId
-      const ancestryId = section.ancestryId
-      const equipmentId = section.equipmentId
-      const optionId = section.optionId
-      const optionIndex = section.optionIndex
-      const senseId = section.senseId
-      if (optionId) {
-        // This handles feature options that contain sections
-        existing.push({ index, optionIndex, optionId, id: senseId })
-      } else if (optionIndex) {
-        // This handles direct section options
-        existing.push({ index, optionIndex, id: senseId })
-      }
-      if (classId) {
-        const fullClass = classes?.find((uClass) => uClass.id === classId)
-
-        fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
-      }
-      if (raceId) {
-        const fullRace = races.find((race) => race.id === raceId)
-
-        if (ancestryId) {
-          const fullAncestry = fullRace.ancestry?.options?.find((option) => option.id === ancestryId)
-
-          fullFeature = fullAncestry.features.find((feature) => feature.id === featureId)
-        }
-        fullFeature = fullRace.features.find((feature) => feature.id === featureId)
-      }
-      if (featId) {
-        const fullFeat = feats.find((feat) => feat.id === featId)
-
-        fullFeature = fullFeat.features.find((feature) => feature.id === featureId)
-      }
-      if (backgroundId) {
-        const fullBackground = backgrounds.find((background) => background.id === backgroundId)
-
-        fullFeature = fullBackground.features.find((feature) => feature.id === featureId)
-      }
-      if (equipmentId) {
-        const fullEquipment = equipment.find((equipment) => equipment.id === equipmentId)
-
-        fullFeature = fullEquipment.features.find((feature) => feature.id === featureId)
-      }
-
-      if ((fullFeature as Feature | AncestryFeature)?.options.length > 0) {
-        fullSections = (fullFeature as Feature | AncestryFeature)?.options.find(
-          (option) => option.id === optionId
-        ).senses
-      } else {
-        fullSections?.forEach((sense, sIndex) => {
-          // If the sections do not provide options, pass the set ids from the category/subcategory
-          // The ones that did provides options are already set in the above in if options condition
-          if (!sense?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-            if (sense.id === senseId) {
-              existing.push({ index: sIndex, id: sense.id })
-            }
+        },
+      },
+      spells: {
+        canHandle: (section: SectionDataType, sectionStep: SectionName) =>
+          section.__typename === 'FeatureSpell' && sectionStep === 'spells',
+        getOptions: (section: FeatureSpell) => {
+          if (section.ids.some((spell) => spell === 'all')) {
+            options = spells
+          } else {
+            options = spells.filter((spell) => section.ids.includes(spell.id))
           }
-        })
-      }
-    })
+          if (section.attributes?.some((attribute) => attribute === Attributes.classLimit)) {
+            options = (options as Array<Spell>).filter((option) =>
+              option.classes?.some((oClass) => section.classLimit?.some((lClass) => lClass === oClass))
+            )
+          }
 
-    return existing
-  }
+          if (section.attributes?.some((attribute) => attribute === Attributes.levelLimit)) {
+            options = (options as Array<Spell>).filter((spell) => section.levelLimit.includes(String(spell.level)))
+          }
 
+          return {
+            options,
+            label: 'Spell',
+          }
+        },
+      },
+    }
+  }, [equipment, system, feats, spells])
+
+  // Grouped by domain
+  // Option-related functions
   const getSectionOptions = ({
     section,
     sectionStep,
     optionIndex,
-  }: {
-    section: SectionDataType
-    sectionStep: SectionName
-    optionIndex: string
-  }) => {
-    // Initiation state index used to set the state option index selected on the form state
-
-    // Initiate the path name used to set the path to find and set the section option selected by user
-    let path: DeepKeyOf<typeof formData>
-
-    // Initiate the options array to be populated the options for dropdown
+  }: GetSectionOptionsProps): GetSectionOptionsResult<typeof formData> => {
+    const existing = getStateSections
     let options: Array<{ id: string; label: string; value: string }> = []
-
-    // Initiate the exiting id array
-    let existing: Array<{ index: number; optionIndex?: string; optionId?: string; id?: string }> = []
-
-    let label: string
-
+    let label = ''
+    let path: DeepKeyOf<typeof formData>
     let exist: string
 
-    if (
-      sectionStep !== 'ancestries' &&
-      sectionStep !== 'spells' &&
-      sectionStep !== 'options' &&
-      sectionStep !== 'subfeatures'
-    ) {
-      const stateIndex = formData[sectionStep]?.length || 0
-      if (
-        (section.__typename === 'FeatureProficiency' && sectionStep === 'proficiencies') ||
-        (section.__typename === 'FeatureExpertise' && sectionStep === 'expertise')
-      ) {
-        // Get the category name based on the available enums and the id in the data
-        const categoryId = section.category
-        const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
+    const stateIndex = formData[sectionStep as Exclude<typeof sectionStep, 'spells'>]?.length || 0
 
-        // If the Proficiency options are equipment or properties (equipment properties), these are handled differently due to potential filtering options
-        if (categoryName === 'equipment' || categoryName === 'properties') {
-          const categoryData = section[categoryName]
+    const handlers = Object.values(optionHandlers)
+    const handler = handlers.find((handler) => handler.canHandle(section, sectionStep))
 
-          if ('ids' in categoryData || 'properties' in categoryData) {
-            const { properties, ids, category: equipmentCategory } = categoryData
+    if (handler) {
+      const result = handler.getOptions(section, sectionStep)
+      options = result.options
+      label = result.label
+    }
 
-            if ('ids' in categoryData) {
-              if (ids.some((id) => id === 'all')) {
-                options = equipment
-                  .filter((sEquipment) => sEquipment?.category === equipmentCategory)
-                  .filter((sEquipment) => {
-                    if (properties?.length > 0) {
-                      return sEquipment?.properties?.some((property) => properties.includes(property))
-                    }
-                    return true
-                  })
-              } else {
-                options = equipment.filter((equipment) => ids.includes(equipment.id))
-              }
-            } else {
-              options = ids.some((id) => id === 'all')
-                ? system.equipment.properties
-                : system.equipment.properties.filter((property) => ids.includes(property.id))
-            }
-          }
-        } else if (categoryName === 'saveAbilities') {
-          if (section[categoryName]?.some((saveAbility) => saveAbility === 'all')) {
-            options = system.abilities
-          } else {
-            options = system.abilities.filter((ability) => section[categoryName]?.includes(ability.id))
-          }
-          // Find all other proficient options that are not initiative
-        } else if (categoryName !== 'initiative') {
-          if (section[categoryName]?.some((cOption) => cOption === 'all')) {
-            options = system[categoryName]
-          } else {
-            options = system[categoryName]?.filter((cOption) => section[categoryName]?.includes(cOption.id))
-          }
-        }
-        if (sectionStep === 'proficiencies') {
-          existing = getStateProficiencies({ categoryName: categoryName })
-        } else {
-          // Filter expertise options that have a proficiency
-          existing = getStateExpertise({ categoryName: categoryName })
-          const existingProficiencies = getStateProficiencies({ categoryName: categoryName })
-          options = options?.filter((option) =>
-            existingProficiencies.flatMap((existing) => existing.id).includes(option.id)
-          )
-        }
-        label = system.proficiencies.categories.find((sCategory) => sCategory.id === categoryId)?.label
-      } else if (sectionStep === 'modifiers' && section.__typename === 'FeatureModifier') {
-        // Get category name based on the ID and using the enums to match for a property key
-        const categoryId = section.category
-        const categoryName = getKeyFromId(categoryId, { ...ModifierCategories, ...ModifierSpellCategories })
+    if (sectionStep === 'expertise') {
+      options = options?.filter((option) =>
+        existing.proficiencies.flatMap((existing) => existing.id).includes(option.id)
+      )
+    }
 
-        // Match a property name to the category name
-        const propertyName = getModifierProperties({ category: categoryName })
-        const property = section[propertyName]
+    options = options?.filter((option) => {
+      const existingSelection = existing[sectionStep].find((existObj) => existObj.id === option.id)
+      return !existingSelection || existingSelection.optionIndex === optionIndex
+    })
 
-        // Focus on the only ones that are arrays and therefore would be options
-        if (
-          propertyName !== 'spell' &&
-          propertyName !== 'range' &&
-          propertyName !== 'shape' &&
-          propertyName !== 'duration'
-        ) {
-          if (Array.isArray(property)) {
-            if (property.some((property) => property === 'all')) {
-              if (propertyName === 'saveAbilities') {
-                options = system.abilities
-              } else {
-                options = system[propertyName]
-              }
-            } else {
-              if (propertyName === 'saveAbilities') {
-                options = system.abilities.filter((ability) => section[propertyName]?.includes(ability.id))
-              } else {
-                options = system[propertyName]?.filter((ability) => section[propertyName]?.includes(ability.id))
-              }
-            }
-          }
-        }
-        label = system.modifiers.categories.find((sCategory) => sCategory.id === categoryId)?.label
-      } else if (sectionStep === 'feats' && section.__typename === 'FeatureFeat') {
-        existing = getStateFeats()
-        if (section.feats.some((feat) => feat === 'all')) {
-          options = feats
-        } else {
-          options = feats.filter((feat) => section.feats.includes(feat.id))
-        }
-        label = 'Feat'
-      } else if (sectionStep === 'senses' && section.__typename === 'FeatureSense') {
-        existing = getStateSenses()
-        if (section.ids.some((sense) => sense === 'all')) {
-          options = system.senses
-        } else {
-          options = system.senses.filter((sense) => section.ids.includes(sense.id))
-        }
-        label = 'Sense'
+    if (sectionStep === 'spells') {
+      const stateIndex = formData?.spellcasting?.additional?.length || 0
+
+      path = `spellcasting.additional.${stateIndex}`
+
+      exist = formData.spellcasting.additional?.find((spell) => spell.optionIndex === optionIndex).id
+
+      if (exist != null) {
+        const existIndex = formData.spellcasting.additional?.findIndex((section) => section.optionIndex === optionIndex)
+
+        path = `spellcasting.additional.${existIndex}`
       }
-      if (sectionStep !== 'expertise') {
-        options = options?.filter((option) => {
-          const existingSelection = existing.find((existObj) => existObj.id === option.id)
-          return !existingSelection || existingSelection.optionIndex === optionIndex
-        })
-      }
-
-      const existOption = existing.find((existObj) => existObj.optionIndex === optionIndex)
+    } else {
+      const existOption = existing[sectionStep].find((existObj) => existObj.optionIndex === optionIndex)
 
       path = `${sectionStep}.${stateIndex}`
 
@@ -550,515 +535,255 @@ const useGetSections = ({ formData }: { formData: Character }) => {
         path = `${sectionStep}.${existOption.index}`
         exist = existOption.id
       }
-    } else {
-      if (sectionStep === 'spells' && section.__typename === 'FeatureSpell') {
-        if (section.ids.some((spell) => spell === 'all')) {
-          options = spells
-        } else {
-          options = spells.filter((spell) => section.ids.includes(spell.id))
-        }
-        if (section.attributes?.some((attribute) => attribute === Attributes.classLimit)) {
-          options = (options as Array<Spell>).filter((option) =>
-            option.classes?.some((oClass) => section.classLimit?.some((lClass) => lClass === oClass))
-          )
-        }
-
-        if (section.attributes?.some((attribute) => attribute === Attributes.levelLimit)) {
-          options = (options as Array<Spell>).filter((spell) => section.levelLimit.includes(String(spell.level)))
-        }
-
-        const stateIndex = formData?.spellcasting?.additional?.length || 0
-
-        path = `spellcasting.additional.${stateIndex}`
-
-        exist = formData.spellcasting.additional?.find((spell) => spell.optionIndex === optionIndex).id
-
-        if (exist != null) {
-          const existIndex = formData.spellcasting.additional?.findIndex(
-            (section) => section.optionIndex === optionIndex
-          )
-
-          path = `spellcasting.additional.${existIndex}`
-        }
-      }
     }
 
     return { options, path, label, exist }
   }
 
-  const getFeatureOptions = ({ options, optionIndex }: { options: Array<FeatureOption>; optionIndex: string }) => {
-    const featureIndex = formData.features.length || 0
-    let path: DeepKeyOf<typeof formData> = `features.${featureIndex}`
-
-    const existId = formData.features.find((feature) => feature.optionIndex === optionIndex)?.option
-
-    const exist = options.find((option) => option.id === existId)
-
-    if (exist != null) {
-      const existIndex = formData.features.findIndex((feature) => feature.optionIndex === optionIndex)
-
-      path = `features.${existIndex}`
-    }
-
-    return { path, exist }
-  }
-
-  const createClassProficiencyText = ({ fullClass }: { fullClass: Class }) => {
-    const fullProficiencies = fullClass?.proficiencies
-
-    const proficiencyObject = {} as ClassProficiency
-
-    fullProficiencies?.forEach((proficiency) => {
-      if (proficiency?.category === ProficiencyCategories.properties) {
-        if (proficiency?.properties?.ids?.length > 0) {
-          const equipmentCategory = system.equipment.categories.find(
-            (category) => category.id === proficiency?.properties?.category
-          )
-
-          const existType: Array<{ id: string; label: string; value: string }> = [
-            ...(proficiencyObject[equipmentCategory.value]?.type || []),
-          ]
-
-          const filteredProperties = []
-
-          if (proficiency?.properties.ids.some((id) => id === 'all')) {
-            filteredProperties.push(
-              ...system.equipment.properties
-                .filter((property) =>
-                  system.equipment.categoryProperties.some(
-                    (category) =>
-                      category.categoryId === proficiency?.properties.category && category.propertyId === property.id
-                  )
-                )
-                .filter((property) => !existType.some((type) => type.id === property.id))
-                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
-            )
-          } else {
-            filteredProperties.push(
-              ...system.equipment.properties
-                .filter((property) => proficiency?.properties.ids.some((id) => id === property.id))
-                .filter((property) => !existType.some((type) => type.id === property.id))
-                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
-            )
-          }
-
-          proficiencyObject[equipmentCategory.value] = {
-            proficiencyId: proficiency.id,
-            type: [...existType, ...filteredProperties],
-            selectionCount: proficiency?.selectionCount || 0,
-          }
-        }
-      }
-      if (proficiency?.category === ProficiencyCategories.equipment) {
-        const equipmentCategory = system.equipment.categories.find(
-          (category) => category.id === proficiency?.equipment?.category
-        )
-
-        const existType: Array<{ id: string; label: string; value: string }> = [
-          ...(proficiencyObject[equipmentCategory.value]?.type || []),
-        ]
-
-        const filteredEquipment = []
-        if (proficiency?.equipment.ids.some((id) => id === 'all')) {
-          if (proficiency?.equipment.properties.length > 0) {
-            filteredEquipment.push(
-              ...equipment
-                .filter((sEquipment) => sEquipment.category === proficiency?.equipment.category)
-                .filter((sEquipment) =>
-                  sEquipment.properties.some((eProperty) => proficiency?.equipment.properties.includes(eProperty))
-                )
-                .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
-            )
-          } else {
-            filteredEquipment.push(
-              ...equipment
-                .filter((sEquipment) => sEquipment.category === proficiency?.equipment.category)
-                .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.value, value: sEquipment.value }))
-            )
-          }
-        } else {
-          filteredEquipment.push(
-            ...equipment
-              .filter((sEquipment) => proficiency?.equipment.ids.some((id) => id === sEquipment.id))
-              .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-              .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.value, value: sEquipment.value }))
-          )
-        }
-
-        proficiencyObject[equipmentCategory.value] = {
-          proficiencyId: proficiency.id,
-          type: [...existType, ...filteredEquipment],
-          selectionCount: proficiency?.selectionCount || 0,
-        }
-      } else if (proficiency?.category === ProficiencyCategories.skills) {
-        const existType: Array<{ id: string; label: string; value: string }> = [
-          ...(proficiencyObject?.skils?.type || []),
-        ]
-
-        const filteredSkills = []
-        if (proficiency?.skills.some((skill) => skill === 'all')) {
-          filteredSkills.push(
-            ...system.skills
-              .filter((skill) => !existType.some((type) => type.id === skill.id))
-              .map((skill) => ({ id: skill.id, label: skill.label, value: skill.value }))
-          )
-        } else {
-          filteredSkills.push(
-            ...system.skills
-              .filter((skill) => proficiency?.skills?.some((skillId) => skillId === skill.id))
-              .filter((skill) => !existType.some((type) => type.id === skill.id))
-              .map((skill) => ({ id: skill.id, label: skill.label, value: skill.value }))
-          )
-        }
-
-        proficiencyObject.skills = {
-          proficiencyId: proficiency.id,
-          type: [...existType, ...filteredSkills],
-          selectionCount: proficiency?.selectionCount || 0,
-        }
-      } else if (proficiency?.category === ProficiencyCategories.languages) {
-        const existType: Array<{ id: string; label: string; value: string }> = [
-          ...(proficiencyObject?.languages?.type || []),
-        ]
-
-        const filteredLanguages = []
-        if (proficiency?.languages?.some((language) => language === 'all')) {
-          filteredLanguages.push(
-            ...system.languages
-              .filter((language) => !existType.some((type) => type.id === language.id))
-              .map((language) => ({ id: language.id, label: language.label, value: language.value }))
-          )
-        } else {
-          filteredLanguages.push(
-            ...system.languages
-              .filter((language) => proficiency?.languages?.some((languageId) => languageId === language.id))
-              .filter((language) => !existType.some((type) => type.id === language.id))
-              .map((language) => ({ id: language.id, label: language.label, value: language.value }))
-          )
-        }
-
-        proficiencyObject.languages = {
-          proficiencyId: proficiency.id,
-          type: [...existType, ...filteredLanguages],
-          selectionCount: proficiency?.selectionCount || 0,
-        }
-      } else if (proficiency?.category === ProficiencyCategories.saveAbilities) {
-        const existType: Array<{ id: string; label: string; value: string }> = [
-          ...(proficiencyObject?.saveAbilities?.type || []),
-        ]
-
-        const filteredSaveAbilities = []
-        if (proficiency?.saveAbilities?.some((ability) => ability === 'all')) {
-          filteredSaveAbilities.push(
-            ...system.abilities
-              .filter((ability) => !existType.some((type) => type.id === ability.id))
-              .map((ability) => ({ id: ability.id, label: ability.label, value: ability.value }))
-          )
-        } else {
-          filteredSaveAbilities.push(
-            ...system.abilities
-              .filter((ability) => proficiency?.saveAbilities?.some((abilityId) => abilityId === ability.id))
-              .filter((ability) => !existType.some((type) => type.id === ability.id))
-              .map((ability) => ({ id: ability.id, label: ability.label, value: ability.value }))
-          )
-        }
-
-        proficiencyObject.saveAbilities = {
-          proficiencyId: proficiency.id,
-          type: [...existType, ...filteredSaveAbilities],
-          selectionCount: proficiency?.selectionCount || 0,
-        }
-      }
-    })
-
-    const sortedProficiencyObject = Object.fromEntries(
-      Object.entries(proficiencyObject).sort(([keyA, valueA], [keyB, valueB]) => {
-        // If one has selectionCount and the other doesn't, the one with selectionCount goes last
-        if (valueA.selectionCount > 0 !== valueB.selectionCount > 0) {
-          return valueA.selectionCount > 0 ? 1 : -1
-        }
-        // If both have same selectionCount status, sort alphabetically
-        return keyA.localeCompare(keyB)
-      })
-    ) as ClassProficiency
-
-    return sortedProficiencyObject
-  }
-
-  const createFeatures = (source?: { type: 'race' | 'class'; data: Class | Race; subclasses?: Class[] }) => {
-    let sourceObject:
-      | {
-          race?: Race
-          classes?: (Class & { subclass?: { id: string }[] })[]
-        }
-      | Character = {}
-
-    if (source) {
-      if (source?.type === 'race' && source?.data.__typename === 'Race') {
-        sourceObject = {
-          race: source?.data,
-        }
-      }
-      if (source?.type === 'class' && source?.data.__typename === 'Class') {
-        sourceObject = {
-          classes: [
-            {
-              ...source?.data,
-              subclass: source?.subclasses?.map((subclass) => ({ id: subclass.id })),
-            },
-          ],
-        }
-      }
-    } else {
-      sourceObject = formData
-    }
-
-    const features: CharacterFeature[] = []
-
-    // Process class features
-    sourceObject.classes?.forEach((characterClass) => {
-      const fullClass = classes?.find((c) => c.id === characterClass.id)
-
-      const processClassFeatures = (source: Class) => {
-        source?.features?.forEach((feature) => {
-          const levels = feature.levelAvailable.split(/\s*,\s*/)
-
-          levels.forEach((featureLevel) => {
-            features.push({
-              __typename: 'CharacterFeature',
-              id: feature.id,
-              classId: source?.id,
-              level: Number(featureLevel),
-            })
-          })
-        })
-      }
-
-      processClassFeatures(fullClass)
-
-      if (characterClass.__typename === 'CharacterClass') {
-        const subClass = classes?.find((c) => c.id === characterClass.subclass.id)
-        if (subClass) processClassFeatures(subClass)
-      } else {
-        if (Array.isArray(characterClass.subclass) && characterClass.subclass.length > 0) {
-          characterClass.subclass.forEach((subclass) => {
-            const subClass = classes?.find((c) => c.id === subclass.id)
-            if (subClass) processClassFeatures(subClass)
-          })
-        }
-      }
-    })
-
-    // Process race features
-    if (sourceObject.race) {
-      const fullRace = races.find((r) => r.id === formData.race)
-
-      const processRaceFeatures = (source: Race | AncestryOption, type?: 'ancestry') => {
-        source?.features?.forEach((feature) => {
-          features.push({ __typename: 'CharacterFeature', id: feature.id, [`${type || 'race'}Id`]: source?.id })
-        })
-      }
-
-      processRaceFeatures(fullRace)
-
-      if (formData.ancestry) {
-        const ancestry = fullRace.ancestry.options.find((a) => a.id === formData.ancestry.id)
-        if (ancestry) processRaceFeatures(ancestry, 'ancestry')
-      }
-    }
-
-    return features
-  }
-
-  const createSections = () => {
-    type SectionTypeMap = {
-      feats: CharacterFeat
-      modifiers: CharacterModifier
-      proficiencies: CharacterProficiency
-      expertise: CharacterExpertise
-      senses: CharacterSense
-    }
-
-    // Initialize with existing data and validate against current formData
-    const sections: { [K in keyof SectionTypeMap]: SectionTypeMap[K][] } = {
-      feats: [...(formData.feats || [])].filter(
-        (section) =>
-          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
-          (section.raceId && section.raceId === formData.race) ||
-          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
-      ),
-      modifiers: [...(formData.modifiers || [])].filter(
-        (section) =>
-          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
-          (section.raceId && section.raceId === formData.race) ||
-          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
-      ),
-      proficiencies: [...(formData.proficiencies || [])].filter(
-        (section) =>
-          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
-          (section.raceId && section.raceId === formData.race) ||
-          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
-      ),
-      expertise: [...(formData.expertise || [])].filter(
-        (section) =>
-          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
-          (section.raceId && section.raceId === formData.race) ||
-          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
-      ),
-      senses: [...(formData.senses || [])].filter(
-        (section) =>
-          (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
-          (section.raceId && section.raceId === formData.race) ||
-          (section.ancestryId && section.ancestryId === formData.ancestry?.id)
-      ),
-    }
-
-    type SectionStep = keyof typeof sections
-
-    const pushToSection = (step: keyof typeof sections, obj: any) => {
-      switch (step) {
-        case 'feats': {
-          const exists = sections.feats.some(
-            (section) => section.featureId === obj.featureId && section.featId === obj.featId
-          )
-          if (!exists) {
-            sections.feats.push(obj as CharacterFeat)
-          }
-          break
-        }
-        case 'proficiencies': {
-          const exists = sections.proficiencies.some(
-            (section) => section.featureId === obj.featureId && section.proficiencyId === obj.proficiencyId
-          )
-          if (!exists) {
-            sections.proficiencies.push(obj as CharacterProficiency)
-          }
-          break
-        }
-        case 'expertise': {
-          const exists = sections.expertise.some(
-            (section) => section.featureId === obj.featureId && section.expertiseId === obj.expertiseId
-          )
-          if (!exists) {
-            sections.expertise.push(obj as CharacterExpertise)
-          }
-          break
-        }
-        case 'modifiers': {
-          const exists = sections.modifiers.some(
-            (section) => section.featureId === obj.featureId && section.modifierId === obj.modifierId
-          )
-          if (!exists) {
-            sections.modifiers.push(obj as CharacterModifier)
-          }
-          break
-        }
-        case 'senses': {
-          const exists = sections.senses.some(
-            (section) => section.featureId === obj.featureId && section.senseId === obj.senseId
-          )
-          if (!exists) {
-            sections.senses.push(obj as CharacterSense)
-          }
-          break
-        }
-      }
-    }
-
-    const processFeatures = (
-      features: (Feature | AncestryFeature)[],
-      source: Class | Race | AncestryOption,
-      type: 'class' | 'race' | 'ancestry'
+  const createSections = useCallback(() => {
+    const features = formData?.features || []
+    // Initialize with existing data and validate against current formData// Common validation function for all section types
+    const isValidSection = (
+      section: CharacterExpertise | CharacterFeat | CharacterSense | CharacterProficiency | CharacterModifier
     ) => {
-      features?.forEach((feature) => {
-        sectionSteps.forEach((sectionStep) => {
-          if (
-            sectionStep !== 'spells' &&
-            sectionStep !== 'ancestries' &&
-            sectionStep !== 'options' &&
-            sectionStep !== 'subfeatures' &&
-            feature?.[sectionStep]?.length > 0
-          ) {
-            feature[sectionStep].forEach((fSection) => {
+      const sourceValid =
+        (section.classId && formData?.classes?.some((c) => c.id === section.classId)) ||
+        (section.raceId && section.raceId === formData.race) ||
+        (section.ancestryId && section.ancestryId === formData.ancestry?.id) ||
+        (section.backgroundId && section.backgroundId === formData?.background)
+
+      const optionValid =
+        !section.optionId ||
+        formData?.features?.find((f) => f.id === section.featureId)?.options?.some((o) => o.id === section.optionId)
+
+      return sourceValid && optionValid
+    }
+
+    // Create sections object with explicit typing
+    const sections = {
+      feats: [...(formData.feats || [])].filter(isValidSection) as CharacterFeat[],
+      modifiers: [...(formData.modifiers || [])].filter(isValidSection) as CharacterModifier[],
+      proficiencies: [...(formData.proficiencies || [])].filter(isValidSection) as CharacterProficiency[],
+      expertise: [...(formData.expertise || [])].filter(isValidSection) as CharacterExpertise[],
+      senses: [...(formData.senses || [])].filter(isValidSection) as CharacterSense[],
+    }
+
+    // Specific type guard that preserves the object type
+    function hasProperty<T extends object, K extends string>(obj: T, key: K): obj is T & Record<K, unknown> {
+      return key in obj
+    }
+
+    // Type-safe function to get a property from an object
+    function getProperty<T extends object, K extends string>(obj: T, key: K): unknown {
+      if (hasProperty(obj, key)) {
+        return obj[key]
+      }
+      return undefined
+    }
+
+    // Type-safe function to add a section
+    function pushToSection<K extends keyof typeof sections>(step: K, obj: CharacterSectionData): void {
+      const idKey = sectionIdKey(step)
+
+      // Type guard using the existing sections object type
+      function isSectionType<T extends keyof typeof sections>(
+        obj: CharacterSectionData,
+        section: T
+      ): obj is (typeof sections)[T][number] {
+        return obj.__typename === typename(section, 'typename')
+      }
+
+      const exists = sections[step].some((section) => {
+        if (hasProperty(section, idKey)) {
+          // Basic check for general section identity
+          const basicMatch =
+            hasProperty(section, 'featureId') &&
+            hasProperty(obj, 'featureId') &&
+            section.featureId === obj.featureId &&
+            getProperty(section, idKey) === getProperty(obj, idKey)
+
+          // For proficiencies and expertise, also check the specific target identifier
+          if (step === 'proficiencies' || step === 'expertise') {
+            // Get all category identifiers from the typenameMap
+            const categoryIdentifiers: Exclude<keyof typeof ProficiencyCategories, 'initiative'>[] = Object.keys(
+              ProficiencyCategories
+            ).filter((key: keyof typeof ProficiencyCategories) => key !== 'initiative') // Exclude initiative which doesn't have IDs
+
+            // Find common properties
+            const commonProps = categoryIdentifiers.filter(
+              (prop) => hasProperty(section, prop) && hasProperty(obj, prop)
+            )
+
+            // If we have common properties, verify they match
+            if (commonProps.length > 0) {
+              return commonProps.every((prop) => getProperty(section, prop) === getProperty(obj, prop))
+            }
+          }
+
+          return basicMatch
+        }
+        return false
+      })
+
+      if (!exists) {
+        if (isSectionType(obj, step)) {
+          // Get a reference to the array with the correct type
+          const sectionArray = sections[step] as Array<(typeof sections)[typeof step][number]>
+          // Push to it (this modifies the original array)
+          sectionArray.push(obj as (typeof sections)[typeof step][number])
+          // No need to reassign
+        } else {
+          console.warn(`Attempted to add object with wrong type to ${step} section`)
+        }
+      }
+    }
+
+    // Process features...
+    const pushSections = (fullFeature: Feature | AncestryFeature | FeatureOption, feature: CharacterFeature) => {
+      // For each valid section type
+      sectionSteps
+        .filter((step) => step !== 'spells')
+        .forEach((sectionStep) => {
+          if (fullFeature?.[sectionStep]?.length > 0) {
+            fullFeature[sectionStep].forEach((fSection) => {
               if (!fSection?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-                const sourceId = source?.id
-                const featureId = feature.id
+                // Special handling for proficiencies and expertise
+                if (
+                  (fSection.__typename === 'FeatureProficiency' || fSection.__typename === 'FeatureExpertise') &&
+                  fSection.category
+                ) {
+                  const categoryId = fSection.category
+                  const categoryName = getKeyFromId(categoryId, ProficiencyCategories)
 
-                const typename = () => {
-                  switch (sectionStep) {
-                    case 'feats':
-                      return 'CharacterFeat' as const
-                    case 'proficiencies':
-                      return 'CharacterProficiency' as const
-                    case 'expertise':
-                      return 'CharacterExpertise' as const
-                    case 'modifiers':
-                      return 'CharacterModifier' as const
-                    case 'senses':
-                      return 'CharacterSense' as const
+                  // Handle different category types that contain arrays
+                  if (categoryName && categoryName !== 'initiative') {
+                    if (categoryName === 'equipment' && fSection.equipment?.ids) {
+                      // Handle equipment IDs array
+                      fSection.equipment.ids.forEach((equipId) => {
+                        if (equipId !== 'all') {
+                          const sectionObject = createBaseSectionObject(
+                            sectionStep as 'proficiencies' | 'expertise',
+                            fSection,
+                            fullFeature,
+                            feature
+                          )
+                          sectionObject.equipment = equipId
+                          pushToSection(sectionStep, sectionObject)
+                        }
+                      })
+                    } else if (categoryName === 'properties' && fSection.properties?.properties) {
+                      // Handle properties array
+                      fSection.properties.properties.forEach((propId) => {
+                        if (propId !== 'all') {
+                          const sectionObject = createBaseSectionObject(
+                            sectionStep as 'proficiencies' | 'expertise',
+                            fSection,
+                            fullFeature,
+                            feature
+                          )
+                          sectionObject.property = propId
+                          pushToSection(sectionStep, sectionObject)
+                        }
+                      })
+                    } else if (fSection[categoryName] && Array.isArray(fSection[categoryName])) {
+                      // Handle other arrays like skills, saveAbilities, languages
+                      fSection[categoryName].forEach((itemId) => {
+                        if (itemId !== 'all') {
+                          const sectionObject = createBaseSectionObject(
+                            sectionStep as 'proficiencies' | 'expertise',
+                            fSection,
+                            fullFeature,
+                            feature
+                          )
+
+                          // Use the typename function to get the correct ID field
+                          const categoryField = proficiencyKey(categoryName)
+                          if (categoryField) {
+                            sectionObject[categoryField] = itemId
+                            pushToSection(sectionStep, sectionObject)
+                          }
+                        }
+                      })
+                    } else {
+                      // Handle non-array case
+                      const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, feature)
+                      pushToSection(sectionStep, sectionObject)
+                    }
+                  } else {
+                    // Handle initiative or unknown category
+                    const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, feature)
+                    pushToSection(sectionStep, sectionObject)
                   }
+                } else {
+                  // Normal case for non-proficiency/expertise sections
+                  const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, feature)
+                  pushToSection(sectionStep, sectionObject)
                 }
-
-                const sectionIdKey = () => {
-                  switch (sectionStep) {
-                    case 'feats':
-                      return 'featId'
-                    case 'proficiencies':
-                      return 'proficiencyId'
-                    case 'expertise':
-                      return 'expertiseId'
-                    case 'modifiers':
-                      return 'modifierId'
-                    case 'senses':
-                      return 'senseId'
-                  }
-                }
-
-                pushToSection(sectionStep as SectionStep, {
-                  __typename: typename(),
-                  [`${sectionIdKey()}`]: fSection.id,
-                  featureId,
-                  [`${type}Id`]: sourceId,
-                })
               }
             })
           }
         })
-      })
     }
 
-    // Process class features
-    formData?.classes?.forEach((characterClass) => {
-      const fullClass = classes?.find((c) => c.id === characterClass.id)
-      processFeatures(fullClass?.features, fullClass, 'class')
+    // Helper function to create the base section object
+    function createBaseSectionObject<T extends keyof typeof sections>(
+      sectionStep: T,
+      fSection: FeatureModifier | FeatureFeat | FeatureSense | FeatureProficiency | FeatureExpertise,
+      fullFeature: Feature | AncestryFeature | FeatureOption,
+      feature: CharacterFeature
+    ): (typeof sections)[T][number] {
+      // Use the specific return type based on the section type
+      const typeName = typename(sectionStep, 'typename')
 
-      if (characterClass.subclass) {
-        const subClass = classes?.find((c) => c.id === characterClass.subclass.id)
-        if (subClass) {
-          processFeatures(subClass.features, subClass, 'class')
-        }
+      // Create the base object with the required type
+      const sectionObject = {
+        __typename: typeName,
+        [`${sectionIdKey(sectionStep)}`]: fSection.id,
+        featureId: fullFeature.id,
+      }
+
+      // Add source IDs
+      sectionIds.forEach((sourceKey) => {
+        if (feature?.[sourceKey]) sectionObject[sourceKey] = feature[sourceKey]
+      })
+
+      return sectionObject as (typeof sections)[typeof sectionStep][number]
+    }
+
+    features?.forEach((feature) => {
+      const fullFeature = getFullFeature(feature)
+      pushSections(fullFeature, feature)
+
+      if (feature?.options?.length > 0) {
+        feature?.options?.forEach((option) => {
+          const fullOption = getFullFeature(feature)?.options?.find((o) => o.id === option.id)
+
+          if (fullOption) {
+            pushSections(fullOption, feature)
+          }
+        })
       }
     })
 
-    // Process race features
-    if (formData.race) {
-      const fullRace = races.find((r) => r.id === formData.race)
-      processFeatures(fullRace.features, fullRace, 'race')
+    formData?.classes?.forEach((fClass) => {
+      const fullClass = classes?.find((c) => c.id === fClass.id)
 
-      if (formData.ancestry) {
-        const ancestry = fullRace.ancestry.options.find((a) => a.id === formData.ancestry.id)
-        if (ancestry) {
-          processFeatures(ancestry.features, ancestry, 'ancestry')
+      const proficiencies = fullClass?.proficiencies || []
+
+      proficiencies?.forEach((proficiency) => {
+        const sectionObject = {
+          __typename: 'CharacterProficiency' as const,
+          classId: fClass.id,
+          proficiencyId: proficiency.id,
         }
-      }
-    }
+        pushToSection('proficiencies', sectionObject)
+      })
+    })
 
     return sections
-  }
+  }, [classes, formData, getFullFeature])
 
-  const createAbilityScores = () => {
+  const createAbilityScores = useCallback(() => {
     if (formData.__typename === 'Character') {
       const abilityScores: Scores[] = JSON.parse(
         JSON.stringify(formData?.abilities?.scores || [])
@@ -1146,14 +871,11 @@ const useGetSections = ({ formData }: { formData: Character }) => {
 
       return abilityScores
     }
-  }
+  }, [classes, formData.__typename, races, formData?.modifiers, formData?.abilities?.scores, formData?.classes])
 
   return {
     getSectionOptions,
-    getFeatureOptions,
-    createClassProficiencyText,
     createSections,
-    createFeatures,
     createAbilityScores,
   }
 }

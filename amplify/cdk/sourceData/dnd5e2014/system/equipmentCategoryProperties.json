@@ -15,6 +15,11 @@
     "categoryId": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
   },
   {
+    "id": "b23a5974-01a1-4d56-8608-870498886617",
+    "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+    "categoryId": "ce0b70ab-2ddb-4852-b4bb-dbf7108ee2ea"
+  },
+  {
     "id": "ac72540c-b675-457f-b761-f6c3b79784de",
     "propertyId": "6833776a-26c0-4143-b367-39f81a2fdad7",
     "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
@@ -77,6 +82,11 @@
   {
     "id": "0d1867aa-0dde-4297-90e2-24f4a988ce88",
     "propertyId": "72f57c5d-c213-4b1b-887f-1eea56f02fe2",
+    "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
+  },
+  {
+    "id": "b2ee392c-134a-4af6-96d9-1f9227d93538",
+    "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
     "categoryId": "973c8a5e-59d3-42f8-bd1b-77e8b0ee0893"
   },
   {
@@ -165,6 +175,11 @@
     "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
   },
   {
+    "id": "10ca8f8c-3511-4e22-b6ba-1be1edf6e3a6",
+    "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+    "categoryId": "c9af75e8-fff6-4247-8db4-31f63f16b3d9"
+  },
+  {
     "id": "0c4e4880-52f3-43f3-a292-3b201a8d791f",
     "propertyId": "112f51e4-cee6-4fd0-8207-163da4cbd397",
     "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
@@ -185,6 +200,11 @@
     "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
   },
   {
+    "id": "fdd93bf4-8df2-410f-b280-42501140861f",
+    "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
+    "categoryId": "e13981d6-2b10-4b79-adb6-07b2d85f711e"
+  },
+  {
     "id": "3b1d238b-4eb6-4a20-a6f6-a6dc83d7b347",
     "propertyId": "44478ef1-2c6f-4b7c-8b49-c364a77e5bb9",
     "categoryId": "81990afe-e34a-48cb-aece-5e7c46088615"
@@ -192,6 +212,11 @@
   {
     "id": "3989f752-aabf-4eaf-8b0a-bf6c9b8266d8",
     "propertyId": "a6cf86fd-8553-41a6-a6bf-24110e1e91f1",
+    "categoryId": "81990afe-e34a-48cb-aece-5e7c46088615"
+  },
+  {
+    "id": "d1535d57-53aa-4b4c-aaf0-a9c03d3981a2",
+    "propertyId": "bab18227-0a76-4963-b1c3-44760b810fea",
     "categoryId": "81990afe-e34a-48cb-aece-5e7c46088615"
   }
 ]

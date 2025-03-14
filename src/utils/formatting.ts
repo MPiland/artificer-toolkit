@@ -1,5 +1,6 @@
 import { get, truncate } from 'lodash'
-import { FormDataType } from '../types/form'
+import { FormDataType, SectionName } from '../types/form'
+import { ProficiencyCategories } from '../types/enums'
 
 export const getValueFromState = ({
   input,
@@ -225,4 +226,63 @@ export const routeRoot = (typename: FormDataType['__typename']) => {
   }
 
   return routeString
+}
+
+export const sectionIdKey = (sectionStep: Exclude<SectionName, 'options'>) => {
+  const idMap = {
+    feats: 'featId',
+    proficiencies: 'proficiencyId',
+    expertise: 'expertiseId',
+    modifiers: 'modifierId',
+    senses: 'senseId',
+    spells: 'spellId',
+  } as const
+
+  return idMap[sectionStep]
+}
+
+export const typenameMap = {
+  feats: {
+    typename: 'CharacterFeat',
+    id: 'featId',
+  },
+  proficiencies: {
+    typename: 'CharacterProficiency',
+    id: 'proficiencyId',
+  },
+  expertise: {
+    typename: 'CharacterExpertise',
+    id: 'expertiseId',
+  },
+  modifiers: {
+    typename: 'CharacterModifier',
+    id: 'modifierId',
+  },
+  senses: {
+    typename: 'CharacterSense',
+    id: 'senseId',
+  },
+} as const
+
+// Make the function generic to properly narrow the return type
+export function typename<
+  T extends keyof typeof typenameMap,
+  P extends keyof typeof typenameMap[T]
+>(sectionStep: T, type: P): typeof typenameMap[T][P] {
+  return typenameMap[sectionStep][type];
+}
+
+export const proficiencyKey = (category: Exclude<keyof typeof ProficiencyCategories, 'initiative'>) => {
+  switch (category) {
+    case 'skills':
+      return 'skill'
+    case 'properties':
+      return 'property'
+    case 'languages':
+      return 'language'
+    case 'equipment':
+      return 'equipment'
+    case 'saveAbilities':
+      return 'saveAbility'
+  }
 }

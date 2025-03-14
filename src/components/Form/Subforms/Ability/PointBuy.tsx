@@ -10,9 +10,9 @@ import Dropdown from '../../../Dropdown/Dropdown'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { UpdateState } from '../../../../types/form'
 import { isEqual } from 'lodash'
-import Row from '../../../Row/Row'
 import { AbilityGenerate } from '../../../../types/enums'
 import { Character } from '../../../../../amplify/gql/types'
+import Grid from '../../../Grid/Grid'
 
 const PointBuy = ({
   formData,
@@ -124,18 +124,18 @@ const PointBuy = ({
 
   return (
     <>
-      <div className={point_counter}>
-        <span className={point_counter_label}>Points Remaining</span>
-        <span>{`${pointsLeft} / ${pointBuy.total}`}</span>
-      </div>
-      <Row cols={{ base: 2, md: formData.abilities?.scores?.length }}>
-        {formData.abilities?.scores?.map((score, index) => {
-          const currentId = formData.abilities?.pointBuy?.distributed?.[index]?.id
-          const currentOption = currentId ? pointBuy.options.find((opt) => opt.id === currentId) : null
+      <Grid.Item className={point_counter}>
+        <span className={point_counter_label}>{`${pointsLeft} / ${pointBuy.total}`}</span>
+        <span>Points Remaining</span>
+      </Grid.Item>
+      {formData.abilities?.scores?.map((score, index) => {
+        const currentId = formData.abilities?.pointBuy?.distributed?.[index]?.id
+        const currentOption = currentId ? pointBuy.options.find((opt) => opt.id === currentId) : null
 
-          const abilityLabel = system.abilities.find((a) => a.id === score.ability)?.label || 'Ability'
+        const abilityLabel = system.abilities.find((a) => a.id === score.ability)?.label || 'Ability'
 
-          return (
+        return (
+          <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown<Character>
               name='id'
               label={abilityLabel}
@@ -188,9 +188,9 @@ const PointBuy = ({
                 })}
               onChange={(e) => handlePointApply(e, score.ability, index)}
             />
-          )
-        })}
-      </Row>
+          </Grid.Item>
+        )
+      })}
     </>
   )
 }

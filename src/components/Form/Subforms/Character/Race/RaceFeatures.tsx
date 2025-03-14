@@ -1,16 +1,18 @@
 import parse from 'html-react-parser'
-import { Fragment, use } from 'react'
+import { use } from 'react'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import { feature_card_header } from '../../../Character.css'
 import { option_dropdown } from '../../../Character.css'
 import Collapse from '../../../../Collapse/Collapse'
-import { AncestryFeature, AncestryOption, Character, Feature, Race } from '../../../../../../amplify/gql/types'
+import { AncestryOption, Character, Race } from '../../../../../../amplify/gql/types'
 import { SectionName, UpdateState } from '../../../../../types/form'
 import { FeatureContext } from '../../../Features/FeatureContext'
-import useGetSections from '../../../../../hooks/useGetSectionState'
 import { Attributes } from '../../../../../types/enums'
 import { FormContext } from '../../../FormContext'
-import { sprinkles } from '../../../../../css/sprinkles.css'
+import Grid from '../../../../Grid/Grid'
+import useGetFeatures from '../../../../../hooks/useGetFeatures'
+import FeatureSection from '../Class/Features/FeatureSection'
+import FeatureOption from '../Class/Features/FeatureOption'
 
 const RaceFeatures = ({
   fullRace,
@@ -27,7 +29,7 @@ const RaceFeatures = ({
 }) => {
   const { sectionSteps } = use(FeatureContext)
   const { features } = use(FormContext)
-  const { getSectionOptions } = useGetSections({ formData })
+  const { getFullFeature } = useGetFeatures({ data: formData })
 
   const handleAncestryChange = (e: UpdateState<Character>) => {
     if (e.type === 'update') {
@@ -57,161 +59,133 @@ const RaceFeatures = ({
         raceLineages?.map(
           (lineage, index) =>
             lineage?.ancestry?.options?.length > 0 && (
-              <Collapse key={index}>
-                <Collapse.Header title={lineage?.ancestry.label} className={feature_card_header} />
-                <Collapse.Body>
-                  {lineage?.ancestry.desc && parse(lineage?.ancestry.desc)}
-                  <div className={option_dropdown}>
-                    <Dropdown
-                      name={`ancestry.id`}
-                      label='Ancestry Option'
-                      className={sprinkles({ mb: 'space-2' })}
-                      options={lineage?.ancestry.options}
-                      onChange={updateFormData}
-                      value={formData?.ancestry?.id}
-                    />
-                    {formData?.ancestry && <strong>{fullAncestry.desc && parse(fullAncestry.desc)}</strong>}
-                  </div>
-                </Collapse.Body>
-              </Collapse>
+              <Grid.Item key={index}>
+                <Collapse>
+                  <Collapse.Header title={lineage?.ancestry.label} className={feature_card_header} />
+                  <Collapse.Body>
+                    <Grid>
+                      <Grid.Item>{lineage?.ancestry.desc && parse(lineage?.ancestry.desc)}</Grid.Item>
+                      <Grid.Item justify='center'>
+                        <Dropdown
+                          name={`ancestry.id`}
+                          label='Ancestry Option'
+                          className={option_dropdown}
+                          options={lineage?.ancestry.options}
+                          onChange={updateFormData}
+                          value={formData?.ancestry?.id}
+                        />
+                      </Grid.Item>
+                      {formData?.ancestry && (
+                        <Grid.Item justify='center'>
+                          <strong>{fullAncestry.desc && parse(fullAncestry.desc)}</strong>
+                        </Grid.Item>
+                      )}
+                    </Grid>
+                  </Collapse.Body>
+                </Collapse>
+              </Grid.Item>
             )
         )}
       {fullRace.ancestry?.options?.length > 0 && (
-        <Collapse>
-          <Collapse.Header title={fullRace.ancestry.label} className={feature_card_header} />
-          <Collapse.Body>
-            {fullRace.ancestry.desc && parse(fullRace.ancestry.desc)}
-            <div className={option_dropdown}>
-              <Dropdown<Character>
-                name='ancestry.id'
-                label='Ancestry Option'
-                options={fullRace.ancestry.options}
-                className={sprinkles({ mb: 'space-2' })}
-                value={formData?.ancestry?.id}
-                onChange={(e) => handleAncestryChange(e)}
-              />
-              {fullAncestry && <strong>{fullAncestry?.desc && parse(fullAncestry?.desc)}</strong>}
-            </div>
-          </Collapse.Body>
-        </Collapse>
+        <Grid.Item>
+          <Collapse>
+            <Collapse.Header title={fullRace.ancestry.label} className={feature_card_header} />
+            <Collapse.Body>
+              <Grid>
+                <Grid.Item>{fullRace.ancestry.desc && parse(fullRace.ancestry.desc)}</Grid.Item>
+                <Grid.Item justify='center'>
+                  <Dropdown<Character>
+                    name='ancestry.id'
+                    label='Ancestry Option'
+                    options={fullRace.ancestry.options}
+                    className={option_dropdown}
+                    value={formData?.ancestry?.id}
+                    onChange={(e) => handleAncestryChange(e)}
+                  />
+                </Grid.Item>
+                {fullAncestry && (
+                  <Grid.Item justify='center'>
+                    <strong>{fullAncestry?.desc && parse(fullAncestry?.desc)}</strong>
+                  </Grid.Item>
+                )}
+              </Grid>
+            </Collapse.Body>
+          </Collapse>
+        </Grid.Item>
       )}
-      {features &&
-        features?.length > 0 &&
-        features
-          ?.filter((feature) => feature?.raceId === fullRace.id)
-          .map((feature, featureIndex) => {
-            const fullFeature: Feature | AncestryFeature = fullRace.features?.find(
-              (aFeature) => aFeature.id === feature.id
-            )
-            return (
-              <Collapse key={featureIndex}>
-                <Collapse.Header title={fullFeature?.label} className={feature_card_header} />
+      {features
+        ?.filter((feature) => feature?.raceId === fullRace.id)
+        .map((feature, featureIndex) => {
+          return (
+            <Grid.Item key={featureIndex}>
+              <Collapse>
+                <Collapse.Header title={feature?.label} className={feature_card_header} />
                 <Collapse.Body>
-                  {fullFeature?.desc && parse(fullFeature?.desc)}
-                  {sectionSteps.map(
-                    (
-                      sectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>,
-                      nameIndex: number
-                    ) => (
-                      <Fragment key={nameIndex}>
-                        {fullFeature?.[sectionStep]?.length > 0 &&
-                          fullFeature?.[sectionStep].map((section) => {
-                            if (section.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-                              // Check if selectionCount exists and is greater than 0
-                              const selectionCount = section.selectionCount || 1
-
-                              // Repeat Dropdown component based on selectionCount
-                              const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                                const optionIndex = `${index}${featureIndex}`
-
-                                const { options, label, path, exist } = getSectionOptions({
-                                  section,
-                                  sectionStep,
-                                  optionIndex,
-                                })
-
-                                // Render the Dropdown component inside the loop
-                                return (
-                                  <Dropdown
-                                    key={index}
-                                    name={path}
-                                    className={option_dropdown}
-                                    label={`${label} Option`}
-                                    options={options}
-                                    onChange={updateFormData}
-                                    value={exist}
-                                  />
-                                )
-                              })
-
-                              return dropdowns
+                  <Grid>
+                    {feature?.desc && parse(feature?.desc)}
+                    {!(getFullFeature(feature)?.options?.length > 0) ? (
+                      sectionSteps.map(
+                        (sectionStep: SectionName) =>
+                          feature[sectionStep]?.length > 0 &&
+                          feature[sectionStep].map((section, sIndex) => {
+                            if (section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+                              return (
+                                <FeatureSection
+                                  key={sIndex}
+                                  section={section}
+                                  sectionStep={sectionStep}
+                                  featureIndex={featureIndex}
+                                  raceId={formData?.race}
+                                />
+                              )
                             }
-                          })}
-                      </Fragment>
-                    )
-                  )}
+                          })
+                      )
+                    ) : (
+                      <FeatureOption feature={feature} featureIndex={featureIndex} />
+                    )}
+                  </Grid>
                 </Collapse.Body>
               </Collapse>
-            )
-          })}
+            </Grid.Item>
+          )
+        })}
       {fullAncestry &&
-        features &&
-        features?.length > 0 &&
         features
           ?.filter((feature) => feature?.ancestryId != null)
-          .map((feature, fIndex) => {
-            const fullFeature: Feature | AncestryFeature = fullAncestry?.features?.find(
-              (aFeature) => aFeature.id === feature.id
-            )
+          .map((feature, featureIndex) => {
             return (
-              <Collapse key={fIndex}>
-                <Collapse.Header title={fullFeature?.label} className={feature_card_header} />
-                <Collapse.Body>
-                  {fullFeature?.desc && parse(fullFeature?.desc)}
-                  {sectionSteps.map(
-                    (
-                      sectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>,
-                      nameIndex: number
-                    ) => (
-                      <Fragment key={nameIndex}>
-                        {fullFeature?.[sectionStep]?.length > 0 &&
-                          fullFeature?.[sectionStep].map((section) => {
-                            if (section.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-                              // Check if selectionCount exists and is greater than 0
-                              const selectionCount = section.selectionCount || 1
-
-                              // Repeat Dropdown component based on selectionCount
-                              const dropdowns = Array.from({ length: selectionCount }, (_, index) => {
-                                const optionIndex = `${index}${fIndex}`
-
-                                const { options, label, path, exist } = getSectionOptions({
-                                  section,
-                                  sectionStep,
-                                  optionIndex,
-                                })
-
-                                // Render the Dropdown component inside the loop
+              <Grid.Item key={featureIndex}>
+                <Collapse>
+                  <Collapse.Header title={feature?.label} className={feature_card_header} />
+                  <Collapse.Body>
+                    <Grid>
+                      {feature?.desc && parse(feature?.desc)}
+                      {!(getFullFeature(feature)?.options?.length > 0) ? (
+                        sectionSteps.map(
+                          (sectionStep: SectionName) =>
+                            feature[sectionStep]?.length > 0 &&
+                            feature[sectionStep].map((section, sIndex) => {
+                              if (section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
                                 return (
-                                  <Dropdown
-                                    key={index}
-                                    name={path}
-                                    className={option_dropdown}
-                                    label={`${label} Option`}
-                                    options={options}
-                                    onChange={updateFormData}
-                                    value={exist}
+                                  <FeatureSection
+                                    key={sIndex}
+                                    section={section}
+                                    sectionStep={sectionStep}
+                                    featureIndex={featureIndex}
+                                    raceId={formData?.race}
                                   />
                                 )
-                              })
-
-                              return dropdowns
-                            }
-                          })}
-                      </Fragment>
-                    )
-                  )}
-                </Collapse.Body>
-              </Collapse>
+                              }
+                            })
+                        )
+                      ) : (
+                        <FeatureOption feature={feature} featureIndex={featureIndex} />
+                      )}
+                    </Grid>
+                  </Collapse.Body>
+                </Collapse>
+              </Grid.Item>
             )
           })}
     </>

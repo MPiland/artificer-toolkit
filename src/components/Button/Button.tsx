@@ -12,7 +12,6 @@ import clsx from 'clsx'
 import { ButtonColor } from '../../css/theme.css'
 import { Height, Size } from '../../css/size.css'
 import { BorderRadius } from '../../css/border.css'
-import { assignInlineVars } from '@vanilla-extract/dynamic'
 
 const Button = ({
   type,
@@ -49,14 +48,12 @@ const Button = ({
         button_radius[borderRadius],
         button_color[disabled ? 'main' : color],
         button_style[style],
+        button_width[width],
         className
       )}
       disabled={disabled}
       onClick={(e) => onClick(e)}
       name={name}
-      style={assignInlineVars({
-        [button_width]: width,
-      })}
       {...props}
     >
       <span className={button_content}>{children}</span>

@@ -9,6 +9,7 @@ input AncestryFeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
+  optionsByLevel: [OptionsByLevelInput]
   range: RangeInput
   shape: ShapeInput
   targets: Int
@@ -20,9 +21,7 @@ input AncestryFeatureInput {
   spells: [FeatureSpellInput]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }
 

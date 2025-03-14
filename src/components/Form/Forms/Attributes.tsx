@@ -18,7 +18,7 @@ import LimitUse from '../Subforms/LimitUse'
 import Multiclass from '../Subforms/Multiclass'
 import { Attributes, Categories, Durations, Ranges, Shapes } from '../../../types/enums'
 import { AllEnum, ClassesEnum, Equipment, EquipmentEnum, Feat, Spell, SpellEnum } from '../../../../amplify/gql/types'
-import { UpdateState } from '../../../types/form'
+import { FormDataType, UpdateState } from '../../../types/form'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
 import Group from '../../Group/Group'
@@ -27,7 +27,10 @@ import { TbPlus, TbX } from 'react-icons/tb'
 import { row_button } from '../Form.css'
 
 const AttributeForm = () => {
-  const { formData, updateFormData } = use(FormContext)
+  const {
+    formData,
+    updateFormData,
+  }: { formData: FormDataType; updateFormData: (state: UpdateState<FormDataType>) => void } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
 
@@ -69,7 +72,7 @@ const AttributeForm = () => {
             {
               condition: !(isWeapon || !isSpecial || doesDamage) && formData?.damage != null,
               cleanup: () =>
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'damage',
                 }),
@@ -80,7 +83,7 @@ const AttributeForm = () => {
             {
               condition: !doesDamage && formData?.damage != null,
               cleanup: () =>
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'damage',
                 }),
@@ -88,7 +91,7 @@ const AttributeForm = () => {
             {
               condition: !canUpcast && formData.upcast != null,
               cleanup: () =>
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'upcast',
                 }),
@@ -99,12 +102,12 @@ const AttributeForm = () => {
             {
               condition: !isSpellcaster && formData.spellcasting != null,
               cleanup: () => {
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'spellcasting',
                 })
                 formData.levelAttributes?.map((_, index) => {
-                  updateFormData<typeof formData>({
+                  updateFormData({
                     type: 'remove',
                     path: `levelAttributes.${index}.spellSlots`,
                   })
@@ -114,7 +117,7 @@ const AttributeForm = () => {
             {
               condition: formData?.category !== Categories.subclass && formData?.subtypes?.length > 0,
               cleanup: () => {
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'subtypes',
                 })
@@ -126,7 +129,7 @@ const AttributeForm = () => {
             {
               condition: !hasPrerequisites && formData.prerequisites != null,
               cleanup: () =>
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'prerequisites',
                 }),
@@ -134,7 +137,7 @@ const AttributeForm = () => {
             {
               condition: !equipmentProficiency && formData.prerequisites?.equipmentProficiencies?.length > 0,
               cleanup: () =>
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'prerequisites.equipmentProficiencies',
                 }),
@@ -142,7 +145,7 @@ const AttributeForm = () => {
             {
               condition: !equipped && formData.prerequisites?.equipped?.length > 0,
               cleanup: () =>
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'prerequisites.equipped',
                 }),
@@ -150,7 +153,7 @@ const AttributeForm = () => {
             {
               condition: !notEquipped && formData.prerequisites?.notEquipped?.length > 0,
               cleanup: () =>
-                updateFormData<typeof formData>({
+                updateFormData({
                   type: 'remove',
                   path: 'prerequisites.notEquipped',
                 }),
@@ -184,7 +187,7 @@ const AttributeForm = () => {
     if (formData?.__typename !== 'Class' || formData.category !== Categories.subclass || formData?.subtypes?.length > 0)
       return
 
-    updateFormData<typeof formData>({
+    updateFormData({
       type: 'add',
       path: 'subtypes',
     })
@@ -209,7 +212,7 @@ const AttributeForm = () => {
             formData.__typename !== 'Character' && (
               <>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown<typeof formData>
+                  <Dropdown
                     multiSelect={true}
                     name='attributes'
                     label={`${startCase(formData.__typename)} Attributes`}
@@ -261,7 +264,7 @@ const AttributeForm = () => {
                 </Grid.Item>
                 {formData.__typename === 'Equipment' && stackable && (
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input<typeof formData>
+                    <Input
                       validation={'num'}
                       type='text'
                       name='maxStack'
@@ -278,7 +281,7 @@ const AttributeForm = () => {
           {(formData.__typename === 'Spell' || formData.__typename === 'Feat') && isAction && (
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name={'actions.primary.id'}
                   label={formData.__typename === 'Spell' ? 'Casting Time' : 'Action Type'}
                   value={formData?.actions.primary.id}
@@ -289,7 +292,7 @@ const AttributeForm = () => {
               </Grid.Item>
               {!specialPrimaryAction && (
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Input<typeof formData>
+                  <Input
                     validation='num'
                     name='actions.primary.amount'
                     label='Casting Increment'
@@ -306,7 +309,7 @@ const AttributeForm = () => {
               {secondaryAction && (
                 <>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
+                    <Dropdown
                       name='actions.secondary.id'
                       label='Sec. Action'
                       value={formData?.actions.secondary?.id}
@@ -317,7 +320,7 @@ const AttributeForm = () => {
                   </Grid.Item>
                   {!specialSecondaryAction && (
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input<typeof formData>
+                      <Input
                         validation='num'
                         name='actions.secondary.amount'
                         label='Sec. Increment'
@@ -330,7 +333,7 @@ const AttributeForm = () => {
                 </>
               )}
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='duration'
                   label='Duration'
                   value={formData?.duration?.id}
@@ -344,7 +347,7 @@ const AttributeForm = () => {
                 formData.duration?.id !== Durations.untilDispelled &&
                 formData.duration?.id !== Durations.special && (
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input<typeof formData>
+                    <Input
                       validation='num'
                       name='duration.amount'
                       errorMsg='Must contain only numbers'
@@ -357,7 +360,7 @@ const AttributeForm = () => {
                   </Grid.Item>
                 )}
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='range.id'
                   label='Range'
                   value={formData?.range?.id}
@@ -372,7 +375,7 @@ const AttributeForm = () => {
                 formData.range?.id !== Ranges.self && (
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input<typeof formData>
+                      <Input
                         validation='num'
                         name='range.minRange'
                         errorMsg='Please enter a valid number greater than 0'
@@ -384,7 +387,7 @@ const AttributeForm = () => {
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input<typeof formData>
+                      <Input
                         validation='num'
                         name='range.maxRange'
                         errorMsg='Please enter a valid number greater than 0'
@@ -396,7 +399,7 @@ const AttributeForm = () => {
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown<typeof formData>
+                      <Dropdown
                         name='range.unit'
                         label='UoM'
                         value={formData?.range?.unit}
@@ -409,7 +412,7 @@ const AttributeForm = () => {
                   </>
                 )}
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='shape.id'
                   label='Shape'
                   options={system.spells.shapes}
@@ -420,7 +423,7 @@ const AttributeForm = () => {
               {formData?.shape?.id && formData.shape?.id !== Shapes.none && formData.shape?.id !== Shapes.weapon && (
                 <>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input<typeof formData>
+                    <Input
                       validation='cur'
                       name='shape.size'
                       errorMsg='Please enter a valid number (can inlude decimals)'
@@ -432,7 +435,7 @@ const AttributeForm = () => {
                     />
                   </Grid.Item>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
+                    <Dropdown
                       name='shape.unit'
                       label='UoM'
                       value={formData?.shape?.unit}
@@ -447,7 +450,7 @@ const AttributeForm = () => {
               )}
               {formData.__typename === 'Spell' && (
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Input<typeof formData>
+                  <Input
                     name='targets'
                     label='# of Targets'
                     validation='num'
@@ -460,7 +463,7 @@ const AttributeForm = () => {
               )}
               {formData?.attributes?.some((attribute) => attribute === Attributes.appliesCondition) && (
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown<typeof formData>
+                  <Dropdown
                     name='conditions'
                     label='Condition'
                     value={formData?.conditions}
@@ -481,7 +484,7 @@ const AttributeForm = () => {
                 {formData.__typename !== 'Class' && (
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown<typeof formData>
+                      <Dropdown
                         name='saveAbility'
                         label='DC Ability'
                         value={formData?.saveAbility.id}
@@ -494,7 +497,7 @@ const AttributeForm = () => {
                       (attribute) => attribute === Attributes.addAbilityModifier
                     ) && (
                       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                        <Dropdown<typeof formData>
+                        <Dropdown
                           name='saveAbility.abilityModifier'
                           label='Modifier Ability'
                           value={formData?.saveAbility?.abilityModifier}
@@ -506,7 +509,7 @@ const AttributeForm = () => {
                     )}
                     {formData.__typename !== 'Spell' && (
                       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                        <Input<typeof formData>
+                        <Input
                           validation='num'
                           name={`saveAbility.minAmount`}
                           autoComplete='off'
@@ -541,11 +544,7 @@ const AttributeForm = () => {
                   {formData.subtypes?.map((subtype, index) => (
                     <>
                       <Grid.Item key={index} colSpan={6}>
-                        <Input<typeof formData>
-                          name={`subtypes.${index}.label`}
-                          value={subtype.label}
-                          onChange={updateFormData}
-                        />
+                        <Input name={`subtypes.${index}.label`} value={subtype.label} onChange={updateFormData} />
                       </Grid.Item>
                       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
                         <Group
@@ -602,7 +601,7 @@ const AttributeForm = () => {
           <Grid.Item>
             <Grid>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Input<typeof formData>
+                <Input
                   validation='num'
                   name='armorClass'
                   errorMsg='Must contain only numbers'
@@ -614,7 +613,7 @@ const AttributeForm = () => {
               </Grid.Item>
               {isArmor && (
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown<typeof formData>
+                  <Dropdown
                     name='primaryAbility'
                     label='Primary Ability'
                     value={formData?.primaryAbility}
@@ -628,7 +627,9 @@ const AttributeForm = () => {
         </>
       )}
       {formData.__typename === 'Spell' && canUpcast && <Upcast formData={formData} updateFormData={updateFormData} />}
-      {formData.__typename === 'Feat' && limitUse && <LimitUse formData={formData} updateFormData={updateFormData} />}
+      {formData.__typename === 'Feat' && limitUse && (
+        <LimitUse formData={formData} updateFormData={updateFormData as (state: UpdateState<Feat>) => void} />
+      )}
       {formData.__typename === 'Feat' && hasPrerequisites && (
         <Requirements formData={formData} updateFormData={updateFormData as (state: UpdateState<Feat>) => void} />
       )}

@@ -5,7 +5,6 @@ type Feat {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestry]
   attributes: [ID]
   actions: ActionGroup
   primaryDamage: Damage

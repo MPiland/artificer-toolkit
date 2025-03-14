@@ -89,6 +89,9 @@ const mapping = {
       newKey: 'feats',
     },
   },
+  feature: {
+    newKey: 'features',
+  },
   '*': {
     type: {
       replace: (obj) => {
@@ -148,17 +151,7 @@ const mapping = {
           }
         }
       },
-      excludeParent: [
-        'duration',
-        'range',
-        'shape',
-        'saveAbility',
-        'primary',
-        'secondary',
-        'bonus',
-        'versatile',
-        'equipment',
-      ],
+      excludeParent: ['duration', 'range', 'shape', 'saveAbility', 'primary', 'secondary', 'bonus', 'versatile'],
     },
   },
 }

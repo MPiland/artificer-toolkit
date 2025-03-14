@@ -6,30 +6,39 @@ import Tabs from '../../../../Tabs/Tabs'
 import Button from '../../../../Button/Button'
 import ClassSpells from './ClassSpells'
 import ClassProficiencies from './ClassProficiencies'
-import ClassFeatures from './ClassFeatures'
-import { Character, CharacterClass as CharacterClassType, Class } from '../../../../../../amplify/gql/types'
+import ClassFeatures from './Features/ClassFeatures'
+import { Character, CharacterClass as CharacterClassType } from '../../../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
 import { UpdateState } from '../../../../../types/form'
 import { parseDiceRoll } from '../../../../../utils/dice'
 import { RollConfig } from '../../../../../types/components'
 import Grid from '../../../../Grid/Grid'
+import { use } from 'react'
+import { FormContext } from '../../../FormContext'
+import { useListClassesQuery } from '../../../../../features/classes/classesApi'
 
 const CharacterClass = ({
   uClass,
-  fullClass,
-  classIndex,
   handleRemoveClass,
-  updateFormData,
-  formData,
 }: {
   uClass: CharacterClassType
-  fullClass: Class
-  classIndex: number
   handleRemoveClass: () => void
-  updateFormData: (state: UpdateState<Character>) => void
-  formData: Character
 }) => {
   const { data: system } = useGetSystemQuery()
+  const { data: classes } = useListClassesQuery()
+
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: Character
+    updateFormData: (state: UpdateState<Character>) => void
+  }
+
+  const fullClass = classes.find((c) => c.id === uClass.id)
+
+  const classIndex = formData.classes.findIndex((c) => c.id === uClass.id)
+
+  const subclasses = classes.filter((sClass) => sClass.parentClass === uClass.id)
+
+  const subclass = subclasses.find((sSubclass) => uClass?.subclass?.id === sSubclass.id)
 
   const minLevelSpellcasting = fullClass.levelAttributes?.find(
     (levelAttribute) => levelAttribute.spellSlots?.length > 0
@@ -87,36 +96,16 @@ const CharacterClass = ({
                 </Collapse.Body>
               </Collapse>
             </Grid.Item>
-            {fullClass.proficiencies?.length > 0 && (
-              <ClassProficiencies
-                fullClass={fullClass}
-                uClass={uClass}
-                classIndex={classIndex}
-                formData={formData}
-                updateFormData={updateFormData}
-              />
-            )}
+            {fullClass.proficiencies?.length > 0 && <ClassProficiencies fullClass={fullClass} />}
             {fullClass.features && fullClass.features.length > 0 && (
-              <ClassFeatures
-                uClass={uClass}
-                fullClass={fullClass}
-                classIndex={classIndex}
-                formData={formData}
-                updateFormData={updateFormData}
-              />
+              <ClassFeatures fullClass={fullClass} subclass={subclass} subclasses={subclasses} />
             )}
           </Grid>
         </Tabs.Panel>
         {fullClass.spellcasting && uClass.level >= minLevelSpellcasting && (
           <Tabs.Panel>
             <Grid>
-              <ClassSpells
-                uClass={uClass}
-                fullClass={fullClass}
-                classIndex={classIndex}
-                formData={formData}
-                updateFormData={updateFormData}
-              />
+              <ClassSpells fullClass={fullClass} />
             </Grid>
           </Tabs.Panel>
         )}

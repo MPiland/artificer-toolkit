@@ -1245,7 +1245,7 @@
     "value": "hillDwarf",
     "label": "Hill Dwarf",
     "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
-    "lineage": [
+    "lineages": [
       "fb2ed668-5681-4a70-b685-30aedda2c544"
     ],
     "desc": "<p>As a hill dwarf, you have keen senses, deep intuition, and remarkable resilience. The gold dwarves of Faerûn in their mighty southern kingdom are hill dwarves, as are the exiled Neidar and the debased Klar of Krynn in the Dragonlance setting.</p>",
@@ -1548,7 +1548,7 @@
     "label": "High Elf",
     "desc": "<p>As a high elf, you have a keen mind and a mastery of at least the basics of magic. In many of the worlds of D&amp;D, there are two kinds of high elves. One type (which includes the gray elves and valley elves of Greyhawk, the Silvanesti of Dragonlance, and the sun elves of the Forgotten Realms) is haughty and reclusive, believing themselves to be superior to non-elves and even other elves. The other type (including the high elves of Greyhawk, the Qualinesti of Dragonlance, and the moon elves of the Forgotten Realms) are more common and more friendly, and often encountered among humans and other races.</p><p>The sun elves of Faerûn (also called gold elves or sunrise elves) have bronze skin and hair of copper, black, or golden blond. Their eyes are golden, silver, or black. Moon elves (also called silver elves or gray elves) are much paler, with alabaster skin sometimes tinged with blue. They often have hair of silver-white, black, or blue, but various shades of blond, brown, and red are not uncommon. Their eyes are blue or green and flecked with gold.</p>",
     "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
-    "lineage": [
+    "lineages": [
       "b849af0f-d516-4278-8de3-e82deba4b595"
     ],
     "features": [
@@ -1792,7 +1792,7 @@
     "label": "Lightfoot Halfling",
     "desc": "<p>As a lightfoot halfling, you can easily hide from notice, even using other people as cover. You’re inclined to be affable and get along well with others. In the Forgotten Realms, lightfoot halflings have spread the farthest and thus are the most common variety.</p><p>Lightfoots are more prone to wanderlust than other halflings, and often dwell alongside other races or take up a nomadic life. In the world of Greyhawk, these halflings are called hairfeet or tallfellows.</p>",
     "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
-    "lineage": [
+    "lineages": [
       "f7094296-51b5-41ec-a54b-2bf11921abb8"
     ],
     "features": [
@@ -2088,7 +2088,7 @@
     "label": "Rock Gnome",
     "desc": "<p>As a rock gnome, you have a natural inventiveness and hardiness beyond that of other gnomes.</p>",
     "category": "75a580dc-6990-4c05-9853-1534c5be77f7",
-    "lineage": [
+    "lineages": [
       "d298a37b-e263-4037-a0cb-e433610d0c3f"
     ],
     "traits": {

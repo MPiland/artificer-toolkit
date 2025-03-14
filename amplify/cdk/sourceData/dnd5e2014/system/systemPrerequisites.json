@@ -71,7 +71,7 @@
     "label": "Option Not Obtained",
     "id": "3fe944fc-a9d5-4afa-929a-c8b2805d70e3",
     "sections": ["all"],
-    "features": ["all"]
+    "features": ["options"]
   },
   {
     "id": "293010e4-fe1f-4982-8a80-6a232eafe19f",

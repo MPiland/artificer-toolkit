@@ -1,33 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { set as lSet, get, camelCase, PropertyPath } from 'lodash'
+import { set as lSet, get, camelCase, PropertyPath, has } from 'lodash'
 import { produce } from 'immer'
 import { FormDataType, SectionDataType } from '../types/form'
 import { formSlice, FormSlice } from './formSlice'
 import { featureSlice, FeatureSlice } from './featureSlice'
 import { optionSlice, OptionSlice } from './optionsSlice'
-import { AncestryOption, Feature, FeatureOption, FeatureSubfeature } from '../../amplify/gql/types'
+import { AncestryOption, Feature, FeatureOption } from '../../amplify/gql/types'
 import { SectionSlice, sectionSlice } from './sectionSlice'
-import { subfeatureSlice, SubfeatureSlice } from './subfeatureSlice'
 import { ancestrySlice, AncestrySlice } from './ancestrySlice'
 import { diceSlice, DiceSlice } from './diceSlice'
 
-export type SupportedStates =
-  | FormDataType
-  | Feature
-  | FeatureOption
-  | AncestryOption
-  | SectionDataType
-  | FeatureSubfeature
-  | DiceSlice
+export type SupportedStates = FormDataType | Feature | FeatureOption | AncestryOption | SectionDataType | DiceSlice
 
-export type CombinedSlice = FormSlice &
-  FeatureSlice &
-  OptionSlice &
-  SectionSlice &
-  SubfeatureSlice &
-  AncestrySlice &
-  DiceSlice
+export type CombinedSlice = FormSlice & FeatureSlice & OptionSlice & SectionSlice & AncestrySlice & DiceSlice
 
 const isNumber = (str: string): boolean => {
   return !isNaN(parseFloat(str)) && isFinite(Number(str))
@@ -45,20 +31,28 @@ export const addField = ({
   return (state: CombinedSlice) => {
     return produce(state, (draft) => {
       const targetState = selector(draft)
-      const existing = get(targetState, path)
+      const pathExists = has(targetState, path)
 
-      if (existing != null && existing.length > 0) {
-        if (!value) {
-          // If existing is an array of arrays, add a new array
-          if (Array.isArray(existing) && existing.length > 0 && Array.isArray(existing[0])) {
-            lSet(targetState, path, [...get(targetState, path), []])
+      if (pathExists) {
+        console.log('existing')
+        const existing = get(targetState, path)
+
+        if (Array.isArray(existing) && existing.length > 0) {
+          if (!value) {
+            // If existing is an array of arrays, add a new array
+            if (existing.length > 0 && Array.isArray(existing[0])) {
+              lSet(targetState, path, [...existing, []])
+            } else {
+              lSet(targetState, path, [...existing, {}])
+            }
           } else {
-            lSet(targetState, path, [...get(targetState, path), {}])
+            lSet(targetState, path, value)
           }
         } else {
-          lSet(targetState, path, value)
+          lSet(targetState, path, value || [{}])
         }
       } else {
+        console.log('new')
         lSet(targetState, path, value || [{}])
       }
     })
@@ -158,7 +152,6 @@ export const useStore = create<CombinedSlice>()(
       ...featureSlice(...a),
       ...optionSlice(...a),
       ...sectionSlice(...a),
-      ...subfeatureSlice(...a),
       ...ancestrySlice(...a),
       ...diceSlice(...a),
     }),

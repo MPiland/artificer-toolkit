@@ -188,7 +188,7 @@ export const dropdown_option_right_side = style({
 export const dropdown_active_option = style({
   '@layer': {
     [app]: {
-      backgroundImage: 'linear-gradient(rgb(0 0 0/10%) 0 0)',
+      backgroundColor: theme.vars.component.dropdown.activeOption.backgroundColor,
       borderRadius: '.75rem',
       width: 'fit-content',
       overflow: 'hidden',

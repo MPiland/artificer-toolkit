@@ -5,6 +5,7 @@ enum FeatureEnumInput {
   saveAbilities
   options
   equipment
+  features
 }
 
 enum DamageEnumInput {
@@ -39,6 +40,7 @@ enum EquipmentEnumInput {
   weapons
   armors
   tools
+  backgrounds
 }
 
 enum ClassesEnumInput {

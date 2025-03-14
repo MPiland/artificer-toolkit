@@ -66,6 +66,21 @@ type Subtype {
   value: String!
 }
 
+type ClassCurrency {
+  id: ID!
+  amount: Int
+}
+
+type ClassEquipment {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [ClassCurrency]
+}
+
 type Class {
   id: ID!
   label: String!
@@ -76,7 +91,7 @@ type Class {
   details: [Detail]
   hitpoint: Hitpoint
   startingGold: StartingGold
-  equipment: [[[EquipmentGroup]]]
+  equipment: [[[ClassEquipment]]]
   proficiencies: [FeatureProficiency]
   spellcasting: Spellcasting
   levelAttributes: [LevelAttribute]

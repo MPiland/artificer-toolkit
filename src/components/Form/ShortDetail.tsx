@@ -1,44 +1,26 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { getValueFromState } from '../../utils/formatting'
 import Button from '../Button/Button'
-import { form_detail_body, form_detail_main, form_detail_title } from './Form.css'
 import Modal from '../Modal/Modal'
-import { sprinkles } from '../../css/sprinkles.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { startCase } from 'lodash'
-import ClassShort from '../../features/classes/ClassShort'
-import RaceShort from '../../features/races/RaceShort'
+import ClassShort from './Subforms/Character/Class/ClassShort'
+import RaceShort from './Subforms/Character/Race/RaceShort'
 import { use } from 'react'
 import { FormContext } from './FormContext'
 import { Race, Class, Character } from '../../../amplify/gql/types'
 import { UpdateState } from '../../types/form'
 import Grid from '../Grid/Grid'
 
-type colType = {
-  header: string
-  name: string | any[]
-  truncate?: number
-  filter?: undefined | string[]
-}
+const ShortDetail = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
 
-interface FormDetailProps {
-  cols?: colType[]
-  colsData?: any
-  footer?: any
-  footerSpacing?: 'spaceBetween' | 'center' | 'end' | 'start' | undefined
-}
-
-const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
   const { formData, setChangeRace, setAddClass, updateFormData } = use(FormContext) as {
     formData: Character
     setChangeRace: (arg: boolean) => void
     setAddClass: (arg: boolean) => void
     updateFormData: (arg: UpdateState<Character>) => void
   }
-
-  console.log({ formData })
-  const navigate = useNavigate()
-  const location = useLocation()
 
   const item = location.state.item as Race | Class
 
@@ -73,28 +55,9 @@ const ShortDetail = ({ cols, colsData }: FormDetailProps) => {
       <Modal.Dialogue>
         <Modal.Header title={item.label} />
         <Modal.Content>
-          {colsData && cols && (
-            <>
-              <Grid className={sprinkles({ mb: 'space-2' })}>
-                {cols?.map((colItem, colIndex) => {
-                  return (
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 3 }} key={colIndex}>
-                      <div className={form_detail_title}>{colItem.header}</div>
-                      <div>
-                        {getValueFromState({ input: colItem, state: colsData, truncateNum: colItem?.truncate })}
-                      </div>
-                    </Grid.Item>
-                  )
-                })}
-              </Grid>
-              <hr />
-            </>
-          )}
-          <div className={form_detail_main}>
-            <ScrollArea scrollDirection='vertical' wrapperClassName={form_detail_body} id='detailBody'>
-              {item.__typename === 'Class' ? <ClassShort /> : <RaceShort />}
-            </ScrollArea>
-          </div>
+          <ScrollArea>
+            <Grid>{item.__typename === 'Class' ? <ClassShort /> : <RaceShort />}</Grid>
+          </ScrollArea>
         </Modal.Content>
         <Modal.Footer>
           <Button color='primary' onClick={handleSelect}>{`Select ${startCase(item.__typename)}`}</Button>

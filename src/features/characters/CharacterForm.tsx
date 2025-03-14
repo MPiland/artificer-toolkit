@@ -2,7 +2,6 @@ import { useEffect, use } from 'react'
 import Form from '../../components/Form/Form'
 import { Step } from '../../types/form'
 import { useAddNewCharacterMutation, useUpdateCharacterMutation } from './charactersApi'
-import { Outlet } from 'react-router-dom'
 import { FormContext } from '../../components/Form/FormContext'
 import { isEqual } from 'lodash'
 
@@ -14,8 +13,8 @@ const CharacterForm = () => {
     { id: 'race', label: 'Race' },
     { id: 'class', label: 'Class' },
     { id: 'abilities', label: 'Abilities' },
-    { id: 'equipment', label: 'Equipment' },
     { id: 'background', label: 'Background' },
+    { id: 'equipment', label: 'Equipment' },
   ] satisfies Step[]
 
   useEffect(() => {
@@ -24,12 +23,7 @@ const CharacterForm = () => {
     }
   }, [setSteps, stepsArray, steps])
 
-  return (
-    <>
-      <Form useUpdateItemMutation={useUpdateCharacterMutation} useAddNewItemMutation={useAddNewCharacterMutation} />
-      <Outlet />
-    </>
-  )
+  return <Form useUpdateItemMutation={useUpdateCharacterMutation} useAddNewItemMutation={useAddNewCharacterMutation} />
 }
 
 export default CharacterForm

@@ -1,5 +1,4 @@
 import Collapse from '../Collapse/Collapse'
-// import Row from '../Row/Row'
 // import Dropdown from '../Dropdown/Dropdown'
 // import Input from '../Input/Input'
 import { useMediaQuery } from 'usehooks-ts'
@@ -21,7 +20,7 @@ const Filter = () => {
     <Collapse style='borderless'>
       <Collapse.Header title={'Filters'} startOpened={!sm} />
       <Collapse.Body>
-        {/* <Row>
+        {/*
           <Input
             name='value'
             label={`${startCase(context)} Name`}
@@ -192,7 +191,7 @@ const Filter = () => {
               />
             </>
           )}
-        </Row> */}
+         */}
       </Collapse.Body>
     </Collapse>
   )

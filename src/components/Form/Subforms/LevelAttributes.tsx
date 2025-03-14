@@ -58,93 +58,95 @@ const LevelAttributes = ({
   }
 
   return (
-    <Collapse>
-      <Collapse.Header title={'Level Attributes'} startOpened={formData.id == null} />
-      <Collapse.Body>
-        <Grid>
-          <Grid.Item>
-            <Grid>
-              <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-              {hasResourcePoints && (
-                <Grid.Item colSpan={'auto'}>{formData.resource?.label ?? 'Resource'} Points</Grid.Item>
-              )}
-              {isSpellcaster && (
-                <>
-                  <Grid.Item colSpan={'auto'}>Cantrips Known</Grid.Item>
-                  {limitKnownSpells && <Grid.Item colSpan={'auto'}>Spells Known</Grid.Item>}
-                  {formData.spellcasting?.maxSpellLevel &&
-                    spellSlots().labels.map((label, lIndex) => (
-                      <Grid.Item key={lIndex} colSpan={'auto'}>
-                        {label}
-                      </Grid.Item>
-                    ))}
-                </>
-              )}
-            </Grid>
-          </Grid.Item>
-          {formData?.levelAttributes?.map((setLevel, index) => (
-            <Grid.Item key={index}>
+    <Grid.Item>
+      <Collapse>
+        <Collapse.Header title={'Level Attributes'} startOpened={formData.id == null} />
+        <Collapse.Body>
+          <Grid>
+            <Grid.Item>
               <Grid>
-                <Grid.Item colSpan={'auto'}>
-                  <Input
-                    name={`levelAttributes.${index}.level`}
-                    value={setLevel.level}
-                    validation='num'
-                    errorMsg='Please enter a whole number'
-                    onChange={updateFormData}
-                    required={true}
-                  />
-                </Grid.Item>
+                <Grid.Item colSpan={'auto'}>Level</Grid.Item>
                 {hasResourcePoints && (
-                  <Grid.Item colSpan={'auto'}>
-                    <Input
-                      name={`levelAttributes.${index}.resourcePoints`}
-                      value={setLevel.resourcePoints}
-                      validation='num'
-                      errorMsg='Please enter a whole number'
-                      onChange={updateFormData}
-                      required={true}
-                    />
-                  </Grid.Item>
+                  <Grid.Item colSpan={'auto'}>{formData.resource?.label ?? 'Resource'} Points</Grid.Item>
                 )}
                 {isSpellcaster && (
                   <>
-                    <Grid.Item colSpan={'auto'}>
-                      <Input
-                        name={`levelAttributes.${index}.cantripsKnownLimit`}
-                        value={setLevel.cantripsKnownLimit}
-                        validation='num'
-                        errorMsg='Please enter a whole number'
-                        onChange={updateFormData}
-                        required={true}
-                      />
-                    </Grid.Item>
-                    {limitKnownSpells && (
-                      <Grid.Item colSpan={'auto'}>
-                        <Input
-                          name={`levelAttributes.${index}.spellsKnownLimit`}
-                          value={setLevel.spellsKnownLimit}
-                          validation='num'
-                          errorMsg='Please enter a whole number'
-                          onChange={updateFormData}
-                          required={true}
-                        />
-                      </Grid.Item>
-                    )}
+                    <Grid.Item colSpan={'auto'}>Cantrips Known</Grid.Item>
+                    {limitKnownSpells && <Grid.Item colSpan={'auto'}>Spells Known</Grid.Item>}
                     {formData.spellcasting?.maxSpellLevel &&
-                      spellSlots(index).inputs.map((input, iIndex) => (
-                        <Grid.Item key={iIndex} colSpan={'auto'}>
-                          {input}
+                      spellSlots().labels.map((label, lIndex) => (
+                        <Grid.Item key={lIndex} colSpan={'auto'}>
+                          {label}
                         </Grid.Item>
                       ))}
                   </>
                 )}
               </Grid>
             </Grid.Item>
-          ))}
-        </Grid>
-      </Collapse.Body>
-    </Collapse>
+            {formData?.levelAttributes?.map((setLevel, index) => (
+              <Grid.Item key={index}>
+                <Grid>
+                  <Grid.Item colSpan={'auto'}>
+                    <Input
+                      name={`levelAttributes.${index}.level`}
+                      value={setLevel.level}
+                      validation='num'
+                      errorMsg='Please enter a whole number'
+                      onChange={updateFormData}
+                      required={true}
+                    />
+                  </Grid.Item>
+                  {hasResourcePoints && (
+                    <Grid.Item colSpan={'auto'}>
+                      <Input
+                        name={`levelAttributes.${index}.resourcePoints`}
+                        value={setLevel.resourcePoints}
+                        validation='num'
+                        errorMsg='Please enter a whole number'
+                        onChange={updateFormData}
+                        required={true}
+                      />
+                    </Grid.Item>
+                  )}
+                  {isSpellcaster && (
+                    <>
+                      <Grid.Item colSpan={'auto'}>
+                        <Input
+                          name={`levelAttributes.${index}.cantripsKnownLimit`}
+                          value={setLevel.cantripsKnownLimit}
+                          validation='num'
+                          errorMsg='Please enter a whole number'
+                          onChange={updateFormData}
+                          required={true}
+                        />
+                      </Grid.Item>
+                      {limitKnownSpells && (
+                        <Grid.Item colSpan={'auto'}>
+                          <Input
+                            name={`levelAttributes.${index}.spellsKnownLimit`}
+                            value={setLevel.spellsKnownLimit}
+                            validation='num'
+                            errorMsg='Please enter a whole number'
+                            onChange={updateFormData}
+                            required={true}
+                          />
+                        </Grid.Item>
+                      )}
+                      {formData.spellcasting?.maxSpellLevel &&
+                        spellSlots(index).inputs.map((input, iIndex) => (
+                          <Grid.Item key={iIndex} colSpan={'auto'}>
+                            {input}
+                          </Grid.Item>
+                        ))}
+                    </>
+                  )}
+                </Grid>
+              </Grid.Item>
+            ))}
+          </Grid>
+        </Collapse.Body>
+      </Collapse>
+    </Grid.Item>
   )
 }
 

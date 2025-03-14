@@ -18,16 +18,13 @@ type Cost {
   currency: ID!
 }
 
-type EquipmentCurrency {
-  id: ID!
-  amount: Int
-}
-
 type Contains {
-  equipment: ID!
+  id: ID!
   quantity: Int!
+  equipped: Boolean
+  attuned: Boolean
   contains: [Contains]
-  currencies: [EquipmentCurrency]
+  possessions: [Possessions]
 }
 
 type EquipmentRange {

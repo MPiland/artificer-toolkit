@@ -14,6 +14,7 @@ import { FormContext } from '../FormContext'
 import AbilityCard from '../Subforms/Ability/AbilityCard'
 import Grid from '../../Grid/Grid'
 import Input from '../../Input/Input'
+import Collapse from '../../Collapse/Collapse'
 
 const AbilitiesForm = () => {
   const { data: system } = useGetSystemQuery()
@@ -23,11 +24,9 @@ const AbilitiesForm = () => {
     updateFormData: (formData: UpdateState<Character>) => void
   }
 
-  const form: HTMLFormElement = document.getElementById('form_content') as HTMLFormElement
+  const form: HTMLFormElement = document.getElementById('form-content') as HTMLFormElement
 
   const pointSystem = useMemo(() => formData.abilities?.selectedSystem, [formData.abilities?.selectedSystem])
-
-  console.log({ test: pointSystem === AbilityGenerate.manual })
 
   return (
     <Grid>
@@ -56,28 +55,23 @@ const AbilitiesForm = () => {
           )}
         </Grid>
       </Grid.Item>
-      {pointSystem === AbilityGenerate.pointBuy && (
-        <Grid.Item>
-          <PointBuy formData={formData} updateFormData={updateFormData} />
-        </Grid.Item>
-      )}
+      {pointSystem === AbilityGenerate.pointBuy && <PointBuy formData={formData} updateFormData={updateFormData} />}
       {pointSystem === AbilityGenerate.manual && <ManualArray formData={formData} updateFormData={updateFormData} />}
       {pointSystem === AbilityGenerate.standardArray && (
-        <Grid.Item>
-          <StandardArray formData={formData} updateFormData={updateFormData} />
-        </Grid.Item>
+        <StandardArray formData={formData} updateFormData={updateFormData} />
       )}
       <Grid.Item>
-        <Grid>
-          {formData.abilities?.scores?.map((score, index) => {
-            const ability = system.abilities.find((ability) => ability.id === score.ability)
-            return (
-              <Grid.Item key={index} colSpan={{ sm: 12, md: 4 }}>
-                <AbilityCard key={index} score={score} ability={ability} />
-              </Grid.Item>
-            )
-          })}
-        </Grid>
+        <Collapse>
+          <Collapse.Header title='Abilities' startOpened={true} />
+          <Collapse.Body>
+            <Grid>
+              {formData.abilities?.scores?.map((score, index) => {
+                const ability = system.abilities.find((ability) => ability.id === score.ability)
+                return <AbilityCard key={index} score={score} ability={ability} />
+              })}
+            </Grid>
+          </Collapse.Body>
+        </Collapse>
       </Grid.Item>
     </Grid>
   )

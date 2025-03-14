@@ -58,6 +58,11 @@ export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
     data.spellcasting != null &&
     'attributes' in data.spellcasting &&
     data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.preparesSpells)
+  const usesSpellbook =
+    'spellcasting' in data &&
+    data.spellcasting != null &&
+    'attributes' in data.spellcasting &&
+    data?.spellcasting?.attributes?.some((attribute) => attribute === Attributes.usesSpellbook)
   const spellsByLevel =
     'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.spellsByLevel)
   const classLimit = 'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.classLimit)
@@ -70,6 +75,10 @@ export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
     'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific)
   const providesOptions =
     'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
+  const selectCountByLevel =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.selectCountByLevel)
+  const replaceAtLevel =
+    'attributes' in data && data?.attributes?.some((attribute) => attribute === Attributes.replaceAtLevel)
 
   // Prerequisites
   const notEquipped =
@@ -172,6 +181,9 @@ export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
     providesOptions,
     magicName,
     preparesSpells,
+    selectCountByLevel,
+    replaceAtLevel,
+    usesSpellbook,
 
     // Prerequisites
     notEquipped,

@@ -13,20 +13,6 @@ type SaveAbility {
   abilityModifier: ID
 }
 
-type EquipmentGroup {
-  attributes: [ID]
-  selectionCount: Int
-  category: ID
-  equipment: [ID]
-  properties: [ID]
-  quantity: Int
-  copper: Int
-  silver: Int
-  electrum: Int
-  gold: Int
-  platinum: Int
-}
-
 ## Damage Related
 
 type DamageFields {
@@ -224,7 +210,7 @@ type FeatureSense {
   selectionCount: Int
   subtype: ID
   ids: [ID!]
-  prerequisites: Prerequisite 
+  prerequisites: Prerequisite
 }
 
 type SpellsByLevel {
@@ -249,15 +235,6 @@ type FeatureSpell {
   charges: Charge
 }
 
-type FeatureAncestry {
-  id: ID!
-  attributes: [ID]
-  origin: ID
-  options: [ID]
-  selectionCount: Int
-  subtype: ID
-}
-
 type ActionProperty {
   id: ID
   amount: Int
@@ -268,31 +245,10 @@ type ActionGroup {
   secondary: ActionProperty
 }
 
-type FeatureSubfeature {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  ancestries: [FeatureAncestry]
-  attributes: [ID]
-  actions: ActionGroup
-  damage: Damage
-  charges: Charge
-  range: Range
-  shape: Shape
-  targets: Int
-  feats: [FeatureFeat]
-  modifiers: [FeatureModifier]
-  proficiencies: [FeatureProficiency]
-  expertise: [FeatureExpertise]
-  senses: [FeatureSense]
-  spells: [FeatureSpell]
-  prerequisites: Prerequisite
-  saveAbility: SaveAbility
-  selectionCount: Int
-  levelAvailable: String
+type OptionsByLevel {
+  level: Int
+  count: Int
+  replaceCount: Int
 }
 
 type FeatureOption {
@@ -302,7 +258,6 @@ type FeatureOption {
   desc: String
   detail: String
   category: ID
-  ancestries: [FeatureAncestry]
   attributes: [ID]
   actions: ActionGroup
   damage: Damage
@@ -318,9 +273,7 @@ type FeatureOption {
   spells: [FeatureSpell]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeature]
 }
 
 type Feature {
@@ -330,11 +283,11 @@ type Feature {
   desc: String
   detail: String
   category: ID
-  ancestries: [FeatureAncestry]
   attributes: [ID]
   actions: ActionGroup
   damage: Damage
   charges: Charge
+  optionsByLevel: [OptionsByLevel]
   range: Range
   shape: Shape
   targets: Int
@@ -346,8 +299,6 @@ type Feature {
   spells: [FeatureSpell]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }

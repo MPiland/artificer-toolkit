@@ -257,13 +257,13 @@ const useDiceOptions = () => {
         diceRolls.push({
           quantity: numDie ? parseInt(numDie) : 1,
           die: (dieType ? parseInt(dieType) : 4) as DieType,
-          rerollType: rerollType,
-          rerollCondition: rerollCondition,
-          rerollValue: parseInt(rerollValue),
-          keepType: keepType,
-          keepCount: parseInt(keepCount),
-          dropType: dropType,
-          dropCount: parseInt(dropCount),
+          rerollType: rerollType || undefined,
+          rerollCondition: rerollCondition || undefined,
+          rerollValue: parseInt(rerollValue) || undefined,
+          keepType: keepType || undefined,
+          keepCount: parseInt(keepCount) || undefined,
+          dropType: dropType || undefined,
+          dropCount: parseInt(dropCount) || undefined,
         })
       }
 

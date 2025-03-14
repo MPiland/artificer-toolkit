@@ -3,28 +3,26 @@ import Dropdown from '../../../../Dropdown/Dropdown'
 import { get, startCase } from 'lodash'
 import { feature_card_header, option_dropdown } from '../../../Character.css'
 import { numberToWords } from '../../../../../utils/formatting'
-import { Character, CharacterClass, CharacterProficiency, Class } from '../../../../../../amplify/gql/types'
+import { Character, CharacterProficiency, Class } from '../../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../../types/form'
 import useGetSections from '../../../../../hooks/useGetSectionState'
 import Grid from '../../../../Grid/Grid'
-import { Fragment } from 'react'
+import { Fragment, use } from 'react'
+import { FormContext } from '../../../FormContext'
+import useGetProficiencies from '../../../../../hooks/useGetProficiencies'
 
-const ClassProficiencies = ({
-  fullClass,
-  classIndex,
-  formData,
-  updateFormData,
-}: {
-  fullClass: Class
-  uClass: CharacterClass
-  classIndex: number
-  formData: Character
-  updateFormData: (state: UpdateState<Character>) => void
-}) => {
-  const { getSectionOptions, createClassProficiencyText } = useGetSections({ formData })
+const ClassProficiencies = ({ fullClass }: { fullClass: Class }) => {
+  const { formData, updateFormData } = use(FormContext) as {
+    formData: Character
+    updateFormData: (state: UpdateState<Character>) => void
+  }
+
+  const { getSectionOptions } = useGetSections({ formData })
+
+  const classIndex = formData.classes.findIndex((c) => c.id === fullClass.id)
 
   // Memoize the proficiency array
-  const proficiencies = createClassProficiencyText({ fullClass })
+  const proficiencies = useGetProficiencies({ fullClass })
 
   return (
     <Grid.Item>
@@ -92,13 +90,13 @@ const ClassProficiencies = ({
                     typeText = `Choose ${numberToWords(selectionCount)} from `
                   }
                   propertyArray.forEach((iProperty, pIndex) => {
-                    if (selectionCount != null) {
+                    if (selectionCount > 0) {
                       typeText += `${iProperty.label}s`
                     }
 
                     if (propertyArray.length > 1 && propertyArray.length < 3) {
                       if (pIndex !== propertyArray.length - 1) {
-                        if (selectionCount != null) {
+                        if (selectionCount > 0) {
                           typeText += ' or '
                         } else {
                           typeText += ', '
@@ -109,7 +107,7 @@ const ClassProficiencies = ({
                       if (pIndex !== propertyArray?.length - 2) {
                         typeText += ', '
                       } else {
-                        if (selectionCount != null) {
+                        if (selectionCount > 0) {
                           typeText += ' or '
                         } else {
                           typeText += ' and '
@@ -131,7 +129,7 @@ const ClassProficiencies = ({
 
                       if (typeArray.length > 1 && typeArray.length < 3) {
                         if (tIndex !== typeArray.length - 1) {
-                          if (selectionCount != null) {
+                          if (selectionCount > 0) {
                             typeText += ' or '
                           } else {
                             typeText += ', '
@@ -143,7 +141,7 @@ const ClassProficiencies = ({
                           typeText += ', '
                         }
                         if (tIndex == typeArray?.length - 2) {
-                          if (selectionCount != null) {
+                          if (selectionCount > 0) {
                             typeText += ' or '
                           } else {
                             typeText += ' and '

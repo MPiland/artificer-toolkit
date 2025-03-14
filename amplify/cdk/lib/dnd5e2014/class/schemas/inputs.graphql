@@ -66,6 +66,21 @@ input SubtypeInput {
   value: String!
 }
 
+input ClassCurrencyInput {
+  id: ID!
+  amount: Int
+}
+
+input ClassEquipmentInput {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [ClassCurrencyInput]
+}
+
 input ClassInput {
   id: ID
   label: String!
@@ -76,7 +91,7 @@ input ClassInput {
   details: [DetailInput]
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
-  equipment: [[[EquipmentGroupInput]]]
+  equipment: [[[ClassEquipmentInput]]]
   proficiencies: [FeatureProficiencyInput]
   spellcasting: SpellcastingInput
   levelAttributes: [LevelAttributeInput]

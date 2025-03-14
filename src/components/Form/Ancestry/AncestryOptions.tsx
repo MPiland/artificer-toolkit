@@ -1,15 +1,14 @@
 import { use } from 'react'
 import Input from '../../Input/Input'
-import Row from '../../Row/Row'
 import { FeatureContext } from '../Features/FeatureContext'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { sprinkles } from '../../../css/sprinkles.css'
 import Collapse from '../../Collapse/Collapse'
 import Button from '../../Button/Button'
 import { AncestryFeature } from '../../../../amplify/gql/types'
 import Accordion from '../../Accordion/Accordion'
-import { feature_description, feature_list } from '../Form.css'
+import { feature_description } from '../Form.css'
 import parse from 'html-react-parser'
+import Grid from '../../Grid/Grid'
 
 const AncestryOptions = () => {
   const { ancestryData, updateAncestryData, updateFeatureData, setFeatureStep } = use(FeatureContext)
@@ -49,7 +48,7 @@ const AncestryOptions = () => {
 
   return (
     <>
-      <Row>
+      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
         <Input
           name='label'
           autoComplete='off'
@@ -59,19 +58,22 @@ const AncestryOptions = () => {
           errorMsg='Name must not be blank'
           onChange={updateAncestryData}
         />
-      </Row>
-      <Collapse className={sprinkles({ width: 'size-full' })}>
-        <Collapse.Header title='Ancestry Option Description' startOpened={ancestryData?.id == null} />
-        <Collapse.Body>
-          <RichTextEditor name='desc' onChange={updateAncestryData} value={ancestryData?.desc} />
-        </Collapse.Body>
-      </Collapse>
-      <Button color='primary' style='outline' onClick={handleAddFeature} className={sprinkles({ mb: 'space-3' })}>
-        Add Feature
-      </Button>
-
+      </Grid.Item>
+      <Grid.Item>
+        <Collapse>
+          <Collapse.Header title='Ancestry Option Description' startOpened={ancestryData?.id == null} />
+          <Collapse.Body>
+            <RichTextEditor name='desc' onChange={updateAncestryData} value={ancestryData?.desc} />
+          </Collapse.Body>
+        </Collapse>
+      </Grid.Item>
+      <Grid.Item>
+        <Button color='primary' style='outline' onClick={handleAddFeature}>
+          Add Feature
+        </Button>
+      </Grid.Item>
       {featureArray && featureArray.length > 0 && (
-        <div className={feature_list}>
+        <Grid.Item>
           <Accordion dataArray={featureArray} onChange={updateAncestryData} name='features'>
             {featureArray?.map((feature, featureIndex) => (
               <Accordion.Wrapper key={featureIndex} itemId={String(featureIndex)}>
@@ -91,7 +93,7 @@ const AncestryOptions = () => {
               </Accordion.Wrapper>
             ))}
           </Accordion>
-        </div>
+        </Grid.Item>
       )}
     </>
   )

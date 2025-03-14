@@ -3,12 +3,11 @@ import { app } from '../../css/layers.css'
 import { theme } from '../../css/theme.css'
 import { height } from '../../css/size.css'
 import { borderRadius } from '../../css/border.css'
-import { space } from '../../css/size.css'
+import { space, size } from '../../css/size.css'
 
 export const button_background_color = createVar('button-background-color')
 export const button_filled_hover = createVar('button-filled-hover')
 export const button_outline_hover = createVar('button-outline-hover')
-export const button_width = createVar('button-width')
 
 export const button = style({
   '@layer': {
@@ -23,88 +22,33 @@ export const button = style({
       zIndex: 0,
       padding: `${space['space-2']} ${space['space-4']}`,
       flexWrap: 'nowrap',
-      textWrap: 'nowrap',
-      overflow: 'hidden',
-      width: button_width,
-    },
-  },
-})
-
-export const button_content = style({
-  '@layer': {
-    [app]: {
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'row',
-      height: '100%',
-      alignItems: 'center',
-      justifyContent: 'center',
-      userSelect: 'none',
-      zIndex: 0,
-      width: '100%',
-      pointerEvents: 'none',
       overflow: 'hidden',
     },
   },
 })
 
-export const button_color = styleVariants({
-  primary: {
+const colors = {
+  primary: 'primary',
+  warning: 'warning',
+  danger: 'danger',
+  update: 'update',
+  main: 'main',
+}
+
+export const button_color = styleVariants(colors, (colorValue: keyof typeof colors) => [
+  button,
+  {
     '@layer': {
       [app]: {
         vars: {
-          [button_background_color]: theme.vars.component.button.backgroundColor.primary.main,
-          [button_filled_hover]: theme.vars.component.button.backgroundColor.primary.hover,
-          [button_outline_hover]: theme.vars.component.button.backgroundColor.primary.outlineHover,
+          [button_background_color]: theme.vars.component.button.backgroundColor[colorValue].main,
+          [button_filled_hover]: theme.vars.component.button.backgroundColor[colorValue].hover,
+          [button_outline_hover]: theme.vars.component.button.backgroundColor[colorValue].outlineHover,
         },
       },
     },
   },
-  warning: {
-    '@layer': {
-      [app]: {
-        vars: {
-          [button_background_color]: theme.vars.component.button.backgroundColor.warning.main,
-          [button_filled_hover]: theme.vars.component.button.backgroundColor.warning.hover,
-          [button_outline_hover]: theme.vars.component.button.backgroundColor.warning.outlineHover,
-        },
-      },
-    },
-  },
-  danger: {
-    '@layer': {
-      [app]: {
-        vars: {
-          [button_background_color]: theme.vars.component.button.backgroundColor.danger.main,
-          [button_filled_hover]: theme.vars.component.button.backgroundColor.danger.hover,
-          [button_outline_hover]: theme.vars.component.button.backgroundColor.danger.outlineHover,
-        },
-      },
-    },
-  },
-  update: {
-    '@layer': {
-      [app]: {
-        vars: {
-          [button_background_color]: theme.vars.component.button.backgroundColor.update.main,
-          [button_filled_hover]: theme.vars.component.button.backgroundColor.update.hover,
-          [button_outline_hover]: theme.vars.component.button.backgroundColor.update.outlineHover,
-        },
-      },
-    },
-  },
-  main: {
-    '@layer': {
-      [app]: {
-        vars: {
-          [button_background_color]: theme.vars.component.button.backgroundColor.main.main,
-          [button_filled_hover]: theme.vars.component.button.backgroundColor.main.hover,
-          [button_outline_hover]: theme.vars.component.button.backgroundColor.main.outlineHover,
-        },
-      },
-    },
-  },
-})
+])
 
 export const button_style = styleVariants({
   unstyled: {
@@ -116,14 +60,9 @@ export const button_style = styleVariants({
         border: 'none',
 
         selectors: {
-          '&:active': {
-            backgroundColor: 'transparent',
-          },
-          '&:hover': {
-            backgroundColor: 'transparent',
-          },
-          '&:focus': {
-            backgroundColor: 'transparent',
+          '&:disabled': {
+            cursor: 'not-allowed',
+            opacity: 0.6,
           },
         },
       },
@@ -137,11 +76,15 @@ export const button_style = styleVariants({
         backgroundColor: button_background_color,
 
         selectors: {
-          '&:hover': {
+          '&:not(:disabled):hover': {
             backgroundColor: button_filled_hover,
           },
-          '&:active': {
+          '&:not(:disabled):active': {
             backgroundImage: 'linear-gradient(rgb(0 0 0/40%) 0 0)',
+          },
+          '&:disabled': {
+            cursor: 'not-allowed',
+            opacity: 0.6,
           },
         },
       },
@@ -155,8 +98,12 @@ export const button_style = styleVariants({
         border: `${theme.border.size.main} ${theme.border.style} ${button_background_color}`,
 
         selectors: {
-          '&:hover': {
+          '&:not(:disabled):hover': {
             backgroundColor: button_outline_hover,
+          },
+          '&:disabled': {
+            cursor: 'not-allowed',
+            opacity: 0.6,
           },
         },
       },
@@ -164,31 +111,88 @@ export const button_style = styleVariants({
   },
 })
 
-export const button_height = styleVariants({
-  default: { '@layer': { [app]: { height: theme.component.button.height } } },
-  auto: { '@layer': { [app]: { height: height['auto'] } } },
-  full: { '@layer': { [app]: { height: height['full'] } } },
-  xs: { '@layer': { [app]: { height: height['xs'] } } },
-  sm: { '@layer': { [app]: { height: height['sm'] } } },
-  md: { '@layer': { [app]: { height: height['md'] } } },
-  lg: { '@layer': { [app]: { height: height['lg'] } } },
-  xl: { '@layer': { [app]: { height: height['xl'] } } },
+const heightKeys = {
+  default: 'default',
+  ...height,
+} as const
+
+export const button_height = styleVariants(heightKeys, (heightValue: (typeof heightKeys)[keyof typeof heightKeys]) => {
+  if (heightValue === 'default') {
+    return [
+      button,
+      {
+        '@layer': {
+          [app]: {
+            height: theme.component.button.height,
+          },
+        },
+      },
+    ]
+  } else {
+    return [button, { '@layer': { [app]: { height: heightValue } } }]
+  }
 })
 
-export const button_radius = styleVariants({
-  default: { '@layer': { [app]: { borderRadius: theme.border.radius } } },
-  xs: { '@layer': { [app]: { borderRadius: borderRadius['xs'] } } },
-  sm: { '@layer': { [app]: { borderRadius: borderRadius['sm'] } } },
-  md: { '@layer': { [app]: { borderRadius: borderRadius['md'] } } },
-  lg: { '@layer': { [app]: { borderRadius: borderRadius['lg'] } } },
-  xl: { '@layer': { [app]: { borderRadius: borderRadius['xl'] } } },
+const radiusKeys = {
+  default: 'default',
+  xs: 'xs',
+  sm: 'sm',
+  md: 'md',
+  lg: 'lg',
+  xl: 'xl',
+}
+
+export const button_radius = styleVariants(radiusKeys, (radiusValue: keyof typeof radiusKeys) => {
+  if (radiusValue === 'default') {
+    return [
+      button,
+      {
+        '@layer': {
+          [app]: {
+            borderRadius: theme.border.radius,
+          },
+        },
+      },
+    ]
+  } else {
+    return [button, { '@layer': { [app]: { borderRadius: borderRadius[radiusValue] } } }]
+  }
+})
+
+export const button_width = styleVariants(size, (sizeValue) => [button, { '@layer': { [app]: { width: sizeValue } } }])
+
+export const button_content = style({
+  '@layer': {
+    [app]: {
+      position: 'relative',
+      height: '100%',
+      alignItems: 'center',
+      userSelect: 'none',
+      zIndex: 0,
+      width: '100%',
+      pointerEvents: 'none',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'row',
+
+      selectors: {
+        [`${button}${button_width['size-full']} > &`]: {
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          display: 'unset',
+          alignContent: 'center',
+          flex: 1,
+        },
+      },
+    },
+  },
 })
 
 globalStyle(`${button} svg`, {
   '@layer': {
     [app]: {
-      height: 'auto',
-      width: '100%',
+      height: '100%',
+      width: 'auto',
     },
   },
 })

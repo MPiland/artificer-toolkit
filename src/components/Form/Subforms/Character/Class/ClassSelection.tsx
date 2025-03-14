@@ -20,7 +20,7 @@ const ClassSelection = () => {
   const { data: system } = useGetSystemQuery()
 
   const handleShowDetail = (item: Class, context: string) => {
-    navigate(`class/detail/short/${item.value}`, {
+    navigate(`class/detail/${item.value}`, {
       state: {
         background: location,
         item: item,

@@ -18,16 +18,13 @@ input CostInput {
   currency: ID!
 }
 
-input EquipmentCurrencyInput {
-  id: ID!
-  amount: Int
-}
-
 input ContainsInput {
-  equipment: ID!
+  id: ID!
   quantity: Int!
+  equipped: Boolean
+  attuned: Boolean
   contains: [ContainsInput]  
-  currencies: [EquipmentCurrencyInput]
+  possessions: [PossessionsInput]
 }
 
 input EquipmentRangeInput {

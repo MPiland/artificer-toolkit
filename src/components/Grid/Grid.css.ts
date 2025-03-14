@@ -49,7 +49,6 @@ const grid_item_variant = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      flexDirection: 'row',
     },
   },
 })
@@ -71,6 +70,11 @@ const align = {
   stretch: 'stretch',
 }
 
+const flex = {
+  row: 'row',
+  column: 'column',
+}
+
 export const grid_item_justify = styleVariants(justify, (justifyValue) => [
   grid_item_variant,
   { '@layer': { [app]: { justifyContent: justifyValue } } },
@@ -79,4 +83,9 @@ export const grid_item_justify = styleVariants(justify, (justifyValue) => [
 export const grid_item_align = styleVariants(align, (alignValue) => [
   grid_item_variant,
   { '@layer': { [app]: { alignItems: alignValue } } },
+])
+
+export const grid_item_flex = styleVariants(flex, (flexValue: keyof typeof flex) => [
+  grid_item_variant,
+  { '@layer': { [app]: { flexDirection: flexValue } } },
 ])

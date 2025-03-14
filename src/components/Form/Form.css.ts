@@ -53,6 +53,7 @@ export const form_footer = style({
       bottom: 0,
       width: '100%',
       padding: '.5rem .5rem',
+      marginTop: '.5rem',
     },
   },
 })
@@ -82,7 +83,6 @@ export const feature_list = style({
   '@layer': {
     [app]: {
       width: '100%',
-      marginTop: '2rem',
     },
   },
 })
@@ -148,6 +148,14 @@ globalStyle(`${form_detail_body} blockquote`, {
       marginLeft: size['size-3'],
       marginTop: size['size-2'],
       padding: size['size-1'],
+    },
+  },
+})
+
+globalStyle(`${feature_description} p:last-of-type`, {
+  '@layer': {
+    [app]: {
+      marginBottom: 0,
     },
   },
 })

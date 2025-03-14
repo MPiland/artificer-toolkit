@@ -192,5 +192,10 @@
     "id": "a6cf86fd-8553-41a6-a6bf-24110e1e91f1",
     "value": "metal",
     "label": "Metal"
+  },
+  {
+    "id": "bab18227-0a76-4963-b1c3-44760b810fea",
+    "value": "magic",
+    "label": "Magic"
   }
 ]

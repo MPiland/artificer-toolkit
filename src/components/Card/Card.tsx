@@ -67,12 +67,12 @@ const Header = ({
         {leftSide && <div>{leftSide}</div>}
         <h4 className={card_header_title}>{title}</h4>
         {open && (
-          <Button style='unstyled' width='size-4' onClick={open}>
+          <Button style='unstyled' height='xxs' onClick={open}>
             <MdLaunch />
           </Button>
         )}
         {remove && (
-          <Button style='unstyled' width='size-4' onClick={remove}>
+          <Button style='unstyled' height='xxs' onClick={remove}>
             <MdDelete />
           </Button>
         )}

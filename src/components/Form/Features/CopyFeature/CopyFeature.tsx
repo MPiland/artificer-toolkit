@@ -4,7 +4,6 @@ import { useListEquipmentQuery } from '../../../../features/equipment/equipmentA
 import { useNavigate } from 'react-router-dom'
 import Modal from '../../../Modal/Modal'
 import { useEffect, useState, use } from 'react'
-import Row from '../../../Row/Row'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Button from '../../../Button/Button'
 import { sprinkles } from '../../../../css/sprinkles.css'
@@ -12,6 +11,8 @@ import { FormContext } from '../../FormContext'
 import { Class, Equipment, Feature, Race } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
 import { FeatureContext } from '../FeatureContext'
+import Grid from '../../../Grid/Grid'
+import { isEqual } from 'lodash'
 
 type CopySelection = {
   filter: Race['id'] | Class['id'] | Equipment['id']
@@ -32,16 +33,23 @@ const CopyFeature = () => {
   const { data: classes } = useListClassesQuery()
   const { data: equipment } = useListEquipmentQuery()
 
+  const createFeatures = () => {
+    const racesFeatures = races.flatMap((race) => race.features.map((feature) => feature))
+    console.log({ racesFeatures })
+    const classesFeatures = classes.flatMap((uClass) => uClass.features.map((feature) => feature))
+    const equipmentFeatures = equipment.flatMap((equipment) =>
+      equipment.features ? equipment.features.map((feature) => feature) : []
+    )
+
+    const featureArray = ([] as Feature[]).concat(racesFeatures, classesFeatures, equipmentFeatures)
+
+    return featureArray
+  }
+
+  const featureArray = createFeatures()
+
   useEffect(() => {
-    if (races && classes && equipment && !features) {
-      const racesFeatures = races.flatMap((race) => race.features.map((feature) => feature))
-      const classesFeatures = classes.flatMap((uClass) => uClass.features.map((feature) => feature))
-      const equipmentFeatures = equipment.flatMap((equipment) =>
-        equipment.features ? equipment.features.map((feature) => feature) : []
-      )
-
-      const featureArray = ([] as Feature[]).concat(racesFeatures, classesFeatures, equipmentFeatures)
-
+    if (features.length === 0 && !isEqual(featureArray, features)) {
       setFeatures(featureArray)
     }
 
@@ -68,7 +76,7 @@ const CopyFeature = () => {
 
       setSelectedFeature(feature)
     }
-  }, [races, classes, equipment, selection?.filter, features, selection?.filterBy, selection?.feature])
+  }, [races, classes, equipment, selection?.filter, features, selection?.filterBy, selection?.feature, featureArray])
 
   const handleSetFilterBy = (e: UpdateState<CopySelection>) => {
     if (e.type === 'update') {
@@ -115,65 +123,75 @@ const CopyFeature = () => {
       <Modal.Dialogue>
         <Modal.Header title='Copy Feature' />
         <Modal.Content>
-          <Row cols={{ base: 2, lg: 2, md: 2 }}>
-            <Dropdown<CopySelection>
-              options={[
-                {
-                  value: 'races',
-                  label: 'Races',
-                  id: 'races',
-                },
-                {
-                  value: 'classes',
-                  label: 'Classes',
-                  id: 'classes',
-                },
-                {
-                  value: 'equipment',
-                  label: 'Equipment',
-                  id: 'equipment',
-                },
-              ]}
-              label='Filter by...'
-              onChange={handleSetFilterBy}
-              name='filterBy'
-              value={selection?.filterBy}
-            />
-            {selection?.filterBy === 'races' && (
-              <Dropdown
-                options={races}
-                label='Race'
-                onChange={handleSetFilter}
-                name='filter'
-                value={selection?.filter}
+          <Grid>
+            <Grid.Item>
+              <Dropdown<CopySelection>
+                options={[
+                  {
+                    value: 'races',
+                    label: 'Races',
+                    id: 'races',
+                  },
+                  {
+                    value: 'classes',
+                    label: 'Classes',
+                    id: 'classes',
+                  },
+                  {
+                    value: 'equipment',
+                    label: 'Equipment',
+                    id: 'equipment',
+                  },
+                ]}
+                label='Filter by...'
+                onChange={handleSetFilterBy}
+                name='filterBy'
+                value={selection?.filterBy}
               />
+            </Grid.Item>
+            {selection?.filterBy === 'races' ? (
+              <Grid.Item colSpan={6}>
+                <Dropdown
+                  options={races}
+                  label='Race'
+                  onChange={handleSetFilter}
+                  name='filter'
+                  value={selection?.filter}
+                />
+              </Grid.Item>
+            ) : selection?.filterBy === 'classes' ? (
+              <Grid.Item colSpan={6}>
+                <Dropdown
+                  options={classes}
+                  label='Class'
+                  onChange={handleSetFilter}
+                  name='filter'
+                  value={selection?.filter}
+                />
+              </Grid.Item>
+            ) : (
+              selection?.filterBy === 'equipment' && (
+                <Grid.Item colSpan={6}>
+                  <Dropdown
+                    options={equipment}
+                    label='Equipment'
+                    onChange={handleSetFilter}
+                    name='filter'
+                    value={selection?.filter}
+                  />
+                </Grid.Item>
+              )
             )}
-            {selection?.filterBy === 'classes' && (
+            <Grid.Item colSpan={6}>
               <Dropdown
-                options={classes}
-                label='Class'
-                onChange={handleSetFilter}
-                name='filter'
-                value={selection?.filter}
+                label='Feature'
+                onChange={handleSetFeature}
+                name='feature'
+                value={selection?.feature}
+                options={features}
               />
-            )}
-            {selection?.filterBy === 'equipment' && (
-              <Dropdown
-                options={equipment}
-                label='Equipment'
-                onChange={handleSetFilter}
-                name='filter'
-                value={selection?.filter}
-              />
-            )}
-            <Dropdown
-              label='Feature'
-              onChange={handleSetFeature}
-              name='feature'
-              value={selection?.feature}
-              options={features}
-            />
-          </Row>
+            </Grid.Item>
+          </Grid>
           <Button
             color='primary'
             onClick={() => handleSelect()}

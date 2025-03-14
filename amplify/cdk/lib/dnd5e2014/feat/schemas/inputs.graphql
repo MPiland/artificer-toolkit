@@ -5,7 +5,6 @@ input FeatInput {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestryInput]
   attributes: [ID]
   actions: ActionGroupInput
   primaryDamage: DamageInput

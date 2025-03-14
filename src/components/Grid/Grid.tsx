@@ -9,6 +9,7 @@ import {
   colSpanLg,
   grid_item_justify,
   grid_item_align,
+  grid_item_flex,
 } from './Grid.css'
 import { assignInlineVars } from '@vanilla-extract/dynamic'
 import clsx from 'clsx'
@@ -33,6 +34,7 @@ interface ItemProps {
   id?: string
   justify?: 'start' | 'end' | 'center' | 'spaceBetween' | 'spaceAround' | 'spaceEvenly'
   align?: 'start' | 'end' | 'center' | 'stretch'
+  flexDirection?: 'row' | 'column'
 }
 
 interface GridProps {
@@ -98,7 +100,7 @@ const Grid = ({ children, spacing = 16, className, id, ref }: GridProps) => {
   )
 }
 
-const Item = ({ children, colSpan = 12, className, ref, id, align, justify }: ItemProps) => {
+const Item = ({ children, colSpan = 12, className, ref, id, align, justify, flexDirection = 'row' }: ItemProps) => {
   // Convert column span to flex properties
   const getFlexValue = (value: number | 'auto' | undefined, fallback: number | 'auto'): string => {
     // If the value is 'auto', use flex-grow: 1
@@ -153,7 +155,8 @@ const Item = ({ children, colSpan = 12, className, ref, id, align, justify }: It
         className,
         grid_item,
         { [grid_item_justify[justify]]: justify },
-        { [grid_item_align[align]]: align }
+        { [grid_item_align[align]]: align },
+        { [grid_item_flex[flexDirection]]: align || justify }
       )}
       style={assignInlineVars({
         [colSpanSm]: smValue,

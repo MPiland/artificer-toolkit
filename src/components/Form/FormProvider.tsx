@@ -9,17 +9,20 @@ import Attributes from './Forms/Attributes'
 import Abilities from './Forms/Abilities'
 import StartingEquipment from './Forms/StartingEquipment'
 import { FormDataType, FormSteps, UpdateState } from '../../types/form'
-import CharacterClasses from './Forms/Character/Classes/CharacterClasses'
-import BackgroundEquipment from './Forms/BackgroundEquipment'
-import Equipment from './Forms/Equipment'
+import Classes from './Forms/Character/Classes/Classes'
+import Equipment from './Forms/Character/Equipment/Equipment'
 import AncestryWrapper from './Ancestry/AncestryWrapper'
 import { useStore } from '../../store/useStore'
 import { FormContext } from './FormContext'
 import DiceProvider from '../Dice/DiceProvider'
 import { Outlet } from 'react-router-dom'
 import useGetSections from '../../hooks/useGetSectionState'
-import { Character } from '../../../amplify/gql/types'
+import { Character, CharacterFeature, Spell } from '../../../amplify/gql/types'
 import { isEqual } from 'lodash'
+import useGetFeatures from '../../hooks/useGetFeatures'
+import { Suspense } from 'react'
+import Loading from '../Loading/Loading'
+import Background from './Forms/Character/Background/Background'
 
 const useFormOptions = () => {
   const {
@@ -45,10 +48,12 @@ const useFormOptions = () => {
     resetAncestry,
     resetSection,
     resetOption,
-    resetSubfeature,
+    resetDice,
   } = useStore((state) => state)
 
-  const { createSections, createFeatures, createAbilityScores } = useGetSections({ formData: formData as Character })
+  const { createSections, createAbilityScores } = useGetSections({ formData: formData as Character })
+
+  const { createFeatures, sourcePropertyMap } = useGetFeatures({ data: formData as Exclude<FormDataType, Spell> })
 
   const updateFormData = useCallback(
     <T extends FormDataType>(state: UpdateState<T>) => {
@@ -107,14 +112,32 @@ const useFormOptions = () => {
   }, [sections, updateFormData, formData])
 
   useEffect(() => {
-    if (formData.__typename === 'Character' && !isEqual(formData?.features, features)) {
+    const characterFeatures: CharacterFeature[] =
+      features?.map((feature) => {
+        const featureObj: CharacterFeature = {
+          __typename: 'CharacterFeature',
+          id: feature.id,
+        }
+        Object.keys(sourcePropertyMap).forEach((key: keyof typeof sourcePropertyMap) => {
+          if (sourcePropertyMap[key]) {
+            featureObj[key] = feature[key]
+          }
+        })
+        if (feature.level) {
+          featureObj.level = feature.level
+        }
+        if (feature.options?.length > 0) {
+          featureObj.options = feature.options
+        }
+        return featureObj
+      }) || []
+    if (formData?.__typename === 'Character' && !isEqual(characterFeatures, formData.features)) {
       updateFormData({
-        type: 'update',
-        path: 'features',
-        value: features,
+        type: 'reset',
+        value: { ...formData, features: characterFeatures },
       })
     }
-  })
+  }, [features, sourcePropertyMap, formData, updateFormData])
 
   useEffect(() => {
     if (formData.__typename === 'Character') {
@@ -130,7 +153,7 @@ const useFormOptions = () => {
     resetAncestry()
     resetSection()
     resetOption()
-    resetSubfeature()
+    resetDice()
   }
 
   // Standard possible form steps
@@ -143,17 +166,19 @@ const useFormOptions = () => {
     contains: <Contains />,
     proficiencies: <Proficiencies />,
     equipment: (
-      <DiceProvider>{formData.__typename === 'Background' ? <BackgroundEquipment /> : <Equipment />}</DiceProvider>
+      <DiceProvider>
+        <Equipment />
+      </DiceProvider>
     ),
     startingEquipment: <StartingEquipment />,
     race: <Races />,
-    class: <CharacterClasses />,
+    class: <Classes />,
     abilities: (
       <DiceProvider>
         <Abilities />
       </DiceProvider>
     ),
-    background: <></>,
+    background: <Background />,
   }
 
   const { saving, steps, errorMessage, validForm, stepIndex, successMessage } = ui
@@ -198,9 +223,11 @@ const FormProvider = () => {
   const formOptions = useFormOptions()
 
   return (
-    <FormContext value={formOptions}>
-      <Outlet />
-    </FormContext>
+    <Suspense fallback={<Loading />}>
+      <FormContext value={formOptions}>
+        <Outlet />
+      </FormContext>
+    </Suspense>
   )
 }
 

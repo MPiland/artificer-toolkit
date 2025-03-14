@@ -1,7 +1,7 @@
 import { useMemo, use } from 'react'
 import parse from 'html-react-parser'
 import Button from '../../Button/Button'
-import { feature_list, feature_description } from '../Form.css'
+import { feature_description } from '../Form.css'
 import Accordion from '../../Accordion/Accordion'
 import Group from '../../Group/Group'
 import { get, startCase } from 'lodash'
@@ -62,29 +62,26 @@ const FeaturesList = () => {
 
   return (
     <>
-      <Group directionVariant='column' alignItemsVariant='start'>
-        <Grid>
-          <Grid.Item colSpan={{ sm: 6, md: 'auto' }}>
-            <Group flexWrapVariant='noWrap' justifyContentVariant='start'>
-              <Button
-                color='primary'
-                style='outline'
-                onClick={handleAddFeature}
-                className={sprinkles({ me: 'space-4' })}
-              >
-                Add feature
-              </Button>
-              {steps[stepIndex].id === 'features' && (
-                <Button color='primary' style='outline' onClick={handleCopy}>
-                  Copy feature
-                </Button>
-              )}
-            </Group>
-          </Grid.Item>
-        </Grid>
-      </Group>
+      <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+        <Button
+          color='primary'
+          style='outline'
+          width='size-full'
+          onClick={handleAddFeature}
+          className={sprinkles({ me: 'space-4' })}
+        >
+          Add Feature
+        </Button>
+      </Grid.Item>
+      {steps[stepIndex].id === 'features' && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Button color='primary' style='outline' width='size-full' onClick={handleCopy}>
+            Copy Feature
+          </Button>
+        </Grid.Item>
+      )}
       {featureArray.length > 0 && (
-        <div className={feature_list}>
+        <Grid.Item>
           <Accordion<typeof formData> dataArray={featureArray} onChange={updateFormData} name='features'>
             {featureArray?.map((featureItem: any, featureIndex: number) => (
               <Accordion.Wrapper key={featureIndex} itemId={String(featureIndex)}>
@@ -133,7 +130,7 @@ const FeaturesList = () => {
               </Accordion.Wrapper>
             ))}
           </Accordion>
-        </div>
+        </Grid.Item>
       )}
       <Outlet />
     </>

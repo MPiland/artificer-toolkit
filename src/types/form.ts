@@ -21,9 +21,7 @@ import {
   FeatureInput,
   AncestryFeature,
   FeatureOption,
-  FeatureSubfeature,
   FeatureFeat,
-  FeatureAncestry,
   CharacterFeat,
   CharacterSense,
   CharacterProficiency,
@@ -52,7 +50,7 @@ export type FormInputType =
 
 export type FormDataType = Spell | Race | Class | Feat | Background | Equipment | Character
 
-export type FeatureDataType = Feature | AncestryFeature | FeatureOption | FeatureSubfeature
+export type FeatureDataType = Feature | AncestryFeature | FeatureOption
 
 export type SectionDataType =
   | FeatureModifier
@@ -60,7 +58,6 @@ export type SectionDataType =
   | FeatureSense
   | FeatureSpell
   | FeatureFeat
-  | FeatureAncestry
   | FeatureExpertise
 
 export type CharacterSectionData =
@@ -144,20 +141,9 @@ export type Step = {
 
 export type FormSteps = Step['id']
 
-export const sectionSteps = [
-  'modifiers',
-  'spells',
-  'proficiencies',
-  'expertise',
-  'senses',
-  'feats',
-  'ancestries',
-  'options',
-  'subfeatures',
-] as const
+export const sectionSteps = ['modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'] as const
 
 export type SectionName = (typeof sectionSteps)[number]
-
-export const featureTypes = ['feature', 'option', 'ancestry', 'subfeature', 'ancestryOption'] as const
+export const featureTypes = ['feature', 'option', 'ancestry', 'ancestryOption'] as const
 
 export type FeatureTypes = (typeof featureTypes)[number]

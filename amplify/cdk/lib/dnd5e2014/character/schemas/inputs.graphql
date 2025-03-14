@@ -1,7 +1,6 @@
 input CharacterModifierInput {
   modifierId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -10,12 +9,12 @@ input CharacterModifierInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterSenseInput {
   senseId: ID
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -24,12 +23,12 @@ input CharacterSenseInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterFeatInput {
   featId: ID
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -37,12 +36,17 @@ input CharacterFeatInput {
   backgroundId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterProficiencyInput {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   proficiencyId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -51,12 +55,17 @@ input CharacterProficiencyInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterExpertiseInput {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   expertiseId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -65,6 +74,7 @@ input CharacterExpertiseInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterSpellInput {
@@ -79,26 +89,32 @@ input CharacterSpellInput {
   requiresConcentration: Boolean
   optionalAbility: Boolean
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
+  optionId: ID
   optionIndex: String
+  featureLevel: Int
+}
+
+input CharacterFeatureOptionInput {
+  id: ID!
+  optionIndex: String!
+  featureLevel: Int!
 }
 
 input CharacterFeatureInput {
   id: ID
-  option: ID
+  options: [CharacterFeatureOptionInput]
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: String
   level: Int
 }
 
@@ -223,12 +239,29 @@ input CharacterClassInput {
   level: Int
 }
 
-input CharacterStartingEquipmentInput {
+input StartingEquipmentInput {
+  id: ID!
+  selectionId: ID
+  quantity: Int!
+}
+
+input StartingEquipmentGroupInput {
+  optionId: ID!
+  groupId: ID!
+  equipment: [StartingEquipmentInput]
+}
+
+input ClassStartingEquipmentInput {
   option: ID!
   goldOption: ID
   totalGold: Int
-  spentGold: Int
-  equipment: [ID]
+  equipmentGroups: [StartingEquipmentGroupInput]
+  addedToCharacter: Boolean
+}
+
+input BackgroundStartingEquipmentInput {
+  equipmentGroups: [StartingEquipmentGroupInput]
+  addedToCharacter: Boolean
 }
 
 input PossessionsInput {
@@ -238,10 +271,14 @@ input PossessionsInput {
   desc: String
 }
 
-input CharacterEquipmentInput {
-  possessions: [PossessionsInput]
-  equipment: [ContainsInput]
-  currencies: [EquipmentCurrencyInput]
+input CharacterCurrencyInput {
+  id: ID!
+  amount: Int!
+}
+
+input CurrencyGroupInput {
+  currencies: [CharacterCurrencyInput]
+  container: ID
 }
 
 input CharacterInput {
@@ -254,10 +291,13 @@ input CharacterInput {
   abilities: CharacterAbilitiesInput
   race: ID
   ancestry: CharacterAncestryInput
+  background: ID
   classes: [CharacterClassInput]
   spellcasting: CharacterSpellcastingInput
-  startingEquipment: CharacterStartingEquipmentInput
-  equipment: CharacterEquipmentInput
+  classEquipment: ClassStartingEquipmentInput
+  backgroundEquipment: BackgroundStartingEquipmentInput
+  equipment: [ContainsInput]
+  currencyGroups: [CurrencyGroupInput]
   features: [CharacterFeatureInput]
   feats: [CharacterFeatInput]
   proficiencies: CharacterProficiencyInput

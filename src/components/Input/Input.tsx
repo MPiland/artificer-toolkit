@@ -64,7 +64,7 @@ const Input = <T,>({
   textAlign,
   ref,
 }: InputProps<T>) => {
-  const [inputValue, setInputValue] = useState<string | number>(((value != null || value == 0) && value) || '')
+  const [inputValue, setInputValue] = useState<string | number>(value !== undefined && value !== null ? value : '')
   const [debouncing, setDebouncing] = useState(false)
   const [width, setWidth] = useState<number>(0)
   const [error, setError] = useState<boolean>(false)
@@ -186,7 +186,7 @@ const Input = <T,>({
             autoFocus={autoFocus}
             autoComplete={autoComplete || 'off'}
             readOnly={readOnly}
-            value={inputValue}
+            value={inputValue || ''}
             onChange={(e: any) => handleChange(e)}
             tabIndex={0}
             ref={(el) => {

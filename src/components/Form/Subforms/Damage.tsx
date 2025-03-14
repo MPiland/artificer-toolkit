@@ -152,9 +152,9 @@ const Damage = ({
   }, [updateFormData, formData, bonusDamage, secondaryDamage, isVersatile])
 
   return (
-    <Grid>
+    <>
       <Grid.Item colSpan={2}>
-        <Dropdown<typeof formData>
+        <Dropdown
           multiSelect={true}
           name={`damage.attributes`}
           label={`Damage Attributes`}
@@ -176,7 +176,7 @@ const Damage = ({
               {type !== 'versatile' && (
                 <>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
+                    <Dropdown
                       name={`damage.${type}.attribute`}
                       label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Attribute`}
                       value={formData?.damage?.[type]?.attribute}
@@ -189,7 +189,7 @@ const Damage = ({
                     />
                   </Grid.Item>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
+                    <Dropdown
                       name={`damage.${type}.id`}
                       label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dmg. Type`}
                       value={formData?.damage?.[type]?.id}
@@ -211,7 +211,7 @@ const Damage = ({
                 formData?.damage?.[type]?.attribute !== Attributes.setPerLevel &&
                 (formData?.damage?.[type]?.attribute === Attributes.setAmount ? (
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input<typeof formData>
+                    <Input
                       name={`damage.${type}.setAmount`}
                       value={formData?.damage?.[type]?.setAmount}
                       label={`Set ${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Value`}
@@ -227,7 +227,7 @@ const Damage = ({
                   <>
                     {formData?.damage?.[type]?.attribute === Attributes.ability && (
                       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                        <Dropdown<typeof formData>
+                        <Dropdown
                           name={`damage.${type}.ability`}
                           label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Ability`}
                           value={formData?.damage?.[type]?.ability}
@@ -238,7 +238,7 @@ const Damage = ({
                       </Grid.Item>
                     )}
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input<typeof formData>
+                      <Input
                         name={`damage.${type}.minAmount`}
                         value={formData?.damage?.[type]?.minAmount}
                         label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Min. Value`}
@@ -248,7 +248,7 @@ const Damage = ({
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input<typeof formData>
+                      <Input
                         name={`damage.${type}.maxAmount`}
                         value={formData?.damage?.[type]?.maxAmount}
                         label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Max Value`}
@@ -258,7 +258,7 @@ const Damage = ({
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input<typeof formData>
+                      <Input
                         name={`damage.${type}.multiplier`}
                         value={formData?.damage?.[type]?.multiplier}
                         label={`${
@@ -273,7 +273,7 @@ const Damage = ({
                 ) : formData?.damage?.[type]?.attribute === Attributes.damagePool ? (
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Dropdown<typeof formData>
+                      <Dropdown
                         name={`damage.${type}.pool.attribute`}
                         label={`${
                           type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'
@@ -294,7 +294,7 @@ const Damage = ({
                           <>
                             {formData?.damage?.[type]?.pool?.attribute === Attributes.ability && (
                               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                                <Dropdown<typeof formData>
+                                <Dropdown
                                   name={`damage.${type}.pool.ability`}
                                   label='Pool Abilty'
                                   value={formData?.damage?.[type]?.pool?.ability}
@@ -305,7 +305,7 @@ const Damage = ({
                               </Grid.Item>
                             )}
                             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                              <Input<typeof formData>
+                              <Input
                                 name={`damage.${type}.pool.minAmount`}
                                 value={formData?.damage?.[type]?.pool?.minAmount}
                                 label={`${
@@ -319,7 +319,7 @@ const Damage = ({
                           </>
                         )}
                         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                          <Input<typeof formData>
+                          <Input
                             name={`damage.${type}.pool.maxAmount`}
                             value={formData?.damage?.[type].pool?.maxAmount}
                             label={`${
@@ -331,7 +331,7 @@ const Damage = ({
                           />
                         </Grid.Item>
                         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                          <Input<typeof formData>
+                          <Input
                             name={`damage.${type}.pool.multiplier`}
                             value={formData?.damage?.[type]?.pool?.multiplier}
                             label={`${
@@ -346,7 +346,7 @@ const Damage = ({
                     ) : (
                       formData?.damage?.[type]?.pool?.attribute === Attributes.setAmount && (
                         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                          <Input<typeof formData>
+                          <Input
                             name={`damage.${type}.pool.setAmount`}
                             value={formData?.damage?.[type]?.pool?.setAmount}
                             label='Pool Total'
@@ -362,7 +362,7 @@ const Damage = ({
                 ) : (
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                      <Input<typeof formData>
+                      <Input
                         name={`damage.${type}.dieConfig`}
                         value={formData?.damage?.[type]?.dieConfig}
                         label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dice Config`}
@@ -546,7 +546,7 @@ const Damage = ({
           </Collapse>
         </Grid.Item>
       )}
-    </Grid>
+    </>
   )
 }
 

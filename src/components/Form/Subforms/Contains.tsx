@@ -23,7 +23,7 @@ const ContainsForm = () => {
   }, [updateFormData, formData.contains])
 
   return (
-    <Grid>
+    <>
       <Grid.Item>
         <Grid>
           <Grid.Item colSpan={'auto'}>Equipment</Grid.Item>
@@ -35,8 +35,8 @@ const ContainsForm = () => {
           <Grid>
             <Grid.Item colSpan={'auto'}>
               <Dropdown
-                name={`contains.${index}.equipment`}
-                value={contain.equipment}
+                name={`contains.${index}.id`}
+                value={contain.id}
                 required={true}
                 options={equipment}
                 errorMsg='Please enter a whole number'
@@ -56,7 +56,7 @@ const ContainsForm = () => {
           </Grid>
         </Grid.Item>
       ))}
-    </Grid>
+    </>
   )
 }
 

@@ -10,6 +10,7 @@ enum FeatureEnum {
   saveAbilities
   options
   equipment
+  features
 }
 
 enum DamageEnum {
@@ -44,6 +45,7 @@ enum EquipmentEnum {
   weapons
   armors
   tools
+  backgrounds
 }
 
 enum ClassesEnum {
@@ -406,6 +408,7 @@ type AncestryFeature {
   actions: ActionGroup
   damage: Damage
   charges: Charge
+  optionsByLevel: [OptionsByLevel]
   range: Range
   shape: Shape
   targets: Int
@@ -417,9 +420,7 @@ type AncestryFeature {
   spells: [FeatureSpell]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }
 
@@ -489,20 +490,6 @@ type SaveAbility {
   minAmount: Int
   attributes: [ID]
   abilityModifier: ID
-}
-
-type EquipmentGroup {
-  attributes: [ID]
-  selectionCount: Int
-  category: ID
-  equipment: [ID]
-  properties: [ID]
-  quantity: Int
-  copper: Int
-  silver: Int
-  electrum: Int
-  gold: Int
-  platinum: Int
 }
 
 ## Damage Related
@@ -702,7 +689,7 @@ type FeatureSense {
   selectionCount: Int
   subtype: ID
   ids: [ID!]
-  prerequisites: Prerequisite 
+  prerequisites: Prerequisite
 }
 
 type SpellsByLevel {
@@ -727,15 +714,6 @@ type FeatureSpell {
   charges: Charge
 }
 
-type FeatureAncestry {
-  id: ID!
-  attributes: [ID]
-  origin: ID
-  options: [ID]
-  selectionCount: Int
-  subtype: ID
-}
-
 type ActionProperty {
   id: ID
   amount: Int
@@ -746,31 +724,10 @@ type ActionGroup {
   secondary: ActionProperty
 }
 
-type FeatureSubfeature {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  ancestries: [FeatureAncestry]
-  attributes: [ID]
-  actions: ActionGroup
-  damage: Damage
-  charges: Charge
-  range: Range
-  shape: Shape
-  targets: Int
-  feats: [FeatureFeat]
-  modifiers: [FeatureModifier]
-  proficiencies: [FeatureProficiency]
-  expertise: [FeatureExpertise]
-  senses: [FeatureSense]
-  spells: [FeatureSpell]
-  prerequisites: Prerequisite
-  saveAbility: SaveAbility
-  selectionCount: Int
-  levelAvailable: String
+type OptionsByLevel {
+  level: Int
+  count: Int
+  replaceCount: Int
 }
 
 type FeatureOption {
@@ -780,7 +737,6 @@ type FeatureOption {
   desc: String
   detail: String
   category: ID
-  ancestries: [FeatureAncestry]
   attributes: [ID]
   actions: ActionGroup
   damage: Damage
@@ -796,9 +752,7 @@ type FeatureOption {
   spells: [FeatureSpell]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeature]
 }
 
 type Feature {
@@ -808,11 +762,11 @@ type Feature {
   desc: String
   detail: String
   category: ID
-  ancestries: [FeatureAncestry]
   attributes: [ID]
   actions: ActionGroup
   damage: Damage
   charges: Charge
+  optionsByLevel: [OptionsByLevel]
   range: Range
   shape: Shape
   targets: Int
@@ -824,9 +778,7 @@ type Feature {
   spells: [FeatureSpell]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }
 
@@ -837,7 +789,6 @@ type Feat {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestry]
   attributes: [ID]
   actions: ActionGroup
   primaryDamage: Damage
@@ -891,16 +842,13 @@ type Cost {
   currency: ID!
 }
 
-type EquipmentCurrency {
-  id: ID!
-  amount: Int
-}
-
 type Contains {
-  equipment: ID!
+  id: ID!
   quantity: Int!
+  equipped: Boolean
+  attuned: Boolean
   contains: [Contains]
-  currencies: [EquipmentCurrency]
+  possessions: [Possessions]
 }
 
 type EquipmentRange {
@@ -1017,6 +965,21 @@ type Subtype {
   value: String!
 }
 
+type ClassCurrency {
+  id: ID!
+  amount: Int
+}
+
+type ClassEquipment {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [ClassCurrency]
+}
+
 type Class {
   id: ID!
   label: String!
@@ -1027,7 +990,7 @@ type Class {
   details: [Detail]
   hitpoint: Hitpoint
   startingGold: StartingGold
-  equipment: [[[EquipmentGroup]]]
+  equipment: [[[ClassEquipment]]]
   proficiencies: [FeatureProficiency]
   spellcasting: Spellcasting
   levelAttributes: [LevelAttribute]
@@ -1050,7 +1013,6 @@ type ClassConnection {
 type CharacterModifier {
   modifierId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -1059,12 +1021,13 @@ type CharacterModifier {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterSense {
-  senseId: ID
+  id: ID
+  senseId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -1073,12 +1036,12 @@ type CharacterSense {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterFeat {
   featId: ID
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -1086,12 +1049,17 @@ type CharacterFeat {
   backgroundId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterProficiency {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   proficiencyId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -1100,12 +1068,17 @@ type CharacterProficiency {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterExpertise {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   expertiseId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -1114,6 +1087,7 @@ type CharacterExpertise {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 type CharacterSpell {
@@ -1128,26 +1102,32 @@ type CharacterSpell {
   requiresConcentration: Boolean
   optionalAbility: Boolean
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
+  optionId: ID
   optionIndex: String
+  featureLevel: Int
+}
+
+type CharacterFeatureOption {
+  id: ID!
+  optionIndex: String!
+  featureLevel: Int!
 }
 
 type CharacterFeature {
   id: ID
-  option: ID
+  options: [CharacterFeatureOption]
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: String
   level: Int
 }
 
@@ -1267,12 +1247,29 @@ type CharacterClass {
   level: Int
 }
 
-type CharacterStartingEquipment {
+type StartingEquipment {
+  id: ID!
+  selectionId: ID
+  quantity: Int!
+}
+
+type StartingEquipmentGroup {
+  optionId: ID!
+  groupId: ID!
+  equipment: [StartingEquipment]
+}
+
+type ClassStartingEquipment {
   option: ID!
   goldOption: ID
   totalGold: Int
-  spentGold: Int
-  equipment: [ID]
+  equipmentGroups: [StartingEquipmentGroup]
+  addedToCharacter: Boolean
+}
+
+type BackgroundStartingEquipment {
+  equipmentGroups: [StartingEquipmentGroup]
+  addedToCharacter: Boolean
 }
 
 type Possessions {
@@ -1282,10 +1279,14 @@ type Possessions {
   desc: String
 }
 
-type CharacterEquipment {
-  possessions: [Possessions]
-  equipment: [Contains]
-  currencies: [EquipmentCurrency]
+type CharacterCurrency {
+  id: ID!
+  amount: Int!
+}
+
+type CurrencyGroup {
+  currencies: [CharacterCurrency]
+  container: ID
 }
 
 type Character {
@@ -1298,10 +1299,13 @@ type Character {
   abilities: CharacterAbilities
   race: ID
   ancestry: CharacterAncestry
+  background: ID
   classes: [CharacterClass]
   spellcasting: CharacterSpellcasting
-  startingEquipment: CharacterStartingEquipment
-  equipment: CharacterEquipment
+  classEquipment: ClassStartingEquipment
+  backgroundEquipment: BackgroundStartingEquipment
+  equipment: [Contains]
+  currencyGroups: [CurrencyGroup]
   features: [CharacterFeature]
   feats: [CharacterFeat]
   proficiencies: [CharacterProficiency]
@@ -1319,11 +1323,18 @@ type CharacterConnection {
 }
 
 type BackgroundCurrency {
-  copper: Int
-  silver: Int
-  electrum: Int
-  gold: Int
-  platinum: Int
+  id: ID!
+  amount: Int
+}
+
+type BackgroundEquipment {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [BackgroundCurrency]
 }
 
 type Background {
@@ -1332,8 +1343,7 @@ type Background {
   value: String!
   desc: String
   details: [Detail!]
-  equipment: [EquipmentGroup]
-  currency: BackgroundCurrency
+  equipment: [[[BackgroundEquipment]]]
   proficiencies: [FeatureProficiency]
   features: [Feature]
   ownerId: ID!
@@ -1346,6 +1356,7 @@ type BackgroundConnection {
   nextToken: String
   message: String
 }
+
 ## Enums
 
 enum FeatureEnumInput {
@@ -1353,6 +1364,7 @@ enum FeatureEnumInput {
   saveAbilities
   options
   equipment
+  features
 }
 
 enum DamageEnumInput {
@@ -1387,6 +1399,7 @@ enum EquipmentEnumInput {
   weapons
   armors
   tools
+  backgrounds
 }
 
 enum ClassesEnumInput {
@@ -1748,6 +1761,7 @@ input AncestryFeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
+  optionsByLevel: [OptionsByLevelInput]
   range: RangeInput
   shape: ShapeInput
   targets: Int
@@ -1759,9 +1773,7 @@ input AncestryFeatureInput {
   spells: [FeatureSpellInput]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }
 
@@ -1830,20 +1842,6 @@ input SaveAbilityInput {
   minAmount: Int
   attributes: [ID]
   abilityModifier: ID
-}
-
-input EquipmentGroupInput {
-  attributes: [ID]
-  selectionCount: Int
-  category: ID
-  equipment: [ID]
-  properties: [ID]
-  quantity: Int
-  copper: Int
-  silver: Int
-  electrum: Int
-  gold: Int
-  platinum: Int
 }
 
 ## Damage Related
@@ -2069,15 +2067,6 @@ input FeatureSpellInput {
   charges: ChargeInput
 }
 
-input FeatureAncestryInput {
-  id: ID!
-  attributes: [ID]
-  origin: ID
-  options: [ID]
-  selectionCount: Int
-  subtype: ID
-}
-
 input ActionPropertyInput {
   id: ID
   amount: Int
@@ -2088,31 +2077,10 @@ input ActionGroupInput {
   secondary: ActionPropertyInput
 }
 
-input FeatureSubfeatureInput {
-  id: ID!
-  label: String
-  value: String
-  desc: String
-  detail: String
-  category: ID
-  ancestry: [FeatureAncestryInput]
-  attributes: [ID]
-  actions: ActionGroupInput
-  damage: DamageInput
-  charges: ChargeInput
-  range: RangeInput
-  shape: ShapeInput
-  targets: Int
-  feats: [FeatureFeatInput]
-  modifiers: [FeatureModifierInput]
-  proficiencies: [FeatureProficiencyInput]
-  expertise: [FeatureExpertiseInput]
-  senses: [FeatureSenseInput]
-  spells: [FeatureSpellInput]
-  prerequisites: PrerequisiteInput
-  saveAbility: SaveAbilityInput
-  selectionCount: Int
-  levelAvailable: String
+input OptionsByLevelInput {
+  level: Int
+  count: Int
+  replaceCount: Int
 }
 
 input FeatureOptionInput {
@@ -2122,7 +2090,6 @@ input FeatureOptionInput {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestryInput]
   attributes: [ID]
   actions: ActionGroupInput
   damage: DamageInput
@@ -2138,9 +2105,7 @@ input FeatureOptionInput {
   spells: [FeatureSpellInput]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeatureInput]
 }
 
 input FeatureInput {
@@ -2150,11 +2115,11 @@ input FeatureInput {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestryInput]
   attributes: [ID]
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
+  optionsByLevel: [OptionsByLevelInput]
   range: RangeInput
   shape: ShapeInput
   targets: Int
@@ -2166,9 +2131,7 @@ input FeatureInput {
   spells: [FeatureSpellInput]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeatureInput]
   options: [FeatureOptionInput]
 }
 
@@ -2179,7 +2142,6 @@ input FeatInput {
   desc: String
   detail: String
   category: ID
-  ancestry: [FeatureAncestryInput]
   attributes: [ID]
   actions: ActionGroupInput
   primaryDamage: DamageInput
@@ -2232,16 +2194,13 @@ input CostInput {
   currency: ID!
 }
 
-input EquipmentCurrencyInput {
-  id: ID!
-  amount: Int
-}
-
 input ContainsInput {
-  equipment: ID!
+  id: ID!
   quantity: Int!
+  equipped: Boolean
+  attuned: Boolean
   contains: [ContainsInput]  
-  currencies: [EquipmentCurrencyInput]
+  possessions: [PossessionsInput]
 }
 
 input EquipmentRangeInput {
@@ -2357,6 +2316,21 @@ input SubtypeInput {
   value: String!
 }
 
+input ClassCurrencyInput {
+  id: ID!
+  amount: Int
+}
+
+input ClassEquipmentInput {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [ClassCurrencyInput]
+}
+
 input ClassInput {
   id: ID
   label: String!
@@ -2367,7 +2341,7 @@ input ClassInput {
   details: [DetailInput]
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
-  equipment: [[[EquipmentGroupInput]]]
+  equipment: [[[ClassEquipmentInput]]]
   proficiencies: [FeatureProficiencyInput]
   spellcasting: SpellcastingInput
   levelAttributes: [LevelAttributeInput]
@@ -2389,7 +2363,6 @@ input BatchClassesInput {
 input CharacterModifierInput {
   modifierId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -2398,12 +2371,12 @@ input CharacterModifierInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterSenseInput {
   senseId: ID
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -2412,12 +2385,12 @@ input CharacterSenseInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterFeatInput {
   featId: ID
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -2425,12 +2398,17 @@ input CharacterFeatInput {
   backgroundId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterProficiencyInput {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   proficiencyId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -2439,12 +2417,17 @@ input CharacterProficiencyInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterExpertiseInput {
+  skill: ID
+  language: ID
+  saveAbility: ID
+  property: ID
+  equipment: ID
   expertiseId: ID!
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -2453,6 +2436,7 @@ input CharacterExpertiseInput {
   featId: ID
   optionId: ID
   optionIndex: String
+  featureLevel: Int
 }
 
 input CharacterSpellInput {
@@ -2467,26 +2451,32 @@ input CharacterSpellInput {
   requiresConcentration: Boolean
   optionalAbility: Boolean
   featureId: ID
-  featureOptionId: ID
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
+  optionId: ID
   optionIndex: String
+  featureLevel: Int
+}
+
+input CharacterFeatureOptionInput {
+  id: ID!
+  optionIndex: String!
+  featureLevel: Int!
 }
 
 input CharacterFeatureInput {
   id: ID
-  option: ID
+  options: [CharacterFeatureOptionInput]
   classId: ID
   raceId: ID
   ancestryId: ID
   equipmentId: ID
   backgroundId: ID
   featId: ID
-  optionIndex: String
   level: Int
 }
 
@@ -2611,12 +2601,29 @@ input CharacterClassInput {
   level: Int
 }
 
-input CharacterStartingEquipmentInput {
+input StartingEquipmentInput {
+  id: ID!
+  selectionId: ID
+  quantity: Int!
+}
+
+input StartingEquipmentGroupInput {
+  optionId: ID!
+  groupId: ID!
+  equipment: [StartingEquipmentInput]
+}
+
+input ClassStartingEquipmentInput {
   option: ID!
   goldOption: ID
   totalGold: Int
-  spentGold: Int
-  equipment: [ID]
+  equipmentGroups: [StartingEquipmentGroupInput]
+  addedToCharacter: Boolean
+}
+
+input BackgroundStartingEquipmentInput {
+  equipmentGroups: [StartingEquipmentGroupInput]
+  addedToCharacter: Boolean
 }
 
 input PossessionsInput {
@@ -2626,10 +2633,14 @@ input PossessionsInput {
   desc: String
 }
 
-input CharacterEquipmentInput {
-  possessions: [PossessionsInput]
-  equipment: [ContainsInput]
-  currencies: [EquipmentCurrencyInput]
+input CharacterCurrencyInput {
+  id: ID!
+  amount: Int!
+}
+
+input CurrencyGroupInput {
+  currencies: [CharacterCurrencyInput]
+  container: ID
 }
 
 input CharacterInput {
@@ -2642,10 +2653,13 @@ input CharacterInput {
   abilities: CharacterAbilitiesInput
   race: ID
   ancestry: CharacterAncestryInput
+  background: ID
   classes: [CharacterClassInput]
   spellcasting: CharacterSpellcastingInput
-  startingEquipment: CharacterStartingEquipmentInput
-  equipment: CharacterEquipmentInput
+  classEquipment: ClassStartingEquipmentInput
+  backgroundEquipment: BackgroundStartingEquipmentInput
+  equipment: [ContainsInput]
+  currencyGroups: [CurrencyGroupInput]
   features: [CharacterFeatureInput]
   feats: [CharacterFeatInput]
   proficiencies: CharacterProficiencyInput
@@ -2657,11 +2671,18 @@ input CharacterInput {
 }
 
 input BackgroundCurrencyInput {
-  copper: Int
-  silver: Int
-  electrum: Int
-  gold: Int
-  platinum: Int
+  id: ID!
+  amount: Int
+}
+
+input BackgroundEquipmentInput {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [BackgroundCurrencyInput]
 }
 
 input BackgroundInput {
@@ -2670,8 +2691,7 @@ input BackgroundInput {
   value: String!
   desc: String
   details: [DetailInput!]
-  equipment: [EquipmentGroupInput]
-  currency: BackgroundCurrencyInput
+  equipment: [[[BackgroundEquipmentInput]]]
   proficiencies: [FeatureProficiencyInput]
   features: [FeatureInput]
   ownerId: String

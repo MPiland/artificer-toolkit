@@ -86,20 +86,20 @@
     "value": "replaceAtLevel",
     "label": "Replace Options at Level",
     "id": "2eec6a5e-a7b3-4263-84dd-d977cce4cc79",
-    "features": ["options"]
+    "features": ["features"]
   },
   {
     "value": "selectCountByLevel",
     "label": "Select Count By Level",
     "id": "87e26eca-3d18-4858-aa3e-c6efc6d15a59",
-    "features": ["options"]
+    "features": ["features"]
   },
   {
     "value": "providesOptions",
     "label": "Provides Options",
     "id": "3fadd608-c46e-4718-a2b5-10d50fffbbdb",
     "sections": ["all"],
-    "equipment": ["all", "classes"]
+    "equipment": ["all", "classes", "backgrounds"]
   },
   {
     "value": "isRitual",
@@ -438,5 +438,11 @@
     "label": "Cast At Will",
     "id": "0fb2aae6-f606-46de-94fd-b0f4d9fa9be0",
     "sections": ["spells"]
+  },
+  {
+    "value": "containsCurrency",
+    "label": "Contains Currency",
+    "equipment": ["classes", "backgrounds"],
+    "id": "f4a91a84-5bc2-4cc3-aad9-7b9551a43b32"
   }
 ]

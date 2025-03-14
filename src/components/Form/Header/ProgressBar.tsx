@@ -116,11 +116,7 @@ const ProgressBar = () => {
       if (isEqual(formData, initialFormData) && featureStep == null) {
         return setStepIndex(progressStepIndex)
       }
-      if (
-        featureStep === 'subfeature' ||
-        featureStep === 'option' ||
-        (featureStep === 'feature' && formData.__typename !== 'Feat')
-      ) {
+      if (featureStep === 'option' || (featureStep === 'feature' && formData.__typename !== 'Feat')) {
         formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }
       if (!isEqual(formClone, formData)) {

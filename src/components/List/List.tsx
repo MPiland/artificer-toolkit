@@ -67,7 +67,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
   const { data }: { data: FormDataType[] } = useListItems()
-  
+
   const { updateFormData, fullReset } = use(FormContext)
   const { user } = use(AuthContext)
 
@@ -268,12 +268,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
             features: [],
             modifiers: [],
             proficiencies: [],
-            equipment: {
-              __typename: 'CharacterEquipment',
-              equipment: [],
-              possessions: [],
-              currencies: [],
-            },
+            equipment: [],
             feats: [],
             expertise: [],
             senses: [],

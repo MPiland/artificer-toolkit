@@ -10,9 +10,13 @@ const DiceTray = () => {
   const { width, height } = useThree((state) => state.viewport)
 
   useEffect(() => {
-    setDice.canvasHeight(height)
-    setDice.canvasWidth(width)
-  }, [height, setDice, width])
+    if (width !== dice.canvasWidth) {
+      setDice.canvasWidth(width)
+    }
+    if (height !== dice.canvasHeight) {
+      setDice.canvasHeight(height)
+    }
+  }, [height, setDice, width, dice])
 
   // Calculate positions and sizes for the walls
   const wallThickness = 2 // Adjust as needed

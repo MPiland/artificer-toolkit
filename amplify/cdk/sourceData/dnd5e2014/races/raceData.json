@@ -1812,7 +1812,7 @@
       "value": "subrace",
       "label": "Sub"
     },
-    "lineage": [
+    "lineages": [
       {
         "value": "dwarf",
         "label": "Dwarf"
@@ -2216,7 +2216,7 @@
       "value": "subrace",
       "label": "Sub"
     },
-    "lineage": [
+    "lineages": [
       {
         "value": "elf",
         "label": "Elf"
@@ -2596,7 +2596,7 @@
       "value": "subrace",
       "label": "Sub"
     },
-    "lineage": [
+    "lineages": [
       {
         "value": "halfling",
         "label": "Halfling"
@@ -3015,7 +3015,7 @@
       "value": "subrace",
       "label": "Sub"
     },
-    "lineage": [
+    "lineages": [
       {
         "value": "gnome",
         "label": "Gnome"

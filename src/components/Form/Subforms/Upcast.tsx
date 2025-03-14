@@ -1,7 +1,6 @@
 import { useMemo, useEffect, ReactNode } from 'react'
 import Dropdown from '../../Dropdown/Dropdown'
 import Collapse from '../../Collapse/Collapse'
-import { sprinkles } from '../../../css/sprinkles.css'
 import Divider from '../../Divider/Divider'
 import { startCase } from 'lodash'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
@@ -444,29 +443,31 @@ const Upcast = ({
         />
       </Grid.Item>
       {formData?.upcast?.attributes?.length > 0 && (
-        <Collapse className={sprinkles({ mt: 'space-3' })}>
-          <Collapse.Header title='Upcast Table' startOpened={formData.id == null} />
-          <Collapse.Body>
-            <Grid>
-              {upcastFields().headers.map((header, index) => (
-                <Grid.Item key={index} colSpan={'auto'}>
-                  {header}
-                </Grid.Item>
-              ))}
-              {formData.upcast?.levels?.map((_, index) => (
-                <Grid.Item key={index}>
-                  <Grid key={index}>
-                    {upcastFields(index).inputs.map((input, fIndex) => (
-                      <Grid.Item key={fIndex} colSpan={'auto'}>
-                        {input}
-                      </Grid.Item>
-                    ))}
-                  </Grid>
-                </Grid.Item>
-              ))}
-            </Grid>
-          </Collapse.Body>
-        </Collapse>
+        <Grid.Item>
+          <Collapse>
+            <Collapse.Header title='Upcast Table' startOpened={formData.id == null} />
+            <Collapse.Body>
+              <Grid>
+                {upcastFields().headers.map((header, index) => (
+                  <Grid.Item key={index} colSpan={'auto'}>
+                    {header}
+                  </Grid.Item>
+                ))}
+                {formData.upcast?.levels?.map((_, index) => (
+                  <Grid.Item key={index}>
+                    <Grid key={index}>
+                      {upcastFields(index).inputs.map((input, fIndex) => (
+                        <Grid.Item key={fIndex} colSpan={'auto'}>
+                          {input}
+                        </Grid.Item>
+                      ))}
+                    </Grid>
+                  </Grid.Item>
+                ))}
+              </Grid>
+            </Collapse.Body>
+          </Collapse>
+        </Grid.Item>
       )}
     </>
   )

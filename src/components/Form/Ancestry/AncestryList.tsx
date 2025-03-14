@@ -1,19 +1,18 @@
 import Accordion from '../../Accordion/Accordion'
-import Group from '../../Group/Group'
 import Input from '../../Input/Input'
 import Button from '../../Button/Button'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Collapse from '../../Collapse/Collapse'
-import Row from '../../Row/Row'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { sprinkles } from '../../../css/sprinkles.css'
 import { useMemo } from 'react'
-import { feature_description, feature_list } from '../Form.css'
+import { feature_description } from '../Form.css'
 import parse from 'html-react-parser'
 import { Race } from '../../../../amplify/gql/types'
 import { UpdateState } from '../../../types/form'
 import { FeatureContext } from '../Features/FeatureContext'
+import Grid from '../../Grid/Grid'
 
 const AncestryList = () => {
   const { updateFormData, formData } = use(FormContext) as {
@@ -77,42 +76,48 @@ const AncestryList = () => {
 
   return (
     <>
-      <Group directionVariant='column' alignItemsVariant='start'>
-        {!formData?.ancestry && (
+      {!formData?.ancestry && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Button color='primary' style='outline' onClick={handleAddAncestry} className={sprinkles({ mb: 'space-3' })}>
             Add Ancestry
           </Button>
-        )}
-        {formData?.ancestry && (
-          <>
-            <Row className={sprinkles({ mb: 'space-3' })}>
-              <Input
-                name='label'
-                autoComplete='off'
-                label='Ancestry Name'
-                required={formData?.ancestry?.desc !== '' && formData?.ancestry?.desc != null}
-                value={formData?.ancestry?.label}
-                errorMsg='Name must not be blank'
-                onChange={updateAncestryData}
-              />
-              <Button color='danger' style='outline' onClick={handleRemoveAncestry}>
-                Remove Ancestry
-              </Button>
-            </Row>
+        </Grid.Item>
+      )}
+      {formData?.ancestry && (
+        <>
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Input
+              name='label'
+              autoComplete='off'
+              label='Ancestry Name'
+              required={formData?.ancestry?.desc !== '' && formData?.ancestry?.desc != null}
+              value={formData?.ancestry?.label}
+              errorMsg='Name must not be blank'
+              onChange={updateAncestryData}
+            />
+          </Grid.Item>
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} align='end'>
+            <Button width='size-full' color='danger' style='outline' onClick={handleRemoveAncestry}>
+              Remove Ancestry
+            </Button>
+          </Grid.Item>
+          <Grid.Item>
             <Collapse className={sprinkles({ width: 'size-full' })}>
               <Collapse.Header title='Ancestry Description' startOpened={formData.id == null} />
               <Collapse.Body>
                 <RichTextEditor name='ancestry.desc' onChange={updateFormData} value={formData?.ancestry?.desc} />
               </Collapse.Body>
             </Collapse>
-            <Button color='primary' style='outline' onClick={handleAddOption} className={sprinkles({ mb: 'space-3' })}>
+          </Grid.Item>
+          <Grid.Item>
+            <Button color='primary' style='outline' onClick={handleAddOption}>
               Add Option
             </Button>
-          </>
-        )}
-      </Group>
+          </Grid.Item>
+        </>
+      )}
       {optionArray && optionArray.length > 0 && (
-        <div className={feature_list}>
+        <Grid.Item>
           <Accordion dataArray={optionArray} onChange={updateFormData} name='ancestry.options'>
             {optionArray?.map((option, optionIndex) => (
               <Accordion.Wrapper key={optionIndex} itemId={String(optionIndex)}>
@@ -132,7 +137,7 @@ const AncestryList = () => {
               </Accordion.Wrapper>
             ))}
           </Accordion>
-        </div>
+        </Grid.Item>
       )}
     </>
   )

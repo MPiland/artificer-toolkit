@@ -40,7 +40,7 @@ export const ancestrySlice: StateCreator<CombinedSlice, [], [], AncestrySlice> =
     ancestryReset: ({ value }) => set((state) => reset({ value, selector: (state) => state.ancestryData })(state)),
 
     initialAncestryReset: ({ value }) =>
-      set((state) => reset({ value, selector: (state) => state.initialSubfeatureData })(state)),
+      set((state) => reset({ value, selector: (state) => state.initialAncestryData })(state)),
 
     updateAncestryIndex: ({ value }) =>
       set((state) =>

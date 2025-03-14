@@ -1,5 +1,5 @@
-import { useEffect, useCallback, ReactNode, RefObject } from 'react'
-import { Location, useNavigate } from 'react-router-dom'
+import { useCallback, ReactNode, RefObject, useRef } from 'react'
+import { Location,  useNavigate } from 'react-router-dom'
 import {
   modal,
   modal_dialogue,
@@ -15,24 +15,13 @@ import Button from '../Button/Button'
 import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
 import Group from '../Group/Group'
+import { useEventListener } from 'usehooks-ts'
 
-export const Header = ({
-  title,
-  children,
-  location,
-}: {
-  title?: string
-  children?: ReactNode
-  location?: Location<any>
-}) => {
+export const Header = ({ title, children }: { title?: string; children?: ReactNode; location?: Location<any> }) => {
   const navigate = useNavigate()
 
   const handleClose = () => {
-    if (location && location.pathname === '/') {
-      navigate('/')
-    } else {
-      navigate(-1)
-    }
+    navigate(-1)
   }
 
   return (
@@ -107,6 +96,8 @@ const Dialogue = ({
 const Modal = ({ children, handleCloseFn }: { children: ReactNode; handleCloseFn?: () => void }) => {
   const navigate = useNavigate()
 
+  const documentRef = useRef<Document>(document)
+
   const handleClose = useCallback(() => {
     if (handleCloseFn) {
       handleCloseFn()
@@ -116,28 +107,18 @@ const Modal = ({ children, handleCloseFn }: { children: ReactNode; handleCloseFn
   }, [navigate, handleCloseFn])
 
   // Closes modal when Escape is pressed
-  const handleEscKey = useCallback(
-    (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        handleClose()
-      }
-    },
-    [handleClose]
-  )
+  const handleEscKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      handleClose()
+    }
+  }
 
-  // Listens for Key to close modal
-  useEffect(() => {
-    document.addEventListener('keyup', handleEscKey)
-
-    return () => document.removeEventListener('keyup', handleEscKey)
-  }, [handleEscKey])
-
+  useEventListener('keydown', handleEscKey, documentRef)
+  
   return (
-    <>
       <div className={modal} onClick={handleClose}>
         {children}
       </div>
-    </>
   )
 }
 

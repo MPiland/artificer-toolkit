@@ -19,7 +19,10 @@ const mapping = {
   },
   'item': {
     replace: (obj) => findIdInLookup(obj.value, './equipmentData.json'),
-    newKey: 'equipment',
+    newKey: {
+      fn: () => 'equipment',
+      excludeParent: ['contains'],
+    },
   },
   'currency': {
     replace: (obj) => findIdInLookup(obj.value, '../system/currencies.json'),
@@ -157,6 +160,11 @@ const mapping = {
       },
     },
   },
+  'contains': {
+    item: {
+      newKey: 'id',
+    },
+  },
   '*': {
     type: {
       replace: (obj) => {
@@ -214,7 +222,17 @@ const mapping = {
           }
         }
       },
-      excludeParent: ['duration', 'range', 'shape', 'saveAbility', 'primary', 'secondary', 'bonus', 'versatile'],
+      excludeParent: [
+        'duration',
+        'range',
+        'shape',
+        'saveAbility',
+        'primary',
+        'secondary',
+        'bonus',
+        'versatile',
+        'contains',
+      ],
     },
   },
 }

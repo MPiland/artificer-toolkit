@@ -12,7 +12,7 @@ import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { useEffect } from 'react'
 import Collapse from '../../Collapse/Collapse'
-import { Character, Feat, FeatureAncestry, FeatureEnum, Spell } from '../../../../amplify/gql/types'
+import { Character, Feat, FeatureEnum, Spell } from '../../../../amplify/gql/types'
 import { FeatureDataType, FormDataType, SectionDataType, UpdateState } from '../../../types/form'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
@@ -21,7 +21,7 @@ const Prerequisites = ({
   formData,
   updateFormData,
 }: {
-  formData: FeatureDataType | Feat | Exclude<SectionDataType, FeatureAncestry>
+  formData: FeatureDataType | Feat | SectionDataType
   updateFormData: (state: UpdateState<FormDataType | FeatureDataType | SectionDataType>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
@@ -67,443 +67,445 @@ const Prerequisites = ({
   }, [updateFormData, hasPrerequisites, equipmentProficiency, equipped, notEquipped, formData.prerequisites])
 
   return (
-    <Collapse>
-      <Collapse.Header title='Prerequisites' />
-      <Collapse.Body>
-        <Grid>
-          <Grid.Item>
-            <Grid>
-              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown
-                  multiSelect={true}
-                  name='prerequisites.options'
-                  label='Prerequisites'
-                  options={system.prerequisites.filter(
-                    (prerequisite) =>
-                      prerequisite?.features?.length > 0 &&
-                      (prerequisite?.features?.includes(FeatureEnum.all) ||
-                        (formData.__typename === 'FeatureOption' &&
-                          prerequisite?.features.includes(FeatureEnum.options)))
-                  )}
-                  value={formData?.prerequisites?.options}
-                  required={true}
-                  onChange={updateFormData}
-                />
-              </Grid.Item>
-              {spellsObtained && (
+    <Grid.Item>
+      <Collapse>
+        <Collapse.Header title='Prerequisites' />
+        <Collapse.Body>
+          <Grid>
+            <Grid.Item>
+              <Grid>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown<typeof formData>
+                  <Dropdown
                     multiSelect={true}
-                    name='prerequisites.spellsObtained'
-                    value={formData?.prerequisites.spellsObtained}
-                    label='Spell'
-                    options={spells as DropdownOption[]}
+                    name='prerequisites.options'
+                    label='Prerequisites'
+                    options={system.prerequisites.filter(
+                      (prerequisite) =>
+                        prerequisite?.features?.length > 0 &&
+                        (prerequisite?.features?.includes(FeatureEnum.all) ||
+                          (formData.__typename === 'FeatureOption' &&
+                            prerequisite?.features.includes(FeatureEnum.options)))
+                    )}
+                    value={formData?.prerequisites?.options}
+                    required={true}
                     onChange={updateFormData}
                   />
                 </Grid.Item>
-              )}
-              {featuresObtained && (
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown<typeof formData>
-                    multiSelect={true}
-                    name='prerequisites.featuresObtained'
-                    value={formData?.prerequisites?.featuresObtained}
-                    label='Feature'
-                    options={(formData as Exclude<FormDataType, Spell | Character>).features.map((feature) => ({
-                      label: feature.label,
-                      value: feature.value,
-                      id: feature.id,
-                    }))}
-                    onChange={updateFormData}
-                  />
-                </Grid.Item>
-              )}
-              {optionsObtained &&
-                formData?.prerequisites?.optionsObtained?.some(
-                  (feature) =>
-                    (formData as Exclude<FormDataType, Spell | Character>).features.find(
-                      (sFeature) => sFeature.id === feature
-                    ).options?.length > 0
-                ) && (
+                {spellsObtained && (
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
+                    <Dropdown
                       multiSelect={true}
-                      name='prerequisites.optionsObtained'
-                      value={formData?.prerequisites?.optionsObtained}
-                      label='Feature Option'
-                      options={formData?.prerequisites?.featuresObtained?.flatMap((feature) =>
-                        (formData as Exclude<FormDataType, Spell | Character>).features
-                          .find((sFeature) => sFeature.id === feature)
-                          .options.map((option) => ({
-                            label: option.label,
-                            value: option.value,
-                            id: option.id,
-                          }))
-                      )}
+                      name='prerequisites.spellsObtained'
+                      value={formData?.prerequisites.spellsObtained}
+                      label='Spell'
+                      options={spells as DropdownOption[]}
                       onChange={updateFormData}
                     />
                   </Grid.Item>
                 )}
-              {skillProficiency && (
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown<typeof formData>
-                    multiSelect={true}
-                    name='prerequisites.skillProficiencies'
-                    label='Skill Proficiency'
-                    value={formData?.prerequisites?.skillProficiencies}
-                    options={system.skills}
-                    onChange={updateFormData}
-                  />
-                </Grid.Item>
-              )}
-              {abilityScore && (
-                <>
+                {featuresObtained && (
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
+                    <Dropdown
                       multiSelect={true}
-                      name='prerequisites.abilityScore.abilities'
-                      value={formData?.prerequisites?.abilityScore?.abilities}
-                      label='Ability'
-                      options={system.abilities}
-                      required={true}
+                      name='prerequisites.featuresObtained'
+                      value={formData?.prerequisites?.featuresObtained}
+                      label='Feature'
+                      options={(formData as Exclude<FormDataType, Spell | Character>).features.map((feature) => ({
+                        label: feature.label,
+                        value: feature.value,
+                        id: feature.id,
+                      }))}
                       onChange={updateFormData}
                     />
                   </Grid.Item>
+                )}
+                {optionsObtained &&
+                  formData?.prerequisites?.optionsObtained?.some(
+                    (feature) =>
+                      (formData as Exclude<FormDataType, Spell | Character>).features.find(
+                        (sFeature) => sFeature.id === feature
+                      ).options?.length > 0
+                  ) && (
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name='prerequisites.optionsObtained'
+                        value={formData?.prerequisites?.optionsObtained}
+                        label='Feature Option'
+                        options={formData?.prerequisites?.featuresObtained?.flatMap((feature) =>
+                          (formData as Exclude<FormDataType, Spell | Character>).features
+                            .find((sFeature) => sFeature.id === feature)
+                            .options.map((option) => ({
+                              label: option.label,
+                              value: option.value,
+                              id: option.id,
+                            }))
+                        )}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                  )}
+                {skillProficiency && (
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input<typeof formData>
-                      name='prerequisites.abilityScore.score'
-                      value={formData?.prerequisites?.abilityScore?.score}
-                      label='Score'
-                      required={true}
-                      validation='num'
-                      errorMsg='Must contain only numbers'
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                </>
-              )}
-            </Grid>
-          </Grid.Item>
-          {equipmentProficiency && (
-            <Grid.Item>
-              <Divider label='Equipment Proficiency' />
-              {formData?.prerequisites?.equipmentProficiencies?.map((equipmentProficieny, index) => (
-                <Grid key={index}>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      name={`prerequisites.equipmentProficiencies.${index}.category`}
-                      value={equipmentProficieny.category}
-                      label='Equipment Category'
-                      options={system.equipment.categories.filter((sCategory) => {
-                        if (equipmentProficieny?.properties?.length > 0) {
-                          return system.equipment.categoryProperties.some(
-                            (bridge) =>
-                              bridge.categoryId === sCategory.id &&
-                              equipmentProficieny?.properties?.includes(bridge.propertyId)
-                          )
-                        }
-                        return true
-                      })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
+                    <Dropdown
                       multiSelect={true}
-                      name={`prerequisites.equipmentProficiencies.${index}.properties`}
-                      value={equipmentProficieny.properties}
-                      label='Equipment Property'
-                      options={system.equipment.properties.filter((property) => {
-                        if (equipmentProficieny?.category != null) {
-                          return system.equipment.categoryProperties.some(
-                            (bridge) =>
-                              bridge.categoryId === equipmentProficieny.category && bridge.propertyId === property.id
-                          )
-                        }
-                        return true
-                      })}
+                      name='prerequisites.skillProficiencies'
+                      label='Skill Proficiency'
+                      value={formData?.prerequisites?.skillProficiencies}
+                      options={system.skills}
                       onChange={updateFormData}
                     />
                   </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      multiSelect={true}
-                      name={`prerequisites.equipmentProficiencies.${index}.equipment`}
-                      label='Equipment'
-                      value={equipmentProficieny?.equipment}
-                      options={equipment
-                        .filter((sEquipment) => {
-                          if (equipmentProficieny?.category != null) {
-                            return sEquipment.category === equipmentProficieny?.category
-                          }
-                          return true
-                        })
-                        .filter((sEquipment) => {
+                )}
+                {abilityScore && (
+                  <>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name='prerequisites.abilityScore.abilities'
+                        value={formData?.prerequisites?.abilityScore?.abilities}
+                        label='Ability'
+                        options={system.abilities}
+                        required={true}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Input
+                        name='prerequisites.abilityScore.score'
+                        value={formData?.prerequisites?.abilityScore?.score}
+                        label='Score'
+                        required={true}
+                        validation='num'
+                        errorMsg='Must contain only numbers'
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                  </>
+                )}
+              </Grid>
+            </Grid.Item>
+            {equipmentProficiency && (
+              <Grid.Item>
+                <Divider label='Equipment Proficiency' />
+                {formData?.prerequisites?.equipmentProficiencies?.map((equipmentProficieny, index) => (
+                  <Grid key={index}>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        name={`prerequisites.equipmentProficiencies.${index}.category`}
+                        value={equipmentProficieny.category}
+                        label='Equipment Category'
+                        options={system.equipment.categories.filter((sCategory) => {
                           if (equipmentProficieny?.properties?.length > 0) {
-                            return sEquipment.properties?.some((property) =>
-                              equipmentProficieny?.properties?.includes(property)
+                            return system.equipment.categoryProperties.some(
+                              (bridge) =>
+                                bridge.categoryId === sCategory.id &&
+                                equipmentProficieny?.properties?.includes(bridge.propertyId)
                             )
                           }
                           return true
                         })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
-                    <Group
-                      className={sprinkles({ height: 'size-full' })}
-                      alignItemsVariant='center'
-                      justifyContentVariant='start'
-                    >
-                      <Button
-                        style='unstyled'
-                        className={row_button}
-                        onClick={() =>
-                          updateFormData({
-                            type: 'add',
-                            path: `prerequisites.equipmentProficiencies`,
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name={`prerequisites.equipmentProficiencies.${index}.properties`}
+                        value={equipmentProficieny.properties}
+                        label='Equipment Property'
+                        options={system.equipment.properties.filter((property) => {
+                          if (equipmentProficieny?.category != null) {
+                            return system.equipment.categoryProperties.some(
+                              (bridge) =>
+                                bridge.categoryId === equipmentProficieny.category && bridge.propertyId === property.id
+                            )
+                          }
+                          return true
+                        })}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name={`prerequisites.equipmentProficiencies.${index}.equipment`}
+                        label='Equipment'
+                        value={equipmentProficieny?.equipment}
+                        options={equipment
+                          .filter((sEquipment) => {
+                            if (equipmentProficieny?.category != null) {
+                              return sEquipment.category === equipmentProficieny?.category
+                            }
+                            return true
                           })
-                        }
+                          .filter((sEquipment) => {
+                            if (equipmentProficieny?.properties?.length > 0) {
+                              return sEquipment.properties?.some((property) =>
+                                equipmentProficieny?.properties?.includes(property)
+                              )
+                            }
+                            return true
+                          })}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
+                      <Group
+                        className={sprinkles({ height: 'size-full' })}
+                        alignItemsVariant='center'
+                        justifyContentVariant='start'
                       >
-                        <TbPlus />
-                      </Button>
-                      {index !== 0 && (
                         <Button
                           style='unstyled'
                           className={row_button}
-                          onClick={() => {
+                          onClick={() =>
                             updateFormData({
-                              type: 'remove',
-                              path: `prerequisites.equipmentProficiencies.${index}`,
+                              type: 'add',
+                              path: `prerequisites.equipmentProficiencies`,
                             })
-                          }}
-                        >
-                          <TbX />
-                        </Button>
-                      )}
-                    </Group>
-                  </Grid.Item>
-                </Grid>
-              ))}
-            </Grid.Item>
-          )}
-          {equipped && (
-            <Grid.Item>
-              <Divider label='Equipped' />
-              {formData?.prerequisites?.equipped?.map((equipPrerequisite, index) => (
-                <Grid key={index}>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      name={`prerequisites.equipped.${index}.category`}
-                      value={equipPrerequisite.category}
-                      label='Equipment Category'
-                      options={system.equipment.categories.filter((sCategory) => {
-                        if (equipPrerequisite?.properties?.length > 0) {
-                          return system.equipment.categoryProperties.some(
-                            (bridge) =>
-                              bridge.categoryId === sCategory.id &&
-                              equipPrerequisite?.properties?.includes(bridge.propertyId)
-                          )
-                        }
-                        return true
-                      })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      multiSelect={true}
-                      name={`prerequisites.equipped.${index}.properties`}
-                      value={equipPrerequisite.properties}
-                      label='Equipment Property'
-                      options={system.equipment.properties.filter((property) => {
-                        if (equipPrerequisite?.category != null) {
-                          return system.equipment.categoryProperties.some(
-                            (bridge) =>
-                              bridge.categoryId === equipPrerequisite.category && bridge.propertyId === property.id
-                          )
-                        }
-                        return true
-                      })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      multiSelect={true}
-                      name={`prerequisites.equipped.${index}.equipment`}
-                      label='Equipment'
-                      value={equipPrerequisite.equipment}
-                      options={equipment
-                        .filter((sEquipment) => {
-                          if (equipPrerequisite?.category != null) {
-                            return sEquipment.category === equipPrerequisite?.category
                           }
-                          return true
-                        })
-                        .filter((sEquipment) => {
+                        >
+                          <TbPlus />
+                        </Button>
+                        {index !== 0 && (
+                          <Button
+                            style='unstyled'
+                            className={row_button}
+                            onClick={() => {
+                              updateFormData({
+                                type: 'remove',
+                                path: `prerequisites.equipmentProficiencies.${index}`,
+                              })
+                            }}
+                          >
+                            <TbX />
+                          </Button>
+                        )}
+                      </Group>
+                    </Grid.Item>
+                  </Grid>
+                ))}
+              </Grid.Item>
+            )}
+            {equipped && (
+              <Grid.Item>
+                <Divider label='Equipped' />
+                {formData?.prerequisites?.equipped?.map((equipPrerequisite, index) => (
+                  <Grid key={index}>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        name={`prerequisites.equipped.${index}.category`}
+                        value={equipPrerequisite.category}
+                        label='Equipment Category'
+                        options={system.equipment.categories.filter((sCategory) => {
                           if (equipPrerequisite?.properties?.length > 0) {
-                            return sEquipment.properties?.some((property) =>
-                              equipPrerequisite?.properties?.includes(property)
+                            return system.equipment.categoryProperties.some(
+                              (bridge) =>
+                                bridge.categoryId === sCategory.id &&
+                                equipPrerequisite?.properties?.includes(bridge.propertyId)
                             )
                           }
                           return true
                         })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Input<typeof formData>
-                      name={`prerequisites.equipped.${index}.numberEquipped`}
-                      label='Number Equipped'
-                      value={equipPrerequisite.numberEquipped}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
-                    <Group
-                      className={sprinkles({ height: 'size-full' })}
-                      alignItemsVariant='center'
-                      justifyContentVariant='start'
-                    >
-                      <Button
-                        style='unstyled'
-                        className={row_button}
-                        onClick={() =>
-                          updateFormData({
-                            type: 'add',
-                            path: `prerequisites.equipped`,
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name={`prerequisites.equipped.${index}.properties`}
+                        value={equipPrerequisite.properties}
+                        label='Equipment Property'
+                        options={system.equipment.properties.filter((property) => {
+                          if (equipPrerequisite?.category != null) {
+                            return system.equipment.categoryProperties.some(
+                              (bridge) =>
+                                bridge.categoryId === equipPrerequisite.category && bridge.propertyId === property.id
+                            )
+                          }
+                          return true
+                        })}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name={`prerequisites.equipped.${index}.equipment`}
+                        label='Equipment'
+                        value={equipPrerequisite.equipment}
+                        options={equipment
+                          .filter((sEquipment) => {
+                            if (equipPrerequisite?.category != null) {
+                              return sEquipment.category === equipPrerequisite?.category
+                            }
+                            return true
                           })
-                        }
+                          .filter((sEquipment) => {
+                            if (equipPrerequisite?.properties?.length > 0) {
+                              return sEquipment.properties?.some((property) =>
+                                equipPrerequisite?.properties?.includes(property)
+                              )
+                            }
+                            return true
+                          })}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Input
+                        name={`prerequisites.equipped.${index}.numberEquipped`}
+                        label='Number Equipped'
+                        value={equipPrerequisite.numberEquipped}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
+                      <Group
+                        className={sprinkles({ height: 'size-full' })}
+                        alignItemsVariant='center'
+                        justifyContentVariant='start'
                       >
-                        <TbPlus />
-                      </Button>
-                      {index !== 0 && (
                         <Button
                           style='unstyled'
                           className={row_button}
-                          onClick={() => {
+                          onClick={() =>
                             updateFormData({
-                              type: 'remove',
-                              path: `prerequisites.equipped.${index}`,
+                              type: 'add',
+                              path: `prerequisites.equipped`,
                             })
-                          }}
-                        >
-                          <TbX />
-                        </Button>
-                      )}
-                    </Group>
-                  </Grid.Item>
-                </Grid>
-              ))}
-            </Grid.Item>
-          )}
-          {notEquipped && (
-            <Grid.Item>
-              <Divider label={'Not Equipped'} />
-              {formData?.prerequisites?.notEquipped?.map((notEquipPrerequisite, index) => (
-                <Grid key={index}>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      name={`prerequisites.notEquipped.${index}.category`}
-                      value={notEquipPrerequisite.category}
-                      label='Equipment Category'
-                      options={system.equipment.categories.filter((sCategory) => {
-                        if (notEquipPrerequisite?.properties?.length > 0) {
-                          return system.equipment.categoryProperties.some(
-                            (bridge) =>
-                              bridge.categoryId === sCategory.id &&
-                              notEquipPrerequisite?.properties?.includes(bridge.propertyId)
-                          )
-                        }
-                        return true
-                      })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      multiSelect={true}
-                      name={`prerequisites.notEquipped.${index}.properties`}
-                      value={notEquipPrerequisite.properties}
-                      label='Equipment Property'
-                      options={system.equipment.properties.filter((property) => {
-                        if (notEquipPrerequisite?.category != null) {
-                          return system.equipment.categoryProperties.some(
-                            (bridge) =>
-                              bridge.categoryId === notEquipPrerequisite.category && bridge.propertyId === property.id
-                          )
-                        }
-                        return true
-                      })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                    <Dropdown<typeof formData>
-                      multiSelect={true}
-                      name={`prerequisites.notEquipped.${index}.equipment`}
-                      label='Equipment'
-                      value={notEquipPrerequisite.equipment}
-                      options={equipment
-                        .filter((sEquipment) => {
-                          if (notEquipPrerequisite?.category != null) {
-                            return sEquipment.category === notEquipPrerequisite?.category
                           }
-                          return true
-                        })
-                        .filter((sEquipment) => {
+                        >
+                          <TbPlus />
+                        </Button>
+                        {index !== 0 && (
+                          <Button
+                            style='unstyled'
+                            className={row_button}
+                            onClick={() => {
+                              updateFormData({
+                                type: 'remove',
+                                path: `prerequisites.equipped.${index}`,
+                              })
+                            }}
+                          >
+                            <TbX />
+                          </Button>
+                        )}
+                      </Group>
+                    </Grid.Item>
+                  </Grid>
+                ))}
+              </Grid.Item>
+            )}
+            {notEquipped && (
+              <Grid.Item>
+                <Divider label={'Not Equipped'} />
+                {formData?.prerequisites?.notEquipped?.map((notEquipPrerequisite, index) => (
+                  <Grid key={index}>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        name={`prerequisites.notEquipped.${index}.category`}
+                        value={notEquipPrerequisite.category}
+                        label='Equipment Category'
+                        options={system.equipment.categories.filter((sCategory) => {
                           if (notEquipPrerequisite?.properties?.length > 0) {
-                            return sEquipment.properties?.some((property) =>
-                              notEquipPrerequisite?.properties?.includes(property)
+                            return system.equipment.categoryProperties.some(
+                              (bridge) =>
+                                bridge.categoryId === sCategory.id &&
+                                notEquipPrerequisite?.properties?.includes(bridge.propertyId)
                             )
                           }
                           return true
                         })}
-                      onChange={updateFormData}
-                    />
-                  </Grid.Item>
-                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
-                    <Group
-                      className={sprinkles({ height: 'size-full' })}
-                      alignItemsVariant='center'
-                      justifyContentVariant='start'
-                    >
-                      <Button
-                        style='unstyled'
-                        className={row_button}
-                        onClick={() =>
-                          updateFormData({
-                            type: 'add',
-                            path: `prerequisites.notEquipped`,
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name={`prerequisites.notEquipped.${index}.properties`}
+                        value={notEquipPrerequisite.properties}
+                        label='Equipment Property'
+                        options={system.equipment.properties.filter((property) => {
+                          if (notEquipPrerequisite?.category != null) {
+                            return system.equipment.categoryProperties.some(
+                              (bridge) =>
+                                bridge.categoryId === notEquipPrerequisite.category && bridge.propertyId === property.id
+                            )
+                          }
+                          return true
+                        })}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        multiSelect={true}
+                        name={`prerequisites.notEquipped.${index}.equipment`}
+                        label='Equipment'
+                        value={notEquipPrerequisite.equipment}
+                        options={equipment
+                          .filter((sEquipment) => {
+                            if (notEquipPrerequisite?.category != null) {
+                              return sEquipment.category === notEquipPrerequisite?.category
+                            }
+                            return true
                           })
-                        }
+                          .filter((sEquipment) => {
+                            if (notEquipPrerequisite?.properties?.length > 0) {
+                              return sEquipment.properties?.some((property) =>
+                                notEquipPrerequisite?.properties?.includes(property)
+                              )
+                            }
+                            return true
+                          })}
+                        onChange={updateFormData}
+                      />
+                    </Grid.Item>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} className={sprinkles({ alignContent: 'center' })}>
+                      <Group
+                        className={sprinkles({ height: 'size-full' })}
+                        alignItemsVariant='center'
+                        justifyContentVariant='start'
                       >
-                        <TbPlus />
-                      </Button>
-                      {index !== 0 && (
                         <Button
                           style='unstyled'
                           className={row_button}
-                          onClick={() => {
+                          onClick={() =>
                             updateFormData({
-                              type: 'remove',
-                              path: `prerequisites.notEquipped.${index}`,
+                              type: 'add',
+                              path: `prerequisites.notEquipped`,
                             })
-                          }}
+                          }
                         >
-                          <TbX />
+                          <TbPlus />
                         </Button>
-                      )}
-                    </Group>
-                  </Grid.Item>
-                </Grid>
-              ))}
-            </Grid.Item>
-          )}
-        </Grid>
-      </Collapse.Body>
-    </Collapse>
+                        {index !== 0 && (
+                          <Button
+                            style='unstyled'
+                            className={row_button}
+                            onClick={() => {
+                              updateFormData({
+                                type: 'remove',
+                                path: `prerequisites.notEquipped.${index}`,
+                              })
+                            }}
+                          >
+                            <TbX />
+                          </Button>
+                        )}
+                      </Group>
+                    </Grid.Item>
+                  </Grid>
+                ))}
+              </Grid.Item>
+            )}
+          </Grid>
+        </Collapse.Body>
+      </Collapse>
+    </Grid.Item>
   )
 }
 

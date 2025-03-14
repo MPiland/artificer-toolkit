@@ -64,7 +64,7 @@ const mapping = {
     limit: {
       replace: (obj) => findIdInLookup(obj?.value, '../../system/systemCharges.json'),
     },
-    level: {
+    usesPerLevel: {
       useNum: {
         newKey: 'uses',
       },
@@ -287,7 +287,10 @@ const mapping = {
       replace: (obj) => {
         return findIdInLookup(obj?.value, '../../system/systemAttributes.json')
       },
-      newKey: 'attributes',
+      newKey: {
+        fn: () => 'attributes',
+        excludeParent: ['primary', 'secondary', 'bonus'],
+      },
     },
     attributes: {
       replace: (obj) => {
@@ -322,6 +325,8 @@ const mapping = {
         'versatile',
         'spells',
         'senses',
+        'proficiency',
+        'expertise',
       ],
     },
   },

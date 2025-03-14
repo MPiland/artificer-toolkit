@@ -21,7 +21,7 @@ export const accordion_wrapper = style({
       position: 'relative',
       boxShadow: '-2px 2px 4px 0px rgba(0,0,0,0.2)',
       zIndex: 2,
-      marginBottom: size['size-3'],
+      marginBottom: size['size-4'],
       border: `${theme.border.size.main} ${theme.border.style} ${theme.vars.component.content.border.color.main}`,
       borderRadius: theme.border.radius,
       backgroundColor: theme.vars.component.collapse.backgroundColor.main,

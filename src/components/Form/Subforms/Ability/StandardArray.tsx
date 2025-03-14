@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
 import Dropdown from '../../../Dropdown/Dropdown'
 import { DeepKeyOf, UpdateState } from '../../../../types/form'
-import Row from '../../../Row/Row'
 import { Character, Scores } from '../../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { AbilityGenerate } from '../../../../types/enums'
 import { isEqual } from 'lodash'
+import Grid from '../../../Grid/Grid'
 
 const StandardArray = ({
   formData,
@@ -72,7 +72,7 @@ const StandardArray = ({
   }
 
   return (
-    <Row cols={{ base: 2, md: formData.abilities?.scores?.length }}>
+    <>
       {formData.abilities?.scores?.map((score, index) => {
         const ability = system.abilities.find((sAbility) => sAbility.id === score.ability)
         const currentIndex = formData.abilities?.standardArray?.findIndex(
@@ -80,22 +80,24 @@ const StandardArray = ({
         )
         const current = formData.abilities?.standardArray?.[currentIndex]?.score
         return (
-          <Dropdown<Character>
-            key={index}
-            name={'ability' as DeepKeyOf<Character>}
-            label={`${ability?.label}`}
-            value={current}
-            options={pointSystem.options.filter(
-              (option) =>
-                !formData.abilities?.standardArray?.some(
-                  (sAbility) => sAbility?.score === option.id && sAbility.ability !== ability.id
-                )
-            )}
-            onChange={(e) => handleStandardArray(e, score, index)}
-          />
+          <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Dropdown<Character>
+              key={index}
+              name={'ability' as DeepKeyOf<Character>}
+              label={`${ability?.label}`}
+              value={current}
+              options={pointSystem.options.filter(
+                (option) =>
+                  !formData.abilities?.standardArray?.some(
+                    (sAbility) => sAbility?.score === option.id && sAbility.ability !== ability.id
+                  )
+              )}
+              onChange={(e) => handleStandardArray(e, score, index)}
+            />
+          </Grid.Item>
         )
       })}
-    </Row>
+    </>
   )
 }
 export default StandardArray

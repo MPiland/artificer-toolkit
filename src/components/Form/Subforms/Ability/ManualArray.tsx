@@ -7,7 +7,6 @@ import { sprinkles } from '../../../../css/sprinkles.css'
 import {
   dice_roll_value,
   dice_spinner,
-  roll_score_group,
   roll_score_box,
   roll_score,
   dice_roll_dropdown,
@@ -18,7 +17,6 @@ import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
 import { DiceRolls, RollConfig } from '../../../../types/components'
 import Collapse from '../../../Collapse/Collapse'
 import { isEqual } from 'lodash'
-import Row from '../../../Row/Row'
 import clsx from 'clsx'
 import { Character, Manual, RollType } from '../../../../../amplify/gql/types'
 import { parseDiceRoll } from '../../../../utils/dice'
@@ -193,7 +191,6 @@ const ManualArray = ({
       // Call rollDice function with the input string
       const rollResult = await rollDice(rollConfiguration)
 
-      // Example input, replace it with the actual input
       results = { ...results, ...rollResult }
       results.kept.forEach((result) => {
         total += result.value
@@ -278,8 +275,8 @@ const ManualArray = ({
         (keptRoll) => keptRoll.id === id
       )
       diceResults.push(
-        <div key={`${gIndex}${rIndex}${i}`} className={roll_score_box}>
-          <div className={clsx(roll_score, { ['kept']: kept })}>{value}</div>
+        <div key={`${gIndex}${rIndex}${i}`} className={clsx(roll_score, { ['kept']: kept })}>
+          {value}
         </div>
       )
     }
@@ -373,158 +370,152 @@ const ManualArray = ({
           </Grid.Item>
         )
       })}
-      <Collapse>
-        <Collapse.Header title='Dice Roll Groups' startOpened={true} />
-        <Collapse.Body>
-          <Grid>
-            {formData.abilities?.manualRolled?.rollGroups?.map((rollGroup, gIndex) => {
-              return (
-                <Fragment key={gIndex}>
-                  <Grid.Item>
-                    <Grid>
-                      {gIndex === 0 && (
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                          <Button color='update' onClick={handleAddGroup} disabled={dice.isRolling}>
-                            Add Group
-                          </Button>
-                        </Grid.Item>
-                      )}
-                      {formData.abilities?.manualRolled?.rollGroups.length !== 1 && (
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                          <Button
-                            color='danger'
-                            style='outline'
-                            onClick={() => handleDeleteGroup(gIndex)}
-                            disabled={dice.isRolling}
-                          >
-                            Delete Group
-                          </Button>
-                        </Grid.Item>
-                      )}
-                    </Grid>
-                    <Grid>
-                      {rollGroup?.map((roll, rIndex) => {
-                        const { numDie, dieType } = parseDiceRoll(rollConfiguration)
-                        return (
-                          <Grid.Item key={rIndex} colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                            <Group directionVariant='column' justifyContentVariant='start' key={rIndex}>
-                              <Group
-                                directionVariant='column'
-                                alignItemsVariant='center'
-                                className={dice_roll_value_group}
-                              >
-                                {roll?.rolling ? (
-                                  <Spinner className={dice_spinner} />
+      <Grid.Item>
+        <Collapse>
+          <Collapse.Header title='Dice Roll Groups' startOpened={true} />
+          <Collapse.Body>
+            <Grid>
+              {formData.abilities?.manualRolled?.rollGroups?.map((rollGroup, gIndex) => {
+                return (
+                  <Fragment key={gIndex}>
+                    <Grid.Item>
+                      <Grid>
+                        {gIndex === 0 && (
+                          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                            <Button color='update' onClick={handleAddGroup} disabled={dice.isRolling}>
+                              Add Group
+                            </Button>
+                          </Grid.Item>
+                        )}
+                        {formData.abilities?.manualRolled?.rollGroups.length !== 1 && (
+                          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                            <Button
+                              color='danger'
+                              style='outline'
+                              onClick={() => handleDeleteGroup(gIndex)}
+                              disabled={dice.isRolling}
+                            >
+                              Delete Group
+                            </Button>
+                          </Grid.Item>
+                        )}
+                      </Grid>
+                      <Grid>
+                        {rollGroup?.map((roll, rIndex) => {
+                          const { dieType } = parseDiceRoll(rollConfiguration)
+                          return (
+                            <Grid.Item key={rIndex} colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                              <Group directionVariant='column' justifyContentVariant='start' key={rIndex}>
+                                <Group
+                                  directionVariant='column'
+                                  alignItemsVariant='center'
+                                  flexWrapVariant='noWrap'
+                                  className={dice_roll_value_group}
+                                >
+                                  {roll?.rolling ? (
+                                    <Spinner className={dice_spinner} />
+                                  ) : (
+                                    <>
+                                      <div className={dice_roll_value}>{roll.score || '---'}</div>
+                                      {formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled
+                                        ?.length > 0 && (
+                                        <div key={`${gIndex}${rIndex}${roll.score}`} className={roll_score_box}>
+                                          {rollResult(gIndex, rIndex)}
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </Group>
+                                {roll.score == null ? (
+                                  <Button
+                                    name='setRolling'
+                                    color='primary'
+                                    onClick={() => {
+                                      setTimeout(() => {
+                                        handleRoll(gIndex, rIndex)
+                                      }, 10)
+                                    }}
+                                    className={sprinkles({ width: 'size-full' })}
+                                    disabled={dice.isRolling || dieType == null}
+                                  >
+                                    {dice.isRolling ? 'Rolling' : 'Roll'}
+                                  </Button>
                                 ) : (
-                                  <>
-                                    <Input<RollType>
-                                      name={`score`}
-                                      value={roll?.score || '---'}
-                                      readOnly
-                                      className={dice_roll_value}
-                                      textAlign='center'
-                                      disabled={!roll.score}
-                                      border='none'
-                                      height='full'
-                                    />
-                                    {formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.length >
-                                      0 && (
-                                      <Row cols={{ base: numDie }} className={roll_score_group} cellSize='auto'>
-                                        {rollResult(gIndex, rIndex)}
-                                      </Row>
+                                  <Dropdown<Character>
+                                    name={`abilities.manualRolled.rollGroups.${gIndex}.${rIndex}.ability`}
+                                    options={system.abilities.filter(
+                                      (ability) =>
+                                        !formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.some(
+                                          (roll, index) => roll.ability === ability.id && index !== rIndex
+                                        )
                                     )}
-                                  </>
+                                    className={dice_roll_dropdown}
+                                    value={formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.ability}
+                                    onChange={(e) => {
+                                      if (e.type === 'update') {
+                                        updateFormData({
+                                          type: 'update',
+                                          path: e.path,
+                                          value: e.value,
+                                        })
+                                      } else if (e.type === 'remove') {
+                                        const abilities = JSON.parse(
+                                          JSON.stringify(formData.abilities)
+                                        ) as Character['abilities']
+
+                                        // Set all abilities to false applied if removing ability option
+                                        abilities.manualRolled.rollGroups[gIndex] = abilities.manualRolled.rollGroups[
+                                          gIndex
+                                        ].map((roll, index) => ({
+                                          ...roll,
+                                          applied: false,
+                                          ability: index === rIndex ? null : roll.ability,
+                                        }))
+
+                                        updateFormData({
+                                          type: 'update',
+                                          path: `abilities.manualRolled.rollGroups.${gIndex}`,
+                                          value: abilities.manualRolled.rollGroups[gIndex],
+                                        })
+                                      }
+                                    }}
+                                  />
                                 )}
                               </Group>
-                              {roll.score == null ? (
-                                <Button
-                                  name='setRolling'
-                                  color='primary'
-                                  onClick={() => {
-                                    setTimeout(() => {
-                                      handleRoll(gIndex, rIndex)
-                                    }, 10)
-                                  }}
-                                  className={sprinkles({ width: 'size-full' })}
-                                  disabled={dice.isRolling || dieType == null}
-                                >
-                                  {dice.isRolling ? 'Rolling' : 'Roll'}
-                                </Button>
-                              ) : (
-                                <Dropdown<Character>
-                                  name={`abilities.manualRolled.rollGroups.${gIndex}.${rIndex}.ability`}
-                                  options={system.abilities.filter(
-                                    (ability) =>
-                                      !formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.some(
-                                        (roll, index) => roll.ability === ability.id && index !== rIndex
-                                      )
-                                  )}
-                                  className={dice_roll_dropdown}
-                                  value={formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.ability}
-                                  onChange={(e) => {
-                                    if (e.type === 'update') {
-                                      updateFormData({
-                                        type: 'update',
-                                        path: e.path,
-                                        value: e.value,
-                                      })
-                                    } else if (e.type === 'remove') {
-                                      const abilities = JSON.parse(
-                                        JSON.stringify(formData.abilities)
-                                      ) as Character['abilities']
-
-                                      // Set all abilities to false applied if removing ability option
-                                      abilities.manualRolled.rollGroups[gIndex] = abilities.manualRolled.rollGroups[
-                                        gIndex
-                                      ].map((roll, index) => ({
-                                        ...roll,
-                                        applied: false,
-                                        ability: index === rIndex ? null : roll.ability,
-                                      }))
-
-                                      updateFormData({
-                                        type: 'update',
-                                        path: `abilities.manualRolled.rollGroups.${gIndex}`,
-                                        value: abilities.manualRolled.rollGroups[gIndex],
-                                      })
-                                    }
-                                  }}
-                                />
-                              )}
-                            </Group>
-                          </Grid.Item>
-                        )
-                      })}
-                    </Grid>
-                  </Grid.Item>
-                  <Grid.Item colSpan={'auto'}>
-                    <Button
-                      color='danger'
-                      style='outline'
-                      disabled={dice.isRolling}
-                      onClick={() => handleResetGroup(gIndex)}
-                    >
-                      Reset Group
-                    </Button>
-                  </Grid.Item>
-                  <Grid.Item colSpan={'auto'}>
-                    <Button
-                      color='update'
-                      style='outline'
-                      disabled={dice.isRolling || !rollGroup.every((roll) => roll.ability != null)}
-                      onClick={() => handleApplyRolls(gIndex)}
-                    >
-                      Apply Rolls
-                    </Button>
-                  </Grid.Item>
-                  {formData.abilities.manualRolled?.rollGroups?.length > 1 &&
-                    gIndex !== formData.abilities.manualRolled.rollGroups.length - 1 && <hr />}
-                </Fragment>
-              )
-            })}
-          </Grid>
-        </Collapse.Body>
-      </Collapse>
+                            </Grid.Item>
+                          )
+                        })}
+                      </Grid>
+                    </Grid.Item>
+                    <Grid.Item colSpan={'auto'}>
+                      <Button
+                        color='danger'
+                        style='outline'
+                        disabled={dice.isRolling}
+                        onClick={() => handleResetGroup(gIndex)}
+                      >
+                        Reset Group
+                      </Button>
+                    </Grid.Item>
+                    <Grid.Item colSpan={'auto'} justify='end'>
+                      <Button
+                        color='update'
+                        style='outline'
+                        disabled={dice.isRolling || !rollGroup.every((roll) => roll.ability != null)}
+                        onClick={() => handleApplyRolls(gIndex)}
+                      >
+                        Apply Rolls
+                      </Button>
+                    </Grid.Item>
+                    {formData.abilities.manualRolled?.rollGroups?.length > 1 &&
+                      gIndex !== formData.abilities.manualRolled.rollGroups.length - 1 && <hr />}
+                  </Fragment>
+                )
+              })}
+            </Grid>
+          </Collapse.Body>
+        </Collapse>
+      </Grid.Item>
     </>
   )
 }

@@ -858,7 +858,7 @@
                 }
               ]
             },
-            "quantity": 1
+            "quantity": 4
           }
         ]
       ]
@@ -2062,11 +2062,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -2074,13 +2069,25 @@
               "type": [
                 {
                   "value": "diplomatsPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "entertainersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -3238,11 +3245,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -3250,13 +3252,25 @@
               "type": [
                 {
                   "value": "priestsPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "explorersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -4262,6 +4276,11 @@
         ],
         [
           {
+            "attribute": [
+              {
+                "value": "providesOptions"
+              }
+            ],
             "category": {
               "value": "weapon"
             },
@@ -4279,7 +4298,7 @@
                 }
               ]
             },
-            "quantity": 1
+            "selectionCount": 1
           }
         ]
       ],
@@ -4316,6 +4335,13 @@
                 },
                 {
                   "value": "melee"
+                }
+              ]
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "all"
                 }
               ]
             },
@@ -4501,7 +4527,7 @@
     },
     "features": [
       {
-        "desc": "<p>You adopt a particular style of fighting as your specialty. Choose one of the following options. You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
+        "desc": "<p>You adopt a particular style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
         "value": "fightingStyle",
         "label": "Fighting Style",
         "levelAvailable": "1",
@@ -4540,35 +4566,40 @@
                 "id": "0e5c8137-1a37-47b7-84ff-ed76c148dda1"
               }
             ],
-            "id": "77b313f8-4a49-481f-93cf-d1e05a7d5011"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
             "value": "defense",
             "label": "Defense",
-            "levelAvailable": "1",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ],
+              "equipped": [
+                {
+                  "category": {
+                    "value": "armor",
+                    "label": "Armor"
+                  }
+                }
+              ]
+            },
             "modifiers": [
               {
-                "attribute": [
-                  {
-                    "value": "prerequisites",
-                    "label": "Has Requirements"
-                  }
-                ],
-                "requirements": {
-                  "options": [
-                    {
-                      "value": "hasEquipped"
-                    }
-                  ]
-                },
-                "equipped": [
-                  {
-                    "category": {
-                      "value": "armor"
-                    }
-                  }
-                ],
                 "category": {
                   "value": "armorClass",
                   "label": "Armor Class"
@@ -4582,11 +4613,45 @@
                   "label": "Set Value"
                 },
                 "setAmount": 1,
-                "id": "390bb11c-a4a8-4326-ac1d-e956e8c6e8a7"
+                "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
+              }
+            ],
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
+          },
+          {
+            "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
+            "value": "dueling",
+            "label": "Dueling",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "modifiers": [
+              {
+                "category": {
+                  "value": "meleeDamage",
+                  "label": "Melee Damage"
+                },
+                "mode": {
+                  "value": "bonus",
+                  "label": "Bonus"
+                },
+                "method": {
+                  "value": "setAmount",
+                  "label": "Set Value"
+                },
+                "setAmount": 2,
+                "id": "c7257b6e-766c-4d78-b276-fe3d7572ffa1"
               }
             ],
             "requirements": {
               "options": [
+                {
+                  "value": "notEquipped",
+                  "label": "Not Equipped"
+                },
                 {
                   "value": "hasEquipped",
                   "label": "Equipped"
@@ -4594,89 +4659,42 @@
               ],
               "equipped": [
                 {
+                  "numberEquipped": 1,
                   "category": {
-                    "value": "armor",
-                    "label": "Armor"
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "melee"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "twoHanded"
+                      }
+                    ]
                   }
                 }
               ]
             },
-            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
-          },
-          {
-            "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
-            "value": "dueling",
-            "label": "Dueling",
-            "levelAvailable": "1",
-            "modifiers": [
-              {
-                "mode": {
-                  "value": "bonus"
-                },
-                "category": {
-                  "value": "meleeAttack"
-                },
-                "method": {
-                  "value": "setAmount"
-                },
-                "setAmount": 2,
-                "attribute": [
-                  {
-                    "value": "prerequisites",
-                    "label": "Has Requirements"
-                  }
-                ],
-                "requirements": {
-                  "options": [
-                    {
-                      "value": "hasEquipped",
-                      "label": "Equipped"
-                    }
-                  ],
-                  "equipped": [
-                    {
-                      "numberEquipped": 1,
-                      "category": {
-                        "value": "weapon",
-                        "label": "Weapon"
-                      },
-                      "properties": {
-                        "type": [
-                          {
-                            "value": "melee",
-                            "label": "Melee"
-                          }
-                        ]
-                      }
-                    }
-                  ],
-                  "notEquipped": [
-                    {
-                      "category": {
-                        "value": "weapon",
-                        "label": "Weapon"
-                      },
-                      "properties": {
-                        "type": [
-                          {
-                            "value": "twoHanded",
-                            "label": "Two Handed"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                },
-                "id": "65f5b35a-82c0-40c5-959f-f41a872647c9"
-              }
-            ],
             "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
             "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
             "value": "greatWeaponFighting",
             "label": "Great Weapon Fighting",
-            "levelAvailable": "1",
             "attribute": [
               {
                 "value": "prerequisites",
@@ -4718,7 +4736,6 @@
             "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
             "value": "protection",
             "label": "Protection",
-            "levelAvailable": "1",
             "attribute": [
               {
                 "value": "prerequisites",
@@ -5405,11 +5422,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -5417,13 +5429,25 @@
               "type": [
                 {
                   "value": "dungeoneersPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "explorersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ]
@@ -6723,11 +6747,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -6735,13 +6754,25 @@
               "type": [
                 {
                   "value": "dungeoneersPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "explorersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -7269,7 +7300,7 @@
         "id": "2121ce17-088a-40fc-85cc-c99f342bc946"
       },
       {
-        "desc": "<p>At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options. You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
+        "desc": "<p>At 2nd level, you adopt a style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
         "value": "fightingStyle",
         "label": "Fighting Style",
         "levelAvailable": "2",
@@ -7289,15 +7320,34 @@
             "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
             "value": "defense",
             "label": "Defense",
-            "levelAvailable": "1",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ],
+              "equipped": [
+                {
+                  "category": {
+                    "value": "armor",
+                    "label": "Armor"
+                  }
+                }
+              ]
+            },
             "modifiers": [
               {
-                "attribute": [
-                  {
-                    "value": "prerequisites",
-                    "label": "Has Requirements"
-                  }
-                ],
                 "category": {
                   "value": "armorClass",
                   "label": "Armor Class"
@@ -7311,32 +7361,15 @@
                   "label": "Set Value"
                 },
                 "setAmount": 1,
-                "requirements": {
-                  "options": [
-                    {
-                      "value": "hasEquipped",
-                      "label": "Equipped"
-                    }
-                  ],
-                  "equipped": [
-                    {
-                      "category": {
-                        "value": "armor",
-                        "label": "Armor"
-                      }
-                    }
-                  ]
-                },
-                "id": "23312b94-ce75-4d52-9624-79cf79b56923"
+                "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
               }
             ],
-            "id": "2eab63d1-20b4-4743-b123-3b4582378df4"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
             "value": "dueling",
             "label": "Dueling",
-            "levelAvailable": "1",
             "attribute": [
               {
                 "value": "prerequisites",
@@ -7404,20 +7437,57 @@
                 }
               ]
             },
-            "id": "691d4050-eb02-48a2-bc0e-21655204edd7"
+            "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
             "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
             "value": "greatWeaponFighting",
             "label": "Great Weapon Fighting",
-            "levelAvailable": "1",
-            "id": "0449c297-c176-4210-b1e2-df6fcb07af4e"
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "twoHanded",
+                        "label": "Two Handed"
+                      },
+                      {
+                        "value": "melee",
+                        "label": "Melee"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "id": "d7fd3b6a-923b-45a0-b65a-76316707727a"
           },
           {
             "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
             "value": "protection",
             "label": "Protection",
-            "levelAvailable": "1",
             "attribute": [
               {
                 "value": "prerequisites",
@@ -7451,7 +7521,7 @@
                 }
               ]
             },
-            "id": "594eff6f-03de-4570-b811-854a95d65613"
+            "id": "6a9a3c37-5f6d-4ffe-ab87-6a8976eac5ea"
           }
         ],
         "id": "60a6b31d-7cd4-4a5b-a376-fcce008cb35e"
@@ -7910,11 +7980,21 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
+                {
+                  "value": "explorersPack"
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
             "category": {
               "value": "adventuringGear"
             },
@@ -7922,13 +8002,10 @@
               "type": [
                 {
                   "value": "priestsPack"
-                },
-                {
-                  "value": "explorersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -8435,7 +8512,7 @@
         "id": "d5ae575b-e640-499d-ae07-eec3b84ab66a"
       },
       {
-        "desc": "<p>At 2nd level, you adopt a particular style of fighting as your specialty. Choose one of the following options.&nbsp;</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
+        "desc": "<p>At 2nd level, you adopt a particular style of fighting as your specialty. Choose one of the following options.</p><p>You can’t take a Fighting Style option more than once, even if you later get to choose again.</p>",
         "value": "fightingStyle",
         "label": "Fighting Style",
         "levelAvailable": "2",
@@ -8478,21 +8555,40 @@
                 "id": "9e1d84aa-001c-430e-9b08-d024ba8debf6"
               }
             ],
-            "id": "b9bb490c-7bea-426f-8a49-1b67a14f3681"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
             "value": "defense",
             "label": "Defense",
-            "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
+            "requirements": {
+              "option": [
+                {
+                  "value": "hasEquipped",
+                  "label": "Have Equipped"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ],
+              "equipped": [
+                {
+                  "category": {
+                    "value": "armor",
+                    "label": "Armor"
+                  }
+                }
+              ]
+            },
             "modifiers": [
               {
-                "attribute": [
-                  {
-                    "value": "prerequisites",
-                    "label": "Has Requirements"
-                  }
-                ],
                 "category": {
                   "value": "armorClass",
                   "label": "Armor Class"
@@ -8505,43 +8601,24 @@
                   "value": "setAmount",
                   "label": "Set Value"
                 },
-                "armorClass": {
-                  "setAmount": 1
-                },
-                "requirements": {
-                  "options": [
-                    {
-                      "value": "hasEquipped",
-                      "label": "Equipped"
-                    }
-                  ],
-                  "equipped": [
-                    {
-                      "category": {
-                        "value": "armor",
-                        "label": "Armor"
-                      }
-                    }
-                  ]
-                },
-                "id": "8b164887-4ae5-48ab-af57-d51bee6e1a9b"
+                "setAmount": 1,
+                "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
               }
             ],
-            "id": "d3a743d2-b438-48e3-b4b2-79e3fc0e1b31"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
             "value": "dueling",
             "label": "Dueling",
-            "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites",
+                "label": "Has Requirements"
+              }
+            ],
             "modifiers": [
               {
-                "attribute": [
-                  {
-                    "value": "prerequisites",
-                    "label": "Has Requirements"
-                  }
-                ],
                 "category": {
                   "value": "meleeDamage",
                   "label": "Melee Damage"
@@ -8555,54 +8632,53 @@
                   "label": "Set Value"
                 },
                 "setAmount": 2,
-                "requirements": {
-                  "options": [
-                    {
-                      "value": "notEquipped",
-                      "label": "Not Equipped"
-                    },
-                    {
-                      "value": "hasEquipped",
-                      "label": "Equipped"
-                    }
-                  ],
-                  "equipped": [
-                    {
-                      "numberEquipped": 1,
-                      "category": {
-                        "value": "weapon",
-                        "label": "Weapon"
-                      },
-                      "properties": {
-                        "type": [
-                          {
-                            "value": "melee"
-                          }
-                        ]
-                      }
-                    }
-                  ],
-                  "notEquipped": [
-                    {
-                      "category": {
-                        "value": "weapon",
-                        "label": "Weapon"
-                      },
-                      "properties": {
-                        "type": [
-                          {
-                            "value": "twoHanded",
-                            "label": "Two Handed"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                },
-                "id": "c977ce5b-2cec-4010-891b-cac42654c31f"
+                "id": "c7257b6e-766c-4d78-b276-fe3d7572ffa1"
               }
             ],
-            "id": "2f960468-530e-4247-9d0b-29b686a62e78"
+            "requirements": {
+              "options": [
+                {
+                  "value": "notEquipped",
+                  "label": "Not Equipped"
+                },
+                {
+                  "value": "hasEquipped",
+                  "label": "Equipped"
+                }
+              ],
+              "equipped": [
+                {
+                  "numberEquipped": 1,
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "melee"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "notEquipped": [
+                {
+                  "category": {
+                    "value": "weapon",
+                    "label": "Weapon"
+                  },
+                  "properties": {
+                    "type": [
+                      {
+                        "value": "twoHanded"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
             "desc": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
@@ -9078,11 +9154,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -9090,13 +9161,25 @@
               "type": [
                 {
                   "value": "dungeoneersPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "explorersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -9300,17 +9383,39 @@
           },
           {
             "desc": "<p>Choose one of your skill proficiencies and Thieves' Tool.</p>",
-            "value": "skillsAndTool",
-            "label": "Skills and Tool",
+            "value": "skillAndTool",
+            "label": "Skill and Tool",
             "type": {
               "value": "feature",
               "label": "Feature"
+            },
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained"
+                }
+              ]
             },
             "expertise": [
               {
                 "category": {
                   "value": "equipment",
                   "label": "Item"
+                },
+                "equipment": {
+                  "type": [
+                    {
+                      "value": "thievesTools"
+                    }
+                  ],
+                  "category": {
+                    "value": "tool"
+                  }
                 },
                 "id": "a23ecc39-b787-4ba7-b292-9fab0971fc68"
               },
@@ -10009,11 +10114,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -10021,16 +10121,38 @@
               "type": [
                 {
                   "value": "burglarsPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          },
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "dungeoneersPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "explorersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -11209,11 +11331,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -11221,13 +11338,25 @@
               "type": [
                 {
                   "value": "dungeoneersPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "explorersPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -11604,7 +11733,50 @@
         "desc": "<p>In your study of occult lore, you have unearthed eldritch invocations, fragments of forbidden knowledge that imbue you with an abiding magical ability.</p><p>At 2nd level, you gain two eldritch invocations of your choice. Your invocation options are detailed at the end of the class description. When you gain certain warlock levels, you gain additional invocations of your choice, as shown in the Invocations Known column of the Warlock table.</p><p>Additionally, when you gain a level in this class, you can choose one of the invocations you know and replace it with another invocation that you could learn at that level.</p><p>If an eldritch invocation has prerequisites, you must meet them to learn it. You can learn the invocation at the same time that you meet its prerequisites. A level prerequisite refers to your level in this class.</p>",
         "value": "eldritchInvocations",
         "label": "Eldritch Invocations",
-        "levelAvailable": "2,2,5,7,9,12,15,18",
+        "attribute": [
+          {
+            "value": "selectCountByLevel"
+          },
+          {
+            "value": "replaceAtLevel"
+          }
+        ],
+        "optionsByLevel": [
+          {
+            "level": 2,
+            "count": 2
+          },
+          {
+            "level": 5,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 7,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 9,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 12,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 15,
+            "count": 1,
+            "replaceCount": 1
+          },
+          {
+            "level": 18,
+            "count": 1,
+            "replaceCount": 1
+          }
+        ],
         "category": {
           "value": "feature",
           "label": "Feature"
@@ -11625,6 +11797,10 @@
               "options": [
                 {
                   "value": "spellsObtained"
+                },
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
                 }
               ],
               "spellsObtained": {
@@ -11666,6 +11842,19 @@
             "desc": "<p>You can cast <em>mage armor</em> on yourself at will, without expending a spell slot or material components.</p>",
             "value": "armorOfShadows",
             "label": "Armor of Shadows",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -11691,6 +11880,19 @@
             "desc": "<p>You can cast levitate on yourself at will, without expending a spell slot or material components.</p>",
             "value": "ascendantStep",
             "label": "Ascendant Step",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -11716,6 +11918,19 @@
             "desc": "<p>You can cast speak with animals at will, without expending a spell slot.</p>",
             "value": "beastSpeech",
             "label": "Beast Speech",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -11739,6 +11954,19 @@
             "value": "beguilingInfluence",
             "label": "Beguiling Influence",
             "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "proficiencies": [
               {
                 "category": {
@@ -11767,6 +11995,19 @@
             "value": "bewitchingWhispers",
             "label": "Bewitching Whispers",
             "levelAvailable": "7",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -11810,6 +12051,9 @@
               "options": [
                 {
                   "value": "featuresObtained"
+                },
+                {
+                  "value": "optionNotObtained"
                 }
               ],
               "featuresObtained": {
@@ -11863,6 +12107,9 @@
               "options": [
                 {
                   "value": "optionsObtained"
+                },
+                {
+                  "value": "optionNotObtained"
                 }
               ],
               "optionsObtained": {
@@ -11909,6 +12156,19 @@
             "value": "devilsSight",
             "label": "Devil's Sight",
             "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "senses": [
               {
                 "type": [
@@ -11925,6 +12185,19 @@
             "desc": "<p>You can cast confusion once using a warlock spell slot. You can’t do so again until you finish a long rest.</p>",
             "value": "dreadfulWord",
             "label": "Dreadful Word",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -11960,6 +12233,19 @@
             "value": "eldritchSight",
             "label": "Eldritch Sight",
             "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -11991,6 +12277,9 @@
               "options": [
                 {
                   "value": "spellsObtained"
+                },
+                {
+                  "value": "optionNotObtained"
                 }
               ],
               "spellsObtained": {
@@ -12025,6 +12314,19 @@
             "value": "eyesOfTheRuneKeeper",
             "label": "Eyes of the Rune Keeper",
             "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "id": "c37e7b34-18a2-4239-9f51-84a89b0fef04"
           },
           {
@@ -12033,6 +12335,19 @@
             "label": "Fiendish Vigor",
             "levelAvailable": "2",
             "id": "ead58838-3121-49b6-ba08-e563fd8bf79d",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attributes": [
@@ -12061,10 +12376,21 @@
             "value": "gazeOfTwoMinds",
             "label": "Gaze of Two Minds",
             "levelAvailable": "2",
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "attribute": [
               {
                 "value": "isAction",
                 "label": "Action Type"
+              },
+              {
+                "value": "prerequisites"
               }
             ],
             "action": {
@@ -12089,6 +12415,9 @@
               "options": [
                 {
                   "value": "optionsObtained"
+                },
+                {
+                  "value": "optionNotObtained"
                 }
               ],
               "optionsObtained": {
@@ -12129,6 +12458,19 @@
             "value": "maskOfManyFaces",
             "label": "Mask of Many Faces",
             "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12151,6 +12493,19 @@
             "value": "masterOfMyriadForms",
             "label": "Master of Myriad Forms",
             "levelAvailable": "15",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12173,6 +12528,19 @@
             "value": "minionsOfChaos",
             "label": "Minions of Chaos",
             "levelAvailable": "9",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12207,6 +12575,19 @@
             "value": "mireTheMind",
             "label": "Mire the Mind",
             "levelAvailable": "5",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12241,6 +12622,19 @@
             "value": "mistyVisions",
             "label": "Misty Visions",
             "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12267,8 +12661,19 @@
               {
                 "value": "isAction",
                 "label": "Action Type"
+              },
+              {
+                "value": "prerequisites"
               }
             ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "action": {
               "type": {
                 "value": "action",
@@ -12282,6 +12687,19 @@
             "value": "otherworldlyLeap",
             "label": "Otherworldly Leap",
             "levelAvailable": "9",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12317,6 +12735,9 @@
               "options": [
                 {
                   "value": "spellsObtained"
+                },
+                {
+                  "value": "optionNotObtained"
                 }
               ],
               "spellsObtained": {
@@ -12334,6 +12755,19 @@
             "value": "sculptorOfFlesh",
             "label": "Sculptor of Flesh",
             "levelAvailable": "7",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12368,6 +12802,19 @@
             "value": "signOfIllOmen",
             "label": "Sign of Ill Omen",
             "levelAvailable": "5",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12402,6 +12849,19 @@
             "value": "thiefOfFiveFates",
             "label": "Thief of Five Fates",
             "levelAvailable": "2",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12445,6 +12905,9 @@
               "options": [
                 {
                   "value": "optionsObtained"
+                },
+                {
+                  "value": "optionNotObtained"
                 }
               ],
               "optionsObtained": {
@@ -12462,6 +12925,19 @@
             "value": "visionsOfDistantRealms",
             "label": "Visions of Distant Realms",
             "levelAvailable": "15",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12493,6 +12969,9 @@
               "options": [
                 {
                   "value": "optionsObtained"
+                },
+                {
+                  "value": "optionNotObtained"
                 }
               ],
               "optionsObtained": {
@@ -12510,6 +12989,19 @@
             "value": "whispersOfTheGrave",
             "label": "Whispers of the Grave",
             "levelAvailable": "9",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "spells": [
               {
                 "attribute": [
@@ -12531,6 +13023,19 @@
             "desc": "<p>You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.</p>",
             "value": "witchSight",
             "label": "Witch Sight",
+            "attribute": [
+              {
+                "value": "prerequisites"
+              }
+            ],
+            "requirements": {
+              "options": [
+                {
+                  "value": "optionNotObtained",
+                  "label": "Option Not Acquired"
+                }
+              ]
+            },
             "senses": [
               {
                 "type": [
@@ -13035,11 +13540,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -13047,13 +13547,25 @@
               "type": [
                 {
                   "value": "dungeoneersPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "scholarsPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],
@@ -14070,11 +14582,6 @@
       [
         [
           {
-            "attribute": [
-              {
-                "value": "providesOptions"
-              }
-            ],
             "category": {
               "value": "adventuringGear"
             },
@@ -14082,13 +14589,25 @@
               "type": [
                 {
                   "value": "explorersPack"
-                },
+                }
+              ]
+            },
+            "quantity": 1
+          }
+        ],
+        [
+          {
+            "category": {
+              "value": "adventuringGear"
+            },
+            "equipment": {
+              "type": [
                 {
                   "value": "scholarsPack"
                 }
               ]
             },
-            "selectionCount": 1
+            "quantity": 1
           }
         ]
       ],

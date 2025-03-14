@@ -773,8 +773,7 @@
         "levelAvailable": "1",
         "category": "4ef09e58-8d0f-4ebe-bfbf-d32a6d1bd19c",
         "attributes": [
-          "736ee797-e8a8-481a-83c0-ec166a027614",
-          "40a91f3a-8909-4593-8a5f-b66b364602bb"
+          "736ee797-e8a8-481a-83c0-ec166a027614"
         ],
         "targets": 1,
         "options": [
@@ -782,7 +781,14 @@
             "desc": "<p>You gain a +2 bonus to attack rolls you make with ranged weapons.</p>",
             "value": "archery",
             "label": "Archery",
-            "levelAvailable": "1",
+            "attributes": [
+              "40a91f3a-8909-4593-8a5f-b66b364602bb"
+            ],
+            "prerequisites": {
+              "options": [
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
+              ]
+            },
             "modifiers": [
               {
                 "category": "105a7606-28ac-4bc6-88ef-11d0be9ec6bd",
@@ -792,19 +798,19 @@
                 "id": "4d65244d-33d3-490d-a69a-a7e2b6fbc954"
               }
             ],
-            "id": "eb7cbd8e-ccc4-4776-8749-e1cab57bb397"
+            "id": "77b313f8-4a49-481f-93cf-d1e05a7d5011"
           },
           {
             "desc": "<p>While you are wearing armor, you gain a +1 bonus to AC.</p>",
             "value": "defense",
             "label": "Defense",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
             "prerequisites": {
               "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "equipped": [
                 {
@@ -821,20 +827,28 @@
                 "id": "8a23018f-0679-4c87-8dbd-103722ea71e6"
               }
             ],
-            "id": "54fa0eea-ccc4-482d-b374-fff898f45740"
+            "id": "13776ae9-a1a1-4d15-83e8-b3947c0ca4f8"
           },
           {
             "desc": "<p>When you are wielding a melee weapon in one hand and no other weapons, you gain a +2 bonus to damage rolls with that weapon.</p>",
             "value": "dueling",
             "label": "Dueling",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
+            "modifiers": [
+              {
+                "category": "50f3cf5c-47f9-4f61-9bc5-b4464bbd8bd1",
+                "type": "f6478862-a92b-4596-8420-c0fa958db719",
+                "method": "5e45a4d2-b4c7-449d-8f37-b58fcf34a140",
+                "setAmount": 2,
+                "id": "c7257b6e-766c-4d78-b276-fe3d7572ffa1"
+              }
+            ],
             "prerequisites": {
               "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
-                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
+                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
               ],
               "equipped": [
                 {
@@ -854,19 +868,19 @@
                 }
               ]
             },
-            "id": "de695959-dd9a-4c54-8328-eaa76ee9fcc6"
+            "id": "2c301c8f-1d5a-46b7-a963-bcde4d40392e"
           },
           {
             "desc": "<p>When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.</p>",
             "value": "greatWeaponFighting",
             "label": "Great Weapon Fighting",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
             "prerequisites": {
               "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "equipped": [
                 {
@@ -879,13 +893,12 @@
                 }
               ]
             },
-            "id": "6ee3e3db-f274-4b3c-98c4-fc8ce63dfdd8"
+            "id": "d7fd3b6a-923b-45a0-b65a-76316707727a"
           },
           {
             "desc": "<p>When a creature you can see attacks a target other than you that is within 5 feet of you, you can use your reaction to impose disadvantage on the attack roll. You must be wielding a shield.</p>",
             "value": "protection",
             "label": "Protection",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb",
               "84916f75-92c2-4ee6-abe0-cc038128f0fc"
@@ -897,7 +910,8 @@
             },
             "prerequisites": {
               "options": [
-                "ef32cce6-78ec-47e6-a9d2-9be64074a76b"
+                "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "equipped": [
                 {
@@ -910,20 +924,20 @@
                 }
               ]
             },
-            "id": "58cd8295-5303-4850-a856-d851755f32b5"
+            "id": "6a9a3c37-5f6d-4ffe-ab87-6a8976eac5ea"
           },
           {
             "desc": "<p>When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.</p>",
             "value": "twoWeaponFighting",
             "label": "Two-Weapon Fighting",
-            "levelAvailable": "1",
             "attributes": [
               "40a91f3a-8909-4593-8a5f-b66b364602bb"
             ],
             "prerequisites": {
               "options": [
                 "ef32cce6-78ec-47e6-a9d2-9be64074a76b",
-                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d"
+                "68fb064f-ea56-4fd0-b7cf-64cdbdeef95d",
+                "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
               ],
               "equipped": [
                 {
@@ -943,14 +957,9 @@
                 }
               ]
             },
-            "id": "6733af29-3128-4ef3-bb7e-55ab2998567b"
+            "id": "b3811918-22ce-46ef-adff-daad542f5618"
           }
         ],
-        "prerequisites": {
-          "options": [
-            "3fe944fc-a9d5-4afa-929a-c8b2805d70e3"
-          ]
-        },
         "id": "c6ced359-5fdc-4fae-a027-5114f4e6dc75"
       }
     ],

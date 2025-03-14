@@ -10,8 +10,7 @@ const BackgroundForm = () => {
 
   const stepsArray = [
     { id: 'details', label: 'Details' },
-    { id: 'proficiencies', label: 'Proficiencies' },
-    { id: 'equipment', label: 'Equipment' },
+    { id: 'startingEquipment', label: 'Starting Equipment' },
     { id: 'features', label: 'Features' },
   ] satisfies Step[]
 

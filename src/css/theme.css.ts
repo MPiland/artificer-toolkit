@@ -6,27 +6,6 @@ import { lightColors, darkColors } from './colors.css'
 import { borderRadius, borderSize } from './border.css'
 import { height, size, space } from './size.css'
 
-const colorTokens = {
-  content: {
-    background: {
-      main: 'slate1' as keyof typeof lightColors,
-      error: 'red1' as keyof typeof lightColors,
-    },
-  },
-  component: {
-    background: {
-      main: 'slate2' as keyof typeof lightColors,
-      header: 'slate4' as keyof typeof lightColors,
-      error: 'red3' as keyof typeof lightColors,
-    },
-  },
-  border: {
-    main: 'slate7' as keyof typeof lightColors,
-    error: 'red7' as keyof typeof lightColors,
-    focus: 'blue7' as keyof typeof lightColors,
-  },
-}
-
 export const root = createGlobalTheme(':root', {
   border: {
     size: {
@@ -195,27 +174,87 @@ export const vars = createThemeContract({
         error: '',
       },
     },
+    dropdown: {
+      activeOption: {
+        backgroundColor: '',
+      },
+    },
   },
 })
 
-export const light = createTheme(vars, {
+const colors = {
+  light: lightColors,
+  dark: darkColors,
+}
+
+const themeNames = ['light', 'dark'] as const
+
+type ThemeName = (typeof themeNames)[number]
+
+type ColorPalette = (typeof colors)[ThemeName]
+
+type ColorKey = keyof typeof colors.light & keyof typeof colors.dark
+
+type ColorTokens = {
+  content: {
+    background: {
+      main: ColorKey
+      error: ColorKey
+    }
+  }
+  component: {
+    background: {
+      main: ColorKey
+      header: ColorKey
+      error: ColorKey
+    }
+  }
+  border: {
+    main: ColorKey
+    error: ColorKey
+    focus: ColorKey
+  }
+}
+
+const colorTokens: ColorTokens = {
+  content: {
+    background: {
+      main: 'slate1',
+      error: 'red1',
+    },
+  },
+  component: {
+    background: {
+      main: 'slate2',
+      header: 'slate4',
+      error: 'red3',
+    },
+  },
+  border: {
+    main: 'slate7',
+    error: 'red7',
+    focus: 'blue7',
+  },
+}
+
+const createColorTheme = (colorPalette: ColorPalette) => ({
   typography: {
     color: {
-      main: lightColors['slate12'],
-      error: lightColors['red12'],
+      main: colorPalette['slate12'],
+      error: colorPalette['red12'],
     },
     backgroundColor: {
       main: 'transparent',
-      error: lightColors[colorTokens.component.background.error],
+      error: colorPalette[colorTokens.component.background.error],
     },
   },
   component: {
     appShell: {
       sidebar: {
-        backgroundColor: lightColors['slate3'],
+        backgroundColor: colorPalette['slate3'],
         border: {
           color: {
-            main: lightColors['slate7'],
+            main: colorPalette['slate7'],
           },
         },
       },
@@ -223,222 +262,116 @@ export const light = createTheme(vars, {
     button: {
       backgroundColor: {
         primary: {
-          main: lightColors['blue9'],
-          hover: lightColors['blue10'],
-          outlineHover: lightColors['blue3'],
+          main: colorPalette['blue9'],
+          hover: colorPalette['blue10'],
+          outlineHover: colorPalette['blue3'],
         },
         warning: {
-          main: lightColors['yellow9'],
-          hover: lightColors['yellow10'],
-          outlineHover: lightColors['yellow3'],
+          main: colorPalette['yellow9'],
+          hover: colorPalette['yellow10'],
+          outlineHover: colorPalette['yellow3'],
         },
         danger: {
-          main: lightColors['red9'],
-          hover: lightColors['red10'],
-          outlineHover: lightColors['red3'],
+          main: colorPalette['red9'],
+          hover: colorPalette['red10'],
+          outlineHover: colorPalette['red3'],
         },
         update: {
-          main: lightColors['green9'],
-          hover: lightColors['green10'],
-          outlineHover: lightColors['green3'],
+          main: colorPalette['green9'],
+          hover: colorPalette['green10'],
+          outlineHover: colorPalette['green3'],
         },
         main: {
-          main: lightColors['slate9'],
-          hover: lightColors['slate10'],
-          outlineHover: lightColors['slate3'],
+          main: colorPalette['slate9'],
+          hover: colorPalette['slate10'],
+          outlineHover: colorPalette['slate3'],
         },
       },
     },
     card: {
       backgroundColor: {
-        main: lightColors[colorTokens.component.background.main],
-        header: lightColors[colorTokens.component.background.header],
+        main: colorPalette[colorTokens.component.background.main],
+        header: colorPalette[colorTokens.component.background.header],
       },
       border: {
         color: {
-          main: lightColors[colorTokens.border.main],
+          main: colorPalette[colorTokens.border.main],
         },
       },
     },
     collapse: {
       backgroundColor: {
-        main: lightColors[colorTokens.component.background.main],
-        header: lightColors[colorTokens.component.background.header],
+        main: colorPalette[colorTokens.component.background.main],
+        header: colorPalette[colorTokens.component.background.header],
       },
       border: {
         color: {
-          main: lightColors[colorTokens.border.main],
+          main: colorPalette[colorTokens.border.main],
         },
       },
     },
     content: {
       backgroundColor: {
-        main: lightColors[colorTokens.content.background.main],
-        error: lightColors[colorTokens.content.background.error],
+        main: colorPalette[colorTokens.content.background.main],
+        error: colorPalette[colorTokens.content.background.error],
       },
       border: {
         color: {
-          main: lightColors[colorTokens.border.main],
-          error: lightColors[colorTokens.border.error],
+          main: colorPalette[colorTokens.border.main],
+          error: colorPalette[colorTokens.border.error],
         },
       },
     },
     input: {
-      backgroundColor: lightColors[colorTokens.component.background.main],
+      backgroundColor: colorPalette[colorTokens.component.background.main],
       border: {
         color: {
-          main: lightColors[colorTokens.border.main],
-          error: lightColors[colorTokens.border.error],
-          focus: lightColors[colorTokens.border.focus],
+          main: colorPalette[colorTokens.border.main],
+          error: colorPalette[colorTokens.border.error],
+          focus: colorPalette[colorTokens.border.focus],
         },
       },
     },
     modal: {
       backgroundColor: {
-        main: lightColors[colorTokens.component.background.main],
+        main: colorPalette[colorTokens.component.background.main],
         overlay: 'rgba(0, 0, 0, 0.541)',
       },
       border: {
         color: {
-          main: lightColors[colorTokens.border.main],
+          main: colorPalette[colorTokens.border.main],
         },
       },
     },
     tooltip: {
       backgroundColor: {
-        main: lightColors[colorTokens.component.background.main],
-        error: lightColors[colorTokens.component.background.error],
+        main: colorPalette[colorTokens.component.background.main],
+        error: colorPalette[colorTokens.component.background.error],
       },
     },
     floating: {
       backgroundColor: {
-        main: lightColors[colorTokens.component.background.main],
-        error: lightColors[colorTokens.component.background.error],
+        main: colorPalette[colorTokens.component.background.main],
+        error: colorPalette[colorTokens.component.background.error],
+      },
+    },
+    dropdown: {
+      activeOption: {
+        backgroundColor: colorPalette['blue5'],
       },
     },
   },
 })
 
-export const dark = createTheme(vars, {
-  typography: {
-    color: {
-      main: darkColors['slate12'],
-      error: darkColors['red12'],
-    },
-    backgroundColor: {
-      main: 'transparent',
-      error: darkColors[colorTokens.component.background.error],
-    },
-  },
-  component: {
-    appShell: {
-      sidebar: {
-        backgroundColor: darkColors['slate3'],
-        border: {
-          color: {
-            main: darkColors['slate7'],
-          },
-        },
-      },
-    },
-    button: {
-      backgroundColor: {
-        primary: {
-          main: darkColors['blue9'],
-          hover: darkColors['blue10'],
-          outlineHover: darkColors['blue3'],
-        },
-        warning: {
-          main: darkColors['yellow9'],
-          hover: darkColors['yellow10'],
-          outlineHover: darkColors['yellow3'],
-        },
-        danger: {
-          main: darkColors['red9'],
-          hover: darkColors['red10'],
-          outlineHover: darkColors['red3'],
-        },
-        update: {
-          main: darkColors['green9'],
-          hover: darkColors['green10'],
-          outlineHover: darkColors['green3'],
-        },
-        main: {
-          main: darkColors['slate9'],
-          hover: darkColors['slate10'],
-          outlineHover: darkColors['slate3'],
-        },
-      },
-    },
-    card: {
-      backgroundColor: {
-        main: darkColors[colorTokens.component.background.main],
-        header: darkColors[colorTokens.component.background.header],
-      },
-      border: {
-        color: {
-          main: darkColors[colorTokens.border.main],
-        },
-      },
-    },
-    collapse: {
-      backgroundColor: {
-        main: darkColors[colorTokens.component.background.main],
-        header: darkColors[colorTokens.component.background.header],
-      },
-      border: {
-        color: {
-          main: darkColors[colorTokens.border.main],
-        },
-      },
-    },
-    content: {
-      backgroundColor: {
-        main: darkColors[colorTokens.content.background.main],
-        error: darkColors[colorTokens.content.background.error],
-      },
-      border: {
-        color: {
-          main: darkColors[colorTokens.border.main],
-          error: darkColors[colorTokens.border.error],
-        },
-      },
-    },
-    input: {
-      backgroundColor: darkColors[colorTokens.component.background.main],
-      border: {
-        color: {
-          main: darkColors[colorTokens.border.main],
-          error: darkColors[colorTokens.border.error],
-          focus: darkColors[colorTokens.border.focus],
-        },
-      },
-    },
-    modal: {
-      backgroundColor: {
-        main: darkColors[colorTokens.component.background.main],
-        overlay: 'rgba(0, 0, 0, 0.541)',
-      },
-      border: {
-        color: {
-          main: darkColors[colorTokens.border.main],
-        },
-      },
-    },
-    tooltip: {
-      backgroundColor: {
-        main: darkColors[colorTokens.component.background.main],
-        error: darkColors[colorTokens.component.background.error],
-      },
-    },
-    floating: {
-      backgroundColor: {
-        main: darkColors[colorTokens.component.background.main],
-        error: darkColors[colorTokens.component.background.error],
-      },
-    },
-  },
-})
+// Generate all themes using a record
+const themes = themeNames.reduce((acc, themeName) => {
+  acc[themeName] = createTheme(vars, createColorTheme(colors[themeName]))
+  return acc
+}, {} as Record<ThemeName, string>)
+
+// Export individual themes for backward compatibility
+export const light = themes.light
+export const dark = themes.dark
 
 export const theme = { ...root, vars }
 

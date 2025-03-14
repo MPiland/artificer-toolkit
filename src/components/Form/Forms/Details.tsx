@@ -1,6 +1,5 @@
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
-import Row from '../../Row/Row'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { useGetSystemQuery } from '../../../features/systems/systemsApi'
 import { useListClassesQuery } from '../../../features/classes/classesApi'
@@ -14,9 +13,13 @@ import Divider from '../../Divider/Divider'
 import { Categories, EquipmentCategories, EquipmentProperties, SpellRequirements } from '../../../types/enums'
 import { useListRacesQuery } from '../../../features/races/racesApi'
 import Grid from '../../Grid/Grid'
+import { FormDataType, UpdateState } from '../../../types/form'
 
 const Details = () => {
-  const { formData, updateFormData } = use(FormContext)
+  const {
+    formData,
+    updateFormData,
+  }: { formData: FormDataType; updateFormData: (state: UpdateState<FormDataType>) => void } = use(FormContext)
 
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
@@ -27,7 +30,7 @@ const Details = () => {
   return (
     <Grid>
       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-        <Input<typeof formData>
+        <Input
           name='label'
           label='Name'
           autoComplete='off'
@@ -41,7 +44,7 @@ const Details = () => {
       {formData.__typename === 'Character' && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<typeof formData>
+            <Dropdown
               name='advancement'
               label='Advancement Type'
               value={formData?.advancement}
@@ -51,7 +54,7 @@ const Details = () => {
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<typeof formData>
+            <Dropdown
               name='hitpoint'
               label='Hit Point Type'
               value={formData?.hitpoint}
@@ -65,7 +68,7 @@ const Details = () => {
       {(formData.__typename === 'Race' || formData.__typename === 'Class' || formData.__typename === 'Equipment') && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<typeof formData>
+            <Dropdown
               name='category'
               label={`${startCase(formData.__typename)} Category`}
               value={formData?.category}
@@ -84,7 +87,7 @@ const Details = () => {
           </Grid.Item>
           {formData.__typename === 'Race' && formData.category === Categories.base && (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown<typeof formData>
+              <Dropdown
                 name='playable'
                 label='Playable'
                 value={formData?.playable}
@@ -92,12 +95,12 @@ const Details = () => {
                   {
                     value: 'true',
                     label: 'Yes',
-                    id: 'yes',
+                    id: 'true',
                   },
                   {
                     value: 'false',
                     label: 'No',
-                    id: 'no',
+                    id: 'false',
                   },
                 ]}
                 required={true}
@@ -108,7 +111,7 @@ const Details = () => {
           {formData.__typename === 'Equipment' && (
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='properties'
                   multiSelect={true}
                   label='Properties'
@@ -120,7 +123,7 @@ const Details = () => {
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='rarity'
                   label='Rarity'
                   value={formData?.rarity}
@@ -130,7 +133,7 @@ const Details = () => {
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Input<typeof formData>
+                <Input
                   validation='cur'
                   name='cost.amount'
                   autoComplete='off'
@@ -142,7 +145,7 @@ const Details = () => {
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='cost.currency'
                   label='Currency'
                   value={formData?.cost?.currency}
@@ -152,7 +155,7 @@ const Details = () => {
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Input<typeof formData>
+                <Input
                   validation='cur'
                   name='weight.amount'
                   errorMsg='Must contain only numbers'
@@ -163,7 +166,7 @@ const Details = () => {
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='weight.unit'
                   label='UoM'
                   value={formData?.weight?.unit}
@@ -181,7 +184,7 @@ const Details = () => {
         <>
           {formData.category === Categories.subclass ? (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown<typeof formData>
+              <Dropdown
                 name='parentClass'
                 label='Parent Class'
                 value={formData?.parentClass}
@@ -193,7 +196,7 @@ const Details = () => {
           ) : (
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Input<typeof formData>
+                <Input
                   name='hitpoint.dieConfig'
                   autoComplete='off'
                   label='HP Die Value'
@@ -205,7 +208,7 @@ const Details = () => {
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='hitpoint.ability'
                   label='HP Modifier Ability'
                   value={formData?.hitpoint?.ability}
@@ -221,7 +224,7 @@ const Details = () => {
       {formData.__typename === 'Race' &&
         (formData.category === Categories.subrace || formData.category === Categories.variant) && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<typeof formData>
+            <Dropdown
               multiSelect={true}
               name='lineages'
               label='Race Lineage'
@@ -236,7 +239,7 @@ const Details = () => {
         (((formData.category === EquipmentCategories.waterVehicle || formData.category === EquipmentCategories.mount ? (
           <>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Input<typeof formData>
+              <Input
                 validation={'cur'}
                 name='speed.amount'
                 errorMsg='Must contain only numbers'
@@ -248,7 +251,7 @@ const Details = () => {
               />
             </Grid.Item>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown<typeof formData>
+              <Dropdown
                 name='speed.unit'
                 label='UoM'
                 value={formData?.speed?.unit}
@@ -262,7 +265,7 @@ const Details = () => {
         ) : (
           (formData.category === EquipmentCategories.weapon || formData.category === EquipmentCategories.armor) && (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Input<typeof formData>
+              <Input
                 validation={'num'}
                 name='rank'
                 errorMsg='Must contain only numbers'
@@ -278,7 +281,7 @@ const Details = () => {
           (formData.category === EquipmentCategories.mount && (
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Input<typeof formData>
+                <Input
                   validation={'cur'}
                   name='capacity.amount'
                   errorMsg='Must contain only numbers'
@@ -289,7 +292,7 @@ const Details = () => {
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                <Dropdown<typeof formData>
+                <Dropdown
                   name='capacity.unit'
                   label='UoM'
                   value={formData?.capacity?.unit}
@@ -305,7 +308,7 @@ const Details = () => {
         (formData.category === EquipmentProperties.thrown || formData.category === EquipmentProperties.ranged) && (
           <>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Input<typeof formData>
+              <Input
                 validation='num'
                 name='range.minRange'
                 errorMsg='Must contain only numbers'
@@ -316,7 +319,7 @@ const Details = () => {
               />
             </Grid.Item>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Input<typeof formData>
+              <Input
                 validation='num'
                 name='range.maxRange'
                 errorMsg='Must contain only numbers'
@@ -330,7 +333,7 @@ const Details = () => {
         )}
       {formData.__typename === 'Equipment' && (
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-          <Input<typeof formData>
+          <Input
             validation='num'
             name='quantity'
             errorMsg='Must contain only numbers'
@@ -344,7 +347,7 @@ const Details = () => {
       {formData.__typename === 'Spell' && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Input<typeof formData>
+            <Input
               validation='num'
               name='level'
               errorMsg='Must contain only numbers'
@@ -355,7 +358,7 @@ const Details = () => {
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<typeof formData>
+            <Dropdown
               name='school'
               label='School'
               value={formData?.school}
@@ -365,7 +368,7 @@ const Details = () => {
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<typeof formData>
+            <Dropdown
               name='requirements'
               multiSelect={true}
               label='Requirements'
@@ -376,7 +379,7 @@ const Details = () => {
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<typeof formData>
+            <Dropdown
               name='classes'
               multiSelect={true}
               label='Class(es)'
@@ -392,7 +395,7 @@ const Details = () => {
           </Grid.Item>
           {formData?.requirements?.some((requirement) => requirement === SpellRequirements.material) && (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Input<typeof formData>
+              <Input
                 name='materialDesc'
                 label='Material Desc.'
                 required={true}
@@ -408,7 +411,7 @@ const Details = () => {
           <Divider label='Starting Gold' />
           <Grid className={sprinkles({ mb: 'space-3' })}>
             <Grid.Item colSpan={'auto'}>
-              <Input<typeof formData>
+              <Input
                 name='startingGold.dieConfig'
                 label='Dice Configuration'
                 required={true}
@@ -419,18 +422,18 @@ const Details = () => {
               />
             </Grid.Item>
             <Grid.Item colSpan={'auto'}>
-              <Input<typeof formData>
+              <Input
                 name='startingGold.multiplier'
                 label='Multiplier'
                 required={true}
                 validation='num'
                 errorMsg='Please enter a whole number'
-                value={formData?.startingGold?.multiplier || 1}
+                value={formData?.startingGold?.multiplier}
                 onChange={updateFormData}
               />
             </Grid.Item>
             <Grid.Item colSpan={'auto'}>
-              <Dropdown<typeof formData>
+              <Dropdown
                 name='startingGold.currency'
                 label='Currency'
                 value={formData?.startingGold?.currency}
@@ -444,7 +447,7 @@ const Details = () => {
       )}
       {formData.__typename === 'Equipment' && (
         <Grid.Item>
-          <RichTextEditor<typeof formData>
+          <RichTextEditor
             name={'quote'}
             className={sprinkles({ mb: 'space-3' })}
             value={formData?.quote}
@@ -457,7 +460,7 @@ const Details = () => {
         formData.__typename === 'Spell' ||
         formData.__typename === 'Equipment') && (
         <Grid.Item>
-          <RichTextEditor<typeof formData>
+          <RichTextEditor
             name='desc'
             className={sprinkles({ mb: 'space-3' })}
             value={formData?.desc}
@@ -484,12 +487,12 @@ const Details = () => {
           </Grid.Item>
           {formData?.details != null && (
             <Grid.Item>
-              <Accordion<typeof formData> dataArray={formData.details} onChange={updateFormData} name='details'>
+              <Accordion dataArray={formData.details} onChange={updateFormData} name='details'>
                 {formData?.details.map((detail, index) => (
                   <Accordion.Wrapper key={index} itemId={String(index)}>
                     <Accordion.Header
                       handleRemove={() =>
-                        updateFormData<typeof formData>({
+                        updateFormData({
                           type: 'remove',
                           path: `details.${index}`,
                         })
@@ -498,21 +501,25 @@ const Details = () => {
                       {detail.label != null && detail.label !== '' ? detail.label : `Detail ${index + 1}`}
                     </Accordion.Header>
                     <Accordion.Content>
-                      <Row className={sprinkles({ mb: 'space-3' })}>
-                        <Input<typeof formData>
-                          name={`details.${index}.label`}
-                          autoComplete='off'
-                          label='Detail Name'
-                          value={detail.label}
-                          onChange={updateFormData}
-                        />
-                      </Row>
-                      <RichTextEditor<typeof formData>
-                        name={`details.${index}.desc`}
-                        value={detail.desc}
-                        label={'Section Description'}
-                        onChange={updateFormData}
-                      />
+                      <Grid>
+                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                          <Input
+                            name={`details.${index}.label`}
+                            autoComplete='off'
+                            label='Detail Name'
+                            value={detail.label}
+                            onChange={updateFormData}
+                          />
+                        </Grid.Item>
+                        <Grid.Item>
+                          <RichTextEditor
+                            name={`details.${index}.desc`}
+                            value={detail.desc}
+                            label={'Section Description'}
+                            onChange={updateFormData}
+                          />
+                        </Grid.Item>
+                      </Grid>
                     </Accordion.Content>
                   </Accordion.Wrapper>
                 ))}

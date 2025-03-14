@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Layout from './Layout/Layout'
 import ErrorPage from './features/auth/ErrorPage'
@@ -29,7 +28,6 @@ import FeatureProvider from './components/Form/Features/FeatureProvider'
 import Auth from './features/auth/Auth'
 import RequireAuth from './features/auth/RequireAuth'
 import Confirm from './features/auth/Confirm'
-import Loading from './components/Loading/Loading'
 import FormProvider from './components/Form/FormProvider'
 import ThemeProvider from './theme/ThemeProvider'
 import AuthProvider from './features/auth/AuthProvider'
@@ -73,9 +71,7 @@ const App = () => {
           children: [
             {
               element: (
-                <Suspense fallback={<Loading />}>
                   <FormProvider />
-                </Suspense>
               ),
               path: '',
               children: [
@@ -103,7 +99,7 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: ':context/detail/short/:item', element: <ShortDetail /> },
+                        { path: ':context/detail/:item', element: <ShortDetail /> },
                       ],
                     },
                   ],

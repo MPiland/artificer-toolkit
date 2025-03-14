@@ -4,7 +4,6 @@ import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { FeatureDataType, SectionName, UpdateState } from '../../../types/form'
 import Select from '../../Select/Select'
-import { feature_list } from '../Form.css'
 import SectionsList from './Sections/SectionsList'
 import Requirements from '../Subforms/Requirements'
 import Damage from '../Subforms/Damage'
@@ -16,6 +15,7 @@ import { Categories, Ranges, Shapes } from '../../../types/enums'
 import { FeatureContext } from './FeatureContext'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
+import SelectOptionsByLevel from '../Subforms/SelectOptionsByLevel'
 
 const Base = ({
   featureData,
@@ -33,26 +33,29 @@ const Base = ({
     resetOption,
     resetSection,
     setSectionStep,
-    resetSubfeature,
     updateSectionData,
     updateOptionData,
-    updateSubfeatureData,
     sectionSteps,
   } = use(FeatureContext)
 
-  const { hasPrerequisites, limitUse, doesDamage, hasRange, isAction, requiresSave, addAbilityModifier, limitTargets } =
-    useEnumChecks({
-      data: featureData,
-    })
+  const {
+    hasPrerequisites,
+    limitUse,
+    doesDamage,
+    hasRange,
+    isAction,
+    requiresSave,
+    addAbilityModifier,
+    limitTargets,
+    selectCountByLevel,
+  } = useEnumChecks({
+    data: featureData,
+  })
 
   const { data: system } = useGetSystemQuery()
 
-  const selectSection = (sectionStep: SectionName) => {
-    if (
-      sectionStep === 'options' &&
-      featureData.__typename !== 'FeatureOption' &&
-      featureData.__typename !== 'FeatureSubfeature'
-    ) {
+  const selectSection = (sectionStep: SectionName & 'options') => {
+    if (sectionStep === 'options' && featureData.__typename !== 'FeatureOption') {
       // Add Option content
       resetOption()
       const optionIndex = featureData?.options?.length || 0
@@ -65,88 +68,59 @@ const Base = ({
       updateOptionData({ type: 'index', value: optionIndex })
       return setFeatureStep('option')
     }
-    if (sectionStep === 'subfeatures' && featureData.__typename === 'FeatureOption') {
-      // Add Subfeature content
-      resetSubfeature()
-      const subfeatureIndex = featureData.subfeatures?.length > 0 ? featureData.subfeatures.length : 0
-      updateSubfeatureData({ type: 'index', value: subfeatureIndex })
-      return setFeatureStep('subfeature')
-    }
-    if (sectionStep === 'ancestries' && featureData.__typename !== 'AncestryFeature') {
-      updateSectionData({ type: 'index', value: featureData[sectionStep]?.length })
-    } else {
-      // Add Section
-      resetSection()
-      updateSectionData({ type: 'index', value: 0 })
-      setSectionStep(sectionStep)
-    }
+    // Add Section
+    resetSection()
+    updateSectionData({ type: 'index', value: 0 })
+    return setSectionStep(sectionStep)
   }
 
-  const hasAnySections = sectionSteps.some((step) => {
-    if (step === 'ancestries') return featureData.__typename !== 'AncestryFeature' && featureData[step]?.length > 0
-
-    if (step === 'options') {
-      return (
-        featureData.__typename !== 'FeatureOption' &&
-        featureData.__typename !== 'FeatureSubfeature' &&
-        featureData[step]?.length > 0
-      )
-    }
-
-    if (step === 'subfeatures') {
-      return featureData.__typename === 'FeatureOption' && featureData[step]?.length > 0
-    }
-
-    return featureData[step]?.length > 0
-  })
-
-  console.log({ featureData })
+  const hasAnySections =
+    sectionSteps.some((step: SectionName) => {
+      return featureData[step]?.length > 0
+    }) ||
+    (featureData.__typename !== 'FeatureOption' && featureData?.options?.length > 0)
 
   return (
-    <Grid>
-      <Grid.Item colSpan={12}>
-        <Grid>
+    <>
+      <Grid>
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Input
+            name='label'
+            autoComplete='off'
+            label={`${valueLabel} Name`}
+            required={true}
+            value={featureData?.label}
+            errorMsg='Name must not be blank'
+            onChange={updateFeatureData}
+          />
+        </Grid.Item>
+        {featureData.__typename !== 'AncestryFeature' && featureData.__typename !== 'FeatureOption' && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Input
-              name='label'
-              autoComplete='off'
-              label={`${valueLabel} Name`}
-              required={true}
-              value={featureData?.label}
-              errorMsg='Name must not be blank'
+            <Dropdown
+              name={`category`}
+              options={system.categories.filter((category) => category.features)}
+              label='Feature Category'
+              value={featureData?.category}
               onChange={updateFeatureData}
+              required={true}
             />
           </Grid.Item>
-          {featureData.__typename !== 'AncestryFeature' && featureData.__typename !== 'FeatureOption' && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Dropdown
-                name={`category`}
-                options={system.categories.filter((category) => category.features)}
-                label='Feature Category'
-                value={featureData?.category}
-                onChange={updateFeatureData}
-                required={true}
-              />
-            </Grid.Item>
-          )}
-          {(featureData?.category === Categories.feature ||
-            featureData.__typename === 'AncestryFeature' ||
-            featureData.__typename === 'FeatureOption') && (
-            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-              <Select
-                name='section'
-                handleChange={selectSection}
-                placeholder='Add...'
-                label={'Add Section'}
-                options={sectionSteps}
-              />
-            </Grid.Item>
-          )}
-        </Grid>
-      </Grid.Item>
-      <>
+        )}
+        {(featureData?.category === Categories.feature ||
+          featureData.__typename === 'AncestryFeature' ||
+          featureData.__typename === 'FeatureOption') && (
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Select
+              name='section'
+              handleChange={selectSection}
+              placeholder='Add...'
+              label={'Add Section'}
+              options={sectionSteps}
+            />
+          </Grid.Item>
+        )}
         {featureData?.category === Categories.subclass && (
-          <Grid.Item colSpan={12}>
+          <Grid.Item>
             <RichTextEditor
               label='Feature detail'
               value={featureData?.detail}
@@ -155,7 +129,7 @@ const Base = ({
             />
           </Grid.Item>
         )}
-        <Grid.Item colSpan={12}>
+        <Grid.Item>
           <RichTextEditor
             label='Feature description'
             value={featureData?.desc}
@@ -163,11 +137,12 @@ const Base = ({
             onChange={updateFeatureData}
           />
         </Grid.Item>
-        <Grid.Item colSpan={12}>
+        <Grid.Item>
           <Grid>
             {formData.__typename !== 'Equipment' &&
               formData.__typename !== 'Background' &&
-              !(steps[stepIndex].id === 'ancestry' && featureData.__typename === 'FeatureOption') && (
+              !(steps[stepIndex].id === 'ancestry' && featureData.__typename === 'FeatureOption') &&
+              !selectCountByLevel && (
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name={`levelAvailable`}
@@ -183,7 +158,7 @@ const Base = ({
                   />
                 </Grid.Item>
               )}
-            {(featureData?.category === Categories.feature || featureData.__typename === 'AncestryFeature') && (
+            {featureData?.category !== Categories.subclass && (
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   multiSelect={true}
@@ -219,7 +194,7 @@ const Base = ({
           </Grid>
         </Grid.Item>
         {hasRange && (
-          <Grid.Item colSpan={12}>
+          <Grid.Item>
             <Grid>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
@@ -332,7 +307,7 @@ const Base = ({
           </Grid.Item>
         )}
         {requiresSave && (
-          <Grid.Item colSpan={12}>
+          <Grid.Item>
             <Grid>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
@@ -384,28 +359,13 @@ const Base = ({
             </Grid>
           </Grid.Item>
         )}
-        {hasPrerequisites && (
-          <Grid.Item colSpan={12}>
-            <Requirements formData={featureData} updateFormData={updateFeatureData} />
-          </Grid.Item>
-        )}
-        {limitUse && (
-          <Grid.Item colSpan={12}>
-            <LimitUse formData={featureData} updateFormData={updateFeatureData} />
-          </Grid.Item>
-        )}
-        {doesDamage && (
-          <Grid.Item colSpan={12}>
-            <Damage formData={featureData} updateFormData={updateFeatureData} />
-          </Grid.Item>
-        )}
-        {hasAnySections && (
-          <Grid.Item colSpan={12} className={feature_list}>
-            <SectionsList featureData={featureData} updateFeatureData={updateFeatureData} />
-          </Grid.Item>
-        )}
-      </>
-    </Grid>
+        {hasPrerequisites && <Requirements formData={featureData} updateFormData={updateFeatureData} />}
+        {limitUse && <LimitUse formData={featureData} updateFormData={updateFeatureData} />}
+        {doesDamage && <Damage formData={featureData} updateFormData={updateFeatureData} />}
+        {selectCountByLevel && <SelectOptionsByLevel />}
+        {hasAnySections && <SectionsList featureData={featureData} updateFeatureData={updateFeatureData} />}
+      </Grid>
+    </>
   )
 }
 

@@ -5419,55 +5419,55 @@
     },
     "contains": [
       {
-        "equipment": "b0b5f276-c0d5-4fab-817b-6ca1af327e8d",
+        "id": "b0b5f276-c0d5-4fab-817b-6ca1af327e8d",
         "quantity": 1
       },
       {
-        "equipment": "797a4e40-1b74-49fa-8219-77c4272d9051",
+        "id": "797a4e40-1b74-49fa-8219-77c4272d9051",
         "quantity": 1
       },
       {
-        "equipment": "02f3db57-8277-4e89-a6ac-8c082f125235",
+        "id": "02f3db57-8277-4e89-a6ac-8c082f125235",
         "quantity": 1
       },
       {
-        "equipment": "0208301f-5140-4218-a5c6-34696eabe827",
+        "id": "0208301f-5140-4218-a5c6-34696eabe827",
         "quantity": 5
       },
       {
-        "equipment": "92796fed-491e-456e-b1c2-f9389d436987",
+        "id": "92796fed-491e-456e-b1c2-f9389d436987",
         "quantity": 1
       },
       {
-        "equipment": "b921395f-7c64-402b-9e1f-59d0c46d6dae",
+        "id": "b921395f-7c64-402b-9e1f-59d0c46d6dae",
         "quantity": 1
       },
       {
-        "equipment": "01e8f41c-3ff0-423d-af0d-e721eb397370",
+        "id": "01e8f41c-3ff0-423d-af0d-e721eb397370",
         "quantity": 10
       },
       {
-        "equipment": "6d5fd967-7b73-4ede-a53d-aeea663d5c5d",
+        "id": "6d5fd967-7b73-4ede-a53d-aeea663d5c5d",
         "quantity": 1
       },
       {
-        "equipment": "0d396fcd-3e7c-4f06-95ab-7195ff0993e9",
+        "id": "0d396fcd-3e7c-4f06-95ab-7195ff0993e9",
         "quantity": 2
       },
       {
-        "equipment": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
+        "id": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
         "quantity": 5
       },
       {
-        "equipment": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
+        "id": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
         "quantity": 1
       },
       {
-        "equipment": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
+        "id": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
         "quantity": 1
       },
       {
-        "equipment": "6e63dc02-b9d4-45c7-985b-6ddcfe9a5244",
+        "id": "6e63dc02-b9d4-45c7-985b-6ddcfe9a5244",
         "quantity": 1
       }
     ],
@@ -5504,47 +5504,47 @@
     },
     "contains": [
       {
-        "equipment": "3a4aff77-7390-4530-b858-95d2bfefe830",
+        "id": "3a4aff77-7390-4530-b858-95d2bfefe830",
         "quantity": 1
       },
       {
-        "equipment": "8872edae-c7a8-46ad-95d1-5c48787be4bd",
+        "id": "8872edae-c7a8-46ad-95d1-5c48787be4bd",
         "quantity": 2
       },
       {
-        "equipment": "c27b8464-5469-421d-ae49-4cf38f7a837e",
+        "id": "c27b8464-5469-421d-ae49-4cf38f7a837e",
         "quantity": 1
       },
       {
-        "equipment": "fa4ee205-11b2-46af-be44-7e152d7e561e",
+        "id": "fa4ee205-11b2-46af-be44-7e152d7e561e",
         "quantity": 1
       },
       {
-        "equipment": "3796a627-fa2a-4f8d-92b2-f1784983a7d1",
+        "id": "3796a627-fa2a-4f8d-92b2-f1784983a7d1",
         "quantity": 1
       },
       {
-        "equipment": "ff62511f-2c22-40c7-999f-01e664bfe535",
+        "id": "ff62511f-2c22-40c7-999f-01e664bfe535",
         "quantity": 1
       },
       {
-        "equipment": "0d396fcd-3e7c-4f06-95ab-7195ff0993e9",
+        "id": "0d396fcd-3e7c-4f06-95ab-7195ff0993e9",
         "quantity": 2
       },
       {
-        "equipment": "5240fd8c-770b-4525-b04f-5c0a37fda4c5",
+        "id": "5240fd8c-770b-4525-b04f-5c0a37fda4c5",
         "quantity": 5
       },
       {
-        "equipment": "d2ef8823-2459-4c3e-bb53-9fb48c7fc130",
+        "id": "d2ef8823-2459-4c3e-bb53-9fb48c7fc130",
         "quantity": 1
       },
       {
-        "equipment": "fefaa42c-50e3-4a14-8737-10ab8ba29384",
+        "id": "fefaa42c-50e3-4a14-8737-10ab8ba29384",
         "quantity": 1
       },
       {
-        "equipment": "3cc9f8fd-ed8d-4933-8e5a-b09298e2b94c",
+        "id": "3cc9f8fd-ed8d-4933-8e5a-b09298e2b94c",
         "quantity": 1
       }
     ],
@@ -5581,35 +5581,35 @@
     },
     "contains": [
       {
-        "equipment": "92796fed-491e-456e-b1c2-f9389d436987",
+        "id": "92796fed-491e-456e-b1c2-f9389d436987",
         "quantity": 1
       },
       {
-        "equipment": "b921395f-7c64-402b-9e1f-59d0c46d6dae",
+        "id": "b921395f-7c64-402b-9e1f-59d0c46d6dae",
         "quantity": 1
       },
       {
-        "equipment": "01e8f41c-3ff0-423d-af0d-e721eb397370",
+        "id": "01e8f41c-3ff0-423d-af0d-e721eb397370",
         "quantity": 10
       },
       {
-        "equipment": "b8c2e65c-dc29-4296-b2d6-08fd1ffc997a",
+        "id": "b8c2e65c-dc29-4296-b2d6-08fd1ffc997a",
         "quantity": 10
       },
       {
-        "equipment": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
+        "id": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
         "quantity": 1
       },
       {
-        "equipment": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
+        "id": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
         "quantity": 10
       },
       {
-        "equipment": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
+        "id": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
         "quantity": 1
       },
       {
-        "equipment": "6e63dc02-b9d4-45c7-985b-6ddcfe9a5244",
+        "id": "6e63dc02-b9d4-45c7-985b-6ddcfe9a5244",
         "quantity": 1
       }
     ],
@@ -5650,27 +5650,27 @@
     },
     "contains": [
       {
-        "equipment": "4a71253a-986c-4759-b5c2-3520611f4787",
+        "id": "4a71253a-986c-4759-b5c2-3520611f4787",
         "quantity": 1
       },
       {
-        "equipment": "642eb47a-2a00-4e44-8f6b-498777e7f1f0",
+        "id": "642eb47a-2a00-4e44-8f6b-498777e7f1f0",
         "quantity": 2
       },
       {
-        "equipment": "0208301f-5140-4218-a5c6-34696eabe827",
+        "id": "0208301f-5140-4218-a5c6-34696eabe827",
         "quantity": 5
       },
       {
-        "equipment": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
+        "id": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
         "quantity": 5
       },
       {
-        "equipment": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
+        "id": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
         "quantity": 1
       },
       {
-        "equipment": "460a7c23-30da-4250-9c34-8547f0485156",
+        "id": "460a7c23-30da-4250-9c34-8547f0485156",
         "quantity": 1
       }
     ],
@@ -5707,31 +5707,31 @@
     },
     "contains": [
       {
-        "equipment": "4a71253a-986c-4759-b5c2-3520611f4787",
+        "id": "4a71253a-986c-4759-b5c2-3520611f4787",
         "quantity": 1
       },
       {
-        "equipment": "a18160eb-8fdf-4203-8a6a-e10c6f4a63c0",
+        "id": "a18160eb-8fdf-4203-8a6a-e10c6f4a63c0",
         "quantity": 1
       },
       {
-        "equipment": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
+        "id": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
         "quantity": 1
       },
       {
-        "equipment": "b8c2e65c-dc29-4296-b2d6-08fd1ffc997a",
+        "id": "b8c2e65c-dc29-4296-b2d6-08fd1ffc997a",
         "quantity": 10
       },
       {
-        "equipment": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
+        "id": "a16b9a6f-5e80-4577-bbfb-70d049f2e5bb",
         "quantity": 10
       },
       {
-        "equipment": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
+        "id": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
         "quantity": 1
       },
       {
-        "equipment": "6e63dc02-b9d4-45c7-985b-6ddcfe9a5244",
+        "id": "6e63dc02-b9d4-45c7-985b-6ddcfe9a5244",
         "quantity": 1
       }
     ],
@@ -5768,35 +5768,35 @@
     },
     "contains": [
       {
-        "equipment": "c00529c6-edfd-4616-823a-ce74ee8271fe",
+        "id": "c00529c6-edfd-4616-823a-ce74ee8271fe",
         "quantity": 1
       },
       {
-        "equipment": "0208301f-5140-4218-a5c6-34696eabe827",
+        "id": "0208301f-5140-4218-a5c6-34696eabe827",
         "quantity": 10
       },
       {
-        "equipment": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
+        "id": "e2374f70-87a3-4ebb-b46f-9cb40311a015",
         "quantity": 1
       },
       {
-        "equipment": "c1ebcc2d-1f0c-43aa-b6d6-db3ad8a2bc0a",
+        "id": "c1ebcc2d-1f0c-43aa-b6d6-db3ad8a2bc0a",
         "quantity": 1
       },
       {
-        "equipment": "86eb602a-2163-4a0d-9f2c-c132d21eebc6",
+        "id": "86eb602a-2163-4a0d-9f2c-c132d21eebc6",
         "quantity": 2
       },
       {
-        "equipment": "309ff54b-f7fe-491d-83c3-dbab3f5b6879",
+        "id": "309ff54b-f7fe-491d-83c3-dbab3f5b6879",
         "quantity": 1
       },
       {
-        "equipment": "e5e10940-9c3a-4d0f-8d49-ba5af5f1f664",
+        "id": "e5e10940-9c3a-4d0f-8d49-ba5af5f1f664",
         "quantity": 1
       },
       {
-        "equipment": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
+        "id": "25eebdd1-6e7a-4ea7-b435-7ff3e32ebd87",
         "quantity": 1
       }
     ],
@@ -5907,27 +5907,27 @@
     },
     "contains": [
       {
-        "equipment": "216b0746-b9e4-47d0-9949-c5ee9b6cfc1b",
+        "id": "216b0746-b9e4-47d0-9949-c5ee9b6cfc1b",
         "quantity": 1
       },
       {
-        "equipment": "fa4ee205-11b2-46af-be44-7e152d7e561e",
+        "id": "fa4ee205-11b2-46af-be44-7e152d7e561e",
         "quantity": 1
       },
       {
-        "equipment": "3796a627-fa2a-4f8d-92b2-f1784983a7d1",
+        "id": "3796a627-fa2a-4f8d-92b2-f1784983a7d1",
         "quantity": 1
       },
       {
-        "equipment": "3420954a-cfe9-493b-afe2-fe11d54e24cc",
+        "id": "3420954a-cfe9-493b-afe2-fe11d54e24cc",
         "quantity": 10
       },
       {
-        "equipment": "8cab8b87-593a-47c4-9908-6b477f7a1dcc",
+        "id": "8cab8b87-593a-47c4-9908-6b477f7a1dcc",
         "quantity": 1
       },
       {
-        "equipment": "da62cd17-19cb-4b28-913d-d1376143e5da",
+        "id": "da62cd17-19cb-4b28-913d-d1376143e5da",
         "quantity": 1
       }
     ],
@@ -6078,7 +6078,7 @@
     ],
     "contains": [
       {
-        "equipment": "7197e1d9-1767-4dae-a780-048e9de0b160",
+        "id": "7197e1d9-1767-4dae-a780-048e9de0b160",
         "quantity": 1000
       }
     ],

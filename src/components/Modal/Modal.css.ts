@@ -146,7 +146,6 @@ export const modal_body = style({
     [app]: {
       'position': 'relative',
       'display': 'flex',
-      'flexDirection': 'column',
       'overflow': 'hidden',
       'padding': `${size['size-3']} ${size['size-9']}`,
 

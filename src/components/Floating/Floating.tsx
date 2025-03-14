@@ -113,7 +113,7 @@ const Menu = function FloatingMenu({
   if (!context.open) return null
 
   return (
-    <FloatingPortal root={boundary === 'form' ? formContent ?? appMain : appMain}>
+    <FloatingPortal root={boundary === 'form' ? formContent : appMain}>
       <FloatingFocusManager
         context={floatingContext.rootContext}
         closeOnFocusOut={true}
@@ -126,12 +126,12 @@ const Menu = function FloatingMenu({
             ...floatingStyles,
             ...style,
           }}
-          {...(floatingContext.getFloatingProps({
+          {...floatingContext.getFloatingProps({
             onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
               console.log({ key: e.key })
               props.onKeyDown?.(e)
             },
-          }))}
+          })}
           {...menuFloatingProps()}
           className={clsx(floating_content, props.className)}
         >

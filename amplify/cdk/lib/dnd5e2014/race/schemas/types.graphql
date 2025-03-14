@@ -9,6 +9,7 @@ type AncestryFeature {
   actions: ActionGroup
   damage: Damage
   charges: Charge
+  optionsByLevel: [OptionsByLevel]
   range: Range
   shape: Shape
   targets: Int
@@ -20,9 +21,7 @@ type AncestryFeature {
   spells: [FeatureSpell]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
-  selectionCount: Int
   levelAvailable: String
-  subfeatures: [FeatureSubfeature]
   options: [FeatureOption]
 }
 

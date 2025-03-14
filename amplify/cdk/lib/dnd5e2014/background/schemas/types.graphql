@@ -1,9 +1,16 @@
 type BackgroundCurrency {
-  copper: Int
-  silver: Int
-  electrum: Int
-  gold: Int
-  platinum: Int
+  id: ID!
+  amount: Int
+}
+
+type BackgroundEquipment {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [BackgroundCurrency]
 }
 
 type Background {
@@ -12,8 +19,7 @@ type Background {
   value: String!
   desc: String
   details: [Detail!]
-  equipment: [EquipmentGroup]
-  currency: BackgroundCurrency
+  equipment: [[[BackgroundEquipment]]]
   proficiencies: [FeatureProficiency]
   features: [Feature]
   ownerId: ID!
