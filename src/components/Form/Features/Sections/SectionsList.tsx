@@ -96,29 +96,24 @@ const SectionsList = ({
 
                           <Accordion.Footer>
                             <Group justifyContentVariant='start'>
-                              {sectionSteps.map(
-                                (
-                                  fSectionStep: Exclude<SectionName, 'ancestries' | 'options' | 'subfeatures'>,
-                                  fSIndex
-                                ) => {
-                                  return (
-                                    <span
-                                      key={fSIndex}
-                                      className={sprinkles({
-                                        me: 'space-3',
-                                      })}
-                                    >
-                                      {section[fSectionStep]?.length > 0 ? (
-                                        <strong key={fSIndex}>
-                                          {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
-                                        </strong>
-                                      ) : (
-                                        `${startCase(fSectionStep.charAt(0))}: 0`
-                                      )}
-                                    </span>
-                                  )
-                                }
-                              )}
+                              {sectionSteps.map((fSectionStep, fSIndex) => {
+                                return (
+                                  <span
+                                    key={fSIndex}
+                                    className={sprinkles({
+                                      me: 'space-3',
+                                    })}
+                                  >
+                                    {section[fSectionStep]?.length > 0 ? (
+                                      <strong key={fSIndex}>
+                                        {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
+                                      </strong>
+                                    ) : (
+                                      `${startCase(fSectionStep.charAt(0))}: 0`
+                                    )}
+                                  </span>
+                                )
+                              })}
                             </Group>
                           </Accordion.Footer>
                         </>

@@ -104,7 +104,7 @@ const ClassFeature = ({ fullClass, feature, subclass, subclasses }: ClassFeature
                   <>
                     <Grid.Item justify='center'>{option?.desc && <div>{parse(option.desc)}</div>}</Grid.Item>
                     {sectionSteps.map(
-                      (sectionStep: Exclude<SectionName, 'ancestries' | 'subfeatures' | 'options'>) =>
+                      (sectionStep) =>
                         option?.[sectionStep]?.length > 0 &&
                         option?.[sectionStep]?.map((section) => {
                           if (section.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {

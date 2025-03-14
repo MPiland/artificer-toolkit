@@ -262,35 +262,24 @@ const useFeatureOptions = () => {
                 `ancestry.options.${ancestryIndex}`,
                 `ancestry.options.${ancestryIndex}.features.${featureIndex}`,
                 `ancestry.options.${ancestryIndex}.features.${featureIndex}.options.${optionIndex}`,
-                `ancestry.options.${ancestryIndex}.features.${featureIndex}.options.${optionIndex}.${
-                  sectionStep as Exclude<SectionName, 'options' | 'features'>
-                }.${sectionIndex}`,
+                `ancestry.options.${ancestryIndex}.features.${featureIndex}.options.${optionIndex}.${sectionStep}.${sectionIndex}`,
               ]
             : [
                 `features.${featureIndex}`,
                 `features.${featureIndex}.options.${optionIndex}`,
-                `features.${featureIndex}.options.${optionIndex}.${
-                  sectionStep as Exclude<SectionName, 'options' | 'features'>
-                }.${sectionIndex}`,
+                `features.${featureIndex}.options.${optionIndex}.${sectionStep}.${sectionIndex}`,
               ],
       },
       feature: {
-        feats: [
-          `features.${featureIndex}.${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
-        ],
+        feats: [`features.${featureIndex}.${sectionStep}.${sectionIndex}`],
         default:
           steps[stepIndex].id === 'ancestry'
             ? [
                 `ancestry.options.${ancestryIndex}`,
                 `ancestry.options.${ancestryIndex}.features.${featureIndex}`,
-                `ancestry.options.${ancestryIndex}.features.${featureIndex}.${
-                  sectionStep as Exclude<SectionName, 'subfeatures' | 'ancestries'>
-                }.${sectionIndex}`,
+                `ancestry.options.${ancestryIndex}.features.${featureIndex}.${sectionStep}.${sectionIndex}`,
               ]
-            : [
-                `features.${featureIndex}`,
-                `features.${featureIndex}.${sectionStep as Exclude<SectionName, 'subfeatures'>}.${sectionIndex}`,
-              ],
+            : [`features.${featureIndex}`, `features.${featureIndex}.${sectionStep}.${sectionIndex}`],
       },
     }
 

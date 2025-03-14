@@ -5,7 +5,6 @@ import { validate } from '../../utils/form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { isEqual, startCase } from 'lodash'
 import { useEffect } from 'react'
-import { SectionName } from '../../types/form'
 import { UseMutationResult } from '@tanstack/react-query'
 import { FormDataType, FormInputType } from '../../types/form'
 import { use } from 'react'
@@ -53,10 +52,6 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     updateOptionData,
     initialOptionData,
     optionIndex,
-    subfeatureData,
-    updateSubfeatureData,
-    initialSubfeatureData,
-    subfeatureIndex,
     sectionData,
     updateSectionData,
     initialSectionData,
@@ -140,38 +135,24 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   }
 
   const handleSaveSection = () => {
-    if (featureStep === 'subfeature') {
-      updateSubfeatureData({
-        type: 'update',
-        path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
-        value: sectionData,
-      })
-    } else if (featureStep === 'option') {
+    if (featureStep === 'option') {
       updateOptionData({
         type: 'update',
-        path: `${sectionStep as Exclude<SectionName, 'options' | 'subfeatures'>}.${sectionIndex}`,
+        path: `${sectionStep}.${sectionIndex}`,
         value: sectionData,
       })
     } else {
       if (formData.__typename === 'Feat') {
         updateFormData({
           type: 'update',
-          path: `${sectionStep as Exclude<SectionName, 'subfeatures' | 'ancestries'> & 'ancestry'}.${sectionIndex}`,
+          path: `${sectionStep}.${sectionIndex}`,
           value: sectionData,
         })
       } else {
         if (steps[stepIndex].id === 'ancestry') {
           updateAncestryData({
             type: 'update',
-            path: `features.${featureIndex}.${
-              sectionStep as Exclude<SectionName, 'ancestries' | 'subfeatures'>
-            }.${sectionIndex}`,
-            value: sectionData,
-          })
-        } else {
-          updateFeatureData({
-            type: 'update',
-            path: `${sectionStep as Exclude<SectionName, 'subfeatures'>}.${sectionIndex}`,
+            path: `features.${featureIndex}.${sectionStep}.${sectionIndex}`,
             value: sectionData,
           })
         }
@@ -182,15 +163,6 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
     }
     return setSectionStep(null)
-  }
-
-  const handleSaveSubfeature = () => {
-    updateOptionData({
-      type: 'update',
-      path: `subfeatures.${subfeatureIndex}`,
-      value: subfeatureData,
-    })
-    return setFeatureStep('option')
   }
 
   const handleSaveOption = () => {
@@ -226,9 +198,6 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   const handleSave = () => {
     if (sectionStep != null) {
       return handleSaveSection()
-    }
-    if (featureStep === 'subfeature') {
-      return handleSaveSubfeature()
     }
     if (featureStep === 'option') {
       return handleSaveOption()
@@ -345,11 +314,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     let formClone = JSON.parse(JSON.stringify(formData))
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (
-        featureStep === 'subfeature' ||
-        featureStep === 'option' ||
-        (featureStep === 'feature' && formData.__typename !== 'Feat')
-      ) {
+      if (featureStep === 'option' || (featureStep === 'feature' && formData.__typename !== 'Feat')) {
         formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
@@ -381,12 +346,6 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       return updateSectionData({
         type: 'reset',
         value: initialSectionData,
-      })
-    }
-    if (featureStep === 'subfeature') {
-      return updateSubfeatureData({
-        type: 'reset',
-        value: initialSubfeatureData,
       })
     }
     if (featureStep === 'option') {
