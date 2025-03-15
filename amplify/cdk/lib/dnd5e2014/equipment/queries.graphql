@@ -1,0 +1,6 @@
+type Query {
+  getMasterEquipment(id: ID!): Equipment
+  listMasterEquipment(limit: Int, nextToken: String): EquipmentConnection!
+  getEquipment(id: ID!): Equipment
+  listEquipment(systemId: ID!, limit: Int, nextToken: String): EquipmentConnection!
+}

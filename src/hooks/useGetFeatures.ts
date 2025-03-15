@@ -193,14 +193,14 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       }
       if (feature?.backgroundId) {
         return (
-          backgrounds.find((b) => b.id === feature.backgroundId)?.features?.find((f) => f.id === feature.id) || null
+          backgrounds?.find((b) => b.id === feature.backgroundId)?.features?.find((f) => f.id === feature.id) || null
         )
       }
       if (feature?.featId) {
-        return feats.find((f) => f.id === feature.featId)?.features?.find((f) => f.id === feature.id) || null
+        return feats?.find((f) => f.id === feature.featId)?.features?.find((f) => f.id === feature.id) || null
       }
       if (feature.equipmentId) {
-        return equipment.find((e) => e.id === feature.equipmentId)?.features?.find((f) => f.id === feature.id) || null
+        return equipment?.find((e) => e.id === feature.equipmentId)?.features?.find((f) => f.id === feature.id) || null
       }
     },
     [classes, races, backgrounds, feats, equipment, data]
@@ -425,7 +425,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const checkEquipment = (featureEquipment: Contains) => {
           if (featureEquipment.equipped) {
-            const fullEquipment = equipment.find((e) => e.id === featureEquipment.id)
+            const fullEquipment = equipment?.find((e) => e.id === featureEquipment.id)
 
             const attunementRequired = fullEquipment.attributes?.some(
               (attribute) => attribute === Attributes.requireAttunement
@@ -479,7 +479,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         features.push(...existingFeatures)
 
         data?.feats?.forEach((feat) => {
-          const fullFeat = feats.find((f) => f.id === feat.featId)
+          const fullFeat = feats?.find((f) => f.id === feat.featId)
 
           fullFeat.features?.forEach((feature) => {
             if (
@@ -514,13 +514,13 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         features.push(...existingFeatures)
 
-        const fullBackground = backgrounds.find((b) => b.id === data?.background)
+        const fullBackground = backgrounds?.find((b) => b.id === data?.background)
 
-        fullBackground.features?.forEach((feature) => {
+        fullBackground?.features?.forEach((feature) => {
           if (
             !existingFeatures?.some(
               (existingFeature) =>
-                existingFeature.id === feature.id && existingFeature.backgroundId === fullBackground.id
+                existingFeature.id === feature.id && existingFeature.backgroundId === fullBackground?.id
             )
           ) {
             features.push({

@@ -319,10 +319,9 @@ type System {
 }
 
 type SystemConnection {
-  items: [System!]!
+  items: [System!]
   nextToken: String
 }
-
 type UpcastFields {
   id: ID
   size: Float
@@ -394,7 +393,6 @@ type Spell {
 type SpellConnection {
   items: [Spell!]
   nextToken: String
-  message: String
 }
 
 type AncestryFeature {
@@ -474,7 +472,6 @@ type Race {
 type RaceConnection {
   items: [Race!]
   nextToken: String
-  message: String
 }
 
 ## Basic Types
@@ -819,7 +816,6 @@ type Feat {
 type FeatConnection {
   items: [Feat!]
   nextToken: String
-  message: String
 }
 
 type Speed {
@@ -894,7 +890,6 @@ type Equipment {
 type EquipmentConnection {
   items: [Equipment!]
   nextToken: String
-  message: String
 }
 
 type Hitpoint {
@@ -1007,7 +1002,6 @@ type Class {
 type ClassConnection {
   items: [Class!]
   nextToken: String
-  message: String
 }
 
 type CharacterModifier {
@@ -1319,7 +1313,6 @@ type Character {
 type CharacterConnection {
   items: [Character!]
   nextToken: String
-  message: String
 }
 
 type BackgroundCurrency {
@@ -1354,7 +1347,6 @@ type Background {
 type BackgroundConnection {
   items: [Background!]
   nextToken: String
-  message: String
 }
 
 ## Enums
@@ -1676,7 +1668,6 @@ input BatchSystemsInput {
   tableName: String!
   data: SystemInput!
 }
-
 input UpcastFieldsInput {
   id: ID
   size: Float
@@ -2705,52 +2696,83 @@ input BatchBackgroundsInput {
 }
 
 type Query {
-      listMasterSystems: [System!]
+      getMasterSystem(id: ID!): System
+  listMasterSystems(limit: Int, nextToken: String): SystemConnection!
   getSystem(id: ID!): System
   listSystems(limit: Int, nextToken: String): SystemConnection!
-  listMasterSpells: [Spell!]
+  getMasterSpell(id: ID!): Spell
+  listMasterSpells(limit: Int, nextToken: String): SpellConnection!
   getSpell(id: ID!): Spell
-  listSpells(systemId: String!): SpellConnection!
-  listMasterRaces: [Race!]
+  listSpells(systemId: ID!, limit: Int, nextToken: String): SpellConnection!
+  getMasterRace(id: ID!): Race
+  listMasterRaces(limit: Int, nextToken: String): RaceConnection!
   getRace(id: ID!): Race
-  listRaces(limit: Int, nextToken: String, systemId: String!): RaceConnection!
-  listMasterFeats: [Feat!]
+  listRaces(systemId: ID!, limit: Int, nextToken: String): RaceConnection!
+  getMasterFeat(id: ID!): Feat
+  listMasterFeats(limit: Int, nextToken: String): FeatConnection!
   getFeat(id: ID!): Feat
-  listFeats(limit: Int, nextToken: String, systemId: String!): FeatConnection!
-  listMasterEquipment: [Equipment!]
+  listFeats(systemId: ID!, limit: Int, nextToken: String): FeatConnection!
+  getMasterEquipment(id: ID!): Equipment
+  listMasterEquipment(limit: Int, nextToken: String): EquipmentConnection!
   getEquipment(id: ID!): Equipment
-  listEquipment(limit: Int, nextToken: String, systemId: String!): EquipmentConnection!
-  listMasterClasses: [Class!]
+  listEquipment(systemId: ID!, limit: Int, nextToken: String): EquipmentConnection!
+  getMasterClass(id: ID!): Class
+  listMasterClasses(limit: Int, nextToken: String): ClassConnection!
   getClass(id: ID!): Class
-  listClasses(systemId: String!): ClassConnection!
+  listClasses(systemId: ID!, limit: Int, nextToken: String): ClassConnection!
   getCharacter(id: ID!): Character
-  listCharacters(limit: Int, nextToken: String, systemId: String!): CharacterConnection!
-  listMasterBackgrounds: [Background!]
+  listCharacters(systemId: ID!, limit: Int, nextToken: String): CharacterConnection!
+  getMasterBackground(id: ID!): Background
+  listMasterBackgrounds(limit: Int, nextToken: String): BackgroundConnection!
   getBackground(id: ID!): Background
-  listBackgrounds(systemId: String!): BackgroundConnection!
+  listBackgrounds(systemId: ID!, limit: Int, nextToken: String): BackgroundConnection!
     }
 
     type Mutation {
-      createSystem(input: SystemInput!): System!
+      createMasterSystem(input: SystemInput!): System!
+  updateMasterSystem(input: SystemInput!): System!
+  deleteMasterSystem(id: ID!): ID!
+  batchCreateMasterSystems(input: [BatchSystemsInput!]!): [System!]!
+  createSystem(input: SystemInput!): System!
   updateSystem(input: SystemInput!): System!
   deleteSystem(id: ID!): ID!
   batchCreateSystems(input: [BatchSystemsInput!]!): [System!]!
+  createMasterSpell(input: SpellInput!): Spell!
+  updateMasterSpell(input: SpellInput!): Spell!
+  deleteMasterSpell(id: ID!): ID!
+  batchCreateMasterSpells(input: [BatchSpellsInput]!): [Spell!]!
   createSpell(input: SpellInput!): Spell!
   updateSpell(input: SpellInput!): Spell!
   deleteSpell(id: ID!): ID!
   batchCreateSpells(input: [BatchSpellsInput]!): [Spell!]!
+  createMasterRace(input: RaceInput!): Race!
+  updateMasterRace(input: RaceInput!): Race!
+  deleteMasterRace(id: ID!): ID!
+  batchCreateMasterRaces(input: [BatchRacesInput!]!): [Race!]!
   createRace(input: RaceInput!): Race!
   updateRace(input: RaceInput!): Race!
   deleteRace(id: ID!): ID!
   batchCreateRaces(input: [BatchRacesInput!]!): [Race!]!
+  createMasterFeat(input: FeatInput!): Feat!
+  updateMasterFeat(input: FeatInput!): Feat!
+  deleteMasterFeat(id: ID!): ID!
+  batchCreateMasterFeats(input: [BatchFeatInput!]!): [Feat!]!
   createFeat(input: FeatInput!): Feat!
   updateFeat(input: FeatInput!): Feat!
   deleteFeat(id: ID!): ID!
   batchCreateFeats(input: [BatchFeatInput!]!): [Feat!]!
+  createMasterEquipment(input: EquipmentInput!): Equipment!
+  updateMasterEquipment(input: EquipmentInput!): Equipment!
+  deleteMasterEquipment(id: ID!): ID!
+  batchCreateMasterEquipment(input: [BatchEquipmentInput!]!): [Equipment!]!
   createEquipment(input: EquipmentInput!): Equipment!
   updateEquipment(input: EquipmentInput!): Equipment!
   deleteEquipment(id: ID!): ID!
   batchCreateEquipment(input: [BatchEquipmentInput!]!): [Equipment!]!
+  createMasterClass(input: ClassInput!): Class!
+  updateMasterClass(input: ClassInput!): Class!
+  deleteMasterClass(id: ID!): ID!
+  batchCreateMasterClasses(input: [BatchClassesInput!]!): [Class!]!
   createClass(input: ClassInput!): Class!
   updateClass(input: ClassInput!): Class!
   deleteClass(id: ID!): ID!
@@ -2758,6 +2780,10 @@ type Query {
   createCharacter(input: CharacterInput!): Character!
   updateCharacter(input: CharacterInput!): Character!
   deleteCharacter(id: ID!): ID!
+  createMasterBackground(input: BackgroundInput!): Background!
+  updateMasterBackground(input: BackgroundInput!): Background!
+  deleteMasterBackground(id: ID!): ID!
+  batchCreateMasterBackgrounds(input: [BatchBackgroundsInput!]!): [Background!]!
   createBackground(input: BackgroundInput!): Background!
   updateBackground(input: BackgroundInput!): Background!
   deleteBackground(id: ID!): ID!

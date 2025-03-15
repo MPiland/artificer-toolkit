@@ -1,12 +1,13 @@
 // lib/dnd5e2014/generic/utils/listItemsMapping.ts
 import { util } from "@aws-appsync/utils";
 function request(ctx) {
-  const { systemId } = ctx.args;
+  const { systemId, limit = 1e3, nextToken } = ctx.args;
+  const ownerId = ctx.identity.sub;
   const baseQuery = {
     operation: "Query",
     query: {
       expression: "ownerId = :ownerId",
-      expressionValues: util.dynamodb.toMapValues({ ":ownerId": ctx.identity.sub })
+      expressionValues: util.dynamodb.toMapValues({ ":ownerId": ownerId })
     },
     filter: {
       expression: "systemId = :systemId",
@@ -14,15 +15,20 @@ function request(ctx) {
         ":systemId": systemId
       })
     },
-    index: "ownerIndex"
+    index: "ownerIndex",
+    limit,
+    nextToken
   };
   return baseQuery;
 }
 function response(ctx) {
-  return ctx.result;
+  return {
+    items: ctx.result.items,
+    nextToken: ctx.result.nextToken
+  };
 }
 export {
   request,
   response
 };
-//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vZ2VuZXJpYy91dGlscy9saXN0SXRlbXNNYXBwaW5nLnRzIl0sCiAgIm1hcHBpbmdzIjogIjtBQUFBLFNBQTBDLFlBQVk7QUFHL0MsU0FBUyxRQUFRLEtBQXFEO0FBQzNFLFFBQU0sRUFBRSxTQUFTLElBQTBCLElBQUk7QUFFL0MsUUFBTSxZQUFrQztBQUFBLElBQ3RDLFdBQVc7QUFBQSxJQUNYLE9BQU87QUFBQSxNQUNMLFlBQVk7QUFBQSxNQUNaLGtCQUFrQixLQUFLLFNBQVMsWUFBWSxFQUFFLFlBQVksSUFBSSxTQUFTLElBQUksQ0FBQztBQUFBLElBQzlFO0FBQUEsSUFDQSxRQUFRO0FBQUEsTUFDTixZQUFZO0FBQUEsTUFDWixrQkFBa0IsS0FBSyxTQUFTLFlBQVk7QUFBQSxRQUMxQyxhQUFhO0FBQUEsTUFDZixDQUFDO0FBQUEsSUFDSDtBQUFBLElBQ0EsT0FBTztBQUFBLEVBQ1Q7QUFFQSxTQUFPO0FBQ1Q7QUFFTyxTQUFTLFNBQVMsS0FBYztBQUNyQyxTQUFPLElBQUk7QUFDYjsiLAogICJuYW1lcyI6IFtdCn0K
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vZ2VuZXJpYy91dGlscy9saXN0SXRlbXNNYXBwaW5nLnRzIl0sCiAgIm1hcHBpbmdzIjogIjtBQUFBLFNBQTBDLFlBQVk7QUFHL0MsU0FBUyxRQUFRLEtBQXFEO0FBQzNFLFFBQU0sRUFBRSxVQUFVLFFBQVEsS0FBTSxVQUFVLElBQThELElBQUk7QUFHNUcsUUFBTSxVQUFVLElBQUksU0FBUztBQUU3QixRQUFNLFlBQWtDO0FBQUEsSUFDdEMsV0FBVztBQUFBLElBQ1gsT0FBTztBQUFBLE1BQ0wsWUFBWTtBQUFBLE1BQ1osa0JBQWtCLEtBQUssU0FBUyxZQUFZLEVBQUUsWUFBWSxRQUFRLENBQUM7QUFBQSxJQUNyRTtBQUFBLElBQ0EsUUFBUTtBQUFBLE1BQ04sWUFBWTtBQUFBLE1BQ1osa0JBQWtCLEtBQUssU0FBUyxZQUFZO0FBQUEsUUFDMUMsYUFBYTtBQUFBLE1BQ2YsQ0FBQztBQUFBLElBQ0g7QUFBQSxJQUNBLE9BQU87QUFBQSxJQUNQO0FBQUEsSUFDQTtBQUFBLEVBQ0Y7QUFFQSxTQUFPO0FBQ1Q7QUFFTyxTQUFTLFNBQVMsS0FBYztBQUNyQyxTQUFPO0FBQUEsSUFDTCxPQUFPLElBQUksT0FBTztBQUFBLElBQ2xCLFdBQVcsSUFBSSxPQUFPO0FBQUEsRUFDeEI7QUFDRjsiLAogICJuYW1lcyI6IFtdCn0K

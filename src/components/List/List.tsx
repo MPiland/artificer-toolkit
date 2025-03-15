@@ -482,7 +482,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
                       <Card ref={itemRef} itemId={item.id}>
                         <Card.Header
                           title={`${item.label} ${
-                            (item as Exclude<FormDataType, Character>).masterId !== null && '(M)'
+                            (item as Exclude<FormDataType, Character>).masterId !== null ? '(M)' : ''
                           }`}
                           open={(e) => handleOpen(e, item)}
                           remove={

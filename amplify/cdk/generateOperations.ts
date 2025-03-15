@@ -13,7 +13,7 @@ import { loadSchema } from '@graphql-tools/load'
 import { GraphQLFileLoader } from '@graphql-tools/graphql-file-loader'
 import * as fs from 'fs'
 
-const MAX_DEPTH = 11
+const MAX_DEPTH = 14
 
 function getBaseType(type: GraphQLType): GraphQLType {
   if (isNonNullType(type) || isListType(type)) {

@@ -1,29 +1,23 @@
 // lib/dnd5e2014/generic/utils/listSystemsMapping.ts
 import { util } from "@aws-appsync/utils";
 function request(ctx) {
-  const { limit, nextToken } = ctx.args;
+  const isAdmin = ctx.identity.claims && ctx.identity.claims["cognito:groups"] && ctx.identity.claims["cognito:groups"].includes("Admins");
+  const ownerId = isAdmin ? "master" : ctx.identity.sub;
   const baseQuery = {
     operation: "Query",
     query: {
       expression: "ownerId = :ownerId",
-      expressionValues: util.dynamodb.toMapValues({ ":ownerId": ctx.identity.sub })
+      expressionValues: util.dynamodb.toMapValues({ ":ownerId": ownerId })
     },
     index: "ownerIndex"
   };
-  if (limit) {
-    baseQuery.limit = limit;
-    if (nextToken) {
-      baseQuery.nextToken = nextToken;
-    }
-  }
   return baseQuery;
 }
 function response(ctx) {
-  const { items, nextToken } = ctx.result;
-  return { items, nextToken };
+  return ctx.result;
 }
 export {
   request,
   response
 };
-//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vZ2VuZXJpYy91dGlscy9saXN0U3lzdGVtc01hcHBpbmcudHMiXSwKICAibWFwcGluZ3MiOiAiO0FBQUEsU0FBMEMsWUFBWTtBQUcvQyxTQUFTLFFBQVEsS0FBcUQ7QUFDM0UsUUFBTSxFQUFFLE9BQU8sVUFBVSxJQUE4RCxJQUFJO0FBRTNGLFFBQU0sWUFBa0M7QUFBQSxJQUN0QyxXQUFXO0FBQUEsSUFDWCxPQUFPO0FBQUEsTUFDTCxZQUFZO0FBQUEsTUFDWixrQkFBa0IsS0FBSyxTQUFTLFlBQVksRUFBRSxZQUFZLElBQUksU0FBUyxJQUFJLENBQUM7QUFBQSxJQUM5RTtBQUFBLElBQ0EsT0FBTztBQUFBLEVBQ1Q7QUFFQSxNQUFJLE9BQU87QUFDVCxjQUFVLFFBQVE7QUFDbEIsUUFBSSxXQUFXO0FBQ2IsZ0JBQVUsWUFBWTtBQUFBLElBQ3hCO0FBQUEsRUFDRjtBQUVBLFNBQU87QUFDVDtBQUVPLFNBQVMsU0FBUyxLQUFjO0FBQ3JDLFFBQU0sRUFBRSxPQUFPLFVBQVUsSUFBSSxJQUFJO0FBQ2pDLFNBQU8sRUFBRSxPQUFPLFVBQVU7QUFDNUI7IiwKICAibmFtZXMiOiBbXQp9Cg==
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vZ2VuZXJpYy91dGlscy9saXN0U3lzdGVtc01hcHBpbmcudHMiXSwKICAibWFwcGluZ3MiOiAiO0FBQUEsU0FBMEMsWUFBWTtBQUcvQyxTQUFTLFFBQVEsS0FBcUQ7QUFFM0UsUUFBTSxVQUNKLElBQUksU0FBUyxVQUNiLElBQUksU0FBUyxPQUFPLGdCQUFnQixLQUNwQyxJQUFJLFNBQVMsT0FBTyxnQkFBZ0IsRUFBRSxTQUFTLFFBQVE7QUFFekQsUUFBTSxVQUFVLFVBQVUsV0FBVyxJQUFJLFNBQVM7QUFFbEQsUUFBTSxZQUFrQztBQUFBLElBQ3RDLFdBQVc7QUFBQSxJQUNYLE9BQU87QUFBQSxNQUNMLFlBQVk7QUFBQSxNQUNaLGtCQUFrQixLQUFLLFNBQVMsWUFBWSxFQUFFLFlBQVksUUFBUSxDQUFDO0FBQUEsSUFDckU7QUFBQSxJQUNBLE9BQU87QUFBQSxFQUNUO0FBRUEsU0FBTztBQUNUO0FBRU8sU0FBUyxTQUFTLEtBQWM7QUFDckMsU0FBTyxJQUFJO0FBQ2I7IiwKICAibmFtZXMiOiBbXQp9Cg==

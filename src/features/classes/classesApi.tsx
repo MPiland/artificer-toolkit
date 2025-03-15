@@ -1,10 +1,11 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listClasses, getClass } from '../../../amplify/gql/queries'
+import { listClasses, getClass, listMasterClasses } from '../../../amplify/gql/queries'
 import { createClass, deleteClass, updateClass } from '../../../amplify/gql/mutations'
 import { ClassInput, Class } from '../../../amplify/gql/types'
 import useSystemPref from '../../hooks/useSystemPref'
 import { Categories } from '../../types/enums'
+import { fetchAuthSession } from 'aws-amplify/auth'
 
 const client = generateClient()
 
@@ -20,25 +21,53 @@ export const useListClassesQuery = (filter?: Categories.base) => {
   const query = useSuspenseQuery({
     queryKey: classesKeys.lists(),
     queryFn: async () => {
+      let allData: Class[] = []
+      let nextToken: string | null = null
+
       try {
-        const {
-          data: {
-            listClasses: { items },
-          },
-        } = await client.graphql({
-          query: listClasses,
-          variables: {
-            systemId: systemPref,
-          },
-        })
+        const { tokens } = await fetchAuthSession()
+        const groups = tokens.accessToken?.payload?.['cognito:groups'] as string[]
+        const master = groups?.includes('Admins') || false
+
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { listMasterClasses: any } {
+          return 'listMasterClasses' in data
+        }
+
+        const operation = master ? listMasterClasses : listClasses
+
+        const variables: Record<string, any> = {
+          limit: 1000,
+          nextToken,
+        }
+
+        if (!master) {
+          variables.systemId = systemPref
+        }
+
+        do {
+          const { data } = await client.graphql({
+            query: operation,
+            variables: variables,
+          })
+
+          const items = isMaster(data) ? data.listMasterClasses : data.listClasses
+          allData = [...allData, ...items.items]
+          nextToken = items.nextToken
+        } while (nextToken)
 
         if (filter) {
-          const filteredItems = items.filter((item) => item.category !== filter)
-          console.log({ filteredItems })
+          const filteredItems = allData
+            .filter((item) => item.category !== filter)
+            .sort((a, b) => a.value.localeCompare(b.value))
           return filteredItems
         }
 
-        return items
+        if (allData && allData.length > 0) {
+          return allData.sort((a, b) => a.value.localeCompare(b.value))
+        }
+
+        return null
       } catch (err) {
         console.log({ err })
       }

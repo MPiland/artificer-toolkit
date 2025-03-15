@@ -1,7 +1,11 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listSystems, getSystem } from '../../../amplify/gql/queries'
+import { listSystems, getSystem, listMasterSystems, getMasterSystem } from '../../../amplify/gql/queries'
 import useSystemPref from '../../hooks/useSystemPref'
+import { use } from 'react'
+import { AuthContext } from '../auth/AuthContext'
+import { fetchAuthSession } from 'aws-amplify/auth'
+import { System } from '../../../amplify/gql/types'
 
 const client = generateClient()
 
@@ -12,28 +16,46 @@ const systemsKeys = {
 }
 
 export const useListSystemsQuery = () => {
-
   return useSuspenseQuery({
     queryKey: systemsKeys.lists(),
     queryFn: async () => {
-      try {
-        const {
-          data: {
-            listSystems: { items: systems },
-          },
-        } = await client.graphql({
-          query: listSystems,
-        })
+      let nextToken = null
+      let allData: System[] = []
 
-        if (systems.length > 0) {
-          systems.map((system) => {
-            return {
-              id: system.id,
-              label: system.label,
-            }
+      try {
+        const { tokens } = await fetchAuthSession()
+        const groups = tokens.accessToken?.payload?.['cognito:groups'] as string[]
+        const master = groups?.includes('Admins') || false
+
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { listMasterSystems: any } {
+          return 'listMasterSystems' in data
+        }
+
+        const operation = master ? listMasterSystems : listSystems
+
+        const variables: Record<string, any> = {
+          limit: 100,
+          nextToken,
+        }
+        do {
+          const { data } = await client.graphql({
+            query: operation,
+            variables: variables,
           })
 
-          return systems
+          // Use type guard to determine which property to access
+          const systems = isMaster(data) ? data.listMasterSystems : data.listSystems
+          allData = [...allData, ...systems.items]
+          nextToken = systems.nextToken
+        } while (nextToken)
+
+        if (allData && allData.length > 0) {
+          return allData.map((system) => ({
+            id: system.id,
+            label: system.label,
+            value: system.value,
+          }))
         }
 
         return null
@@ -46,7 +68,11 @@ export const useListSystemsQuery = () => {
 }
 
 export const useGetSystemQuery = () => {
+  const { tokens } = use(AuthContext)
+  const groups = tokens?.payload?.['cognito:groups'] as string[]
+  const master = groups?.includes('Admins') || false
   const [systemsPref] = useSystemPref()
+
   return useSuspenseQuery({
     queryKey: systemsKeys.single(systemsPref),
     queryFn: async () => {
@@ -55,14 +81,22 @@ export const useGetSystemQuery = () => {
       }
 
       try {
-        const {
-          data: { getSystem: system },
-        } = await client.graphql({
-          query: getSystem,
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { getMasterSystem: any } {
+          return 'getMasterSystem' in data
+        }
+
+        const operation = master ? getMasterSystem : getSystem
+
+        const { data } = await client.graphql({
+          query: operation,
           variables: {
             id: systemsPref,
           },
         })
+
+        // Use type guard to determine which property to access
+        const system = isMaster(data) ? data.getMasterSystem : data.getSystem
 
         if (system) {
           const modCategories = system.modifiers.categories.map((category) => {

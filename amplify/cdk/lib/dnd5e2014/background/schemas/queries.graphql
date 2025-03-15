@@ -1,5 +1,0 @@
-type Query {
-  listMasterBackgrounds: [Background!]
-  getBackground(id: ID!): Background
-  listBackgrounds(systemId: String!): BackgroundConnection!
-}

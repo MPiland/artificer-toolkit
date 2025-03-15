@@ -1,5 +1,0 @@
-type Query {
-  listMasterSpells: [Spell!]
-  getSpell(id: ID!): Spell
-  listSpells(systemId: String!): SpellConnection!
-}

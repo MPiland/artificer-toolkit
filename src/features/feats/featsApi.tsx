@@ -1,9 +1,10 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listFeats } from '../../../amplify/gql/queries'
+import { listFeats, listMasterFeats } from '../../../amplify/gql/queries'
 import { createFeat, deleteFeat, updateFeat } from '../../../amplify/gql/mutations'
 import { FeatInput, Feat } from '../../../amplify/gql/types'
 import useSystemPref from '../../hooks/useSystemPref'
+import { fetchAuthSession } from 'aws-amplify/auth'
 
 const client = generateClient()
 
@@ -19,19 +20,46 @@ export const useListFeatsQuery = () => {
   const query = useSuspenseQuery({
     queryKey: featsKeys.lists(),
     queryFn: async () => {
-      try {
-        const {
-          data: {
-            listFeats: { items },
-          },
-        } = await client.graphql({
-          query: listFeats,
-          variables: {
-            systemId: systemPref,
-          },
-        })
+      let allData: Feat[] = []
+      let nextToken: string | null = null
 
-        return items
+      try {
+        const { tokens } = await fetchAuthSession()
+        const groups = tokens.accessToken?.payload?.['cognito:groups'] as string[]
+        const master = groups?.includes('Admins') || false
+
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { listMasterFeats: any } {
+          return 'listMasterFeats' in data
+        }
+
+        const operation = master ? listMasterFeats : listFeats
+
+        const variables: Record<string, any> = {
+          limit: 1000,
+          nextToken,
+        }
+
+        if (!master) {
+          variables.systemId = systemPref
+        }
+
+        do {
+          const { data } = await client.graphql({
+            query: operation,
+            variables: variables,
+          })
+
+          const items = isMaster(data) ? data.listMasterFeats : data.listFeats
+          allData = [...allData, ...items.items]
+          nextToken = items.nextToken
+        } while (nextToken)
+
+        if (allData && allData.length > 0) {
+          return allData.sort((a, b) => a.value.localeCompare(b.value))
+        }
+
+        return null
       } catch (err) {
         console.log({ err })
       }

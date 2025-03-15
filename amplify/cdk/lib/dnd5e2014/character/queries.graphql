@@ -1,0 +1,4 @@
+type Query {
+  getCharacter(id: ID!): Character
+  listCharacters(systemId: ID!, limit: Int, nextToken: String): CharacterConnection!
+}

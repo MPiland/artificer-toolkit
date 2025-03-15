@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterFeat(input: FeatInput!): Feat!
+  updateMasterFeat(input: FeatInput!): Feat!
+  deleteMasterFeat(id: ID!): ID!
+  batchCreateMasterFeats(input: [BatchFeatInput!]!): [Feat!]!
+  createFeat(input: FeatInput!): Feat!
+  updateFeat(input: FeatInput!): Feat!
+  deleteFeat(id: ID!): ID!
+  batchCreateFeats(input: [BatchFeatInput!]!): [Feat!]!
+}

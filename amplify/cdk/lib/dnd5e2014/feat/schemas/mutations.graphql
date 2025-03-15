@@ -1,6 +1,0 @@
-type Mutation {
-  createFeat(input: FeatInput!): Feat!
-  updateFeat(input: FeatInput!): Feat!
-  deleteFeat(id: ID!): ID!
-  batchCreateFeats(input: [BatchFeatInput!]!): [Feat!]!
-}

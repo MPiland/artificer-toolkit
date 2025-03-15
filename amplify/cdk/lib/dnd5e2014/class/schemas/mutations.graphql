@@ -1,6 +1,0 @@
-type Mutation {
-  createClass(input: ClassInput!): Class!
-  updateClass(input: ClassInput!): Class!
-  deleteClass(id: ID!): ID!
-  batchCreateClasses(input: [BatchClassesInput!]!): [Class!]!
-}

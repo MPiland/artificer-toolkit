@@ -1,9 +1,10 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
-import { listBackgrounds } from '../../../amplify/gql/queries'
+import { listBackgrounds, listMasterBackgrounds } from '../../../amplify/gql/queries'
 import { createBackground, deleteBackground, updateBackground } from '../../../amplify/gql/mutations'
 import { BackgroundInput, Background } from '../../../amplify/gql/types'
 import useSystemPref from '../../hooks/useSystemPref'
+import { fetchAuthSession } from 'aws-amplify/auth'
 
 const client = generateClient()
 
@@ -19,21 +20,50 @@ export const useListBackgroundsQuery = () => {
   const query = useSuspenseQuery({
     queryKey: backgroundsKeys.lists(),
     queryFn: async () => {
-      try {
-        const {
-          data: {
-            listBackgrounds: { items },
-          },
-        } = await client.graphql({
-          query: listBackgrounds,
-          variables: {
-            systemId: systemPref,
-          },
-        })
+      let allData: Background[] = []
+      let nextToken: string | null = null
 
-        return items
-      } catch (err) {
-        console.log({ err })
+      try {
+        const { tokens } = await fetchAuthSession()
+        const groups = tokens.accessToken?.payload?.['cognito:groups'] as string[]
+        const master = groups?.includes('Admins') || false
+
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { listMasterBackgrounds: any } {
+          return 'listMasterBackgrounds' in data
+        }
+
+        const operation = master ? listMasterBackgrounds : listBackgrounds
+
+        const variables: Record<string, any> = {
+          limit: 1000,
+          nextToken,
+        }
+
+        if (!master) {
+          variables.systemId = systemPref
+        }
+
+        do {
+          const { data } = await client.graphql({
+            query: operation,
+            variables: variables,
+          })
+
+          // Use type guard to determine which property to access
+          const systems = isMaster(data) ? data.listMasterBackgrounds : data.listBackgrounds
+          allData = [...allData, ...systems.items]
+          nextToken = systems.nextToken
+        } while (nextToken)
+
+        if (allData && allData.length > 0) {
+          return allData.sort((a, b) => a.value.localeCompare(b.value))
+        }
+
+        return null
+      } catch (error) {
+        console.error('Error fetching systems:', error)
+        throw error
       }
     },
   })

@@ -1,4 +1,0 @@
-type Query {
-  getCharacter(id: ID!): Character
-  listCharacters(limit: Int, nextToken: String, systemId: String!): CharacterConnection!
-}

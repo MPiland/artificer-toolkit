@@ -1,6 +1,0 @@
-type Mutation {
-  createSpell(input: SpellInput!): Spell!
-  updateSpell(input: SpellInput!): Spell!
-  deleteSpell(id: ID!): ID!
-  batchCreateSpells(input: [BatchSpellsInput]!): [Spell!]!
-}

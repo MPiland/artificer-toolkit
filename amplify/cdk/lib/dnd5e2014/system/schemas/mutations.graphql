@@ -1,6 +1,0 @@
-type Mutation {
-  createSystem(input: SystemInput!): System!
-  updateSystem(input: SystemInput!): System!
-  deleteSystem(id: ID!): ID!
-  batchCreateSystems(input: [BatchSystemsInput!]!): [System!]!
-}

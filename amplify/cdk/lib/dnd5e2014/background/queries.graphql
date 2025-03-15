@@ -1,0 +1,6 @@
+type Query {
+  getMasterBackground(id: ID!): Background
+  listMasterBackgrounds(limit: Int, nextToken: String): BackgroundConnection!
+  getBackground(id: ID!): Background
+  listBackgrounds(systemId: ID!, limit: Int, nextToken: String): BackgroundConnection!
+}

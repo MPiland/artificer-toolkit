@@ -1,0 +1,33 @@
+type BackgroundCurrency {
+  id: ID!
+  amount: Int
+}
+
+type BackgroundEquipment {
+  attributes: [ID]
+  selectionCount: Int
+  category: ID
+  equipment: [ID]
+  properties: [ID]
+  quantity: Int
+  currencies: [BackgroundCurrency]
+}
+
+type Background {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  details: [Detail!]
+  equipment: [[[BackgroundEquipment]]]
+  proficiencies: [FeatureProficiency]
+  features: [Feature]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type BackgroundConnection {
+  items: [Background!]
+  nextToken: String
+}

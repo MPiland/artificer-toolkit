@@ -167,33 +167,33 @@ const useGetSections = ({ formData }: { formData: Character }) => {
           if (!featureId && sectionStep === 'proficiencies') {
             fullSections = fullClass?.proficiencies
           } else {
-            fullFeature = fullClass?.features.find((feature) => feature.id === featureId)
+            fullFeature = fullClass?.features?.find((feature) => feature.id === featureId)
           }
         }
         if (raceId) {
-          const fullRace = races.find((race) => race.id === raceId)
+          const fullRace = races?.find((race) => race.id === raceId)
           if (ancestryId) {
-            const fullAncestry = fullRace.ancestry?.options?.find((option) => option.id === ancestryId)
+            const fullAncestry = fullRace?.ancestry?.options?.find((option) => option.id === ancestryId)
 
-            fullFeature = fullAncestry.features.find((feature) => feature.id === featureId)
+            fullFeature = fullAncestry?.features.find((feature) => feature.id === featureId)
           } else {
-            fullFeature = fullRace.features.find((feature) => feature.id === featureId)
+            fullFeature = fullRace?.features?.find((feature) => feature.id === featureId)
           }
         }
         if (featId) {
-          const fullFeat = feats.find((feat) => feat.id === featId)
+          const fullFeat = feats?.find((feat) => feat.id === featId)
 
-          fullFeature = fullFeat.features.find((feature) => feature.id === featureId)
+          fullFeature = fullFeat?.features?.find((feature) => feature.id === featureId)
         }
         if (backgroundId) {
-          const fullBackground = backgrounds.find((background) => background.id === backgroundId)
+          const fullBackground = backgrounds?.find((background) => background.id === backgroundId)
 
-          fullFeature = fullBackground.features.find((feature) => feature.id === featureId)
+          fullFeature = fullBackground?.features?.find((feature) => feature.id === featureId)
         }
         if (equipmentId) {
-          const fullEquipment = equipment.find((equipment) => equipment.id === equipmentId)
+          const fullEquipment = equipment?.find((equipment) => equipment.id === equipmentId)
 
-          fullFeature = fullEquipment.features.find((feature) => feature.id === featureId)
+          fullFeature = fullEquipment?.features?.find((feature) => feature.id === featureId)
         }
 
         if ((fullFeature as Feature | AncestryFeature)?.options?.length > 0) {

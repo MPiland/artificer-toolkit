@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterSystem(input: SystemInput!): System!
+  updateMasterSystem(input: SystemInput!): System!
+  deleteMasterSystem(id: ID!): ID!
+  batchCreateMasterSystems(input: [BatchSystemsInput!]!): [System!]!
+  createSystem(input: SystemInput!): System!
+  updateSystem(input: SystemInput!): System!
+  deleteSystem(id: ID!): ID!
+  batchCreateSystems(input: [BatchSystemsInput!]!): [System!]!
+}

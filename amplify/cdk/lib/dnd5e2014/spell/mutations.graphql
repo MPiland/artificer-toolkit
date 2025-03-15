@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterSpell(input: SpellInput!): Spell!
+  updateMasterSpell(input: SpellInput!): Spell!
+  deleteMasterSpell(id: ID!): ID!
+  batchCreateMasterSpells(input: [BatchSpellsInput]!): [Spell!]!
+  createSpell(input: SpellInput!): Spell!
+  updateSpell(input: SpellInput!): Spell!
+  deleteSpell(id: ID!): ID!
+  batchCreateSpells(input: [BatchSpellsInput]!): [Spell!]!
+}

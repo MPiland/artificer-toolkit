@@ -1,12 +1,14 @@
 // lib/dnd5e2014/generic/utils/createItemMapping.ts
 import { util } from "@aws-appsync/utils";
 function request(ctx) {
+  const isAdmin = ctx.identity.claims && ctx.identity.claims["cognito:groups"] && ctx.identity.claims["cognito:groups"].includes("Admins");
+  const ownerId = isAdmin ? "master" : ctx.identity.sub;
   return {
     operation: "PutItem",
     key: util.dynamodb.toMapValues({ id: util.autoId() }),
     attributeValues: util.dynamodb.toMapValues({
       ...ctx.args.input,
-      ownerId: ctx.identity.sub
+      ownerId
     })
   };
 }
@@ -17,4 +19,4 @@ export {
   request,
   response
 };
-//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vZ2VuZXJpYy91dGlscy9jcmVhdGVJdGVtTWFwcGluZy50cyJdLAogICJtYXBwaW5ncyI6ICI7QUFBQSxTQUEwQyxZQUFZO0FBRS9DLFNBQVMsUUFBUSxLQUFxRDtBQUMzRSxTQUFPO0FBQUEsSUFDTCxXQUFXO0FBQUEsSUFDWCxLQUFLLEtBQUssU0FBUyxZQUFZLEVBQUUsSUFBSSxLQUFLLE9BQU8sRUFBRSxDQUFDO0FBQUEsSUFDcEQsaUJBQWlCLEtBQUssU0FBUyxZQUFZO0FBQUEsTUFDekMsR0FBRyxJQUFJLEtBQUs7QUFBQSxNQUNaLFNBQVMsSUFBSSxTQUFTO0FBQUEsSUFDeEIsQ0FBQztBQUFBLEVBQ0g7QUFDRjtBQUVPLFNBQVMsU0FBUyxLQUFjO0FBQ3JDLFNBQU8sSUFBSTtBQUNiOyIsCiAgIm5hbWVzIjogW10KfQo=
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vZ2VuZXJpYy91dGlscy9jcmVhdGVJdGVtTWFwcGluZy50cyJdLAogICJtYXBwaW5ncyI6ICI7QUFBQSxTQUEwQyxZQUFZO0FBRS9DLFNBQVMsUUFBUSxLQUFxRDtBQUUzRSxRQUFNLFVBQ0osSUFBSSxTQUFTLFVBQ2IsSUFBSSxTQUFTLE9BQU8sZ0JBQWdCLEtBQ3BDLElBQUksU0FBUyxPQUFPLGdCQUFnQixFQUFFLFNBQVMsUUFBUTtBQUV6RCxRQUFNLFVBQVUsVUFBVSxXQUFXLElBQUksU0FBUztBQUVsRCxTQUFPO0FBQUEsSUFDTCxXQUFXO0FBQUEsSUFDWCxLQUFLLEtBQUssU0FBUyxZQUFZLEVBQUUsSUFBSSxLQUFLLE9BQU8sRUFBRSxDQUFDO0FBQUEsSUFDcEQsaUJBQWlCLEtBQUssU0FBUyxZQUFZO0FBQUEsTUFDekMsR0FBRyxJQUFJLEtBQUs7QUFBQSxNQUNaO0FBQUEsSUFDRixDQUFDO0FBQUEsRUFDSDtBQUNGO0FBRU8sU0FBUyxTQUFTLEtBQWM7QUFDckMsU0FBTyxJQUFJO0FBQ2I7IiwKICAibmFtZXMiOiBbXQp9Cg==

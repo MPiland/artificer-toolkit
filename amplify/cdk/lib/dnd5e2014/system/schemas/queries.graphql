@@ -1,5 +1,0 @@
-type Query {
-  listMasterSystems: [System!]
-  getSystem(id: ID!): System
-  listSystems(limit: Int, nextToken: String): SystemConnection!
-}

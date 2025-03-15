@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterClass(input: ClassInput!): Class!
+  updateMasterClass(input: ClassInput!): Class!
+  deleteMasterClass(id: ID!): ID!
+  batchCreateMasterClasses(input: [BatchClassesInput!]!): [Class!]!
+  createClass(input: ClassInput!): Class!
+  updateClass(input: ClassInput!): Class!
+  deleteClass(id: ID!): ID!
+  batchCreateClasses(input: [BatchClassesInput!]!): [Class!]!
+}

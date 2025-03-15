@@ -12,8 +12,8 @@ import ThemeContext from '../theme/ThemeContext'
 const Layout = () => {
   const { user, isAuthenticating } = use(AuthContext)
   const signedIn = !isAuthenticating && user != null
-  const { themeVar } = use(ThemeContext)
   
+  const { themeVar } = use(ThemeContext)
   return (
     <LayoutProvider>
       <div className={clsx(layout, themeVar)} id='app-main'>

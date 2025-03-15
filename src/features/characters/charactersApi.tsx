@@ -19,19 +19,25 @@ export const useListCharactersQuery = () => {
   const query = useSuspenseQuery({
     queryKey: charactersKeys.lists(),
     queryFn: async () => {
-      try {
-        const {
-          data: {
-            listCharacters: { items },
-          },
-        } = await client.graphql({
-          query: listCharacters,
-          variables: {
-            systemId: systemPref,
-          },
-        })
+      let allData: Character[] = []
+      let nextToken: string | null = null
 
-        return items
+      try {
+        do {
+          const { data } = await client.graphql({
+            query: listCharacters,
+            variables: {
+              limit: 100,
+              nextToken,
+              systemId: systemPref,
+            },
+          })
+
+          allData = [...allData, ...data.listCharacters.items]
+          nextToken = data.listCharacters.nextToken
+        } while (nextToken)
+
+        return allData
       } catch (err) {
         console.log({ err })
       }

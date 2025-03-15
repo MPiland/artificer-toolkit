@@ -179,7 +179,6 @@ export type Background = {
 export type BackgroundConnection = {
   __typename: 'BackgroundConnection';
   items?: Maybe<Array<Background>>;
-  message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -360,7 +359,6 @@ export type CharacterClassInput = {
 export type CharacterConnection = {
   __typename: 'CharacterConnection';
   items?: Maybe<Array<Character>>;
-  message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -776,7 +774,6 @@ export type Class = {
 export type ClassConnection = {
   __typename: 'ClassConnection';
   items?: Maybe<Array<Class>>;
-  message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1187,7 +1184,6 @@ export type EquipmentCategoryPropertyInput = {
 export type EquipmentConnection = {
   __typename: 'EquipmentConnection';
   items?: Maybe<Array<Equipment>>;
-  message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1298,7 +1294,6 @@ export type Feat = {
 export type FeatConnection = {
   __typename: 'FeatConnection';
   items?: Maybe<Array<Feat>>;
-  message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1865,6 +1860,13 @@ export type Mutation = {
   batchCreateClasses: Array<Class>;
   batchCreateEquipment: Array<Equipment>;
   batchCreateFeats: Array<Feat>;
+  batchCreateMasterBackgrounds: Array<Background>;
+  batchCreateMasterClasses: Array<Class>;
+  batchCreateMasterEquipment: Array<Equipment>;
+  batchCreateMasterFeats: Array<Feat>;
+  batchCreateMasterRaces: Array<Race>;
+  batchCreateMasterSpells: Array<Spell>;
+  batchCreateMasterSystems: Array<System>;
   batchCreateRaces: Array<Race>;
   batchCreateSpells: Array<Spell>;
   batchCreateSystems: Array<System>;
@@ -1873,6 +1875,13 @@ export type Mutation = {
   createClass: Class;
   createEquipment: Equipment;
   createFeat: Feat;
+  createMasterBackground: Background;
+  createMasterClass: Class;
+  createMasterEquipment: Equipment;
+  createMasterFeat: Feat;
+  createMasterRace: Race;
+  createMasterSpell: Spell;
+  createMasterSystem: System;
   createRace: Race;
   createSpell: Spell;
   createSystem: System;
@@ -1881,6 +1890,13 @@ export type Mutation = {
   deleteClass: Scalars['ID']['output'];
   deleteEquipment: Scalars['ID']['output'];
   deleteFeat: Scalars['ID']['output'];
+  deleteMasterBackground: Scalars['ID']['output'];
+  deleteMasterClass: Scalars['ID']['output'];
+  deleteMasterEquipment: Scalars['ID']['output'];
+  deleteMasterFeat: Scalars['ID']['output'];
+  deleteMasterRace: Scalars['ID']['output'];
+  deleteMasterSpell: Scalars['ID']['output'];
+  deleteMasterSystem: Scalars['ID']['output'];
   deleteRace: Scalars['ID']['output'];
   deleteSpell: Scalars['ID']['output'];
   deleteSystem: Scalars['ID']['output'];
@@ -1889,6 +1905,13 @@ export type Mutation = {
   updateClass: Class;
   updateEquipment: Equipment;
   updateFeat: Feat;
+  updateMasterBackground: Background;
+  updateMasterClass: Class;
+  updateMasterEquipment: Equipment;
+  updateMasterFeat: Feat;
+  updateMasterRace: Race;
+  updateMasterSpell: Spell;
+  updateMasterSystem: System;
   updateRace: Race;
   updateSpell: Spell;
   updateSystem: System;
@@ -1912,6 +1935,41 @@ export type MutationBatchCreateEquipmentArgs = {
 
 export type MutationBatchCreateFeatsArgs = {
   input: Array<BatchFeatInput>;
+};
+
+
+export type MutationBatchCreateMasterBackgroundsArgs = {
+  input: Array<BatchBackgroundsInput>;
+};
+
+
+export type MutationBatchCreateMasterClassesArgs = {
+  input: Array<BatchClassesInput>;
+};
+
+
+export type MutationBatchCreateMasterEquipmentArgs = {
+  input: Array<BatchEquipmentInput>;
+};
+
+
+export type MutationBatchCreateMasterFeatsArgs = {
+  input: Array<BatchFeatInput>;
+};
+
+
+export type MutationBatchCreateMasterRacesArgs = {
+  input: Array<BatchRacesInput>;
+};
+
+
+export type MutationBatchCreateMasterSpellsArgs = {
+  input: Array<InputMaybe<BatchSpellsInput>>;
+};
+
+
+export type MutationBatchCreateMasterSystemsArgs = {
+  input: Array<BatchSystemsInput>;
 };
 
 
@@ -1955,6 +2013,41 @@ export type MutationCreateFeatArgs = {
 };
 
 
+export type MutationCreateMasterBackgroundArgs = {
+  input: BackgroundInput;
+};
+
+
+export type MutationCreateMasterClassArgs = {
+  input: ClassInput;
+};
+
+
+export type MutationCreateMasterEquipmentArgs = {
+  input: EquipmentInput;
+};
+
+
+export type MutationCreateMasterFeatArgs = {
+  input: FeatInput;
+};
+
+
+export type MutationCreateMasterRaceArgs = {
+  input: RaceInput;
+};
+
+
+export type MutationCreateMasterSpellArgs = {
+  input: SpellInput;
+};
+
+
+export type MutationCreateMasterSystemArgs = {
+  input: SystemInput;
+};
+
+
 export type MutationCreateRaceArgs = {
   input: RaceInput;
 };
@@ -1991,6 +2084,41 @@ export type MutationDeleteEquipmentArgs = {
 
 
 export type MutationDeleteFeatArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteMasterBackgroundArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteMasterClassArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteMasterEquipmentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteMasterFeatArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteMasterRaceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteMasterSpellArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteMasterSystemArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -2032,6 +2160,41 @@ export type MutationUpdateEquipmentArgs = {
 
 export type MutationUpdateFeatArgs = {
   input: FeatInput;
+};
+
+
+export type MutationUpdateMasterBackgroundArgs = {
+  input: BackgroundInput;
+};
+
+
+export type MutationUpdateMasterClassArgs = {
+  input: ClassInput;
+};
+
+
+export type MutationUpdateMasterEquipmentArgs = {
+  input: EquipmentInput;
+};
+
+
+export type MutationUpdateMasterFeatArgs = {
+  input: FeatInput;
+};
+
+
+export type MutationUpdateMasterRaceArgs = {
+  input: RaceInput;
+};
+
+
+export type MutationUpdateMasterSpellArgs = {
+  input: SpellInput;
+};
+
+
+export type MutationUpdateMasterSystemArgs = {
+  input: SystemInput;
 };
 
 
@@ -2172,6 +2335,13 @@ export type Query = {
   getClass?: Maybe<Class>;
   getEquipment?: Maybe<Equipment>;
   getFeat?: Maybe<Feat>;
+  getMasterBackground?: Maybe<Background>;
+  getMasterClass?: Maybe<Class>;
+  getMasterEquipment?: Maybe<Equipment>;
+  getMasterFeat?: Maybe<Feat>;
+  getMasterRace?: Maybe<Race>;
+  getMasterSpell?: Maybe<Spell>;
+  getMasterSystem?: Maybe<System>;
   getRace?: Maybe<Race>;
   getSpell?: Maybe<Spell>;
   getSystem?: Maybe<System>;
@@ -2180,13 +2350,13 @@ export type Query = {
   listClasses: ClassConnection;
   listEquipment: EquipmentConnection;
   listFeats: FeatConnection;
-  listMasterBackgrounds?: Maybe<Array<Background>>;
-  listMasterClasses?: Maybe<Array<Class>>;
-  listMasterEquipment?: Maybe<Array<Equipment>>;
-  listMasterFeats?: Maybe<Array<Feat>>;
-  listMasterRaces?: Maybe<Array<Race>>;
-  listMasterSpells?: Maybe<Array<Spell>>;
-  listMasterSystems?: Maybe<Array<System>>;
+  listMasterBackgrounds: BackgroundConnection;
+  listMasterClasses: ClassConnection;
+  listMasterEquipment: EquipmentConnection;
+  listMasterFeats: FeatConnection;
+  listMasterRaces: RaceConnection;
+  listMasterSpells: SpellConnection;
+  listMasterSystems: SystemConnection;
   listRaces: RaceConnection;
   listSpells: SpellConnection;
   listSystems: SystemConnection;
@@ -2218,6 +2388,41 @@ export type QueryGetFeatArgs = {
 };
 
 
+export type QueryGetMasterBackgroundArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryGetMasterClassArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryGetMasterEquipmentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryGetMasterFeatArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryGetMasterRaceArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryGetMasterSpellArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryGetMasterSystemArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type QueryGetRaceArgs = {
   id: Scalars['ID']['input'];
 };
@@ -2234,45 +2439,93 @@ export type QueryGetSystemArgs = {
 
 
 export type QueryListBackgroundsArgs = {
-  systemId: Scalars['String']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+  systemId: Scalars['ID']['input'];
 };
 
 
 export type QueryListCharactersArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   nextToken?: InputMaybe<Scalars['String']['input']>;
-  systemId: Scalars['String']['input'];
+  systemId: Scalars['ID']['input'];
 };
 
 
 export type QueryListClassesArgs = {
-  systemId: Scalars['String']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+  systemId: Scalars['ID']['input'];
 };
 
 
 export type QueryListEquipmentArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   nextToken?: InputMaybe<Scalars['String']['input']>;
-  systemId: Scalars['String']['input'];
+  systemId: Scalars['ID']['input'];
 };
 
 
 export type QueryListFeatsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   nextToken?: InputMaybe<Scalars['String']['input']>;
-  systemId: Scalars['String']['input'];
+  systemId: Scalars['ID']['input'];
+};
+
+
+export type QueryListMasterBackgroundsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryListMasterClassesArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryListMasterEquipmentArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryListMasterFeatsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryListMasterRacesArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryListMasterSpellsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryListMasterSystemsArgs = {
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
 };
 
 
 export type QueryListRacesArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   nextToken?: InputMaybe<Scalars['String']['input']>;
-  systemId: Scalars['String']['input'];
+  systemId: Scalars['ID']['input'];
 };
 
 
 export type QueryListSpellsArgs = {
-  systemId: Scalars['String']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  nextToken?: InputMaybe<Scalars['String']['input']>;
+  systemId: Scalars['ID']['input'];
 };
 
 
@@ -2303,7 +2556,6 @@ export type Race = {
 export type RaceConnection = {
   __typename: 'RaceConnection';
   items?: Maybe<Array<Race>>;
-  message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -2522,7 +2774,6 @@ export type Spell = {
 export type SpellConnection = {
   __typename: 'SpellConnection';
   items?: Maybe<Array<Spell>>;
-  message?: Maybe<Scalars['String']['output']>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -2798,7 +3049,7 @@ export type SystemChargesInput = {
 
 export type SystemConnection = {
   __typename: 'SystemConnection';
-  items: Array<System>;
+  items?: Maybe<Array<System>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 

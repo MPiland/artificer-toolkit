@@ -1,0 +1,10 @@
+type Mutation {
+  createMasterRace(input: RaceInput!): Race!
+  updateMasterRace(input: RaceInput!): Race!
+  deleteMasterRace(id: ID!): ID!
+  batchCreateMasterRaces(input: [BatchRacesInput!]!): [Race!]!
+  createRace(input: RaceInput!): Race!
+  updateRace(input: RaceInput!): Race!
+  deleteRace(id: ID!): ID!
+  batchCreateRaces(input: [BatchRacesInput!]!): [Race!]!
+}
