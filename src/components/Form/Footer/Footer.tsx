@@ -1,17 +1,17 @@
-import { form_footer } from './Form.css'
-import Group from '../Group/Group'
-import Button from '../Button/Button'
-import { validate } from '../../utils/form'
+import { form_footer } from '../Form.css'
+import Group from '../../Group/Group'
+import Button from '../../Button/Button'
+import { validateForm } from '../../../utils/form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { isEqual, startCase } from 'lodash'
 import { useEffect } from 'react'
 import { UseMutationResult } from '@tanstack/react-query'
-import { FormDataType, FormInputType } from '../../types/form'
+import { FormDataType, FormInputType } from '../../../types/form'
 import { use } from 'react'
-import { FormContext } from './FormContext'
-import { FeatureContext } from './Features/FeatureContext'
-import { routeRoot } from '../../utils/formatting'
-import { sprinkles } from '../../css/sprinkles.css'
+import { FormContext } from '../FormContext'
+import { FeatureContext } from '../Features/FeatureContext'
+import { routeRoot } from '../../../utils/formatting'
+import { sprinkles } from '../../../css/sprinkles.css'
 
 interface FooterProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
@@ -233,7 +233,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   }
 
   const handleForward = async () => {
-    const isValid = validate()
+    const isValid = validateForm()
     if ((!isLastStep || (isLastStep && featureStep != null)) && formData.__typename !== 'Feat') {
       if (isValid) {
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
@@ -285,7 +285,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       }
       return navigate(-1)
     }
-    const isValid = validate()
+    const isValid = validateForm()
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
       if (featureStep != null) {
@@ -310,17 +310,16 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   const handleUpdate = async () => {
     setAddClass(false)
     setChangeRace(false)
-    const isValid = validate()
-    let formClone = JSON.parse(JSON.stringify(formData))
+    const isValid = validateForm()
+    let formClone: FormDataType = JSON.parse(JSON.stringify(formData))
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
       if (featureStep === 'option' || (featureStep === 'feature' && formData.__typename !== 'Feat')) {
         formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
       }
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
       if (!(Object.values(validForm).length > 0) || Object.values(validForm).every((value) => value === true)) {
         try {
-          await updateItem(formClone)
+          await updateItem(formClone as FormInputType)
           updateFormData({
             type: 'initialReset',
             value: formClone,
@@ -330,8 +329,8 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
             value: formClone,
           })
         } catch (err: any) {
-          console.log({ err })
-          setErrorMessage(err.message)
+          console.log(err)
+          return setErrorMessage(err.message)
         }
       }
     }

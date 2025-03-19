@@ -46,71 +46,74 @@ export const getKeyFromId = <T extends { [K in string]: string }>(id: string, en
   return name
 }
 
-export const validate = (resetValidation: boolean = false): boolean => {
+export const validateForm = (resetValidation: boolean = false): { isValid: boolean; invalidFields: string[] } => {
   if (resetValidation) {
     document.dispatchEvent(new CustomEvent('setErrorState', { detail: false }))
   }
 
-  let isValid: boolean = true
+  const invalidFields: string[] = []
 
+  // Validate required dropdowns
   const requiredDropdowns: NodeListOf<Element> = document.querySelectorAll('[aria-required]')
-
   requiredDropdowns.forEach((element: Element) => {
     if (element && element.getAttribute('aria-required') === 'true') {
-      let isValidDropdown: boolean
       if (element.hasAttribute('data-atapp-options')) {
-        isValidDropdown = element.getAttribute('data-atapp-options') === 'true' ? true : false
+        const isValidDropdown = element.getAttribute('data-atapp-options') === 'true'
 
         element.dispatchEvent(
           new CustomEvent('setErrorState', {
-            detail: isValidDropdown ? false : true,
+            detail: !isValidDropdown,
           })
         )
-        isValid = isValid && isValidDropdown
+
+        if (!isValidDropdown) {
+          const name = element.getAttribute('name')
+          if (name) invalidFields.push(name)
+        }
       }
     }
   })
 
+  // Validate required inputs
   const requiredInputs: NodeListOf<Element> = document.querySelectorAll('[required]')
-
   requiredInputs.forEach((element: Element) => {
     if (element) {
-      let isValidInput: boolean
-
       const value: string = (element as HTMLInputElement).value
-      const valid: boolean = value !== '' && element.hasAttribute('required')
+      const name = element.getAttribute('name')
+      const isRequired = element.hasAttribute('required')
+      let isValidInput = value !== '' && isRequired
 
       if (element.hasAttribute('data-atapp-validation')) {
         const validation: string | null = element.getAttribute('data-atapp-validation')
 
-        isValidInput =
-          valid &&
-          ((validation === 'user' && USER_REGEX.test(value)) ||
+        if (isValidInput) {
+          isValidInput =
+            (validation === 'user' && USER_REGEX.test(value)) ||
             (validation === 'pwd' && PWD_REGEX.test(value)) ||
             (validation === 'del' && DEL_REGEX.test(value)) ||
             (validation === 'num' && NUM_REGEX.test(value)) ||
             (validation === 'cur' && CUR_REGEX.test(value)) ||
             (validation === 'die' && DIE_REGEX.test(value)) ||
-            (validation === 'roll' && ROLL_CONFIG_REGEX.test(value)))
+            (validation === 'roll' && ROLL_CONFIG_REGEX.test(value))
+        }
+      }
 
-        element.dispatchEvent(
-          new CustomEvent('setErrorState', {
-            detail: isValidInput ? false : true,
-          })
-        )
-        isValid = isValidInput && isValid
-      } else {
-        element.dispatchEvent(
-          new CustomEvent('setErrorState', {
-            detail: valid ? false : true,
-          })
-        )
-        isValid = isValid && valid
+      element.dispatchEvent(
+        new CustomEvent('setErrorState', {
+          detail: !isValidInput,
+        })
+      )
+
+      if (!isValidInput && name) {
+        invalidFields.push(name)
       }
     }
   })
 
-  return isValid
+  return {
+    isValid: invalidFields.length === 0,
+    invalidFields,
+  }
 }
 
 export const calculateModifier = (score: number, type: 'bonus' | 'modifier') => {

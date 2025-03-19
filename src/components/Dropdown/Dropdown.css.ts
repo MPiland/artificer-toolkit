@@ -15,6 +15,7 @@ export const dropdown = style({
       },
     },
   },
+  zIndex: 1000,
 })
 
 export const dropdown_wrapper = style({

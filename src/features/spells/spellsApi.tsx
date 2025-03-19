@@ -1,7 +1,14 @@
 import { useMutation, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { generateClient } from 'aws-amplify/data'
 import { listMasterSpells, listSpells } from '../../../amplify/gql/queries'
-import { createSpell, deleteSpell, updateSpell } from '../../../amplify/gql/mutations'
+import {
+  createMasterSpell,
+  createSpell,
+  deleteMasterSpell,
+  deleteSpell,
+  updateMasterSpell,
+  updateSpell,
+} from '../../../amplify/gql/mutations'
 import { SpellInput, Spell } from '../../../amplify/gql/types'
 import useSystemPref from '../../hooks/useSystemPref'
 import { fetchAuthSession } from 'aws-amplify/auth'
@@ -74,16 +81,31 @@ export const useAddNewSpellMutation = () => {
 
   return useMutation({
     mutationFn: async (spell: SpellInput) => {
-      const {
-        data: { createSpell: newSpell },
-      } = await client.graphql({
-        query: createSpell,
-        variables: {
-          input: spell,
-        },
-      })
+      try {
+        const { tokens } = await fetchAuthSession()
+        const groups = tokens.accessToken?.payload?.['cognito:groups'] as string[]
+        const master = groups?.includes('Admins') || false
 
-      return newSpell
+        const operation = master ? createMasterSpell : createSpell
+
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { createMasterSpell: any } {
+          return 'createMasterSpell' in data
+        }
+
+        const { data } = await client.graphql({
+          query: operation,
+          variables: {
+            input: spell,
+          },
+        })
+
+        const newSpell = isMaster(data) ? data.createMasterSpell : data.createSpell
+
+        return newSpell
+      } catch (err) {
+        console.error(err)
+      }
     },
     onSuccess: (spell: Spell) => {
       queryClient.setQueryData(spellsKeys.all, (previous: Spell[]) => {
@@ -97,21 +119,77 @@ export const useAddNewSpellMutation = () => {
 export const useUpdateSpellMutation = () => {
   const queryClient = useQueryClient()
 
+  // Helper function to recursively remove __typename fields from a Spell object
+  function removeTypename(spell: Spell): SpellInput {
+    // Create a deep copy first
+    const deepCopy = JSON.parse(JSON.stringify(spell))
+
+    // Function to recursively remove __typename
+    function removeTypenameRecursive(obj: any) {
+      if (!obj || typeof obj !== 'object') return
+
+      // Delete __typename if it exists
+      if ('__typename' in obj) {
+        delete obj.__typename
+      }
+
+      // Process arrays
+      if (Array.isArray(obj)) {
+        obj.forEach((item) => {
+          if (item && typeof item === 'object') {
+            removeTypenameRecursive(item)
+          }
+        })
+      } else {
+        // Process object properties
+        Object.values(obj).forEach((value) => {
+          if (value && typeof value === 'object') {
+            removeTypenameRecursive(value)
+          }
+        })
+      }
+    }
+
+    // Remove __typename fields from the copy
+    removeTypenameRecursive(deepCopy)
+
+    // Return the cleaned object
+    return deepCopy as SpellInput
+  }
+
   return useMutation({
-    mutationFn: async (spell: SpellInput) => {
-      const {
-        data: { updateSpell: updatedSpell },
-      } = await client.graphql({
-        query: updateSpell,
-        variables: {
-          input: spell,
-        },
-      })
-      return updatedSpell
+    mutationFn: async (spell: Spell) => {
+      try {
+        // Remove __typename fields from the spell object
+        const cleanSpell: SpellInput = removeTypename(spell)
+        const { tokens } = await fetchAuthSession()
+        const groups = tokens.accessToken?.payload?.['cognito:groups'] as string[]
+        const master = groups?.includes('Admins') || false
+
+        const operation = master ? updateMasterSpell : updateSpell
+
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { updateMasterSpell: any } {
+          return 'updateMasterSpell' in data
+        }
+
+        const { data } = await client.graphql({
+          query: operation,
+          variables: {
+            input: cleanSpell,
+          },
+        })
+
+        const updatedSpell = isMaster(data) ? data.updateMasterSpell : data.updateSpell
+
+        return updatedSpell
+      } catch (err) {
+        console.error(err)
+      }
     },
     onSuccess: (spell: Spell) => {
       queryClient.setQueryData(spellsKeys.all, (previous: Spell[]) =>
-        previous.map((spellKey) => (spellKey.id === spell.id ? spell : spellKey))
+        previous?.map((spellKey) => (spellKey.id === spell.id ? spell : spellKey))
       )
     },
   })
@@ -122,16 +200,30 @@ export const useDeleteSpellMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const {
-        data: { deleteSpell: deletedId },
-      } = await client.graphql({
-        query: deleteSpell,
-        variables: {
-          id,
-        },
-      })
+      try {
+        const { tokens } = await fetchAuthSession()
+        const groups = tokens.accessToken?.payload?.['cognito:groups'] as string[]
+        const master = groups?.includes('Admins') || false
 
-      return deletedId
+        const operation = master ? deleteMasterSpell : deleteSpell
+
+        // Type guard to check which response we got
+        function isMaster(data: any): data is { deleteMasterSpell: any } {
+          return 'deleteMasterSpell' in data
+        }
+        const { data } = await client.graphql({
+          query: operation,
+          variables: {
+            id,
+          },
+        })
+
+        const deletedId = isMaster(data) ? data.deleteMasterSpell : data.deleteSpell
+
+        return deletedId
+      } catch (err) {
+        console.error(err)
+      }
     },
     onSuccess: (id: string) => {
       queryClient.setQueryData(spellsKeys.all, (previous: Spell[]) => {

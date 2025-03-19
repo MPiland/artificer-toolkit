@@ -128,7 +128,6 @@ const Menu = function FloatingMenu({
           }}
           {...floatingContext.getFloatingProps({
             onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
-              console.log({ key: e.key })
               props.onKeyDown?.(e)
             },
           })}

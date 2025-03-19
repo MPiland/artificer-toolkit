@@ -11,7 +11,7 @@ import {
   card_content_truncated,
   card_content_collapsed_height,
 } from './Card.css'
-import { MdDelete, MdExpandMore, MdLaunch } from 'react-icons/md'
+import { MdDelete, MdEdit, MdExpandMore, MdLaunch } from 'react-icons/md'
 import clsx from 'clsx'
 import useMeasure from 'react-use-measure'
 import HTMLReactParser from '../../utils/reactParser/dom-to-react'
@@ -25,6 +25,7 @@ const Header = ({
   title,
   open,
   remove,
+  edit,
   leftSide,
   collapsible = false,
   startCollapsed = true,
@@ -34,6 +35,7 @@ const Header = ({
   title: string
   open?: (arg: any) => void
   remove?: (arg: any) => void
+  edit?: (arg: any) => void
   leftSide?: ReactNode
   collapsible?: boolean
   startCollapsed?: boolean
@@ -69,6 +71,11 @@ const Header = ({
         {open && (
           <Button style='unstyled' height='xxs' onClick={open}>
             <MdLaunch />
+          </Button>
+        )}
+        {edit && (
+          <Button style='unstyled' height='xxs' onClick={edit}>
+            <MdEdit />
           </Button>
         )}
         {remove && (

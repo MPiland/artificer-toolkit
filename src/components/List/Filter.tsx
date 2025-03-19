@@ -1,199 +1,111 @@
-import Collapse from '../Collapse/Collapse'
-// import Dropdown from '../Dropdown/Dropdown'
-// import Input from '../Input/Input'
-import { useMediaQuery } from 'usehooks-ts'
-// import { DropdownOption, ReducerAction } from '../../types/components'
-// import { startCase } from 'lodash'
+import { useCallback, useMemo } from 'react'
+import Dropdown from '../Dropdown/Dropdown'
+import Input from '../Input/Input'
+import { get, startCase } from 'lodash'
+import { useStore } from '../../store/useStore'
+import { FilterState, FormType } from '../../store/filterSlice'
+import Button from '../Button/Button'
+import { FilterConfig, UpdateFilter } from '../../types/components'
+import Grid from '../Grid/Grid'
+import { FormDataType } from '../../types/form'
 
-// interface FilterProps {
-//   context: string
-//   items: any
-//   listFilter: any
-//   setListFilter: (arg: ReducerAction) => void
-// }
+// Define a type that includes filterState to pass to Input/Dropdown
+type FilterContextType = { filterState: FilterState }
 
-// const Filter = ({ context, items, listFilter, setListFilter }: FilterProps) => {
-const Filter = () => {
-  const sm = useMediaQuery('(max-width: 567px)')
+interface FilterProps<T extends FormType> {
+  context: T
+  data: FormDataType[]
+  filterConfigs: FilterConfig<FormDataType>[]
+}
+
+const Filter = <T extends FormType>({ context, data, filterConfigs }: FilterProps<T>) => {
+  const { filterState, setFilter, resetFilters } = useStore()
+
+  // Get the current filters for this context
+  const currentFilters = filterState[context] || ({} as FilterState[typeof context])
+
+  // Memoize the options for each filter config
+  const memoizedConfigs = useMemo(() => {
+    return filterConfigs.map((config) => {
+      if (config.type === 'dropdown' || config.type === 'multiSelect') {
+        return {
+          path: config.path,
+          options: config.options || (config.getOptionsFromData ? config.getOptionsFromData(data) : []),
+        }
+      }
+      return { path: config.path, options: [] }
+    })
+  }, [data, filterConfigs])
+
+  const handleFilterChange = useCallback(
+    (update: UpdateFilter<FormDataType>) => {
+      if (update.type === 'update') {
+        setFilter(context as FormType, update.path as any, update.value)
+      } else if (update.type === 'remove') {
+        setFilter(context as FormType, update.path as any, null)
+      }
+    },
+    [context, setFilter]
+  )
+
+  // Handler for the reset button
+  const handleReset = useCallback(() => {
+    resetFilters(context as FormType)
+  }, [resetFilters, context])
 
   return (
-    <Collapse style='borderless'>
-      <Collapse.Header title={'Filters'} startOpened={!sm} />
-      <Collapse.Body>
-        {/*
-          <Input
-            name='value'
-            label={`${startCase(context)} Name`}
-            autoComplete='off'
-            value={listFilter?.value}
-            onChange={setListFilter}
-          />
-          {context === 'spells' && (
-            <>
-              <Dropdown
-                multiSelect={true}
-                name='level'
-                label='Level'
-                options={items?.map((item: DropdownOption) => ({
-                  value: item?.level,
-                  name: item?.level,
-                  id: null,
-                }))}
-                value={listFilter?.level}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='classes'
-                label='Classes'
-                options={items?.flatMap((item: DropdownOption) => (item.classes?.length > 0 ? item.classes : []))}
-                value={listFilter?.classes}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='school'
-                label='Spell School'
-                options={items?.map((item: DropdownOption) => item.school)}
-                value={listFilter?.school}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='damage.primary.type'
-                label='Primary Damage Type'
-                options={[].concat(
-                  items?.map((item: DropdownOption) => item.damage?.primary?.type),
-                  items?.map((item: DropdownOption) => item.damage?.secondary?.type)
-                )}
-                value={listFilter?.damage?.primary?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='damage.secondary.type'
-                label='Secondary Damage Type'
-                options={[].concat(
-                  items?.map((item: DropdownOption) => item.damage?.primary?.type),
-                  items?.map((item: DropdownOption) => item.damage?.secondary?.type)
-                )}
-                value={listFilter?.damage?.secondary?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='condition.type'
-                label='Condition Type'
-                options={items?.flatMap((item: DropdownOption) => {
-                  if (item.condition && Array.isArray(item.condition.type)) {
-                    return item.condition.type
-                  } else {
-                    return []
-                  }
-                })}
-                value={listFilter?.condition?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='saveAbility.type'
-                label='DC Ability'
-                options={items?.map((item: DropdownOption) => item.saveAbility?.type)}
-                value={listFilter?.saveAbility?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='action.type'
-                label='Casting Time'
-                options={items?.map((item: DropdownOption) => item.action?.type)}
-                value={listFilter?.action?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='duration.type'
-                label='Duration'
-                options={items?.map((item: DropdownOption) => item.duration?.type)}
-                value={listFilter?.duration?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='range.type'
-                label='Range'
-                options={items?.map((item: DropdownOption) => item.range?.type)}
-                value={listFilter?.range?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='shape.type'
-                label='Shape'
-                options={items?.map((item: DropdownOption) => item.shape?.type)}
-                value={listFilter?.shape?.type}
-                onChange={setListFilter}
-              />
-            </>
-          )}
-          {context === 'items' && (
-            <>
-              <Dropdown
-                multiSelect={true}
-                name='category'
-                label='Item Category'
-                placeholder='Select...'
-                options={items?.map((item: any) => item.category) as DropdownOption[]}
-                value={listFilter?.category}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='properties.type'
-                label='Item Property'
-                options={items?.flatMap((item: any) => item.properties?.type) as DropdownOption[]}
-                value={listFilter?.properties?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='damage.type'
-                label='Damage Type'
-                options={items?.flatMap((item: any) => item.damage?.primary?.type)}
-                value={listFilter?.damage?.type}
-                all={false}
-                onChange={setListFilter}
-              />
-              <Dropdown
-                multiSelect={true}
-                name='armorClass'
-                label='AC'
-                options={
-                  items?.map((item: any) => ({
-                    value: item.armorClass,
-                  })) as DropdownOption[]
-                }
-                value={listFilter.armorClass}
-                all={false}
-                onChange={setListFilter}
-              />
-            </>
-          )}
-         */}
-      </Collapse.Body>
-    </Collapse>
+    <Grid spacing={{ col: 8 }}>
+      {filterConfigs.map((config) => {
+        const value = get(currentFilters, config.path, '') as string
+
+        switch (config.type) {
+          case 'text':
+            return (
+              <Grid.Item key={config.path} colSpan={{ sm: 4, lg: 'auto' }}>
+                <Input<FilterContextType>
+                  key={config.path}
+                  name={config.path}
+                  label={config.label || startCase(config.path)}
+                  autoComplete='off'
+                  value={value}
+                  onChange={handleFilterChange}
+                />
+              </Grid.Item>
+            )
+
+          case 'dropdown':
+          case 'multiSelect': {
+            // Get the memoized options for this config
+            const optionsForConfig = memoizedConfigs.find((c) => c.path === config.path)?.options || []
+
+            return (
+              <Grid.Item key={config.path} colSpan={{ sm: 4, lg: 'auto' }}>
+                <Dropdown<FilterContextType>
+                  key={config.path}
+                  multiSelect={config.type === 'multiSelect'}
+                  name={config.path}
+                  label={config.label || startCase(config.path)}
+                  options={optionsForConfig}
+                  value={value}
+                  all={false}
+                  boundary='app'
+                  onChange={handleFilterChange}
+                />
+              </Grid.Item>
+            )
+          }
+
+          default:
+            return null
+        }
+      })}
+
+      <Grid.Item colSpan={'auto'} align='end'>
+        <Button width={'size-full'} color='main' style='outline' onClick={handleReset}>
+          Reset
+        </Button>
+      </Grid.Item>
+    </Grid>
   )
 }
 

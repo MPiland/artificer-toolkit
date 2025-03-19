@@ -32,7 +32,6 @@ export const list_parent = style({
       position: 'relative',
       scrollbarWidth: 'none',
       msOverflowStyle: 'none',
-      padding: `0 ${space['space-4']}`,
 
       selectors: {
         '&::webkit-listbar': {
@@ -80,19 +79,6 @@ export const list_title_button_container = style({
       flexDirection: 'row',
       justifyContent: 'space-between',
       columnGap: space['space-2'],
-    },
-  },
-})
-
-export const list_button_container = style({
-  '@layer': {
-    ['app']: {
-      width: '100%',
-      display: 'flex',
-      justifyContent: 'end',
-      columnGap: space['space-2'],
-      marginBottom: space['space-4'],
-      marginTop: space['space-2'],
     },
   },
 })

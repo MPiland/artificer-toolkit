@@ -3,11 +3,11 @@ import Modal from '../../Modal/Modal'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { startCase } from 'lodash'
 import Dropdown from '../../Dropdown/Dropdown'
-import Group from '../../Group/Group'
 import Button from '../../Button/Button'
 import { sprinkles } from '../../../css/sprinkles.css'
 import { FormContext } from '../../Form/FormContext'
 import { FormDataType, UpdateState } from '../../../types/form'
+import Grid from '../../Grid/Grid'
 
 const Copy = () => {
   const navigate = useNavigate()
@@ -17,6 +17,8 @@ const Copy = () => {
   const { updateFormData, fullReset } = use(FormContext)
 
   const form = location?.pathname?.split('/')[1]
+
+  const data = location?.state?.items
 
   const handleSelect = (target: UpdateState<FormDataType>) => {
     if (target.type === 'update') {
@@ -34,7 +36,6 @@ const Copy = () => {
       )
     } else {
       const item = location.state.items.find((item: FormDataType) => item.id === selection)
-      console.log({ item })
       const data: FormDataType = JSON.parse(JSON.stringify(item))
       data.id = null
       if (data.__typename !== 'Character') {
@@ -60,20 +61,24 @@ const Copy = () => {
       <Modal.Dialogue size='sm'>
         <Modal.Header title={`Copy ${startCase(form)}`} />
         <Modal.Content>
-          <Group directionVariant='row' alignItemsVariant='end'>
-            <Dropdown
-              options={location.state.items}
-              onChange={handleSelect}
-              name='label'
-              value={selection}
-              className={sprinkles({ flex: '1', me: 'space-3' })}
-              id='create_dropdown'
-              errorMsg='Select a spell to copy'
-            />
-            <Button color='primary' onClick={handleCopy}>
-              Copy
-            </Button>
-          </Group>
+          <Grid>
+            <Grid.Item colSpan={8}>
+              <Dropdown
+                options={data}
+                onChange={handleSelect}
+                name='label'
+                value={selection}
+                className={sprinkles({ flex: '1', me: 'space-3' })}
+                errorMsg='Select a spell to copy'
+                boundary='app'
+              />
+            </Grid.Item>
+            <Grid.Item colSpan={2}>
+              <Button color='primary' onClick={handleCopy}>
+                Copy
+              </Button>
+            </Grid.Item>
+          </Grid>
         </Modal.Content>
       </Modal.Dialogue>
     </Modal>

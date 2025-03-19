@@ -287,7 +287,7 @@
     "value": "primaryDamage",
     "label": "Primary Damage",
     "id": "cb47b615-2a96-4617-870a-9051ab4b95cf",
-    "spells": ["upcast", "damage"]
+    "spells": ["upcast"]
   },
   {
     "value": "bonusDamage",

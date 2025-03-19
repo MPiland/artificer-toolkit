@@ -10,10 +10,24 @@ import { AncestryOption, Feature, FeatureOption } from '../../amplify/gql/types'
 import { SectionSlice, sectionSlice } from './sectionSlice'
 import { ancestrySlice, AncestrySlice } from './ancestrySlice'
 import { diceSlice, DiceSlice } from './diceSlice'
+import { FilterSlice, filterSlice } from './filterSlice'
 
-export type SupportedStates = FormDataType | Feature | FeatureOption | AncestryOption | SectionDataType | DiceSlice
+export type SupportedStates =
+  | FormDataType
+  | Feature
+  | FeatureOption
+  | AncestryOption
+  | SectionDataType
+  | DiceSlice
+  | FilterSlice
 
-export type CombinedSlice = FormSlice & FeatureSlice & OptionSlice & SectionSlice & AncestrySlice & DiceSlice
+export type CombinedSlice = FormSlice &
+  FeatureSlice &
+  OptionSlice &
+  SectionSlice &
+  AncestrySlice &
+  DiceSlice &
+  FilterSlice
 
 const isNumber = (str: string): boolean => {
   return !isNaN(parseFloat(str)) && isFinite(Number(str))
@@ -34,7 +48,6 @@ export const addField = ({
       const pathExists = has(targetState, path)
 
       if (pathExists) {
-        console.log('existing')
         const existing = get(targetState, path)
 
         if (Array.isArray(existing) && existing.length > 0) {
@@ -52,7 +65,6 @@ export const addField = ({
           lSet(targetState, path, value || [{}])
         }
       } else {
-        console.log('new')
         lSet(targetState, path, value || [{}])
       }
     })
@@ -120,7 +132,7 @@ export const updateField = ({
 
       lSet(targetState, statePath as PropertyPath, value)
 
-      if (statePath && statePath[statePath.length - 1] === 'label') {
+      if (statePath && statePath.length > 1 && statePath[statePath.length - 1] === 'label') {
         if (statePath.length === 1) {
           lSet(targetState, 'value', camelCase(value))
         } else {
@@ -154,6 +166,7 @@ export const useStore = create<CombinedSlice>()(
       ...sectionSlice(...a),
       ...ancestrySlice(...a),
       ...diceSlice(...a),
+      ...filterSlice(...a),
     }),
     {
       name: 'at-app-form',

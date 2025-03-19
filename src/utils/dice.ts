@@ -1,5 +1,5 @@
 import { Vector3Tuple } from '@react-three/rapier'
-import { RollConfig, Point } from '../types/components'
+import { RollConfig, Point, DiceConfig } from '../types/components'
 
 export const generateRandomLinearVelocity = (width: number, height: number): Vector3Tuple => {
   const directionX = (Math.random() - 0.5) * width
@@ -51,39 +51,25 @@ export const generateRandomPoints = (numPoints: number, minDistance: number, cen
 }
 
 export const parseDiceRoll = (rollString: RollConfig) => {
-  if (!rollString)
-    return {
-      numDie: 0,
-      dieType: 0,
-      keepType: '',
-      keepCount: 0,
-      dropType: '',
-      dropCount: 0,
-      rerollType: '',
-      rerollCondition: '',
-      rerollValue: 0,
-    }
+  if (!rollString) return
 
   const rollRegex =
-    /(?<numDie>\d*)d(?<dieType>\d+)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
+    /(?<quantity>\d+)?(?:d(?<die>\d+)?)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
   const match = rollString.match(rollRegex)
 
-  if (!match) {
-    console.log('No dice match')
+  if (!match || !match.groups) {
+    return
   }
 
-  const { numDie, dieType, keepType, keepCount, dropType, dropCount, rerollType, rerollCondition, rerollValue } =
-    match?.groups as any
-
   return {
-    numDie,
-    dieType,
-    keepType,
-    keepCount,
-    dropType,
-    dropCount,
-    rerollType,
-    rerollCondition,
-    rerollValue,
+    quantity: (Number(match?.groups?.quantity) || null) as DiceConfig['quantity'],
+    die: (Number(match?.groups?.die) || null) as DiceConfig['die'],
+    keepType: (match?.groups?.keepType || null) as DiceConfig['keepType'],
+    keepCount: (Number(match?.groups?.keepCount) || null) as DiceConfig['keepCount'],
+    dropType: (match?.groups?.dropType || null) as DiceConfig['dropType'],
+    dropCount: (Number(match?.groups?.dropCount) || null) as DiceConfig['dropCount'],
+    rerollType: (match?.groups?.rerollType || null) as DiceConfig['rerollType'],
+    rerollCondition: (match?.groups?.rerollCondition || null) as DiceConfig['rerollCondition'],
+    rerollValue: (Number(match?.groups?.rerollValue) || null) as DiceConfig['rerollValue'],
   }
 }

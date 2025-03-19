@@ -1,201 +1,118 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { get } from 'lodash'
-
-interface FilteredItem {
-  [key: string]: any | any
-}
-
-interface FilterValue {
-  name: string | number
-  value: string | number
-  _id: string
-}
-
-interface FilterValues {
-  [key: string]: FilterValue[] | string | null
-}
-
-interface ListFilter {
-  [key: string]: FilterValues
-}
+import { FormType } from '../store/filterSlice'
+import { FormDataType } from '../types/form'
+import { useStore } from '../store/useStore'
 
 interface UseFilteredListProps {
-  initialItems: FilteredItem[] | null | undefined
-  initialFilter: ListFilter | null
+  data: FormDataType[] | null | undefined
+  context: FormType | null | undefined
 }
 
-interface SubItem {
-  _id: string
-  value: string | number
-  name: string | number
-}
+/**
+ * Custom hook for filtering data based on filter state
+ * @returns The filtered data array
+ */
+const useFilteredList = ({ data, context }: UseFilteredListProps): FormDataType[] => {
+  // Get the filter state directly from the store
+  const { filterState } = useStore()
 
-const useFilteredList = (
-  initialItems: UseFilteredListProps['initialItems'],
-  initialFilter: UseFilteredListProps['initialFilter']
-) => {
-  const [listFilter, setListFilter] = useState<any>(initialFilter)
-  const [filteredList, setFilteredItems] = useState<FilteredItem[] | null | undefined>(initialItems)
+  // Apply filters to data and return the result
+  return useMemo(() => {
+    // Early return conditions
+    if (!data) return []
+    if (!context || !filterState || !filterState[context]) return data
 
-  const filteredItems = useMemo(() => {
-    if (!listFilter) {
-      return filteredList
-    }
+    const currentFilters = filterState[context]
 
-    let filteredItems = filteredList
+    // If there are no filters, return all data
+    if (Object.keys(currentFilters).length === 0) return data
 
-    Object.entries(listFilter).forEach(([filterField, filterValues]) => {
-      console.log({ filterValues })
-      if (Array.isArray(filterValues)) {
-        filteredItems = filterByArray(filteredItems, filterField, filterValues)
-      } else if (typeof filterValues === 'string') {
-        filteredItems = filterByString(filteredItems, filterField, filterValues)
-      } else if (typeof filterValues === 'object' && filterValues !== null) {
-        filteredItems = filterByObject(filteredItems, filterField, filterValues as FilterValues)
-      }
-    })
+    // Extract all paths and their values from the filter state
+    const pathsAndValues = extractPathsAndValues(currentFilters)
 
-    return filteredItems
-  }, [filteredList, listFilter])
-
-  return { listFilter, filteredItems, setListFilter, setFilteredItems }
-}
-
-const filterByArray = (
-  filteredItems: FilteredItem[] | null | undefined,
-  filterField: string,
-  filterValues: FilterValue[]
-) => {
-  const filteredValues = filterValues.filter((item) => item.name !== 'all')
-
-  if (filteredValues.length === 0) {
-    return filteredItems
-  }
-
-  return filteredItems?.filter((item) => {
-    let itemValue: SubItem | string
-    if (typeof item[filterField] === 'object') {
-      itemValue = get(item, `${filterField}`)
-      if (Array.isArray(itemValue)) {
-        return itemValue.some((item: SubItem) =>
-          filteredValues.some((filterValue: FilterValue) => {
-            if (filterValue._id != null) {
-              return filterValue._id === item._id
-            }
-            if (filterValue.value != null) {
-              return filterValue.value === item.value
-            }
-            return false
-          })
-        )
-      } else {
-        return filteredValues.some((filterValue: SubItem) => {
-          if (filterValue._id != null) {
-            return filterValue._id === (itemValue as SubItem)._id
-          }
-          if (filterValue.value != null) {
-            return filterValue.value === (itemValue as SubItem).value
-          }
-          return false
-        })
-      }
-    } else {
-      itemValue = get(item, `${filterField}`)
-
-      return filteredValues.some((filterValue: SubItem) => {
-        if (filterValue._id != null) {
-          return filterValue._id === itemValue
-        }
-        if (filterValue.name != null) {
-          return filterValue.name === itemValue
-        }
-        return false
-      })
-    }
-  })
-}
-
-const filterByString = (
-  filteredItems: FilteredItem[] | null | undefined,
-  filterField: string,
-  filterValues: string
-) => {
-  const filterWords = filterValues.toLowerCase().split(' ')
-  return filteredItems?.filter((item) => {
-    const itemValue = item[filterField].toLowerCase()
-    return filterWords.every((word) => itemValue.includes(word))
-  })
-}
-
-const filterByObject = (
-  filteredItems: FilteredItem[] | null | undefined,
-  filterField: string,
-  filterValues: FilterValues | FilterValue
-) => {
-  return filteredItems?.filter((item) => {
-    return Object.entries(filterValues).every(([valueField, fieldValues]) => {
-      if (Array.isArray(fieldValues)) {
-        const filteredFieldValues = fieldValues.filter((field) => field.name !== 'all')
-
-        const itemMatch = get(item, `${filterField}.${valueField}`)
-
-        if (fieldValues.some((value) => value.name === 'all')) {
-          if (itemMatch) {
-            return true
-          } else {
-            return false
-          }
-        }
-
-        if (filteredFieldValues.length === 0) {
+    return data.filter((item) => {
+      // Item matches if it passes all filter conditions
+      return pathsAndValues.every(([path, value]) => {
+        // Skip empty filters
+        if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
           return true
         }
 
-        if (!itemMatch) {
+        // Get the item value at this path
+        const itemValue = get(item, path)
+
+        // If the item doesn't have this path, it doesn't match
+        if (itemValue === undefined) return false
+
+        // Handle array values (like from multi-select)
+        if (Array.isArray(value)) {
+          // If the item value is an array, check if any filter value matches any item value
+          if (Array.isArray(itemValue)) {
+            return value.some((v) => itemValue.some((iv) => valuesMatch(iv, v)))
+          }
+
+          // If the item value is not an array, check if any filter value matches it
+          return value.some((v) => valuesMatch(itemValue, v))
+        }
+
+        // Handle string values (like from text inputs)
+        if (typeof value === 'string') {
+          // For string item values, check if it includes the filter value
+          if (typeof itemValue === 'string') {
+            return itemValue.toLowerCase().includes(value.toLowerCase())
+          }
+
+          // For number item values, convert to string and check
+          if (typeof itemValue === 'number') {
+            return String(itemValue).toLowerCase().includes(value.toLowerCase())
+          }
+
           return false
         }
 
-        const itemValue = Array.isArray(itemMatch) ? itemMatch.map((subItem: SubItem) => subItem._id) : itemMatch._id
-
-        return filteredFieldValues.some((field) => {
-          const fieldValue = Array.isArray(field._id) ? field._id : [field._id]
-          return fieldValue.some((value: string) => itemValue.includes(value))
-        })
-      } else {
-        return Object.entries(fieldValues).every(([subValueField, subFieldValues]) => {
-          if (Array.isArray(subFieldValues)) {
-            const filteredFieldValues = subFieldValues.filter((field) => field.name !== 'all')
-
-            const itemMatch = get(item, `${filterField}.${valueField}.${subValueField}`)
-
-            if (subFieldValues.some((value) => value.name === 'all')) {
-              if (itemMatch) {
-                return true
-              } else {
-                return false
-              }
-            }
-
-            if (filteredFieldValues.length === 0) {
-              return true
-            }
-
-            if (!itemMatch) {
-              return false
-            }
-
-            const itemValue =
-              itemMatch && Array.isArray(itemMatch) ? itemMatch.map((subItem: SubItem) => subItem._id) : itemMatch._id
-
-            return filteredFieldValues.some((field) => {
-              const fieldValue = Array.isArray(field._id) ? field._id : [field._id]
-              return fieldValue.some((value: string) => itemValue.includes(value))
-            })
-          }
-        })
-      }
+        // For other value types, do a direct comparison
+        return valuesMatch(itemValue, value)
+      })
     })
+  }, [data, context, filterState])
+}
+
+/**
+ * Extract all paths and their values from a nested object
+ * Example: { damage: { primary: { id: ['cold'] } } } becomes [['damage.primary.id', ['cold']]]
+ */
+function extractPathsAndValues(obj: any, basePath = ''): [string, any][] {
+  return Object.entries(obj).flatMap(([key, value]) => {
+    const currentPath = basePath ? `${basePath}.${key}` : key
+
+    // If value is an object (but not an array), recursively extract its paths
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      return extractPathsAndValues(value, currentPath)
+    }
+
+    // Otherwise, return this path and its value
+    return [[currentPath, value]]
   })
+}
+
+/**
+ * Helper function to check if two values match, handling type conversions
+ */
+function valuesMatch(a: any, b: any): boolean {
+  // Direct equality
+  if (a === b) return true
+
+  // String equality
+  if (String(a) === String(b)) return true
+
+  // Number equality (string to number)
+  if (typeof a === 'string' && typeof b === 'number' && Number(a) === b) return true
+
+  // Number equality (number to string)
+  if (typeof a === 'number' && typeof b === 'string' && a === Number(b)) return true
+
+  return false
 }
 
 export default useFilteredList

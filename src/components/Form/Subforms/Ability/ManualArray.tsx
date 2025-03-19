@@ -89,7 +89,10 @@ const ManualArray = ({
         })
       }
 
-      if (!formData.abilities?.manualRolled?.configuration) {
+      if (
+        formData.abilities?.manualRolled?.configuration === undefined ||
+        formData.abilities?.manualRolled?.configuration === null
+      ) {
         updates.push({
           type: 'update',
           path: 'abilities.manualRolled.configuration',
@@ -267,8 +270,8 @@ const ManualArray = ({
 
   const rollResult = (gIndex: number, rIndex: number) => {
     const diceResults = []
-    const { numDie } = parseDiceRoll(rollConfiguration)
-    for (let i = 0; i < Number(numDie); i++) {
+    const { quantity } = parseDiceRoll(rollConfiguration)
+    for (let i = 0; i < Number(quantity); i++) {
       const value = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.[i]?.value
       const id = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.[i]?.id
       const kept = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.kept?.some(
@@ -402,7 +405,7 @@ const ManualArray = ({
                       </Grid>
                       <Grid>
                         {rollGroup?.map((roll, rIndex) => {
-                          const { dieType } = parseDiceRoll(rollConfiguration)
+                          const { quantity, die } = parseDiceRoll(rollConfiguration)
                           return (
                             <Grid.Item key={rIndex} colSpan={{ sm: 6, md: 4, lg: 2 }}>
                               <Group directionVariant='column' justifyContentVariant='start' key={rIndex}>
@@ -436,7 +439,12 @@ const ManualArray = ({
                                       }, 10)
                                     }}
                                     className={sprinkles({ width: 'size-full' })}
-                                    disabled={dice.isRolling || dieType == null}
+                                    disabled={
+                                      dice.isRolling ||
+                                      die == null ||
+                                      quantity == null ||
+                                      formData?.abilities?.manualRolled?.configuration === ''
+                                    }
                                   >
                                     {dice.isRolling ? 'Rolling' : 'Roll'}
                                   </Button>

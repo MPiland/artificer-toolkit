@@ -1,46 +1,71 @@
 import { produce } from 'immer'
-import { set as lSet} from 'lodash'
+import { StateCreator } from 'zustand'
+import { Class, Equipment, Spell } from '../../amplify/gql/types'
+import { DeepKeyOf } from '../types/form'
+import { get, set as lSet } from 'lodash'
 
+// Define the overall filter state
 export interface FilterState {
-  value: string
-  level?: string[]
-  classes?: string[]
-  school?: string[]
-  damage?: {
-    primary?: { type: string[] }
-    secondary?: { type: string[] }
-  }
-  condition?: { type: string[] }
-  saveAbility?: { type: string[] }
-  action?: { type: string[] }
-  duration?: { type: string[] }
-  range?: { type: string[] }
-  shape?: { type: string[] }
-  category?: string[]
-  properties?: { type: string[] }
-  armorClass?: string[]
+  spells?: Partial<Spell>
+  equipment?: Partial<Equipment>
+  classes?: Partial<Class>
 }
 
+export type FormType = keyof FilterState
+
+// Define the filter slice
 export interface FilterSlice {
-  filter: FilterState
-  setFilter: (action: { type: string; value: any }) => void
-  resetFilter: () => void
+  filterState: FilterState
+  setFilter: <T extends FormType, K extends DeepKeyOf<FilterState[T]>>(formType: T, path: K, value: any) => void
+  resetFilters: (formType: FormType) => void
+  clearAllFilters: () => void
 }
 
-export const filterSlice = (set: any): FilterSlice => ({
-  filter: {
-    value: '',
-  },
-  setFilter: (action) =>
+export const filterSlice: StateCreator<FilterSlice> = (set) => ({
+  filterState: {},
+
+  setFilter: (formType, path, value) =>
     set(
       produce((state: FilterSlice) => {
-        lSet(state.filter, action.type, action.value)
+        // Initialize if needed
+        if (!state.filterState[formType]) {
+          state.filterState[formType] = {}
+        }
+
+        const typedFilter = state.filterState[formType] as Record<string, any>
+
+        if (value === null) {
+          // For removal, we need to handle nested paths
+          const pathParts = String(path).split('.')
+          const lastPart = pathParts.pop()
+
+          if (pathParts.length > 0) {
+            // For nested paths, get the parent object
+            const parentPath = pathParts.join('.')
+            const parent = get(typedFilter, parentPath)
+
+            if (parent && typeof parent === 'object' && lastPart in parent) {
+              delete parent[lastPart]
+            }
+          } else {
+            // For top-level paths
+            if (lastPart && lastPart in typedFilter) {
+              delete typedFilter[lastPart]
+            }
+          }
+        } else {
+          // For updates, use lodash.set to handle nested paths
+          lSet(typedFilter, path, value)
+        }
       })
     ),
-  resetFilter: () =>
+
+  resetFilters: (formType) =>
     set(
       produce((state: FilterSlice) => {
-        state.filter = { value: '' }
+        state.filterState[formType] = {}
       })
     ),
+
+  clearAllFilters: () => set({ filterState: {} }),
 })

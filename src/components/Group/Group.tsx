@@ -26,9 +26,7 @@ const Group = ({
         spacing[justifyContentVariant],
         alignItems[alignItemsVariant],
         flexWrap[flexWrapVariant],
-        {
-          [className]: className,
-        }
+        className
       )}
       onClick={() => onClick && onClick()}
     >

@@ -378,7 +378,7 @@
       "cb77cee2-5b6e-4bb9-87ff-3db56eec7db1",
       "5d5b208f-7887-4f9d-b108-51b2e5bd0e1c"
     ],
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "saveAbility": {
@@ -817,7 +817,7 @@
       "4662b9f7-cf83-404a-8d33-a046c6441dae",
       "13e4400f-aeed-4a6a-a2f3-9f661862ddd9"
     ],
-    "condition": [
+    "conditions": [
       "5692845d-057f-4bef-bf66-7d74bd580efc"
     ],
     "saveAbility": {
@@ -1581,7 +1581,7 @@
       "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e"
     },
     "materialDesc": "a piece of tentacle from a giant octopus or a giant squid",
-    "condition": [
+    "conditions": [
       "02b1093c-6deb-4850-883d-806f66ab8498"
     ],
     "targets": 1,
@@ -1868,7 +1868,7 @@
       "maxRange": 30,
       "unit": "5de01c03-566c-4e01-824a-6fc8f8f3771e"
     },
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "upcast": {
@@ -2019,7 +2019,7 @@
     "range": {
       "id": "802209e7-f09e-4c8d-b9b6-5cb49ebde9d2"
     },
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "saveAbility": {
@@ -2344,7 +2344,7 @@
     "saveAbility": {
       "id": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -2470,7 +2470,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -2809,7 +2809,7 @@
     "saveAbility": {
       "id": "492f208f-6e7a-4a69-bbf2-047389576246"
     },
-    "condition": [
+    "conditions": [
       "0a21062b-d7b5-48c7-a7d9-7546c2f69223"
     ],
     "actions": {
@@ -2897,7 +2897,7 @@
       "4662b9f7-cf83-404a-8d33-a046c6441dae",
       "af40a76d-56cb-4c32-9b61-110847edc481"
     ],
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "actions": {
@@ -2945,7 +2945,7 @@
       "4662b9f7-cf83-404a-8d33-a046c6441dae",
       "af40a76d-56cb-4c32-9b61-110847edc481"
     ],
-    "condition": [
+    "conditions": [
       "07fae8d9-e005-4bcf-8e34-a25e4422277f"
     ],
     "actions": {
@@ -3108,7 +3108,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -3625,7 +3625,7 @@
     "saveAbility": {
       "id": "492f208f-6e7a-4a69-bbf2-047389576246"
     },
-    "condition": [
+    "conditions": [
       "0a21062b-d7b5-48c7-a7d9-7546c2f69223"
     ],
     "actions": {
@@ -5101,7 +5101,7 @@
     "saveAbility": {
       "id": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "actions": {
@@ -5160,7 +5160,7 @@
       "minRange": 5,
       "id": "0a02ce70-1f0e-4779-83d6-d1cbc0b95d68"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "saveAbility": {
@@ -5223,7 +5223,7 @@
       "854fdc5a-6168-4b35-96af-d3b3713edf4c",
       "13e4400f-aeed-4a6a-a2f3-9f661862ddd9"
     ],
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -5290,7 +5290,7 @@
     "saveAbility": {
       "id": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -5452,7 +5452,7 @@
     "saveAbility": {
       "id": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
     },
-    "condition": [
+    "conditions": [
       "07fae8d9-e005-4bcf-8e34-a25e4422277f"
     ],
     "actions": {
@@ -5703,7 +5703,7 @@
     "saveAbility": {
       "id": "93607465-de3d-4788-a5e0-df290fda7959"
     },
-    "condition": [
+    "conditions": [
       "02b1093c-6deb-4850-883d-806f66ab8498"
     ],
     "actions": {
@@ -6047,7 +6047,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "5692845d-057f-4bef-bf66-7d74bd580efc"
     ],
     "actions": {
@@ -6869,7 +6869,7 @@
       "4662b9f7-cf83-404a-8d33-a046c6441dae",
       "854fdc5a-6168-4b35-96af-d3b3713edf4c"
     ],
-    "condition": [
+    "conditions": [
       "02b1093c-6deb-4850-883d-806f66ab8498"
     ],
     "actions": {
@@ -7472,7 +7472,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -7837,7 +7837,7 @@
     "saveAbility": {
       "id": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
     },
-    "condition": [
+    "conditions": [
       "07fae8d9-e005-4bcf-8e34-a25e4422277f"
     ],
     "actions": {
@@ -8992,7 +8992,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "07fae8d9-e005-4bcf-8e34-a25e4422277f"
     ],
     "actions": {
@@ -9044,7 +9044,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "196071b6-8e7d-4996-9e78-c0d274e797f8"
     ],
     "actions": {
@@ -9098,7 +9098,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "196071b6-8e7d-4996-9e78-c0d274e797f8"
     ],
     "actions": {
@@ -9186,7 +9186,7 @@
     "saveAbility": {
       "id": "492f208f-6e7a-4a69-bbf2-047389576246"
     },
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "actions": {
@@ -9306,7 +9306,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -9538,7 +9538,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "02b1093c-6deb-4850-883d-806f66ab8498"
     ],
     "actions": {
@@ -9952,7 +9952,7 @@
       "minRange": 5,
       "id": "0a02ce70-1f0e-4779-83d6-d1cbc0b95d68"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "targets": 1,
@@ -11797,7 +11797,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "d3693c1b-6fcd-47ee-a8db-27e1a35be976"
     ],
     "actions": {
@@ -12782,7 +12782,7 @@
     "saveAbility": {
       "id": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
     },
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "actions": {
@@ -12833,7 +12833,7 @@
     "saveAbility": {
       "id": "492f208f-6e7a-4a69-bbf2-047389576246"
     },
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "actions": {
@@ -14692,7 +14692,7 @@
       "4662b9f7-cf83-404a-8d33-a046c6441dae"
     ],
     "targets": 1,
-    "condition": [
+    "conditions": [
       "ea08e0fd-5547-4274-a7db-6a8797fea20e"
     ],
     "actions": {
@@ -14876,7 +14876,7 @@
     "saveAbility": {
       "id": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
     },
-    "condition": [
+    "conditions": [
       "07fae8d9-e005-4bcf-8e34-a25e4422277f"
     ],
     "actions": {
@@ -15446,7 +15446,7 @@
     "saveAbility": {
       "id": "492f208f-6e7a-4a69-bbf2-047389576246"
     },
-    "condition": [
+    "conditions": [
       "0a21062b-d7b5-48c7-a7d9-7546c2f69223"
     ],
     "actions": {
@@ -15644,7 +15644,7 @@
     "saveAbility": {
       "id": "492f208f-6e7a-4a69-bbf2-047389576246"
     },
-    "condition": [
+    "conditions": [
       "e7feae3a-6ca4-4599-a7fe-92daefc620a4"
     ],
     "actions": {
@@ -17113,7 +17113,7 @@
     "saveAbility": {
       "id": "9a6cbe6e-9119-4a84-8a13-24b45a614dcc"
     },
-    "condition": [
+    "conditions": [
       "02b1093c-6deb-4850-883d-806f66ab8498"
     ],
     "actions": {
@@ -17174,7 +17174,7 @@
     "saveAbility": {
       "id": "458fdf58-0496-4701-86d0-7bc234009276"
     },
-    "condition": [
+    "conditions": [
       "5692845d-057f-4bef-bf66-7d74bd580efc"
     ],
     "actions": {

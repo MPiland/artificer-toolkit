@@ -21,14 +21,14 @@ type ReactSpacing = {
 }
 
 type ResponsiveSpan = {
-  sm?: number | 'auto'
-  md?: number | 'auto'
-  lg?: number | 'auto'
+  sm?: number | 'auto' | 'content'
+  md?: number | 'auto' | 'content'
+  lg?: number | 'auto' | 'content'
 }
 
 interface ItemProps {
   children: ReactNode
-  colSpan?: number | 'auto' | ResponsiveSpan
+  colSpan?: number | 'auto' | 'content' | ResponsiveSpan
   className?: string
   ref?: React.Ref<HTMLDivElement>
   id?: string
@@ -102,13 +102,21 @@ const Grid = ({ children, spacing = 16, className, id, ref }: GridProps) => {
 
 const Item = ({ children, colSpan = 12, className, ref, id, align, justify, flexDirection = 'row' }: ItemProps) => {
   // Convert column span to flex properties
-  const getFlexValue = (value: number | 'auto' | undefined, fallback: number | 'auto'): string => {
+  const getFlexValue = (
+    value: number | 'auto' | 'content' | undefined,
+    fallback: number | 'auto' | 'content'
+  ): string => {
     // If the value is 'auto', use flex-grow: 1
     if (value === 'auto') {
-      return '1 1 0' // flex-grow: 1, flex-shrink: 0, flex-basis: 0
+      return '1 1 0' // flex-grow: 1, flex-shrink: 1, flex-basis: 0
     }
 
-    // If value is a number, convert to percentage width
+    // If the value is 'content', use flex-basis: auto with no growing
+    if (value === 'content') {
+      return '0 0 auto' // flex-grow: 0, flex-shrink: 0, flex-basis: auto
+    }
+
+    // If value is a number, convert to percentage width (existing logic)
     if (typeof value === 'number') {
       const itemsPerRow = Math.floor(12 / value)
       const percentage = (value / 12) * 100
@@ -121,6 +129,10 @@ const Item = ({ children, colSpan = 12, className, ref, id, align, justify, flex
     // If value is undefined, check fallback
     if (fallback === 'auto') {
       return '1 1 0'
+    }
+
+    if (fallback === 'content') {
+      return '0 0 auto'
     }
 
     // Otherwise, use fallback if it's a number, or default to 100%

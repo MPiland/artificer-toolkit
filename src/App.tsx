@@ -70,9 +70,7 @@ const App = () => {
           element: <RequireAuth />,
           children: [
             {
-              element: (
-                  <FormProvider />
-              ),
+              element: <FormProvider />,
               path: '',
               children: [
                 {
@@ -173,9 +171,9 @@ const App = () => {
                         { path: 'copy', element: <Copy /> },
                       ],
                     },
-                    { path: ':id', element: <Spell />, children: [{ path: 'edit', element: <SpellForm /> }] },
+                    { path: ':id', element: <Spell /> },
                     {
-                      path: 'new/:id?',
+                      path: ':type/:id?',
                       element: <SpellForm />,
                       children: [
                         {

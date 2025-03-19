@@ -368,7 +368,7 @@ const Damage = ({
                         label={`${type === 'primary' ? 'Main' : type === 'secondary' ? 'Sec.' : 'Bonus'} Dice Config`}
                         onChange={updateFormData}
                         required={type === 'primary' ? true : false}
-                        validation='num'
+                        validation='die'
                         errorMsg={'Must contain only numbers'}
                       />
                     </Grid.Item>

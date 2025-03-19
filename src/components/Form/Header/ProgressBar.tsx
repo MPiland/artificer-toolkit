@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { progress_tab, progress_step, progress_line, progress_step_container } from './ProgressBar.css'
 import clsx from 'clsx'
 import ScrollArea from '../../ScrollArea/ScrollArea'
-import { validate } from '../../../utils/form'
+import { validateForm } from '../../../utils/form'
 import { isEqual } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
@@ -110,7 +110,7 @@ const ProgressBar = () => {
     setAddClass(false)
     setChangeRace(false)
     let formClone: FormDataType = JSON.parse(JSON.stringify(formData))
-    const isValid = validate()
+    const isValid = validateForm()
     if (isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: true })
       if (isEqual(formData, initialFormData) && featureStep == null) {

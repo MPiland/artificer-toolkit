@@ -3,11 +3,8 @@ import {
   useRef,
   useState,
   MouseEvent as ReactMouseEvent,
-  ComponentPropsWithoutRef,
   useEffect,
   ReactElement,
-  useLayoutEffect,
-  Ref,
   use,
   Fragment,
 } from 'react'
@@ -16,7 +13,6 @@ import {
   list,
   list_footer_group,
   list_footer_item,
-  list_button_container,
   list_title_button_container,
   list_title_container,
   list_parent,
@@ -36,7 +32,6 @@ import { useDebounceCallback } from 'usehooks-ts'
 import { startCase } from 'lodash'
 import Divider from '../Divider/Divider'
 import Button from '../Button/Button'
-import FilterIcon from '../../assets/Icons/IFilter'
 import CopyIcon from '../../assets/Icons/ICopy'
 import CreateIcon from '../../assets/Icons/ICreate'
 import GridIcon from '../../assets/Icons/IGrid'
@@ -46,24 +41,36 @@ import { AuthContext } from '../../features/auth/AuthContext'
 import { FormContext } from '../Form/FormContext'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Categories } from '../../types/enums'
+import { FilterConfig } from '../../types/components'
+import Filter from './Filter'
+import { FormType } from '../../store/filterSlice'
+import useFilteredList from '../../hooks/useFilteredList'
+import Group from '../Group/Group'
+import { sprinkles } from '../../css/sprinkles.css'
 
-interface ListProps extends ComponentPropsWithoutRef<'div'> {
+interface ListProps {
   className?: string
   visibility?: 'hidden' | 'visible' | 'always'
   useListItems: () => UseSuspenseQueryResult<any[]>
   useDeleteItem: () => UseMutationResult<any, Error, string, unknown>
   footerText?: { name: string | any[]; value: string; display?: string; icon?: ReactElement }[]
-  ref?: Ref<HTMLDivElement> | null | ((arg: Element) => void)
+  filterConfigs?: FilterConfig<FormDataType>[]
 }
 
 const SCROLL_BOX_MIN_SIZE = 20
 
-const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, footerText }: ListProps) => {
+const List = ({
+  className,
+  visibility = 'visible',
+  useListItems,
+  useDeleteItem,
+  footerText,
+  filterConfigs,
+}: ListProps) => {
   const navigate = useNavigate()
   const location = useLocation()
 
   const { mutateAsync: deleteItem } = useDeleteItem()
-
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
   const { data }: { data: FormDataType[] } = useListItems()
@@ -71,7 +78,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const { updateFormData, fullReset } = use(FormContext)
   const { user } = use(AuthContext)
 
-  const md = useMediaQuery('(min-width: 568px) and (max-width: 1024px)')
+  const sm = useMediaQuery('screen and (max-width: 567px)')
 
   const listRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -92,6 +99,8 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const deleteConfirmed = location.state?.delete
   const itemToDelete = location.state?.item
 
+  const filteredData = useFilteredList({ data, context: form as FormType })
+
   const debouncedScrollEnd = useDebounceCallback(() => {
     if (!isDragging && visibility !== 'always') {
       setActive(false)
@@ -111,7 +120,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
     }
   }, [deleteConfirmed, itemToDelete, deleteItem])
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const parent = parentRef.current
     if (!parent) return
 
@@ -127,7 +136,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
     updateThumbSize()
 
     return () => resizeObserver.disconnect()
-  }, [])
+  }, [filteredData])
 
   const handleCollapse = (itemId: string) => {
     setCollapsedCards((prev) => {
@@ -142,8 +151,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   }
 
   const handleDelete = useCallback(
-    (e: Event, item: FormDataType) => {
-      e.stopPropagation()
+    (item: FormDataType) => {
       navigate(`delete/${item.value}`, {
         state: {
           title: item.label,
@@ -155,8 +163,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
     [navigate]
   )
 
-  const handleOpen = (e: Event, item: FormDataType) => {
-    e.stopPropagation()
+  const handleOpen = (item: FormDataType) => {
     navigate(`${item.value}`, {
       state: {
         item: item,
@@ -309,9 +316,25 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   const handleCopy = () => {
     navigate('copy', {
       state: {
-        items: data,
+        items: data.map((item) => ({
+          label: item.label,
+          value: item.value,
+          id: item.id,
+        })),
       },
     })
+  }
+
+  const handleEdit = (item: FormDataType) => {
+    updateFormData({
+      type: 'reset',
+      value: item,
+    })
+    updateFormData({
+      type: 'initialReset',
+      value: item,
+    })
+    navigate(`edit/${item.value}`)
   }
 
   const handleScroll = useCallback(
@@ -393,7 +416,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   )
 
   const rowVirtualizer = useVirtualizer({
-    count: Math.ceil(data.length / (view === 'grid' ? 3 : 1)),
+    count: Math.ceil(filteredData?.length / (view === 'grid' ? 3 : 1)),
     getScrollElement: () => parentRef.current,
     estimateSize: () => 100,
     overscan: 5,
@@ -405,7 +428,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
   useEventListener('mousemove', handleMouseMove, documentRef)
   useEventListener('mouseup', handleMouseUp, documentRef)
 
-  const sub = data.filter((item) => {
+  const sub = filteredData?.filter((item) => {
     if (item.__typename === 'Class' || item.__typename === 'Race') {
       return item.category !== Categories.base
     }
@@ -417,28 +440,37 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
       <div className={list_title_container}>
         <h2>{startCase(`${form}`)}</h2>
         <div className={list_title_button_container}>
-          <Button color='main' style='outline'>
-            {<FilterIcon />} {md && ' Filter'}
-          </Button>
           <Button color='main' style='outline' onClick={handleCopy}>
-            {<CopyIcon />} {md && ' Copy'}
+            {<CopyIcon />} {!sm && ' Copy'}
           </Button>
           <Button color='main' style='outline' onClick={() => handleCreate(form === 'classes' || form === 'races')}>
-            {<CreateIcon />} {md && ' Create'}
+            {<CreateIcon />} {!sm && ' Create'}
           </Button>
         </div>
       </div>
       <Divider />
-      {md && !(sub.length > 0) && (
-        <div className={list_button_container}>
-          <Button color='main' style='outline' onClick={() => setView('grid')}>
-            {<GridIcon />}
-          </Button>
-          <Button color='main' style='outline' onClick={() => setView('list')}>
-            {<ListIcon />}
-          </Button>
-        </div>
-      )}
+      <Group alignItemsVariant='end' className={sprinkles({ mb: 'space-4' })}>
+        {filterConfigs && (
+          <Group className={sprinkles({ flex: '1', me: 'space-4' })}>
+            <Filter context={form as FormType} data={data} filterConfigs={filterConfigs} />
+          </Group>
+        )}
+        {!sm && !(sub.length > 0) && (
+          <Group>
+            <Button
+              className={sprinkles({ me: 'space-2' })}
+              color='main'
+              style='outline'
+              onClick={() => setView('grid')}
+            >
+              {<GridIcon />}
+            </Button>
+            <Button color='main' style='outline' onClick={() => setView('list')}>
+              {<ListIcon />}
+            </Button>
+          </Group>
+        )}
+      </Group>
       {errorMessage && <h3 className='error-message'>{errorMessage}</h3>}
       <div className={list_wrapper} ref={wrapperRef}>
         <div className={list_parent} ref={parentRef}>
@@ -451,8 +483,8 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
           >
             {rowVirtualizer.getVirtualItems().map((virtualItem) => {
               const rowStartIndex = virtualItem.index * (view === 'grid' ? 3 : 1)
-              const rowEndIndex = Math.min(rowStartIndex + (view === 'grid' ? 3 : 1), data.length)
-              const itemsInRow = data
+              const rowEndIndex = Math.min(rowStartIndex + (view === 'grid' ? 3 : 1), filteredData.length)
+              const itemsInRow = filteredData
                 .filter((item) => {
                   if (item.__typename === 'Class' || item.__typename === 'Race') {
                     return item.category === Categories.base
@@ -484,10 +516,12 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
                           title={`${item.label} ${
                             (item as Exclude<FormDataType, Character>).masterId !== null ? '(M)' : ''
                           }`}
-                          open={(e) => handleOpen(e, item)}
+                          open={() => handleOpen(item)}
                           remove={
-                            (item as Exclude<FormDataType, Character>).masterId === null &&
-                            ((e) => handleDelete(e, item))
+                            (item as Exclude<FormDataType, Character>).masterId === null && (() => handleDelete(item))
+                          }
+                          edit={
+                            (item as Exclude<FormDataType, Character>).masterId === null && (() => handleEdit(item))
                           }
                           leftSide={'level' in item && (item.level || item.level === 0) && `(${item.level})`}
                           collapsible={view === 'list' && true}
@@ -500,7 +534,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
                             <div className={list_footer_group}>
                               {footerText.map((footerItem, footerIndex) => {
                                 const text = getValueFromState({ input: footerItem, state: item, getSourceData })
-                                if (((view && footerItem.display === view) || !footerItem.display) && text !== '---') {
+                                if (((footerItem.display === view && !sm) || !footerItem.display) && text !== '---') {
                                   return (
                                     <div className={list_footer_item} key={footerIndex}>
                                       {footerItem.icon ?? footerItem.value}
@@ -525,10 +559,14 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
                                   title={`${sItem.label} ${
                                     (sItem as Exclude<FormDataType, Character>).masterId !== null && '(M)'
                                   }`}
-                                  open={(e) => handleOpen(e, sItem)}
+                                  open={() => handleOpen(sItem)}
                                   remove={
                                     (sItem as Exclude<FormDataType, Character>).masterId === null &&
-                                    ((e) => handleDelete(e, sItem))
+                                    (() => handleDelete(sItem))
+                                  }
+                                  edit={
+                                    (sItem as Exclude<FormDataType, Character>).masterId === null &&
+                                    (() => handleEdit(sItem))
                                   }
                                   leftSide={
                                     'level' in sItem && (sItem.level || sItem.level === 0) && `(${sItem.level})`
@@ -548,7 +586,7 @@ const List = ({ className, visibility = 'visible', useListItems, useDeleteItem, 
                                           getSourceData,
                                         })
                                         if (
-                                          ((view && footerItem.display === view) || !footerItem.display) &&
+                                          ((footerItem.display === view && !sm) || !footerItem.display) &&
                                           text !== '---'
                                         ) {
                                           return (

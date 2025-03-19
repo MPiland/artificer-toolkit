@@ -1,5 +1,5 @@
-import { useCallback, ReactNode, RefObject, useRef } from 'react'
-import { Location,  useNavigate } from 'react-router-dom'
+import { useCallback, ReactNode, RefObject, useRef, MouseEvent as ReactMouseEvent } from 'react'
+import { Location, useNavigate } from 'react-router-dom'
 import {
   modal,
   modal_dialogue,
@@ -9,6 +9,7 @@ import {
   modal_body,
   modal_footer,
   modal_divider,
+  modal_background,
 } from './Modal.css'
 import { TbX } from 'react-icons/tb'
 import Button from '../Button/Button'
@@ -17,11 +18,24 @@ import { sprinkles } from '../../css/sprinkles.css'
 import Group from '../Group/Group'
 import { useEventListener } from 'usehooks-ts'
 
-export const Header = ({ title, children }: { title?: string; children?: ReactNode; location?: Location<any> }) => {
+export const Header = ({
+  title,
+  children,
+  onClose,
+}: {
+  title?: string
+  children?: ReactNode
+  location?: Location<any>
+  onClose?: () => void
+}) => {
   const navigate = useNavigate()
 
   const handleClose = () => {
-    navigate(-1)
+    if (onClose) {
+      onClose()
+    } else {
+      navigate(-1)
+    }
   }
 
   return (
@@ -86,25 +100,35 @@ const Dialogue = ({
       id='modal'
       ref={ref}
     >
-      <div className={modal_content} onClick={(e) => e.stopPropagation()}>
+      <div className={modal_content} id='modal-content'>
         {children}
       </div>
     </div>
   )
 }
 
-const Modal = ({ children, handleCloseFn }: { children: ReactNode; handleCloseFn?: () => void }) => {
+const Modal = ({ children, onClose }: { children: ReactNode; onClose?: () => void }) => {
   const navigate = useNavigate()
 
   const documentRef = useRef<Document>(document)
 
-  const handleClose = useCallback(() => {
-    if (handleCloseFn) {
-      handleCloseFn()
-    } else {
-      navigate(-1)
-    }
-  }, [navigate, handleCloseFn])
+  const handleClose = useCallback(
+    (e?: ReactMouseEvent<HTMLDivElement, MouseEvent>) => {
+      if (e) {
+        const modalContent = document.getElementById('modal-content')
+        console.log({ target: e.target, modalContent, test: modalContent.contains(e.target as Node) })
+        if (modalContent && modalContent.contains(e.target as Node)) {
+          return
+        }
+      }
+      if (onClose) {
+        onClose()
+      } else {
+        navigate(-1)
+      }
+    },
+    [navigate, onClose]
+  )
 
   // Closes modal when Escape is pressed
   const handleEscKey = (event: KeyboardEvent) => {
@@ -113,12 +137,20 @@ const Modal = ({ children, handleCloseFn }: { children: ReactNode; handleCloseFn
     }
   }
 
+  const handleModalClick = (e?: ReactMouseEvent<HTMLDivElement, MouseEvent>) => {
+    const modalContent = document.getElementById('modal-content')
+    if (modalContent && !modalContent.contains(e.target as Node)) {
+      return handleClose()
+    }
+  }
+
   useEventListener('keydown', handleEscKey, documentRef)
-  
+
   return (
-      <div className={modal} onClick={handleClose}>
-        {children}
-      </div>
+    <>
+      <div className={modal}>{children}</div>
+      <div className={modal_background} onClick={handleModalClick} />
+    </>
   )
 }
 

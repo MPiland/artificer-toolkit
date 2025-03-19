@@ -8,8 +8,13 @@ import IClock from '../../assets/Icons/IClock'
 import IRange from '../../assets/Icons/IRange'
 import IMortPest from '../../assets/Icons/IMortPest'
 import Loading from '../../components/Loading/Loading'
+import { FilterConfig } from '../../types/components'
+import { Spell } from '../../../amplify/gql/types'
+import { useGetSystemQuery } from '../systems/systemsApi'
 
 const SpellsList = () => {
+  const { data: system } = useGetSystemQuery()
+
   const footerText: { name: string | any | any[]; value: string; display?: string; icon?: ReactElement }[] = [
     {
       icon: <IFlame />,
@@ -74,9 +79,134 @@ const SpellsList = () => {
     },
   ]
 
+  const spellFilterConfigs: FilterConfig<Spell>[] = [
+    {
+      type: 'text',
+      path: 'label',
+      label: 'Spell Name',
+    },
+    {
+      type: 'multiSelect',
+      path: 'level',
+      label: 'Spell Level',
+      getOptionsFromData: (data: Spell[]) => {
+        const levels = [...new Set(data.map((spell) => spell.level))]
+          .filter((level) => level !== undefined)
+          .sort((a, b) => a - b)
+
+        return levels.map((level) => ({
+          value: level,
+          label: String(level),
+          id: String(level),
+        }))
+      },
+    },
+    {
+      type: 'multiSelect',
+      path: 'school',
+      label: 'Magic School',
+      getOptionsFromData: (data: Spell[]) => {
+        const schools = [...new Set(data.map((spell) => spell.school))].filter(Boolean)
+
+        return schools
+          .map((school) => {
+            const sSchool = system?.spells?.schools.find((s) => s.id === school)
+            return {
+              value: sSchool?.value,
+              label: sSchool?.label,
+              id: sSchool?.id,
+            }
+          })
+          .sort((a, b) => a?.label?.localeCompare(b?.label))
+      },
+    },
+    {
+      type: 'multiSelect',
+      path: 'damage.primary.id',
+      label: 'Prim. Damage',
+      getOptionsFromData: (data: Spell[]) => {
+        const damageTypes = [
+          ...new Set(
+            data?.map((spell) => {
+              return spell?.damage?.primary?.id
+            })
+          ),
+        ].filter(Boolean)
+
+        return damageTypes
+          .map((damage) => {
+            const sDamage = system?.damageTypes?.find((d) => d.id === damage)
+            return {
+              value: sDamage?.value,
+              label: sDamage?.label,
+              id: sDamage?.id,
+            }
+          })
+          .sort((a, b) => a?.label?.localeCompare(b?.label))
+      },
+    },
+    {
+      type: 'multiSelect',
+      path: 'damage.secondary.id',
+      label: 'Sec. Damage',
+      getOptionsFromData: (data: Spell[]) => {
+        const damageTypes = [
+          ...new Set(
+            data?.map((spell) => {
+              return spell?.damage?.secondary?.id
+            })
+          ),
+        ].filter(Boolean)
+
+        return damageTypes
+          .map((damage) => {
+            const sDamage = system?.damageTypes?.find((d) => d.id === damage)
+            return {
+              value: sDamage?.value,
+              label: sDamage?.label,
+              id: sDamage?.id,
+            }
+          })
+          .sort((a, b) => a?.label?.localeCompare(b?.label))
+      },
+    },
+    {
+      type: 'multiSelect',
+      path: 'conditions',
+      label: 'Condition',
+      getOptionsFromData: (data: Spell[]) => {
+        const conditions = [
+          ...new Set(
+            data?.flatMap((spell) => {
+              if (spell?.conditions?.length > 0) {
+                return spell?.conditions.map((condition) => condition)
+              }
+            })
+          ),
+        ].filter(Boolean)
+
+        return conditions
+          .map((condition) => {
+            const sCondition = system?.conditions?.find((c) => c?.id === condition)
+            return {
+              value: sCondition?.value,
+              label: sCondition?.label,
+              id: sCondition?.id,
+            }
+          })
+          .sort((a, b) => a?.label?.localeCompare(b?.label))
+      },
+    },
+  ]
+
   return (
     <Suspense fallback={<Loading />}>
-      <List useListItems={useListSpellsQuery} useDeleteItem={useDeleteSpellMutation} footerText={footerText} />
+      <List
+        useListItems={useListSpellsQuery}
+        useDeleteItem={useDeleteSpellMutation}
+        footerText={footerText}
+        filterConfigs={spellFilterConfigs}
+      />
     </Suspense>
   )
 }

@@ -18,12 +18,18 @@ import { TbX, TbChevronDown } from 'react-icons/tb'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import Floating from '../Floating/Floating'
 import { DeepKeyOf, UpdateState } from '../../types/form'
+import { UpdateFilter } from '../../types/components'
+
+// Define a conditional type to determine the onChange type based on T
+type OnChangeType<T> = T extends { filterState: FilterState }
+  ? (state: UpdateFilter<FormType>) => void
+  : (state: UpdateState<T>) => void
 
 export interface DropdownProps<T> {
   label?: string | boolean
   required?: boolean
   value: string[] | string | null
-  onChange: (state: UpdateState<T>) => void
+  onChange: OnChangeType<T>
   className?: string | number | symbol | any
   placeholder?: string
   options: DropdownOption[]
@@ -33,7 +39,8 @@ export interface DropdownProps<T> {
   all?: boolean
   height?: 'full' | 'auto' | 'default'
   border?: 'none' | 'default'
-  name: DeepKeyOf<T>
+  name: T extends { filterState: FilterState } ? string : DeepKeyOf<T>
+  boundary?: 'app' | 'form'
 }
 
 const Dropdown = <T,>({
@@ -51,6 +58,7 @@ const Dropdown = <T,>({
   all = true,
   height = 'default',
   border = 'default',
+  boundary = 'form',
 }: DropdownProps<T>) => {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const [error, setError] = useState<boolean>(false)
@@ -159,6 +167,11 @@ const Dropdown = <T,>({
     return filteredOptions.find((opt) => opt.id === activeOptions)?.label
   }, [activeOptions, filteredOptions])
 
+  // Add this helper function to check if we're dealing with a filter update
+  function isFilterUpdate<T>(obj: any): obj is { filterState: T } {
+    return obj && typeof obj === 'object' && 'filterState' in obj
+  }
+
   const handleValueSelect = (option: DropdownOption) => {
     setSettingOption(true)
     if (multiSelect) {
@@ -168,7 +181,11 @@ const Dropdown = <T,>({
       } else if (option.id === 'all') {
         newOptions = ['all']
         const allOptions = filteredOptions.filter((opt) => opt.id !== 'all' && opt.id !== 'clear').map((opt) => opt.id)
-        onChange({ type: 'update', path: name, value: newOptions })
+        if (isFilterUpdate<any>({} as T)) {
+          onChange({ type: 'update', key: name, value: newOptions })
+        } else {
+          onChange({ type: 'update', path: name, value: newOptions })
+        }
         return setSelectedOptions(allOptions)
       }
       if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length > 0) {
@@ -178,13 +195,21 @@ const Dropdown = <T,>({
           newOptions = [...selectedOptions, ...newOptions]
         }
       }
-      onChange({ type: 'update', path: name, value: newOptions })
+      if (isFilterUpdate<any>({} as T)) {
+        onChange({ type: 'update', key: name, value: newOptions })
+      } else {
+        onChange({ type: 'update', path: name, value: newOptions })
+      }
       setSelectedOptions(newOptions)
     } else {
       // If it's a single select, update selectedOptionsRef.current to match selectedOptions
       setIsOpen(false)
       setSelectedOptions(option.id)
-      onChange({ type: 'update', path: name, value: option.id })
+      if (isFilterUpdate<any>({} as T)) {
+        onChange({ type: 'update', key: name, value: option.id })
+      } else {
+        onChange({ type: 'update', path: name, value: option.id })
+      }
     }
     setSettingOption(false)
   }
@@ -192,13 +217,17 @@ const Dropdown = <T,>({
   const handleValueRemove = () => {
     setSettingOption(true)
     setSelectedOptions(null)
-    onChange({ type: 'remove', path: name })
+    if (isFilterUpdate<any>({} as T)) {
+      onChange({ type: 'remove', key: name })
+    } else {
+      onChange({ type: 'remove', path: name })
+    }
     setSettingOption(false)
   }
 
   const labels =
     multiSelect && selectedLabels
-      ? (selectedLabels as string[])?.slice(0, 1).map((label, index) => {
+      ? (selectedLabels as string[])?.slice(0, 1)?.map((label, index) => {
           return (
             <span className={dropdown_active_option} key={index}>
               {label}
@@ -224,9 +253,6 @@ const Dropdown = <T,>({
               dropdown_height[height],
               dropdown_border[border]
             )}
-            onClick={() => {
-              setIsOpen((prev) => !prev)
-            }}
             ref={dropdownRef}
             tabIndex={0}
             data-atapp-options={
@@ -275,7 +301,7 @@ const Dropdown = <T,>({
         >
           {errorMsg}
         </Floating.Tooltip>
-        <Floating.Menu className={dropdown_menu} boundary='form' open={isOpen} onOpenChange={setIsOpen}>
+        <Floating.Menu className={dropdown_menu} boundary={boundary} open={isOpen} onOpenChange={setIsOpen}>
           <ScrollArea scrollDirection='vertical'>
             {filteredOptions.map((option: DropdownOption, optionIndex: number) => {
               const selected = multiSelect

@@ -7,6 +7,18 @@ export const modal = style({
   '@layer': {
     [app]: {
       position: 'fixed',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%, -50%)',
+      zIndex: 300,
+    },
+  },
+})
+
+export const modal_background = style({
+  '@layer': {
+    [app]: {
+      position: 'fixed',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',

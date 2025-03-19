@@ -1,7 +1,7 @@
 import { form_content, form_wrapper } from './Form.css'
 import { Suspense, useRef } from 'react'
 import { useEventListener } from 'usehooks-ts'
-import Footer from './Footer'
+import Footer from './Footer/Footer'
 import Header from './Header/Header'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { Outlet } from 'react-router-dom'

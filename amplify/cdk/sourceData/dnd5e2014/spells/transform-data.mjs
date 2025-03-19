@@ -64,7 +64,9 @@ const mapping = {
   'levelAttribute': {
     newKey: 'levels',
   },
-
+  'condition': {
+    newKey: 'conditions',
+  },
   '*': {
     type: {
       replace: (obj) => {

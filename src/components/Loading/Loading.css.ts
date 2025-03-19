@@ -6,7 +6,11 @@ import { theme } from '../../css/theme.css'
 export const loading_wrapper = style({
   '@layer': {
     [app]: {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
       textAlign: 'center',
+      width: '100%',
       backgroundColor: theme.vars.component.content.backgroundColor.main,
     },
   },

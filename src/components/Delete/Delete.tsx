@@ -6,6 +6,7 @@ import Button from '../Button/Button'
 import { sprinkles } from '../../css/sprinkles.css'
 import { useNavigate } from 'react-router-dom'
 import Group from '../Group/Group'
+import Grid from '../Grid/Grid'
 
 const Delete = () => {
   const [deleteState, setDeleteState] = useState<string>('')
@@ -46,16 +47,22 @@ const Delete = () => {
       <Modal.Dialogue size='xs'>
         <Modal.Header title={`Delete ${location.state.title}`} />
         <Modal.Content>
-          <p className={sprinkles({ mb: 'space-2' })}>
-            {`Type`} <strong>{`DELETE`}</strong> {`and press 'Submit' to confirm`}
-          </p>
-          <Input
-            name='deleteItem'
-            onChange={handleChange}
-            value={deleteState}
-            errorMsg='Must type DELETE exactly'
-            id='delete_input'
-          />
+          <Grid>
+            <Grid.Item>
+              <p className={sprinkles({ mb: 'space-2' })}>
+                {`Type`} <strong>{`DELETE`}</strong> {`and press 'Submit' to confirm`}
+              </p>
+            </Grid.Item>
+            <Grid.Item>
+              <Input
+                name='deleteItem'
+                onChange={handleChange}
+                value={deleteState}
+                errorMsg='Must type DELETE exactly'
+                id='delete_input'
+              />
+            </Grid.Item>
+          </Grid>
         </Modal.Content>
         <Modal.Footer>
           <Group directionVariant='row' justifyContentVariant='spaceBetween'>

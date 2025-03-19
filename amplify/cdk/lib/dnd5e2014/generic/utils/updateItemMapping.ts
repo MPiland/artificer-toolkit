@@ -2,58 +2,32 @@ import { Context } from '@aws-appsync/utils'
 import { util } from '@aws-appsync/utils'
 
 export function request(ctx: Context) {
-  const { id, ...values } = ctx.args.input
+  const input = ctx.args.input
 
-  const condition = {
-    id: { attributeExists: true },
-  }
-  return dynamodbUpdateRequest({ keys: { id }, values, condition })
-}
-
-/**
- * Helper function to update an item
- * @returns an UpdateItem request
- */
-function dynamodbUpdateRequest(params: {
-  keys: { id: string }
-  values: { [key: string]: any }
-  condition: { id: { attributeExists: boolean } }
-}) {
-  const { keys, values, condition: inCondObj } = params
-
-  const sets: string[] = []
-  const removes: string[] = []
-  const expressionNames: { [key: string]: string } = {}
-  const expValues: { [key: string]: any } = {}
-
-  // Iterate through the keys of the values
-  for (const [key, value] of Object.entries(values)) {
-    expressionNames[`#${key}`] = key
-    if (value) {
-      sets.push(`#${key} = :${key}`)
-      expValues[`:${key}`] = value
-    } else {
-      removes.push(`#${key}`)
-    }
-  }
-
-  let expression = sets.length ? `SET ${sets.join(', ')}` : ''
-  expression += removes.length ? ` REMOVE ${removes.join(', ')}` : ''
-
-  const condition = JSON.parse(util.transform.toDynamoDBConditionExpression(inCondObj))
+  // Instead of appendError, use console.log for debugging
+  console.log('Processing update for item:', input.id)
 
   return {
-    operation: 'UpdateItem',
-    key: util.dynamodb.toMapValues(keys),
-    condition,
-    update: {
-      expression,
-      expressionNames,
-      expressionValues: util.dynamodb.toMapValues(expValues),
+    operation: 'PutItem',
+    key: util.dynamodb.toMapValues({ id: input.id }),
+    attributeValues: util.dynamodb.toMapValues(input),
+    condition: {
+      expression: 'attribute_exists(id)',
     },
   }
 }
 
 export function response(ctx: Context) {
+  // Only handle actual errors
+  if (ctx.error) {
+    // For conditional check failures (item doesn't exist)
+    if (ctx.error.message && ctx.error.message.includes('ConditionalCheckFailedException')) {
+      util.error('Item does not exist', 'ConditionError')
+    }
+
+    // For all other errors, pass through with minimal processing
+    util.error(ctx.error.message || 'Unknown error occurred', ctx.error.type || 'InternalError')
+  }
+
   return ctx.result
 }

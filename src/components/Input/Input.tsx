@@ -13,18 +13,25 @@ import clsx from 'clsx'
 import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import Floating from '../Floating/Floating'
 import { DeepKeyOf, UpdateState } from '../../types/form'
+import { UpdateFilter, FilterState } from '../../types/components'
+import FormType from '../../store/formSlice'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
+// Define a conditional type to determine the onChange type based on T
+type OnChangeType<T> = T extends { filterState: FilterState }
+  ? (state: UpdateFilter<FormType>) => void
+  : (state: UpdateState<T>) => void
+
 interface InputProps<T> {
   label?: string | boolean
   autoComplete?: string
   required?: boolean
   errorMsg?: string
-  onChange?: (state: UpdateState<T>) => void
+  onChange?: OnChangeType<T>
   value: any | null
   readOnly?: boolean
   validation?: 'num' | 'cur' | 'die' | 'user' | 'pwd' | 'roll' | 'dmg'
@@ -38,7 +45,7 @@ interface InputProps<T> {
   height?: 'full' | 'auto' | 'default'
   border?: 'none' | 'default'
   textAlign?: 'center'
-  name: DeepKeyOf<T>
+  name: T extends { filterState: FilterState } ? string : DeepKeyOf<T>
   ref?: RefObject<HTMLDivElement>
 }
 
@@ -104,7 +111,11 @@ const Input = <T,>({
   const debounceSave = useDebounceCallback(
     useCallback(
       (target: React.ChangeEvent<HTMLInputElement>['target']) => {
-        onChange({ type: 'update', path: name, value: target.value })
+        onChange({
+          type: 'update',
+          path: name,
+          value: target.value,
+        })
         setDebouncing(false)
       },
       [name, onChange]

@@ -33,7 +33,7 @@ const AbilitiesForm = () => {
       {form && createPortal(<Scene />, form)}
       <Grid.Item>
         <Grid>
-          <Grid.Item colSpan={2}>
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='abilities.selectedSystem'
               options={system.rules.abilityGenerateMethod}
@@ -43,7 +43,7 @@ const AbilitiesForm = () => {
             />
           </Grid.Item>
           {pointSystem === AbilityGenerate.manual && (
-            <Grid.Item colSpan={2}>
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 name='abilities.manualRolled.configuration'
                 value={formData?.abilities?.manualRolled?.configuration}

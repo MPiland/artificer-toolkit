@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { validate } from '../../utils/form'
+import { validateForm } from '../../utils/form'
 import Input from '../../components/Input/Input'
 import Button from '../../components/Button/Button'
 import { TbEye, TbEyeOff } from 'react-icons/tb'
@@ -96,7 +96,7 @@ const Auth = () => {
   const auth = isSignIn ? signIn : signUp
 
   const onSubmit = async () => {
-    const isValid = validate()
+    const isValid = validateForm()
     if (isValid) {
       setSubmitting(true)
       setState((prevState) => ({ ...prevState, submitting: true }))
