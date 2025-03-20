@@ -1,4 +1,23 @@
-import { ModifierCategories, ModifierSpellCategories } from '../types/enums'
+import {
+  Background,
+  Character,
+  CharacterHitpoint,
+  Class,
+  Contains,
+  Equipment,
+  Feat,
+  HitpointFixed,
+  HitpointRoll,
+  HitpointRollValues,
+  Race,
+  Scores,
+  Spell,
+  System,
+} from '../../amplify/gql/types'
+import { RollConfig } from '../types/components'
+import { HitPointCalcMethod, ModifierCategories, ModifierSpellCategories } from '../types/enums'
+import { FormDataType } from '../types/form'
+import { parseDiceRoll } from './dice'
 
 const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/s
 const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -146,3 +165,284 @@ export const calculateModifier = (score: number, type: 'bonus' | 'modifier') => 
 
   return scoreString
 }
+
+export const calculateHitpoints = (formData: Character, primaryClass: Class) => {
+  // Set the character hitpoints
+  const abilityModifierCalc = calculateModifier(
+    formData?.abilities?.scores?.find((score) => score.ability === primaryClass.hitpoint?.ability)?.calculatedScore,
+    'modifier'
+  )
+
+  let abilityModifier: number = 0
+
+  if (abilityModifierCalc !== '--') {
+    abilityModifier = Number(abilityModifierCalc)
+  }
+  const { die } = parseDiceRoll(primaryClass?.hitpoint?.dieConfig as RollConfig)
+  const classLevel = formData?.classes?.[0]?.level
+
+  let total: number = 0
+  let maxHitpoints: number = 0
+  const values: HitpointRollValues[] = []
+  for (let i = 1; i <= classLevel; i++) {
+    let levelValue
+    if (i === 1) {
+      // First level gets max die value
+      levelValue = die
+    } else {
+      // Other levels get average
+      levelValue = Math.floor(die / 2) + 1
+    }
+
+    total += levelValue
+    maxHitpoints += levelValue + Number(abilityModifier)
+    values.push({
+      __typename: 'HitpointRollValues',
+      level: i,
+      value: levelValue,
+    })
+  }
+
+  const hitpoint: CharacterHitpoint = {
+    __typename: 'CharacterHitpoint',
+    maxOverride: formData?.hitpoint?.maxOverride || null,
+    method: formData?.hitpoint?.method || HitPointCalcMethod.manual,
+    temp: formData?.hitpoint?.temp || null,
+    bonus: formData?.hitpoint?.bonus || null,
+    maxHitpoints: formData?.hitpoint?.maxHitpoints || null,
+  }
+
+  const rolled: HitpointRoll = {
+    __typename: 'HitpointRoll',
+    values: [...(formData?.hitpoint?.rolled?.values || [])],
+    total: formData?.hitpoint?.rolled?.total || null,
+    current: formData?.hitpoint?.rolled?.current || null,
+  }
+
+  const fixed: HitpointFixed = {
+    __typename: 'HitpointFixed',
+    current: formData?.hitpoint?.fixed?.current || null,
+    total: formData?.hitpoint?.fixed?.total || null,
+  }
+
+  if (!(rolled.values?.length > 0)) {
+    rolled.values = values
+  }
+
+  if (rolled.values?.length < classLevel) {
+    for (let i = rolled.values.length + 1; i <= classLevel; i++) {
+      const levelValue = i === 1 ? die : Math.floor(die / 2) + 1
+      rolled.values.push({
+        __typename: 'HitpointRollValues',
+        level: i,
+        value: levelValue,
+      })
+    }
+  }
+
+  if (formData?.hitpoint?.method === HitPointCalcMethod.fixed) {
+    maxHitpoints = total + Number(abilityModifier) * classLevel
+    hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
+  }
+
+  if (formData?.hitpoint?.method === HitPointCalcMethod.manual) {
+    maxHitpoints = 0
+    total = 0
+    rolled.values?.forEach((value) => {
+      total += value.value
+      maxHitpoints += value.value + Number(abilityModifier)
+    })
+
+    rolled.total = total
+    hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
+  }
+
+  if (fixed.total === null || fixed.total === undefined) {
+    fixed.total = total
+  }
+
+  if (fixed.current === null || fixed.current === undefined) {
+    fixed.current = hitpoint.maxHitpoints
+  }
+
+  if (rolled.current === null || rolled.current === undefined) {
+    rolled.current = hitpoint.maxHitpoints
+  }
+
+  hitpoint.rolled = rolled
+  hitpoint.fixed = fixed
+
+  if (formData?.hitpoint?.maxOverride !== null && formData?.hitpoint?.maxOverride !== undefined) {
+    hitpoint.maxHitpoints = formData?.hitpoint?.maxOverride
+  }
+
+  return hitpoint
+}
+
+export const createFormObject = (
+  form: string,
+  userId: string,
+  systemId: string,
+  category?: string,
+  abilities?: System['abilities']
+) => {
+  let stateObject: FormDataType
+  switch (form) {
+    case 'classes': {
+      const classObject: Class = {
+        id: undefined,
+        ownerId: userId,
+        systemId: systemId,
+        label: undefined,
+        value: undefined,
+        category: category,
+        __typename: 'Class',
+      }
+      stateObject = classObject
+      break
+    }
+    case 'spells': {
+      const spellObject: Spell = {
+        id: undefined,
+        ownerId: userId,
+        systemId: systemId,
+        label: undefined,
+        value: undefined,
+        school: undefined,
+        level: undefined,
+        classes: undefined,
+        range: undefined,
+        duration: undefined,
+        __typename: 'Spell',
+      }
+      stateObject = spellObject
+      break
+    }
+    case 'equipment': {
+      const equipmentObject: Equipment = {
+        id: undefined,
+        ownerId: userId,
+        systemId: systemId,
+        label: undefined,
+        value: undefined,
+        category: undefined,
+        __typename: 'Equipment',
+      }
+      stateObject = equipmentObject
+      break
+    }
+    case 'feats': {
+      const featObject: Feat = {
+        id: undefined,
+        ownerId: userId,
+        systemId: systemId,
+        label: undefined,
+        value: undefined,
+        category: undefined,
+        __typename: 'Feat',
+      }
+      stateObject = featObject
+      break
+    }
+    case 'backgrounds': {
+      const backgroundObject: Background = {
+        id: undefined,
+        ownerId: userId,
+        systemId: systemId,
+        label: undefined,
+        value: undefined,
+        __typename: 'Background',
+      }
+      stateObject = backgroundObject
+      break
+    }
+    case 'characters': {
+      const abilityScores: Array<Scores> = []
+      abilities.forEach((ability) =>
+        abilityScores.push({
+          __typename: 'Scores',
+          ability: ability.id,
+          baseScore: 0,
+          calculatedScore: 0,
+          raceScore: 0,
+          classScore: 0,
+        })
+      )
+      const characterObject: Character = {
+        id: undefined,
+        ownerId: userId,
+        systemId: systemId,
+        label: undefined,
+        value: undefined,
+        abilities: {
+          __typename: 'CharacterAbilities',
+          scores: abilityScores,
+        },
+        hitpoint: {
+          __typename: 'CharacterHitpoint',
+          maxHitpoints: undefined,
+          maxOverride: undefined,
+          method: undefined,
+          temp: undefined,
+          bonus: undefined,
+          rolled: {
+            __typename: 'HitpointRoll',
+            values: [],
+            total: undefined,
+            current: undefined,
+          },
+          fixed: {
+            __typename: 'HitpointFixed',
+            total: undefined,
+            current: undefined,
+          },
+        },
+        __typename: 'Character',
+        features: [],
+        modifiers: [],
+        proficiencies: [],
+        equipment: [],
+        feats: [],
+        expertise: [],
+        senses: [],
+      }
+      stateObject = characterObject
+      break
+    }
+    case 'races': {
+      const raceObject: Race = {
+        id: undefined,
+        ownerId: userId,
+        systemId: systemId,
+        label: undefined,
+        value: undefined,
+        category: category,
+        playable: undefined,
+        __typename: 'Race',
+      }
+      stateObject = raceObject
+      break
+    }
+  }
+  return stateObject
+}
+
+export const isEquipmentInInventory = (equipmentId: string, inventory: Contains[]): boolean => {
+  if (!inventory || inventory.length === 0) return false
+
+  // Check direct equipment IDs
+  if (inventory.some((item) => item.id === equipmentId)) return true
+
+  // Check nested equipment recursively
+  return inventory.some((item) => item.contains && isEquipmentInInventory(equipmentId, item.contains))
+}
+
+export const sourcePropertyMap = (data: Character) => ({
+  classId: (id: string) =>
+    data?.__typename === 'Character' && data?.classes?.some((c) => c.id === id || c.subclass?.id === id),
+  raceId: (id: string) => data?.__typename === 'Character' && id === data?.race,
+  ancestryId: (id: string) => data?.__typename === 'Character' && id === data?.ancestry?.id,
+  featId: (id: string) => data?.__typename === 'Character' && data?.feats?.some((f) => f.featId === id),
+  equipmentId: (id: string) => data?.__typename === 'Character' && isEquipmentInInventory(id, data?.equipment || []),
+  backgroundId: (id: string) => data?.__typename === 'Character' && data?.background === id,
+})

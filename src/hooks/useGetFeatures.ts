@@ -21,8 +21,9 @@ import { DeepKeyOf } from '../types/form'
 import { useCallback, useMemo } from 'react'
 import { Attributes, Prerequisites } from '../types/enums'
 import { getKeyFromId } from '../utils/form'
+import { sourcePropertyMap } from '../utils/form'
 
-export type FactoryFeature = Omit<Feature | AncestryFeature, 'options'> & {
+export type FactoryFeature = Omit<Feature | AncestryFeature, 'options' | '__typename'> & {
   level?: number
   classId?: string
   backgroundId?: string
@@ -145,34 +146,6 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
     })
   }
 
-  const isEquipmentInInventory = useMemo(
-    () =>
-      (equipmentId: string, inventory: Contains[]): boolean => {
-        if (!inventory || inventory.length === 0) return false
-
-        // Check direct equipment IDs
-        if (inventory.some((item) => item.id === equipmentId)) return true
-
-        // Check nested equipment recursively
-        return inventory.some((item) => item.contains && isEquipmentInInventory(equipmentId, item.contains))
-      },
-    []
-  )
-
-  const sourcePropertyMap = useMemo(
-    () => ({
-      classId: (id: string) =>
-        data?.__typename === 'Character' && data?.classes?.some((c) => c.id === id || c.subclass?.id === id),
-      raceId: (id: string) => data?.__typename === 'Character' && id === data?.race,
-      ancestryId: (id: string) => data?.__typename === 'Character' && id === data?.ancestry?.id,
-      featId: (id: string) => data?.__typename === 'Character' && data?.feats?.some((f) => f.featId === id),
-      equipmentId: (id: string) =>
-        data?.__typename === 'Character' && isEquipmentInInventory(id, data?.equipment || []),
-      backgroundId: (id: string) => data?.__typename === 'Character' && data?.background === id,
-    }),
-    [data, isEquipmentInInventory]
-  )
-
   const getFullFeature = useCallback(
     (feature: CharacterFeature | FactoryFeature) => {
       if (data?.__typename !== 'Character') return null
@@ -251,7 +224,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const existingFeatures: FactoryFeature[] =
           data?.features
-            ?.filter((feature) => feature?.classId && sourcePropertyMap.classId(feature?.classId))
+            ?.filter((feature) => feature?.classId && sourcePropertyMap(data).classId(feature?.classId))
             .map((eF) => {
               if (eF?.options?.length > 0) {
                 return { ...getFullFeature(eF), classId: eF.classId, level: eF.level, options: eF.options }
@@ -341,7 +314,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const existingFeatures =
           data?.features
-            ?.filter((feature) => feature?.raceId && sourcePropertyMap.raceId(feature?.raceId))
+            ?.filter((feature) => feature?.raceId && sourcePropertyMap(data).raceId(feature?.raceId))
             .map((eF) => {
               if (eF?.options?.length > 0) {
                 return { ...getFullFeature(eF), raceId: eF.raceId, options: eF.options }
@@ -375,7 +348,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const existingFeatures =
           data?.features
-            ?.filter((feature) => feature?.raceId && sourcePropertyMap.raceId(feature?.raceId))
+            ?.filter((feature) => feature?.raceId && sourcePropertyMap(data).raceId(feature?.raceId))
             .map((eF) => {
               if (eF?.options?.length > 0) {
                 return { ...getFullFeature(eF), ancestryId: eF?.ancestryId, options: eF?.options }
@@ -413,7 +386,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const existingFeatures =
           data?.features
-            ?.filter((feature) => feature?.equipmentId && sourcePropertyMap.equipmentId(feature?.equipmentId))
+            ?.filter((feature) => feature?.equipmentId && sourcePropertyMap(data).equipmentId(feature?.equipmentId))
             .map((eF) => {
               if (eF?.options?.length > 0) {
                 return { ...getFullFeature(eF), equipmentId: eF.equipmentId, options: eF.options }
@@ -468,7 +441,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const existingFeatures =
           data?.features
-            ?.filter((feature) => feature?.featId && sourcePropertyMap.featId(feature?.featId))
+            ?.filter((feature) => feature?.featId && sourcePropertyMap(data).featId(feature?.featId))
             .map((eF) => {
               if (eF?.options?.length > 0) {
                 return { ...getFullFeature(eF), featId: eF.featId, options: eF.options }
@@ -504,7 +477,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const existingFeatures =
           data?.features
-            ?.filter((feature) => feature?.backgroundId && sourcePropertyMap.backgroundId(feature?.backgroundId))
+            ?.filter((feature) => feature?.backgroundId && sourcePropertyMap(data).backgroundId(feature?.backgroundId))
             .map((eF) => {
               if (eF?.options?.length > 0) {
                 return { ...getFullFeature(eF), backgroundId: eF.backgroundId, options: eF.options }
@@ -578,7 +551,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         return features
       },
     }
-  }, [data, backgrounds, classes, feats, equipment, races, sourcePropertyMap, getFullFeature])
+  }, [data, backgrounds, classes, feats, equipment, races, getFullFeature])
 
   const createFeatures = useCallback(() => {
     let features: FactoryFeature[] = []

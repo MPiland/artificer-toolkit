@@ -57942,7 +57942,30 @@ mutation CreateCharacter($input: CharacterInput!) {
 	label
 	desc
 	advancement
-	hitpoint
+	exp
+	hitpoint {
+		__typename
+		method
+		maxOverride
+		maxHitpoints
+		temp
+		bonus
+		rolled {
+			__typename
+			values {
+				__typename
+				level
+				value
+			}
+			total
+			current
+		}
+		fixed {
+			__typename
+			current
+			total
+		}
+	}
 	abilities {
 		__typename
 		manualRolled {
@@ -58427,7 +58450,30 @@ mutation UpdateCharacter($input: CharacterInput!) {
 	label
 	desc
 	advancement
-	hitpoint
+	exp
+	hitpoint {
+		__typename
+		method
+		maxOverride
+		maxHitpoints
+		temp
+		bonus
+		rolled {
+			__typename
+			values {
+				__typename
+				level
+				value
+			}
+			total
+			current
+		}
+		fixed {
+			__typename
+			current
+			total
+		}
+	}
 	abilities {
 		__typename
 		manualRolled {

@@ -10,7 +10,12 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Divider from '../../Divider/Divider'
-import { Categories, EquipmentCategories, EquipmentProperties, SpellRequirements } from '../../../types/enums'
+import {
+  Categories,
+  EquipmentCategories,
+  EquipmentProperties,
+  SpellRequirements,
+} from '../../../types/enums'
 import { useListRacesQuery } from '../../../features/races/racesApi'
 import Grid from '../../Grid/Grid'
 import { FormDataType, UpdateState } from '../../../types/form'
@@ -24,8 +29,6 @@ const Details = () => {
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
   const { data: races } = useListRacesQuery()
-
-  console.log({ formData })
 
   return (
     <Grid>
@@ -55,9 +58,9 @@ const Details = () => {
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
-              name='hitpoint'
+              name='hitpoint.method'
               label='Hit Point Type'
-              value={formData?.hitpoint}
+              value={formData?.hitpoint?.method}
               options={system.characters.hitpointCalcMethods}
               required={true}
               onChange={updateFormData}
@@ -73,13 +76,13 @@ const Details = () => {
               label={`${startCase(formData.__typename)} Category`}
               value={formData?.category}
               options={
-                formData.__typename !== 'Equipment'
-                  ? system?.categories?.filter(
-                      (category) =>
-                        (formData.__typename === 'Race' && category.races) ||
-                        (formData.__typename === 'Class' && category.classes)
-                    )
-                  : system.equipment.categories
+                formData.__typename !== 'Equipment' ?
+                  system?.categories?.filter(
+                    (category) =>
+                      (formData.__typename === 'Race' && category.races) ||
+                      (formData.__typename === 'Class' && category.classes)
+                  )
+                : system.equipment.categories
               }
               required={true}
               onChange={updateFormData}
@@ -182,7 +185,7 @@ const Details = () => {
       )}
       {formData.__typename === 'Class' && (
         <>
-          {formData.category === Categories.subclass ? (
+          {formData.category === Categories.subclass ?
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='parentClass'
@@ -193,8 +196,7 @@ const Details = () => {
                 onChange={updateFormData}
               />
             </Grid.Item>
-          ) : (
-            <>
+          : <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Input
                   name='hitpoint.dieConfig'
@@ -218,7 +220,7 @@ const Details = () => {
                 />
               </Grid.Item>
             </>
-          )}
+          }
         </>
       )}
       {formData.__typename === 'Race' &&
@@ -236,7 +238,7 @@ const Details = () => {
           </Grid.Item>
         )}
       {formData.__typename === 'Equipment' &&
-        (((formData.category === EquipmentCategories.waterVehicle || formData.category === EquipmentCategories.mount ? (
+        (((formData.category === EquipmentCategories.waterVehicle || formData.category === EquipmentCategories.mount ?
           <>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
@@ -262,8 +264,7 @@ const Details = () => {
               />
             </Grid.Item>
           </>
-        ) : (
-          (formData.category === EquipmentCategories.weapon || formData.category === EquipmentCategories.armor) && (
+        : (formData.category === EquipmentCategories.weapon || formData.category === EquipmentCategories.armor) && (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation={'num'}
@@ -275,8 +276,7 @@ const Details = () => {
                 onChange={updateFormData}
               />
             </Grid.Item>
-          )
-        )) &&
+          )) &&
           formData.properties?.some((property) => property === EquipmentProperties.container)) ||
           (formData.category === EquipmentCategories.mount && (
             <>

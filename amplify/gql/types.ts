@@ -297,10 +297,11 @@ export type Character = {
   currencyGroups?: Maybe<Array<Maybe<CurrencyGroup>>>;
   desc?: Maybe<Scalars['String']['output']>;
   equipment?: Maybe<Array<Maybe<Contains>>>;
+  exp?: Maybe<Scalars['ID']['output']>;
   expertise?: Maybe<Array<Maybe<CharacterExpertise>>>;
   feats?: Maybe<Array<Maybe<CharacterFeat>>>;
   features?: Maybe<Array<Maybe<CharacterFeature>>>;
-  hitpoint?: Maybe<Scalars['ID']['output']>;
+  hitpoint?: Maybe<CharacterHitpoint>;
   id: Scalars['ID']['output'];
   label?: Maybe<Scalars['String']['output']>;
   modifiers?: Maybe<Array<Maybe<CharacterModifier>>>;
@@ -477,6 +478,27 @@ export type CharacterFeatureOptionInput = {
   optionIndex: Scalars['String']['input'];
 };
 
+export type CharacterHitpoint = {
+  __typename: 'CharacterHitpoint';
+  bonus?: Maybe<Scalars['Int']['output']>;
+  fixed?: Maybe<HitpointFixed>;
+  maxHitpoints: Scalars['Int']['output'];
+  maxOverride?: Maybe<Scalars['Int']['output']>;
+  method: Scalars['ID']['output'];
+  rolled?: Maybe<HitpointRoll>;
+  temp?: Maybe<Scalars['Int']['output']>;
+};
+
+export type CharacterHitpointInput = {
+  bonus?: InputMaybe<Scalars['Int']['input']>;
+  fixed?: InputMaybe<HitpointFixedInput>;
+  maxHitpoints: Scalars['Int']['input'];
+  maxOverride?: InputMaybe<Scalars['Int']['input']>;
+  method: Scalars['ID']['input'];
+  rolled?: InputMaybe<HitpointRollInput>;
+  temp?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type CharacterInput = {
   abilities?: InputMaybe<CharacterAbilitiesInput>;
   advancement?: InputMaybe<Scalars['ID']['input']>;
@@ -488,10 +510,11 @@ export type CharacterInput = {
   currencyGroups?: InputMaybe<Array<InputMaybe<CurrencyGroupInput>>>;
   desc?: InputMaybe<Scalars['String']['input']>;
   equipment?: InputMaybe<Array<InputMaybe<ContainsInput>>>;
+  exp?: InputMaybe<Scalars['Int']['input']>;
   expertise?: InputMaybe<CharacterExpertiseInput>;
   feats?: InputMaybe<Array<InputMaybe<CharacterFeatInput>>>;
   features?: InputMaybe<Array<InputMaybe<CharacterFeatureInput>>>;
-  hitpoint?: InputMaybe<Scalars['ID']['input']>;
+  hitpoint?: InputMaybe<CharacterHitpointInput>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
   modifiers?: InputMaybe<CharacterModifierInput>;
@@ -1703,9 +1726,44 @@ export type Hitpoint = {
   dieConfig?: Maybe<Scalars['String']['output']>;
 };
 
+export type HitpointFixed = {
+  __typename: 'HitpointFixed';
+  current?: Maybe<Scalars['Int']['output']>;
+  total?: Maybe<Scalars['Int']['output']>;
+};
+
+export type HitpointFixedInput = {
+  current?: InputMaybe<Scalars['Int']['input']>;
+  total?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type HitpointInput = {
   ability?: InputMaybe<Scalars['ID']['input']>;
   dieConfig?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type HitpointRoll = {
+  __typename: 'HitpointRoll';
+  current?: Maybe<Scalars['Int']['output']>;
+  total?: Maybe<Scalars['Int']['output']>;
+  values?: Maybe<Array<Maybe<HitpointRollValues>>>;
+};
+
+export type HitpointRollInput = {
+  current?: InputMaybe<Scalars['Int']['input']>;
+  total?: InputMaybe<Scalars['Int']['input']>;
+  values?: InputMaybe<Array<InputMaybe<HitpointRollValuesInput>>>;
+};
+
+export type HitpointRollValues = {
+  __typename: 'HitpointRollValues';
+  level: Scalars['Int']['output'];
+  value: Scalars['Int']['output'];
+};
+
+export type HitpointRollValuesInput = {
+  level: Scalars['Int']['input'];
+  value: Scalars['Int']['input'];
 };
 
 export type Imperial = {

@@ -54,7 +54,7 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
       fullReset()
       updateFormData({ type: 'reset', value: item })
       updateFormData({ type: 'initialReset', value: item })
-      navigate('edit')
+      navigate(`../edit/${item.value}`)
     } catch (err) {
       console.error(err)
     }

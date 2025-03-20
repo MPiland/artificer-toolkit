@@ -111,17 +111,30 @@ const Input = <T,>({
   const debounceSave = useDebounceCallback(
     useCallback(
       (target: React.ChangeEvent<HTMLInputElement>['target']) => {
+        let finalValue = target.value
+
+        // Convert to number for numeric validations
+        if (validation === 'num' || validation === 'cur') {
+          // Only convert if there's a value and it's valid
+          if (finalValue && !error) {
+            finalValue = Number(finalValue)
+          }
+          if (finalValue === '') {
+            finalValue = undefined
+          }
+        }
+
         onChange({
           type: 'update',
           path: name,
-          value: target.value,
+          value: finalValue,
         })
         setDebouncing(false)
       },
-      [name, onChange]
+      [name, onChange, validation, error]
     ),
     0.3 * 1000
-  ) // every 3 seconds max
+  )
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

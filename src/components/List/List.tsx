@@ -36,7 +36,7 @@ import CopyIcon from '../../assets/Icons/ICopy'
 import CreateIcon from '../../assets/Icons/ICreate'
 import GridIcon from '../../assets/Icons/IGrid'
 import ListIcon from '../../assets/Icons/IList'
-import { Background, Character, Class, Equipment, Feat, Race, Scores, Spell } from '../../../amplify/gql/types'
+import { Character } from '../../../amplify/gql/types'
 import { AuthContext } from '../../features/auth/AuthContext'
 import { FormContext } from '../Form/FormContext'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -47,6 +47,7 @@ import { FormType } from '../../store/filterSlice'
 import useFilteredList from '../../hooks/useFilteredList'
 import Group from '../Group/Group'
 import { sprinkles } from '../../css/sprinkles.css'
+import { createFormObject } from '../../utils/form'
 
 interface ListProps {
   className?: string
@@ -76,7 +77,7 @@ const List = ({
   const { data }: { data: FormDataType[] } = useListItems()
 
   const { updateFormData, fullReset } = use(FormContext)
-  const { user } = use(AuthContext)
+  const { user, tokens } = use(AuthContext)
 
   const sm = useMediaQuery('screen and (max-width: 567px)')
 
@@ -172,133 +173,22 @@ const List = ({
   }
 
   const handleCreate = async (secondary?: boolean) => {
-    let stateObject: FormDataType
     try {
       fullReset()
 
-      switch (form) {
-        case 'classes': {
-          const category = system?.categories.find((category) =>
-            category.classes && secondary ? 'subclass' : 'base'
-          ).id
+      const groups = tokens?.payload?.['cognito:groups'] as string[]
+      const master = groups?.includes('Admins') || false
 
-          const classObject: Class = {
-            id: undefined,
-            ownerId: user?.userId,
-            systemId: system.id,
-            label: undefined,
-            value: undefined,
-            category: category,
-            __typename: 'Class',
-          }
-          stateObject = classObject
-          break
-        }
-        case 'spells': {
-          const spellObject: Spell = {
-            id: undefined,
-            ownerId: user?.userId,
-            systemId: system.id,
-            label: undefined,
-            value: undefined,
-            school: undefined,
-            level: undefined,
-            classes: undefined,
-            range: undefined,
-            duration: undefined,
-            __typename: 'Spell',
-          }
-          stateObject = spellObject
-          break
-        }
-        case 'equipment': {
-          const equipmentObject: Equipment = {
-            id: undefined,
-            ownerId: user?.userId,
-            systemId: system.id,
-            label: undefined,
-            value: undefined,
-            category: undefined,
-            __typename: 'Equipment',
-          }
-          stateObject = equipmentObject
-          break
-        }
-        case 'feats': {
-          const featObject: Feat = {
-            id: undefined,
-            ownerId: user?.userId,
-            systemId: system.id,
-            label: undefined,
-            value: undefined,
-            category: undefined,
-            __typename: 'Feat',
-          }
-          stateObject = featObject
-          break
-        }
-        case 'backgrounds': {
-          const backgroundObject: Background = {
-            id: undefined,
-            ownerId: user?.userId,
-            systemId: system.id,
-            label: undefined,
-            value: undefined,
-            __typename: 'Background',
-          }
-          stateObject = backgroundObject
-          break
-        }
-        case 'characters': {
-          const abilityScores: Array<Scores> = []
-          system.abilities.forEach((ability) =>
-            abilityScores.push({
-              __typename: 'Scores',
-              ability: ability.id,
-              baseScore: 0,
-              calculatedScore: 0,
-              raceScore: 0,
-              classScore: 0,
-            })
-          )
-          const characterObject: Character = {
-            id: undefined,
-            ownerId: user?.userId,
-            systemId: system.id,
-            label: undefined,
-            value: undefined,
-            abilities: {
-              __typename: 'CharacterAbilities',
-              scores: abilityScores,
-            },
-            __typename: 'Character',
-            features: [],
-            modifiers: [],
-            proficiencies: [],
-            equipment: [],
-            feats: [],
-            expertise: [],
-            senses: [],
-          }
-          stateObject = characterObject
-          break
-        }
-        case 'races': {
-          const category = system?.categories.find((category) => (category.races && secondary ? 'subrace' : 'base')).id
-          const raceObject: Race = {
-            id: undefined,
-            ownerId: user?.userId,
-            systemId: system.id,
-            label: undefined,
-            value: undefined,
-            category: category,
-            playable: undefined,
-            __typename: 'Race',
-          }
-          stateObject = raceObject
-          break
-        }
-      }
+      const userId = master ? 'master' : user?.userId
+
+      const category =
+        form === 'classes'
+          ? system?.categories.find((category) => (category.classes && secondary ? 'subclass' : 'base')).id
+          : form === 'races' &&
+            system?.categories.find((category) => (category.races && secondary ? 'subrace' : 'base')).id
+
+      const stateObject = createFormObject(form, userId, system?.id, category, system.abilities)
+
       updateFormData({
         type: 'reset',
         value: stateObject,

@@ -168,7 +168,7 @@ export const character_header_item_divider = style({
   '@layer': {
     [app]: {
       alignContent: 'center',
-      margin: `0 auto`,
+      marginLeft: `auto`,
       height: '100%',
     },
   },

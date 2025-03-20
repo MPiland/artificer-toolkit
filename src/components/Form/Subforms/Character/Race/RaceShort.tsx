@@ -1,34 +1,47 @@
 import parse from 'html-react-parser'
-import { useLocation } from 'react-router-dom'
 import { useListRacesQuery } from '../../../../../features/races/racesApi'
 import Collapse from '../../../../Collapse/Collapse'
-import { Race } from '../../../../../../amplify/gql/types'
+import { Character, Race } from '../../../../../../amplify/gql/types'
 import { Categories } from '../../../../../types/enums'
 import Grid from '../../../../Grid/Grid'
 import useGetFeatures from '../../../../../hooks/useGetFeatures'
+import ShortDetail from '../../../ShortDetail'
+import { use } from 'react'
+import { FormContext } from '../../../FormContext'
+import { UpdateState } from '../../../../../types/form'
 
-const RaceShort = () => {
-  const location: any = useLocation()
-
+const RaceShort = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: () => void }) => {
   const { data: races } = useListRacesQuery()
-  const race: Race = location.state.item
+  const { updateFormData, setAddClass } = use(FormContext) as {
+    formData: Character
+    updateFormData: (data: UpdateState<Character>) => void
+    setAddClass: (value: boolean) => void
+  }
 
-  const { createFeatures } = useGetFeatures({ data: race })
-  const raceLineages = races.filter((sRace) => race?.lineages?.includes(sRace.id))
-  const ancestry = race?.ancestry
-
+  const { createFeatures } = useGetFeatures({ data: fullRace })
+  const raceLineages = races.filter((sRace) => fullRace?.lineages?.includes(sRace.id))
+  const ancestry = fullRace?.ancestry
   const features = createFeatures()
 
+  const handleSelect = () => {
+    updateFormData({
+      type: 'update',
+      path: 'race',
+      value: fullRace?.id,
+    })
+    setAddClass(false)
+  }
+
   return (
-    <>
-      <Grid.Item>{race?.details?.length > 0 && parse(race?.details[0].desc)}</Grid.Item>
+    <ShortDetail context='race' label={fullRace.label} onClose={setFullRace} onSelect={handleSelect}>
+      <Grid.Item>{fullRace?.details?.length > 0 && parse(fullRace?.details[0].desc)}</Grid.Item>
       {raceLineages?.length > 0 &&
         raceLineages?.map((race, index) => (
           <Grid.Item key={index}>{race?.details?.length > 0 && parse(race?.details[0].desc)}</Grid.Item>
         ))}
-      {race?.category === Categories.subrace && <Grid.Item>{race?.desc && parse(race?.desc)}</Grid.Item>}
-      {race?.traits?.details.length > 0 &&
-        race.traits.details.map((detail, index) => (
+      {fullRace?.category === Categories.subrace && <Grid.Item>{fullRace?.desc && parse(fullRace?.desc)}</Grid.Item>}
+      {fullRace?.traits?.details.length > 0 &&
+        fullRace.traits.details.map((detail, index) => (
           <Grid.Item key={index}>
             <Collapse key={index}>
               <Collapse.Header title={detail.label} startOpened={true} />
@@ -68,7 +81,7 @@ const RaceShort = () => {
           </Collapse>
         </Grid.Item>
       )}
-    </>
+    </ShortDetail>
   )
 }
 

@@ -23,7 +23,6 @@ import Feat from './features/feats/Feat'
 import Equipment from './features/equipment/Equipment'
 import Background from './features/backgrounds/Background'
 import CopyFeature from './components/Form/Features/CopyFeature/CopyFeature'
-import ShortDetail from './components/Form/ShortDetail'
 import FeatureProvider from './components/Form/Features/FeatureProvider'
 import Auth from './features/auth/Auth'
 import RequireAuth from './features/auth/RequireAuth'
@@ -97,7 +96,6 @@ const App = () => {
                             </FeatureProvider>
                           ),
                         },
-                        { path: ':context/detail/:item', element: <ShortDetail /> },
                       ],
                     },
                   ],
@@ -113,9 +111,9 @@ const App = () => {
                         { path: 'copy', element: <Copy /> },
                       ],
                     },
-                    { path: ':id', element: <Class />, children: [{ path: 'edit', element: <ClassForm /> }] },
+                    { path: ':id', element: <Class /> },
                     {
-                      path: 'new/:id?',
+                      path: ':type/:id?',
                       element: <ClassForm />,
                       children: [
                         {

@@ -196,4 +196,5 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
 
   return sortedProficiencyObject
 }
+
 export default useGetProficiencies

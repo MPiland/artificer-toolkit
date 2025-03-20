@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, useEffect } from 'react'
+import { ReactElement, useCallback, useEffect, useMemo } from 'react'
 import FeatureWrapper from './Features/FeatureWrapper'
 import Details from './Forms/Details'
 import Traits from './Forms/Traits'
@@ -16,13 +16,12 @@ import { useStore } from '../../store/useStore'
 import { FormContext } from './FormContext'
 import DiceProvider from '../Dice/DiceProvider'
 import { Outlet } from 'react-router-dom'
-import useGetSections from '../../hooks/useGetSectionState'
-import { Character, CharacterFeature, Spell } from '../../../amplify/gql/types'
+import { Character } from '../../../amplify/gql/types'
 import { isEqual } from 'lodash'
-import useGetFeatures from '../../hooks/useGetFeatures'
 import { Suspense } from 'react'
 import Loading from '../Loading/Loading'
 import Background from './Forms/Character/Background/Background'
+import useGetCharacterData from '../../hooks/useGetCharacterData'
 
 const useFormOptions = () => {
   const {
@@ -51,9 +50,24 @@ const useFormOptions = () => {
     resetDice,
   } = useStore((state) => state)
 
-  const { createSections, createAbilityScores } = useGetSections({ formData: formData as Character })
+  const { features, characterFeatures, sections, hitpoints, abilityScores } = useGetCharacterData({
+    formData: formData as Character,
+  })
 
-  const { createFeatures, sourcePropertyMap } = useGetFeatures({ data: formData as Exclude<FormDataType, Spell> })
+  const characterData = useMemo(() => {
+    if (formData.__typename !== 'Character') return formData
+
+    return {
+      ...formData,
+      features: characterFeatures,
+      ...sections,
+      abilities: {
+        ...formData.abilities,
+        scores: abilityScores,
+      },
+      hitpoint: hitpoints,
+    }
+  }, [formData, characterFeatures, sections, abilityScores, hitpoints])
 
   const updateFormData = useCallback(
     <T extends FormDataType>(state: UpdateState<T>) => {
@@ -83,69 +97,13 @@ const useFormOptions = () => {
     [addFormField, formReset, initialFormReset, removeFormField, updateFormField]
   )
 
-  const features = createFeatures()
-
-  const sections = createSections()
-
-  const abilityScores = createAbilityScores()
-
   useEffect(() => {
     if (formData.__typename === 'Character') {
-      const characterData: Character = JSON.parse(JSON.stringify(formData))
-
-      // Store the current character sections for comparison at the end
-      const characterSections = {
-        feats: characterData.feats,
-        modifiers: characterData.modifiers,
-        proficiencies: characterData.proficiencies,
-        expertise: characterData.expertise,
-        senses: characterData.senses,
-      }
-
-      if (!isEqual(sections, characterSections)) {
-        updateFormData({
-          type: 'reset',
-          value: { ...formData, ...sections },
-        })
+      if (!isEqual(formData, characterData)) {
+        updateFormData({ type: 'reset', value: characterData })
       }
     }
-  }, [sections, updateFormData, formData])
-
-  useEffect(() => {
-    const characterFeatures: CharacterFeature[] =
-      features?.map((feature) => {
-        const featureObj: CharacterFeature = {
-          __typename: 'CharacterFeature',
-          id: feature.id,
-        }
-        Object.keys(sourcePropertyMap).forEach((key: keyof typeof sourcePropertyMap) => {
-          if (sourcePropertyMap[key]) {
-            featureObj[key] = feature[key]
-          }
-        })
-        if (feature.level) {
-          featureObj.level = feature.level
-        }
-        if (feature.options?.length > 0) {
-          featureObj.options = feature.options
-        }
-        return featureObj
-      }) || []
-    if (formData?.__typename === 'Character' && !isEqual(characterFeatures, formData.features)) {
-      updateFormData({
-        type: 'reset',
-        value: { ...formData, features: characterFeatures },
-      })
-    }
-  }, [features, sourcePropertyMap, formData, updateFormData])
-
-  useEffect(() => {
-    if (formData.__typename === 'Character') {
-      if (!isEqual(abilityScores, formData?.abilities?.scores)) {
-        updateFormData({ type: 'update', path: 'abilities.scores', value: abilityScores })
-      }
-    }
-  }, [formData, updateFormData, abilityScores])
+  }, [formData, updateFormData, characterData])
 
   const fullReset = () => {
     resetForm()

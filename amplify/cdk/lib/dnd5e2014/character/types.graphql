@@ -277,13 +277,40 @@ type CurrencyGroup {
   container: ID
 }
 
+type HitpointRollValues {
+  level: Int!
+  value: Int!
+}
+
+type HitpointRoll {
+  values: [HitpointRollValues]
+  total: Int
+  current: Int
+}
+
+type HitpointFixed {
+  current: Int
+  total: Int
+}
+
+type CharacterHitpoint {
+  method: ID!
+  maxOverride: Int
+  maxHitpoints: Int!
+  temp: Int
+  bonus: Int
+  rolled: HitpointRoll
+  fixed: HitpointFixed
+}
+
 type Character {
   id: ID!
   value: String
   label: String
   desc: String
   advancement: ID
-  hitpoint: ID
+  exp: ID
+  hitpoint: CharacterHitpoint
   abilities: CharacterAbilities
   race: ID
   ancestry: CharacterAncestry

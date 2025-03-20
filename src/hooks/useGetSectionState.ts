@@ -41,7 +41,7 @@ import { useListBackgroundsQuery } from '../features/backgrounds/backgroundsApi'
 import { sectionSteps } from '../types/form'
 import { useCallback, useMemo } from 'react'
 import { typename, sectionIdKey, proficiencyKey } from '../utils/formatting'
-import useGetFeatures from './useGetFeatures'
+import useGetFeatures, { FactoryFeature } from './useGetFeatures'
 
 export interface GetSectionOptionsProps {
   section: SectionDataType
@@ -100,7 +100,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   const { data: equipment } = useListEquipmentQuery()
   const { data: backgrounds } = useListBackgroundsQuery()
 
-  const { getFullFeature } = useGetFeatures({ data: formData })
+  const { createFeatures, getFullFeature } = useGetFeatures({ data: formData })
+
+  const features = createFeatures()
 
   const getStateSections = useMemo(() => {
     const existing: StateSections = {}
@@ -299,8 +301,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                   options = equipment.filter((equipment) => ids.includes(equipment.id))
                 }
               } else {
-                options = ids.some((id) => id === 'all')
-                  ? system.equipment.properties
+                options =
+                  ids.some((id) => id === 'all') ?
+                    system.equipment.properties
                   : system.equipment.properties.filter((property) => ids.includes(property.id))
               }
             }
@@ -353,8 +356,9 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                   options = equipment.filter((equipment) => ids.includes(equipment.id))
                 }
               } else {
-                options = ids.some((id) => id === 'all')
-                  ? system.equipment.properties
+                options =
+                  ids.some((id) => id === 'all') ?
+                    system.equipment.properties
                   : system.equipment.properties.filter((property) => ids.includes(property.id))
               }
             }
@@ -541,7 +545,6 @@ const useGetSections = ({ formData }: { formData: Character }) => {
   }
 
   const createSections = useCallback(() => {
-    const features = formData?.features || []
     // Initialize with existing data and validate against current formData// Common validation function for all section types
     const isValidSection = (
       section: CharacterExpertise | CharacterFeat | CharacterSense | CharacterProficiency | CharacterModifier
@@ -639,8 +642,12 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     }
 
     // Process features...
-    const pushSections = (fullFeature: Feature | AncestryFeature | FeatureOption, feature: CharacterFeature) => {
+    const pushSections = (fullFeature: Feature | AncestryFeature | FeatureOption, feature: FactoryFeature) => {
       // For each valid section type
+      const featureObject: FactoryFeature & { __typename: 'CharacterFeature' } = {
+        ...feature,
+        __typename: 'CharacterFeature',
+      }
       sectionSteps
         .filter((step) => step !== 'spells')
         .forEach((sectionStep) => {
@@ -665,7 +672,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                             sectionStep as 'proficiencies' | 'expertise',
                             fSection,
                             fullFeature,
-                            feature
+                            featureObject
                           )
                           sectionObject.equipment = equipId
                           pushToSection(sectionStep, sectionObject)
@@ -679,7 +686,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                             sectionStep as 'proficiencies' | 'expertise',
                             fSection,
                             fullFeature,
-                            feature
+                            featureObject
                           )
                           sectionObject.property = propId
                           pushToSection(sectionStep, sectionObject)
@@ -693,7 +700,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                             sectionStep as 'proficiencies' | 'expertise',
                             fSection,
                             fullFeature,
-                            feature
+                            featureObject
                           )
 
                           // Use the typename function to get the correct ID field
@@ -706,17 +713,17 @@ const useGetSections = ({ formData }: { formData: Character }) => {
                       })
                     } else {
                       // Handle non-array case
-                      const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, feature)
+                      const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, featureObject)
                       pushToSection(sectionStep, sectionObject)
                     }
                   } else {
                     // Handle initiative or unknown category
-                    const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, feature)
+                    const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, featureObject)
                     pushToSection(sectionStep, sectionObject)
                   }
                 } else {
                   // Normal case for non-proficiency/expertise sections
-                  const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, feature)
+                  const sectionObject = createBaseSectionObject(sectionStep, fSection, fullFeature, featureObject)
                   pushToSection(sectionStep, sectionObject)
                 }
               }
@@ -771,6 +778,10 @@ const useGetSections = ({ formData }: { formData: Character }) => {
       const proficiencies = fullClass?.proficiencies || []
 
       proficiencies?.forEach((proficiency) => {
+        const exist = sections.proficiencies.find((s) => s.classId === fClass.id && s.proficiencyId === proficiency.id)
+
+        if (exist) return
+
         const sectionObject = {
           __typename: 'CharacterProficiency' as const,
           classId: fClass.id,
@@ -781,7 +792,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     })
 
     return sections
-  }, [classes, formData, getFullFeature])
+  }, [classes, formData, getFullFeature, features])
 
   const createAbilityScores = useCallback(() => {
     if (formData.__typename === 'Character') {
@@ -877,6 +888,7 @@ const useGetSections = ({ formData }: { formData: Character }) => {
     getSectionOptions,
     createSections,
     createAbilityScores,
+    features,
   }
 }
 export default useGetSections

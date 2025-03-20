@@ -1,28 +1,16 @@
-import { Fragment } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Fragment, useState } from 'react'
 import { card_group, card_header, card_header_title, main_card, subrace_card } from '../../../Character.css'
 import clsx from 'clsx'
 import { useListRacesQuery } from '../../../../../features/races/racesApi'
 import { Categories } from '../../../../../types/enums'
 import { Race } from '../../../../../../amplify/gql/types'
 import Grid from '../../../../Grid/Grid'
+import RaceShort from './RaceShort'
 
 const RaceSelection = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [fullRace, setFullRace] = useState<Race | null>(null)
 
   const { data: races } = useListRacesQuery()
-
-  const handleShowDetail = (item: Race, context: string) => {
-    navigate(`race/detail/${item.value}`, {
-      state: {
-        background: location,
-        item: item,
-        size: 'sm',
-        context: context,
-      },
-    })
-  }
 
   return (
     <>
@@ -37,8 +25,7 @@ const RaceSelection = () => {
                 onClick={() =>
                   !races
                     ?.filter((race) => race.category === Categories.subrace)
-                    .some((subrace) => subrace?.lineages?.some((lineage) => lineage === race.id)) &&
-                  handleShowDetail(race, 'race')
+                    .some((subrace) => subrace?.lineages?.some((lineage) => lineage === race.id)) && setFullRace(race)
                 }
               >
                 <h3 className={clsx(card_header_title, card_header)}>{race.label}</h3>
@@ -52,7 +39,7 @@ const RaceSelection = () => {
                         <Fragment key={subraceIndex}>
                           <div
                             className={clsx(subrace_card, main_card, 'clickable')}
-                            onClick={() => handleShowDetail(subrace, 'race')}
+                            onClick={() => setFullRace(subrace)}
                           >
                             <h3 className={clsx(card_header_title, card_header)}>{subrace.label}</h3>
                           </div>
@@ -65,6 +52,7 @@ const RaceSelection = () => {
           )
         }
       })}
+      {fullRace && <RaceShort fullRace={fullRace} setFullRace={() => setFullRace(null)} />}
     </>
   )
 }

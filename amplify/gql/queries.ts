@@ -38598,7 +38598,30 @@ query GetCharacter($id: ID!) {
 	label
 	desc
 	advancement
-	hitpoint
+	exp
+	hitpoint {
+		__typename
+		method
+		maxOverride
+		maxHitpoints
+		temp
+		bonus
+		rolled {
+			__typename
+			values {
+				__typename
+				level
+				value
+			}
+			total
+			current
+		}
+		fixed {
+			__typename
+			current
+			total
+		}
+	}
 	abilities {
 		__typename
 		manualRolled {
@@ -39085,7 +39108,30 @@ query ListCharacters($systemId: ID!, $limit: Int, $nextToken: String) {
 		label
 		desc
 		advancement
-		hitpoint
+		exp
+		hitpoint {
+			__typename
+			method
+			maxOverride
+			maxHitpoints
+			temp
+			bonus
+			rolled {
+				__typename
+				values {
+					__typename
+					level
+					value
+				}
+				total
+				current
+			}
+			fixed {
+				__typename
+				current
+				total
+			}
+		}
 		abilities {
 			__typename
 			manualRolled {

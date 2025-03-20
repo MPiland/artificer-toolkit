@@ -281,13 +281,40 @@ input CurrencyGroupInput {
   container: ID
 }
 
+input HitpointRollValuesInput {
+  level: Int!
+  value: Int!
+}
+
+input HitpointRollInput {
+  values: [HitpointRollValuesInput]
+  total: Int
+  current: Int
+}
+
+input HitpointFixedInput {
+  current: Int
+  total: Int
+}
+
+input CharacterHitpointInput {
+  method: ID!
+  maxOverride: Int
+  maxHitpoints: Int!
+  temp: Int
+  bonus: Int
+  rolled: HitpointRollInput
+  fixed: HitpointFixedInput
+}
+
 input CharacterInput {
   id: ID!
   value: String
   label: String
   desc: String
   advancement: ID
-  hitpoint: ID
+  exp: Int
+  hitpoint: CharacterHitpointInput
   abilities: CharacterAbilitiesInput
   race: ID
   ancestry: CharacterAncestryInput

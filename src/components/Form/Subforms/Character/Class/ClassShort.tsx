@@ -1,38 +1,51 @@
 import parse from 'html-react-parser'
-import { useLocation } from 'react-router-dom'
 import Collapse from '../../../../Collapse/Collapse'
 import { startCase } from 'lodash'
 import { numberToWords } from '../../../../../utils/formatting'
-import { Class } from '../../../../../../amplify/gql/types'
+import { Character, Class } from '../../../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
 import { parseDiceRoll } from '../../../../../utils/dice'
 import { RollConfig } from '../../../../../types/components'
 import Grid from '../../../../Grid/Grid'
 import useGetFeatures from '../../../../../hooks/useGetFeatures'
 import useGetProficiencies from '../../../../../hooks/useGetProficiencies'
+import ShortDetail from '../../../ShortDetail'
+import { use } from 'react'
+import { FormContext } from '../../../FormContext'
+import { UpdateState } from '../../../../../types/form'
 
-const ClassShort = () => {
-  const location: any = useLocation()
-
+const ClassShort = ({ fullClass, setFullClass }: { fullClass: Class; setFullClass: () => void }) => {
   const { data: system } = useGetSystemQuery()
-
-  const fullClass: Class = location.state.item
-
+  const { formData, updateFormData, setAddClass } = use(FormContext) as {
+    formData: Character
+    updateFormData: (data: UpdateState<Character>) => void
+    setAddClass: (value: boolean) => void
+  }
   const { createFeatures } = useGetFeatures({ data: fullClass })
-
   const proficiencies = useGetProficiencies({ fullClass })
 
   // Memoize the feature array
   const features = createFeatures()
 
-  console.log({ features })
-
   const hitpointAbility = system.abilities.find((ability) => ability.id === fullClass.hitpoint?.ability)
 
-  const { numDie, dieType } = parseDiceRoll(fullClass.hitpoint?.dieConfig as RollConfig)
+  const { quantity, die } = parseDiceRoll(fullClass.hitpoint?.dieConfig as RollConfig)
+
+  const handleSelect = () => {
+    const classIndex = formData?.classes?.length || 0
+    updateFormData({
+      type: 'update',
+      path: `classes.${classIndex}`,
+      value: {
+        id: fullClass?.id,
+        level: 1,
+      },
+    })
+    setAddClass(false)
+  }
 
   return (
-    <>
+    <ShortDetail context='class' label={fullClass.label} onClose={setFullClass} onSelect={handleSelect}>
       <Grid.Item>{fullClass?.desc && <em>{parse(fullClass.desc)}</em>}</Grid.Item>
       <Grid.Item>
         <Collapse>
@@ -44,11 +57,11 @@ const ClassShort = () => {
             </div>
             <div>
               <strong>{'Hit Points at 1st Level: '}</strong>
-              {`${numDie * dieType} + your ${hitpointAbility?.label} modifier`}
+              {`${quantity * die} + your ${hitpointAbility?.label} modifier`}
             </div>
             <div>
               <strong>{'Hit Points at Higher Levels: '}</strong>
-              {`${fullClass.hitpoint?.dieConfig} (or ${Math.round(numDie * (dieType / 2) + 0.5)}) + your ${
+              {`${fullClass.hitpoint?.dieConfig} (or ${Math.round(quantity * (die / 2) + 0.5)}) + your ${
                 hitpointAbility?.label
               } modifier per ${fullClass.label} level after 1st`}
             </div>
@@ -119,7 +132,7 @@ const ClassShort = () => {
             </Grid.Item>
           )
         })}
-    </>
+    </ShortDetail>
   )
 }
 

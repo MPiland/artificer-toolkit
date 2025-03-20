@@ -17,10 +17,10 @@ const Class = () => {
   const { data: system } = useGetSystemQuery()
   const { data: spells } = useListSpellsQuery()
 
-  const uClass: ClassState = location.state.item
+  const uClass: ClassState = location?.state?.item
 
   const subclasses = classes.filter((sClass) => {
-    return sClass.parentClass === uClass.id
+    return sClass.parentClass === uClass?.id
   })
 
   const handlePreReq = (parentItem: Feature, childItem: FeatureOption, classItem: ClassState) => {
