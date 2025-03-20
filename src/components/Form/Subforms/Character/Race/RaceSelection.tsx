@@ -5,7 +5,7 @@ import { useListRacesQuery } from '../../../../../features/races/racesApi'
 import { Categories } from '../../../../../types/enums'
 import { Race } from '../../../../../../amplify/gql/types'
 import Grid from '../../../../Grid/Grid'
-import RaceShort from './RaceShort'
+import RaceDetail from './RaceDetail'
 
 const RaceSelection = () => {
   const [fullRace, setFullRace] = useState<Race | null>(null)
@@ -52,7 +52,7 @@ const RaceSelection = () => {
           )
         }
       })}
-      {fullRace && <RaceShort fullRace={fullRace} setFullRace={() => setFullRace(null)} />}
+      {fullRace && <RaceDetail fullRace={fullRace} setFullRace={() => setFullRace(null)} />}
     </>
   )
 }

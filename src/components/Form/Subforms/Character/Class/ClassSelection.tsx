@@ -8,7 +8,7 @@ import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
 import { use, useState } from 'react'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
-import ClassShort from './ClassShort'
+import ClassDetail from './ClassDetail'
 
 const ClassSelection = () => {
   const [fullClass, setFullClass] = useState<Class | null>(null)
@@ -107,7 +107,7 @@ const ClassSelection = () => {
             })}
         </Grid>
       </Grid.Item>
-      {fullClass && <ClassShort fullClass={fullClass} setFullClass={() => setFullClass(null)} />}
+      {fullClass && <ClassDetail fullClass={fullClass} setFullClass={() => setFullClass(null)} />}
     </>
   )
 }
