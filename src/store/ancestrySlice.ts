@@ -19,9 +19,9 @@ export interface AncestrySlice {
 
 export const ancestrySlice: StateCreator<CombinedSlice, [], [], AncestrySlice> = (set) => {
   const defaultState: Pick<AncestrySlice, 'ancestryData' | 'initialAncestryData' | 'ancestryIndex'> = {
-    ancestryData: { id: undefined, value: undefined, label: undefined, __typename: 'AncestryOption' },
+    ancestryData: { id: '', value: '', label: '', __typename: 'AncestryOption' },
 
-    initialAncestryData: { id: undefined, value: undefined, label: undefined, __typename: 'AncestryOption' },
+    initialAncestryData: { id: '', value: '', label: '', __typename: 'AncestryOption' },
 
     ancestryIndex: 0,
   }

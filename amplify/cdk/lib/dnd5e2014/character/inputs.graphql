@@ -108,7 +108,7 @@ input CharacterFeatureOptionInput {
 
 input CharacterFeatureInput {
   id: ID
-  options: [CharacterFeatureOptionInput]
+  options: [CharacterFeatureOptionInput!]
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -131,8 +131,8 @@ input RollTypeInput {
   ability: ID!
   rolling: Boolean!
   applied: Boolean!
-  rolled: [RollInput]!
-  kept: [RollInput]!
+  rolled: [RollInput!]!
+  kept: [RollInput!]
 }
 
 input ManualInput {
@@ -142,8 +142,8 @@ input ManualInput {
 
 input ManualRolledInput {
   configuration: String!
-  rollGroups: [[RollTypeInput]]
-  manual: [ManualInput]
+  rollGroups: [[RollTypeInput!]!]
+  manual: [ManualInput!]
 }
 
 input DistributedInput {
@@ -153,7 +153,7 @@ input DistributedInput {
 
 input PointBuyInput {
   pointsLeft: Int
-  distributed: [DistributedInput]
+  distributed: [DistributedInput!]
 }
 
 input StandardArrayInput {
@@ -173,9 +173,9 @@ input ScoresInput {
 input CharacterAbilitiesInput {
   manualRolled: ManualRolledInput
   pointBuy: PointBuyInput
-  standardArray: [StandardArrayInput]
+  standardArray: [StandardArrayInput!]
   selectedSystem: ID
-  scores: [ScoresInput]
+  scores: [ScoresInput!]
 }
 
 ## CharacterAncestryInput
@@ -188,7 +188,7 @@ input LineageInput {
 input CharacterAncestryInput {
   id: ID
   raceId: ID
-  lineage: [LineageInput]
+  lineage: [LineageInput!]
 }
 
 ## Class
@@ -217,7 +217,7 @@ input ClassSpellInput {
 
 input ClassSpellListInput {
   level: Int!
-  spells: [ClassSpellInput]
+  spells: [ClassSpellInput!]
 }
 
 input CharacterSpellSlotsInputs {
@@ -227,16 +227,16 @@ input CharacterSpellSlotsInputs {
 }
 
 input CharacterSpellcastingInput {
-  prepared: [ClassSpellListInput]
-  known: [ClassSpellListInput]
-  additional: [CharacterSpellInput]
-  spellSlots: [CharacterSpellSlotsInputs]
+  prepared: [ClassSpellListInput!]
+  known: [ClassSpellListInput!]
+  additional: [CharacterSpellInput!]
+  spellSlots: [CharacterSpellSlotsInputs!]
 }
 
 input CharacterClassInput {
-  id: ID
+  id: ID!
   subclass: SubclassInput
-  level: Int
+  level: Int!
 }
 
 input StartingEquipmentInput {
@@ -248,19 +248,19 @@ input StartingEquipmentInput {
 input StartingEquipmentGroupInput {
   optionId: ID!
   groupId: ID!
-  equipment: [StartingEquipmentInput]
+  equipment: [StartingEquipmentInput!]
 }
 
 input ClassStartingEquipmentInput {
   option: ID!
   goldOption: ID
   totalGold: Int
-  equipmentGroups: [StartingEquipmentGroupInput]
+  equipmentGroups: [StartingEquipmentGroupInput!]
   addedToCharacter: Boolean
 }
 
 input BackgroundStartingEquipmentInput {
-  equipmentGroups: [StartingEquipmentGroupInput]
+  equipmentGroups: [StartingEquipmentGroupInput!]
   addedToCharacter: Boolean
 }
 
@@ -277,7 +277,7 @@ input CharacterCurrencyInput {
 }
 
 input CurrencyGroupInput {
-  currencies: [CharacterCurrencyInput]
+  currencies: [CharacterCurrencyInput!]
   container: ID
 }
 
@@ -287,7 +287,7 @@ input HitpointRollValuesInput {
 }
 
 input HitpointRollInput {
-  values: [HitpointRollValuesInput]
+  values: [HitpointRollValuesInput!]
   total: Int
   current: Int
 }
@@ -300,7 +300,7 @@ input HitpointFixedInput {
 input CharacterHitpointInput {
   method: ID!
   maxOverride: Int
-  maxHitpoints: Int!
+  maxHitpoints: Int
   temp: Int
   bonus: Int
   rolled: HitpointRollInput
@@ -309,8 +309,8 @@ input CharacterHitpointInput {
 
 input CharacterInput {
   id: ID!
-  value: String
-  label: String
+  value: String!
+  label: String!
   desc: String
   advancement: ID
   exp: Int
@@ -323,14 +323,14 @@ input CharacterInput {
   spellcasting: CharacterSpellcastingInput
   classEquipment: ClassStartingEquipmentInput
   backgroundEquipment: BackgroundStartingEquipmentInput
-  equipment: [ContainsInput]
-  currencyGroups: [CurrencyGroupInput]
-  features: [CharacterFeatureInput]
-  feats: [CharacterFeatInput]
+  equipment: [ContainsInput!]
+  currencyGroups: [CurrencyGroupInput!]
+  features: [CharacterFeatureInput!]
+  feats: [CharacterFeatInput!]
   proficiencies: CharacterProficiencyInput
   expertise: CharacterExpertiseInput
   modifiers: CharacterModifierInput
-  senses: [CharacterSenseInput]
+  senses: [CharacterSenseInput!]
   ownerId: String
   systemId: String!
 }

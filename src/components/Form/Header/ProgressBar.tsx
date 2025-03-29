@@ -10,12 +10,12 @@ import { FeatureContext } from '../Features/FeatureContext'
 import { LoadingContext } from '../../Loading/LoadingContext'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import { FormDataType } from '../../../types/form'
-import { useLocation, useNavigate } from 'react-router-dom'
 import Grid from '../../Grid/Grid'
+import { ModalContext } from '../../Modal/ModalContext'
+import { Navigate } from '@tanstack/react-router'
 
 const ProgressBar = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { showModal } = use(ModalContext)
 
   const [lineWidth, setLineWidth] = useState<number>(0)
   const [lineLeft, setLineLeft] = useState<number>(0)
@@ -39,7 +39,17 @@ const ProgressBar = () => {
 
   const { containsEquipment } = useEnumChecks({ data: formData })
 
-  const { setSectionStep, featureStep, setFeatureStep, handleSaveFeatures } = use(FeatureContext)
+  const {
+    setSectionStep,
+    featureStep,
+    setFeatureStep,
+    handleSaveFeatures,
+    resetAncestry,
+    resetFeature,
+    resetOption,
+    resetSection,
+    sectionStep,
+  } = use(FeatureContext)
 
   const { isLoading } = use(LoadingContext)
 
@@ -96,16 +106,6 @@ const ProgressBar = () => {
     }
   }, [stepIndex, lineLeft, lineWidth])
 
-  const handleAlert = ({ alertType, message, index }: { alertType: 'step'; message: string; index: number }) => {
-    navigate(`alert/${alertType}`, {
-      state: {
-        message: message,
-        previous: location,
-        index,
-      },
-    })
-  }
-
   const handleStepChange = async (progressStepIndex: number) => {
     setAddClass(false)
     setChangeRace(false)
@@ -131,14 +131,43 @@ const ProgressBar = () => {
     if (!isValid) {
       setValidForm({ ...validForm, [steps[stepIndex].id]: false })
       if (featureStep != null) {
-        return handleAlert({
-          alertType: 'step',
-          message: 'Some required fields are missing. Current form step will not be saved.',
-          index: progressStepIndex,
+        return showModal({
+          type: 'alert',
+          props: {
+            message: 'Some required fields are missing. Current form step will not be saved.',
+            onConfirm: () => handleConfirmStep(progressStepIndex),
+          },
         })
       }
     }
     return setStepIndex(progressStepIndex)
+  }
+
+  const reset = () => {
+    if (sectionStep != null) {
+      resetSection()
+      setSectionStep(null)
+    } else if (featureStep === 'option') {
+      resetOption()
+      setFeatureStep('feature')
+    } else if (featureStep === 'ancestry') {
+      resetFeature()
+      setFeatureStep('ancestryOption')
+    } else if (featureStep === 'ancestryOption') {
+      resetAncestry()
+      setFeatureStep(null)
+    } else {
+      resetFeature()
+      setFeatureStep(null)
+    }
+  }
+
+  const handleConfirmStep = (progressStepIndex: number) => {
+    if (featureStep != null) {
+      reset()
+    }
+    setStepIndex(progressStepIndex)
+    return <Navigate to={'..'} />
   }
 
   return (

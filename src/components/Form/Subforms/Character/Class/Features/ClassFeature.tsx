@@ -1,5 +1,5 @@
 import { use } from 'react'
-import { Character, Class } from '../../../../../../../amplify/gql/types'
+import { Character, CharacterClass, Class } from '../../../../../../../amplify/gql/types'
 import { FormContext } from '../../../../FormContext'
 import Grid from '../../../../../Grid/Grid'
 import Collapse from '../../../../../Collapse/Collapse'
@@ -14,13 +14,14 @@ import FeatureOption from './FeatureOption'
 import useGetFeatures, { FactoryFeature } from '../../../../../../hooks/useGetFeatures'
 
 interface ClassFeatureProps {
-  fullClass: Class
+  uClass: CharacterClass
   feature: FactoryFeature
-  subclass: Class
   subclasses: Class[]
+  subclass?: Class
+  classIndex: number
 }
 
-const ClassFeature = ({ fullClass, feature, subclass, subclasses }: ClassFeatureProps) => {
+const ClassFeature = ({ uClass, feature, subclasses, subclass, classIndex }: ClassFeatureProps) => {
   const { formData, updateFormData } = use(FormContext) as {
     formData: Character
     updateFormData: (state: UpdateState<Character>) => void
@@ -30,13 +31,9 @@ const ClassFeature = ({ fullClass, feature, subclass, subclasses }: ClassFeature
 
   const { sectionSteps } = use(FeatureContext)
 
-  const classIndex = formData.classes.findIndex((c) => c.id === fullClass.id)
-
-  const uClass = formData.classes[classIndex]
-
   const existFeatureIndex = formData?.features?.findIndex((f) => f?.id === feature?.id && f?.level === feature?.level)
 
-  const featureIndex = existFeatureIndex > -1 ? existFeatureIndex : formData?.features?.length || 0
+  const featureIndex = existFeatureIndex && existFeatureIndex > -1 ? existFeatureIndex : formData?.features?.length || 0
 
   return (
     <Grid.Item>
@@ -58,7 +55,7 @@ const ClassFeature = ({ fullClass, feature, subclass, subclasses }: ClassFeature
                     value={uClass?.subclass?.id}
                   />
                 </Grid.Item>
-                {subclass?.subtypes?.length > 0 && (
+                {subclass?.subtypes?.length && (
                   <Grid.Item justify='center'>
                     <Dropdown
                       name={`classes.${classIndex}.subclass.subtype`}
@@ -72,10 +69,10 @@ const ClassFeature = ({ fullClass, feature, subclass, subclasses }: ClassFeature
                 )}
               </>
             )}
-            {!(getFullFeature(feature)?.options?.length > 0) ? (
+            {!getFullFeature(feature)?.options?.length ?
               sectionSteps.map(
                 (sectionStep: SectionName) =>
-                  feature[sectionStep]?.length > 0 &&
+                  feature[sectionStep]?.length &&
                   feature[sectionStep].map((section, sIndex) => {
                     if (section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
                       return (
@@ -86,44 +83,46 @@ const ClassFeature = ({ fullClass, feature, subclass, subclasses }: ClassFeature
                           featureIndex={featureIndex}
                           classIndex={classIndex}
                           classId={uClass.id}
+                          feature={{ ...feature, __typename: 'CharacterFeature' }}
                         />
                       )
                     }
                   })
               )
-            ) : (
-              <FeatureOption feature={feature} featureIndex={featureIndex} classIndex={classIndex} />
-            )}
+            : <FeatureOption feature={feature} featureIndex={featureIndex} classIndex={classIndex} />}
             {(() => {
               if (feature && feature.options) {
-                const option = getFullFeature(feature).options.find((fOption) =>
-                  formData.features[featureIndex]?.options?.find((o) => o.id === fOption.id)
+                const option = getFullFeature(feature)?.options?.find((fOption) =>
+                  formData?.features?.[featureIndex]?.options?.find((o) => o.id === fOption.id)
                 )
 
-                return (
-                  <>
-                    <Grid.Item justify='center'>{option?.desc && <div>{parse(option.desc)}</div>}</Grid.Item>
-                    {sectionSteps.map(
-                      (sectionStep) =>
-                        option?.[sectionStep]?.length > 0 &&
-                        option?.[sectionStep]?.map((section) => {
-                          if (section.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-                            return (
-                              <FeatureSection
-                                key={section.id}
-                                section={section}
-                                sectionStep={sectionStep}
-                                featureIndex={featureIndex}
-                                classIndex={classIndex}
-                                classId={uClass.id}
-                                optionId={option.id}
-                              />
-                            )
-                          }
-                        })
-                    )}
-                  </>
-                )
+                if (option) {
+                  return (
+                    <>
+                      <Grid.Item justify='center'>{option?.desc && <div>{parse(option.desc)}</div>}</Grid.Item>
+                      {sectionSteps.map(
+                        (sectionStep) =>
+                          option?.[sectionStep]?.length &&
+                          option?.[sectionStep]?.map((section) => {
+                            if (section.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
+                              return (
+                                <FeatureSection
+                                  key={section.id}
+                                  section={section}
+                                  sectionStep={sectionStep}
+                                  featureIndex={featureIndex}
+                                  classIndex={classIndex}
+                                  classId={uClass.id}
+                                  optionId={option.id}
+                                  feature={{ ...option, __typename: 'CharacterFeature' }}
+                                />
+                              )
+                            }
+                          })
+                      )}
+                    </>
+                  )
+                }
               }
             })()}
           </Grid>

@@ -1,5 +1,5 @@
 import { useEffect, use } from 'react'
-import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
+import { useListEquipmentQuery } from '../../../apis/equipmentApi'
 import { Equipment } from '../../../../amplify/gql/types'
 import { UpdateState } from '../../../types/form'
 import { FormContext } from '../FormContext'
@@ -7,10 +7,10 @@ import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import Grid from '../../Grid/Grid'
 
-const ContainsForm = () => {
+const ContainsForm = <T extends Equipment>() => {
   const { formData, updateFormData } = use(FormContext) as {
-    formData: Equipment
-    updateFormData: (state: UpdateState<Equipment>) => void
+    formData: T
+    updateFormData: (state: UpdateState<T>) => void
   }
 
   const { data: equipment } = useListEquipmentQuery()

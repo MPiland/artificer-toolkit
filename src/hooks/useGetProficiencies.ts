@@ -1,6 +1,6 @@
 import { Class } from '../../amplify/gql/types'
-import { useListEquipmentQuery } from '../features/equipment/equipmentApi'
-import { useGetSystemQuery } from '../features/systems/systemsApi'
+import { useListEquipmentQuery } from '../apis/equipmentApi'
+import { useGetSystemQuery } from '../apis/systemsApi'
 import { ProficiencyCategories } from '../types/enums'
 
 export type ClassProficiency = {
@@ -22,42 +22,43 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
 
   fullProficiencies?.forEach((proficiency) => {
     if (proficiency?.category === ProficiencyCategories.properties) {
-      if (proficiency?.properties?.ids?.length > 0) {
+      if (proficiency?.properties?.ids?.length) {
         const equipmentCategory = system.equipment.categories.find(
           (category) => category.id === proficiency?.properties?.category
         )
+        if (equipmentCategory) {
+          const existType: Array<{ id: string; label: string; value: string }> = [
+            ...(proficiencyObject[equipmentCategory.value]?.type || []),
+          ]
 
-        const existType: Array<{ id: string; label: string; value: string }> = [
-          ...(proficiencyObject[equipmentCategory.value]?.type || []),
-        ]
+          const filteredProperties = []
 
-        const filteredProperties = []
-
-        if (proficiency?.properties.ids.some((id) => id === 'all')) {
-          filteredProperties.push(
-            ...system.equipment.properties
-              .filter((property) =>
-                system.equipment.categoryProperties.some(
-                  (category) =>
-                    category.categoryId === proficiency?.properties.category && category.propertyId === property.id
+          if (proficiency?.properties.ids.some((id) => id === 'all')) {
+            filteredProperties.push(
+              ...system.equipment.properties
+                .filter((property) =>
+                  system.equipment.categoryProperties.some(
+                    (category) =>
+                      category.categoryId === proficiency?.properties?.category && category.propertyId === property.id
+                  )
                 )
-              )
-              .filter((property) => !existType.some((type) => type.id === property.id))
-              .map((property) => ({ id: property.id, label: property.label, value: property.value }))
-          )
-        } else {
-          filteredProperties.push(
-            ...system.equipment.properties
-              .filter((property) => proficiency?.properties.ids.some((id) => id === property.id))
-              .filter((property) => !existType.some((type) => type.id === property.id))
-              .map((property) => ({ id: property.id, label: property.label, value: property.value }))
-          )
-        }
+                .filter((property) => !existType.some((type) => type.id === property.id))
+                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
+            )
+          } else {
+            filteredProperties.push(
+              ...system.equipment.properties
+                .filter((property) => proficiency?.properties?.ids?.some((id) => id === property.id))
+                .filter((property) => !existType.some((type) => type.id === property.id))
+                .map((property) => ({ id: property.id, label: property.label, value: property.value }))
+            )
+          }
 
-        proficiencyObject[equipmentCategory.value] = {
-          proficiencyId: proficiency.id,
-          type: [...existType, ...filteredProperties],
-          selectionCount: proficiency?.selectionCount || 0,
+          proficiencyObject[equipmentCategory.value] = {
+            proficiencyId: proficiency.id,
+            type: [...existType, ...filteredProperties],
+            selectionCount: proficiency?.selectionCount || 0,
+          }
         }
       }
     }
@@ -66,49 +67,51 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
         (category) => category.id === proficiency?.equipment?.category
       )
 
-      const existType: Array<{ id: string; label: string; value: string }> = [
-        ...(proficiencyObject[equipmentCategory.value]?.type || []),
-      ]
+      if (equipmentCategory) {
+        const existType: Array<{ id: string; label: string; value: string }> = [
+          ...(proficiencyObject[equipmentCategory.value]?.type || []),
+        ]
 
-      const filteredEquipment = []
-      if (proficiency?.equipment.ids.some((id) => id === 'all')) {
-        if (proficiency?.equipment.properties.length > 0) {
-          filteredEquipment.push(
-            ...equipment
-              .filter((sEquipment) => sEquipment.category === proficiency?.equipment.category)
-              .filter((sEquipment) =>
-                sEquipment.properties.some((eProperty) => proficiency?.equipment.properties.includes(eProperty))
-              )
-              .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-              .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
-          )
+        const filteredEquipment = []
+        if (proficiency?.equipment?.ids?.some((id) => id === 'all')) {
+          if (proficiency?.equipment?.properties?.length) {
+            filteredEquipment.push(
+              ...equipment
+                .filter((sEquipment) => sEquipment.category === proficiency?.equipment?.category)
+                .filter((sEquipment) =>
+                  sEquipment?.properties?.some((eProperty) => proficiency?.equipment?.properties?.includes(eProperty))
+                )
+                .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
+                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
+            )
+          } else {
+            filteredEquipment.push(
+              ...equipment
+                .filter((sEquipment) => sEquipment.category === proficiency?.equipment?.category)
+                .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
+                .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
+            )
+          }
         } else {
           filteredEquipment.push(
             ...equipment
-              .filter((sEquipment) => sEquipment.category === proficiency?.equipment.category)
+              .filter((sEquipment) => proficiency?.equipment?.ids?.some((id) => id === sEquipment.id))
               .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
               .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
           )
         }
-      } else {
-        filteredEquipment.push(
-          ...equipment
-            .filter((sEquipment) => proficiency?.equipment.ids.some((id) => id === sEquipment.id))
-            .filter((sEquipment) => !existType.some((type) => type.id === sEquipment.id))
-            .map((sEquipment) => ({ id: sEquipment.id, label: sEquipment.label, value: sEquipment.value }))
-        )
-      }
 
-      proficiencyObject[equipmentCategory.value] = {
-        proficiencyId: proficiency.id,
-        type: [...existType, ...filteredEquipment],
-        selectionCount: proficiency?.selectionCount || 0,
+        proficiencyObject[equipmentCategory.value] = {
+          proficiencyId: proficiency.id,
+          type: [...existType, ...filteredEquipment],
+          selectionCount: proficiency?.selectionCount || 0,
+        }
       }
     } else if (proficiency?.category === ProficiencyCategories.skills) {
       const existType: Array<{ id: string; label: string; value: string }> = [...(proficiencyObject?.skils?.type || [])]
 
       const filteredSkills = []
-      if (proficiency?.skills.some((skill) => skill === 'all')) {
+      if (proficiency?.skills?.some((skill) => skill === 'all')) {
         filteredSkills.push(
           ...system.skills
             .filter((skill) => !existType.some((type) => type.id === skill.id))
@@ -186,8 +189,8 @@ const useGetProficiencies = ({ fullClass }: { fullClass: Class }) => {
   const sortedProficiencyObject = Object.fromEntries(
     Object.entries(proficiencyObject).sort(([keyA, valueA], [keyB, valueB]) => {
       // If one has selectionCount and the other doesn't, the one with selectionCount goes last
-      if (valueA.selectionCount > 0 !== valueB.selectionCount > 0) {
-        return valueA.selectionCount > 0 ? 1 : -1
+      if (valueA.selectionCount !== valueB.selectionCount) {
+        return valueA.selectionCount ? 1 : -1
       }
       // If both have same selectionCount status, sort alphabetically
       return keyA.localeCompare(keyB)

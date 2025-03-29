@@ -1,0 +1,2765 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type AbilityGenerateMethod {
+  id: ID!
+  label: String!
+  options: [GenerateOption]!
+  total: Int
+  value: String!
+}
+
+input AbilityGenerateMethodInput {
+  id: ID!
+  label: String!
+  options: [GenerateOptionInput]!
+  total: Int
+  value: String!
+}
+
+type AbilityScore {
+  abilities: [ID!]
+  score: Int
+}
+
+input AbilityScoreInput {
+  abilities: [ID!]
+  score: Int
+}
+
+type ActionGroup {
+  primary: ActionProperty
+  secondary: ActionProperty
+}
+
+input ActionGroupInput {
+  primary: ActionPropertyInput
+  secondary: ActionPropertyInput
+}
+
+type ActionProperty {
+  amount: Int
+  id: ID
+}
+
+input ActionPropertyInput {
+  amount: Int
+  id: ID
+}
+
+enum AllEnum {
+  all
+}
+
+enum AllEnumInput {
+  all
+}
+
+type Ancestry {
+  desc: String
+  id: ID!
+  label: String!
+  options: [AncestryOption!]!
+  value: String!
+}
+
+type AncestryFeature {
+  actions: ActionGroup
+  attributes: [ID]
+  category: ID
+  charges: Charge
+  damage: Damage
+  desc: String
+  detail: String
+  expertise: [FeatureExpertise!]
+  feats: [FeatureFeat]
+  id: ID!
+  label: String
+  levelAvailable: String
+  modifiers: [FeatureModifier!]
+  options: [FeatureOption!]
+  optionsByLevel: [OptionsByLevel!]
+  prerequisites: Prerequisite
+  proficiencies: [FeatureProficiency!]
+  range: Range
+  saveAbility: SaveAbility
+  senses: [FeatureSense!]
+  shape: Shape
+  spells: [FeatureSpell!]
+  targets: Int
+  value: String
+}
+
+input AncestryFeatureInput {
+  actions: ActionGroupInput
+  attributes: [ID]
+  category: ID
+  charges: ChargeInput
+  damage: DamageInput
+  desc: String
+  detail: String
+  expertise: [FeatureExpertiseInput!]
+  feats: [FeatureFeatInput!]
+  id: ID!
+  label: String
+  levelAvailable: String
+  modifiers: [FeatureModifierInput!]
+  options: [FeatureOptionInput!]
+  optionsByLevel: [OptionsByLevelInput!]
+  prerequisites: PrerequisiteInput
+  proficiencies: [FeatureProficiencyInput!]
+  range: RangeInput
+  saveAbility: SaveAbilityInput
+  senses: [FeatureSenseInput!]
+  shape: ShapeInput
+  spells: [FeatureSpellInput!]
+  targets: Int
+  value: String
+}
+
+input AncestryInput {
+  desc: String
+  id: ID!
+  label: String!
+  options: [AncestryOptionInput!]!
+  value: String!
+}
+
+type AncestryOption {
+  desc: String
+  features: [AncestryFeature!]
+  id: ID!
+  label: String!
+  value: String!
+}
+
+input AncestryOptionInput {
+  desc: String
+  features: [AncestryFeatureInput!]
+  id: ID!
+  label: String!
+  value: String!
+}
+
+type Background {
+  desc: String
+  details: [Detail!]
+  equipment: [[[BackgroundEquipment!]]]
+  features: [Feature!]
+  id: ID!
+  label: String!
+  masterId: String
+  ownerId: ID!
+  proficiencies: [FeatureProficiency!]
+  systemId: ID!
+  value: String!
+}
+
+type BackgroundConnection {
+  items: [Background]!
+  nextToken: String
+}
+
+type BackgroundCurrency {
+  amount: Int
+  id: ID!
+}
+
+input BackgroundCurrencyInput {
+  amount: Int
+  id: ID!
+}
+
+type BackgroundEquipment {
+  attributes: [ID!]
+  category: ID
+  currencies: [BackgroundCurrency!]
+  equipment: [ID!]
+  properties: [ID!]
+  quantity: Int
+  selectionCount: Int
+}
+
+input BackgroundEquipmentInput {
+  attributes: [ID!]
+  category: ID
+  currencies: [BackgroundCurrencyInput]
+  equipment: [ID!]
+  properties: [ID!]
+  quantity: Int
+  selectionCount: Int
+}
+
+input BackgroundInput {
+  desc: String
+  details: [DetailInput!]
+  equipment: [[[BackgroundEquipmentInput!]]]
+  features: [FeatureInput!]
+  id: ID!
+  label: String!
+  masterId: String
+  ownerId: String
+  proficiencies: [FeatureProficiencyInput!]
+  systemId: ID!
+  value: String!
+}
+
+type BackgroundStartingEquipment {
+  addedToCharacter: Boolean
+  equipmentGroups: [StartingEquipmentGroup!]
+}
+
+input BackgroundStartingEquipmentInput {
+  addedToCharacter: Boolean
+  equipmentGroups: [StartingEquipmentGroupInput!]
+}
+
+input BatchBackgroundsInput {
+  data: BackgroundInput!
+  tableName: String!
+}
+
+input BatchClassesInput {
+  data: ClassInput!
+  tableName: String!
+}
+
+input BatchEquipmentInput {
+  data: EquipmentInput!
+  tableName: String!
+}
+
+input BatchFeatInput {
+  data: FeatInput!
+  tableName: String!
+}
+
+input BatchRacesInput {
+  data: RaceInput!
+  tableName: String!
+}
+
+input BatchSpellsInput {
+  data: SpellInput!
+  tableName: String!
+}
+
+input BatchSystemsInput {
+  data: SystemInput!
+  tableName: String!
+}
+
+type Capacity {
+  amount: Float
+  unit: ID!
+}
+
+input CapacityInput {
+  amount: Float
+  unit: ID!
+}
+
+type Character {
+  abilities: CharacterAbilities
+  advancement: ID
+  ancestry: CharacterAncestry
+  background: ID
+  backgroundEquipment: BackgroundStartingEquipment
+  classEquipment: ClassStartingEquipment
+  classes: [CharacterClass!]
+  currencyGroups: [CurrencyGroup!]
+  desc: String
+  equipment: [Contains!]
+  exp: ID
+  expertise: [CharacterExpertise!]
+  feats: [CharacterFeat!]
+  features: [CharacterFeature!]
+  hitpoint: CharacterHitpoint
+  id: ID!
+  label: String!
+  modifiers: [CharacterModifier!]
+  ownerId: String!
+  proficiencies: [CharacterProficiency!]
+  race: ID
+  senses: [CharacterSense!]
+  spellcasting: CharacterSpellcasting
+  systemId: String!
+  value: String!
+}
+
+type CharacterAbilities {
+  manualRolled: ManualRolled
+  pointBuy: PointBuy
+  scores: [Scores!]
+  selectedSystem: ID
+  standardArray: [StandardArray!]
+}
+
+input CharacterAbilitiesInput {
+  manualRolled: ManualRolledInput
+  pointBuy: PointBuyInput
+  scores: [ScoresInput!]
+  selectedSystem: ID
+  standardArray: [StandardArrayInput!]
+}
+
+type CharacterAncestry {
+  id: ID
+  lineages: [ID!]
+  raceId: ID
+}
+
+input CharacterAncestryInput {
+  id: ID
+  lineage: [LineageInput!]
+  raceId: ID
+}
+
+type CharacterClass {
+  id: ID
+  level: Int
+  subclass: Subclass
+}
+
+input CharacterClassInput {
+  id: ID
+  level: Int
+  subclass: SubclassInput
+}
+
+type CharacterConnection {
+  items: [Character]!
+  nextToken: String
+}
+
+type CharacterCurrency {
+  amount: Int!
+  id: ID!
+}
+
+input CharacterCurrencyInput {
+  amount: Int!
+  id: ID!
+}
+
+type CharacterExpertise {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipment: ID
+  equipmentId: ID
+  expertiseId: ID!
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  language: ID
+  optionId: ID
+  optionIndex: String
+  property: ID
+  raceId: ID
+  saveAbility: ID
+  skill: ID
+}
+
+input CharacterExpertiseInput {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipment: ID
+  equipmentId: ID
+  expertiseId: ID!
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  language: ID
+  optionId: ID
+  optionIndex: String
+  property: ID
+  raceId: ID
+  saveAbility: ID
+  skill: ID
+}
+
+type CharacterFeat {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  optionId: ID
+  optionIndex: String
+  raceId: ID
+}
+
+input CharacterFeatInput {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  optionId: ID
+  optionIndex: String
+  raceId: ID
+}
+
+type CharacterFeature {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  id: ID
+  level: Int
+  options: [CharacterFeatureOption!]
+  raceId: ID
+}
+
+input CharacterFeatureInput {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  id: ID
+  level: Int
+  options: [CharacterFeatureOptionInput!]
+  raceId: ID
+}
+
+type CharacterFeatureOption {
+  featureLevel: Int!
+  id: ID!
+  optionIndex: String!
+}
+
+input CharacterFeatureOptionInput {
+  featureLevel: Int!
+  id: ID!
+  optionIndex: String!
+}
+
+type CharacterHitpoint {
+  bonus: Int
+  fixed: HitpointFixed
+  maxHitpoints: Int!
+  maxOverride: Int
+  method: ID!
+  rolled: HitpointRoll
+  temp: Int
+}
+
+input CharacterHitpointInput {
+  bonus: Int
+  fixed: HitpointFixedInput
+  maxHitpoints: Int!
+  maxOverride: Int
+  method: ID!
+  rolled: HitpointRollInput
+  temp: Int
+}
+
+input CharacterInput {
+  abilities: CharacterAbilitiesInput
+  advancement: ID
+  ancestry: CharacterAncestryInput
+  background: ID
+  backgroundEquipment: BackgroundStartingEquipmentInput
+  classEquipment: ClassStartingEquipmentInput
+  classes: [CharacterClassInput]
+  currencyGroups: [CurrencyGroupInput!]
+  desc: String
+  equipment: [ContainsInput!]
+  exp: Int
+  expertise: CharacterExpertiseInput
+  feats: [CharacterFeatInput!]
+  features: [CharacterFeatureInput!]
+  hitpoint: CharacterHitpointInput
+  id: ID!
+  label: String!
+  modifiers: CharacterModifierInput
+  ownerId: String
+  proficiencies: CharacterProficiencyInput
+  race: ID
+  senses: [CharacterSenseInput!]
+  spellcasting: CharacterSpellcastingInput
+  systemId: String!
+  value: String!
+}
+
+type CharacterModifier {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  modifierId: ID!
+  optionId: ID
+  optionIndex: String
+  raceId: ID
+}
+
+input CharacterModifierInput {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  modifierId: ID!
+  optionId: ID
+  optionIndex: String
+  raceId: ID
+}
+
+type CharacterProficiency {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipment: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  language: ID
+  optionId: ID
+  optionIndex: String
+  proficiencyId: ID!
+  property: ID
+  raceId: ID
+  saveAbility: ID
+  skill: ID
+}
+
+input CharacterProficiencyInput {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipment: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  language: ID
+  optionId: ID
+  optionIndex: String
+  proficiencyId: ID!
+  property: ID
+  raceId: ID
+  saveAbility: ID
+  skill: ID
+}
+
+type CharacterSense {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  id: ID
+  optionId: ID
+  optionIndex: String
+  raceId: ID
+  senseId: ID!
+}
+
+input CharacterSenseInput {
+  ancestryId: ID
+  backgroundId: ID
+  classId: ID
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  optionId: ID
+  optionIndex: String
+  raceId: ID
+  senseId: ID
+}
+
+type CharacterSetting {
+  advancementMethods: [GenericType]!
+  hitpointCalcMethods: [GenericType]!
+  spellPointCalcMethods: [GenericType]!
+  startingEquipmentOptions: [GenericType]!
+}
+
+input CharacterSettingInput {
+  advancementMethods: [GenericTypeInput]!
+  hitpointCalcMethods: [GenericTypeInput]!
+  spellPointCalcMethods: [GenericTypeInput]!
+  startingEquipmentOptions: [GenericTypeInput]!
+}
+
+type CharacterSpell {
+  ability: ID
+  alwaysPrepared: Boolean
+  ancestryId: ID
+  backgroundId: ID
+  castAtLevel: Boolean
+  classId: ID
+  countAsKnown: Boolean
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  id: ID!
+  isRitual: Boolean
+  level: Int!
+  optionId: ID
+  optionIndex: String
+  optionalAbility: Boolean
+  raceId: ID
+  requiresConcentration: Boolean
+  usesSlot: Boolean
+}
+
+input CharacterSpellInput {
+  ability: ID
+  alwaysPrepared: Boolean
+  ancestryId: ID
+  backgroundId: ID
+  castAtLevel: Boolean
+  classId: ID
+  countAsKnown: Boolean
+  equipmentId: ID
+  featId: ID
+  featureId: ID
+  featureLevel: Int
+  id: ID!
+  isRitual: Boolean
+  level: Int!
+  optionId: ID
+  optionIndex: String
+  optionalAbility: Boolean
+  raceId: ID
+  requiresConcentration: Boolean
+  usesSlot: Boolean
+}
+
+type CharacterSpellSlots {
+  classId: ID!
+  level: Int!
+  used: Int!
+}
+
+input CharacterSpellSlotsInputs {
+  classId: ID!
+  level: Int!
+  used: Int!
+}
+
+type CharacterSpellcasting {
+  additional: [CharacterSpell!]
+  known: [ClassSpellList!]
+  prepared: [ClassSpellList!]
+  spellSlots: [CharacterSpellSlots!]
+}
+
+input CharacterSpellcastingInput {
+  additional: [CharacterSpellInput!]
+  known: [ClassSpellListInput!]
+  prepared: [ClassSpellListInput!]
+  spellSlots: [CharacterSpellSlotsInputs!]
+}
+
+type Charge {
+  ability: ID
+  addAmount: Int
+  limit: ID
+  minAmount: Int
+  multiplier: Int
+  reset: ID
+  resourcePoints: Int
+  setAmount: Int
+  skill: ID
+  usesPerLevel: [UsesPerLevel!]
+}
+
+input ChargeInput {
+  ability: ID
+  addAmount: Int
+  limit: ID
+  minAmount: Int
+  multiplier: Int
+  reset: ID
+  resourcePoints: Int
+  setAmount: Int
+  skill: ID
+  usesPerLevel: [UsesPerLevelInput]
+}
+
+type ChargeOption {
+  classes: [ClassesEnum]
+  damage: [DamageEnum]
+  equipment: [EquipmentEnum]
+  feats: [AllEnum]
+  features: [FeatureEnum]
+  id: ID!
+  label: String!
+  sections: [SectionEnum]
+  spells: [SpellEnum]
+  value: String!
+}
+
+input ChargeOptionInput {
+  classes: [ClassesEnumInput]
+  damage: [DamageEnumInput]
+  equipment: [EquipmentEnumInput]
+  feats: [AllEnumInput]
+  features: [FeatureEnumInput]
+  id: ID!
+  label: String!
+  sections: [SectionEnumInput]
+  spells: [SpellEnumInput]
+  value: String!
+}
+
+type Class {
+  attributes: [ID!]
+  category: ID!
+  desc: String
+  details: [Detail!]
+  equipment: [[[ClassEquipment!]]]
+  features: [Feature!]
+  hitpoint: Hitpoint
+  id: ID!
+  label: String!
+  levelAttributes: [LevelAttribute!]
+  masterId: String
+  multiclass: Multiclass
+  ownerId: ID!
+  parentClass: ID
+  proficiencies: [FeatureProficiency!]
+  resource: Resource
+  spellcasting: Spellcasting
+  startingGold: StartingGold
+  subtypes: [Subtype!]
+  systemId: ID!
+  value: String!
+}
+
+type ClassConnection {
+  items: [Class]!
+  nextToken: String
+}
+
+type ClassCurrency {
+  amount: Int
+  id: ID!
+}
+
+input ClassCurrencyInput {
+  amount: Int
+  id: ID!
+}
+
+type ClassEquipment {
+  attributes: [ID!]
+  category: ID
+  currencies: [ClassCurrency]
+  equipment: [ID!]
+  properties: [ID!]
+  quantity: Int
+  selectionCount: Int
+}
+
+input ClassEquipmentInput {
+  attributes: [ID!]
+  category: ID
+  currencies: [ClassCurrencyInput!]
+  equipment: [ID!]
+  properties: [ID!]
+  quantity: Int
+  selectionCount: Int
+}
+
+input ClassInput {
+  attributes: [ID!]
+  category: ID!
+  desc: String
+  details: [DetailInput!]
+  equipment: [[[ClassEquipmentInput!]]]
+  features: [FeatureInput!]
+  hitpoint: HitpointInput
+  id: ID!
+  label: String!
+  levelAttributes: [LevelAttributeInput!]
+  masterId: String
+  multiclass: MulticlassInput
+  ownerId: String
+  parentClass: ID
+  proficiencies: [FeatureProficiencyInput!]
+  resource: ResourceInput
+  spellcasting: SpellcastingInput
+  startingGold: StartingGoldInput
+  subtypes: [SubtypeInput!]
+  systemId: ID!
+  value: String!
+}
+
+type ClassSpell {
+  ability: ID
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  classId: ID!
+  countAsKnown: Boolean
+  id: ID!
+  isRitual: Boolean
+  optionalAbility: Boolean
+  requiresConcentration: Boolean
+  usesSlot: Boolean
+}
+
+input ClassSpellInput {
+  ability: ID
+  alwaysPrepared: Boolean
+  castAtLevel: Boolean
+  classId: ID
+  countAsKnown: Boolean
+  id: ID!
+  isRitual: Boolean
+  optionalAbility: Boolean
+  requiresConcentration: Boolean
+  usesSlot: Boolean
+}
+
+type ClassSpellList {
+  level: Int!
+  spells: [ClassSpell!]
+}
+
+input ClassSpellListInput {
+  level: Int!
+  spells: [ClassSpellInput!]
+}
+
+type ClassStartingEquipment {
+  addedToCharacter: Boolean
+  equipmentGroups: [StartingEquipmentGroup!]
+  goldOption: ID
+  option: ID!
+  totalGold: Int
+}
+
+input ClassStartingEquipmentInput {
+  addedToCharacter: Boolean
+  equipmentGroups: [StartingEquipmentGroupInput!]
+  goldOption: ID
+  option: ID!
+  totalGold: Int
+}
+
+enum ClassesEnum {
+  all
+  base
+  prepareLimit
+  resources
+  spellcaster
+  subclass
+}
+
+enum ClassesEnumInput {
+  all
+  base
+  prepareLimit
+  resources
+  spellcaster
+  subclass
+}
+
+type Contains {
+  attuned: Boolean
+  contains: [Contains!]
+  equipped: Boolean
+  id: ID!
+  possessions: [Possessions!]
+  quantity: Int!
+}
+
+input ContainsInput {
+  attuned: Boolean
+  contains: [ContainsInput!]
+  equipped: Boolean
+  id: ID!
+  possessions: [PossessionsInput!]
+  quantity: Int!
+}
+
+type Cost {
+  amount: Int
+  currency: ID!
+}
+
+input CostInput {
+  amount: Int
+  currency: ID!
+}
+
+type Currency {
+  abbreviation: String!
+  conversions: CurrencyConversion!
+  desc: String
+  id: ID!
+  label: String!
+  value: String!
+}
+
+type CurrencyConversion {
+  copper: Float!
+  electrum: Float!
+  gold: Float!
+  platinum: Float!
+  silver: Float!
+}
+
+input CurrencyConversionInput {
+  copper: Float!
+  electrum: Float!
+  gold: Float!
+  platinum: Float!
+  silver: Float!
+}
+
+type CurrencyGroup {
+  container: ID
+  currencies: [CharacterCurrency!]
+}
+
+input CurrencyGroupInput {
+  container: ID
+  currencies: [CharacterCurrencyInput!]
+}
+
+input CurrencyInput {
+  abbreviation: String!
+  conversions: CurrencyConversionInput!
+  desc: String
+  id: ID!
+  label: String!
+  value: String!
+}
+
+type Damage {
+  attributes: [ID!]
+  bonus: DamageFields
+  damageSave: [ID!]
+  diePerLevel: [DiePerLevel!]
+  primary: DamageFields
+  secondary: DamageFields
+  setPerLevel: [SetPerLevel!]
+  versatile: DamageFields
+}
+
+enum DamageEnum {
+  all
+  bonus
+  equipment
+  main
+  pool
+}
+
+enum DamageEnumInput {
+  all
+  bonus
+  equipment
+  main
+  pool
+}
+
+type DamageFields {
+  ability: ID
+  attribute: ID
+  dieConfig: String
+  id: ID
+  maxAmount: Int
+  minAmount: Int
+  multiplier: Int
+  pool: DamagePool
+  setAmount: Int
+}
+
+input DamageFieldsInput {
+  ability: ID
+  attribute: ID
+  dieConfig: String
+  id: ID
+  maxAmount: Int
+  minAmount: Int
+  multiplier: Int
+  pool: DamagePoolInput
+  setAmount: Int
+}
+
+input DamageInput {
+  attributes: [ID!]
+  bonus: DamageFieldsInput
+  damageSave: [ID!]
+  diePerLevel: [DiePerLevelInput!]
+  primary: DamageFieldsInput
+  secondary: DamageFieldsInput
+  setPerLevel: [SetPerLevelInput!]
+  versatile: DamageFieldsInput
+}
+
+type DamagePool {
+  ability: ID
+  attribute: ID
+  maxAmount: Int
+  minAmount: Int
+  multiplier: Int
+  option: ID
+  setAmount: Int
+}
+
+input DamagePoolInput {
+  ability: ID
+  attribute: ID
+  maxAmount: Int
+  minAmount: Int
+  multiplier: Int
+  option: ID
+  setAmount: Int
+}
+
+type Detail {
+  desc: String
+  label: String!
+  value: String!
+}
+
+input DetailInput {
+  desc: String
+  label: String!
+  value: String!
+}
+
+type DiePerLevel {
+  bonus: DamageFields
+  level: String
+  primary: DamageFields
+  secondary: DamageFields
+}
+
+input DiePerLevelInput {
+  bonus: DamageFieldsInput
+  level: String
+  primary: DamageFieldsInput
+  secondary: DamageFieldsInput
+}
+
+type Distributed {
+  ability: ID
+  id: ID
+}
+
+input DistributedInput {
+  ability: ID!
+  id: ID!
+}
+
+type Duration {
+  amount: Int
+  id: ID!
+}
+
+input DurationInput {
+  amount: Int
+  id: ID!
+}
+
+type EquipPrerequisite {
+  category: ID
+  equipment: [ID!]
+  numberEquipped: Int
+  properties: [ID!]
+}
+
+input EquipPrerequisiteInput {
+  category: ID
+  equipment: [ID!]
+  numberEquipped: Int
+  properties: [ID!]
+}
+
+type Equipment {
+  armorClass: Int
+  attributes: [ID!]
+  capacity: Capacity
+  category: ID!
+  contains: [Contains!]
+  cost: Cost
+  damage: Damage
+  desc: String
+  equipmentRank: Int
+  features: [Feature!]
+  id: ID!
+  label: String!
+  masterId: String
+  maxBonus: Int
+  maxStack: Int
+  optionalAbility: ID
+  ownerId: ID!
+  prerequisities: Prerequisite
+  primaryAbility: ID
+  properties: [ID!]
+  quantity: Int!
+  quote: String
+  range: EquipmentRange
+  rank: Int
+  rarity: ID!
+  saveAbility: SaveAbility
+  secondaryAbility: ID
+  speed: Speed
+  systemId: ID!
+  value: String!
+  weight: Weight
+}
+
+type EquipmentCategoryProperty {
+  categoryId: ID!
+  id: ID!
+  propertyId: ID!
+}
+
+input EquipmentCategoryPropertyInput {
+  categoryId: ID!
+  id: ID!
+  propertyId: ID!
+}
+
+type EquipmentConnection {
+  items: [Equipment]!
+  nextToken: String
+}
+
+enum EquipmentEnum {
+  adventuringGear
+  all
+  armors
+  backgrounds
+  classes
+  shields
+  tools
+  weapons
+}
+
+enum EquipmentEnumInput {
+  adventuringGear
+  all
+  armors
+  backgrounds
+  classes
+  shields
+  tools
+  weapons
+}
+
+input EquipmentInput {
+  Rank: Int
+  armorClass: Int
+  attributes: [ID!]
+  capacity: CapacityInput
+  category: ID!
+  contains: [ContainsInput!]
+  cost: CostInput
+  damage: DamageInput
+  desc: String
+  equipmentRank: Int
+  features: [FeatureInput!]
+  id: ID!
+  label: String!
+  masterId: String
+  maxBonus: Int
+  maxStack: Int
+  optionalAbility: ID
+  ownerId: String
+  prerequisities: PrerequisiteInput
+  primaryAbility: ID
+  properties: [ID!]
+  quantity: Int
+  quote: String
+  range: EquipmentRangeInput
+  rarity: ID!
+  saveAbility: SaveAbilityInput
+  secondaryAbility: ID
+  speed: SpeedInput
+  systemId: ID!
+  value: String!
+  weight: WeightInput
+}
+
+type EquipmentRange {
+  maxRange: Int
+  minRange: Int
+  unit: ID!
+}
+
+input EquipmentRangeInput {
+  maxRange: Int
+  minRange: Int
+  unit: ID!
+}
+
+type Feat {
+  actions: ActionGroup
+  attributes: [ID!]
+  bonusDamage: Damage
+  category: ID
+  charges: Charge
+  desc: String
+  detail: String
+  expertise: [FeatureProficiency!]
+  feats: [FeatureFeat!]
+  features: [Feature!]
+  id: ID!
+  label: String!
+  levelAvailable: String
+  masterId: String
+  modifiers: [FeatureModifier!]
+  options: [FeatureOption!]
+  ownerId: String!
+  prerequisites: Prerequisite
+  primaryDamage: Damage
+  proficiencies: [FeatureProficiency!]
+  range: Range
+  saveAbility: SaveAbility
+  secondaryDamage: Damage
+  selectionCount: Int
+  senses: [FeatureSense!]
+  shape: Shape
+  spells: [FeatureSpell!]
+  systemId: ID!
+  targets: Int
+  value: String!
+}
+
+type FeatConnection {
+  items: [Feat]!
+  nextToken: String
+}
+
+input FeatInput {
+  actions: ActionGroupInput
+  attributes: [ID!]
+  bonusDamage: DamageInput
+  category: ID
+  charges: ChargeInput
+  desc: String
+  detail: String
+  expertise: [FeatureProficiencyInput!]
+  feats: [FeatureFeatInput!]
+  features: [FeatureInput!]
+  id: ID!
+  label: String!
+  levelAvailable: String
+  masterId: String
+  modifiers: [FeatureModifierInput!]
+  options: [FeatureOptionInput!]
+  ownerId: String!
+  prerequisites: PrerequisiteInput
+  primaryDamage: DamageInput
+  proficiencies: [FeatureProficiencyInput!]
+  range: RangeInput
+  saveAbility: SaveAbilityInput
+  secondaryDamage: DamageInput
+  selectionCount: Int
+  senses: [FeatureSenseInput!]
+  shape: ShapeInput
+  spells: [FeatureSpellInput!]
+  systemId: ID!
+  targets: Int
+  value: String!
+}
+
+type Feature {
+  actions: ActionGroup
+  attributes: [ID!]
+  category: ID
+  charges: Charge
+  damage: Damage
+  desc: String
+  detail: String
+  expertise: [FeatureExpertise!]
+  feats: [FeatureFeat!]
+  id: ID!
+  label: String
+  levelAvailable: String
+  modifiers: [FeatureModifier!]
+  options: [FeatureOption!]
+  optionsByLevel: [OptionsByLevel!]
+  prerequisites: Prerequisite
+  proficiencies: [FeatureProficiency!]
+  range: Range
+  saveAbility: SaveAbility
+  senses: [FeatureSense!]
+  shape: Shape
+  spells: [FeatureSpell!]
+  targets: Int
+  value: String
+}
+
+enum FeatureEnum {
+  all
+  equipment
+  features
+  options
+  saveAbilities
+}
+
+enum FeatureEnumInput {
+  all
+  equipment
+  features
+  options
+  saveAbilities
+}
+
+type FeatureExpertise {
+  attributes: [ID!]
+  category: ID!
+  equipment: ProficiencyProperties
+  id: ID!
+  languages: [ID!]
+  prerequisites: Prerequisite
+  properties: ProficiencyProperties
+  saveAbilities: [ID!]
+  selectionCount: Int
+  skills: [ID!]
+  subtype: ID
+}
+
+input FeatureExpertiseInput {
+  attributes: [ID!]
+  category: ID!
+  equipment: ProficiencyPropertiesInput
+  id: ID!
+  languages: [ID!]
+  prerequisites: PrerequisiteInput
+  properties: ProficiencyPropertiesInput
+  saveAbilities: [ID!]
+  selectionCount: Int
+  skills: [ID!]
+  subtype: ID
+}
+
+type FeatureFeat {
+  attributes: [ID!]
+  feats: [ID!]
+  id: ID!
+  prerequisites: Prerequisite
+  selectionCount: Int
+  subtype: ID
+}
+
+input FeatureFeatInput {
+  attributes: [ID!]
+  feats: [ID!]
+  id: ID!
+  prerequisites: PrerequisiteInput
+  selectionCount: Int
+  subtype: ID
+}
+
+input FeatureInput {
+  actions: ActionGroupInput
+  attributes: [ID!]
+  category: ID
+  charges: ChargeInput
+  damage: DamageInput
+  desc: String
+  detail: String
+  expertise: [FeatureExpertiseInput!]
+  feats: [FeatureFeatInput!]
+  id: ID!
+  label: String
+  levelAvailable: String
+  modifiers: [FeatureModifierInput!]
+  options: [FeatureOptionInput!]
+  optionsByLevel: [OptionsByLevelInput!]
+  prerequisites: PrerequisiteInput
+  proficiencies: [FeatureProficiencyInput!]
+  range: RangeInput
+  saveAbility: SaveAbilityInput
+  senses: [FeatureSenseInput!]
+  shape: ShapeInput
+  spells: [FeatureSpellInput!]
+  targets: Int
+  value: String
+}
+
+type FeatureModifier {
+  abilities: [ID!]
+  attributes: [ID!]
+  category: ID
+  charge: Charge
+  conditions: [ID!]
+  damageType: ID
+  damageTypes: [ID!]
+  dieConfig: String
+  diePerLevel: [ModifierDiePerLevel!]
+  duration: ID
+  feature: ID
+  id: ID!
+  maxAmount: Int
+  maxRange: Int
+  method: ID
+  methodAbility: ID
+  methodSkill: ID
+  minAmount: Int
+  minRange: Int
+  multiplier: Int
+  prerequisites: Prerequisite
+  range: ID
+  saveAbilities: [ID!]
+  selectionCount: Int
+  setAmount: Int
+  setPerLevel: [ModifierSetPerLevel!]
+  shape: ID
+  size: Int
+  skills: [ID!]
+  speeds: [ID!]
+  spell: ID
+  spellCategory: ID
+  subtype: ID
+  type: ID
+  unit: ID
+}
+
+input FeatureModifierInput {
+  abilities: [ID!]
+  attributes: [ID!]
+  category: ID
+  charge: ChargeInput
+  conditions: [ID!]
+  damageType: ID
+  damageTypes: [ID!]
+  dieConfig: String
+  diePerLevel: [ModifierDiePerLevelInput!]
+  duration: ID
+  feature: ID
+  id: ID!
+  maxAmount: Int
+  maxRange: Int
+  method: ID
+  methodAbility: ID
+  methodSkill: ID
+  minAmount: Int
+  minRange: Int
+  multiplier: Int
+  prerequisites: PrerequisiteInput
+  range: ID
+  saveAbilities: [ID!]
+  selectionCount: Int
+  setAmount: Int
+  setPerLevel: [ModifierSetPerLevelInput!]
+  shape: ID
+  size: Int
+  skills: [ID!]
+  speeds: [ID!]
+  spellCategory: ID
+  spells: ID
+  subtype: ID
+  type: ID
+  unit: ID
+}
+
+type FeatureOption {
+  actions: ActionGroup
+  attributes: [ID!]
+  category: ID
+  charges: Charge
+  damage: Damage
+  desc: String
+  detail: String
+  expertise: [FeatureExpertise!]
+  feats: [FeatureFeat]
+  id: ID!
+  label: String
+  levelAvailable: String
+  modifiers: [FeatureModifier!]
+  prerequisites: Prerequisite
+  proficiencies: [FeatureProficiency!]
+  range: Range
+  saveAbility: SaveAbility
+  senses: [FeatureSense!]
+  shape: Shape
+  spells: [FeatureSpell!]
+  targets: Int
+  value: String
+}
+
+input FeatureOptionInput {
+  actions: ActionGroupInput
+  attributes: [ID!]
+  category: ID
+  charges: ChargeInput
+  damage: DamageInput
+  desc: String
+  detail: String
+  expertise: [FeatureExpertiseInput!]
+  feats: [FeatureFeatInput!]
+  id: ID!
+  label: String
+  levelAvailable: String
+  modifiers: [FeatureModifierInput!]
+  prerequisites: PrerequisiteInput
+  proficiencies: [FeatureProficiencyInput!]
+  range: RangeInput
+  saveAbility: SaveAbilityInput
+  senses: [FeatureSenseInput!]
+  shape: ShapeInput
+  spells: [FeatureSpellInput!]
+  targets: Int
+  value: String
+}
+
+type FeatureProficiency {
+  attributes: [ID!]
+  category: ID!
+  equipment: ProficiencyProperties
+  id: ID!
+  languages: [ID!]
+  level: ID!
+  prerequisites: Prerequisite
+  properties: ProficiencyProperties
+  rounding: ID
+  saveAbilities: [ID!]
+  selectionCount: Int
+  skills: [ID!]
+  subtype: ID
+}
+
+input FeatureProficiencyInput {
+  attributes: [ID!]
+  category: ID!
+  equipment: ProficiencyPropertiesInput
+  id: ID!
+  languages: [ID!]
+  level: ID
+  prerequisites: PrerequisiteInput
+  properties: ProficiencyPropertiesInput
+  rounding: ID
+  saveAbilities: [ID!]
+  selectionCount: Int
+  skills: [ID!]
+  subtype: ID
+}
+
+type FeatureSense {
+  attributes: [ID!]
+  id: ID!
+  ids: [ID!]
+  prerequisites: Prerequisite
+  selectionCount: Int
+  subtype: ID
+}
+
+input FeatureSenseInput {
+  attributes: [ID!]
+  charges: ChargeInput
+  id: ID!
+  ids: [ID!]
+  prerequisites: PrerequisiteInput
+  selectionCount: Int
+  subtype: ID
+}
+
+type FeatureSpell {
+  ability: ID
+  attributeLimit: [ID!]
+  attributes: [ID!]
+  charges: Charge
+  classLimit: [ID!]
+  id: ID!
+  ids: [ID!]
+  levelLimit: [String!]
+  prerequisites: Prerequisite
+  selectionCount: Int
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevel!]
+  subtype: ID
+}
+
+input FeatureSpellInput {
+  ability: ID
+  attributeLimit: [ID!]
+  attributes: [ID!]
+  charges: ChargeInput
+  classLimit: [ID!]
+  ids: [ID!]
+  levelLimit: [String!]
+  prerequisites: PrerequisiteInput
+  selectionCount: Int
+  spellLevel: Int
+  spellsByLevel: [SpellsByLevelInput!]
+  subtype: ID
+}
+
+type GenerateOption {
+  id: ID!
+  label: String!
+  reduce: Int
+  value: String!
+}
+
+input GenerateOptionInput {
+  id: ID!
+  label: String!
+  reduce: Int
+  value: String!
+}
+
+type GenericType {
+  desc: String
+  id: ID!
+  label: String!
+  short: String
+  tooltip: String
+  value: String!
+}
+
+input GenericTypeInput {
+  desc: String
+  id: ID!
+  label: String!
+  short: String
+  tooltip: String
+  value: String!
+}
+
+type Hitpoint {
+  ability: ID
+  dieConfig: String
+}
+
+type HitpointFixed {
+  current: Int
+  total: Int
+}
+
+input HitpointFixedInput {
+  current: Int
+  total: Int
+}
+
+input HitpointInput {
+  ability: ID
+  dieConfig: String
+}
+
+type HitpointRoll {
+  current: Int
+  total: Int
+  values: [HitpointRollValues!]
+}
+
+input HitpointRollInput {
+  current: Int
+  total: Int
+  values: [HitpointRollValuesInput!]
+}
+
+type HitpointRollValues {
+  level: Int!
+  value: Int!
+}
+
+input HitpointRollValuesInput {
+  level: Int!
+  value: Int!
+}
+
+type Imperial {
+  length: [GenericType]!
+  volume: [GenericType]!
+  weight: [GenericType]!
+}
+
+input ImperialInput {
+  length: [GenericTypeInput]!
+  volume: [GenericTypeInput]!
+  weight: [GenericTypeInput]!
+}
+
+type LevelAttribute {
+  cantripsKnownLimit: Int
+  level: Int
+  resourcePoints: Int
+  spellSlots: [SpellSlot!]
+  spellsKnownLimit: Int
+}
+
+input LevelAttributeInput {
+  cantripsKnownLimit: Int
+  level: Int
+  resourcePoints: Int
+  spellSlots: [SpellSlotInput!]
+  spellsKnownLimit: Int
+}
+
+input LineageInput {
+  id: ID
+  raceId: ID
+}
+
+type Manual {
+  ability: ID
+  score: Int
+}
+
+input ManualInput {
+  ability: ID
+  score: Int
+}
+
+type ManualRolled {
+  configuration: String!
+  manual: [Manual!]
+  rollGroups: [[RollType!]]
+}
+
+input ManualRolledInput {
+  configuration: String!
+  manual: [ManualInput!]
+  rollGroups: [[RollTypeInput!]]
+}
+
+type ModifierCategoryType {
+  categoryId: String!
+  id: ID!
+  typeId: String!
+}
+
+input ModifierCategoryTypeInput {
+  categoryId: String!
+  id: ID!
+  typeId: String!
+}
+
+type ModifierCategoryTypeMethod {
+  categoryId: String!
+  id: ID!
+  methodId: String!
+  typeId: String!
+}
+
+input ModifierCategoryTypeMethodInput {
+  categoryId: String!
+  id: ID!
+  methodId: String!
+  typeId: String!
+}
+
+type ModifierDiePerLevel {
+  dieConfig: String
+  level: String
+}
+
+input ModifierDiePerLevelInput {
+  dieConfig: String
+  level: String
+}
+
+type ModifierSetPerLevel {
+  level: String
+  setAmount: Int
+}
+
+input ModifierSetPerLevelInput {
+  level: String
+  setAmount: Int
+}
+
+type ModifierTypeMethod {
+  id: ID!
+  methodId: String!
+  typeId: String!
+}
+
+input ModifierTypeMethodInput {
+  id: ID!
+  methodId: String!
+  typeId: String!
+}
+
+type Multiclass {
+  optionalAbility: MulticlassAbility
+  primaryAbility: MulticlassAbility
+  secondaryAbility: MulticlassAbility
+}
+
+type MulticlassAbility {
+  id: ID
+  minAmount: Int
+}
+
+input MulticlassAbilityInput {
+  id: ID
+  minAmount: Int
+}
+
+input MulticlassInput {
+  optionalAbility: MulticlassAbilityInput
+  primaryAbility: MulticlassAbilityInput
+  secondaryAbility: MulticlassAbilityInput
+}
+
+type Mutation {
+  batchCreateBackgrounds(input: [BatchBackgroundsInput!]!): [Background!]!
+  batchCreateClasses(input: [BatchClassesInput!]!): [Class!]!
+  batchCreateEquipment(input: [BatchEquipmentInput!]!): [Equipment!]!
+  batchCreateFeats(input: [BatchFeatInput!]!): [Feat!]!
+  batchCreateMasterBackgrounds(input: [BatchBackgroundsInput!]!): [Background!]!
+  batchCreateMasterClasses(input: [BatchClassesInput!]!): [Class!]!
+  batchCreateMasterEquipment(input: [BatchEquipmentInput!]!): [Equipment!]!
+  batchCreateMasterFeats(input: [BatchFeatInput!]!): [Feat!]!
+  batchCreateMasterRaces(input: [BatchRacesInput!]!): [Race!]!
+  batchCreateMasterSpells(input: [BatchSpellsInput]!): [Spell!]!
+  batchCreateMasterSystems(input: [BatchSystemsInput!]!): [System!]!
+  batchCreateRaces(input: [BatchRacesInput!]!): [Race!]!
+  batchCreateSpells(input: [BatchSpellsInput]!): [Spell!]!
+  batchCreateSystems(input: [BatchSystemsInput!]!): [System!]!
+  createBackground(input: BackgroundInput!): Background!
+  createCharacter(input: CharacterInput!): Character!
+  createClass(input: ClassInput!): Class!
+  createEquipment(input: EquipmentInput!): Equipment!
+  createFeat(input: FeatInput!): Feat!
+  createMasterBackground(input: BackgroundInput!): Background!
+  createMasterClass(input: ClassInput!): Class!
+  createMasterEquipment(input: EquipmentInput!): Equipment!
+  createMasterFeat(input: FeatInput!): Feat!
+  createMasterRace(input: RaceInput!): Race!
+  createMasterSpell(input: SpellInput!): Spell!
+  createMasterSystem(input: SystemInput!): System!
+  createRace(input: RaceInput!): Race!
+  createSpell(input: SpellInput!): Spell!
+  createSystem(input: SystemInput!): System!
+  deleteBackground(id: ID!): ID!
+  deleteCharacter(id: ID!): ID!
+  deleteClass(id: ID!): ID!
+  deleteEquipment(id: ID!): ID!
+  deleteFeat(id: ID!): ID!
+  deleteMasterBackground(id: ID!): ID!
+  deleteMasterClass(id: ID!): ID!
+  deleteMasterEquipment(id: ID!): ID!
+  deleteMasterFeat(id: ID!): ID!
+  deleteMasterRace(id: ID!): ID!
+  deleteMasterSpell(id: ID!): ID!
+  deleteMasterSystem(id: ID!): ID!
+  deleteRace(id: ID!): ID!
+  deleteSpell(id: ID!): ID!
+  deleteSystem(id: ID!): ID!
+  updateBackground(input: BackgroundInput!): Background!
+  updateCharacter(input: CharacterInput!): Character!
+  updateClass(input: ClassInput!): Class!
+  updateEquipment(input: EquipmentInput!): Equipment!
+  updateFeat(input: FeatInput!): Feat!
+  updateMasterBackground(input: BackgroundInput!): Background!
+  updateMasterClass(input: ClassInput!): Class!
+  updateMasterEquipment(input: EquipmentInput!): Equipment!
+  updateMasterFeat(input: FeatInput!): Feat!
+  updateMasterRace(input: RaceInput!): Race!
+  updateMasterSpell(input: SpellInput!): Spell!
+  updateMasterSystem(input: SystemInput!): System!
+  updateRace(input: RaceInput!): Race!
+  updateSpell(input: SpellInput!): Spell!
+  updateSystem(input: SystemInput!): System!
+}
+
+type OptionsByLevel {
+  count: Int
+  level: Int
+  replaceCount: Int
+}
+
+input OptionsByLevelInput {
+  count: Int
+  level: Int
+  replaceCount: Int
+}
+
+type PointBuy {
+  distributed: [Distributed!]
+  pointsLeft: Int
+}
+
+input PointBuyInput {
+  distributed: [DistributedInput!]
+  pointsLeft: Int
+}
+
+type Possessions {
+  desc: String
+  id: ID!
+  label: String!
+  value: String!
+}
+
+input PossessionsInput {
+  desc: String
+  id: ID!
+  label: String!
+  value: String!
+}
+
+type PrepareLimit {
+  level: PrepareLimitLevel
+  methods: [ID!]
+}
+
+input PrepareLimitInput {
+  level: PrepareLimitLevelInput
+  methods: [ID!]
+}
+
+type PrepareLimitLevel {
+  measurement: ID
+  rounding: ID
+}
+
+input PrepareLimitLevelInput {
+  measurement: ID
+  rounding: ID
+}
+
+type Prerequisite {
+  abilityScore: AbilityScore
+  equipmentProficiencies: [EquipPrerequisite!]
+  equipped: [EquipPrerequisite!]
+  featuresObtained: [ID!]
+  notEquipped: [EquipPrerequisite!]
+  options: [ID!]
+  optionsObtained: [ID!]
+  size: [ID!]
+  skillProficiencies: [ID!]
+  spellsObtained: [ID!]
+}
+
+input PrerequisiteInput {
+  abilityScore: AbilityScoreInput
+  equipmentProficiencies: [EquipPrerequisiteInput!]
+  equipped: [EquipPrerequisiteInput!]
+  featuresObtained: [ID!]
+  notEquipped: [EquipPrerequisiteInput!]
+  options: [ID!]
+  optionsObtained: [ID!]
+  size: [ID!]
+  skillProficiencies: [ID!]
+  spellsObtained: [ID!]
+}
+
+type ProficiencyLevel {
+  id: ID!
+  label: String!
+  multiplier: Float
+  value: String!
+}
+
+input ProficiencyLevelInput {
+  id: ID!
+  label: String!
+  multiplier: Float
+  value: String!
+}
+
+type ProficiencyProperties {
+  category: ID
+  ids: [ID!]
+  properties: [ID!]
+}
+
+input ProficiencyPropertiesInput {
+  category: ID
+  ids: [ID!]
+  properties: [ID!]
+}
+
+type Query {
+  getBackground(id: ID!): Background
+  getCharacter(id: ID!): Character
+  getClass(id: ID!): Class
+  getEquipment(id: ID!): Equipment
+  getFeat(id: ID!): Feat
+  getMasterBackground(id: ID!): Background
+  getMasterClass(id: ID!): Class
+  getMasterEquipment(id: ID!): Equipment
+  getMasterFeat(id: ID!): Feat
+  getMasterRace(id: ID!): Race
+  getMasterSpell(id: ID!): Spell
+  getMasterSystem(id: ID!): System
+  getRace(id: ID!): Race
+  getSpell(id: ID!): Spell
+  getSystem(id: ID!): System
+  listBackgrounds(limit: Int, nextToken: String, systemId: ID!): BackgroundConnection!
+  listCharacters(limit: Int, nextToken: String, systemId: ID!): CharacterConnection!
+  listClasses(limit: Int, nextToken: String, systemId: ID!): ClassConnection!
+  listEquipment(limit: Int, nextToken: String, systemId: ID!): EquipmentConnection!
+  listFeats(limit: Int, nextToken: String, systemId: ID!): FeatConnection!
+  listMasterBackgrounds(limit: Int, nextToken: String): BackgroundConnection!
+  listMasterClasses(limit: Int, nextToken: String): ClassConnection!
+  listMasterEquipment(limit: Int, nextToken: String): EquipmentConnection!
+  listMasterFeats(limit: Int, nextToken: String): FeatConnection!
+  listMasterRaces(limit: Int, nextToken: String): RaceConnection!
+  listMasterSpells(limit: Int, nextToken: String): SpellConnection!
+  listMasterSystems(limit: Int, nextToken: String): SystemConnection!
+  listRaces(limit: Int, nextToken: String, systemId: ID!): RaceConnection!
+  listSpells(limit: Int, nextToken: String, systemId: ID!): SpellConnection!
+  listSystems(limit: Int, nextToken: String): SystemConnection!
+}
+
+type Race {
+  ancestry: Ancestry
+  category: ID!
+  desc: String
+  details: [Detail!]
+  features: [Feature!]
+  id: ID!
+  label: String!
+  lineages: [ID!]
+  masterId: String
+  ownerId: ID!
+  playable: String!
+  quote: String
+  systemId: ID!
+  traits: Traits
+  value: String!
+}
+
+type RaceConnection {
+  items: [Race]!
+  nextToken: String
+}
+
+input RaceInput {
+  ancestry: AncestryInput
+  category: ID!
+  desc: String
+  details: [DetailInput!]
+  features: [FeatureInput!]
+  id: ID!
+  label: String!
+  lineages: [ID!]
+  masterId: String
+  ownerId: ID
+  playable: String!
+  quote: String
+  systemId: ID!
+  traits: TraitsInput
+  value: String!
+}
+
+type RaceSpeed {
+  climbing: Int
+  flying: Int
+  swimming: Int
+  walking: Int
+}
+
+input RaceSpeedInput {
+  climbing: Int
+  flying: Int
+  swimming: Int
+  walking: Int
+}
+
+type Range {
+  distance: Int
+  id: ID!
+  maxRange: Int
+  minRange: Int
+  unit: ID
+}
+
+input RangeInput {
+  distance: Int
+  id: ID!
+  maxRange: Int
+  minRange: Int
+  unit: ID
+}
+
+type Resource {
+  charges: Charge
+  desc: String
+  label: String
+  levelAvailable: Int
+  method: ID
+  value: String
+}
+
+input ResourceInput {
+  charges: ChargeInput
+  desc: String
+  label: String
+  levelAvailable: Int
+  method: ID
+  value: String
+}
+
+type Roll {
+  die: Int!
+  id: String
+  value: Int!
+}
+
+input RollInput {
+  die: Int!
+  id: String
+  value: Int!
+}
+
+type RollType {
+  ability: ID!
+  applied: Boolean!
+  kept: [Roll]!
+  rolled: [Roll!]!
+  rolling: Boolean!
+  score: Int!
+}
+
+input RollTypeInput {
+  ability: ID!
+  applied: Boolean!
+  kept: [RollInput]!
+  rolled: [RollInput!]!
+  rolling: Boolean!
+  score: Int!
+}
+
+type SaveAbility {
+  abilityModifier: ID
+  attributes: [ID!]
+  id: ID!
+  minAmount: Int
+}
+
+input SaveAbilityInput {
+  abilityModifier: ID
+  attributes: [ID!]
+  id: ID!
+  minAmount: Int
+}
+
+type Scores {
+  ability: ID!
+  baseScore: Int
+  calculatedScore: Int
+  classScore: Int
+  modifierScore: Int
+  raceScore: Int
+}
+
+input ScoresInput {
+  ModifierScore: Int
+  ability: ID!
+  baseScore: Int
+  calculatedScore: Int
+  classScore: Int
+  raceScore: Int
+}
+
+enum SectionEnum {
+  all
+  spells
+  subclasses
+}
+
+enum SectionEnumInput {
+  all
+  spells
+  subclasses
+}
+
+type SetPerLevel {
+  bonus: Int
+  level: String
+  primary: Int
+  secondary: Int
+}
+
+input SetPerLevelInput {
+  bonus: Int
+  level: String
+  primary: Int
+  secondary: Int
+}
+
+type Shape {
+  id: ID!
+  size: Float
+  unit: ID
+}
+
+input ShapeInput {
+  id: ID!
+  size: Float
+  unit: ID
+}
+
+type Speed {
+  amount: Int
+  unit: ID!
+}
+
+input SpeedInput {
+  amount: Int
+  unit: ID!
+}
+
+type Spell {
+  actions: ActionGroup
+  attributes: [ID!]
+  classes: [ID!]!
+  conditions: [ID!]
+  damage: Damage
+  desc: String
+  duration: Duration!
+  id: ID!
+  label: String!
+  level: Int!
+  masterId: String
+  materialDesc: String
+  ownerId: ID!
+  range: Range!
+  requirements: [ID!]
+  saveAbility: SaveAbility
+  school: ID!
+  shape: Shape
+  systemId: ID!
+  targets: Int
+  upcast: Upcast
+  value: String!
+}
+
+type SpellConnection {
+  items: [Spell]!
+  nextToken: String
+}
+
+enum SpellEnum {
+  all
+  damage
+  upcast
+}
+
+enum SpellEnumInput {
+  all
+  damage
+  upcast
+}
+
+input SpellInput {
+  actions: ActionGroupInput
+  attributes: [ID!]
+  classes: [ID!]!
+  conditions: [ID!]
+  damage: DamageInput
+  desc: String!
+  duration: DurationInput!
+  id: ID!
+  label: String!
+  level: Int!
+  masterId: String
+  materialDesc: String
+  ownerId: String
+  range: RangeInput!
+  requirements: [ID!]
+  saveAbility: SaveAbilityInput
+  school: ID!
+  shape: ShapeInput
+  systemId: ID!
+  targets: Int
+  upcast: UpcastInput
+  value: String!
+}
+
+type SpellSlot {
+  slotCount: Int
+}
+
+input SpellSlotInput {
+  slotCount: Int
+}
+
+type Spellcasting {
+  ability: ID
+  attributes: [ID!]
+  charges: Charge
+  magicName: String
+  maxSpellLevel: Int
+  prepareLimit: PrepareLimit
+}
+
+input SpellcastingInput {
+  ability: ID
+  attributes: [ID!]
+  charges: ChargeInput
+  magicName: String
+  maxSpellLevel: Int
+  prepareLimit: PrepareLimitInput
+}
+
+type SpellsByLevel {
+  level: Int
+  spellLevel: Int
+  spells: [ID!]
+}
+
+input SpellsByLevelInput {
+  id: ID!
+  level: Int
+  spellLevel: Int
+  spells: [ID!]
+}
+
+type StandardArray {
+  ability: ID
+  score: ID
+}
+
+input StandardArrayInput {
+  ability: ID
+  score: ID
+}
+
+type StartingEquipment {
+  id: ID!
+  quantity: Int!
+  selectionId: ID
+}
+
+type StartingEquipmentGroup {
+  equipment: [StartingEquipment!]
+  groupId: ID!
+  optionId: ID!
+}
+
+input StartingEquipmentGroupInput {
+  equipment: [StartingEquipmentInput!]
+  groupId: ID!
+  optionId: ID!
+}
+
+input StartingEquipmentInput {
+  id: ID!
+  quantity: Int!
+  selectionId: ID
+}
+
+type StartingGold {
+  currency: ID!
+  dieConfig: String
+  multiplier: Int!
+}
+
+input StartingGoldInput {
+  currency: ID!
+  dieConfig: String
+  multiplier: Int!
+}
+
+type Subclass {
+  id: ID
+  subtype: ID
+}
+
+input SubclassInput {
+  id: ID
+  subtype: ID
+}
+
+type Subtype {
+  id: ID!
+  label: String!
+  value: String!
+}
+
+input SubtypeInput {
+  id: ID!
+  label: String!
+  value: String!
+}
+
+type System {
+  abilities: [GenericType]!
+  actions: [SystemAction]!
+  alignments: [GenericType]!
+  attributes: [SystemAttribute]!
+  categories: [SystemCategory]!
+  characters: CharacterSetting!
+  charges: SystemCharges!
+  conditions: [GenericType]!
+  currencies: [Currency]!
+  damageTypes: [GenericType]!
+  desc: String
+  equipment: SystemEquipment!
+  id: ID!
+  label: String!
+  languages: [GenericType]!
+  masterId: String
+  modifiers: SystemModifiers!
+  ownerId: String!
+  passives: [GenericType]!
+  prerequisites: [SystemPrerequisite]!
+  proficiencies: SystemProficiency!
+  rules: SystemRules!
+  senses: [SystemSense]!
+  sizes: [GenericType]!
+  skills: [SystemSkill]!
+  speeds: [GenericType]!
+  spells: SystemSpell!
+  terrains: [GenericType]!
+  value: String!
+}
+
+type SystemAction {
+  classes: Boolean!
+  damage: Boolean!
+  equipment: Boolean!
+  feats: Boolean!
+  features: Boolean!
+  id: ID!
+  label: String!
+  sections: Boolean!
+  spells: Boolean!
+  value: String!
+}
+
+input SystemActionInput {
+  classes: Boolean!
+  damage: Boolean!
+  equipment: Boolean!
+  feats: Boolean!
+  features: Boolean!
+  id: ID!
+  label: String!
+  sections: Boolean!
+  spells: Boolean!
+  value: String!
+}
+
+type SystemAttribute {
+  classes: [ClassesEnum]
+  damage: [DamageEnum]
+  equipment: [EquipmentEnum]
+  feats: [AllEnum]
+  features: [FeatureEnum]
+  id: ID!
+  label: String!
+  sections: [SectionEnum]
+  spells: [SpellEnum]
+  value: String!
+}
+
+input SystemAttributeInput {
+  classes: [ClassesEnumInput]
+  damage: [DamageEnumInput]
+  equipment: [EquipmentEnumInput]
+  feats: [AllEnumInput]
+  features: [FeatureEnumInput]
+  id: ID!
+  label: String!
+  sections: [SectionEnumInput]
+  spells: [SpellEnumInput]
+  value: String!
+}
+
+type SystemCategory {
+  classes: Boolean!
+  features: Boolean!
+  id: ID!
+  label: String!
+  races: Boolean!
+  value: String!
+}
+
+input SystemCategoryInput {
+  classes: Boolean!
+  features: Boolean!
+  id: ID!
+  label: String!
+  races: Boolean!
+  value: String!
+}
+
+type SystemCharges {
+  limits: [ChargeOption]!
+  resets: [ChargeOption]!
+}
+
+input SystemChargesInput {
+  limits: [ChargeOptionInput]!
+  resets: [ChargeOptionInput]!
+}
+
+type SystemConnection {
+  items: [System!]
+  nextToken: String
+}
+
+type SystemEquipment {
+  categories: [GenericType]!
+  categoryProperties: [EquipmentCategoryProperty]!
+  properties: [GenericType]!
+  rarities: [GenericType]!
+}
+
+input SystemEquipmentInput {
+  categories: [GenericTypeInput]!
+  categoryProperties: [EquipmentCategoryPropertyInput]!
+  properties: [GenericTypeInput]!
+  rarities: [GenericTypeInput]!
+}
+
+input SystemInput {
+  abilities: [GenericTypeInput]!
+  actions: [SystemActionInput]!
+  alignments: [GenericTypeInput]!
+  attributes: [SystemAttributeInput]!
+  categories: [SystemCategoryInput]!
+  characters: CharacterSettingInput!
+  charges: SystemChargesInput!
+  conditions: [GenericTypeInput]!
+  currencies: [CurrencyInput]!
+  damageTypes: [GenericTypeInput]!
+  desc: String
+  equipment: SystemEquipmentInput!
+  id: ID!
+  label: String!
+  languages: [GenericTypeInput]!
+  masterId: String
+  modifiers: SystemModifiersInput!
+  ownerId: String!
+  passives: [GenericTypeInput]!
+  prerequisites: [SystemPrerequisiteInput]!
+  proficiencies: SystemProficiencyInput!
+  rules: SystemRulesInput!
+  senses: [SystemSenseInput]!
+  sizes: [GenericTypeInput]!
+  skills: [SystemSkillInput]!
+  speeds: [GenericTypeInput]!
+  spells: SystemSpellInput!
+  terrains: [GenericTypeInput]!
+  value: String!
+}
+
+type SystemMeasurement {
+  amount: [GenericType]!
+  imperial: Imperial!
+  rounding: [GenericType]!
+}
+
+input SystemMeasurementInput {
+  amount: [GenericTypeInput]!
+  imperial: ImperialInput!
+  rounding: [GenericTypeInput]!
+}
+
+type SystemModifiers {
+  categories: [GenericType]!
+  categoryMethods: [ModifierCategoryTypeMethod]!
+  categoryTypes: [ModifierCategoryType]!
+  methods: [GenericType]!
+  spellCategories: [GenericType]!
+  typeMethods: [ModifierTypeMethod]!
+  types: [GenericType]!
+}
+
+input SystemModifiersInput {
+  categories: [GenericTypeInput]!
+  categoryMethods: [ModifierCategoryTypeMethodInput]!
+  categoryTypes: [ModifierCategoryTypeInput]!
+  methods: [GenericTypeInput]!
+  spellCategories: [GenericTypeInput]!
+  typeMethods: [ModifierTypeMethodInput]!
+  types: [GenericTypeInput]!
+}
+
+type SystemPrerequisite {
+  classes: [ClassesEnum]
+  damage: [DamageEnum]
+  equipment: [EquipmentEnum]
+  feats: [AllEnum]
+  features: [FeatureEnum]
+  id: ID!
+  label: String!
+  sections: [SectionEnum]
+  spells: [SpellEnum]
+  value: String!
+}
+
+input SystemPrerequisiteInput {
+  classes: [ClassesEnumInput]
+  damage: [DamageEnumInput]
+  equipment: [EquipmentEnumInput]
+  feats: [AllEnumInput]
+  features: [FeatureEnumInput]
+  id: ID!
+  label: String!
+  sections: [SectionEnumInput]
+  spells: [SpellEnumInput]
+  value: String!
+}
+
+type SystemProficiency {
+  categories: [GenericType]!
+  levels: [ProficiencyLevel]!
+}
+
+input SystemProficiencyInput {
+  categories: [GenericTypeInput]!
+  levels: [ProficiencyLevelInput]!
+}
+
+type SystemRules {
+  abilityGenerateMethod: [AbilityGenerateMethod]!
+  measurements: SystemMeasurement!
+}
+
+input SystemRulesInput {
+  abilityGenerateMethod: [AbilityGenerateMethodInput]!
+  measurements: SystemMeasurementInput!
+}
+
+type SystemSense {
+  creatureDesc: String
+  id: ID!
+  label: String!
+  monsterDesc: String
+  type: [String]
+  value: String!
+}
+
+input SystemSenseInput {
+  creatureDesc: String
+  id: ID!
+  label: String!
+  monsterDesc: String
+  type: [String]
+  value: String!
+}
+
+type SystemSkill {
+  abilityId: ID!
+  desc: String
+  id: ID!
+  label: String!
+  value: String!
+}
+
+input SystemSkillInput {
+  abilityId: ID!
+  desc: String
+  id: ID!
+  label: String!
+  value: String!
+}
+
+type SystemSpell {
+  categories: [GenericType]!
+  durations: [GenericType]!
+  ranges: [GenericType]!
+  requirements: [GenericType]!
+  schools: [GenericType]!
+  shapes: [GenericType]!
+}
+
+input SystemSpellInput {
+  categories: [GenericTypeInput]!
+  durations: [GenericTypeInput]!
+  ranges: [GenericTypeInput]!
+  requirements: [GenericTypeInput]!
+  schools: [GenericTypeInput]!
+  shapes: [GenericTypeInput]!
+}
+
+type Traits {
+  details: [Detail!]
+  size: ID
+  speeds: RaceSpeed
+}
+
+input TraitsInput {
+  details: [DetailInput!]
+  size: ID
+  speeds: RaceSpeedInput
+}
+
+type Upcast {
+  attributes: [ID]
+  levels: [UpcastLevel]
+}
+
+type UpcastFields {
+  amount: Int
+  distance: Int
+  id: ID
+  maxRange: Int
+  minRange: Int
+  size: Float
+  unit: ID
+}
+
+input UpcastFieldsInput {
+  amount: Int
+  distance: Int
+  id: ID
+  maxRange: Int
+  minRange: Int
+  size: Float
+  unit: ID
+}
+
+input UpcastInput {
+  attributes: [ID]
+  levels: [UpcastLevelInput]
+}
+
+type UpcastLevel {
+  damage: Damage
+  duration: UpcastFields
+  level: Int
+  range: UpcastFields
+  shape: UpcastFields
+  targets: Int
+}
+
+input UpcastLevelInput {
+  damage: DamageInput
+  duration: UpcastFieldsInput
+  level: Int
+  range: UpcastFieldsInput
+  shape: UpcastFieldsInput
+  targets: Int
+}
+
+type UsesPerLevel {
+  level: Int
+  uses: Int
+}
+
+input UsesPerLevelInput {
+  level: Int
+  uses: Int
+}
+
+type Weight {
+  amount: Float
+  unit: ID!
+}
+
+input WeightInput {
+  amount: Float
+  unit: ID!
+}

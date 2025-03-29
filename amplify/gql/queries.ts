@@ -14971,77 +14971,6 @@ query GetMasterFeat($id: ID!) {
 			resourcePoints
 		}
 	}
-	spellcasting {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
 	prerequisites {
 		__typename
 		options
@@ -17845,77 +17774,6 @@ query ListMasterFeats($limit: Int, $nextToken: String) {
 			}
 		}
 		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
-		spellcasting {
 			__typename
 			id
 			ids
@@ -20859,77 +20717,6 @@ query GetFeat($id: ID!) {
 			resourcePoints
 		}
 	}
-	spellcasting {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
 	prerequisites {
 		__typename
 		options
@@ -23733,77 +23520,6 @@ query ListFeats($systemId: ID!, $limit: Int, $nextToken: String) {
 			}
 		}
 		spells {
-			__typename
-			id
-			ids
-			attributes
-			selectionCount
-			classLimit
-			levelLimit
-			attributeLimit
-			ability
-			spellLevel
-			spellsByLevel {
-				__typename
-				spells
-				level
-				spellLevel
-			}
-			subtype
-			prerequisites {
-				__typename
-				options
-				skillProficiencies
-				equipmentProficiencies {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				equipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				notEquipped {
-					__typename
-					numberEquipped
-					category
-					equipment
-					properties
-				}
-				abilityScore {
-					__typename
-					abilities
-					score
-				}
-				spellsObtained
-				featuresObtained
-				optionsObtained
-				size
-			}
-			charges {
-				__typename
-				reset
-				limit
-				ability
-				skill
-				usesPerLevel {
-					__typename
-					level
-					uses
-				}
-				minAmount
-				addAmount
-				setAmount
-				multiplier
-				resourcePoints
-			}
-		}
-		spellcasting {
 			__typename
 			id
 			ids
@@ -32842,6 +32558,7 @@ query GetMasterClass($id: ID!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename
@@ -34316,6 +34033,7 @@ query ListMasterClasses($limit: Int, $nextToken: String) {
 			__typename
 			label
 			value
+			id
 			levelAvailable
 			charges {
 				__typename
@@ -35790,6 +35508,7 @@ query GetClass($id: ID!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename
@@ -37264,6 +36983,7 @@ query ListClasses($systemId: ID!, $limit: Int, $nextToken: String) {
 			__typename
 			label
 			value
+			id
 			levelAvailable
 			charges {
 				__typename

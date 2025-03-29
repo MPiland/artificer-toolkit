@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import Dropdown from '../../../Dropdown/Dropdown'
 import { DeepKeyOf, UpdateState } from '../../../../types/form'
 import { Character, Scores } from '../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { AbilityGenerate } from '../../../../types/enums'
 import { isEqual } from 'lodash'
 import Grid from '../../../Grid/Grid'
@@ -19,14 +19,14 @@ const StandardArray = ({
   const pointSystem = system.rules.abilityGenerateMethod.find((method) => method.id === AbilityGenerate.standardArray)
 
   useEffect(() => {
-    if (formData.abilities?.standardArray?.length > 0) {
+    if (formData.abilities?.standardArray?.length) {
       formData.abilities?.scores?.forEach((aScore, aIndex) => {
         const arrayObject = formData.abilities?.standardArray?.find(
           (arrayValue) => aScore.ability === arrayValue?.ability
         )
 
         if (arrayObject?.score) {
-          const score = pointSystem?.options.find((option) => option.id === arrayObject.score).value
+          const score = pointSystem?.options?.find((option) => option.id === arrayObject.score)?.value
 
           if (!isEqual(score, arrayObject.score)) {
             updateFormData({
@@ -78,24 +78,26 @@ const StandardArray = ({
         const currentIndex = formData.abilities?.standardArray?.findIndex(
           (sAbility) => sAbility?.ability === score.ability
         )
-        const current = formData.abilities?.standardArray?.[currentIndex]?.score
-        return (
-          <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<Character>
-              key={index}
-              name={'ability' as DeepKeyOf<Character>}
-              label={`${ability?.label}`}
-              value={current}
-              options={pointSystem.options.filter(
-                (option) =>
-                  !formData.abilities?.standardArray?.some(
-                    (sAbility) => sAbility?.score === option.id && sAbility.ability !== ability.id
-                  )
-              )}
-              onChange={(e) => handleStandardArray(e, score, index)}
-            />
-          </Grid.Item>
-        )
+        if (currentIndex && currentIndex !== -1 && pointSystem?.options?.length) {
+          const current = formData.abilities?.standardArray?.[currentIndex]?.score
+          return (
+            <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Dropdown<Character>
+                key={index}
+                name={'ability' as DeepKeyOf<Character>}
+                label={`${ability?.label}`}
+                value={current}
+                options={pointSystem?.options?.filter(
+                  (option) =>
+                    !formData.abilities?.standardArray?.some(
+                      (sAbility) => sAbility?.score === option.id && sAbility.ability !== ability?.id
+                    )
+                )}
+                onChange={(e) => handleStandardArray(e, score, index)}
+              />
+            </Grid.Item>
+          )
+        }
       })}
     </>
   )

@@ -1,12 +1,12 @@
 import { Character, ClassStartingEquipment } from '../../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
 import { UpdateState } from '../../../../../types/form'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import { use, useEffect, useState } from 'react'
 import { FormContext } from '../../../FormContext'
 import { StartingEquipmentOption } from '../../../../../types/enums'
 import { parseDiceRoll } from '../../../../../utils/dice'
-import { useListClassesQuery } from '../../../../../features/classes/classesApi'
+import { useListClassesQuery } from '../../../../../apis/classesApi'
 import { RollConfig } from '../../../../../types/components'
 import Button from '../../../../Button/Button'
 import Group from '../../../../Group/Group'
@@ -20,12 +20,12 @@ import Grid from '../../../../Grid/Grid'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
 import CharacterCurrency from '../../../Subforms/Character/CharacterEquipment/CharacterCurrency'
 
-const Equipment = () => {
+const Equipment = <T extends Character>() => {
   const [random, setRandom] = useState<boolean>(false)
 
   const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+    formData: T
+    updateFormData: (state: UpdateState<T>) => void
   }
 
   const { setDice, rollDice } = use(DiceContext)
@@ -37,9 +37,9 @@ const Equipment = () => {
 
   const goldDieConfig = primaryClass?.startingGold?.dieConfig as RollConfig
 
-  const { numDie, dieType } = parseDiceRoll(goldDieConfig)
+  const parsedRoll = parseDiceRoll(goldDieConfig)
 
-  const multipler = primaryClass?.startingGold?.multiplier
+  const multipler = primaryClass?.startingGold?.multiplier || 1
 
   const form: HTMLFormElement = document.getElementById('form-content') as HTMLFormElement
 
@@ -60,7 +60,7 @@ const Equipment = () => {
 
   // Remove stale starting equipment if classes are removed
   useEffect(() => {
-    if (formData?.classEquipment?.option && (!formData?.classes || !(formData?.classes?.length > 0))) {
+    if (formData?.classEquipment?.option && (!formData?.classes || !formData?.classes?.length)) {
       updateFormData({
         type: 'update',
         path: 'classEquipment',
@@ -77,9 +77,9 @@ const Equipment = () => {
   }, [formData?.classes, formData?.classEquipment, updateFormData])
 
   // Generate all possible combinations for the dice
-  const generateCombinations = (numDie: number, sides: number): string[] => {
-    if (numDie === 0) return ['']
-    if (numDie === 1) return Array.from({ length: sides }, (_, i) => `${i + 1}`)
+  const generateCombinations = (quantity: number, sides: number): string[] => {
+    if (quantity === 0) return ['']
+    if (quantity === 1) return Array.from({ length: sides }, (_, i) => `${i + 1}`)
 
     const result: string[] = []
     const prevCombinations = generateCombinations(numDie - 1, sides)
@@ -98,7 +98,7 @@ const Equipment = () => {
   }
 
   // Get all combinations and create options
-  const combinations = generateCombinations(numDie, dieType)
+  const combinations = generateCombinations(parsedRoll?.quantity, dieType)
   const combinationOptions = combinations.map((combo, index) => {
     if (index === 0) {
       return {
@@ -147,7 +147,7 @@ const Equipment = () => {
       case 'random':
         {
           let total = 0
-          for (let i = 0; i < numDie; i++) {
+          for (let i = 0; i < parseRoll?.quantity; i++) {
             // Generate a random number between 1 and dieType (inclusive)
             const roll = Math.floor(Math.random() * dieType) + 1
             total += roll
@@ -177,12 +177,12 @@ const Equipment = () => {
     if (e.type === 'update') {
       if (e.path === 'classEquipment.option') {
         if (e.value !== formData?.classEquipment?.option) {
-          if (formData?.classEquipment?.equipmentGroups?.length > 0) {
+          if (formData?.classEquipment?.equipmentGroups?.length) {
             classEquipment.equipmentGroups = null
           }
           if (formData?.classEquipment?.goldOption) {
             classEquipment.goldOption = null
-            if (formData?.classEquipment?.totalGold > 0) {
+            if (formData?.classEquipment?.totalGold) {
               classEquipment.totalGold = null
             }
           }
@@ -208,12 +208,11 @@ const Equipment = () => {
     <>
       {form && createPortal(<Scene />, form)}
       <Grid>
-        {!(formData?.classes?.length > 0) ? (
+        {!formData?.classes?.length ?
           <Grid.Item className={sprinkles({ alignContent: 'center' })}>
             <div>Please select a class.</div>
           </Grid.Item>
-        ) : (
-          <>
+        : <>
             <Grid.Item>
               <Collapse>
                 <Collapse.Header title='Starting Equipment' />
@@ -229,7 +228,7 @@ const Equipment = () => {
                         options={system.characters.startingEquipmentOptions}
                       />
                     </Grid.Item>
-                    {formData.classEquipment?.option === StartingEquipmentOption.gold ? (
+                    {formData.classEquipment?.option === StartingEquipmentOption.gold ?
                       <>
                         <Grid.Item justify='center'>
                           <Dropdown
@@ -268,7 +267,7 @@ const Equipment = () => {
                                 )}
                               </Group>
                             </Grid.Item>
-                            {formData?.classEquipment?.totalGold > 0 && (
+                            {formData?.classEquipment?.totalGold && (
                               <Grid.Item justify='center'>
                                 <h3>Total Gold: {formData?.classEquipment?.totalGold}</h3>
                               </Grid.Item>
@@ -276,16 +275,14 @@ const Equipment = () => {
                           </Grid>
                         </Grid.Item>
                       </>
-                    ) : (
-                      <CharacterEquipment dataSource={primaryClass} />
-                    )}
+                    : <CharacterEquipment dataSource={primaryClass} />}
                   </Grid>
                 </Collapse.Body>
               </Collapse>
             </Grid.Item>
             <CharacterCurrency />
           </>
-        )}
+        }
       </Grid>
     </>
   )

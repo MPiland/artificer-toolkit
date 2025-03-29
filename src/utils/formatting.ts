@@ -33,27 +33,27 @@ export const getValueFromState = ({
     return result
   }
 
-  const processItem = (item: any, state: any, shouldTruncate: boolean): string | null => {
+  const processItem = (item: any, state: any, shouldTruncate: boolean): string | null | undefined => {
     let label: any
     if (!item || !state) {
       return null
     }
 
     if (Array.isArray(item)) {
-      const nestedValues: Array<string | null> = item.map((nestedItem: any) =>
+      const nestedValues: Array<string | null | undefined> = item.map((nestedItem: any) =>
         processItem(nestedItem, state, shouldTruncate)
       )
-      if (nestedValues.every((valueItem: string | null) => valueItem == null)) {
+      if (nestedValues.every((valueItem) => valueItem == null)) {
         return null
       }
-      const joinedValues: string = nestedValues.filter((value: string | null) => value != null).join(' ')
+      const joinedValues = nestedValues.filter((value) => value != null).join(' ')
       return joinedValues.length > 0 ? joinedValues : null
     } else {
       if (typeof item === 'object' && item.path && item.source) {
         const value = get(state, item.path)
         if (!value) return null
 
-        const sourceData = getSourceData(item.source.type)
+        const sourceData = (getSourceData && getSourceData(item.source.type)) || null
         if (!sourceData) return null
 
         // If we have a field, look in that specific field of the source data
@@ -91,8 +91,9 @@ export const getValueFromState = ({
         if (label.length === 0) {
           return null
         } else if (label.length === 1) {
-          const truncatedValue: string = shouldTruncate
-            ? truncate(label[0], {
+          const truncatedValue: string =
+            shouldTruncate ?
+              truncate(label[0], {
                 length: truncateNum,
                 omission: '',
               })
@@ -105,12 +106,12 @@ export const getValueFromState = ({
           })
           return sortedValues
             .map((nestedValue: any) =>
-              shouldTruncate
-                ? truncate(nestedValue.name, {
-                    length: truncateNum,
-                    omission: '',
-                  })
-                : nestedValue.name
+              shouldTruncate ?
+                truncate(nestedValue.name, {
+                  length: truncateNum,
+                  omission: '',
+                })
+              : nestedValue.name
             )
             .join(' / ')
         }
@@ -128,7 +129,7 @@ export const getValueFromState = ({
     let finalValue: string | null = null
 
     nameItems.forEach((nameItem: any) => {
-      const value: string | null = processItem(nameItem, state, shouldTruncate)
+      const value: string | null | undefined = processItem(nameItem, state, shouldTruncate)
       if (value != null) {
         finalValue = finalValue == null ? value : finalValue + ' / ' + value
       }
@@ -265,11 +266,11 @@ export const typenameMap = {
 } as const
 
 // Make the function generic to properly narrow the return type
-export function typename<
-  T extends keyof typeof typenameMap,
-  P extends keyof typeof typenameMap[T]
->(sectionStep: T, type: P): typeof typenameMap[T][P] {
-  return typenameMap[sectionStep][type];
+export function typename<T extends keyof typeof typenameMap, P extends keyof (typeof typenameMap)[T]>(
+  sectionStep: T,
+  type: P
+): (typeof typenameMap)[T][P] {
+  return typenameMap[sectionStep][type]
 }
 
 export const proficiencyKey = (category: Exclude<keyof typeof ProficiencyCategories, 'initiative'>) => {

@@ -1,5 +1,5 @@
 import { use } from 'react'
-import { Character } from '../../../../../../../amplify/gql/types'
+import { Character, CharacterFeature } from '../../../../../../../amplify/gql/types'
 import useGetSections from '../../../../../../hooks/useGetSectionState'
 import { SectionDataType, SectionName, UpdateState } from '../../../../../../types/form'
 import Dropdown from '../../../../../Dropdown/Dropdown'
@@ -21,6 +21,7 @@ interface FeatureOptionProps {
   equipmentId?: string
   featId?: string
   optionId?: string
+  feature: CharacterFeature
 }
 
 const FeatureSection = ({
@@ -34,6 +35,7 @@ const FeatureSection = ({
   backgroundId,
   equipmentId,
   featId,
+  feature,
 }: FeatureOptionProps) => {
   const { formData, updateFormData } = use(FormContext) as {
     formData: Character
@@ -41,8 +43,6 @@ const FeatureSection = ({
   }
 
   const { getSectionOptions } = useGetSections({ formData })
-
-  const feature = formData?.features[featureIndex]
 
   // Check if selectionCount exists and is greater than 0
   const selectionCount = section?.selectionCount || 1
@@ -56,8 +56,6 @@ const FeatureSection = ({
       sectionStep,
       optionIndex,
     })
-
-    console.log({ path, options, exist, optionIndex })
 
     const type = sectionIdKey(sectionStep)
 

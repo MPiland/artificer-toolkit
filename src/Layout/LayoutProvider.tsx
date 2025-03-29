@@ -18,4 +18,4 @@ const LayoutProvider = ({ children }: { children: ReactNode }) => {
 
 export default LayoutProvider
 
-export type LayoutOptionsType = ReturnType<typeof useLayoutOptions> | null
+export type LayoutOptionsType = ReturnType<typeof useLayoutOptions>

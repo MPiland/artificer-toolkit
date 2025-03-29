@@ -1,6 +1,6 @@
 import { use, useState, ReactNode, useEffect } from 'react'
 import { LayoutContext } from './LayoutContext'
-import { NavLink } from 'react-router-dom'
+import { Link, ToOptions } from '@tanstack/react-router'
 import {
   sidebar_item_group,
   sidebar_item,
@@ -27,44 +27,23 @@ import IDarkMode from '../assets/Icons/IDarkMode'
 import ILightMode from '../assets/Icons/ILightMode'
 import IUser from '../assets/Icons/IUser'
 import ThemeContext from '../theme/ThemeContext'
-import { useSignOut } from '../features/auth/authApi'
+import { useSignOut } from '../apis/authApi'
 import useSystemPref from '../hooks/useSystemPref'
 import clsx from 'clsx'
-import { useListSystemsQuery } from '../features/systems/systemsApi'
+import { useListSystemsQuery } from '../apis/systemsApi'
 import { Hamburger } from './Hamburger'
+import { noUserNavigation } from './Layout'
 
 const NoAuthSidebar = () => {
   const { collapsed } = use(LayoutContext)
-  const noUserNavigation: { to: string; title: string }[] = [
-    {
-      to: '',
-      title: 'Media',
-    },
-    {
-      to: '',
-      title: 'Pricing',
-    },
-    {
-      to: '',
-      title: 'About',
-    },
-    {
-      to: 'sign-in',
-      title: 'Sign In',
-    },
-    {
-      to: 'sign-up',
-      title: 'Sign Up',
-    },
-  ]
 
   return (
     <nav className={clsx(sidebar, { ['collapsed']: collapsed })}>
       <div className={sidebar_item_group}>
-        {noUserNavigation.map((noUser: { to: string; title: string }, index: number) => (
-          <NavLink className={sidebar_item} to={noUser.to} key={index}>
+        {noUserNavigation.map((noUser, index) => (
+          <Link className={sidebar_item} to={noUser.to} params={noUser.params} key={index}>
             <span className={sidebar_item_title}>{noUser.title}</span>
-          </NavLink>
+          </Link>
         ))}
       </div>
     </nav>
@@ -82,8 +61,8 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
   const { data: systems } = useListSystemsQuery()
 
   useEffect(() => {
-    if (systemPref === '' || (systems?.length > 0 && !systems?.find((system) => system.id === systemPref))) {
-      const defaultSystem = systems?.find((system) => system.value === 'dnd5e2014').id
+    if (systems?.length && (systemPref === '' || !systems?.find((system) => system.id === systemPref))) {
+      const defaultSystem = systems?.find((system) => system?.value === 'dnd5e2014')?.id
       if (defaultSystem) {
         setSystemPref(defaultSystem)
       }
@@ -95,43 +74,43 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
     setSystemPref(e.value)
   }
 
-  const userNavigation: { icon?: ReactNode; to: string; title: string }[] = [
-    { icon: <CharactersIcon className={sidebar_icon} />, to: 'characters', title: 'Characters' },
+  const userNavigation: { icon?: ReactNode; to: ToOptions['to']; title: string }[] = [
+    { icon: <CharactersIcon className={sidebar_icon} />, to: '/characters', title: 'Characters' },
     {
       icon: <ClassesIcon className={sidebar_icon} />,
-      to: 'classes',
+      to: '/classes',
       title: 'Classes',
     },
     {
       icon: <RacesIcon className={sidebar_icon} />,
-      to: 'races',
+      to: '/races',
       title: 'Races',
     },
     {
       icon: <ScrollIcon className={sidebar_icon} />,
-      to: 'spells',
+      to: '/spells',
       title: 'Spells',
     },
     {
       icon: <SackIcon className={sidebar_icon} />,
-      to: 'equipment',
+      to: '/equipment',
       title: 'Equipment',
     },
     {
       icon: <BackstoryIcon className={sidebar_icon} />,
-      to: 'backgrounds',
+      to: '/backgrounds',
       title: 'Backgrounds',
     },
     {
       icon: <FeatsIcon className={sidebar_icon} />,
-      to: 'feats',
+      to: '/feats',
       title: 'Feats',
     },
   ]
 
   return (
     <nav className={clsx(sidebar, { ['collapsed']: collapsed })}>
-      {lg ? (
+      {lg ?
         <>
           <div className={sidebar_upper}>
             <div className={sidebar_header}>
@@ -144,9 +123,9 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
               />
             </div>
             <div className={sidebar_item_group}>
-              {userNavigation.map((user: { icon?: ReactNode; to: string; title: string }, index: number) => (
+              {userNavigation.map((user, index) => (
                 <Floating key={index}>
-                  <NavLink
+                  <Link
                     className={clsx(sidebar_item, { ['collapsed']: collapsed })}
                     to={user.to}
                     key={index}
@@ -174,7 +153,7 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
                         </Floating.Tooltip>
                       </Floating.Anchor>
                     )}
-                  </NavLink>
+                  </Link>
                 </Floating>
               ))}
             </div>
@@ -195,20 +174,21 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
               </Button>
               {!collapsed && (
                 <Button style='unstyled' onClick={toggleTheme} className={sidebar_item} width='size-7'>
-                  {themeType === 'light' ? <IDarkMode /> : <ILightMode />}
+                  {themeType === 'light' ?
+                    <IDarkMode />
+                  : <ILightMode />}
                 </Button>
               )}
             </div>
           </div>
         </>
-      ) : (
-        <>
+      : <>
           <div className={sidebar_item_group}>
-            {userNavigation.map((user: { icon?: ReactNode; to: string; title: string }, index: number) => (
-              <NavLink className={sidebar_item} to={user.to} key={index}>
+            {userNavigation.map((user, index) => (
+              <Link className={sidebar_item} to={user.to} key={index}>
                 {user?.icon && <div className={sidebar_icon}>{user.icon}</div>}
                 <span className={sidebar_item_title}>{user.title}</span>
-              </NavLink>
+              </Link>
             ))}
           </div>
           <div className={sidebar_item_group}>
@@ -225,12 +205,14 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
               </Button>
 
               <Button style='unstyled' onClick={toggleTheme} className={sidebar_item} width='size-7'>
-                {themeType === 'light' ? <IDarkMode /> : <ILightMode />}
+                {themeType === 'light' ?
+                  <IDarkMode />
+                : <ILightMode />}
               </Button>
             </div>
           </div>
         </>
-      )}
+      }
     </nav>
   )
 }

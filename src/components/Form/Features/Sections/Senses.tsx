@@ -2,7 +2,7 @@ import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../../apis/systemsApi'
 import { FeatureContext } from '../FeatureContext'
 import { Class, FeatureSense, SectionEnum } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
@@ -28,9 +28,10 @@ const Senses = () => {
           name='attributes'
           options={system.attributes.filter(
             (attribute) =>
-              attribute.sections.includes(SectionEnum.all) &&
-              (formData as Class).category === Categories.subclass &&
-              attribute.sections.includes(SectionEnum.subclasses)
+              attribute.sections &&
+              (attribute.sections.includes(SectionEnum.all) ||
+                ((formData as Class).category === Categories.subclass &&
+                  attribute.sections.includes(SectionEnum.subclasses)))
           )}
           label='Sense Attributes'
           value={sectionData?.attributes}
@@ -49,7 +50,8 @@ const Senses = () => {
         />
       </Grid.Item>
       {sectionData?.attributes?.some((attribute) => attribute === Attributes.providesOptions) &&
-        formData.__typename === 'Class' && (
+        formData.__typename === 'Class' &&
+        formData?.subtypes?.length && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={`subtype`}

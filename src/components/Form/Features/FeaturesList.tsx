@@ -6,21 +6,44 @@ import Accordion from '../../Accordion/Accordion'
 import Group from '../../Group/Group'
 import { get, startCase } from 'lodash'
 import { sprinkles } from '../../../css/sprinkles.css'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet } from '@tanstack/react-router'
 import { FormContext } from '../FormContext'
 import { FeatureContext } from './FeatureContext'
 import Grid from '../../Grid/Grid'
+import { ModalContext } from '../../Modal/ModalContext'
+import { Feature } from '../../../../amplify/gql/types'
+import { useListRacesQuery } from '../../../apis/racesApi'
+import { useListClassesQuery } from '../../../apis/classesApi'
+import { useListEquipmentQuery } from '../../../apis/equipmentApi'
 
 const FeaturesList = () => {
-  const navigate = useNavigate()
-
   const { formData, updateFormData, stepIndex, steps } = use(FormContext)
-
   const { setFeatureStep, updateFeatureData, sectionSteps } = use(FeatureContext)
+  const { showModal } = use(ModalContext)
+
+  const { data: races } = useListRacesQuery()
+  const { data: classes } = useListClassesQuery()
+  const { data: equipment } = useListEquipmentQuery()
 
   const arrayName = useMemo(() => (formData.__typename === 'Feat' ? '' : 'features'), [formData])
 
   const featureArray = useMemo(() => get(formData, arrayName) ?? [], [arrayName, formData])
+
+  const createFeatures = (): Feature[] => {
+    const racesFeatures = races.flatMap(
+      (race) => (race.features?.length && race.features?.map((feature) => feature)) || []
+    )
+    const classesFeatures = classes.flatMap(
+      (uClass) => (uClass.features?.length && uClass.features?.map((feature) => feature)) || []
+    )
+    const equipmentFeatures = equipment.flatMap((equipment) =>
+      equipment.features ? equipment.features.map((feature) => feature) : []
+    )
+
+    return { ...racesFeatures, ...classesFeatures, ...equipmentFeatures }
+  }
+
+  const features = createFeatures()
 
   // Add feature
   const handleAddFeature = () => {
@@ -51,11 +74,34 @@ const FeaturesList = () => {
     setFeatureStep('feature')
   }
 
+  const onCopyConfirm = (selectedFeature: Feature) => {
+    if (formData.__typename !== 'Spell' && formData.__typename !== 'Character') {
+      const featureIndex = formData.features?.length ?? 0
+      updateFormData({
+        type: 'update',
+        path: `features.${featureIndex}`,
+        value: selectedFeature,
+      })
+      updateFeatureData({ type: 'index', value: featureIndex })
+      updateFeatureData({ type: 'reset', value: selectedFeature })
+      updateFeatureData({ type: 'initialReset', value: selectedFeature })
+      setFeatureStep('feature')
+    }
+  }
+
   // Copy feature
-  const handleCopy = () => {
-    navigate('copy/feature', {
-      state: {
-        size: 'xs',
+  const handleCopyFeature = () => {
+    showModal({
+      type: 'copy',
+      props: {
+        form: 'feature',
+        data: features,
+        filters: {
+          races: races,
+          classes: classes,
+          equipment: equipment,
+        },
+        onCopy: onCopyConfirm,
       },
     })
   }
@@ -75,7 +121,7 @@ const FeaturesList = () => {
       </Grid.Item>
       {steps[stepIndex].id === 'features' && (
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-          <Button color='primary' style='outline' width='size-full' onClick={handleCopy}>
+          <Button color='primary' style='outline' width='size-full' onClick={handleCopyFeature}>
             Copy Feature
           </Button>
         </Grid.Item>
@@ -89,9 +135,9 @@ const FeaturesList = () => {
                   handleRemove={() => handleRemoveFeature(featureIndex)}
                   handleEdit={() => handleEditFeature(featureIndex)}
                 >
-                  {featureItem.label != null && featureItem.label !== ''
-                    ? featureItem.label
-                    : `feature ${featureIndex + 1}`}
+                  {featureItem.label != null && featureItem.label !== '' ?
+                    featureItem.label
+                  : `feature ${featureIndex + 1}`}
                 </Accordion.Header>
                 {featureItem.desc && (
                   <Accordion.Content>
@@ -115,13 +161,11 @@ const FeaturesList = () => {
                     {sectionSteps.map((sectionStep, sectionIndex) => {
                       return (
                         <span key={sectionIndex} className={sprinkles({ me: 'space-2' })}>
-                          {featureItem[sectionStep]?.length > 0 ? (
+                          {featureItem[sectionStep]?.length > 0 ?
                             <strong>
                               {startCase(sectionStep.charAt(0))}: {featureItem[sectionStep]?.length}
                             </strong>
-                          ) : (
-                            `${startCase(sectionStep.charAt(0))}: 0`
-                          )}
+                          : `${startCase(sectionStep.charAt(0))}: 0`}
                         </span>
                       )
                     })}

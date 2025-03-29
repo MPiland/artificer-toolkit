@@ -66,9 +66,11 @@ const calculateThumbPosition = ({
     return Math.max(0, Math.min(newPosition, maxThumbTravel))
   }
 
-  const scrollProgress = scrollPos / (scrollSize - clientSize)
-  const maxThumbTravel = clientSize - thumbSize
-  return scrollProgress * maxThumbTravel
+  if (scrollPos && scrollSize) {
+    const scrollProgress = scrollPos / (scrollSize - clientSize)
+    const maxThumbTravel = clientSize - thumbSize
+    return scrollProgress * maxThumbTravel
+  }
 }
 
 export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollState => {
@@ -77,7 +79,7 @@ export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollS
       const newState = { ...state }
 
       if (action.verticalDelta !== undefined) {
-        newState.verticalThumbPosition = calculateThumbPosition({
+        const thumbPosition = calculateThumbPosition({
           source: action.source,
           currentPosition: state.verticalThumbPosition,
           delta: action.verticalDelta,
@@ -86,10 +88,13 @@ export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollS
           clientSize: action.clientHeight,
           thumbSize: state.verticalThumbSize,
         })
+        if (thumbPosition) {
+          newState.verticalThumbPosition = thumbPosition
+        }
       }
 
       if (action.horizontalDelta !== undefined) {
-        newState.horizontalThumbPosition = calculateThumbPosition({
+        const thumbPosition = calculateThumbPosition({
           source: action.source,
           currentPosition: state.horizontalThumbPosition,
           delta: action.horizontalDelta,
@@ -98,6 +103,9 @@ export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollS
           clientSize: action.clientWidth,
           thumbSize: state.horizontalThumbSize,
         })
+        if (thumbPosition) {
+          newState.horizontalThumbPosition = thumbPosition
+        }
       }
 
       return newState
@@ -120,7 +128,7 @@ export const scrollReducer = (state: ScrollState, action: ScrollAction): ScrollS
         ...state,
         isDragging: action.isDragging,
         dragDirection: action.dragDirection,
-        mousePos: action.mousePos,
+        mousePos: action.mousePos || state.mousePos,
       }
     }
 

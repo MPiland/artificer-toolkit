@@ -23,10 +23,10 @@ import { useEventListener, useMediaQuery } from 'usehooks-ts'
 import Scrollbar from '../Scrollbar/Scrollbar'
 import { UseMutationResult, UseSuspenseQueryResult } from '@tanstack/react-query'
 import { getValueFromState } from '../../utils/formatting'
-import { useGetSystemQuery } from '../../features/systems/systemsApi'
-import { useListClassesQuery } from '../../features/classes/classesApi'
+import { useGetSystemQuery } from '../../apis/systemsApi'
+import { useListClassesQuery } from '../../apis/classesApi'
 import Card from '../Card/Card'
-import { useNavigate, useLocation, Outlet } from 'react-router-dom'
+import { useLocation, Outlet, Navigate } from '@tanstack/react-router'
 import { FormDataType } from '../../types/form'
 import { useDebounceCallback } from 'usehooks-ts'
 import { startCase } from 'lodash'
@@ -37,47 +37,49 @@ import CreateIcon from '../../assets/Icons/ICreate'
 import GridIcon from '../../assets/Icons/IGrid'
 import ListIcon from '../../assets/Icons/IList'
 import { Character } from '../../../amplify/gql/types'
-import { AuthContext } from '../../features/auth/AuthContext'
+import { AuthContext } from '../../pages/auth/AuthContext'
 import { FormContext } from '../Form/FormContext'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Categories } from '../../types/enums'
 import { FilterConfig } from '../../types/components'
 import Filter from './Filter'
-import { FormType } from '../../store/filterSlice'
 import useFilteredList from '../../hooks/useFilteredList'
 import Group from '../Group/Group'
 import { sprinkles } from '../../css/sprinkles.css'
 import { createFormObject } from '../../utils/form'
+import { ModalContext } from '../Modal/ModalContext'
+import { navigatePath, FormType } from '../../utils/form'
+import { StoreFormType } from '../../store/filterSlice'
 
-interface ListProps {
-  className?: string
+interface ListProps<T extends FormDataType> {
+  className?: string | symbol | number | any
   visibility?: 'hidden' | 'visible' | 'always'
-  useListItems: () => UseSuspenseQueryResult<any[]>
-  useDeleteItem: () => UseMutationResult<any, Error, string, unknown>
+  useListItems: () => UseSuspenseQueryResult<T[] | null | undefined, Error>
+  useDeleteItem: () => UseMutationResult<string, Error, string, unknown>
   footerText?: { name: string | any[]; value: string; display?: string; icon?: ReactElement }[]
-  filterConfigs?: FilterConfig<FormDataType>[]
+  filterConfigs?: FilterConfig<T>[]
 }
 
 const SCROLL_BOX_MIN_SIZE = 20
 
-const List = ({
+const List = <T extends FormDataType>({
   className,
   visibility = 'visible',
   useListItems,
   useDeleteItem,
   footerText,
   filterConfigs,
-}: ListProps) => {
-  const navigate = useNavigate()
+}: ListProps<T>) => {
   const location = useLocation()
 
   const { mutateAsync: deleteItem } = useDeleteItem()
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
-  const { data }: { data: FormDataType[] } = useListItems()
+  const { data } = useListItems()
 
   const { updateFormData, fullReset } = use(FormContext)
   const { user, tokens } = use(AuthContext)
+  const { showModal } = use(ModalContext)
 
   const sm = useMediaQuery('screen and (max-width: 567px)')
 
@@ -96,30 +98,15 @@ const List = ({
   const [collapsedCards, setCollapsedCards] = useState(new Set<string>())
   const [scroll, setScroll] = useState<boolean>(false)
 
-  const form = location?.pathname?.split('/')[1]
-  const deleteConfirmed = location.state?.delete
-  const itemToDelete = location.state?.item
+  const form = location?.pathname?.split('/')[1] as FormType
 
-  const filteredData = useFilteredList({ data, context: form as FormType })
+  const filteredData = useFilteredList({ data, context: form as StoreFormType })
 
   const debouncedScrollEnd = useDebounceCallback(() => {
     if (!isDragging && visibility !== 'always') {
       setActive(false)
     }
   }, 750)
-
-  useEffect(() => {
-    const handleDeleteConfirmed = async () => {
-      try {
-        await deleteItem(itemToDelete.id)
-      } catch (err) {
-        setErrorMessage(err.data.message)
-      }
-    }
-    if (deleteConfirmed) {
-      handleDeleteConfirmed()
-    }
-  }, [deleteConfirmed, itemToDelete, deleteItem])
 
   useEffect(() => {
     const parent = parentRef.current
@@ -151,25 +138,56 @@ const List = ({
     })
   }
 
-  const handleDelete = useCallback(
-    (item: FormDataType) => {
-      navigate(`delete/${item.value}`, {
-        state: {
-          title: item.label,
-          item: item,
-          size: 'sm',
-        },
-      })
-    },
-    [navigate]
-  )
+  const handleDeleteConfirmed = async (item: FormDataType) => {
+    try {
+      await deleteItem(item.id)
+    } catch (err: any) {
+      if ('data' in err) {
+        if ('messasge' in err.data) {
+          return setErrorMessage(err.data.message)
+        }
+      }
+      return setErrorMessage('An unknown error occurred')
+    }
+  }
 
-  const handleOpen = (item: FormDataType) => {
-    navigate(`${item.value}`, {
-      state: {
-        item: item,
+  const handleCopyConfirmed = (item: FormDataType) => {
+    const data: FormDataType = {
+      ...item,
+      id: '',
+      value: '',
+      label: '',
+    }
+    fullReset()
+    updateFormData({
+      type: 'reset',
+      value: data,
+    })
+    updateFormData({
+      type: 'initialReset',
+      value: data,
+    })
+    const pathOptions = navigatePath({ form, type: 'form', action: 'edit' })
+    if (!pathOptions) return null // Handle the undefined case
+
+    return <Navigate to={pathOptions.path} params={pathOptions.params} state={{ item: data }} />
+  }
+
+  const handleDelete = (item: FormDataType) => {
+    showModal({
+      type: 'delete',
+      props: {
+        item,
+        onDelete: () => handleDeleteConfirmed(item),
       },
     })
+  }
+
+  const handleOpen = (item: FormDataType) => {
+    const navigateOptions = navigatePath({ form, type: 'view', label: item.label })
+    if (!navigateOptions) return null // Handle the undefined case
+
+    return <Navigate to={navigateOptions.path} params={navigateOptions.params} state={{ item: item }} />
   }
 
   const handleCreate = async (secondary?: boolean) => {
@@ -179,15 +197,15 @@ const List = ({
       const groups = tokens?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
 
-      const userId = master ? 'master' : user?.userId
+      const userId = master ? 'master' : user?.userId || ''
 
       const category =
-        form === 'classes'
-          ? system?.categories.find((category) => (category.classes && secondary ? 'subclass' : 'base')).id
-          : form === 'races' &&
-            system?.categories.find((category) => (category.races && secondary ? 'subrace' : 'base')).id
+        form === 'classes' ?
+          system?.categories?.find((category) => (category?.classes && secondary ? 'subclass' : 'base'))?.id
+        : form === 'races' &&
+          system?.categories?.find((category) => (category?.races && secondary ? 'subrace' : 'base'))?.id
 
-      const stateObject = createFormObject(form, userId, system?.id, category, system.abilities)
+      const stateObject = createFormObject(form, userId, system?.id || '', category || '', system?.abilities)
 
       updateFormData({
         type: 'reset',
@@ -197,20 +215,26 @@ const List = ({
         type: 'initialReset',
         value: stateObject,
       })
-      navigate('new')
-    } catch {
-      console.error('error resetting state')
+      const pathOptions = navigatePath({ form, type: 'form', action: 'new' })
+      if (!pathOptions) return null // Handle the undefined case
+
+      return <Navigate to={pathOptions.path} params={pathOptions.params} />
+    } catch (err) {
+      console.error('error resetting state', err)
     }
   }
 
   const handleCopy = () => {
-    navigate('copy', {
-      state: {
-        items: data.map((item) => ({
+    showModal({
+      type: 'copy',
+      props: {
+        form: form,
+        data: data?.map((item) => ({
           label: item.label,
           value: item.value,
           id: item.id,
         })),
+        onCopy: (item: FormDataType) => handleCopyConfirmed(item),
       },
     })
   }
@@ -224,7 +248,10 @@ const List = ({
       type: 'initialReset',
       value: item,
     })
-    navigate(`edit/${item.value}`)
+    const pathOptions = navigatePath({ form, type: 'form', action: 'edit', label: item.label })
+    if (!pathOptions) return null // Handle the undefined case
+
+    return <Navigate to={pathOptions.path} params={pathOptions.params} state={{ item: item }} />
   }
 
   const handleScroll = useCallback(
@@ -312,7 +339,7 @@ const List = ({
     overscan: 5,
   })
 
-  useEventListener('wheel', handleScroll, parentRef, { passive: true })
+  useEventListener('wheel', handleScroll, documentRef, { passive: true })
   useEventListener('mouseenter', handleMouseOver, documentRef)
   useEventListener('mouseleave', handleMouseLeave, documentRef)
   useEventListener('mousemove', handleMouseMove, documentRef)
@@ -328,7 +355,7 @@ const List = ({
   return (
     <>
       <div className={list_title_container}>
-        <h2>{startCase(`${form}`)}</h2>
+        <h2>{startCase(form)}</h2>
         <div className={list_title_button_container}>
           <Button color='main' style='outline' onClick={handleCopy}>
             {<CopyIcon />} {!sm && ' Copy'}
@@ -408,10 +435,14 @@ const List = ({
                           }`}
                           open={() => handleOpen(item)}
                           remove={
-                            (item as Exclude<FormDataType, Character>).masterId === null && (() => handleDelete(item))
+                            (item as Exclude<FormDataType, Character>).masterId === null ?
+                              () => handleDelete(item)
+                            : undefined
                           }
                           edit={
-                            (item as Exclude<FormDataType, Character>).masterId === null && (() => handleEdit(item))
+                            (item as Exclude<FormDataType, Character>).masterId === null ?
+                              () => handleEdit(item)
+                            : undefined
                           }
                           leftSide={'level' in item && (item.level || item.level === 0) && `(${item.level})`}
                           collapsible={view === 'list' && true}
@@ -451,12 +482,14 @@ const List = ({
                                   }`}
                                   open={() => handleOpen(sItem)}
                                   remove={
-                                    (sItem as Exclude<FormDataType, Character>).masterId === null &&
-                                    (() => handleDelete(sItem))
+                                    (sItem as Exclude<FormDataType, Character>).masterId === null ?
+                                      () => handleDelete(sItem)
+                                    : undefined
                                   }
                                   edit={
-                                    (sItem as Exclude<FormDataType, Character>).masterId === null &&
-                                    (() => handleEdit(sItem))
+                                    (sItem as Exclude<FormDataType, Character>).masterId === null ?
+                                      () => handleEdit(sItem)
+                                    : undefined
                                   }
                                   leftSide={
                                     'level' in sItem && (sItem.level || sItem.level === 0) && `(${sItem.level})`

@@ -25,7 +25,7 @@ interface ScrollAreaProps extends ComponentPropsWithoutRef<'div'> {
   arrows?: boolean
   [key: string]: any
   scrollWrapperOverflow?: 'hidden' | 'off'
-  ref?: RefObject<HTMLDivElement>
+  ref?: RefObject<HTMLDivElement | null>
 }
 
 const SCROLL_BOX_MIN_SIZE = 20
@@ -43,9 +43,9 @@ const ScrollArea = ({
   ref,
   ...props
 }: ScrollAreaProps) => {
-  const scrollAreaRef = useRef<HTMLDivElement | null>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null!)
   const documentRef = useRef<Document>(document)
-  const scrollWrapperRef = useRef<HTMLDivElement | null>(null)
+  const scrollWrapperRef = useRef<HTMLDivElement>(null!)
 
   const [scrollState, dispatch] = useReducer(scrollReducer, {
     verticalThumbSize: SCROLL_BOX_MIN_SIZE,
@@ -79,12 +79,10 @@ const ScrollArea = ({
           const verticalRatio = needsVerticalScroll ? clientHeight / scrollHeight : 1
           const horizontalRatio = needsHorizontalScroll ? clientWidth / scrollWidth : 1
 
-          const verticalThumbSize = needsVerticalScroll
-            ? Math.max(SCROLL_BOX_MIN_SIZE, clientHeight * verticalRatio)
-            : 0
-          const horizontalThumbSize = needsHorizontalScroll
-            ? Math.max(SCROLL_BOX_MIN_SIZE, clientWidth * horizontalRatio)
-            : 0
+          const verticalThumbSize =
+            needsVerticalScroll ? Math.max(SCROLL_BOX_MIN_SIZE, clientHeight * verticalRatio) : 0
+          const horizontalThumbSize =
+            needsHorizontalScroll ? Math.max(SCROLL_BOX_MIN_SIZE, clientWidth * horizontalRatio) : 0
 
           dispatch({
             type: 'UPDATE_DIMENSIONS',
@@ -149,52 +147,76 @@ const ScrollArea = ({
     }
   }, 750)
 
+  // Update the handleScroll function to accept either WheelEvent or Event
   const handleScroll = useCallback(
-    (e: WheelEvent) => {
+    (e: Event | WheelEvent) => {
       const scrollArea = scrollAreaRef.current
-      if (!scrollArea || !e.deltaY) return
+      if (!scrollArea) return
 
-      // Check if this scroll area should handle the scroll
-      const isScrollable = (direction: 'vertical' | 'horizontal') => {
-        if (direction === 'vertical') {
-          return scrollArea.scrollHeight > scrollArea.clientHeight
-        }
-        return scrollArea.scrollWidth > scrollArea.clientWidth
-      }
+      // For wheel events, we need to check if it's a WheelEvent and has deltaY
+      if ('deltaY' in e) {
+        // This is a WheelEvent
+        const wheelEvent = e as WheelEvent
+        if (!wheelEvent.deltaY) return
 
-      // Get the target element's closest ScrollArea
-      const targetScrollArea = (e.target as HTMLElement).closest('[data-scroll-area]')
+        // Check if this scroll area should handle the scroll
+        const isScrollable = (direction: 'vertical' | 'horizontal') => {
+          if (direction === 'vertical') {
+            return scrollArea.scrollHeight > scrollArea.clientHeight
+          }
+          return scrollArea.scrollWidth > scrollArea.clientWidth
+        }
 
-      // Only handle scroll if this is the target scroll area and it's scrollable
-      if (targetScrollArea === scrollArea) {
-        if ((scrollDirection === 'vertical' || scrollDirection === 'all') && isScrollable('vertical')) {
-          debouncedScrollEnd.cancel()
-          dispatch({ type: 'SET_ACTIVE', value: true })
-          scrollArea.scrollTop += e.deltaY
-          dispatch({
-            type: 'UPDATE_SCROLL',
-            source: 'scroll',
-            verticalDelta: e.deltaY,
-            clientHeight: scrollArea.clientHeight,
-            clientWidth: scrollArea.clientWidth,
-            scrollTop: scrollArea.scrollTop,
-            scrollHeight: scrollArea.scrollHeight,
-          })
+        // Get the target element's closest ScrollArea
+        const targetScrollArea = (wheelEvent.target as HTMLElement).closest('[data-scroll-area]')
+
+        // Only handle scroll if this is the target scroll area and it's scrollable
+        if (targetScrollArea === scrollArea) {
+          if ((scrollDirection === 'vertical' || scrollDirection === 'all') && isScrollable('vertical')) {
+            debouncedScrollEnd.cancel()
+            dispatch({ type: 'SET_ACTIVE', value: true })
+            scrollArea.scrollTop += wheelEvent.deltaY
+            dispatch({
+              type: 'UPDATE_SCROLL',
+              source: 'scroll',
+              verticalDelta: wheelEvent.deltaY,
+              clientHeight: scrollArea.clientHeight,
+              clientWidth: scrollArea.clientWidth,
+              scrollTop: scrollArea.scrollTop,
+              scrollHeight: scrollArea.scrollHeight,
+            })
+          }
+          if ((scrollDirection === 'horizontal' || scrollDirection === 'all') && isScrollable('horizontal')) {
+            debouncedScrollEnd.cancel()
+            dispatch({ type: 'SET_ACTIVE', value: true })
+            scrollArea.scrollLeft += wheelEvent.deltaY
+            dispatch({
+              type: 'UPDATE_SCROLL',
+              source: 'scroll',
+              horizontalDelta: wheelEvent.deltaY,
+              clientHeight: scrollArea.clientHeight,
+              clientWidth: scrollArea.clientWidth,
+              scrollLeft: scrollArea.scrollLeft,
+              scrollWidth: scrollArea.scrollWidth,
+            })
+          }
         }
-        if ((scrollDirection === 'horizontal' || scrollDirection === 'all') && isScrollable('horizontal')) {
-          debouncedScrollEnd.cancel()
-          dispatch({ type: 'SET_ACTIVE', value: true })
-          scrollArea.scrollLeft += e.deltaY
-          dispatch({
-            type: 'UPDATE_SCROLL',
-            source: 'scroll',
-            horizontalDelta: e.deltaY,
-            clientHeight: scrollArea.clientHeight,
-            clientWidth: scrollArea.clientWidth,
-            scrollLeft: scrollArea.scrollLeft,
-            scrollWidth: scrollArea.scrollWidth,
-          })
-        }
+      } else {
+        // This is a regular scroll event
+        debouncedScrollEnd.cancel()
+        dispatch({ type: 'SET_ACTIVE', value: true })
+
+        // Update scroll position based on the current scroll values
+        dispatch({
+          type: 'UPDATE_SCROLL',
+          source: 'scroll',
+          clientHeight: scrollArea.clientHeight,
+          clientWidth: scrollArea.clientWidth,
+          scrollTop: scrollArea.scrollTop,
+          scrollLeft: scrollArea.scrollLeft,
+          scrollHeight: scrollArea.scrollHeight,
+          scrollWidth: scrollArea.scrollWidth,
+        })
       }
     },
     [scrollDirection, debouncedScrollEnd]
@@ -345,7 +367,9 @@ const ScrollArea = ({
 
       <div
         ref={(el) => {
-          scrollAreaRef.current = el
+          if (el) {
+            scrollAreaRef.current = el
+          }
           if (ref) {
             ref.current = el
           }

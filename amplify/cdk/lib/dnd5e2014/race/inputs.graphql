@@ -9,20 +9,20 @@ input AncestryFeatureInput {
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  optionsByLevel: [OptionsByLevelInput]
+  optionsByLevel: [OptionsByLevelInput!]
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  feats: [FeatureFeatInput]
-  modifiers: [FeatureModifierInput]
-  proficiencies: [FeatureProficiencyInput]
-  expertise: [FeatureExpertiseInput]
-  senses: [FeatureSenseInput]
-  spells: [FeatureSpellInput]
+  feats: [FeatureFeatInput!]
+  modifiers: [FeatureModifierInput!]
+  proficiencies: [FeatureProficiencyInput!]
+  expertise: [FeatureExpertiseInput!]
+  senses: [FeatureSenseInput!]
+  spells: [FeatureSpellInput!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   levelAvailable: String
-  options: [FeatureOptionInput]
+  options: [FeatureOptionInput!]
 }
 
 input AncestryOptionInput {
@@ -30,7 +30,7 @@ input AncestryOptionInput {
   value: String!
   label: String!
   desc: String
-  features: [AncestryFeatureInput]
+  features: [AncestryFeatureInput!]
 }
 
 input AncestryInput {
@@ -38,7 +38,7 @@ input AncestryInput {
   label: String!
   value: String!
   desc: String
-  options: [AncestryOptionInput!]
+  options: [AncestryOptionInput!]!
 }
 
 input RaceSpeedInput {
@@ -49,24 +49,24 @@ input RaceSpeedInput {
 }
 
 input TraitsInput {
-  details: [DetailInput]
+  details: [DetailInput!]
   size: ID
   speeds: RaceSpeedInput
 }
 
 input RaceInput {
-  id: ID
+  id: ID!
   label: String!
   value: String!
   quote: String
   desc: String
-  playable: String!
+  playable: String
   category: ID!
   lineages: [ID!]
   ancestry: AncestryInput
-  details: [DetailInput]
+  details: [DetailInput!]
   traits: TraitsInput
-  features: [FeatureInput]
+  features: [FeatureInput!]
   ownerId: ID
   systemId: ID!
   masterId: String

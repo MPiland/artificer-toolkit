@@ -4,7 +4,7 @@ import Grid from '../../../../Grid/Grid'
 import { FormContext } from '../../../FormContext'
 import { Character, CurrencyGroup } from '../../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../../types/form'
-import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
 import { sprinkles } from '../../../../../css/sprinkles.css'
 import { useMediaQuery } from 'usehooks-ts'
 import Input from '../../../../Input/Input'
@@ -22,15 +22,13 @@ const CharacterCurrency = () => {
   // Initialize currencies into data
   useEffect(() => {
     // Only run this effect when needed - not on every render with updated formData
-    if (formData.currencyGroups?.length > 0 && formData.currencyGroups.every((group) => group.currencies?.length > 0)) {
+    if (formData.currencyGroups?.length && formData.currencyGroups.every((group) => group.currencies?.length)) {
       return // Already initialized properly
     }
 
     // Create a properly initialized currency structure
     const characterCurrencies: CurrencyGroup[] =
-      formData.currencyGroups?.length > 0
-        ? [...formData.currencyGroups]
-        : [{ __typename: 'CurrencyGroup', currencies: [] }]
+      formData.currencyGroups?.length ? [...formData.currencyGroups] : [{ __typename: 'CurrencyGroup', currencies: [] }]
 
     // Initialize any empty currency groups
     characterCurrencies.forEach((group, index) => {
@@ -56,10 +54,14 @@ const CharacterCurrency = () => {
   }, [formData, system.currencies, updateFormData])
 
   const currencyTotals = formData?.currencyGroups?.flatMap(
-    (group) => group && group?.currencies?.length > 0 && group?.currencies?.map((currency) => currency)
+    (group) => (group && group?.currencies?.length && group?.currencies?.map((currency) => currency)) || []
   )
 
-  const baglessIndex = formData?.currencyGroups?.findIndex((group) => group?.container == null)
+  let baglessIndex = formData?.currencyGroups?.findIndex((group) => group?.container == null)
+
+  if (!baglessIndex || baglessIndex === -1) {
+    baglessIndex = 0
+  }
 
   const currencyTotalsTitle = (
     <div>

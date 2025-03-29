@@ -9,6 +9,7 @@ import {
   HitpointFixed,
   HitpointRoll,
   HitpointRollValues,
+  Maybe,
   Race,
   Scores,
   Spell,
@@ -16,8 +17,9 @@ import {
 } from '../../amplify/gql/types'
 import { RollConfig } from '../types/components'
 import { HitPointCalcMethod, ModifierCategories, ModifierSpellCategories } from '../types/enums'
-import { FormDataType } from '../types/form'
+import { FormDataToInputMapping, FormDataType } from '../types/form'
 import { parseDiceRoll } from './dice'
+import { ToOptions, NavigateOptions } from '@tanstack/react-router'
 
 const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/s
 const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -26,6 +28,203 @@ const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
+
+function isNonNullable<T>(value: T): value is NonNullable<T> {
+  return value !== null && value !== undefined
+}
+
+export function createFilterOptions<T>(
+  items: Array<Maybe<T>> | undefined,
+  getValue: (item: NonNullable<T>) => string,
+  getLabel: (item: NonNullable<T>) => string,
+  getId: (item: NonNullable<T>) => string
+) {
+  return (items || [])
+    .filter(isNonNullable)
+    .map((item) => ({
+      value: getValue(item),
+      label: getLabel(item),
+      id: getId(item),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+}
+
+export type FormType = 'spells' | 'equipment' | 'characters' | 'classes' | 'races' | 'backgrounds' | 'feats'
+
+export const navigatePath = ({
+  form,
+  type,
+  action,
+  label,
+}: {
+  form: FormType
+  type: 'form' | 'view'
+  action?: 'new' | 'edit'
+  label?: string
+}): { path: ToOptions['to']; params: NavigateOptions['params'] } => {
+  switch (form) {
+    case 'spells': {
+      switch (type) {
+        case 'form': {
+          return {
+            path: '/spells/$action/$_spellId',
+            params: {
+              action: action,
+              _spellId: label || undefined,
+            },
+          }
+        }
+        case 'view': {
+          return {
+            path: '/spells/$spellId',
+            params: {
+              spellId: label || undefined,
+            },
+          }
+        }
+      }
+      break
+    }
+    case 'feats': {
+      switch (type) {
+        case 'form': {
+          return {
+            path: '/feats/$action/$_featId',
+            params: {
+              action: action,
+              _featId: label || undefined,
+            },
+          }
+        }
+        case 'view': {
+          return {
+            path: '/feats/$featId',
+            params: {
+              featId: label || undefined,
+            },
+          }
+        }
+      }
+      break
+    }
+    case 'equipment': {
+      switch (type) {
+        case 'form': {
+          return {
+            path: '/equipment/$action/$_equipmentId',
+            params: {
+              action: action,
+              _equipmentId: label || undefined,
+            },
+          }
+        }
+        case 'view': {
+          return {
+            path: '/equipment/$equipmentId',
+            params: {
+              equipmentId: label || undefined,
+            },
+          }
+        }
+      }
+      break
+    }
+    case 'races': {
+      switch (type) {
+        case 'form': {
+          return {
+            path: '/races/$action/$_raceId',
+            params: {
+              action: action,
+              _raceId: label || undefined,
+            },
+          }
+        }
+        case 'view': {
+          return {
+            path: '/races/$raceId',
+            params: {
+              raceId: label || undefined,
+            },
+          }
+        }
+      }
+      break
+    }
+    case 'classes': {
+      switch (type) {
+        case 'form': {
+          return {
+            path: '/classes/$action/$_classId',
+            params: {
+              action: action,
+              _classId: label || undefined,
+            },
+          }
+        }
+        case 'view': {
+          return {
+            path: '/classes/$classId',
+            params: {
+              classId: label || undefined,
+            },
+          }
+        }
+      }
+      break
+    }
+    case 'backgrounds': {
+      switch (type) {
+        case 'form': {
+          return {
+            path: '/backgrounds/$action/$_backgroundId',
+            params: {
+              action: action,
+              _backgroundId: label || undefined,
+            },
+          }
+        }
+        case 'view': {
+          return {
+            path: '/backgrounds/$backgroundId',
+            params: {
+              backgroundId: label || undefined,
+            },
+          }
+        }
+      }
+      break
+    }
+    case 'characters': {
+      switch (type) {
+        case 'form': {
+          return {
+            path: '/characters/$action/$_characterId',
+            params: {
+              action: action,
+              _characterId: label || undefined,
+            },
+          }
+        }
+        case 'view': {
+          return {
+            path: '/characters/$characterId',
+            params: {
+              characterId: label || undefined,
+            },
+          }
+        }
+      }
+      break
+    }
+    default: {
+      return {
+        path: '/',
+        params: {},
+      }
+    }
+  }
+}
 
 export const getModifierProperties = ({
   category,
@@ -167,40 +366,16 @@ export const calculateModifier = (score: number, type: 'bonus' | 'modifier') => 
 }
 
 export const calculateHitpoints = (formData: Character, primaryClass: Class) => {
+  const abilityScore = formData?.abilities?.scores?.find(
+    (score) => score.ability === primaryClass.hitpoint?.ability
+  )?.calculatedScore
   // Set the character hitpoints
-  const abilityModifierCalc = calculateModifier(
-    formData?.abilities?.scores?.find((score) => score.ability === primaryClass.hitpoint?.ability)?.calculatedScore,
-    'modifier'
-  )
+  const abilityModifierCalc = calculateModifier(abilityScore || 0, 'modifier')
 
   let abilityModifier: number = 0
 
   if (abilityModifierCalc !== '--') {
     abilityModifier = Number(abilityModifierCalc)
-  }
-  const { die } = parseDiceRoll(primaryClass?.hitpoint?.dieConfig as RollConfig)
-  const classLevel = formData?.classes?.[0]?.level
-
-  let total: number = 0
-  let maxHitpoints: number = 0
-  const values: HitpointRollValues[] = []
-  for (let i = 1; i <= classLevel; i++) {
-    let levelValue
-    if (i === 1) {
-      // First level gets max die value
-      levelValue = die
-    } else {
-      // Other levels get average
-      levelValue = Math.floor(die / 2) + 1
-    }
-
-    total += levelValue
-    maxHitpoints += levelValue + Number(abilityModifier)
-    values.push({
-      __typename: 'HitpointRollValues',
-      level: i,
-      value: levelValue,
-    })
   }
 
   const hitpoint: CharacterHitpoint = {
@@ -212,68 +387,95 @@ export const calculateHitpoints = (formData: Character, primaryClass: Class) => 
     maxHitpoints: formData?.hitpoint?.maxHitpoints || null,
   }
 
-  const rolled: HitpointRoll = {
-    __typename: 'HitpointRoll',
-    values: [...(formData?.hitpoint?.rolled?.values || [])],
-    total: formData?.hitpoint?.rolled?.total || null,
-    current: formData?.hitpoint?.rolled?.current || null,
-  }
+  const { die = null } = parseDiceRoll(primaryClass?.hitpoint?.dieConfig as RollConfig) || {}
+  const classLevel = formData?.classes?.[0]?.level
 
-  const fixed: HitpointFixed = {
-    __typename: 'HitpointFixed',
-    current: formData?.hitpoint?.fixed?.current || null,
-    total: formData?.hitpoint?.fixed?.total || null,
-  }
+  if (classLevel && die) {
+    let total: number = 0
+    let maxHitpoints: number = 0
+    const values: HitpointRollValues[] = []
+    for (let i = 1; i <= classLevel; i++) {
+      let levelValue
+      if (i === 1) {
+        // First level gets max die value
+        levelValue = die
+      } else {
+        // Other levels get average
+        levelValue = Math.floor(die / 2) + 1
+      }
 
-  if (!(rolled.values?.length > 0)) {
-    rolled.values = values
-  }
-
-  if (rolled.values?.length < classLevel) {
-    for (let i = rolled.values.length + 1; i <= classLevel; i++) {
-      const levelValue = i === 1 ? die : Math.floor(die / 2) + 1
-      rolled.values.push({
+      total += levelValue
+      maxHitpoints += levelValue + Number(abilityModifier)
+      values.push({
         __typename: 'HitpointRollValues',
         level: i,
         value: levelValue,
       })
     }
-  }
 
-  if (formData?.hitpoint?.method === HitPointCalcMethod.fixed) {
-    maxHitpoints = total + Number(abilityModifier) * classLevel
-    hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
-  }
+    const rolled: HitpointRoll = {
+      __typename: 'HitpointRoll',
+      values: [...(formData?.hitpoint?.rolled?.values || [])],
+      total: formData?.hitpoint?.rolled?.total || null,
+      current: formData?.hitpoint?.rolled?.current || null,
+    }
 
-  if (formData?.hitpoint?.method === HitPointCalcMethod.manual) {
-    maxHitpoints = 0
-    total = 0
-    rolled.values?.forEach((value) => {
-      total += value.value
-      maxHitpoints += value.value + Number(abilityModifier)
-    })
+    const fixed: HitpointFixed = {
+      __typename: 'HitpointFixed',
+      current: formData?.hitpoint?.fixed?.current || null,
+      total: formData?.hitpoint?.fixed?.total || null,
+    }
 
-    rolled.total = total
-    hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
-  }
+    if (!rolled.values?.length) {
+      rolled.values = values
+    }
 
-  if (fixed.total === null || fixed.total === undefined) {
-    fixed.total = total
-  }
+    if (rolled.values?.length < classLevel) {
+      for (let i = rolled.values.length + 1; i <= classLevel; i++) {
+        const levelValue = i === 1 ? die : Math.floor(die / 2) + 1
+        rolled.values.push({
+          __typename: 'HitpointRollValues',
+          level: i,
+          value: levelValue,
+        })
+      }
+    }
 
-  if (fixed.current === null || fixed.current === undefined) {
-    fixed.current = hitpoint.maxHitpoints
-  }
+    if (formData?.hitpoint?.method === HitPointCalcMethod.fixed) {
+      maxHitpoints = total + Number(abilityModifier) * classLevel
+      hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
+    }
 
-  if (rolled.current === null || rolled.current === undefined) {
-    rolled.current = hitpoint.maxHitpoints
-  }
+    if (formData?.hitpoint?.method === HitPointCalcMethod.manual) {
+      maxHitpoints = 0
+      total = 0
+      rolled.values?.forEach((value) => {
+        total += value.value
+        maxHitpoints += value.value + Number(abilityModifier)
+      })
 
-  hitpoint.rolled = rolled
-  hitpoint.fixed = fixed
+      rolled.total = total
+      hitpoint.maxHitpoints = maxHitpoints + (formData?.hitpoint?.bonus || 0)
+    }
 
-  if (formData?.hitpoint?.maxOverride !== null && formData?.hitpoint?.maxOverride !== undefined) {
-    hitpoint.maxHitpoints = formData?.hitpoint?.maxOverride
+    if (fixed.total === null || fixed.total === undefined) {
+      fixed.total = total
+    }
+
+    if (fixed.current === null || fixed.current === undefined) {
+      fixed.current = hitpoint.maxHitpoints
+    }
+
+    if (rolled.current === null || rolled.current === undefined) {
+      rolled.current = hitpoint.maxHitpoints
+    }
+
+    hitpoint.rolled = rolled
+    hitpoint.fixed = fixed
+
+    if (formData?.hitpoint?.maxOverride !== null && formData?.hitpoint?.maxOverride !== undefined) {
+      hitpoint.maxHitpoints = formData?.hitpoint?.maxOverride
+    }
   }
 
   return hitpoint
@@ -286,94 +488,103 @@ export const createFormObject = (
   category?: string,
   abilities?: System['abilities']
 ) => {
-  let stateObject: FormDataType
   switch (form) {
     case 'classes': {
       const classObject: Class = {
-        id: undefined,
+        id: '',
         ownerId: userId,
         systemId: systemId,
-        label: undefined,
-        value: undefined,
-        category: category,
+        label: '',
+        value: '',
+        category: category as string,
         __typename: 'Class',
       }
-      stateObject = classObject
+      return classObject
       break
     }
     case 'spells': {
       const spellObject: Spell = {
-        id: undefined,
+        id: '',
         ownerId: userId,
         systemId: systemId,
-        label: undefined,
-        value: undefined,
-        school: undefined,
-        level: undefined,
-        classes: undefined,
-        range: undefined,
-        duration: undefined,
+        label: '',
+        value: '',
+        school: '',
+        level: 0,
+        classes: [],
+        range: {
+          __typename: 'Range',
+          id: '',
+        },
+        duration: {
+          __typename: 'Duration',
+          id: '',
+        },
         __typename: 'Spell',
       }
-      stateObject = spellObject
+      return spellObject
       break
     }
     case 'equipment': {
       const equipmentObject: Equipment = {
-        id: undefined,
+        id: '',
         ownerId: userId,
         systemId: systemId,
-        label: undefined,
-        value: undefined,
-        category: undefined,
+        label: '',
+        value: '',
+        category: '',
         __typename: 'Equipment',
+        quantity: 0,
+        rarity: '',
       }
-      stateObject = equipmentObject
+      return equipmentObject
       break
     }
     case 'feats': {
       const featObject: Feat = {
-        id: undefined,
+        id: '',
         ownerId: userId,
         systemId: systemId,
-        label: undefined,
-        value: undefined,
-        category: undefined,
+        label: '',
+        value: '',
+        category: '',
         __typename: 'Feat',
       }
-      stateObject = featObject
+      return featObject
       break
     }
     case 'backgrounds': {
       const backgroundObject: Background = {
-        id: undefined,
+        id: '',
         ownerId: userId,
         systemId: systemId,
-        label: undefined,
-        value: undefined,
+        label: '',
+        value: '',
         __typename: 'Background',
       }
-      stateObject = backgroundObject
+      return backgroundObject
       break
     }
     case 'characters': {
       const abilityScores: Array<Scores> = []
-      abilities.forEach((ability) =>
-        abilityScores.push({
-          __typename: 'Scores',
-          ability: ability.id,
-          baseScore: 0,
-          calculatedScore: 0,
-          raceScore: 0,
-          classScore: 0,
-        })
-      )
+      abilities?.forEach((ability) => {
+        if (ability) {
+          abilityScores.push({
+            __typename: 'Scores',
+            ability: ability?.id,
+            baseScore: 0,
+            calculatedScore: 0,
+            raceScore: 0,
+            classScore: 0,
+          })
+        }
+      })
       const characterObject: Character = {
-        id: undefined,
+        id: '',
         ownerId: userId,
         systemId: systemId,
-        label: undefined,
-        value: undefined,
+        label: '',
+        value: '',
         abilities: {
           __typename: 'CharacterAbilities',
           scores: abilityScores,
@@ -382,7 +593,7 @@ export const createFormObject = (
           __typename: 'CharacterHitpoint',
           maxHitpoints: undefined,
           maxOverride: undefined,
-          method: undefined,
+          method: '',
           temp: undefined,
           bonus: undefined,
           rolled: {
@@ -406,25 +617,26 @@ export const createFormObject = (
         expertise: [],
         senses: [],
       }
-      stateObject = characterObject
+      return characterObject
       break
     }
     case 'races': {
       const raceObject: Race = {
-        id: undefined,
+        id: '',
         ownerId: userId,
         systemId: systemId,
-        label: undefined,
-        value: undefined,
-        category: category,
-        playable: undefined,
+        label: '',
+        value: '',
+        category: category as string,
+        playable: '',
         __typename: 'Race',
       }
-      stateObject = raceObject
+      return raceObject
       break
     }
+    default:
+      return {}
   }
-  return stateObject
 }
 
 export const isEquipmentInInventory = (equipmentId: string, inventory: Contains[]): boolean => {
@@ -437,6 +649,8 @@ export const isEquipmentInInventory = (equipmentId: string, inventory: Contains[
   return inventory.some((item) => item.contains && isEquipmentInInventory(equipmentId, item.contains))
 }
 
+export type SourcePropertyMapReturn = ReturnType<typeof sourcePropertyMap>
+
 export const sourcePropertyMap = (data: Character) => ({
   classId: (id: string) =>
     data?.__typename === 'Character' && data?.classes?.some((c) => c.id === id || c.subclass?.id === id),
@@ -446,3 +660,41 @@ export const sourcePropertyMap = (data: Character) => ({
   equipmentId: (id: string) => data?.__typename === 'Character' && isEquipmentInInventory(id, data?.equipment || []),
   backgroundId: (id: string) => data?.__typename === 'Character' && data?.background === id,
 })
+
+// Helper function to recursively remove __typename fields from a Spell object
+export const removeTypename = <T extends FormDataType>(data: T): FormDataToInputMapping[T['__typename']] => {
+  // Create a deep copy first
+  const deepCopy = JSON.parse(JSON.stringify(data))
+
+  // Function to recursively remove __typename
+  function removeTypenameRecursive(obj: any) {
+    if (!obj || typeof obj !== 'object') return
+
+    // Delete __typename if it exists
+    if ('__typename' in obj) {
+      delete obj.__typename
+    }
+
+    // Process arrays
+    if (Array.isArray(obj)) {
+      obj.forEach((item) => {
+        if (item && typeof item === 'object') {
+          removeTypenameRecursive(item)
+        }
+      })
+    } else {
+      // Process object properties
+      Object.values(obj).forEach((value) => {
+        if (value && typeof value === 'object') {
+          removeTypenameRecursive(value)
+        }
+      })
+    }
+  }
+
+  // Remove __typename fields from the copy
+  removeTypenameRecursive(deepCopy)
+
+  // Return the cleaned object
+  return deepCopy as FormDataToInputMapping[T['__typename']]
+}

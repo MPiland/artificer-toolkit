@@ -5,10 +5,10 @@ import { use, useEffect } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
 import { DropdownOption } from '../../../../types/components'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
-import { useListEquipmentQuery } from '../../../../features/equipment/equipmentApi'
+import { useGetSystemQuery } from '../../../../apis/systemsApi'
+import { useListEquipmentQuery } from '../../../../apis/equipmentApi'
 import { Categories, ProficiencyCategories } from '../../../../types/enums'
-import { Class, ClassesEnum, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
+import { ClassesEnum, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
 import Prerequisites from '../../Subforms/Requirements'
@@ -52,10 +52,11 @@ const Expertise = () => {
           name='attributes'
           options={system.attributes.filter(
             (attribute) =>
-              attribute.sections.includes(SectionEnum.all) &&
-              formData.__typename === 'Class' &&
-              formData.category === Categories.subclass &&
-              attribute.classes.includes(ClassesEnum.subclass)
+              (attribute.sections?.length && attribute.sections.includes(SectionEnum.all)) ||
+              (formData.__typename === 'Class' &&
+                formData.category === Categories.subclass &&
+                attribute.classes?.length &&
+                attribute.classes.includes(ClassesEnum.subclass))
           )}
           label={`${startCase('proficiency')} Attributes`}
           value={sectionData?.attributes}
@@ -72,10 +73,12 @@ const Expertise = () => {
           onChange={updateSectionData}
         />
       </Grid.Item>
-      {sectionCategory.id !== null &&
-        (sectionCategory.id !== ProficiencyCategories.properties &&
-        sectionCategory.id !== ProficiencyCategories.equipment &&
-        sectionCategory.id !== ProficiencyCategories.initiative ? (
+      {sectionCategory?.id &&
+        ((
+          sectionCategory.id !== ProficiencyCategories.properties &&
+          sectionCategory.id !== ProficiencyCategories.equipment &&
+          sectionCategory.id !== ProficiencyCategories.initiative
+        ) ?
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={`${categoryName as 'skills' | 'saveAbilities' | 'languages'}`}
@@ -89,8 +92,7 @@ const Expertise = () => {
               onChange={updateSectionData}
             />
           </Grid.Item>
-        ) : (
-          <>
+        : <>
             {(sectionData?.category === ProficiencyCategories.properties ||
               sectionData?.category !== ProficiencyCategories.equipment) && (
               <>
@@ -124,7 +126,7 @@ const Expertise = () => {
                         name={`${categoryName}`}
                         multiSelect={true}
                         label='Equipment'
-                        value={sectionData[categoryName].ids}
+                        value={sectionData?.[categoryName]?.ids}
                         options={items as DropdownOption[]}
                         onChange={updateSectionData}
                         required={true}
@@ -134,20 +136,22 @@ const Expertise = () => {
                 )}
               </>
             )}
-          </>
-        ))}
-      {subtypeSpecific && formData.__typename === 'Class' && formData.category === Categories.subclass && (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-          <Dropdown
-            name='subtype'
-            label='Subclass Subtypes'
-            value={sectionData?.subtype}
-            options={(formData as Class)?.subtypes}
-            required={true}
-            onChange={updateSectionData}
-          />
-        </Grid.Item>
-      )}
+          </>)}
+      {subtypeSpecific &&
+        formData.__typename === 'Class' &&
+        formData.category === Categories.subclass &&
+        formData?.subtypes?.length && (
+          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+            <Dropdown
+              name='subtype'
+              label='Subclass Subtypes'
+              value={sectionData?.subtype}
+              options={formData?.subtypes}
+              required={true}
+              onChange={updateSectionData}
+            />
+          </Grid.Item>
+        )}
       {providesOptions && (
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Input

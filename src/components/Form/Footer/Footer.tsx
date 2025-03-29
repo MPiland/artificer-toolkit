@@ -2,25 +2,26 @@ import { form_footer } from '../Form.css'
 import Group from '../../Group/Group'
 import Button from '../../Button/Button'
 import { validateForm } from '../../../utils/form'
-import { useLocation, useNavigate } from 'react-router-dom'
 import { isEqual, startCase } from 'lodash'
 import { useEffect } from 'react'
 import { UseMutationResult } from '@tanstack/react-query'
-import { FormDataType, FormInputType } from '../../../types/form'
+import { FormDataType } from '../../../types/form'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import { FeatureContext } from '../Features/FeatureContext'
 import { routeRoot } from '../../../utils/formatting'
 import { sprinkles } from '../../../css/sprinkles.css'
+import { ModalContext } from '../../Modal/ModalContext'
+import { Navigate } from '@tanstack/react-router'
+import { FormType, navigatePath } from '../../../utils/form'
 
 interface FooterProps<T extends FormDataType> {
-  useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
-  useUpdateItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
+  useAddNewItemMutation: () => UseMutationResult<T, Error, T, unknown>
+  useUpdateItemMutation: () => UseMutationResult<T, Error, T, unknown>
 }
 
 const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FooterProps<T>) => {
-  const navigate = useNavigate()
-  const location = useLocation()
+  const { showModal } = use(ModalContext)
 
   const {
     validForm,
@@ -61,6 +62,10 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     featureStep,
     setFeatureStep,
     handleSaveFeatures,
+    resetAncestry,
+    resetFeature,
+    resetOption,
+    resetSection,
   } = use(FeatureContext)
 
   const {
@@ -77,11 +82,10 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     error: updateError,
   } = useUpdateItemMutation()
 
-  const forwardLabel = isLastStep
-    ? featureStep != null
-      ? 'Finish'
-      : formData.id != null
-      ? 'Update'
+  const forwardLabel =
+    isLastStep ?
+      featureStep != null ? 'Finish'
+      : formData.id != null ? 'Update'
       : 'Create'
     : 'Next'
 
@@ -116,45 +120,38 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     updateError,
   ])
 
-  const handleNavigateEdit = (item: any) => {
-    const route = routeRoot(formData.__typename)
-    navigate(`/${route}/${formData.value}/edit`, {
-      state: { formData: item, previous: `/${route}` },
-    })
+  const handleNavigateEdit = (item: FormDataType) => {
+    const route = routeRoot(formData.__typename) as FormType
+    const navPath = navigatePath({ form: route, type: 'form', action: 'edit', label: item.label })
+
     setStepIndex(0)
     setSaving(false)
-  }
-
-  const handleAlert = ({ alertType, message }: { alertType: string; message: string; index?: number }) => {
-    navigate(`alert/${alertType}`, {
-      state: {
-        message: message,
-        previous: location,
-      },
-    })
+    return <Navigate to={navPath.path} params={navPath.params} />
   }
 
   const handleSaveSection = () => {
-    if (featureStep === 'option') {
-      updateOptionData({
-        type: 'update',
-        path: `${sectionStep}.${sectionIndex}`,
-        value: sectionData,
-      })
-    } else {
-      if (formData.__typename === 'Feat') {
-        updateFormData({
+    if (sectionStep !== null) {
+      if (featureStep === 'option') {
+        updateOptionData({
           type: 'update',
           path: `${sectionStep}.${sectionIndex}`,
           value: sectionData,
         })
       } else {
-        if (steps[stepIndex].id === 'ancestry') {
-          updateAncestryData({
+        if (formData.__typename === 'Feat') {
+          updateFormData({
             type: 'update',
-            path: `features.${featureIndex}.${sectionStep}.${sectionIndex}`,
+            path: `${sectionStep}.${sectionIndex}`,
             value: sectionData,
           })
+        } else {
+          if (steps[stepIndex].id === 'ancestry') {
+            updateAncestryData({
+              type: 'update',
+              path: `features.${featureIndex}.${sectionStep}.${sectionIndex}`,
+              value: sectionData,
+            })
+          }
         }
       }
     }
@@ -246,9 +243,12 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       }
       setValidForm({ ...validForm, [steps[stepIndex].id]: false })
       if (featureStep != null) {
-        return handleAlert({
-          alertType: 'forward',
-          message: 'Some required fields are missing. Current form step will not be saved.',
+        return showModal({
+          type: 'alert',
+          props: {
+            message: 'Some required fields are missing. Current form step will not be saved.',
+            onConfirm: handleConfirmForward,
+          },
         })
       }
     }
@@ -256,15 +256,18 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       if (isValid) {
         setValidForm({ ...validForm, [steps[stepIndex].id]: true })
         if (Object.values(validForm).length > 0 && !Object.values(validForm).every((value) => value === true)) {
-          return handleAlert({
-            alertType: 'forward',
-            message: 'There are missing fields are required. Please review each step.',
+          return showModal({
+            type: 'alert',
+            props: {
+              message: 'Some required fields are missing. Current form step will not be saved.',
+              onConfirm: handleConfirmForward,
+            },
           })
         }
         setSaving(true)
-        const payload: any = await addNewItem(formData as FormInputType)
+        const payload = await addNewItem(formData as T)
         if (payload) {
-          return handleNavigateEdit(payload.formData.item)
+          return handleNavigateEdit(payload)
         } else {
           return setErrorMessage('No formData returned')
         }
@@ -275,15 +278,18 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   const handleBack = () => {
     if (isFirstStep) {
       if (!isEqual(initialFormData, formData)) {
-        return handleAlert({
-          alertType: 'back',
-          message:
-            formData.id != null
-              ? `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
+        return showModal({
+          type: 'alert',
+          props: {
+            message:
+              formData.id != null ?
+                `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
               : `${formData.__typename} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+            onConfirm: handleConfirmBack,
+          },
         })
       }
-      return navigate(-1)
+      return <Navigate to={'..'} />
     }
     const isValid = validateForm()
     if (isValid) {
@@ -295,9 +301,12 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       setValidForm({ ...validForm, [steps[stepIndex].id]: false })
     }
     if (featureStep != null) {
-      return handleAlert({
-        alertType: 'back',
-        message: 'Some required fields are missing. Current form step will not be saved.',
+      return showModal({
+        type: 'alert',
+        props: {
+          message: 'Some required fields are missing. Current form step will not be saved.',
+          onConfirm: handleConfirmBack,
+        },
       })
     }
     if (stepIndex <= 0) {
@@ -319,7 +328,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       }
       if (!(Object.values(validForm).length > 0) || Object.values(validForm).every((value) => value === true)) {
         try {
-          await updateItem(formClone as FormInputType)
+          await updateItem(formClone as T)
           updateFormData({
             type: 'initialReset',
             value: formClone,
@@ -334,10 +343,14 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         }
       }
     }
-    return handleAlert({
-      alertType: 'invalidForm',
-      message: 'There are missing fields are required. Please review each step.',
-    })
+    if (featureStep != null) {
+      return showModal({
+        type: 'alert',
+        props: {
+          message: 'There are missing fields are required. Please review each step.',
+        },
+      })
+    }
   }
 
   const handleReset = () => {
@@ -369,6 +382,43 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       type: 'reset',
       value: initialFormData,
     })
+  }
+
+  const reset = () => {
+    if (sectionStep != null) {
+      resetSection()
+      setSectionStep(null)
+    } else if (featureStep === 'option') {
+      resetOption()
+      setFeatureStep('feature')
+    } else if (featureStep === 'ancestry') {
+      resetFeature()
+      setFeatureStep('ancestryOption')
+    } else if (featureStep === 'ancestryOption') {
+      resetAncestry()
+      setFeatureStep(null)
+    } else {
+      resetFeature()
+      setFeatureStep(null)
+    }
+  }
+
+  const handleConfirmBack = () => {
+    if (!isFirstStep) {
+      if (featureStep != null) {
+        reset()
+      }
+      setStepIndex(stepIndex - 1)
+    }
+  }
+
+  const handleConfirmForward = () => {
+    if (!isLastStep) {
+      if (featureStep != null) {
+        reset()
+      }
+      setStepIndex(stepIndex + 1)
+    }
   }
 
   return (

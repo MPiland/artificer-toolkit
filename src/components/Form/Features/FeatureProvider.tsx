@@ -1,4 +1,4 @@
-import { ReactElement, use, ReactNode } from 'react'
+import { ReactElement, use, ReactNode, useCallback } from 'react'
 import {
   DeepKeyOf,
   FormDataType,
@@ -189,33 +189,36 @@ const useFeatureOptions = () => {
     }
   }
 
-  const updateSectionData = <T extends SectionDataType>(state: UpdateState<T>) => {
-    switch (state.type) {
-      case 'add': {
-        if (state.value) {
-          addSectionField({ path: state.path, value: state.value })
-        } else {
-          addSectionField({ path: state.path })
+  const updateSectionData = useCallback(
+    <T extends SectionDataType>(state: UpdateState<T>) => {
+      switch (state.type) {
+        case 'add': {
+          if (state.value) {
+            addSectionField({ path: state.path, value: state.value })
+          } else {
+            addSectionField({ path: state.path })
+          }
+          break
         }
-        break
+        case 'update':
+          updateSectionField({ path: state.path, value: state.value })
+          break
+        case 'remove':
+          removeSectionField({ path: state.path })
+          break
+        case 'reset':
+          sectionReset({ value: state.value })
+          break
+        case 'initialReset':
+          initialSectionReset({ value: state.value })
+          break
+        case 'index':
+          updateSectionIndex({ value: state.value })
+          break
       }
-      case 'update':
-        updateSectionField({ path: state.path, value: state.value })
-        break
-      case 'remove':
-        removeSectionField({ path: state.path })
-        break
-      case 'reset':
-        sectionReset({ value: state.value })
-        break
-      case 'initialReset':
-        initialSectionReset({ value: state.value })
-        break
-      case 'index':
-        updateSectionIndex({ value: state.value })
-        break
-    }
-  }
+    },
+    [addSectionField, removeSectionField, sectionReset, updateSectionField, updateSectionIndex, initialSectionReset]
+  )
 
   function isSectionName(key: string): key is SectionName {
     return sectionSteps.includes(key as SectionName)
@@ -225,12 +228,12 @@ const useFeatureOptions = () => {
     return featureTypes.includes(key as FeatureTypes)
   }
 
-  const cloneAndSetStates = ({
+  const cloneAndSetStates = <T extends Feature | AncestryFeature | SectionDataType | FeatureOption>({
     state,
     updateData,
   }: {
-    state: Feature | AncestryFeature | SectionDataType | FeatureOption
-    updateData: (arg: UpdateState<Feature | AncestryFeature | SectionDataType | FeatureOption>) => void
+    state: T
+    updateData: (arg: UpdateState<T>) => void
   }) => {
     updateData({ type: 'initialReset', value: state })
     updateData({
@@ -243,85 +246,129 @@ const useFeatureOptions = () => {
     const formClone: FormDataType = state ? JSON.parse(JSON.stringify(state)) : {}
     const paths: {
       option: {
-        feats: Array<DeepKeyOf<Feat>>
-        default: Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>>
+        feats: () => Array<DeepKeyOf<Feat>>
+        default: () => Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>>
       }
       feature: {
-        feats: Array<DeepKeyOf<Feat>>
-        default: Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>>
+        feats: () => Array<DeepKeyOf<Feat>>
+        default: () => Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>>
       }
     } = {
       option: {
-        feats: [
-          `options.${optionIndex}`,
-          `options.${optionIndex}.${sectionStep as Exclude<SectionName, 'options' | 'features'>}.${sectionIndex}`,
-        ],
-        default:
-          steps[stepIndex].id === 'ancestry'
-            ? [
-                `ancestry.options.${ancestryIndex}`,
-                `ancestry.options.${ancestryIndex}.features.${featureIndex}`,
-                `ancestry.options.${ancestryIndex}.features.${featureIndex}.options.${optionIndex}`,
-                `ancestry.options.${ancestryIndex}.features.${featureIndex}.options.${optionIndex}.${sectionStep}.${sectionIndex}`,
-              ]
-            : [
-                `features.${featureIndex}`,
-                `features.${featureIndex}.options.${optionIndex}`,
-                `features.${featureIndex}.options.${optionIndex}.${sectionStep}.${sectionIndex}`,
-              ],
+        feats: () => {
+          const pathArray: Array<DeepKeyOf<Feat>> = [`options.${optionIndex}`]
+          if (sectionStep !== null) {
+            pathArray.push(`options.${optionIndex}`, `options.${optionIndex}.${sectionStep}.${sectionIndex}`)
+          }
+          return pathArray
+        },
+        default: () => {
+          const pathArray: Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>> = []
+          if (steps[stepIndex].id === 'ancestry') {
+            pathArray.push(
+              `ancestry.options.${ancestryIndex}`,
+              `ancestry.options.${ancestryIndex}.features.${featureIndex}`,
+              `ancestry.options.${ancestryIndex}.features.${featureIndex}.options.${optionIndex}`
+            )
+            if (sectionStep !== null) {
+              pathArray.push(
+                `ancestry.options.${ancestryIndex}.features.${featureIndex}.options.${optionIndex}.${sectionStep}.${sectionIndex}`
+              )
+            }
+          } else {
+            pathArray.push(`features.${featureIndex}`, `features.${featureIndex}.options.${optionIndex}`)
+            if (sectionStep !== null) {
+              pathArray.push(`features.${featureIndex}.options.${optionIndex}.${sectionStep}.${sectionIndex}`)
+            }
+          }
+          return pathArray
+        },
       },
       feature: {
-        feats: [`features.${featureIndex}.${sectionStep}.${sectionIndex}`],
-        default:
-          steps[stepIndex].id === 'ancestry'
-            ? [
-                `ancestry.options.${ancestryIndex}`,
-                `ancestry.options.${ancestryIndex}.features.${featureIndex}`,
-                `ancestry.options.${ancestryIndex}.features.${featureIndex}.${sectionStep}.${sectionIndex}`,
-              ]
-            : [`features.${featureIndex}`, `features.${featureIndex}.${sectionStep}.${sectionIndex}`],
+        feats: () => {
+          const pathArray: Array<DeepKeyOf<Feat>> = []
+          if (sectionStep !== null) {
+            pathArray.push(`features.${featureIndex}.${sectionStep}.${sectionIndex}`)
+          }
+          return pathArray
+        },
+        default: () => {
+          const pathArray: Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>> = []
+          if (steps[stepIndex].id === 'ancestry') {
+            pathArray.push(
+              `ancestry.options.${ancestryIndex}`,
+              `ancestry.options.${ancestryIndex}.features.${featureIndex}`
+            )
+            if (sectionStep !== null) {
+              pathArray.push(
+                `ancestry.options.${ancestryIndex}.features.${featureIndex}.${sectionStep}.${sectionIndex}`
+              )
+            }
+          } else {
+            pathArray.push(`features.${featureIndex}`)
+            if (sectionStep !== null) {
+              pathArray.push(`features.${featureIndex}.${sectionStep}.${sectionIndex}`)
+            }
+          }
+          return pathArray
+        },
       },
     }
 
     const getContextPaths = ({ title }: { title: 'feats' | 'default' }): string[] => {
       const pathType = toLower(type) as 'option' | 'feature'
-      return paths[pathType][title] || paths[pathType].default
+      return paths[pathType][title]() || paths[pathType].default()
     }
+
+    type UpdateFunction =
+      | { type: 'option'; fn: (arg: UpdateState<FeatureOption>) => void }
+      | { type: 'feature'; fn: (arg: UpdateState<Feature>) => void }
+      | { type: 'section'; fn: (arg: UpdateState<SectionDataType>) => void }
 
     const setStates = ({ title }: { title: 'feats' | 'default' }) => {
       const lowerType = toLower(type) as 'option' | 'feature'
+
       const stateMap: Record<'option' | 'feature', Array<FeatureOption | Feature | SectionDataType>> = {
         option: [optionData],
         feature: [featureData],
       }
 
-      const setDataMap: Record<
-        'option' | 'feature',
-        Array<(arg: UpdateState<Feature | SectionDataType | FeatureOption>) => void>
-      > = {
-        option: [updateOptionData],
-        feature: [updateFeatureData],
+      const updateFunctions: Record<'option' | 'feature', Array<UpdateFunction>> = {
+        option: [{ type: 'option', fn: updateOptionData }],
+        feature: [{ type: 'feature', fn: updateFeatureData }],
       }
 
       if (sectionStep !== null) {
         stateMap.option.push(sectionData)
-        setDataMap.option.push(updateSectionData)
+        updateFunctions.option.push({ type: 'section', fn: updateSectionData })
         stateMap.feature.push(sectionData)
-        setDataMap.feature.push(updateSectionData)
+        updateFunctions.feature.push({ type: 'section', fn: updateSectionData })
       }
 
       if (featureStep !== null) {
         const currentStates = stateMap[lowerType]
-        const updateStates = setDataMap[lowerType]
         const paths = getContextPaths({ title })
 
         Object.values(paths).forEach((path, index) => {
           if (index < currentStates.length) {
             set(formClone, path, JSON.parse(JSON.stringify(currentStates[index])))
-            cloneAndSetStates({
-              state: currentStates[index],
-              updateData: updateStates[index],
-            })
+
+            if (index === 0 && lowerType === 'option') {
+              cloneAndSetStates<FeatureOption>({
+                state: currentStates[index] as FeatureOption,
+                updateData: updateOptionData,
+              })
+            } else if (index === 0 && lowerType === 'feature') {
+              cloneAndSetStates<Feature>({
+                state: currentStates[index] as Feature,
+                updateData: updateFeatureData,
+              })
+            } else {
+              cloneAndSetStates<SectionDataType>({
+                state: currentStates[index] as SectionDataType,
+                updateData: updateSectionData,
+              })
+            }
           }
         })
       }
@@ -390,7 +437,7 @@ const FeatureProvider = ({ children }: { children: ReactNode }) => {
 
 export default FeatureProvider
 
-export type FeatureOptionsType = ReturnType<typeof useFeatureOptions> | null
+export type FeatureOptionsType = ReturnType<typeof useFeatureOptions>
 
 export type UpdateFeatureData = FeatureOptionsType['updateFeatureData']
 export type UpdateOptionData = FeatureOptionsType['updateOptionData']

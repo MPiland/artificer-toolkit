@@ -3,25 +3,25 @@ import Dropdown from '../../Dropdown/Dropdown'
 import Collapse from '../../Collapse/Collapse'
 import Divider from '../../Divider/Divider'
 import { startCase } from 'lodash'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { DamageEnum, SpellEnum, Spell } from '../../../../amplify/gql/types'
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import Input from '../../Input/Input'
 import Grid from '../../Grid/Grid'
 
-const Upcast = ({
+const Upcast = <T extends Spell>({
   formData,
   updateFormData,
 }: {
-  formData: Spell
-  updateFormData: (arg: UpdateState<Spell>) => void
+  formData: T
+  updateFormData: (arg: UpdateState<T>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
   // Add/remove Upcast table
   useEffect(() => {
-    if (formData.upcast?.attributes?.length > 0 && !formData.upcast?.levels) {
+    if (formData.upcast?.attributes?.length && !formData.upcast?.levels) {
       updateFormData({
         type: 'add',
         path: 'upcast.levels',
@@ -31,7 +31,7 @@ const Upcast = ({
 
   // Set upcast types based on user selection
   const upcastTypes = useMemo(() => {
-    if (formData?.upcast?.attributes?.length > 0) {
+    if (formData?.upcast?.attributes?.length) {
       let types: ('primary' | 'secondary' | 'bonus')[] = []
       // Handle primary
       if (
@@ -77,7 +77,7 @@ const Upcast = ({
   const upcastOptions = useMemo(() => {
     const options = [
       ...system.attributes.filter(
-        (attribute) => attribute?.spells?.length > 0 && attribute?.spells.includes(SpellEnum.upcast)
+        (attribute) => attribute?.spells?.length && attribute?.spells.includes(SpellEnum.upcast)
       ),
     ]
 
@@ -442,7 +442,7 @@ const Upcast = ({
           onChange={updateFormData}
         />
       </Grid.Item>
-      {formData?.upcast?.attributes?.length > 0 && (
+      {formData?.upcast?.attributes?.length && (
         <Grid.Item>
           <Collapse>
             <Collapse.Header title='Upcast Table' startOpened={formData.id == null} />

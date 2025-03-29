@@ -12,7 +12,7 @@ import { FeatureDataType, FormDataType, SectionDataType } from '../types/form'
 
 type EnumCheck = FormDataType | FeatureDataType | Damage | SectionDataType
 
-export const useEnumChecks = ({ data }: { data: EnumCheck }) => {
+export const useEnumChecks = ({ data }: { data?: EnumCheck }) => {
   if (!data) return {}
   // Attributes
   const isSpellcaster = 'attributes' in data && data?.attributes?.some((attr) => attr === Attributes.spellcaster)

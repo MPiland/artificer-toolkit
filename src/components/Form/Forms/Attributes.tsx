@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Dropdown from '../../Dropdown/Dropdown'
 import { startCase } from 'lodash'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
 import Divider from '../../Divider/Divider'
@@ -17,7 +17,7 @@ import Resource from '../Subforms/Resource'
 import LimitUse from '../Subforms/LimitUse'
 import Multiclass from '../Subforms/Multiclass'
 import { Attributes, Categories, Durations, Ranges, Shapes } from '../../../types/enums'
-import { AllEnum, ClassesEnum, Equipment, EquipmentEnum, Feat, Spell, SpellEnum } from '../../../../amplify/gql/types'
+import { AllEnum, ClassesEnum, EquipmentEnum, SpellEnum } from '../../../../amplify/gql/types'
 import { FormDataType, UpdateState } from '../../../types/form'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
@@ -115,7 +115,7 @@ const AttributeForm = () => {
               },
             },
             {
-              condition: formData?.category !== Categories.subclass && formData?.subtypes?.length > 0,
+              condition: formData?.category !== Categories.subclass && formData?.subtypes?.length,
               cleanup: () => {
                 updateFormData({
                   type: 'remove',
@@ -135,7 +135,7 @@ const AttributeForm = () => {
                 }),
             },
             {
-              condition: !equipmentProficiency && formData.prerequisites?.equipmentProficiencies?.length > 0,
+              condition: !equipmentProficiency && formData.prerequisites?.equipmentProficiencies?.length,
               cleanup: () =>
                 updateFormData({
                   type: 'remove',
@@ -143,7 +143,7 @@ const AttributeForm = () => {
                 }),
             },
             {
-              condition: !equipped && formData.prerequisites?.equipped?.length > 0,
+              condition: !equipped && formData.prerequisites?.equipped?.length,
               cleanup: () =>
                 updateFormData({
                   type: 'remove',
@@ -151,7 +151,7 @@ const AttributeForm = () => {
                 }),
             },
             {
-              condition: !notEquipped && formData.prerequisites?.notEquipped?.length > 0,
+              condition: !notEquipped && formData.prerequisites?.notEquipped?.length,
               cleanup: () =>
                 updateFormData({
                   type: 'remove',
@@ -184,7 +184,7 @@ const AttributeForm = () => {
 
   // Add Subtypes to Class as necessary
   useEffect(() => {
-    if (formData?.__typename !== 'Class' || formData.category !== Categories.subclass || formData?.subtypes?.length > 0)
+    if (formData?.__typename !== 'Class' || formData.category !== Categories.subclass || formData?.subtypes?.length)
       return
 
     updateFormData({
@@ -219,7 +219,7 @@ const AttributeForm = () => {
                     value={formData?.attributes}
                     options={system.attributes
                       .filter((attribute) => {
-                        if (formData.__typename === 'Equipment' && attribute?.equipment?.length > 0) {
+                        if (formData.__typename === 'Equipment' && attribute?.equipment?.length) {
                           if (isArmor) {
                             return (
                               attribute.equipment.includes(EquipmentEnum.armors) ||
@@ -240,7 +240,7 @@ const AttributeForm = () => {
                           }
                           return attribute.equipment.includes(EquipmentEnum.all)
                         }
-                        if (formData.__typename === 'Class' && attribute?.classes?.length > 0) {
+                        if (formData.__typename === 'Class' && attribute?.classes?.length) {
                           return (
                             attribute.classes.includes(ClassesEnum.base) ||
                             (formData?.category === Categories.subclass &&
@@ -248,10 +248,10 @@ const AttributeForm = () => {
                             attribute.classes.includes(ClassesEnum.all)
                           )
                         }
-                        if (formData.__typename === 'Feat' && attribute?.feats?.length > 0) {
+                        if (formData.__typename === 'Feat' && attribute?.feats?.length) {
                           return attribute.feats.includes(AllEnum.all)
                         }
-                        if (formData.__typename === 'Spell' && attribute?.spells?.length > 0) {
+                        if (formData.__typename === 'Spell' && attribute?.spells?.length) {
                           return attribute.spells.includes(SpellEnum.all)
                         }
                         return false
@@ -284,7 +284,7 @@ const AttributeForm = () => {
                 <Dropdown
                   name={'actions.primary.id'}
                   label={formData.__typename === 'Spell' ? 'Casting Time' : 'Action Type'}
-                  value={formData?.actions.primary.id}
+                  value={formData?.actions?.primary?.id}
                   options={system.actions.filter((action) => action[typeMap[formData.__typename]])}
                   required={true}
                   onChange={updateFormData}
@@ -296,7 +296,7 @@ const AttributeForm = () => {
                     validation='num'
                     name='actions.primary.amount'
                     label='Casting Increment'
-                    value={formData?.actions.primary.amount}
+                    value={formData?.actions?.primary?.amount}
                     required={true}
                     onChange={updateFormData}
                   />
@@ -312,7 +312,7 @@ const AttributeForm = () => {
                     <Dropdown
                       name='actions.secondary.id'
                       label='Sec. Action'
-                      value={formData?.actions.secondary?.id}
+                      value={formData?.actions?.secondary?.id}
                       options={system.actions.filter((action) => action[typeMap[formData.__typename]])}
                       required={true}
                       onChange={updateFormData}
@@ -324,7 +324,7 @@ const AttributeForm = () => {
                         validation='num'
                         name='actions.secondary.amount'
                         label='Sec. Increment'
-                        value={formData?.actions.secondary.amount}
+                        value={formData?.actions?.secondary?.amount}
                         required={true}
                         onChange={updateFormData}
                       />
@@ -403,9 +403,12 @@ const AttributeForm = () => {
                         name='range.unit'
                         label='UoM'
                         value={formData?.range?.unit}
-                        options={Object.values(system.rules.measurements.imperial).flatMap(
-                          (rule) => Array.isArray(rule) && rule
-                        )}
+                        options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                          if (Array.isArray(rule)) {
+                            return rule
+                          }
+                          return []
+                        })}
                         onChange={updateFormData}
                       />
                     </Grid.Item>
@@ -439,9 +442,12 @@ const AttributeForm = () => {
                       name='shape.unit'
                       label='UoM'
                       value={formData?.shape?.unit}
-                      options={Object.values(system.rules.measurements.imperial).flatMap(
-                        (rule) => Array.isArray(rule) && rule
-                      )}
+                      options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                        if (Array.isArray(rule)) {
+                          return rule
+                        }
+                        return []
+                      })}
                       required={true}
                       onChange={updateFormData}
                     />
@@ -487,7 +493,7 @@ const AttributeForm = () => {
                       <Dropdown
                         name='saveAbility'
                         label='DC Ability'
-                        value={formData?.saveAbility.id}
+                        value={formData?.saveAbility?.id}
                         options={system.abilities}
                         required={true}
                         onChange={updateFormData}
@@ -535,7 +541,7 @@ const AttributeForm = () => {
           {(isSpellcaster || (hasResourcePoints && resourceSetPerLevel)) && (
             <LevelAttributes formData={formData} updateFormData={updateFormData} />
           )}
-          {formData?.subtypes?.length > 0 && (
+          {formData?.subtypes?.length && (
             <Collapse>
               <Collapse.Header title={'Subtypes'} startOpened={formData.id == null} />
               <Collapse.Body>
@@ -590,10 +596,7 @@ const AttributeForm = () => {
       )}
       {((formData.__typename === 'Spell' && doesDamage) ||
         (formData.__typename === 'Equipment' && (isWeapon || isSpecial))) && (
-        <Damage
-          formData={formData}
-          updateFormData={updateFormData as (state: UpdateState<Spell | Equipment>) => void}
-        />
+        <Damage formData={formData} updateFormData={updateFormData} />
       )}
       {formData.__typename === 'Equipment' && (isArmor || isShield) && (
         <>
@@ -628,10 +631,10 @@ const AttributeForm = () => {
       )}
       {formData.__typename === 'Spell' && canUpcast && <Upcast formData={formData} updateFormData={updateFormData} />}
       {formData.__typename === 'Feat' && limitUse && (
-        <LimitUse formData={formData} updateFormData={updateFormData as (state: UpdateState<Feat>) => void} />
+        <LimitUse formData={formData} updateFormData={updateFormData} />
       )}
       {formData.__typename === 'Feat' && hasPrerequisites && (
-        <Requirements formData={formData} updateFormData={updateFormData as (state: UpdateState<Feat>) => void} />
+        <Requirements formData={formData} updateFormData={updateFormData} />
       )}
     </Grid>
   )

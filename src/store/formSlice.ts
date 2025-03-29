@@ -43,20 +43,20 @@ export interface FormSlice {
 export const formSlice: StateCreator<CombinedSlice, [], [], FormSlice> = (set) => {
   const defaultState: Pick<FormSlice, 'formData' | 'initialFormData' | 'ui' | 'character'> = {
     formData: {
-      id: undefined,
-      value: undefined,
-      label: undefined,
-      __typename: undefined,
-      systemId: undefined,
-      ownerId: undefined,
+      id: '',
+      value: '',
+      label: '',
+      __typename: 'Character',
+      systemId: '',
+      ownerId: '',
     },
     initialFormData: {
-      id: undefined,
-      value: undefined,
-      label: undefined,
-      __typename: undefined,
-      systemId: undefined,
-      ownerId: undefined,
+      id: '',
+      value: '',
+      label: '',
+      __typename: 'Character',
+      systemId: '',
+      ownerId: '',
     },
     ui: {
       saving: false,

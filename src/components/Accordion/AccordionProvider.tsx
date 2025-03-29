@@ -17,4 +17,4 @@ const AccordionProvider = ({ children }: { children: ReactNode }) => {
 
 export default AccordionProvider
 
-export type AccordionOptionsType = ReturnType<typeof useAccordion> | null
+export type AccordionOptionsType = ReturnType<typeof useAccordion>

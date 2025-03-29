@@ -1,8 +1,8 @@
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
-import { useListClassesQuery } from '../../../features/classes/classesApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
+import { useListClassesQuery } from '../../../apis/classesApi'
 import { startCase } from 'lodash'
 import Button from '../../Button/Button'
 import Accordion from '../../Accordion/Accordion'
@@ -10,13 +10,8 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Divider from '../../Divider/Divider'
-import {
-  Categories,
-  EquipmentCategories,
-  EquipmentProperties,
-  SpellRequirements,
-} from '../../../types/enums'
-import { useListRacesQuery } from '../../../features/races/racesApi'
+import { Categories, EquipmentCategories, EquipmentProperties, SpellRequirements } from '../../../types/enums'
+import { useListRacesQuery } from '../../../apis/racesApi'
 import Grid from '../../Grid/Grid'
 import { FormDataType, UpdateState } from '../../../types/form'
 
@@ -79,8 +74,8 @@ const Details = () => {
                 formData.__typename !== 'Equipment' ?
                   system?.categories?.filter(
                     (category) =>
-                      (formData.__typename === 'Race' && category.races) ||
-                      (formData.__typename === 'Class' && category.classes)
+                      (formData.__typename === 'Race' && category?.races) ||
+                      (formData.__typename === 'Class' && category?.classes)
                   )
                 : system.equipment.categories
               }
@@ -120,7 +115,7 @@ const Details = () => {
                   label='Properties'
                   value={formData?.properties}
                   options={
-                    system.equipment.categories.find((category) => category.id === formData.category)?.properties
+                    system.equipment.categories.find((category) => category.id === formData.category)?.properties || []
                   }
                   onChange={updateFormData}
                 />
@@ -173,9 +168,12 @@ const Details = () => {
                   name='weight.unit'
                   label='UoM'
                   value={formData?.weight?.unit}
-                  options={Object.values(system.rules.measurements.imperial).flatMap(
-                    (rule) => Array.isArray(rule) && rule
-                  )}
+                  options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                    if (Array.isArray(rule)) {
+                      return rule
+                    }
+                    return []
+                  })}
                   onChange={updateFormData}
                 />
               </Grid.Item>
@@ -257,9 +255,12 @@ const Details = () => {
                 name='speed.unit'
                 label='UoM'
                 value={formData?.speed?.unit}
-                options={Object.values(system.rules.measurements.imperial).flatMap(
-                  (rule) => Array.isArray(rule) && rule
-                )}
+                options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                  if (Array.isArray(rule)) {
+                    return rule
+                  }
+                  return []
+                })}
                 onChange={updateFormData}
               />
             </Grid.Item>
@@ -296,9 +297,12 @@ const Details = () => {
                   name='capacity.unit'
                   label='UoM'
                   value={formData?.capacity?.unit}
-                  options={Object.values(system.rules.measurements.imperial).flatMap(
-                    (rule) => Array.isArray(rule) && rule
-                  )}
+                  options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                    if (Array.isArray(rule)) {
+                      return rule
+                    }
+                    return []
+                  })}
                   onChange={updateFormData}
                 />
               </Grid.Item>

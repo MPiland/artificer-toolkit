@@ -1,11 +1,11 @@
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Dropdown from '../../Dropdown/Dropdown'
 import Divider from '../../Divider/Divider'
 import Input from '../../Input/Input'
 import { DropdownOption } from '../../../types/components'
-import { useListSpellsQuery } from '../../../features/spells/spellsApi'
-import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
+import { useListSpellsQuery } from '../../../apis/spellsApi'
+import { useListEquipmentQuery } from '../../../apis/equipmentApi'
 import Group from '../../Group/Group'
 import Button from '../../Button/Button'
 import { row_button } from '../Form.css'
@@ -17,12 +17,12 @@ import { FeatureDataType, FormDataType, SectionDataType, UpdateState } from '../
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
 
-const Prerequisites = ({
+const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
   formData,
   updateFormData,
 }: {
-  formData: FeatureDataType | Feat | SectionDataType
-  updateFormData: (state: UpdateState<FormDataType | FeatureDataType | SectionDataType>) => void
+  formData: T
+  updateFormData: (state: UpdateState<T>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
   const { data: spells } = useListSpellsQuery()

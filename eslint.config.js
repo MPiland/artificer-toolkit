@@ -4,7 +4,6 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import js from '@eslint/js'
 import { FlatCompat } from '@eslint/eslintrc'
-import reactRefresh from 'eslint-plugin-react-refresh'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -16,10 +15,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['**/dist', '**/node_modules', '**/env.d.ts'],
-    plugins: {
-      'react-refresh': reactRefresh,
-    },
+    ignores: ['**/dist', '**/node_modules', '**/env.d.ts', '**/routeTree.gen.ts'],
     linterOptions: {
       reportUnusedDisableDirectives: 'off',
     },
@@ -53,12 +49,6 @@ export default [
       },
     },
     rules: {
-      'react-refresh/only-export-components': [
-        'warn',
-        {
-          allowConstantExport: true,
-        },
-      ],
       '@typescript-eslint/no-explicit-any': 'off',
       'react/no-unknown-property': 'off',
       'react/react-in-jsx-scope': 'off',

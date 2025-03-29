@@ -19,9 +19,9 @@ export interface OptionSlice {
 
 export const optionSlice: StateCreator<CombinedSlice, [], [], OptionSlice> = (set) => {
   const defaultState: Pick<OptionSlice, 'optionData' | 'initialOptionData' | 'optionIndex'> = {
-    optionData: { id: undefined, value: undefined, label: undefined, __typename: 'FeatureOption' },
+    optionData: { id: '', value: '', label: '', __typename: 'FeatureOption' },
 
-    initialOptionData: { id: undefined, value: undefined, label: undefined, __typename: 'FeatureOption' },
+    initialOptionData: { id: '', value: '', label: '', __typename: 'FeatureOption' },
 
     optionIndex: 0,
   }

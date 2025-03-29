@@ -1,9 +1,16 @@
-import { StrictMode } from 'react'
+import { StrictMode, use } from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
-import { disableReactDevTools } from '@fvilers/disable-react-devtools'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Amplify } from 'aws-amplify'
+import { createRouter, RouterProvider, Link } from '@tanstack/react-router'
+
+import { routeTree } from './routeTree.gen'
+import AuthProvider from './pages/auth/AuthProvider'
+import ThemeProvider from './theme/ThemeProvider'
+import { AuthContext } from './pages/auth/AuthContext'
+import { FormDataType } from './types/form'
+
+const queryClient = new QueryClient()
 
 Amplify.configure({
   API: {
@@ -38,14 +45,51 @@ Amplify.configure({
   },
 })
 
-const queryClient = new QueryClient()
+const router = createRouter({
+  routeTree,
+  context: {
+    queryClient,
+    auth: undefined!,
+  },
+  scrollRestoration: true,
+  defaultNotFoundComponent: () => {
+    return (
+      <div>
+        <p>Not found!</p>
+        <Link to="/">Go home</Link>
+      </div>
+    )
+  },
+})
 
-if (import.meta.env.MODE === 'production') disableReactDevTools()
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router
+  }
+  interface HistoryState {
+    item?: FormDataType
+    username?: string
+    confirmationCode?: string
+  }
+}
 
-ReactDOM.createRoot(document.getElementById('root') as Element).render(
-  <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-  </StrictMode>
-)
+const App = () => {
+  const auth = use(AuthContext)
+  return <RouterProvider router={router} context={{ auth }} />
+}
+
+const rootElement = document.getElementById('root')
+if (rootElement && !rootElement.innerHTML) {
+  const root = ReactDOM.createRoot(rootElement)
+  root.render(
+    <StrictMode>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </StrictMode>
+  )
+}

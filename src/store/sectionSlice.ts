@@ -18,18 +18,15 @@ export interface SectionSlice {
   sectionReset: (arg: { value: SectionDataType }) => void
   initialSectionReset: (arg: { value: SectionDataType }) => void
   updateSectionIndex: (arg: { value: number }) => void
-  setSectionStep: (arg: SectionName) => void
+  setSectionStep: (arg: SectionName | null) => void
   resetSection: () => void
 }
 
 export const sectionSlice: StateCreator<CombinedSlice, [], [], SectionSlice> = (set) => {
   const defaultState: Pick<SectionSlice, 'sectionData' | 'initialSectionData' | 'sectionIndex' | 'sectionStep'> = {
-    sectionData: { id: undefined, __typename: undefined },
-
-    initialSectionData: { id: undefined, __typename: undefined },
-
+    sectionData: { id: '', __typename: 'FeatureSense' },
+    initialSectionData: { id: '', __typename: 'FeatureSense' },
     sectionIndex: 0,
-
     sectionStep: null,
   }
 

@@ -23,8 +23,8 @@ input ContainsInput {
   quantity: Int!
   equipped: Boolean
   attuned: Boolean
-  contains: [ContainsInput]  
-  possessions: [PossessionsInput]
+  contains: [ContainsInput!]  
+  possessions: [PossessionsInput!]
 }
 
 input EquipmentRangeInput {
@@ -34,7 +34,7 @@ input EquipmentRangeInput {
 }
 
 input EquipmentInput {
-  id: ID
+  id: ID!
   label: String!
   value: String!
   desc: String
@@ -44,11 +44,11 @@ input EquipmentInput {
   capacity: CapacityInput
   maxStack: Int
   quantity: Int
-  properties: [ID]
+  properties: [ID!]
   category: ID!
   equipmentRank: Int
-  rarity: ID
-  attributes: [ID]
+  rarity: ID!
+  attributes: [ID!]
   damage: DamageInput
   saveAbility: SaveAbilityInput
   primaryAbility: ID
@@ -59,8 +59,8 @@ input EquipmentInput {
   prerequisities: PrerequisiteInput
   speed: SpeedInput
   range: EquipmentRangeInput
-  contains: [ContainsInput]
-  features: [FeatureInput]
+  contains: [ContainsInput!]
+  features: [FeatureInput!]
   ownerId: String
   systemId: ID!
   masterId: String

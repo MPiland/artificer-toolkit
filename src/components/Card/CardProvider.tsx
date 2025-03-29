@@ -25,4 +25,4 @@ const CardProvider = ({ children, itemId }: { children: ReactNode; itemId: strin
 
 export default CardProvider
 
-export type CardOptionsType = ReturnType<typeof useCardOptions> | null
+export type CardOptionsType = ReturnType<typeof useCardOptions>

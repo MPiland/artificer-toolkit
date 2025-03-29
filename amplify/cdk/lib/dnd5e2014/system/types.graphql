@@ -76,8 +76,8 @@ type Currency {
   value: String!
   label: String!
   desc: String
-  abbreviation: String
-  conversions: CurrencyConversion
+  abbreviation: String!
+  conversions: CurrencyConversion!
 }
 
 ## Equipment
@@ -89,10 +89,10 @@ type EquipmentCategoryProperty {
 }
 
 type SystemEquipment {
-  categories: [GenericType]
-  properties: [GenericType]
-  categoryProperties: [EquipmentCategoryProperty]
-  rarities: [GenericType]
+  categories: [GenericType!]!
+  properties: [GenericType!]!
+  categoryProperties: [EquipmentCategoryProperty!]!
+  rarities: [GenericType!]!
 }
 
 ## Modifiers
@@ -117,13 +117,13 @@ type ModifierCategoryTypeMethod {
 }
 
 type SystemModifiers {
-  categories: [GenericType]
-  types: [GenericType]
-  methods: [GenericType]
-  spellCategories: [GenericType]
-  categoryTypes: [ModifierCategoryType]
-  typeMethods: [ModifierTypeMethod]
-  categoryMethods: [ModifierCategoryTypeMethod]
+  categories: [GenericType!]!
+  types: [GenericType!]!
+  methods: [GenericType!]!
+  spellCategories: [GenericType!]!
+  categoryTypes: [ModifierCategoryType!]!
+  typeMethods: [ModifierTypeMethod!]!
+  categoryMethods: [ModifierCategoryTypeMethod!]!
 }
 
 ## Proficiency
@@ -136,19 +136,19 @@ type ProficiencyLevel {
 }
 
 type SystemProficiency {
-  levels: [ProficiencyLevel]
-  categories: [GenericType]
+  levels: [ProficiencyLevel!]!
+  categories: [GenericType!]!
 }
 
 ## Spell
 
 type SystemSpell {
-  categories: [GenericType]
-  durations: [GenericType]
-  ranges: [GenericType]
-  schools: [GenericType]
-  shapes: [GenericType]
-  requirements: [GenericType]
+  categories: [GenericType!]!
+  durations: [GenericType!]!
+  ranges: [GenericType!]!
+  schools: [GenericType!]!
+  shapes: [GenericType!]!
+  requirements: [GenericType!]!
 }
 
 ## Rules
@@ -161,15 +161,15 @@ type GenerateOption {
 }
 
 type Imperial {
-  weight: [GenericType]
-  volume: [GenericType]
-  length: [GenericType]
+  weight: [GenericType!]!
+  volume: [GenericType!]!
+  length: [GenericType!]!
 }
 
 type SystemMeasurement {
-  amount: [GenericType]
-  rounding: [GenericType]
-  imperial: Imperial
+  amount: [GenericType!]!
+  rounding: [GenericType!]!
+  imperial: Imperial!
 }
 
 type AbilityGenerateMethod {
@@ -177,12 +177,12 @@ type AbilityGenerateMethod {
   value: String!
   label: String!
   total: Int
-  options: [GenerateOption]
+  options: [GenerateOption!]
 }
 
 type SystemRules {
-  measurements: SystemMeasurement
-  abilityGenerateMethod: [AbilityGenerateMethod]
+  measurements: SystemMeasurement!
+  abilityGenerateMethod: [AbilityGenerateMethod!]!
 }
 
 ## Charges
@@ -191,27 +191,27 @@ type ChargeOption {
   id: ID!
   value: String!
   label: String!
-  features: [FeatureEnum]
-  damage: [DamageEnum]
-  feats: [AllEnum]
-  sections: [SectionEnum]
-  spells: [SpellEnum]
-  equipment: [EquipmentEnum]
-  classes: [ClassesEnum]
+  features: [FeatureEnum!]
+  damage: [DamageEnum!]
+  feats: [AllEnum!]
+  sections: [SectionEnum!]
+  spells: [SpellEnum!]
+  equipment: [EquipmentEnum!]
+  classes: [ClassesEnum!]
 }
 
 type SystemCharges {
-  resets: [ChargeOption]
-  limits: [ChargeOption]
+  resets: [ChargeOption!]!
+  limits: [ChargeOption!]!
 }
 
 ## Character
 
 type CharacterSetting {
-  hitpointCalcMethods: [GenericType]
-  advancementMethods: [GenericType]
-  spellPointCalcMethods: [GenericType]
-  startingEquipmentOptions: [GenericType]
+  hitpointCalcMethods: [GenericType!]!
+  advancementMethods: [GenericType!]!
+  spellPointCalcMethods: [GenericType!]!
+  startingEquipmentOptions: [GenericType!]!
 }
 
 ## System Builder
@@ -233,13 +233,13 @@ type SystemAttribute {
   id: ID!
   value: String!
   label: String!
-  features: [FeatureEnum]
-  damage: [DamageEnum]
-  feats: [AllEnum]
-  sections: [SectionEnum]
-  spells: [SpellEnum]
-  equipment: [EquipmentEnum]
-  classes: [ClassesEnum]
+  features: [FeatureEnum!]
+  damage: [DamageEnum!]
+  feats: [AllEnum!]
+  sections: [SectionEnum!]
+  spells: [SpellEnum!]
+  equipment: [EquipmentEnum!]
+  classes: [ClassesEnum!]
 }
 
 type SystemCategory {
@@ -286,34 +286,34 @@ type System {
   value: String!
   label: String!
   desc: String
-  abilities: [GenericType]
-  actions: [SystemAction]
-  alignments: [GenericType]
-  attributes: [SystemAttribute]
-  categories: [SystemCategory]
-  characters: CharacterSetting
-  charges: SystemCharges
-  conditions: [GenericType]
-  currencies: [Currency]
-  damageTypes: [GenericType]
-  equipment: SystemEquipment
-  languages: [GenericType]
-  modifiers: SystemModifiers
-  passives: [GenericType]
-  prerequisites: [SystemPrerequisite]
-  proficiencies: SystemProficiency
-  rules: SystemRules
-  senses: [SystemSense]
-  sizes: [GenericType]
-  skills: [SystemSkill]
-  speeds: [GenericType]
-  spells: SystemSpell
-  terrains: [GenericType]
+  abilities: [GenericType!]!
+  actions: [SystemAction!]!
+  alignments: [GenericType!]!
+  attributes: [SystemAttribute!]!
+  categories: [SystemCategory!]!
+  characters: CharacterSetting!
+  charges: SystemCharges!
+  conditions: [GenericType!]!
+  currencies: [Currency!]!
+  damageTypes: [GenericType!]!
+  equipment: SystemEquipment!
+  languages: [GenericType!]!
+  modifiers: SystemModifiers!
+  passives: [GenericType]!
+  prerequisites: [SystemPrerequisite!]!
+  proficiencies: SystemProficiency!
+  rules: SystemRules!
+  senses: [SystemSense!]!
+  sizes: [GenericType!]!
+  skills: [SystemSkill!]!
+  speeds: [GenericType!]!
+  spells: SystemSpell!
+  terrains: [GenericType!]!
   ownerId: String!
   masterId: String
 }
 
 type SystemConnection {
-  items: [System!]
+  items: [System]!
   nextToken: String
 }

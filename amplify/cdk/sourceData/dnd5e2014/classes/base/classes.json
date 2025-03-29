@@ -998,6 +998,7 @@
       }
     },
     "resource": {
+      "id": "fb319e36-ceef-47f7-8b00-143593d0afb1",
       "value": "bardicInspiration",
       "label": "Bardic Inspiration",
       "desc": "<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails.</p><p>Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>",
@@ -1924,6 +1925,7 @@
       }
     ],
     "resource": {
+      "id": "5c3f3d5b-1006-4c9e-9da0-ab085b43ffd9",
       "value": "channelDivinity",
       "label": "Channel Divinity",
       "desc": "<p>At 2nd level, you gain the ability to channel divine energy directly from your deity, using that energy to fuel magical effects. You start with two such effects: Turn Undead and an effect determined by your domain. Some domains grant you additional effects as you advance in levels, as noted in the domain description.</p><p>When you use your Channel Divinity, you choose which effect to create. You must then finish a short or long rest to use your Channel Divinity again.</p><p>Some Channel Divinity effects require saving throws. When you use such an effect from this class, the DC equals your cleric spell save DC.</p><p>Beginning at 6th level, you can use your Channel Divinity twice between rests, and beginning at 18th level, you can use it three times between rests. When you finish a short or long rest, you regain your expended uses.</p>",
@@ -3721,6 +3723,7 @@
       }
     },
     "resource": {
+      "id": "424ec652-87e1-4b95-9efa-4911c06c76ec",
       "value": "ki",
       "label": "Ki",
       "desc": "<p>Starting at 2nd level, your training allows you to harness the mystic energy of ki. Your access to this energy is represented by a number of ki points. Your monk level determines the number of points you have, as shown in the Ki Points column of the Monk table.</p><p>You can spend these points to fuel various ki features. You start knowing three such features: <strong>Flurry of Blows</strong>, <strong>Patient Defense</strong>, and <strong>Step of the Wind</strong>. You learn more ki features as you gain levels in this class.</p><p>When you spend a ki point, it is unavailable until you finish a short or long rest, at the end of which you draw all of your expended ki back into yourself. You must spend at least 30 minutes of the rest meditating to regain your ki points.</p><p>Some of your ki features require your target to make a saving throw to resist the feature’s effects. The saving throw DC is calculated as follows:</p><p><strong>Ki save DC</strong> = 8 + your proficiency bonus + your Wisdom modifier</p>",
@@ -7164,6 +7167,7 @@
       "ability": "def276fe-3fa5-4af7-95ad-a37113815cc7"
     },
     "resource": {
+      "id": "c9df0c3f-da84-4670-9947-eec0bfcb3a44",
       "value": "sorcery",
       "label": "Sorcery",
       "desc": "<p>You have 2 sorcery points, and you gain more as you reach higher levels, as shown in the Sorcery Points column of the Sorcerer table. You can never have more sorcery points than shown on the table for your level. You regain all spent sorcery points when you finish a long rest.</p>",

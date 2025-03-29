@@ -46,4 +46,4 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
 export default ThemeProvider
 
-export type ThemeOptionsType = ReturnType<typeof useThemeOptions> | null
+export type ThemeOptionsType = ReturnType<typeof useThemeOptions>

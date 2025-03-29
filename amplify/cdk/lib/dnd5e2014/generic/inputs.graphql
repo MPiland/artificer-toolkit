@@ -9,7 +9,7 @@ input DetailInput {
 input SaveAbilityInput {
   id: ID!
   minAmount: Int
-  attributes: [ID]
+  attributes: [ID!]
   abilityModifier: ID
 }
 
@@ -52,10 +52,10 @@ input DiePerLevelInput {
 }
 
 input DamageInput {
-  attributes: [ID]
-  damageSave: [ID]
-  setPerLevel: [SetPerLevelInput]
-  diePerLevel: [DiePerLevelInput]
+  attributes: [ID!]
+  damageSave: [ID!]
+  setPerLevel: [SetPerLevelInput!]
+  diePerLevel: [DiePerLevelInput!]
   primary: DamageFieldsInput
   secondary: DamageFieldsInput
   bonus: DamageFieldsInput
@@ -87,34 +87,34 @@ input ChargeInput {
 input EquipPrerequisiteInput {
   numberEquipped: Int
   category: ID
-  equipment: [ID]
-  properties: [ID]
+  equipment: [ID!]
+  properties: [ID!]
 }
 
 input AbilityScoreInput {
-  abilities: [ID]
+  abilities: [ID!]
   score: Int
 }
 
 input PrerequisiteInput {
-  options: [ID]
-  skillProficiencies: [ID]
-  equipmentProficiencies: [EquipPrerequisiteInput]
-  equipped: [EquipPrerequisiteInput]
-  notEquipped: [EquipPrerequisiteInput]
+  options: [ID!]
+  skillProficiencies: [ID!]
+  equipmentProficiencies: [EquipPrerequisiteInput!]
+  equipped: [EquipPrerequisiteInput!]
+  notEquipped: [EquipPrerequisiteInput!]
   abilityScore: AbilityScoreInput
-  spellsObtained: [ID]
-  featuresObtained: [ID]
-  optionsObtained: [ID]
-  size: [ID]
+  spellsObtained: [ID!]
+  featuresObtained: [ID!]
+  optionsObtained: [ID!]
+  size: [ID!]
 }
 
 ## Feature Related
 
 input FeatureFeatInput {
   id: ID!
-  attributes: [ID]
-  feats: [ID]
+  attributes: [ID!]
+  feats: [ID!]
   selectionCount: Int
   subtype: ID
   prerequisites: PrerequisiteInput
@@ -133,7 +133,7 @@ input ModifierSetPerLevelInput {
 input FeatureModifierInput {
   id: ID!
   subtype: ID
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID
   type: ID
@@ -146,12 +146,12 @@ input FeatureModifierInput {
   setAmount: Int
   dieConfig: String
   feature: ID
-  diePerLevel: [ModifierDiePerLevelInput]
-  setPerLevel: [ModifierSetPerLevelInput]
-  skills: [ID]
-  saveAbilities: [ID]
-  abilities: [ID]
-  speeds: [ID]
+  diePerLevel: [ModifierDiePerLevelInput!]
+  setPerLevel: [ModifierSetPerLevelInput!]
+  skills: [ID!]
+  saveAbilities: [ID!]
+  abilities: [ID!]
+  speeds: [ID!]
   charge: ChargeInput
   range: ID
   minRange: Int
@@ -160,8 +160,8 @@ input FeatureModifierInput {
   size: Int
   duration: ID
   unit: ID
-  conditions: [ID]
-  damageTypes: [ID]
+  conditions: [ID!]
+  damageTypes: [ID!]
   damageType: ID
   spells: ID
   spellCategory: ID
@@ -169,22 +169,22 @@ input FeatureModifierInput {
 }
 
 input ProficiencyPropertiesInput {
-  ids: [ID]
+  ids: [ID!]
   category: ID
-  properties: [ID]
+  properties: [ID!]
 }
 
 input FeatureProficiencyInput {
   id: ID!
   subtype: ID
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID!
   level: ID
   rounding: ID
-  saveAbilities: [ID]
-  skills: [ID]
-  languages: [ID]
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
   properties: ProficiencyPropertiesInput
   equipment: ProficiencyPropertiesInput
   prerequisites: PrerequisiteInput
@@ -193,12 +193,12 @@ input FeatureProficiencyInput {
 input FeatureExpertiseInput {
   id: ID!
   subtype: ID
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID!
-  saveAbilities: [ID]
-  skills: [ID]
-  languages: [ID]
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
   properties: ProficiencyPropertiesInput
   equipment: ProficiencyPropertiesInput
   prerequisites: PrerequisiteInput
@@ -206,7 +206,7 @@ input FeatureExpertiseInput {
 
 input FeatureSenseInput {
   id: ID!
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   subtype: ID
   ids: [ID!]
@@ -216,21 +216,21 @@ input FeatureSenseInput {
 
 input SpellsByLevelInput {
   id: ID!
-  spells: [ID]
+  spells: [ID!]
   level: Int
   spellLevel: Int
 }
 
 input FeatureSpellInput {
   ids: [ID!]
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
-  classLimit: [ID]
-  levelLimit: [String]
-  attributeLimit: [ID]
+  classLimit: [ID!]
+  levelLimit: [String!]
+  attributeLimit: [ID!]
   ability: ID
   spellLevel: Int
-  spellsByLevel: [SpellsByLevelInput]
+  spellsByLevel: [SpellsByLevelInput!]
   subtype: ID
   prerequisites: PrerequisiteInput
   charges: ChargeInput
@@ -259,19 +259,19 @@ input FeatureOptionInput {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  feats: [FeatureFeatInput]
-  modifiers: [FeatureModifierInput]
-  proficiencies: [FeatureProficiencyInput]
-  expertise: [FeatureExpertiseInput]
-  senses: [FeatureSenseInput]
-  spells: [FeatureSpellInput]
+  feats: [FeatureFeatInput!]
+  modifiers: [FeatureModifierInput!]
+  proficiencies: [FeatureProficiencyInput!]
+  expertise: [FeatureExpertiseInput!]
+  senses: [FeatureSenseInput!]
+  spells: [FeatureSpellInput!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   levelAvailable: String
@@ -284,22 +284,22 @@ input FeatureInput {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput
-  optionsByLevel: [OptionsByLevelInput]
+  optionsByLevel: [OptionsByLevelInput!]
   range: RangeInput
   shape: ShapeInput
   targets: Int
-  feats: [FeatureFeatInput]
-  modifiers: [FeatureModifierInput]
-  proficiencies: [FeatureProficiencyInput]
-  expertise: [FeatureExpertiseInput]
-  senses: [FeatureSenseInput]
-  spells: [FeatureSpellInput]
+  feats: [FeatureFeatInput!]
+  modifiers: [FeatureModifierInput!]
+  proficiencies: [FeatureProficiencyInput!]
+  expertise: [FeatureExpertiseInput!]
+  senses: [FeatureSenseInput!]
+  spells: [FeatureSpellInput!]
   prerequisites: PrerequisiteInput
   saveAbility: SaveAbilityInput
   levelAvailable: String
-  options: [FeatureOptionInput]
+  options: [FeatureOptionInput!]
 }

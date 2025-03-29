@@ -22,7 +22,7 @@ const FeatureOption = ({ feature, featureIndex, classIndex }: FeatureOptionProps
   const { getFullFeature } = useGetFeatures({ data: formData })
 
   const optionByLevel = getFullFeature(feature)?.optionsByLevel?.find(
-    (option) => Number(option.level) >= Number(formData?.features[featureIndex]?.level)
+    (option) => Number(option.level) >= Number(formData?.features?.[featureIndex]?.level)
   )
 
   const selectionCount = optionByLevel?.count || 1
@@ -37,36 +37,38 @@ const FeatureOption = ({ feature, featureIndex, classIndex }: FeatureOptionProps
       optionIndex,
     })
 
-    return (
-      <Grid.Item key={path + optionIndex} align='center' justify='center' flexDirection='column'>
-        <Dropdown
-          name={path}
-          label={`${feature.label} Option`}
-          options={options}
-          className={option_dropdown}
-          onChange={(e) => {
-            if (e.type === 'update') {
-              updateFormData({
-                type: e.type,
-                path: path,
-                value: {
-                  id: e.value,
-                  optionIndex,
-                  featureLevel: feature.level,
-                },
-              })
-            }
-            if (e.type === 'remove') {
-              updateFormData({
-                type: 'remove',
-                path: path,
-              })
-            }
-          }}
-          value={exist}
-        />
-      </Grid.Item>
-    )
+    if (path) {
+      return (
+        <Grid.Item key={path + optionIndex} align='center' justify='center' flexDirection='column'>
+          <Dropdown
+            name={path}
+            label={`${feature.label} Option`}
+            options={options}
+            className={option_dropdown}
+            onChange={(e) => {
+              if (e.type === 'update') {
+                updateFormData({
+                  type: e.type,
+                  path: path,
+                  value: {
+                    id: e.value,
+                    optionIndex,
+                    featureLevel: feature.level,
+                  },
+                })
+              }
+              if (e.type === 'remove') {
+                updateFormData({
+                  type: 'remove',
+                  path: path,
+                })
+              }
+            }}
+            value={exist}
+          />
+        </Grid.Item>
+      )
+    }
   })
 }
 export default FeatureOption

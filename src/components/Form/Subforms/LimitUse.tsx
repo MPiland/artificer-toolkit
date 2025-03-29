@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
@@ -8,12 +8,12 @@ import { ChargesLimits } from '../../../types/enums'
 import { FeatureDataType, UpdateState } from '../../../types/form'
 import Grid from '../../Grid/Grid'
 
-const LimitUse = ({
+const LimitUse = <T extends FeatureDataType | Feat | FeatureSpell>({
   formData,
   updateFormData,
 }: {
-  formData: FeatureDataType | Feat | FeatureSpell
-  updateFormData: (state: UpdateState<FeatureDataType | Feat | FeatureSpell>) => void
+  formData: T
+  updateFormData: (state: UpdateState<T>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
@@ -60,7 +60,7 @@ const LimitUse = ({
               onChange={updateFormData}
             />
           </Grid.Item>
-          {formData?.charges?.limit === ChargesLimits.ability ? (
+          {formData?.charges?.limit === ChargesLimits.ability ?
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown<typeof formData>
                 name='charges.ability'
@@ -71,7 +71,7 @@ const LimitUse = ({
                 onChange={updateFormData}
               />
             </Grid.Item>
-          ) : formData.charges?.limit === ChargesLimits.skill ? (
+          : formData.charges?.limit === ChargesLimits.skill ?
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown<typeof formData>
                 name='charges.skill'
@@ -82,7 +82,7 @@ const LimitUse = ({
                 onChange={updateFormData}
               />
             </Grid.Item>
-          ) : formData.charges?.limit === ChargesLimits.setAmount ? (
+          : formData.charges?.limit === ChargesLimits.setAmount ?
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input<typeof formData>
                 validation='num'
@@ -95,8 +95,7 @@ const LimitUse = ({
                 onChange={updateFormData}
               />
             </Grid.Item>
-          ) : (
-            formData.charges?.limit === ChargesLimits.resourcePoints && (
+          : formData.charges?.limit === ChargesLimits.resourcePoints && (
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Input<typeof formData>
                   validation='num'
@@ -110,7 +109,7 @@ const LimitUse = ({
                 />
               </Grid.Item>
             )
-          )}
+          }
           {formData?.charges?.limit != null &&
             formData.charges?.limit !== ChargesLimits.setAmount &&
             formData.charges?.limit !== ChargesLimits.usesPerLevel &&

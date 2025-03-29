@@ -19,7 +19,7 @@ import {
   useClick,
 } from '@floating-ui/react'
 import { FloatingContext } from './FloatingContext'
-import FloatingProvider, { FloatingOptionsProps } from './FloatingProvider'
+import FloatingProvider, { FloatingOptionsProps, FloatingOptionsType } from './FloatingProvider'
 import { floating_arrow, floating_content, floating_option, floating_option_right_side } from './Floating.css'
 import clsx from 'clsx'
 import { TbCheck } from 'react-icons/tb'
@@ -36,9 +36,10 @@ const Anchor = function FloatingAnchor({
 }: HTMLProps<HTMLElement> & {
   ref?: React.Ref<HTMLElement>
 }) {
-  const context = use(FloatingContext)
+  const context = use(FloatingContext) as NonNullable<FloatingOptionsType>
+
   const childrenRef = (children as any).ref
-  const ref = useMergeRefs([context.setReference, propRef, childrenRef])
+  const ref = useMergeRefs([context?.setReference, propRef, childrenRef])
 
   const { getReferenceProps: anchorReferenceProps } = useInteractions([useClick(context.rootContext)])
 
@@ -46,7 +47,7 @@ const Anchor = function FloatingAnchor({
     <div
       ref={ref}
       className={className}
-      {...context.getReferenceProps({
+      {...context?.getReferenceProps({
         ...props,
       })}
       {...anchorReferenceProps()}
@@ -76,7 +77,7 @@ const Menu = function FloatingMenu({
 }: MenuProps) {
   const arrowRef = useRef(null)
 
-  const floatingContext = use(FloatingContext)
+  const floatingContext = use(FloatingContext) as NonNullable<FloatingOptionsType>
 
   const open = controlledOpen || floatingContext.rootContext.open
   const onOpenChange = setControlledOpen || floatingContext.rootContext.onOpenChange
@@ -167,7 +168,7 @@ const Tooltip = function FloatingTooltip({
 }: TooltipProps) {
   const arrowRef = useRef(null)
 
-  const floatingContext = use(FloatingContext)
+  const floatingContext = use(FloatingContext) as NonNullable<FloatingOptionsType>
 
   const open = controlledOpen ?? floatingContext.rootContext.open
   const onOpenChange = setControlledOpen ?? floatingContext.rootContext.onOpenChange
@@ -201,7 +202,7 @@ const Tooltip = function FloatingTooltip({
   if (!open) return null
 
   return (
-    <FloatingPortal root={boundary === 'form' ? formContent ?? appMain : appMain}>
+    <FloatingPortal root={boundary === 'form' ? (formContent ?? appMain) : appMain}>
       <div
         ref={floatingContext.setFloating}
         style={{
@@ -227,7 +228,7 @@ type OptionProps = Omit<HTMLProps<HTMLDivElement>, 'onSelect'> & {
 }
 
 const Option = function DropdownOption({ option, selected, onSelect, ref: propRef }: OptionProps) {
-  const context = use(FloatingContext)
+  const context = use(FloatingContext) as NonNullable<FloatingOptionsType>
   const { ref: optionRef, index } = useListItem({
     label: String(option.label),
   })

@@ -20,6 +20,8 @@ const AncestryOptions = () => {
     const newFeature: AncestryFeature = {
       __typename: 'AncestryFeature',
       id: '',
+      label: '',
+      value: '',
     }
     updateFeatureData({ type: 'index', value: featureArray?.length || 0 })
     updateFeatureData({ type: 'reset', value: newFeature })
@@ -40,9 +42,9 @@ const AncestryOptions = () => {
     updateFeatureData({ type: 'index', value: featureIndex })
     updateFeatureData({
       type: 'reset',
-      value: featureArray[featureIndex],
+      value: featureArray?.[featureIndex],
     })
-    updateFeatureData({ type: 'initialReset', value: featureArray[featureIndex] })
+    updateFeatureData({ type: 'initialReset', value: featureArray?.[featureIndex] })
     setFeatureStep('ancestry')
   }
 

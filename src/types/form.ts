@@ -28,6 +28,12 @@ import {
   CharacterExpertise,
   CharacterModifier,
   FeatureExpertise,
+  FeatureModifierInput,
+  FeatureProficiencyInput,
+  FeatureSenseInput,
+  FeatureSpellInput,
+  FeatureFeatInput,
+  FeatureExpertiseInput,
 } from '../../amplify/gql/types'
 
 export type UpdateState<T> =
@@ -48,6 +54,16 @@ export type FormInputType =
   | CharacterInput
   | FeatureInput
 
+export type FormDataToInputMapping = {
+  Spell: SpellInput
+  Race: RaceInput
+  Class: ClassInput
+  Feat: FeatInput
+  Background: BackgroundInput
+  Equipment: EquipmentInput
+  Character: CharacterInput
+}
+
 export type FormDataType = Spell | Race | Class | Feat | Background | Equipment | Character
 
 export type FeatureDataType = Feature | AncestryFeature | FeatureOption
@@ -60,6 +76,14 @@ export type SectionDataType =
   | FeatureFeat
   | FeatureExpertise
 
+export type SectionDataInput =
+  | FeatureModifierInput
+  | FeatureProficiencyInput
+  | FeatureSenseInput
+  | FeatureSpellInput
+  | FeatureFeatInput
+  | FeatureExpertiseInput
+
 export type CharacterSectionData =
   | CharacterFeat
   | CharacterSense
@@ -67,43 +91,38 @@ export type CharacterSectionData =
   | CharacterExpertise
   | CharacterModifier
 
-export type DeepKeyOf<T, Depth extends number = 4, Seen = never> = [Depth] extends [0] // Stop recursion if Depth reaches 0
-  ? never
-  : T extends object // Only process objects
-  ? T extends Seen // Avoid circular references
-    ? never
+export type DeepKeyOf<T, Depth extends number = 4, Seen = never> =
+  [Depth] extends (
+    [0] // Stop recursion if Depth reaches 0
+  ) ?
+    never
+  : T extends (
+    object // Only process objects
+  ) ?
+    T extends (
+      Seen // Avoid circular references
+    ) ?
+      never
     : {
         [K in keyof T & string]:
           | `${K}` // Current property key
-          | (T[K] extends Array<infer U>
-              ?
-                  | `${K}.${number}`
-                  | (U extends Array<any>
-                      ?
-                          | `${K}.${number}.${number}`
-                          | (U[number] extends Array<any>
-                              ?
-                                  | `${K}.${number}.${number}.${number}`
-                                  | `${K}.${number}.${number}.${number}.${DeepKeyOf<
-                                      U[number][number],
-                                      Subtract<Depth, 1>,
-                                      T | Seen
-                                    >}`
-                              : `${K}.${number}.${number}.${DeepKeyOf<U[number], Subtract<Depth, 1>, T | Seen>}`)
-                      : `${K}.${number}.${DeepKeyOf<U, Subtract<Depth, 1>, T | Seen>}`)
-              : T[K] extends object
-              ? `${K}.${DeepKeyOf<T[K], Subtract<Depth, 1>, T | Seen>}`
-              : never)
+          | (NonNullable<T[K]> extends Array<infer U> ?
+              | `${K}.${number}`
+              | (NonNullable<U> extends Array<infer V> ?
+                  | `${K}.${number}.${number}`
+                  | (NonNullable<V> extends Array<infer W> ?
+                      | `${K}.${number}.${number}.${number}`
+                      | `${K}.${number}.${number}.${number}.${DeepKeyOf<NonNullable<W>, Subtract<Depth, 1>, T | Seen>}`
+                    : `${K}.${number}.${number}.${DeepKeyOf<NonNullable<V>, Subtract<Depth, 1>, T | Seen>}`)
+                : `${K}.${number}.${DeepKeyOf<NonNullable<U>, Subtract<Depth, 1>, T | Seen>}`)
+            : NonNullable<T[K]> extends object ? `${K}.${DeepKeyOf<NonNullable<T[K]>, Subtract<Depth, 1>, T | Seen>}`
+            : never)
       }[keyof T & string]
   : never
 
 // Helper types
-type Subtract<N extends number, M extends number> = [...TupleOf<N>]['length'] extends [
-  ...TupleOf<M>,
-  ...infer R
-]['length']
-  ? R['length']
-  : never
+type Subtract<N extends number, M extends number> =
+  [...TupleOf<N>]['length'] extends [...TupleOf<M>, ...infer R]['length'] ? R['length'] : never
 
 type TupleOf<N extends number, T extends unknown[] = []> = T['length'] extends N ? T : TupleOf<N, [...T, unknown]>
 

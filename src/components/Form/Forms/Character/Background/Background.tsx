@@ -4,17 +4,17 @@ import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import Collapse from '../../../../Collapse/Collapse'
 import Grid from '../../../../Grid/Grid'
-import { useListBackgroundsQuery } from '../../../../../features/backgrounds/backgroundsApi'
+import { useListBackgroundsQuery } from '../../../../../apis/backgroundsApi'
 import CharacterCurrency from '../../../Subforms/Character/CharacterEquipment/CharacterCurrency'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import { option_dropdown } from '../../../Character.css'
 import parse from 'html-react-parser'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
 import useGetFeatures, { FactoryFeature } from '../../../../../hooks/useGetFeatures'
-import FeatureSection from '../../../Subforms/Character/Class/Features/FeatureSection'
+import FeatureSection from '../../../Subforms/Character/Class/features/FeatureSection'
 import { Attributes } from '../../../../../types/enums'
 import { FeatureContext } from '../../../Features/FeatureContext'
-import FeatureOption from '../../../Subforms/Character/Class/Features/FeatureOption'
+import FeatureOption from '../../../Subforms/Character/Class/features/FeatureOption'
 
 const Background = () => {
   const { formData, updateFormData, features } = use(FormContext) as {
@@ -28,7 +28,7 @@ const Background = () => {
   const { data: backgrounds } = useListBackgroundsQuery()
   const { getFullFeature } = useGetFeatures({ data: formData })
 
-  const background = backgrounds.find((b) => b.id === formData.background)
+  const background = backgrounds.find((b) => b.id === formData?.background)
 
   return (
     <>
@@ -43,7 +43,7 @@ const Background = () => {
             value={formData?.background}
           />
         </Grid.Item>
-        {formData?.background && (
+        {background && (
           <>
             {background?.desc && (
               <Grid.Item>
@@ -54,7 +54,7 @@ const Background = () => {
               </Grid.Item>
             )}
             {features
-              ?.filter((feature) => feature.backgroundId === background.id)
+              ?.filter((feature) => feature.backgroundId === background?.id)
               ?.map((feature, featureIndex) => (
                 <Grid.Item key={feature?.id}>
                   <Collapse>
@@ -62,10 +62,10 @@ const Background = () => {
                     <Collapse.Body>
                       <Grid>
                         <Grid.Item>{feature?.desc && parse(feature?.desc)}</Grid.Item>
-                        {!(getFullFeature(feature)?.options?.length > 0) ? (
+                        {!getFullFeature(feature)?.options?.length ?
                           sectionSteps.map(
                             (sectionStep: SectionName) =>
-                              feature[sectionStep]?.length > 0 &&
+                              feature[sectionStep]?.length &&
                               feature[sectionStep].map((section, sIndex) => {
                                 if (
                                   section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
@@ -82,9 +82,7 @@ const Background = () => {
                                 }
                               })
                           )
-                        ) : (
-                          <FeatureOption feature={feature} featureIndex={featureIndex} />
-                        )}
+                        : <FeatureOption feature={feature} featureIndex={featureIndex} />}
                       </Grid>
                     </Collapse.Body>
                   </Collapse>

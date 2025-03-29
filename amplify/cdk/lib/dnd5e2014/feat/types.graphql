@@ -5,7 +5,7 @@ type Feat {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroup
   primaryDamage: Damage
   secondaryDamage: Damage
@@ -14,25 +14,24 @@ type Feat {
   range: Range
   shape: Shape
   targets: Int
-  feats: [FeatureFeat]
-  modifiers: [FeatureModifier]
-  proficiencies: [FeatureProficiency]
-  expertise: [FeatureProficiency]
-  senses: [FeatureSense]
-  spells: [FeatureSpell]
-  spellcasting: [FeatureSpell]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureProficiency!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   selectionCount: Int
   levelAvailable: String
-  features: [Feature]
-  options: [FeatureOption]
+  features: [Feature!]
+  options: [FeatureOption!]
   ownerId: String!
   systemId: ID!
   masterId: String
 }
 
 type FeatConnection {
-  items: [Feat!]
+  items: [Feat]!
   nextToken: String
 }

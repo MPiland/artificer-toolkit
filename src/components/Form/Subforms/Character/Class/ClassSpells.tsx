@@ -4,26 +4,37 @@ import Button from '../../../../Button/Button'
 import { get, isEqual, set } from 'lodash'
 import { use, useCallback, useEffect, useMemo } from 'react'
 import Group from '../../../../Group/Group'
-import { useListSpellsQuery } from '../../../../../features/spells/spellsApi'
-import { Character, Spell, ClassSpellList, CharacterSpell, Class } from '../../../../../../amplify/gql/types'
+import { useListSpellsQuery } from '../../../../../apis/spellsApi'
+import {
+  Character,
+  Spell,
+  ClassSpellList,
+  CharacterSpell,
+  Class,
+  CharacterClass,
+} from '../../../../../../amplify/gql/types'
 import { Attributes, Measurement, Rounding } from '../../../../../types/enums'
 import { UpdateState } from '../../../../../types/form'
 import Grid from '../../../../Grid/Grid'
 import { FormContext } from '../../../FormContext'
 import { useEnumChecks } from '../../../../../hooks/useEnumChecks'
 
-const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
+const ClassSpells = <T extends Character>({
+  fullClass,
+  classIndex,
+  uClass,
+}: {
+  fullClass: Class
+  classIndex: number
+  uClass: CharacterClass
+}) => {
   const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+    formData: T
+    updateFormData: (state: UpdateState<T>) => void
   }
 
   const { preparesSpells, usesSpellbook } = useEnumChecks({ data: fullClass })
   const { data: spells } = useListSpellsQuery()
-
-  const classIndex = formData.classes.findIndex((c) => c.id === fullClass.id)
-
-  const uClass = formData.classes[classIndex]
 
   const casterType = preparesSpells ? 'prepared' : 'known'
 
@@ -419,7 +430,7 @@ const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
           <Collapse.Header title={`${preparesSpells ? 'Prepared' : 'Known'} Spells`} startOpened={false} />
           <Collapse.Body>
             <Grid>
-              {formData.spellcasting?.[casterType]?.length > 0 ? (
+              {formData.spellcasting?.[casterType]?.length > 0 ?
                 formData.spellcasting?.[casterType]?.map(
                   (listObject, lIndex) =>
                     listObject.spells?.length > 0 && (
@@ -445,9 +456,7 @@ const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
                       </Grid.Item>
                     )
                 )
-              ) : (
-                <div>{`No ${preparesSpells ? 'prepared' : 'known'} spells`}</div>
-              )}
+              : <div>{`No ${preparesSpells ? 'prepared' : 'known'} spells`}</div>}
             </Grid>
           </Collapse.Body>
         </Collapse>
@@ -478,9 +487,9 @@ const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
                                   ?.flatMap((listObject) => listObject.spells)
                                   ?.find((lSpell) => fullSpell.id === lSpell.id)
                                 const disabled =
-                                  (preparesSpells
-                                    ? preparedSpellCount >= maxPreparedSpells()
-                                    : knownSpellCount >= maxSpellsKnown) && !spellFound
+                                  (preparesSpells ?
+                                    preparedSpellCount >= maxPreparedSpells()
+                                  : knownSpellCount >= maxSpellsKnown) && !spellFound
                                 return (
                                   <Grid.Item key={sIndex}>
                                     <Collapse>
@@ -498,7 +507,11 @@ const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
                                           }}
                                           disabled={disabled}
                                         >
-                                          {spellFound != null ? 'Remove' : disabled ? '---' : 'Add'}
+                                          {spellFound != null ?
+                                            'Remove'
+                                          : disabled ?
+                                            '---'
+                                          : 'Add'}
                                         </Button>
                                       </Collapse.Header>
                                       <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
@@ -556,15 +569,15 @@ const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
                               const cantripDisabled = cantripsKnownCount === maxCantripsKnown && !cantripFound
                               const spellDisabled =
                                 spellFound?.alwaysPrepared ||
-                                ((preparesSpells
-                                  ? preparedSpellCount >= maxPreparedSpells()
-                                  : knownSpellCount >= maxSpellsKnown) &&
+                                ((preparesSpells ?
+                                  preparedSpellCount >= maxPreparedSpells()
+                                : knownSpellCount >= maxSpellsKnown) &&
                                   !spellFound)
                               return (
                                 <Grid.Item key={sIndex}>
                                   <Collapse>
                                     <Collapse.Header title={fullSpell.label} startOpened={false}>
-                                      {group.level === 0 ? (
+                                      {group.level === 0 ?
                                         <Button
                                           color={cantripFound != null ? 'danger' : 'primary'}
                                           height='full'
@@ -578,10 +591,13 @@ const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
                                           }}
                                           disabled={cantripDisabled}
                                         >
-                                          {cantripFound != null ? 'Remove' : cantripDisabled ? '---' : 'Add'}
+                                          {cantripFound != null ?
+                                            'Remove'
+                                          : cantripDisabled ?
+                                            '---'
+                                          : 'Add'}
                                         </Button>
-                                      ) : (
-                                        <Button
+                                      : <Button
                                           color={spellFound != null ? 'danger' : 'primary'}
                                           height='full'
                                           onClick={(e) => {
@@ -594,9 +610,13 @@ const ClassSpells = ({ fullClass }: { fullClass: Class }) => {
                                           }}
                                           disabled={spellDisabled}
                                         >
-                                          {spellFound != null ? 'Remove' : spellDisabled ? '---' : 'Add'}
+                                          {spellFound != null ?
+                                            'Remove'
+                                          : spellDisabled ?
+                                            '---'
+                                          : 'Add'}
                                         </Button>
-                                      )}
+                                      }
                                     </Collapse.Header>
                                     <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
                                   </Collapse>

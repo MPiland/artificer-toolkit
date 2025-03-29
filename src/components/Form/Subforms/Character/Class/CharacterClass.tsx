@@ -6,53 +6,49 @@ import Tabs from '../../../../Tabs/Tabs'
 import Button from '../../../../Button/Button'
 import ClassSpells from './ClassSpells'
 import ClassProficiencies from './ClassProficiencies'
-import ClassFeatures from './Features/ClassFeatures'
+import ClassFeatures from './features/ClassFeatures'
 import { Character, CharacterClass as CharacterClassType } from '../../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
 import { UpdateState } from '../../../../../types/form'
 import { parseDiceRoll } from '../../../../../utils/dice'
 import { RollConfig } from '../../../../../types/components'
 import Grid from '../../../../Grid/Grid'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
-import { useListClassesQuery } from '../../../../../features/classes/classesApi'
+import { useListClassesQuery } from '../../../../../apis/classesApi'
 
-const CharacterClass = ({
+const CharacterClass = <T extends Character>({
   uClass,
+  classIndex,
   handleRemoveClass,
 }: {
   uClass: CharacterClassType
+  classIndex: number
   handleRemoveClass: () => void
 }) => {
   const { data: system } = useGetSystemQuery()
   const { data: classes } = useListClassesQuery()
 
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const { updateFormData } = use(FormContext) as {
+    updateFormData: (state: UpdateState<T>) => void
   }
 
   const fullClass = classes.find((c) => c.id === uClass.id)
-
-  const classIndex = formData.classes.findIndex((c) => c.id === uClass.id)
-
   const subclasses = classes.filter((sClass) => sClass.parentClass === uClass.id)
 
-  const subclass = subclasses.find((sSubclass) => uClass?.subclass?.id === sSubclass.id)
-
-  const minLevelSpellcasting = fullClass.levelAttributes?.find(
-    (levelAttribute) => levelAttribute.spellSlots?.length > 0
+  const minLevelSpellcasting = fullClass?.levelAttributes?.find(
+    (levelAttribute) => levelAttribute?.spellSlots?.length
   )?.level
 
-  const hitPointAbility = system.abilities.find((ability) => fullClass.hitpoint.ability === ability.id)
+  const hitPointAbility = system.abilities.find((ability) => fullClass?.hitpoint?.ability === ability.id)
 
-  const { numDie, dieType } = parseDiceRoll(fullClass.hitpoint.dieConfig as RollConfig)
+  const { quantity, die } = parseDiceRoll(fullClass?.hitpoint?.dieConfig as RollConfig)
 
   return (
     <Grid.Item>
       <Grid className={sprinkles({ mb: 'space-4' })}>
         <Grid.Item colSpan={'auto'} justify='start' align='end'>
-          <h1 className={class_title}>{fullClass.label}</h1>
+          <h1 className={class_title}>{fullClass?.label}</h1>
           <Button color='danger' style='outline' onClick={() => handleRemoveClass()}>
             Remove Class
           </Button>
@@ -71,7 +67,9 @@ const CharacterClass = ({
       <Tabs style='borderless'>
         <Tabs.Header>
           <Tabs.Tab title='Class Features' />
-          {fullClass.spellcasting && uClass.level >= minLevelSpellcasting && <Tabs.Tab title='Spells' />}
+          {minLevelSpellcasting && fullClass?.spellcasting && uClass.level >= minLevelSpellcasting && (
+            <Tabs.Tab title='Spells' />
+          )}
         </Tabs.Header>
         <Tabs.Panel>
           <Grid>
@@ -81,31 +79,31 @@ const CharacterClass = ({
                 <Collapse.Body>
                   <div>
                     <strong>{'Hit Dice: '}</strong>
-                    {`${fullClass.hitpoint?.dieConfig} per ${fullClass.label} level`}
+                    {`${fullClass?.hitpoint?.dieConfig} per ${fullClass?.label} level`}
                   </div>
                   <div>
                     <strong>{'Hit Points at 1st Level: '}</strong>
-                    {`${numDie * dieType} + your ${hitPointAbility.label} modifier`}
+                    {`${quantity * die} + your ${hitPointAbility?.label} modifier`}
                   </div>
                   <div>
                     <strong>{'Hit Points at Higher Levels: '}</strong>
-                    {`${fullClass.hitpoint?.dieConfig} (or ${Math.round(numDie * (dieType / 2) + 0.5)}) + your ${
-                      hitPointAbility.label
-                    } modifier per ${fullClass.label} level after 1st`}
+                    {`${fullClass?.hitpoint?.dieConfig} (or ${Math.round(quantity * (die / 2) + 0.5)}) + your ${
+                      hitPointAbility?.label
+                    } modifier per ${fullClass?.label} level after 1st`}
                   </div>
                 </Collapse.Body>
               </Collapse>
             </Grid.Item>
-            {fullClass.proficiencies?.length > 0 && <ClassProficiencies fullClass={fullClass} />}
-            {fullClass.features && fullClass.features.length > 0 && (
-              <ClassFeatures fullClass={fullClass} subclass={subclass} subclasses={subclasses} />
+            {fullClass?.proficiencies?.length && <ClassProficiencies fullClass={fullClass} classIndex={classIndex} />}
+            {fullClass?.features && fullClass?.features.length && (
+              <ClassFeatures uClass={uClass} fullClass={fullClass} subclasses={subclasses} classIndex={classIndex} />
             )}
           </Grid>
         </Tabs.Panel>
-        {fullClass.spellcasting && uClass.level >= minLevelSpellcasting && (
+        {minLevelSpellcasting && fullClass?.spellcasting && uClass.level >= minLevelSpellcasting && (
           <Tabs.Panel>
             <Grid>
-              <ClassSpells fullClass={fullClass} />
+              <ClassSpells fullClass={fullClass} uClass={uClass} classIndex={classIndex} />
             </Grid>
           </Tabs.Panel>
         )}

@@ -109,9 +109,9 @@ const Content = ({ children }: { children?: ReactNode | string }) => {
                 if (index === 0 && node && 'children' in node) {
                   const tagName = node.name || 'p'
                   const data: string =
-                    node.name === 'blockquote'
-                      ? ((node.children[0] as Element).children[0] as Text).data
-                      : (node.children[0] as Text).data
+                    node.name === 'blockquote' ?
+                      ((node.children[0] as Element).children[0] as Text).data
+                    : (node.children[0] as Text).data
 
                   return createElement(tagName, { key: index, className: card_content_truncated }, data)
                 }
@@ -135,7 +135,7 @@ type CardComponent = {
   className?: string
   style?: CSSProperties
   itemId: string
-  ref: RefObject<HTMLDivElement>
+  ref: RefObject<HTMLDivElement | null>
 }
 
 const Card = ({ children, className, style, itemId, ref }: CardComponent) => {

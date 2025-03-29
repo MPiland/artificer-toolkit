@@ -11,15 +11,19 @@ import { Fragment, use } from 'react'
 import { FormContext } from '../../../FormContext'
 import useGetProficiencies from '../../../../../hooks/useGetProficiencies'
 
-const ClassProficiencies = ({ fullClass }: { fullClass: Class }) => {
+const ClassProficiencies = <T extends Character>({
+  fullClass,
+  classIndex,
+}: {
+  fullClass: Class
+  classIndex: number
+}) => {
   const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+    formData: T
+    updateFormData: (state: UpdateState<T>) => void
   }
 
   const { getSectionOptions } = useGetSections({ formData })
-
-  const classIndex = formData.classes.findIndex((c) => c.id === fullClass.id)
 
   // Memoize the proficiency array
   const proficiencies = useGetProficiencies({ fullClass })
@@ -36,7 +40,7 @@ const ClassProficiencies = ({ fullClass }: { fullClass: Class }) => {
                 const selectionCount = value?.selectionCount
                 const propertyArray = value?.property ?? []
 
-                const fullProficiency = fullClass.proficiencies.find(
+                const fullProficiency = fullClass?.proficiencies?.find(
                   (proficiency) => proficiency.id === value.proficiencyId
                 )
 

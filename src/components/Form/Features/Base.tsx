@@ -1,4 +1,4 @@
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
@@ -17,13 +17,13 @@ import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
 import SelectOptionsByLevel from '../Subforms/SelectOptionsByLevel'
 
-const Base = ({
+const Base = <T extends FeatureDataType | FeatureOption>({
   featureData,
   updateFeatureData,
   valueLabel,
 }: {
-  featureData: FeatureDataType
-  updateFeatureData: (arg: UpdateState<FeatureDataType>) => void
+  featureData: T
+  updateFeatureData: (arg: UpdateState<T>) => void
   valueLabel: string
 }) => {
   const { formData, steps, stepIndex } = use(FormContext)
@@ -54,7 +54,7 @@ const Base = ({
 
   const { data: system } = useGetSystemQuery()
 
-  const selectSection = (sectionStep: SectionName & 'options') => {
+  const selectSection = (sectionStep: SectionName | 'options') => {
     if (sectionStep === 'options' && featureData.__typename !== 'FeatureOption') {
       // Add Option content
       resetOption()
@@ -62,23 +62,26 @@ const Base = ({
       const newOption: FeatureOption = {
         __typename: 'FeatureOption',
         id: '',
+        label: '',
+        value: '',
       }
       updateOptionData({ type: 'reset', value: newOption })
       updateOptionData({ type: 'initialReset', value: optionIndex })
       updateOptionData({ type: 'index', value: optionIndex })
       return setFeatureStep('option')
+    } else if (sectionStep !== 'options') {
+      // Add Section
+      resetSection()
+      updateSectionData({ type: 'index', value: 0 })
+      return setSectionStep(sectionStep)
     }
-    // Add Section
-    resetSection()
-    updateSectionData({ type: 'index', value: 0 })
-    return setSectionStep(sectionStep)
   }
 
   const hasAnySections =
-    sectionSteps.some((step: SectionName) => {
-      return featureData[step]?.length > 0
+    sectionSteps.some((step) => {
+      return featureData[step]?.length
     }) ||
-    (featureData.__typename !== 'FeatureOption' && featureData?.options?.length > 0)
+    (featureData.__typename !== 'FeatureOption' && featureData?.options?.length)
 
   return (
     <>
@@ -165,7 +168,7 @@ const Base = ({
                   name='attributes'
                   options={system.attributes.filter(
                     (attribute) =>
-                      (attribute?.features?.length > 0 &&
+                      (attribute?.features?.length &&
                         ((formData.__typename === 'Equipment' &&
                           attribute?.features?.includes(FeatureEnum.equipment)) ||
                           ((featureData.__typename === 'FeatureOption' ||
@@ -184,7 +187,7 @@ const Base = ({
                 <Dropdown
                   name='actions.primary.id'
                   label='Action Type'
-                  value={featureData?.actions?.primary.id}
+                  value={featureData?.actions?.primary?.id}
                   options={system.actions}
                   required={true}
                   onChange={updateFeatureData}
@@ -241,9 +244,12 @@ const Base = ({
                         name='range.unit'
                         label='UoM'
                         value={featureData?.range?.unit}
-                        options={Object.values(system.rules.measurements.imperial).flatMap(
-                          (rule) => Array.isArray(rule) && rule
-                        )}
+                        options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                          if (Array.isArray(rule)) {
+                            return rule
+                          }
+                          return []
+                        })}
                         required={featureData?.range?.id === Ranges.distance || false}
                         onChange={updateFeatureData}
                       />
@@ -317,7 +323,7 @@ const Base = ({
                   value={featureData?.saveAbility?.attributes}
                   options={system.attributes.filter(
                     (attribute) =>
-                      attribute?.features?.length > 0 && attribute?.features?.includes(FeatureEnum.saveAbilities)
+                      attribute?.features?.length && attribute?.features?.includes(FeatureEnum.saveAbilities)
                   )}
                   onChange={updateFeatureData}
                 />

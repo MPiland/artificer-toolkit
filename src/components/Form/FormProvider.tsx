@@ -15,7 +15,7 @@ import AncestryWrapper from './Ancestry/AncestryWrapper'
 import { useStore } from '../../store/useStore'
 import { FormContext } from './FormContext'
 import DiceProvider from '../Dice/DiceProvider'
-import { Outlet } from 'react-router-dom'
+import { Outlet } from '@tanstack/react-router'
 import { Character } from '../../../amplify/gql/types'
 import { isEqual } from 'lodash'
 import { Suspense } from 'react'
@@ -191,4 +191,4 @@ const FormProvider = () => {
 
 export default FormProvider
 
-export type FormOptionsType = ReturnType<typeof useFormOptions> | null
+export type FormOptionsType = ReturnType<typeof useFormOptions>

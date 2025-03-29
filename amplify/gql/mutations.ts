@@ -21999,77 +21999,6 @@ mutation CreateMasterFeat($input: FeatInput!) {
 			resourcePoints
 		}
 	}
-	spellcasting {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
 	prerequisites {
 		__typename
 		options
@@ -24871,77 +24800,6 @@ mutation UpdateMasterFeat($input: FeatInput!) {
 		}
 	}
 	spells {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
-	spellcasting {
 		__typename
 		id
 		ids
@@ -27890,77 +27748,6 @@ mutation BatchCreateMasterFeats($input: BatchFeatInput!) {
 			resourcePoints
 		}
 	}
-	spellcasting {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
 	prerequisites {
 		__typename
 		options
@@ -30762,77 +30549,6 @@ mutation CreateFeat($input: FeatInput!) {
 		}
 	}
 	spells {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
-	spellcasting {
 		__typename
 		id
 		ids
@@ -33774,77 +33490,6 @@ mutation UpdateFeat($input: FeatInput!) {
 			resourcePoints
 		}
 	}
-	spellcasting {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
 	prerequisites {
 		__typename
 		options
@@ -36653,77 +36298,6 @@ mutation BatchCreateFeats($input: BatchFeatInput!) {
 		}
 	}
 	spells {
-		__typename
-		id
-		ids
-		attributes
-		selectionCount
-		classLimit
-		levelLimit
-		attributeLimit
-		ability
-		spellLevel
-		spellsByLevel {
-			__typename
-			spells
-			level
-			spellLevel
-		}
-		subtype
-		prerequisites {
-			__typename
-			options
-			skillProficiencies
-			equipmentProficiencies {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			equipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			notEquipped {
-				__typename
-				numberEquipped
-				category
-				equipment
-				properties
-			}
-			abilityScore {
-				__typename
-				abilities
-				score
-			}
-			spellsObtained
-			featuresObtained
-			optionsObtained
-			size
-		}
-		charges {
-			__typename
-			reset
-			limit
-			ability
-			skill
-			usesPerLevel {
-				__typename
-				level
-				uses
-			}
-			minAmount
-			addAmount
-			setAmount
-			multiplier
-			resourcePoints
-		}
-	}
-	spellcasting {
 		__typename
 		id
 		ids
@@ -49236,6 +48810,7 @@ mutation CreateMasterClass($input: ClassInput!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename
@@ -50708,6 +50283,7 @@ mutation UpdateMasterClass($input: ClassInput!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename
@@ -52187,6 +51763,7 @@ mutation BatchCreateMasterClasses($input: BatchClassesInput!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename
@@ -53659,6 +53236,7 @@ mutation CreateClass($input: ClassInput!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename
@@ -55131,6 +54709,7 @@ mutation UpdateClass($input: ClassInput!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename
@@ -56610,6 +56189,7 @@ mutation BatchCreateClasses($input: BatchClassesInput!) {
 		__typename
 		label
 		value
+		id
 		levelAvailable
 		charges {
 			__typename

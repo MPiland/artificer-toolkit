@@ -3,9 +3,9 @@ import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
-import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
-import { useListClassesQuery } from '../../../../features/classes/classesApi'
+import { useGetSystemQuery } from '../../../../apis/systemsApi'
+import { useListSpellsQuery } from '../../../../apis/spellsApi'
+import { useListClassesQuery } from '../../../../apis/classesApi'
 import { FeatureContext } from '../FeatureContext'
 import { Categories } from '../../../../types/enums'
 import { Class, FeatureSpell, SectionEnum, Spell } from '../../../../../amplify/gql/types'
@@ -52,18 +52,18 @@ const Spells = () => {
       let meetsAttributeLimit: boolean = true
 
       // Check against classLimit filter
-      if (sectionData?.classLimit?.length > 0) {
+      if (sectionData?.classLimit?.length) {
         meetsClassLimit =
           !sectionData?.classLimit ||
           sectionData?.classLimit?.some((limit) => spell.classes?.some((sClass) => limit === sClass))
       }
 
       // Check against levelLimit filter
-      if (sectionData?.levelLimit?.length > 0) {
+      if (sectionData?.levelLimit?.length) {
         meetsLevelLimit = sectionData?.levelLimit?.includes(String(spell.level))
       }
 
-      if (sectionData?.attributeLimit?.length > 0) {
+      if (sectionData?.attributeLimit?.length) {
         meetsAttributeLimit = sectionData?.attributeLimit?.some((limitItem) =>
           spell.attributes?.some((attribute) => attribute === limitItem)
         )
@@ -100,7 +100,7 @@ const Spells = () => {
           name='attributes'
           options={system.attributes.filter(
             (attribute) =>
-              attribute?.sections?.length > 0 &&
+              attribute?.sections?.length &&
               (attribute.sections.includes(SectionEnum.spells) ||
                 attribute.sections.includes(SectionEnum.all) ||
                 ((formData as Class)?.category === Categories.subclass &&
@@ -149,14 +149,14 @@ const Spells = () => {
             label='Attribute'
             value={sectionData?.attributeLimit}
             options={system.attributes.filter(
-              (attribute) => attribute?.sections?.length > 0 && attribute.sections.includes(SectionEnum.spells)
+              (attribute) => attribute?.sections?.length && attribute.sections.includes(SectionEnum.spells)
             )}
             required={true}
             onChange={updateSectionData}
           />
         </Grid.Item>
       )}
-      {subtypeSpecific && formData.__typename === 'Class' && (
+      {subtypeSpecific && formData.__typename === 'Class' && formData?.subtypes?.length && (
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Dropdown
             name='subtype'

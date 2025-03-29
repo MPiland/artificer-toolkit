@@ -14,7 +14,7 @@ const Classes = () => {
   }
 
   const handleRemoveClass = ({ classIndex }: { classIndex: number }) => {
-    const updatedClasses = formData.classes.filter((_, index) => classIndex !== index)
+    const updatedClasses = formData.classes?.filter((_, index) => classIndex !== index)
 
     if (formData.classes?.length === 1) {
       updateFormData({
@@ -32,19 +32,18 @@ const Classes = () => {
 
   return (
     <Grid>
-      {formData.classes?.length > 0 && !addClass ? (
+      {formData.classes?.length && !addClass ?
         formData.classes?.map((uClass, cIndex) => {
           return (
             <CharacterClass
               uClass={uClass}
+              classIndex={cIndex}
               key={cIndex}
               handleRemoveClass={() => handleRemoveClass({ classIndex: cIndex })}
             />
           )
         })
-      ) : (
-        <ClassSelection />
-      )}
+      : <ClassSelection />}
     </Grid>
   )
 }

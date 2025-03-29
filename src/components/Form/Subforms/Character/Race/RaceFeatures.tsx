@@ -11,18 +11,20 @@ import { Attributes } from '../../../../../types/enums'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
 import useGetFeatures from '../../../../../hooks/useGetFeatures'
-import FeatureSection from '../Class/Features/FeatureSection'
-import FeatureOption from '../Class/Features/FeatureOption'
+import FeatureSection from '../Class/features/FeatureSection'
+import FeatureOption from '../Class/features/FeatureOption'
 
 const RaceFeatures = ({
+  raceId,
   fullRace,
   fullAncestry,
   updateFormData,
   formData,
   raceLineages,
 }: {
+  raceId: string
   fullRace: Race
-  fullAncestry: AncestryOption
+  fullAncestry?: AncestryOption
   updateFormData: (arg: UpdateState<Character>) => void
   formData: Character
   raceLineages: Race[]
@@ -34,7 +36,7 @@ const RaceFeatures = ({
   const handleAncestryChange = (e: UpdateState<Character>) => {
     if (e.type === 'update') {
       const ancestryId = e.value
-      const ancestry = fullRace.ancestry.options.find((option) => option.id === ancestryId)
+      const ancestry = fullRace?.ancestry?.options.find((option) => option.id === ancestryId)
 
       if (ancestry) {
         updateFormData({
@@ -55,10 +57,10 @@ const RaceFeatures = ({
 
   return (
     <>
-      {raceLineages?.length > 0 &&
+      {raceLineages?.length &&
         raceLineages?.map(
           (lineage, index) =>
-            lineage?.ancestry?.options?.length > 0 && (
+            lineage?.ancestry?.options?.length && (
               <Grid.Item key={index}>
                 <Collapse>
                   <Collapse.Header title={lineage?.ancestry.label} className={feature_card_header} />
@@ -75,7 +77,7 @@ const RaceFeatures = ({
                           value={formData?.ancestry?.id}
                         />
                       </Grid.Item>
-                      {formData?.ancestry && (
+                      {fullAncestry && (
                         <Grid.Item justify='center'>
                           <strong>{fullAncestry.desc && parse(fullAncestry.desc)}</strong>
                         </Grid.Item>
@@ -86,7 +88,7 @@ const RaceFeatures = ({
               </Grid.Item>
             )
         )}
-      {fullRace.ancestry?.options?.length > 0 && (
+      {fullRace.ancestry?.options?.length && (
         <Grid.Item>
           <Collapse>
             <Collapse.Header title={fullRace.ancestry.label} className={feature_card_header} />
@@ -123,10 +125,10 @@ const RaceFeatures = ({
                 <Collapse.Body>
                   <Grid>
                     {feature?.desc && parse(feature?.desc)}
-                    {!(getFullFeature(feature)?.options?.length > 0) ? (
+                    {!getFullFeature(feature)?.options?.length ?
                       sectionSteps.map(
                         (sectionStep: SectionName) =>
-                          feature[sectionStep]?.length > 0 &&
+                          feature[sectionStep]?.length &&
                           feature[sectionStep].map((section, sIndex) => {
                             if (section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
                               return (
@@ -135,15 +137,14 @@ const RaceFeatures = ({
                                   section={section}
                                   sectionStep={sectionStep}
                                   featureIndex={featureIndex}
-                                  raceId={formData?.race}
+                                  feature={{ ...feature, __typename: 'CharacterFeature' }}
+                                  raceId={raceId}
                                 />
                               )
                             }
                           })
                       )
-                    ) : (
-                      <FeatureOption feature={feature} featureIndex={featureIndex} />
-                    )}
+                    : <FeatureOption feature={feature} featureIndex={featureIndex} />}
                   </Grid>
                 </Collapse.Body>
               </Collapse>
@@ -161,10 +162,10 @@ const RaceFeatures = ({
                   <Collapse.Body>
                     <Grid>
                       {feature?.desc && parse(feature?.desc)}
-                      {!(getFullFeature(feature)?.options?.length > 0) ? (
+                      {!getFullFeature(feature)?.options?.length ?
                         sectionSteps.map(
                           (sectionStep: SectionName) =>
-                            feature[sectionStep]?.length > 0 &&
+                            feature[sectionStep]?.length &&
                             feature[sectionStep].map((section, sIndex) => {
                               if (section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
                                 return (
@@ -173,15 +174,14 @@ const RaceFeatures = ({
                                     section={section}
                                     sectionStep={sectionStep}
                                     featureIndex={featureIndex}
-                                    raceId={formData?.race}
+                                    feature={{ ...feature, __typename: 'CharacterFeature' }}
+                                    raceId={raceId}
                                   />
                                 )
                               }
                             })
                         )
-                      ) : (
-                        <FeatureOption feature={feature} featureIndex={featureIndex} />
-                      )}
+                      : <FeatureOption feature={feature} featureIndex={featureIndex} />}
                     </Grid>
                   </Collapse.Body>
                 </Collapse>

@@ -4,7 +4,7 @@ const config: CodegenConfig = {
   schema: './lib/schema.graphql',
   generates: {
     '../gql/types.ts': {
-      plugins: ['typescript', 'typescript-operations', 'typescript-react-query'],
+      plugins: ['typescript', 'typescript-operations'],
       config: {
         namingConvention: {
           enumValues: 'change-case-all#camelCase',
@@ -14,7 +14,7 @@ const config: CodegenConfig = {
     },
   },
   hooks: {
-    afterAllFileWrite: ['ts-node generateOperations.ts']
+    afterAllFileWrite: ['ts-node generateOperations.ts'],
   },
 }
 

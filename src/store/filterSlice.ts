@@ -11,13 +11,13 @@ export interface FilterState {
   classes?: Partial<Class>
 }
 
-export type FormType = keyof FilterState
+export type StoreFormType = keyof FilterState
 
 // Define the filter slice
 export interface FilterSlice {
   filterState: FilterState
-  setFilter: <T extends FormType, K extends DeepKeyOf<FilterState[T]>>(formType: T, path: K, value: any) => void
-  resetFilters: (formType: FormType) => void
+  setFilter: <T extends StoreFormType, K extends DeepKeyOf<FilterState[T]>>(formType: T, path: K, value: any) => void
+  resetFilters: (formType: StoreFormType) => void
   clearAllFilters: () => void
 }
 
@@ -44,7 +44,7 @@ export const filterSlice: StateCreator<FilterSlice> = (set) => ({
             const parentPath = pathParts.join('.')
             const parent = get(typedFilter, parentPath)
 
-            if (parent && typeof parent === 'object' && lastPart in parent) {
+            if (parent && typeof parent === 'object' && lastPart && lastPart in parent) {
               delete parent[lastPart]
             }
           } else {

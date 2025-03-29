@@ -13,7 +13,7 @@ import {
   dice_roll_value_group,
 } from '../../Character.css'
 import Dropdown from '../../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { DiceRolls, RollConfig } from '../../../../types/components'
 import Collapse from '../../../Collapse/Collapse'
 import { isEqual } from 'lodash'
@@ -24,20 +24,20 @@ import { DeepKeyOf, UpdateState } from '../../../../types/form'
 import { DiceContext } from '../../../Dice/DiceContext'
 import Grid from '../../../Grid/Grid'
 
-const ManualArray = ({
+const ManualArray = <T extends Character>({
   formData,
   updateFormData,
 }: {
-  formData: Character
-  updateFormData: (arg: UpdateState<Character>) => void
+  formData: T
+  updateFormData: (arg: UpdateState<T>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
   const rollGroupInit = useMemo(
     (): RollType => ({
       __typename: 'RollType',
-      score: null,
-      ability: null,
+      score: 0,
+      ability: '',
       rolling: false,
       rolled: [],
       kept: [],
@@ -61,9 +61,9 @@ const ManualArray = ({
 
   // Initialize manualRolled object in formData to create empty array for rolling Dice or manually setting scores
   useEffect(() => {
-    if (formData.abilities?.scores?.length > 0) {
+    if (formData.abilities?.scores?.length) {
       const updates: { type: 'update'; path: DeepKeyOf<Character>; value: any }[] = []
-      if (!(formData.abilities?.manualRolled?.rollGroups?.length > 0)) {
+      if (!formData.abilities?.manualRolled?.rollGroups?.length) {
         const rollGroups: RollType[][] = [
           Array(formData.abilities.scores.length)
             .fill(null)
@@ -76,7 +76,7 @@ const ManualArray = ({
         })
       }
 
-      if (!(formData.abilities?.manualRolled?.manual?.length > 0)) {
+      if (!formData.abilities?.manualRolled?.manual?.length) {
         const rolls: Manual[] = []
         for (let i = 0; i < formData.abilities?.scores?.length; i++) {
           rolls.push({ ...manualGroupInit, ability: formData.abilities?.scores[i].ability })
@@ -89,10 +89,7 @@ const ManualArray = ({
         })
       }
 
-      if (
-        formData.abilities?.manualRolled?.configuration === undefined ||
-        formData.abilities?.manualRolled?.configuration === null
-      ) {
+      if (formData.abilities?.manualRolled?.configuration == null) {
         updates.push({
           type: 'update',
           path: 'abilities.manualRolled.configuration',
@@ -108,11 +105,11 @@ const ManualArray = ({
       }
 
       // Apply all updates at once
-      if (updates.length > 0) {
+      if (updates.length) {
         updates.forEach((update) => updateFormData(update))
       }
     }
-  }, [formData, updateFormData, rollGroupInit, manualGroupInit, dice, rollConfiguration])
+  }, [formData, updateFormData, manualGroupInit, rollConfiguration, rollGroupInit])
 
   // Set the form formData for the roll configuration inputs
   useEffect(() => {}, [formData.abilities?.manualRolled?.configuration, rollConfiguration, updateFormData])
@@ -120,19 +117,19 @@ const ManualArray = ({
   // Set the ability scores if manualRolled
   useEffect(() => {
     if (
-      formData.abilities?.manualRolled?.rollGroups?.length > 0 &&
+      formData.abilities?.manualRolled?.rollGroups?.length &&
       formData.abilities?.manualRolled?.rollGroups?.some((rollGroup) => rollGroup?.some((roll) => roll.applied))
     ) {
       formData.abilities?.manualRolled?.rollGroups?.forEach((rollGroup) => {
         formData.abilities?.scores?.forEach((score, index) => {
           const rollIndex = rollGroup?.findIndex((roll) => roll.ability === score.ability)
-          if (rollIndex !== -1) {
-            const roll = rollGroup[rollIndex]
-            if (!isEqual(formData.abilities?.scores[index]?.baseScore, roll.score)) {
+          if (rollIndex && rollIndex !== -1) {
+            const roll = rollGroup?.[rollIndex]
+            if (!isEqual(formData.abilities?.scores?.[index]?.baseScore, roll?.score)) {
               updateFormData({
                 type: 'update',
                 path: `abilities.scores.${index}.baseScore`,
-                value: roll.score,
+                value: roll?.score,
               })
             }
           } else {
@@ -144,14 +141,14 @@ const ManualArray = ({
           }
         })
       })
-    } else if (formData.abilities?.manualRolled?.manual?.length > 0) {
+    } else if (formData.abilities?.manualRolled?.manual?.length) {
       formData.abilities?.scores?.forEach((score, index) => {
         const manualIndex = formData.abilities?.manualRolled?.manual?.findIndex(
           (manual) => manual.ability === score.ability
         )
-        if (manualIndex !== -1) {
+        if (manualIndex && manualIndex !== -1) {
           const manual = formData.abilities?.manualRolled?.manual?.[manualIndex]
-          if (!isEqual(formData.abilities?.scores[index]?.baseScore, manual?.score)) {
+          if (!isEqual(formData.abilities?.scores?.[index]?.baseScore, manual?.score)) {
             updateFormData({
               type: 'update',
               path: `abilities.scores.${index}.baseScore`,
@@ -167,18 +164,13 @@ const ManualArray = ({
         }
       })
     }
-  }, [
-    formData.abilities,
-    formData.abilities?.scores,
-    updateFormData,
-    formData.abilities?.manualRolled?.manual,
-    formData?.abilities?.manualRolled?.rollGroups,
-  ])
+  }, [formData.abilities, updateFormData])
 
   const handleRoll = async (gIndex: number, rIndex: number) => {
     let total: number = 0
-    let results: DiceRolls = rollGroupInit
-    const roll: DiceRolls = JSON.parse(JSON.stringify(formData.abilities.manualRolled.rollGroups[gIndex]?.[rIndex]))
+    const roll: DiceRolls = JSON.parse(
+      JSON.stringify(formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex])
+    )
 
     roll.rolling = true
 
@@ -194,11 +186,13 @@ const ManualArray = ({
       // Call rollDice function with the input string
       const rollResult = await rollDice(rollConfiguration)
 
-      results = { ...results, ...rollResult }
+      const results = { ...rollResult }
       results.kept.forEach((result) => {
         total += result.value
       })
-      let roll: DiceRolls = JSON.parse(JSON.stringify(formData.abilities?.manualRolled?.rollGroups[gIndex]?.[rIndex]))
+      let roll: DiceRolls = JSON.parse(
+        JSON.stringify(formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex])
+      )
 
       roll = { ...roll, rolling: false, score: total, rolled: results.rolled, kept: results.kept }
 
@@ -216,7 +210,7 @@ const ManualArray = ({
   }
 
   const handleAddGroup = () => {
-    const rollGroups: DiceRolls[][] = JSON.parse(JSON.stringify(formData.abilities.manualRolled.rollGroups))
+    const rollGroups: DiceRolls[][] = JSON.parse(JSON.stringify(formData?.abilities?.manualRolled?.rollGroups))
     const rolls: DiceRolls[] = []
     formData.abilities?.scores?.forEach((_, aIndex) => {
       rolls[aIndex] = rollGroupInit
@@ -231,28 +225,38 @@ const ManualArray = ({
   }
 
   const handleDeleteGroup = (gIndex: number) => {
-    const rollGroups = formData.abilities.manualRolled?.rollGroups?.filter((_, groupIndex) => gIndex !== groupIndex)
+    if (formData?.abilities) {
+      const rollGroups = formData?.abilities?.manualRolled?.rollGroups?.filter((_, groupIndex) => gIndex !== groupIndex)
 
-    const abilities = JSON.parse(JSON.stringify(formData.abilities)) as Character['abilities']
+      const abilities: Character['abilities'] = JSON.parse(JSON.stringify(formData.abilities))
 
-    const rolls = formData.abilities?.manualRolled?.rollGroups?.[gIndex]
+      const rolls = formData.abilities?.manualRolled?.rollGroups?.[gIndex]
 
-    rolls.forEach((roll) => {
-      if (roll?.ability) {
-        const scoreIndex = abilities?.scores?.findIndex((scores) => scores.ability === roll.ability)
+      if (abilities && rolls?.length) {
+        const scores = abilities.scores
+        const manualRolled = abilities.manualRolled
+        if (scores?.length) {
+          rolls.forEach((roll) => {
+            if (roll?.ability) {
+              const scoreIndex = scores.findIndex((scores) => scores.ability === roll.ability)
 
-        if (scoreIndex !== -1) {
-          abilities.scores[scoreIndex].baseScore = 0
+              if (scoreIndex && scoreIndex !== -1) {
+                scores[scoreIndex].baseScore = 0
+              }
+            }
+          })
+        }
+
+        if (manualRolled) {
+          manualRolled.rollGroups = rollGroups
+          updateFormData({
+            type: 'update',
+            path: 'abilities',
+            value: abilities,
+          })
         }
       }
-    })
-
-    abilities.manualRolled.rollGroups = rollGroups
-    updateFormData({
-      type: 'update',
-      path: 'abilities',
-      value: abilities,
-    })
+    }
   }
 
   const handleResetGroup = (gIndex: number) => {
@@ -275,7 +279,7 @@ const ManualArray = ({
       const value = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.[i]?.value
       const id = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled?.[i]?.id
       const kept = formData?.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.kept?.some(
-        (keptRoll) => keptRoll.id === id
+        (keptRoll) => keptRoll?.id === id
       )
       diceResults.push(
         <div key={`${gIndex}${rIndex}${i}`} className={clsx(roll_score, { ['kept']: kept })}>
@@ -287,72 +291,83 @@ const ManualArray = ({
   }
 
   const handleApplyRolls = (gIndex: number) => {
-    const abilities = JSON.parse(JSON.stringify(formData.abilities)) as Character['abilities']
-    const rollGroups = abilities.manualRolled.rollGroups
+    const abilities: Character['abilities'] = JSON.parse(JSON.stringify(formData.abilities))
 
-    if (rollGroups?.length > 1) {
-      rollGroups?.forEach((rollGroup, groupIndex) => {
-        if (groupIndex !== gIndex) {
-          if (rollGroup?.length > 0) {
-            rollGroup?.forEach((roll, rollIndex) => {
-              if (roll.applied) {
-                abilities.manualRolled.rollGroups[groupIndex][rollIndex].applied = false
-              }
+    const manualRolled = abilities?.manualRolled
+    const scores = abilities?.scores
+
+    if (manualRolled?.rollGroups?.length && scores?.length) {
+      const rollGroups = manualRolled?.rollGroups
+      if (rollGroups?.length > 1) {
+        rollGroups?.forEach((rollGroup, groupIndex) => {
+          if (groupIndex !== gIndex) {
+            if (rollGroup?.length) {
+              rollGroup?.forEach((roll, rollIndex) => {
+                if (roll.applied) {
+                  rollGroups[groupIndex][rollIndex].applied = false
+                }
+              })
+            }
+          }
+        })
+      }
+
+      rollGroups?.[gIndex]?.forEach((roll, rollIndex) => {
+        if (roll?.ability && roll.ability != null) {
+          let index: number = scores?.findIndex((score) => score.ability === roll.ability)
+          if (index === -1) {
+            index = 0
+          }
+          const rollObject = { ...roll }
+          rollObject.applied = true
+          scores[index].baseScore = roll.score
+          rollGroups[gIndex][rollIndex] = rollObject
+
+          if (index !== -1) {
+            updateFormData({
+              type: 'update',
+              path: 'abilities',
+              value: abilities,
             })
           }
         }
       })
     }
-
-    rollGroups[gIndex].forEach((roll, rollIndex) => {
-      if (roll?.ability && roll.ability != null) {
-        const index = formData.abilities?.scores?.findIndex((score) => score.ability === roll.ability)
-        const rollObject = { ...roll }
-        rollObject.applied = true
-        abilities.scores[index].baseScore = roll.score
-        abilities.manualRolled.rollGroups[gIndex][rollIndex] = rollObject
-
-        if (index !== -1) {
-          updateFormData({
-            type: 'update',
-            path: 'abilities',
-            value: abilities,
-          })
-        }
-      }
-    })
   }
 
   const handleInputScore = (e: UpdateState<Character>, aIndex: number) => {
     if (e.type === 'update') {
       const abilities: Character['abilities'] = JSON.parse(JSON.stringify(formData.abilities))
 
-      const ability = abilities.scores[aIndex].ability
-      const rollGroups = abilities.manualRolled.rollGroups
+      const score = abilities?.scores?.[aIndex]
+      const ability = score?.ability
+      const rollGroups = abilities?.manualRolled?.rollGroups
 
-      if (rollGroups?.length > 0) {
+      if (rollGroups?.length) {
         rollGroups.forEach((rollGroup, gIndex) => {
-          if (rollGroup.length > 0) {
+          if (rollGroup.length) {
             rollGroup?.forEach((roll, rIndex) => {
               if (roll.applied) {
-                abilities.manualRolled.rollGroups[gIndex][rIndex].applied = false
+                rollGroups[gIndex][rIndex].applied = false
               }
             })
           }
         })
       }
 
-      abilities.scores[aIndex].baseScore = Number(e.value)
-      abilities.manualRolled.manual[aIndex] = {
-        __typename: 'Manual',
-        ability: ability,
-        score: Number(e.value),
+      if (score && abilities?.manualRolled?.manual) {
+        score.baseScore = Number(e.value)
+        abilities.manualRolled.manual[aIndex] = {
+          __typename: 'Manual',
+          ability: ability,
+          score: Number(e.value),
+        }
+        updateFormData({
+          type: 'update',
+          path: 'abilities',
+          value: abilities,
+        })
       }
-      updateFormData({
-        type: 'update',
-        path: 'abilities',
-        value: abilities,
-      })
     }
   }
 
@@ -366,7 +381,7 @@ const ManualArray = ({
               key={aIndex}
               name={`abilities.scores.${aIndex}.baseScore`}
               value={score.score}
-              label={`${ability.label}`}
+              label={ability?.label}
               type='num'
               onChange={(e) => handleInputScore(e, aIndex)}
             />
@@ -390,18 +405,19 @@ const ManualArray = ({
                             </Button>
                           </Grid.Item>
                         )}
-                        {formData.abilities?.manualRolled?.rollGroups.length !== 1 && (
-                          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                            <Button
-                              color='danger'
-                              style='outline'
-                              onClick={() => handleDeleteGroup(gIndex)}
-                              disabled={dice.isRolling}
-                            >
-                              Delete Group
-                            </Button>
-                          </Grid.Item>
-                        )}
+                        {formData.abilities?.manualRolled?.rollGroups?.length &&
+                          formData.abilities?.manualRolled?.rollGroups?.length !== 1 && (
+                            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                              <Button
+                                color='danger'
+                                style='outline'
+                                onClick={() => handleDeleteGroup(gIndex)}
+                                disabled={dice.isRolling}
+                              >
+                                Delete Group
+                              </Button>
+                            </Grid.Item>
+                          )}
                       </Grid>
                       <Grid>
                         {rollGroup?.map((roll, rIndex) => {
@@ -415,21 +431,20 @@ const ManualArray = ({
                                   flexWrapVariant='noWrap'
                                   className={dice_roll_value_group}
                                 >
-                                  {roll?.rolling ? (
+                                  {roll?.rolling ?
                                     <Spinner className={dice_spinner} />
-                                  ) : (
-                                    <>
+                                  : <>
                                       <div className={dice_roll_value}>{roll.score || '---'}</div>
                                       {formData.abilities?.manualRolled?.rollGroups?.[gIndex]?.[rIndex]?.rolled
-                                        ?.length > 0 && (
+                                        ?.length && (
                                         <div key={`${gIndex}${rIndex}${roll.score}`} className={roll_score_box}>
                                           {rollResult(gIndex, rIndex)}
                                         </div>
                                       )}
                                     </>
-                                  )}
+                                  }
                                 </Group>
-                                {roll.score == null ? (
+                                {roll.score == null ?
                                   <Button
                                     name='setRolling'
                                     color='primary'
@@ -448,8 +463,7 @@ const ManualArray = ({
                                   >
                                     {dice.isRolling ? 'Rolling' : 'Roll'}
                                   </Button>
-                                ) : (
-                                  <Dropdown<Character>
+                                : <Dropdown<Character>
                                     name={`abilities.manualRolled.rollGroups.${gIndex}.${rIndex}.ability`}
                                     options={system.abilities.filter(
                                       (ability) =>
@@ -488,7 +502,7 @@ const ManualArray = ({
                                       }
                                     }}
                                   />
-                                )}
+                                }
                               </Group>
                             </Grid.Item>
                           )

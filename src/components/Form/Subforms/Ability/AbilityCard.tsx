@@ -17,27 +17,31 @@ const AbilityCard = ({ ability, score }: { ability: GenericType; score: Scores }
       </div>
       <div className={ability_card_info}>
         <div className={ability_card_info_label}>Total Score</div>
-        <div className={ability_card_info_value}>{score.calculatedScore > 0 ? score.calculatedScore : '--'}</div>
+        <div className={ability_card_info_value}>
+          {score?.calculatedScore && score?.calculatedScore > 0 ? score.calculatedScore : '--'}
+        </div>
       </div>
       <div className={ability_card_info}>
         <div className={ability_card_info_label}>Modifier</div>
-        <div className={ability_card_info_value}>{calculateModifier(score.calculatedScore, 'modifier')}</div>
+        <div className={ability_card_info_value}>{calculateModifier(score?.calculatedScore || 0, 'modifier')}</div>
       </div>
       <div className={ability_card_info}>
         <div className={ability_card_info_label}>Base Score</div>
-        <div className={ability_card_info_value}>{score.baseScore > 0 ? score.baseScore : '--'}</div>
+        <div className={ability_card_info_value}>
+          {score?.baseScore && score?.baseScore > 0 ? score.baseScore : '--'}
+        </div>
       </div>
       <div className={ability_card_info}>
         <div className={ability_card_info_label}>Racial Bonus</div>
-        <div className={ability_card_info_value}>{calculateModifier(score.raceScore, 'bonus')}</div>
+        <div className={ability_card_info_value}>{calculateModifier(score?.raceScore || 0, 'bonus')}</div>
       </div>
       <div className={ability_card_info}>
         <div className={ability_card_info_label}>Modifier Bonus</div>
-        <div className={ability_card_info_value}>{calculateModifier(score.modifierScore, 'bonus')}</div>
+        <div className={ability_card_info_value}>{calculateModifier(score?.modifierScore || 0, 'bonus')}</div>
       </div>
       <div className={ability_card_info}>
         <div className={ability_card_info_label}>Ability Improvements</div>
-        <div className={ability_card_info_value}>{calculateModifier(score.classScore, 'bonus')}</div>
+        <div className={ability_card_info_value}>{calculateModifier(score?.classScore || 0, 'bonus')}</div>
       </div>
     </Grid.Item>
   )

@@ -1,5 +1,5 @@
 import Dropdown from '../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import Input from '../../Input/Input'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import { sprinkles } from '../../../css/sprinkles.css'
@@ -51,7 +51,7 @@ const Traits = () => {
             Add Trait
           </Button>
         </Grid.Item>
-        {formData?.traits?.details?.length > 0 && (
+        {formData?.traits?.details?.length && (
           <Grid.Item>
             <Accordion dataArray={formData?.traits?.details} onChange={updateFormData} name='traits.details'>
               {formData.traits.details.map((detail, index) => (

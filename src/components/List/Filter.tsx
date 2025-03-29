@@ -12,13 +12,13 @@ import { FormDataType } from '../../types/form'
 // Define a type that includes filterState to pass to Input/Dropdown
 type FilterContextType = { filterState: FilterState }
 
-interface FilterProps<T extends FormType> {
+interface FilterProps<T extends FormType, K extends FormDataType> {
   context: T
-  data: FormDataType[]
-  filterConfigs: FilterConfig<FormDataType>[]
+  data: K[] | null | undefined
+  filterConfigs: FilterConfig<K>[]
 }
 
-const Filter = <T extends FormType>({ context, data, filterConfigs }: FilterProps<T>) => {
+const Filter = <T extends FormType, K extends FormDataType>({ context, data, filterConfigs }: FilterProps<T, K>) => {
   const { filterState, setFilter, resetFilters } = useStore()
 
   // Get the current filters for this context
@@ -38,7 +38,7 @@ const Filter = <T extends FormType>({ context, data, filterConfigs }: FilterProp
   }, [data, filterConfigs])
 
   const handleFilterChange = useCallback(
-    (update: UpdateFilter<FormDataType>) => {
+    (update: UpdateFilter<K>) => {
       if (update.type === 'update') {
         setFilter(context as FormType, update.path as any, update.value)
       } else if (update.type === 'remove') {

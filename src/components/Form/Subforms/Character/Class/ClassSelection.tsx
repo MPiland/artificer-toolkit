@@ -1,10 +1,10 @@
 import { card_group, card_header, card_header_subtext, card_header_title, main_card } from '../../../Character.css'
 import clsx from 'clsx'
 import Group from '../../../../Group/Group'
-import { useListClassesQuery } from '../../../../../features/classes/classesApi'
+import { useListClassesQuery } from '../../../../../apis/classesApi'
 import { Character, Class } from '../../../../../../amplify/gql/types'
 import { Categories } from '../../../../../types/enums'
-import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
 import { use, useState } from 'react'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
@@ -46,12 +46,16 @@ const ClassSelection = () => {
 
               let invalidClass: boolean = false
 
-              if (formData.classes?.length > 0) {
+              if (formData.classes?.length && primaryAbility?.minAmount) {
                 if (statePrimaryScore != null && statePrimaryScore < primaryAbility?.minAmount) {
                   invalidClass = true
                 }
 
-                if (stateSecondaryScore != null && stateSecondaryScore >= secondaryAbility?.minAmount) {
+                if (
+                  secondaryAbility?.minAmount &&
+                  stateSecondaryScore != null &&
+                  stateSecondaryScore >= secondaryAbility?.minAmount
+                ) {
                   invalidClass = false
                 }
               }
@@ -90,14 +94,14 @@ const ClassSelection = () => {
                           {uClass.label}
                         </h3>
                       </Group>
-                      {selected && (
+                      {selected && selectedIndex && selectedIndex !== -1 && (
                         <Group>
-                          <span className={card_header_subtext}>{`Level ${formData.classes[selectedIndex].level} ${
+                          <span className={card_header_subtext}>{`Level ${formData.classes?.[selectedIndex]?.level} ${
                             selectedIndex === 0 ? ' \u00B7 Starting Class' : ''
                           }`}</span>
                         </Group>
                       )}
-                      {formData?.classes?.length > 0 && !selected && (
+                      {formData?.classes?.length && !selected && (
                         <span className={clsx(card_header_subtext, { ['invalid']: invalidClass })}>{subText}</span>
                       )}
                     </span>

@@ -9,7 +9,7 @@ type Detail {
 type SaveAbility {
   id: ID!
   minAmount: Int
-  attributes: [ID]
+  attributes: [ID!]
   abilityModifier: ID
 }
 
@@ -52,10 +52,10 @@ type DiePerLevel {
 }
 
 type Damage {
-  attributes: [ID]
-  damageSave: [ID]
-  setPerLevel: [SetPerLevel]
-  diePerLevel: [DiePerLevel]
+  attributes: [ID!]
+  damageSave: [ID!]
+  setPerLevel: [SetPerLevel!]
+  diePerLevel: [DiePerLevel!]
   primary: DamageFields
   secondary: DamageFields
   bonus: DamageFields
@@ -74,7 +74,7 @@ type Charge {
   limit: ID
   ability: ID
   skill: ID
-  usesPerLevel: [UsesPerLevel]
+  usesPerLevel: [UsesPerLevel!]
   minAmount: Int
   addAmount: Int
   setAmount: Int
@@ -87,34 +87,34 @@ type Charge {
 type EquipPrerequisite {
   numberEquipped: Int
   category: ID
-  equipment: [ID]
-  properties: [ID]
+  equipment: [ID!]
+  properties: [ID!]
 }
 
 type AbilityScore {
-  abilities: [ID]
+  abilities: [ID!]
   score: Int
 }
 
 type Prerequisite {
-  options: [ID]
-  skillProficiencies: [ID]
-  equipmentProficiencies: [EquipPrerequisite]
-  equipped: [EquipPrerequisite]
-  notEquipped: [EquipPrerequisite]
+  options: [ID!]
+  skillProficiencies: [ID!]
+  equipmentProficiencies: [EquipPrerequisite!]
+  equipped: [EquipPrerequisite!]
+  notEquipped: [EquipPrerequisite!]
   abilityScore: AbilityScore
-  spellsObtained: [ID]
-  featuresObtained: [ID]
-  optionsObtained: [ID]
-  size: [ID]
+  spellsObtained: [ID!]
+  featuresObtained: [ID!]
+  optionsObtained: [ID!]
+  size: [ID!]
 }
 
 ## Feature Related
 
 type FeatureFeat {
   id: ID!
-  attributes: [ID]
-  feats: [ID]
+  attributes: [ID!]
+  feats: [ID!]
   selectionCount: Int
   subtype: ID
   prerequisites: Prerequisite
@@ -133,7 +133,7 @@ type ModifierSetPerLevel {
 type FeatureModifier {
   id: ID!
   subtype: ID
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID
   type: ID
@@ -146,12 +146,12 @@ type FeatureModifier {
   setAmount: Int
   dieConfig: String
   feature: ID
-  diePerLevel: [ModifierDiePerLevel]
-  setPerLevel: [ModifierSetPerLevel]
-  skills: [ID]
-  saveAbilities: [ID]
-  abilities: [ID]
-  speeds: [ID]
+  diePerLevel: [ModifierDiePerLevel!]
+  setPerLevel: [ModifierSetPerLevel!]
+  skills: [ID!]
+  saveAbilities: [ID!]
+  abilities: [ID!]
+  speeds: [ID!]
   charge: Charge
   range: ID
   minRange: Int
@@ -160,8 +160,8 @@ type FeatureModifier {
   size: Int
   duration: ID
   unit: ID
-  conditions: [ID]
-  damageTypes: [ID]
+  conditions: [ID!]
+  damageTypes: [ID!]
   damageType: ID
   spell: ID
   spellCategory: ID
@@ -169,22 +169,22 @@ type FeatureModifier {
 }
 
 type ProficiencyProperties {
-  ids: [ID]
+  ids: [ID!]
   category: ID
-  properties: [ID]
+  properties: [ID!]
 }
 
 type FeatureProficiency {
   id: ID!
   subtype: ID
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID!
   level: ID!
   rounding: ID
-  saveAbilities: [ID]
-  skills: [ID]
-  languages: [ID]
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
   prerequisites: Prerequisite
@@ -193,12 +193,12 @@ type FeatureProficiency {
 type FeatureExpertise {
   id: ID!
   subtype: ID
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID!
-  saveAbilities: [ID]
-  skills: [ID]
-  languages: [ID]
+  saveAbilities: [ID!]
+  skills: [ID!]
+  languages: [ID!]
   properties: ProficiencyProperties
   equipment: ProficiencyProperties
   prerequisites: Prerequisite
@@ -206,7 +206,7 @@ type FeatureExpertise {
 
 type FeatureSense {
   id: ID!
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   subtype: ID
   ids: [ID!]
@@ -214,7 +214,7 @@ type FeatureSense {
 }
 
 type SpellsByLevel {
-  spells: [ID]
+  spells: [ID!]
   level: Int
   spellLevel: Int
 }
@@ -222,14 +222,14 @@ type SpellsByLevel {
 type FeatureSpell {
   id: ID!
   ids: [ID!]
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
-  classLimit: [ID]
-  levelLimit: [String]
-  attributeLimit: [ID]
+  classLimit: [ID!]
+  levelLimit: [String!]
+  attributeLimit: [ID!]
   ability: ID
   spellLevel: Int
-  spellsByLevel: [SpellsByLevel]
+  spellsByLevel: [SpellsByLevel!]
   subtype: ID
   prerequisites: Prerequisite
   charges: Charge
@@ -258,19 +258,19 @@ type FeatureOption {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroup
   damage: Damage
   charges: Charge
   range: Range
   shape: Shape
   targets: Int
-  feats: [FeatureFeat]
-  modifiers: [FeatureModifier]
-  proficiencies: [FeatureProficiency]
-  expertise: [FeatureExpertise]
-  senses: [FeatureSense]
-  spells: [FeatureSpell]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
@@ -283,22 +283,22 @@ type Feature {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  optionsByLevel: [OptionsByLevel]
+  optionsByLevel: [OptionsByLevel!]
   range: Range
   shape: Shape
   targets: Int
-  feats: [FeatureFeat]
-  modifiers: [FeatureModifier]
-  proficiencies: [FeatureProficiency]
-  expertise: [FeatureExpertise]
-  senses: [FeatureSense]
-  spells: [FeatureSpell]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
-  options: [FeatureOption]
+  options: [FeatureOption!]
 }

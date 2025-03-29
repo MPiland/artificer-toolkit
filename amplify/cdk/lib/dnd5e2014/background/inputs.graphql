@@ -4,24 +4,24 @@ input BackgroundCurrencyInput {
 }
 
 input BackgroundEquipmentInput {
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID
-  equipment: [ID]
-  properties: [ID]
+  equipment: [ID!]
+  properties: [ID!]
   quantity: Int
   currencies: [BackgroundCurrencyInput]
 }
 
 input BackgroundInput {
-  id: ID
+  id: ID!
   label: String!
   value: String!
   desc: String
   details: [DetailInput!]
-  equipment: [[[BackgroundEquipmentInput]]]
-  proficiencies: [FeatureProficiencyInput]
-  features: [FeatureInput]
+  equipment: [[[BackgroundEquipmentInput!]]]
+  proficiencies: [FeatureProficiencyInput!]
+  features: [FeatureInput!]
   ownerId: String
   systemId: ID!
   masterId: String

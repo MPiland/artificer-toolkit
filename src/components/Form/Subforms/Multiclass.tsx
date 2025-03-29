@@ -1,18 +1,18 @@
 import Collapse from '../../Collapse/Collapse'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { Class } from '../../../../amplify/gql/types'
 import { UpdateState } from '../../../types/form'
 import { Attributes } from '../../../types/enums'
 import Grid from '../../Grid/Grid'
 
-const Multiclass = ({
+const Multiclass = <T extends Class>({
   formData,
   updateFormData,
 }: {
-  formData: Class
-  updateFormData: (arg: UpdateState<Class>) => void
+  formData: T
+  updateFormData: (arg: UpdateState<T>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 

@@ -15,7 +15,7 @@ type PrepareLimitLevel {
 }
 
 type PrepareLimit {
-  methods: [ID]
+  methods: [ID!]
   level: PrepareLimitLevel
 }
 
@@ -23,7 +23,7 @@ type Spellcasting {
   magicName: String
   ability: ID
   maxSpellLevel: Int
-  attributes: [ID]
+  attributes: [ID!]
   charges: Charge
   prepareLimit: PrepareLimit
 }
@@ -34,15 +34,16 @@ type SpellSlot {
 
 type LevelAttribute {
   level: Int
-  spellSlots: [SpellSlot]
+  spellSlots: [SpellSlot!]
   resourcePoints: Int
   spellsKnownLimit: Int
   cantripsKnownLimit: Int
 }
 
 type Resource {
-  label: String
-  value: String
+  label: String!
+  value: String!
+  id: ID!
   levelAvailable: Int
   charges: Charge
   method: ID
@@ -72,11 +73,11 @@ type ClassCurrency {
 }
 
 type ClassEquipment {
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID
-  equipment: [ID]
-  properties: [ID]
+  equipment: [ID!]
+  properties: [ID!]
   quantity: Int
   currencies: [ClassCurrency]
 }
@@ -86,26 +87,26 @@ type Class {
   label: String!
   value: String!
   desc: String
-  attributes: [ID]
+  attributes: [ID!]
   category: ID!
-  details: [Detail]
+  details: [Detail!]
   hitpoint: Hitpoint
   startingGold: StartingGold
-  equipment: [[[ClassEquipment]]]
-  proficiencies: [FeatureProficiency]
+  equipment: [[[ClassEquipment!]!]!]
+  proficiencies: [FeatureProficiency!]
   spellcasting: Spellcasting
-  levelAttributes: [LevelAttribute]
+  levelAttributes: [LevelAttribute!]
   resource: Resource
   multiclass: Multiclass
   parentClass: ID
-  subtypes: [Subtype]
-  features: [Feature]
+  subtypes: [Subtype!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
 type ClassConnection {
-  items: [Class!]
+  items: [Class]!
   nextToken: String
 }

@@ -9,20 +9,20 @@ type AncestryFeature {
   actions: ActionGroup
   damage: Damage
   charges: Charge
-  optionsByLevel: [OptionsByLevel]
+  optionsByLevel: [OptionsByLevel!]
   range: Range
   shape: Shape
   targets: Int
-  feats: [FeatureFeat]
-  modifiers: [FeatureModifier]
-  proficiencies: [FeatureProficiency]
-  expertise: [FeatureExpertise]
-  senses: [FeatureSense]
-  spells: [FeatureSpell]
+  feats: [FeatureFeat!]
+  modifiers: [FeatureModifier!]
+  proficiencies: [FeatureProficiency!]
+  expertise: [FeatureExpertise!]
+  senses: [FeatureSense!]
+  spells: [FeatureSpell!]
   prerequisites: Prerequisite
   saveAbility: SaveAbility
   levelAvailable: String
-  options: [FeatureOption]
+  options: [FeatureOption!]
 }
 
 type AncestryOption {
@@ -30,7 +30,7 @@ type AncestryOption {
   value: String!
   label: String!
   desc: String
-  features: [AncestryFeature]
+  features: [AncestryFeature!]
 }
 
 type Ancestry {
@@ -38,7 +38,7 @@ type Ancestry {
   label: String!
   value: String!
   desc: String
-  options: [AncestryOption!]
+  options: [AncestryOption!]!
 }
 
 type RaceSpeed {
@@ -49,7 +49,7 @@ type RaceSpeed {
 }
 
 type Traits {
-  details: [Detail]
+  details: [Detail!]
   size: ID
   speeds: RaceSpeed
 }
@@ -64,15 +64,15 @@ type Race {
   category: ID!
   lineages: [ID!]
   ancestry: Ancestry
-  details: [Detail]
+  details: [Detail!]
   traits: Traits
-  features: [Feature]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
 type RaceConnection {
-  items: [Race!]
+  items: [Race]!
   nextToken: String
 }

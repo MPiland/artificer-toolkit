@@ -4,17 +4,17 @@ import { useEventListener } from 'usehooks-ts'
 import Footer from './Footer/Footer'
 import Header from './Header/Header'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import { Outlet } from 'react-router-dom'
+import { Outlet } from '@tanstack/react-router'
 import { UseMutationResult } from '@tanstack/react-query'
-import { FormDataType, FormInputType } from '../../types/form'
+import { FormDataType } from '../../types/form'
 import { use } from 'react'
 import { FormContext } from './FormContext'
 import Loading from '../Loading/Loading'
 import FeatureProvider from './Features/FeatureProvider'
 
 interface FormProps<T extends FormDataType> {
-  useAddNewItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
-  useUpdateItemMutation: () => UseMutationResult<T, Error, FormInputType, unknown>
+  useAddNewItemMutation: () => UseMutationResult<T, Error, T, unknown>
+  useUpdateItemMutation: () => UseMutationResult<T, Error, T, unknown>
 }
 
 const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FormProps<T>) => {

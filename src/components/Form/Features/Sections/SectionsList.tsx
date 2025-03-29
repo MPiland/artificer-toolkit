@@ -55,13 +55,19 @@ const SectionsList = ({
   return (
     <>
       {sectionsAndOptions.map((sectionStep, index) => {
-        let sections: SectionDataType[] | FeatureOption[]
+        let sections: SectionDataType[] | FeatureOption[] = []
         if (featureData.__typename === 'AncestryFeature') {
-          sections = featureData[sectionStep as SectionName] || featureData?.options
-        } else if (featureData.__typename === 'FeatureOption') {
-          sections = featureData[sectionStep as Exclude<SectionName, 'options'>]
-        } else {
-          sections = featureData[sectionStep as SectionName]
+          if (featureData?.[sectionStep]?.length) {
+            sections = featureData?.[sectionStep]
+          }
+        } else if (featureData.__typename === 'FeatureOption' && sectionStep !== 'options') {
+          if (featureData?.[sectionStep]?.length) {
+            sections = featureData[sectionStep]
+          }
+        } else if (featureData.__typename === 'Feature') {
+          if (featureData?.[sectionStep]?.length) {
+            sections = featureData[sectionStep]
+          }
         }
         return (
           sections?.length > 0 && (
@@ -82,9 +88,9 @@ const SectionsList = ({
                         handleEdit={() => handleEdit(sectionStep, sIndex, section)}
                         expandable={section.__typename === 'FeatureOption'}
                       >
-                        {section.__typename === 'FeatureOption' && section?.value != null
-                          ? section?.label
-                          : `${startCase(sectionStep)} ${sIndex + 1}`}
+                        {section.__typename === 'FeatureOption' && section?.value != null ?
+                          section?.label
+                        : `${startCase(sectionStep)} ${sIndex + 1}`}
                       </Accordion.Header>
                       {section.__typename === 'FeatureOption' && section.__typename === 'FeatureOption' && (
                         <>
@@ -104,13 +110,11 @@ const SectionsList = ({
                                       me: 'space-3',
                                     })}
                                   >
-                                    {section[fSectionStep]?.length > 0 ? (
+                                    {section?.[fSectionStep]?.length ?
                                       <strong key={fSIndex}>
                                         {startCase(fSectionStep.charAt(0))}:{section[fSectionStep]?.length}
                                       </strong>
-                                    ) : (
-                                      `${startCase(fSectionStep.charAt(0))}: 0`
-                                    )}
+                                    : `${startCase(fSectionStep.charAt(0))}: 0`}
                                   </span>
                                 )
                               })}

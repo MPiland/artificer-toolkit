@@ -6,8 +6,8 @@ import Button from '../../Button/Button'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Group from '../../Group/Group'
 import { isEqual } from 'lodash'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
-import { useListEquipmentQuery } from '../../../features/equipment/equipmentApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
+import { useListEquipmentQuery } from '../../../apis/equipmentApi'
 import { Class, SectionEnum } from '../../../../amplify/gql/types'
 import { Attributes, Measurement, ProficiencyCategories } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
@@ -15,24 +15,24 @@ import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Grid from '../../Grid/Grid'
 
-const Proficiencies = () => {
+const Proficiencies = <T extends Class>() => {
   const { formData, updateFormData } = use(FormContext) as {
-    formData: Class
-    updateFormData: (state: UpdateState<Class>) => void
+    formData: T
+    updateFormData: (state: UpdateState<T>) => void
   }
 
   const { data: system } = useGetSystemQuery()
   const { data: equipment } = useListEquipmentQuery()
 
   useEffect(() => {
-    if (formData?.proficiencies?.length > 0) {
+    if (formData?.proficiencies?.length) {
       const formClone: Class = JSON.parse(JSON.stringify(formData))
       formClone?.proficiencies?.forEach((proficiency, index) => {
         if (
           !proficiency?.level ||
           (proficiency?.level !== Measurement.full && proficiency?.level !== Measurement.half)
         ) {
-          formClone.proficiencies[index].level = Measurement.full
+          formClone?.proficiencies?.[index]?.level = Measurement.full
         }
       })
       if (!isEqual(formClone.proficiencies, formData.proficiencies)) {
@@ -89,7 +89,7 @@ const Proficiencies = () => {
                           name={`proficiencies.${index}.attributes`}
                           options={system.attributes.filter(
                             (attribute) =>
-                              attribute?.sections?.length > 0 &&
+                              attribute?.sections?.length &&
                               (attribute?.sections?.includes(SectionEnum.all) ||
                                 attribute?.sections?.includes(SectionEnum.subclasses))
                           )}
@@ -142,9 +142,9 @@ const Proficiencies = () => {
                               multiSelect={true}
                               label='Equipment Properties'
                               value={
-                                category.id === ProficiencyCategories.equipment
-                                  ? proficiency.equipment?.properties
-                                  : proficiency.properties?.ids
+                                category.id === ProficiencyCategories.equipment ?
+                                  proficiency.equipment?.properties
+                                : proficiency.properties?.ids
                               }
                               options={system.equipment.properties.filter((property) => {
                                 if (category.id === ProficiencyCategories.properties) {
@@ -176,7 +176,7 @@ const Proficiencies = () => {
                                       return true
                                     })
                                     .filter((sEquipment) => {
-                                      if (proficiency?.equipment?.properties?.length > 0) {
+                                      if (proficiency?.equipment?.properties?.length) {
                                         return sEquipment.properties?.some((property) =>
                                           proficiency?.equipment?.properties?.includes(property)
                                         )

@@ -1,5 +1,4 @@
-import { useCallback, ReactNode, RefObject, useRef, MouseEvent as ReactMouseEvent } from 'react'
-import { Location, useNavigate } from 'react-router-dom'
+import { useCallback, ReactNode, RefObject, useRef, MouseEvent as ReactMouseEvent, use } from 'react'
 import {
   modal,
   modal_dialogue,
@@ -17,6 +16,7 @@ import clsx from 'clsx'
 import { sprinkles } from '../../css/sprinkles.css'
 import Group from '../Group/Group'
 import { useEventListener } from 'usehooks-ts'
+import { ModalContext } from './ModalContext'
 
 export const Header = ({
   title,
@@ -25,16 +25,14 @@ export const Header = ({
 }: {
   title?: string
   children?: ReactNode
-  location?: Location<any>
   onClose?: () => void
 }) => {
-  const navigate = useNavigate()
-
+  const { hideModal } = use(ModalContext)
   const handleClose = () => {
     if (onClose) {
       onClose()
     } else {
-      navigate(-1)
+      hideModal()
     }
   }
 
@@ -108,15 +106,13 @@ const Dialogue = ({
 }
 
 const Modal = ({ children, onClose }: { children: ReactNode; onClose?: () => void }) => {
-  const navigate = useNavigate()
-
+  const { hideModal } = use(ModalContext)
   const documentRef = useRef<Document>(document)
 
   const handleClose = useCallback(
     (e?: ReactMouseEvent<HTMLDivElement, MouseEvent>) => {
       if (e) {
         const modalContent = document.getElementById('modal-content')
-        console.log({ target: e.target, modalContent, test: modalContent.contains(e.target as Node) })
         if (modalContent && modalContent.contains(e.target as Node)) {
           return
         }
@@ -124,10 +120,10 @@ const Modal = ({ children, onClose }: { children: ReactNode; onClose?: () => voi
       if (onClose) {
         onClose()
       } else {
-        navigate(-1)
+        hideModal()
       }
     },
-    [navigate, onClose]
+    [onClose, hideModal]
   )
 
   // Closes modal when Escape is pressed
@@ -137,7 +133,7 @@ const Modal = ({ children, onClose }: { children: ReactNode; onClose?: () => voi
     }
   }
 
-  const handleModalClick = (e?: ReactMouseEvent<HTMLDivElement, MouseEvent>) => {
+  const handleModalClick = (e: ReactMouseEvent<HTMLDivElement, MouseEvent>) => {
     const modalContent = document.getElementById('modal-content')
     if (modalContent && !modalContent.contains(e.target as Node)) {
       return handleClose()

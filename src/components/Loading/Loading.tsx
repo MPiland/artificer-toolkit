@@ -27,7 +27,7 @@ const Loading = () => {
   }, [])
 
   return (
-    <Modal handleCloseFn={() => setIsLoading(false)}>
+    <Modal onClose={() => setIsLoading(false)}>
       <Modal.Dialogue size='sm'>
         <Modal.Content>
           <div className={loading_wrapper}>

@@ -23,8 +23,8 @@ type Contains {
   quantity: Int!
   equipped: Boolean
   attuned: Boolean
-  contains: [Contains]
-  possessions: [Possessions]
+  contains: [Contains!]
+  possessions: [Possessions!]
 }
 
 type EquipmentRange {
@@ -43,12 +43,12 @@ type Equipment {
   weight: Weight
   capacity: Capacity
   maxStack: Int
-  quantity: Int
-  properties: [ID]
+  quantity: Int!
+  properties: [ID!]
   category: ID!
   equipmentRank: Int
-  rarity: ID
-  attributes: [ID]
+  rarity: ID!
+  attributes: [ID!]
   damage: Damage
   saveAbility: SaveAbility
   primaryAbility: ID
@@ -59,8 +59,8 @@ type Equipment {
   prerequisities: Prerequisite
   speed: Speed
   range: EquipmentRange
-  contains: [Contains]
-  features: [Feature]
+  contains: [Contains!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
@@ -68,6 +68,6 @@ type Equipment {
 }
 
 type EquipmentConnection {
-  items: [Equipment!]
+  items: [Equipment]!
   nextToken: String
 }

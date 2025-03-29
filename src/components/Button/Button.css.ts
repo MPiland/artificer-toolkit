@@ -33,7 +33,7 @@ const colors = {
   danger: 'danger',
   update: 'update',
   main: 'main',
-}
+} as const
 
 export const button_color = styleVariants(colors, (colorValue: keyof typeof colors) => [
   button,
@@ -140,7 +140,7 @@ const radiusKeys = {
   md: 'md',
   lg: 'lg',
   xl: 'xl',
-}
+} as const
 
 export const button_radius = styleVariants(radiusKeys, (radiusValue: keyof typeof radiusKeys) => {
   if (radiusValue === 'default') {
@@ -169,7 +169,6 @@ export const button_content = style({
       alignItems: 'center',
       userSelect: 'none',
       zIndex: 0,
-      width: '100%',
       pointerEvents: 'none',
       overflow: 'hidden',
       display: 'flex',

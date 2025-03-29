@@ -8,7 +8,7 @@ import { use } from 'react'
 import { FormContext } from '../../FormContext'
 
 type EquipmentGroupProps = {
-  equipment: (ClassEquipment | BackgroundEquipment)[][]
+  equipment: ((ClassEquipment | BackgroundEquipment)[] | null)[]
   index: number
 }
 
@@ -48,15 +48,19 @@ const EquipmentGroup = ({ equipment, index }: EquipmentGroupProps) => {
           </Grid.Item>
           <Grid.Item>
             {equipment?.length > 0 &&
-              equipment?.map((option, optIdx) => (
-                <EquipmentOption
-                  key={optIdx}
-                  option={option}
-                  equipmentIndex={index}
-                  optionIndex={optIdx}
-                  equipmentLength={equipment.length}
-                />
-              ))}
+              equipment?.map((option, optIdx) => {
+                if (option?.length) {
+                  return (
+                    <EquipmentOption
+                      key={optIdx}
+                      option={option}
+                      equipmentIndex={index}
+                      optionIndex={optIdx}
+                      equipmentLength={equipment.length}
+                    />
+                  )
+                }
+              })}
           </Grid.Item>
         </Grid>
       </Accordion.Content>

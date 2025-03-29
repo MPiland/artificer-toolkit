@@ -18,7 +18,7 @@ export type AbilityGenerateMethod = {
   __typename: 'AbilityGenerateMethod';
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  options?: Maybe<Array<Maybe<GenerateOption>>>;
+  options?: Maybe<Array<GenerateOption>>;
   total?: Maybe<Scalars['Int']['output']>;
   value: Scalars['String']['output'];
 };
@@ -26,19 +26,19 @@ export type AbilityGenerateMethod = {
 export type AbilityGenerateMethodInput = {
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  options?: InputMaybe<Array<InputMaybe<GenerateOptionInput>>>;
+  options?: InputMaybe<Array<GenerateOptionInput>>;
   total?: InputMaybe<Scalars['Int']['input']>;
   value: Scalars['String']['input'];
 };
 
 export type AbilityScore = {
   __typename: 'AbilityScore';
-  abilities?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  abilities?: Maybe<Array<Scalars['ID']['output']>>;
   score?: Maybe<Scalars['Int']['output']>;
 };
 
 export type AbilityScoreInput = {
-  abilities?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  abilities?: InputMaybe<Array<Scalars['ID']['input']>>;
   score?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -77,7 +77,7 @@ export type Ancestry = {
   desc?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  options?: Maybe<Array<AncestryOption>>;
+  options: Array<AncestryOption>;
   value: Scalars['String']['output'];
 };
 
@@ -90,21 +90,21 @@ export type AncestryFeature = {
   damage?: Maybe<Damage>;
   desc?: Maybe<Scalars['String']['output']>;
   detail?: Maybe<Scalars['String']['output']>;
-  expertise?: Maybe<Array<Maybe<FeatureExpertise>>>;
-  feats?: Maybe<Array<Maybe<FeatureFeat>>>;
+  expertise?: Maybe<Array<FeatureExpertise>>;
+  feats?: Maybe<Array<FeatureFeat>>;
   id: Scalars['ID']['output'];
   label?: Maybe<Scalars['String']['output']>;
   levelAvailable?: Maybe<Scalars['String']['output']>;
-  modifiers?: Maybe<Array<Maybe<FeatureModifier>>>;
-  options?: Maybe<Array<Maybe<FeatureOption>>>;
-  optionsByLevel?: Maybe<Array<Maybe<OptionsByLevel>>>;
+  modifiers?: Maybe<Array<FeatureModifier>>;
+  options?: Maybe<Array<FeatureOption>>;
+  optionsByLevel?: Maybe<Array<OptionsByLevel>>;
   prerequisites?: Maybe<Prerequisite>;
-  proficiencies?: Maybe<Array<Maybe<FeatureProficiency>>>;
+  proficiencies?: Maybe<Array<FeatureProficiency>>;
   range?: Maybe<Range>;
   saveAbility?: Maybe<SaveAbility>;
-  senses?: Maybe<Array<Maybe<FeatureSense>>>;
+  senses?: Maybe<Array<FeatureSense>>;
   shape?: Maybe<Shape>;
-  spells?: Maybe<Array<Maybe<FeatureSpell>>>;
+  spells?: Maybe<Array<FeatureSpell>>;
   targets?: Maybe<Scalars['Int']['output']>;
   value?: Maybe<Scalars['String']['output']>;
 };
@@ -117,21 +117,21 @@ export type AncestryFeatureInput = {
   damage?: InputMaybe<DamageInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
   detail?: InputMaybe<Scalars['String']['input']>;
-  expertise?: InputMaybe<Array<InputMaybe<FeatureExpertiseInput>>>;
-  feats?: InputMaybe<Array<InputMaybe<FeatureFeatInput>>>;
+  expertise?: InputMaybe<Array<FeatureExpertiseInput>>;
+  feats?: InputMaybe<Array<FeatureFeatInput>>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
   levelAvailable?: InputMaybe<Scalars['String']['input']>;
-  modifiers?: InputMaybe<Array<InputMaybe<FeatureModifierInput>>>;
-  options?: InputMaybe<Array<InputMaybe<FeatureOptionInput>>>;
-  optionsByLevel?: InputMaybe<Array<InputMaybe<OptionsByLevelInput>>>;
+  modifiers?: InputMaybe<Array<FeatureModifierInput>>;
+  options?: InputMaybe<Array<FeatureOptionInput>>;
+  optionsByLevel?: InputMaybe<Array<OptionsByLevelInput>>;
   prerequisites?: InputMaybe<PrerequisiteInput>;
-  proficiencies?: InputMaybe<Array<InputMaybe<FeatureProficiencyInput>>>;
+  proficiencies?: InputMaybe<Array<FeatureProficiencyInput>>;
   range?: InputMaybe<RangeInput>;
   saveAbility?: InputMaybe<SaveAbilityInput>;
-  senses?: InputMaybe<Array<InputMaybe<FeatureSenseInput>>>;
+  senses?: InputMaybe<Array<FeatureSenseInput>>;
   shape?: InputMaybe<ShapeInput>;
-  spells?: InputMaybe<Array<InputMaybe<FeatureSpellInput>>>;
+  spells?: InputMaybe<Array<FeatureSpellInput>>;
   targets?: InputMaybe<Scalars['Int']['input']>;
   value?: InputMaybe<Scalars['String']['input']>;
 };
@@ -140,14 +140,14 @@ export type AncestryInput = {
   desc?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  options?: InputMaybe<Array<AncestryOptionInput>>;
+  options: Array<AncestryOptionInput>;
   value: Scalars['String']['input'];
 };
 
 export type AncestryOption = {
   __typename: 'AncestryOption';
   desc?: Maybe<Scalars['String']['output']>;
-  features?: Maybe<Array<Maybe<AncestryFeature>>>;
+  features?: Maybe<Array<AncestryFeature>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   value: Scalars['String']['output'];
@@ -155,7 +155,7 @@ export type AncestryOption = {
 
 export type AncestryOptionInput = {
   desc?: InputMaybe<Scalars['String']['input']>;
-  features?: InputMaybe<Array<InputMaybe<AncestryFeatureInput>>>;
+  features?: InputMaybe<Array<AncestryFeatureInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
   value: Scalars['String']['input'];
@@ -165,20 +165,20 @@ export type Background = {
   __typename: 'Background';
   desc?: Maybe<Scalars['String']['output']>;
   details?: Maybe<Array<Detail>>;
-  equipment?: Maybe<Array<Maybe<Array<Maybe<Array<Maybe<BackgroundEquipment>>>>>>>;
-  features?: Maybe<Array<Maybe<Feature>>>;
+  equipment?: Maybe<Array<Maybe<Array<Maybe<Array<BackgroundEquipment>>>>>>;
+  features?: Maybe<Array<Feature>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   masterId?: Maybe<Scalars['String']['output']>;
   ownerId: Scalars['ID']['output'];
-  proficiencies?: Maybe<Array<Maybe<FeatureProficiency>>>;
+  proficiencies?: Maybe<Array<FeatureProficiency>>;
   systemId: Scalars['ID']['output'];
   value: Scalars['String']['output'];
 };
 
 export type BackgroundConnection = {
   __typename: 'BackgroundConnection';
-  items?: Maybe<Array<Background>>;
+  items: Array<Maybe<Background>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -195,21 +195,21 @@ export type BackgroundCurrencyInput = {
 
 export type BackgroundEquipment = {
   __typename: 'BackgroundEquipment';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category?: Maybe<Scalars['ID']['output']>;
-  currencies?: Maybe<Array<Maybe<BackgroundCurrency>>>;
-  equipment?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  properties?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  currencies?: Maybe<Array<BackgroundCurrency>>;
+  equipment?: Maybe<Array<Scalars['ID']['output']>>;
+  properties?: Maybe<Array<Scalars['ID']['output']>>;
   quantity?: Maybe<Scalars['Int']['output']>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
 };
 
 export type BackgroundEquipmentInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category?: InputMaybe<Scalars['ID']['input']>;
   currencies?: InputMaybe<Array<InputMaybe<BackgroundCurrencyInput>>>;
-  equipment?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  properties?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  equipment?: InputMaybe<Array<Scalars['ID']['input']>>;
+  properties?: InputMaybe<Array<Scalars['ID']['input']>>;
   quantity?: InputMaybe<Scalars['Int']['input']>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -217,13 +217,13 @@ export type BackgroundEquipmentInput = {
 export type BackgroundInput = {
   desc?: InputMaybe<Scalars['String']['input']>;
   details?: InputMaybe<Array<DetailInput>>;
-  equipment?: InputMaybe<Array<InputMaybe<Array<InputMaybe<Array<InputMaybe<BackgroundEquipmentInput>>>>>>>;
-  features?: InputMaybe<Array<InputMaybe<FeatureInput>>>;
-  id?: InputMaybe<Scalars['ID']['input']>;
+  equipment?: InputMaybe<Array<InputMaybe<Array<InputMaybe<Array<BackgroundEquipmentInput>>>>>>;
+  features?: InputMaybe<Array<FeatureInput>>;
+  id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
   masterId?: InputMaybe<Scalars['String']['input']>;
   ownerId?: InputMaybe<Scalars['String']['input']>;
-  proficiencies?: InputMaybe<Array<InputMaybe<FeatureProficiencyInput>>>;
+  proficiencies?: InputMaybe<Array<FeatureProficiencyInput>>;
   systemId: Scalars['ID']['input'];
   value: Scalars['String']['input'];
 };
@@ -231,12 +231,12 @@ export type BackgroundInput = {
 export type BackgroundStartingEquipment = {
   __typename: 'BackgroundStartingEquipment';
   addedToCharacter?: Maybe<Scalars['Boolean']['output']>;
-  equipmentGroups?: Maybe<Array<Maybe<StartingEquipmentGroup>>>;
+  equipmentGroups?: Maybe<Array<StartingEquipmentGroup>>;
 };
 
 export type BackgroundStartingEquipmentInput = {
   addedToCharacter?: InputMaybe<Scalars['Boolean']['input']>;
-  equipmentGroups?: InputMaybe<Array<InputMaybe<StartingEquipmentGroupInput>>>;
+  equipmentGroups?: InputMaybe<Array<StartingEquipmentGroupInput>>;
 };
 
 export type BatchBackgroundsInput = {
@@ -293,73 +293,73 @@ export type Character = {
   background?: Maybe<Scalars['ID']['output']>;
   backgroundEquipment?: Maybe<BackgroundStartingEquipment>;
   classEquipment?: Maybe<ClassStartingEquipment>;
-  classes?: Maybe<Array<Maybe<CharacterClass>>>;
-  currencyGroups?: Maybe<Array<Maybe<CurrencyGroup>>>;
+  classes?: Maybe<Array<CharacterClass>>;
+  currencyGroups?: Maybe<Array<CurrencyGroup>>;
   desc?: Maybe<Scalars['String']['output']>;
-  equipment?: Maybe<Array<Maybe<Contains>>>;
+  equipment?: Maybe<Array<Contains>>;
   exp?: Maybe<Scalars['ID']['output']>;
-  expertise?: Maybe<Array<Maybe<CharacterExpertise>>>;
-  feats?: Maybe<Array<Maybe<CharacterFeat>>>;
-  features?: Maybe<Array<Maybe<CharacterFeature>>>;
+  expertise?: Maybe<Array<CharacterExpertise>>;
+  feats?: Maybe<Array<CharacterFeat>>;
+  features?: Maybe<Array<CharacterFeature>>;
   hitpoint?: Maybe<CharacterHitpoint>;
   id: Scalars['ID']['output'];
-  label?: Maybe<Scalars['String']['output']>;
-  modifiers?: Maybe<Array<Maybe<CharacterModifier>>>;
+  label: Scalars['String']['output'];
+  modifiers?: Maybe<Array<CharacterModifier>>;
   ownerId: Scalars['String']['output'];
-  proficiencies?: Maybe<Array<Maybe<CharacterProficiency>>>;
+  proficiencies?: Maybe<Array<CharacterProficiency>>;
   race?: Maybe<Scalars['ID']['output']>;
-  senses?: Maybe<Array<Maybe<CharacterSense>>>;
+  senses?: Maybe<Array<CharacterSense>>;
   spellcasting?: Maybe<CharacterSpellcasting>;
   systemId: Scalars['String']['output'];
-  value?: Maybe<Scalars['String']['output']>;
+  value: Scalars['String']['output'];
 };
 
 export type CharacterAbilities = {
   __typename: 'CharacterAbilities';
   manualRolled?: Maybe<ManualRolled>;
   pointBuy?: Maybe<PointBuy>;
-  scores?: Maybe<Array<Maybe<Scores>>>;
+  scores?: Maybe<Array<Scores>>;
   selectedSystem?: Maybe<Scalars['ID']['output']>;
-  standardArray?: Maybe<Array<Maybe<StandardArray>>>;
+  standardArray?: Maybe<Array<StandardArray>>;
 };
 
 export type CharacterAbilitiesInput = {
   manualRolled?: InputMaybe<ManualRolledInput>;
   pointBuy?: InputMaybe<PointBuyInput>;
-  scores?: InputMaybe<Array<InputMaybe<ScoresInput>>>;
+  scores?: InputMaybe<Array<ScoresInput>>;
   selectedSystem?: InputMaybe<Scalars['ID']['input']>;
-  standardArray?: InputMaybe<Array<InputMaybe<StandardArrayInput>>>;
+  standardArray?: InputMaybe<Array<StandardArrayInput>>;
 };
 
 export type CharacterAncestry = {
   __typename: 'CharacterAncestry';
   id?: Maybe<Scalars['ID']['output']>;
-  lineages?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  lineages?: Maybe<Array<Scalars['ID']['output']>>;
   raceId?: Maybe<Scalars['ID']['output']>;
 };
 
 export type CharacterAncestryInput = {
   id?: InputMaybe<Scalars['ID']['input']>;
-  lineage?: InputMaybe<Array<InputMaybe<LineageInput>>>;
+  lineage?: InputMaybe<Array<LineageInput>>;
   raceId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type CharacterClass = {
   __typename: 'CharacterClass';
-  id?: Maybe<Scalars['ID']['output']>;
-  level?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+  level: Scalars['Int']['output'];
   subclass?: Maybe<Subclass>;
 };
 
 export type CharacterClassInput = {
-  id?: InputMaybe<Scalars['ID']['input']>;
-  level?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+  level: Scalars['Int']['input'];
   subclass?: InputMaybe<SubclassInput>;
 };
 
 export type CharacterConnection = {
   __typename: 'CharacterConnection';
-  items?: Maybe<Array<Character>>;
+  items: Array<Maybe<Character>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -449,7 +449,7 @@ export type CharacterFeature = {
   featId?: Maybe<Scalars['ID']['output']>;
   id?: Maybe<Scalars['ID']['output']>;
   level?: Maybe<Scalars['Int']['output']>;
-  options?: Maybe<Array<Maybe<CharacterFeatureOption>>>;
+  options?: Maybe<Array<CharacterFeatureOption>>;
   raceId?: Maybe<Scalars['ID']['output']>;
 };
 
@@ -461,7 +461,7 @@ export type CharacterFeatureInput = {
   featId?: InputMaybe<Scalars['ID']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   level?: InputMaybe<Scalars['Int']['input']>;
-  options?: InputMaybe<Array<InputMaybe<CharacterFeatureOptionInput>>>;
+  options?: InputMaybe<Array<CharacterFeatureOptionInput>>;
   raceId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -482,7 +482,7 @@ export type CharacterHitpoint = {
   __typename: 'CharacterHitpoint';
   bonus?: Maybe<Scalars['Int']['output']>;
   fixed?: Maybe<HitpointFixed>;
-  maxHitpoints: Scalars['Int']['output'];
+  maxHitpoints?: Maybe<Scalars['Int']['output']>;
   maxOverride?: Maybe<Scalars['Int']['output']>;
   method: Scalars['ID']['output'];
   rolled?: Maybe<HitpointRoll>;
@@ -492,7 +492,7 @@ export type CharacterHitpoint = {
 export type CharacterHitpointInput = {
   bonus?: InputMaybe<Scalars['Int']['input']>;
   fixed?: InputMaybe<HitpointFixedInput>;
-  maxHitpoints: Scalars['Int']['input'];
+  maxHitpoints?: InputMaybe<Scalars['Int']['input']>;
   maxOverride?: InputMaybe<Scalars['Int']['input']>;
   method: Scalars['ID']['input'];
   rolled?: InputMaybe<HitpointRollInput>;
@@ -507,24 +507,24 @@ export type CharacterInput = {
   backgroundEquipment?: InputMaybe<BackgroundStartingEquipmentInput>;
   classEquipment?: InputMaybe<ClassStartingEquipmentInput>;
   classes?: InputMaybe<Array<InputMaybe<CharacterClassInput>>>;
-  currencyGroups?: InputMaybe<Array<InputMaybe<CurrencyGroupInput>>>;
+  currencyGroups?: InputMaybe<Array<CurrencyGroupInput>>;
   desc?: InputMaybe<Scalars['String']['input']>;
-  equipment?: InputMaybe<Array<InputMaybe<ContainsInput>>>;
+  equipment?: InputMaybe<Array<ContainsInput>>;
   exp?: InputMaybe<Scalars['Int']['input']>;
   expertise?: InputMaybe<CharacterExpertiseInput>;
-  feats?: InputMaybe<Array<InputMaybe<CharacterFeatInput>>>;
-  features?: InputMaybe<Array<InputMaybe<CharacterFeatureInput>>>;
+  feats?: InputMaybe<Array<CharacterFeatInput>>;
+  features?: InputMaybe<Array<CharacterFeatureInput>>;
   hitpoint?: InputMaybe<CharacterHitpointInput>;
   id: Scalars['ID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
+  label: Scalars['String']['input'];
   modifiers?: InputMaybe<CharacterModifierInput>;
   ownerId?: InputMaybe<Scalars['String']['input']>;
   proficiencies?: InputMaybe<CharacterProficiencyInput>;
   race?: InputMaybe<Scalars['ID']['input']>;
-  senses?: InputMaybe<Array<InputMaybe<CharacterSenseInput>>>;
+  senses?: InputMaybe<Array<CharacterSenseInput>>;
   spellcasting?: InputMaybe<CharacterSpellcastingInput>;
   systemId: Scalars['String']['input'];
-  value?: InputMaybe<Scalars['String']['input']>;
+  value: Scalars['String']['input'];
 };
 
 export type CharacterModifier = {
@@ -627,17 +627,17 @@ export type CharacterSenseInput = {
 
 export type CharacterSetting = {
   __typename: 'CharacterSetting';
-  advancementMethods?: Maybe<Array<Maybe<GenericType>>>;
-  hitpointCalcMethods?: Maybe<Array<Maybe<GenericType>>>;
-  spellPointCalcMethods?: Maybe<Array<Maybe<GenericType>>>;
-  startingEquipmentOptions?: Maybe<Array<Maybe<GenericType>>>;
+  advancementMethods: Array<GenericType>;
+  hitpointCalcMethods: Array<GenericType>;
+  spellPointCalcMethods: Array<GenericType>;
+  startingEquipmentOptions: Array<GenericType>;
 };
 
 export type CharacterSettingInput = {
-  advancementMethods?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  hitpointCalcMethods?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  spellPointCalcMethods?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  startingEquipmentOptions?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  advancementMethods: Array<GenericTypeInput>;
+  hitpointCalcMethods: Array<GenericTypeInput>;
+  spellPointCalcMethods: Array<GenericTypeInput>;
+  startingEquipmentOptions: Array<GenericTypeInput>;
 };
 
 export type CharacterSpell = {
@@ -702,17 +702,17 @@ export type CharacterSpellSlotsInputs = {
 
 export type CharacterSpellcasting = {
   __typename: 'CharacterSpellcasting';
-  additional?: Maybe<Array<Maybe<CharacterSpell>>>;
-  known?: Maybe<Array<Maybe<ClassSpellList>>>;
-  prepared?: Maybe<Array<Maybe<ClassSpellList>>>;
-  spellSlots?: Maybe<Array<Maybe<CharacterSpellSlots>>>;
+  additional?: Maybe<Array<CharacterSpell>>;
+  known?: Maybe<Array<ClassSpellList>>;
+  prepared?: Maybe<Array<ClassSpellList>>;
+  spellSlots?: Maybe<Array<CharacterSpellSlots>>;
 };
 
 export type CharacterSpellcastingInput = {
-  additional?: InputMaybe<Array<InputMaybe<CharacterSpellInput>>>;
-  known?: InputMaybe<Array<InputMaybe<ClassSpellListInput>>>;
-  prepared?: InputMaybe<Array<InputMaybe<ClassSpellListInput>>>;
-  spellSlots?: InputMaybe<Array<InputMaybe<CharacterSpellSlotsInputs>>>;
+  additional?: InputMaybe<Array<CharacterSpellInput>>;
+  known?: InputMaybe<Array<ClassSpellListInput>>;
+  prepared?: InputMaybe<Array<ClassSpellListInput>>;
+  spellSlots?: InputMaybe<Array<CharacterSpellSlotsInputs>>;
 };
 
 export type Charge = {
@@ -726,7 +726,7 @@ export type Charge = {
   resourcePoints?: Maybe<Scalars['Int']['output']>;
   setAmount?: Maybe<Scalars['Int']['output']>;
   skill?: Maybe<Scalars['ID']['output']>;
-  usesPerLevel?: Maybe<Array<Maybe<UsesPerLevel>>>;
+  usesPerLevel?: Maybe<Array<UsesPerLevel>>;
 };
 
 export type ChargeInput = {
@@ -744,59 +744,59 @@ export type ChargeInput = {
 
 export type ChargeOption = {
   __typename: 'ChargeOption';
-  classes?: Maybe<Array<Maybe<ClassesEnum>>>;
-  damage?: Maybe<Array<Maybe<DamageEnum>>>;
-  equipment?: Maybe<Array<Maybe<EquipmentEnum>>>;
-  feats?: Maybe<Array<Maybe<AllEnum>>>;
-  features?: Maybe<Array<Maybe<FeatureEnum>>>;
+  classes?: Maybe<Array<ClassesEnum>>;
+  damage?: Maybe<Array<DamageEnum>>;
+  equipment?: Maybe<Array<EquipmentEnum>>;
+  feats?: Maybe<Array<AllEnum>>;
+  features?: Maybe<Array<FeatureEnum>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  sections?: Maybe<Array<Maybe<SectionEnum>>>;
-  spells?: Maybe<Array<Maybe<SpellEnum>>>;
+  sections?: Maybe<Array<SectionEnum>>;
+  spells?: Maybe<Array<SpellEnum>>;
   value: Scalars['String']['output'];
 };
 
 export type ChargeOptionInput = {
-  classes?: InputMaybe<Array<InputMaybe<ClassesEnumInput>>>;
-  damage?: InputMaybe<Array<InputMaybe<DamageEnumInput>>>;
-  equipment?: InputMaybe<Array<InputMaybe<EquipmentEnumInput>>>;
-  feats?: InputMaybe<Array<InputMaybe<AllEnumInput>>>;
-  features?: InputMaybe<Array<InputMaybe<FeatureEnumInput>>>;
+  classes?: InputMaybe<Array<ClassesEnumInput>>;
+  damage?: InputMaybe<Array<DamageEnumInput>>;
+  equipment?: InputMaybe<Array<EquipmentEnumInput>>;
+  feats?: InputMaybe<Array<AllEnumInput>>;
+  features?: InputMaybe<Array<FeatureEnumInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  sections?: InputMaybe<Array<InputMaybe<SectionEnumInput>>>;
-  spells?: InputMaybe<Array<InputMaybe<SpellEnumInput>>>;
+  sections?: InputMaybe<Array<SectionEnumInput>>;
+  spells?: InputMaybe<Array<SpellEnumInput>>;
   value: Scalars['String']['input'];
 };
 
 export type Class = {
   __typename: 'Class';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category: Scalars['ID']['output'];
   desc?: Maybe<Scalars['String']['output']>;
-  details?: Maybe<Array<Maybe<Detail>>>;
-  equipment?: Maybe<Array<Maybe<Array<Maybe<Array<Maybe<ClassEquipment>>>>>>>;
-  features?: Maybe<Array<Maybe<Feature>>>;
+  details?: Maybe<Array<Detail>>;
+  equipment?: Maybe<Array<Array<Array<ClassEquipment>>>>;
+  features?: Maybe<Array<Feature>>;
   hitpoint?: Maybe<Hitpoint>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  levelAttributes?: Maybe<Array<Maybe<LevelAttribute>>>;
+  levelAttributes?: Maybe<Array<LevelAttribute>>;
   masterId?: Maybe<Scalars['String']['output']>;
   multiclass?: Maybe<Multiclass>;
   ownerId: Scalars['ID']['output'];
   parentClass?: Maybe<Scalars['ID']['output']>;
-  proficiencies?: Maybe<Array<Maybe<FeatureProficiency>>>;
+  proficiencies?: Maybe<Array<FeatureProficiency>>;
   resource?: Maybe<Resource>;
   spellcasting?: Maybe<Spellcasting>;
   startingGold?: Maybe<StartingGold>;
-  subtypes?: Maybe<Array<Maybe<Subtype>>>;
+  subtypes?: Maybe<Array<Subtype>>;
   systemId: Scalars['ID']['output'];
   value: Scalars['String']['output'];
 };
 
 export type ClassConnection = {
   __typename: 'ClassConnection';
-  items?: Maybe<Array<Class>>;
+  items: Array<Maybe<Class>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -813,45 +813,45 @@ export type ClassCurrencyInput = {
 
 export type ClassEquipment = {
   __typename: 'ClassEquipment';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category?: Maybe<Scalars['ID']['output']>;
   currencies?: Maybe<Array<Maybe<ClassCurrency>>>;
-  equipment?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  properties?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  equipment?: Maybe<Array<Scalars['ID']['output']>>;
+  properties?: Maybe<Array<Scalars['ID']['output']>>;
   quantity?: Maybe<Scalars['Int']['output']>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
 };
 
 export type ClassEquipmentInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category?: InputMaybe<Scalars['ID']['input']>;
-  currencies?: InputMaybe<Array<InputMaybe<ClassCurrencyInput>>>;
-  equipment?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  properties?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  currencies?: InputMaybe<Array<ClassCurrencyInput>>;
+  equipment?: InputMaybe<Array<Scalars['ID']['input']>>;
+  properties?: InputMaybe<Array<Scalars['ID']['input']>>;
   quantity?: InputMaybe<Scalars['Int']['input']>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ClassInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category: Scalars['ID']['input'];
   desc?: InputMaybe<Scalars['String']['input']>;
-  details?: InputMaybe<Array<InputMaybe<DetailInput>>>;
-  equipment?: InputMaybe<Array<InputMaybe<Array<InputMaybe<Array<InputMaybe<ClassEquipmentInput>>>>>>>;
-  features?: InputMaybe<Array<InputMaybe<FeatureInput>>>;
+  details?: InputMaybe<Array<DetailInput>>;
+  equipment?: InputMaybe<Array<Array<Array<ClassEquipmentInput>>>>;
+  features?: InputMaybe<Array<FeatureInput>>;
   hitpoint?: InputMaybe<HitpointInput>;
-  id?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  levelAttributes?: InputMaybe<Array<InputMaybe<LevelAttributeInput>>>;
+  levelAttributes?: InputMaybe<Array<LevelAttributeInput>>;
   masterId?: InputMaybe<Scalars['String']['input']>;
   multiclass?: InputMaybe<MulticlassInput>;
   ownerId?: InputMaybe<Scalars['String']['input']>;
   parentClass?: InputMaybe<Scalars['ID']['input']>;
-  proficiencies?: InputMaybe<Array<InputMaybe<FeatureProficiencyInput>>>;
+  proficiencies?: InputMaybe<Array<FeatureProficiencyInput>>;
   resource?: InputMaybe<ResourceInput>;
   spellcasting?: InputMaybe<SpellcastingInput>;
   startingGold?: InputMaybe<StartingGoldInput>;
-  subtypes?: InputMaybe<Array<InputMaybe<SubtypeInput>>>;
+  subtypes?: InputMaybe<Array<SubtypeInput>>;
   systemId: Scalars['ID']['input'];
   value: Scalars['String']['input'];
 };
@@ -886,18 +886,18 @@ export type ClassSpellInput = {
 export type ClassSpellList = {
   __typename: 'ClassSpellList';
   level: Scalars['Int']['output'];
-  spells?: Maybe<Array<Maybe<ClassSpell>>>;
+  spells?: Maybe<Array<ClassSpell>>;
 };
 
 export type ClassSpellListInput = {
   level: Scalars['Int']['input'];
-  spells?: InputMaybe<Array<InputMaybe<ClassSpellInput>>>;
+  spells?: InputMaybe<Array<ClassSpellInput>>;
 };
 
 export type ClassStartingEquipment = {
   __typename: 'ClassStartingEquipment';
   addedToCharacter?: Maybe<Scalars['Boolean']['output']>;
-  equipmentGroups?: Maybe<Array<Maybe<StartingEquipmentGroup>>>;
+  equipmentGroups?: Maybe<Array<StartingEquipmentGroup>>;
   goldOption?: Maybe<Scalars['ID']['output']>;
   option: Scalars['ID']['output'];
   totalGold?: Maybe<Scalars['Int']['output']>;
@@ -905,7 +905,7 @@ export type ClassStartingEquipment = {
 
 export type ClassStartingEquipmentInput = {
   addedToCharacter?: InputMaybe<Scalars['Boolean']['input']>;
-  equipmentGroups?: InputMaybe<Array<InputMaybe<StartingEquipmentGroupInput>>>;
+  equipmentGroups?: InputMaybe<Array<StartingEquipmentGroupInput>>;
   goldOption?: InputMaybe<Scalars['ID']['input']>;
   option: Scalars['ID']['input'];
   totalGold?: InputMaybe<Scalars['Int']['input']>;
@@ -932,19 +932,19 @@ export enum ClassesEnumInput {
 export type Contains = {
   __typename: 'Contains';
   attuned?: Maybe<Scalars['Boolean']['output']>;
-  contains?: Maybe<Array<Maybe<Contains>>>;
+  contains?: Maybe<Array<Contains>>;
   equipped?: Maybe<Scalars['Boolean']['output']>;
   id: Scalars['ID']['output'];
-  possessions?: Maybe<Array<Maybe<Possessions>>>;
+  possessions?: Maybe<Array<Possessions>>;
   quantity: Scalars['Int']['output'];
 };
 
 export type ContainsInput = {
   attuned?: InputMaybe<Scalars['Boolean']['input']>;
-  contains?: InputMaybe<Array<InputMaybe<ContainsInput>>>;
+  contains?: InputMaybe<Array<ContainsInput>>;
   equipped?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
-  possessions?: InputMaybe<Array<InputMaybe<PossessionsInput>>>;
+  possessions?: InputMaybe<Array<PossessionsInput>>;
   quantity: Scalars['Int']['input'];
 };
 
@@ -961,8 +961,8 @@ export type CostInput = {
 
 export type Currency = {
   __typename: 'Currency';
-  abbreviation?: Maybe<Scalars['String']['output']>;
-  conversions?: Maybe<CurrencyConversion>;
+  abbreviation: Scalars['String']['output'];
+  conversions: CurrencyConversion;
   desc?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
@@ -989,17 +989,17 @@ export type CurrencyConversionInput = {
 export type CurrencyGroup = {
   __typename: 'CurrencyGroup';
   container?: Maybe<Scalars['ID']['output']>;
-  currencies?: Maybe<Array<Maybe<CharacterCurrency>>>;
+  currencies?: Maybe<Array<CharacterCurrency>>;
 };
 
 export type CurrencyGroupInput = {
   container?: InputMaybe<Scalars['ID']['input']>;
-  currencies?: InputMaybe<Array<InputMaybe<CharacterCurrencyInput>>>;
+  currencies?: InputMaybe<Array<CharacterCurrencyInput>>;
 };
 
 export type CurrencyInput = {
-  abbreviation?: InputMaybe<Scalars['String']['input']>;
-  conversions?: InputMaybe<CurrencyConversionInput>;
+  abbreviation: Scalars['String']['input'];
+  conversions: CurrencyConversionInput;
   desc?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
@@ -1008,13 +1008,13 @@ export type CurrencyInput = {
 
 export type Damage = {
   __typename: 'Damage';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   bonus?: Maybe<DamageFields>;
-  damageSave?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  diePerLevel?: Maybe<Array<Maybe<DiePerLevel>>>;
+  damageSave?: Maybe<Array<Scalars['ID']['output']>>;
+  diePerLevel?: Maybe<Array<DiePerLevel>>;
   primary?: Maybe<DamageFields>;
   secondary?: Maybe<DamageFields>;
-  setPerLevel?: Maybe<Array<Maybe<SetPerLevel>>>;
+  setPerLevel?: Maybe<Array<SetPerLevel>>;
   versatile?: Maybe<DamageFields>;
 };
 
@@ -1060,13 +1060,13 @@ export type DamageFieldsInput = {
 };
 
 export type DamageInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   bonus?: InputMaybe<DamageFieldsInput>;
-  damageSave?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  diePerLevel?: InputMaybe<Array<InputMaybe<DiePerLevelInput>>>;
+  damageSave?: InputMaybe<Array<Scalars['ID']['input']>>;
+  diePerLevel?: InputMaybe<Array<DiePerLevelInput>>;
   primary?: InputMaybe<DamageFieldsInput>;
   secondary?: InputMaybe<DamageFieldsInput>;
-  setPerLevel?: InputMaybe<Array<InputMaybe<SetPerLevelInput>>>;
+  setPerLevel?: InputMaybe<Array<SetPerLevelInput>>;
   versatile?: InputMaybe<DamageFieldsInput>;
 };
 
@@ -1144,30 +1144,30 @@ export type DurationInput = {
 export type EquipPrerequisite = {
   __typename: 'EquipPrerequisite';
   category?: Maybe<Scalars['ID']['output']>;
-  equipment?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  equipment?: Maybe<Array<Scalars['ID']['output']>>;
   numberEquipped?: Maybe<Scalars['Int']['output']>;
-  properties?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  properties?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export type EquipPrerequisiteInput = {
   category?: InputMaybe<Scalars['ID']['input']>;
-  equipment?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  equipment?: InputMaybe<Array<Scalars['ID']['input']>>;
   numberEquipped?: InputMaybe<Scalars['Int']['input']>;
-  properties?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  properties?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 export type Equipment = {
   __typename: 'Equipment';
   armorClass?: Maybe<Scalars['Int']['output']>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   capacity?: Maybe<Capacity>;
   category: Scalars['ID']['output'];
-  contains?: Maybe<Array<Maybe<Contains>>>;
+  contains?: Maybe<Array<Contains>>;
   cost?: Maybe<Cost>;
   damage?: Maybe<Damage>;
   desc?: Maybe<Scalars['String']['output']>;
   equipmentRank?: Maybe<Scalars['Int']['output']>;
-  features?: Maybe<Array<Maybe<Feature>>>;
+  features?: Maybe<Array<Feature>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   masterId?: Maybe<Scalars['String']['output']>;
@@ -1177,12 +1177,12 @@ export type Equipment = {
   ownerId: Scalars['ID']['output'];
   prerequisities?: Maybe<Prerequisite>;
   primaryAbility?: Maybe<Scalars['ID']['output']>;
-  properties?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  quantity?: Maybe<Scalars['Int']['output']>;
+  properties?: Maybe<Array<Scalars['ID']['output']>>;
+  quantity: Scalars['Int']['output'];
   quote?: Maybe<Scalars['String']['output']>;
   range?: Maybe<EquipmentRange>;
   rank?: Maybe<Scalars['Int']['output']>;
-  rarity?: Maybe<Scalars['ID']['output']>;
+  rarity: Scalars['ID']['output'];
   saveAbility?: Maybe<SaveAbility>;
   secondaryAbility?: Maybe<Scalars['ID']['output']>;
   speed?: Maybe<Speed>;
@@ -1206,7 +1206,7 @@ export type EquipmentCategoryPropertyInput = {
 
 export type EquipmentConnection = {
   __typename: 'EquipmentConnection';
-  items?: Maybe<Array<Equipment>>;
+  items: Array<Maybe<Equipment>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1235,16 +1235,16 @@ export enum EquipmentEnumInput {
 export type EquipmentInput = {
   Rank?: InputMaybe<Scalars['Int']['input']>;
   armorClass?: InputMaybe<Scalars['Int']['input']>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   capacity?: InputMaybe<CapacityInput>;
   category: Scalars['ID']['input'];
-  contains?: InputMaybe<Array<InputMaybe<ContainsInput>>>;
+  contains?: InputMaybe<Array<ContainsInput>>;
   cost?: InputMaybe<CostInput>;
   damage?: InputMaybe<DamageInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
   equipmentRank?: InputMaybe<Scalars['Int']['input']>;
-  features?: InputMaybe<Array<InputMaybe<FeatureInput>>>;
-  id?: InputMaybe<Scalars['ID']['input']>;
+  features?: InputMaybe<Array<FeatureInput>>;
+  id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
   masterId?: InputMaybe<Scalars['String']['input']>;
   maxBonus?: InputMaybe<Scalars['Int']['input']>;
@@ -1253,11 +1253,11 @@ export type EquipmentInput = {
   ownerId?: InputMaybe<Scalars['String']['input']>;
   prerequisities?: InputMaybe<PrerequisiteInput>;
   primaryAbility?: InputMaybe<Scalars['ID']['input']>;
-  properties?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  properties?: InputMaybe<Array<Scalars['ID']['input']>>;
   quantity?: InputMaybe<Scalars['Int']['input']>;
   quote?: InputMaybe<Scalars['String']['input']>;
   range?: InputMaybe<EquipmentRangeInput>;
-  rarity?: InputMaybe<Scalars['ID']['input']>;
+  rarity: Scalars['ID']['input'];
   saveAbility?: InputMaybe<SaveAbilityInput>;
   secondaryAbility?: InputMaybe<Scalars['ID']['input']>;
   speed?: InputMaybe<SpeedInput>;
@@ -1282,33 +1282,32 @@ export type EquipmentRangeInput = {
 export type Feat = {
   __typename: 'Feat';
   actions?: Maybe<ActionGroup>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   bonusDamage?: Maybe<Damage>;
   category?: Maybe<Scalars['ID']['output']>;
   charges?: Maybe<Charge>;
   desc?: Maybe<Scalars['String']['output']>;
   detail?: Maybe<Scalars['String']['output']>;
-  expertise?: Maybe<Array<Maybe<FeatureProficiency>>>;
-  feats?: Maybe<Array<Maybe<FeatureFeat>>>;
-  features?: Maybe<Array<Maybe<Feature>>>;
+  expertise?: Maybe<Array<FeatureProficiency>>;
+  feats?: Maybe<Array<FeatureFeat>>;
+  features?: Maybe<Array<Feature>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   levelAvailable?: Maybe<Scalars['String']['output']>;
   masterId?: Maybe<Scalars['String']['output']>;
-  modifiers?: Maybe<Array<Maybe<FeatureModifier>>>;
-  options?: Maybe<Array<Maybe<FeatureOption>>>;
+  modifiers?: Maybe<Array<FeatureModifier>>;
+  options?: Maybe<Array<FeatureOption>>;
   ownerId: Scalars['String']['output'];
   prerequisites?: Maybe<Prerequisite>;
   primaryDamage?: Maybe<Damage>;
-  proficiencies?: Maybe<Array<Maybe<FeatureProficiency>>>;
+  proficiencies?: Maybe<Array<FeatureProficiency>>;
   range?: Maybe<Range>;
   saveAbility?: Maybe<SaveAbility>;
   secondaryDamage?: Maybe<Damage>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
-  senses?: Maybe<Array<Maybe<FeatureSense>>>;
+  senses?: Maybe<Array<FeatureSense>>;
   shape?: Maybe<Shape>;
-  spellcasting?: Maybe<Array<Maybe<FeatureSpell>>>;
-  spells?: Maybe<Array<Maybe<FeatureSpell>>>;
+  spells?: Maybe<Array<FeatureSpell>>;
   systemId: Scalars['ID']['output'];
   targets?: Maybe<Scalars['Int']['output']>;
   value: Scalars['String']['output'];
@@ -1316,39 +1315,38 @@ export type Feat = {
 
 export type FeatConnection = {
   __typename: 'FeatConnection';
-  items?: Maybe<Array<Feat>>;
+  items: Array<Maybe<Feat>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
 export type FeatInput = {
   actions?: InputMaybe<ActionGroupInput>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   bonusDamage?: InputMaybe<DamageInput>;
   category?: InputMaybe<Scalars['ID']['input']>;
   charges?: InputMaybe<ChargeInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
   detail?: InputMaybe<Scalars['String']['input']>;
-  expertise?: InputMaybe<Array<InputMaybe<FeatureProficiencyInput>>>;
-  feats?: InputMaybe<Array<InputMaybe<FeatureFeatInput>>>;
-  features?: InputMaybe<Array<InputMaybe<FeatureInput>>>;
+  expertise?: InputMaybe<Array<FeatureProficiencyInput>>;
+  feats?: InputMaybe<Array<FeatureFeatInput>>;
+  features?: InputMaybe<Array<FeatureInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
   levelAvailable?: InputMaybe<Scalars['String']['input']>;
   masterId?: InputMaybe<Scalars['String']['input']>;
-  modifiers?: InputMaybe<Array<InputMaybe<FeatureModifierInput>>>;
-  options?: InputMaybe<Array<InputMaybe<FeatureOptionInput>>>;
+  modifiers?: InputMaybe<Array<FeatureModifierInput>>;
+  options?: InputMaybe<Array<FeatureOptionInput>>;
   ownerId: Scalars['String']['input'];
   prerequisites?: InputMaybe<PrerequisiteInput>;
   primaryDamage?: InputMaybe<DamageInput>;
-  proficiencies?: InputMaybe<Array<InputMaybe<FeatureProficiencyInput>>>;
+  proficiencies?: InputMaybe<Array<FeatureProficiencyInput>>;
   range?: InputMaybe<RangeInput>;
   saveAbility?: InputMaybe<SaveAbilityInput>;
   secondaryDamage?: InputMaybe<DamageInput>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
-  senses?: InputMaybe<Array<InputMaybe<FeatureSenseInput>>>;
+  senses?: InputMaybe<Array<FeatureSenseInput>>;
   shape?: InputMaybe<ShapeInput>;
-  spellcasting?: InputMaybe<Array<InputMaybe<FeatureSpellInput>>>;
-  spells?: InputMaybe<Array<InputMaybe<FeatureSpellInput>>>;
+  spells?: InputMaybe<Array<FeatureSpellInput>>;
   systemId: Scalars['ID']['input'];
   targets?: InputMaybe<Scalars['Int']['input']>;
   value: Scalars['String']['input'];
@@ -1357,27 +1355,27 @@ export type FeatInput = {
 export type Feature = {
   __typename: 'Feature';
   actions?: Maybe<ActionGroup>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category?: Maybe<Scalars['ID']['output']>;
   charges?: Maybe<Charge>;
   damage?: Maybe<Damage>;
   desc?: Maybe<Scalars['String']['output']>;
   detail?: Maybe<Scalars['String']['output']>;
-  expertise?: Maybe<Array<Maybe<FeatureExpertise>>>;
-  feats?: Maybe<Array<Maybe<FeatureFeat>>>;
+  expertise?: Maybe<Array<FeatureExpertise>>;
+  feats?: Maybe<Array<FeatureFeat>>;
   id: Scalars['ID']['output'];
   label?: Maybe<Scalars['String']['output']>;
   levelAvailable?: Maybe<Scalars['String']['output']>;
-  modifiers?: Maybe<Array<Maybe<FeatureModifier>>>;
-  options?: Maybe<Array<Maybe<FeatureOption>>>;
-  optionsByLevel?: Maybe<Array<Maybe<OptionsByLevel>>>;
+  modifiers?: Maybe<Array<FeatureModifier>>;
+  options?: Maybe<Array<FeatureOption>>;
+  optionsByLevel?: Maybe<Array<OptionsByLevel>>;
   prerequisites?: Maybe<Prerequisite>;
-  proficiencies?: Maybe<Array<Maybe<FeatureProficiency>>>;
+  proficiencies?: Maybe<Array<FeatureProficiency>>;
   range?: Maybe<Range>;
   saveAbility?: Maybe<SaveAbility>;
-  senses?: Maybe<Array<Maybe<FeatureSense>>>;
+  senses?: Maybe<Array<FeatureSense>>;
   shape?: Maybe<Shape>;
-  spells?: Maybe<Array<Maybe<FeatureSpell>>>;
+  spells?: Maybe<Array<FeatureSpell>>;
   targets?: Maybe<Scalars['Int']['output']>;
   value?: Maybe<Scalars['String']['output']>;
 };
@@ -1400,37 +1398,37 @@ export enum FeatureEnumInput {
 
 export type FeatureExpertise = {
   __typename: 'FeatureExpertise';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category: Scalars['ID']['output'];
   equipment?: Maybe<ProficiencyProperties>;
   id: Scalars['ID']['output'];
-  languages?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  languages?: Maybe<Array<Scalars['ID']['output']>>;
   prerequisites?: Maybe<Prerequisite>;
   properties?: Maybe<ProficiencyProperties>;
-  saveAbilities?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  saveAbilities?: Maybe<Array<Scalars['ID']['output']>>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
-  skills?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  skills?: Maybe<Array<Scalars['ID']['output']>>;
   subtype?: Maybe<Scalars['ID']['output']>;
 };
 
 export type FeatureExpertiseInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category: Scalars['ID']['input'];
   equipment?: InputMaybe<ProficiencyPropertiesInput>;
   id: Scalars['ID']['input'];
-  languages?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  languages?: InputMaybe<Array<Scalars['ID']['input']>>;
   prerequisites?: InputMaybe<PrerequisiteInput>;
   properties?: InputMaybe<ProficiencyPropertiesInput>;
-  saveAbilities?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  saveAbilities?: InputMaybe<Array<Scalars['ID']['input']>>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
-  skills?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  skills?: InputMaybe<Array<Scalars['ID']['input']>>;
   subtype?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type FeatureFeat = {
   __typename: 'FeatureFeat';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  feats?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
+  feats?: Maybe<Array<Scalars['ID']['output']>>;
   id: Scalars['ID']['output'];
   prerequisites?: Maybe<Prerequisite>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
@@ -1438,8 +1436,8 @@ export type FeatureFeat = {
 };
 
 export type FeatureFeatInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  feats?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
+  feats?: InputMaybe<Array<Scalars['ID']['input']>>;
   id: Scalars['ID']['input'];
   prerequisites?: InputMaybe<PrerequisiteInput>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
@@ -1448,42 +1446,42 @@ export type FeatureFeatInput = {
 
 export type FeatureInput = {
   actions?: InputMaybe<ActionGroupInput>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category?: InputMaybe<Scalars['ID']['input']>;
   charges?: InputMaybe<ChargeInput>;
   damage?: InputMaybe<DamageInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
   detail?: InputMaybe<Scalars['String']['input']>;
-  expertise?: InputMaybe<Array<InputMaybe<FeatureExpertiseInput>>>;
-  feats?: InputMaybe<Array<InputMaybe<FeatureFeatInput>>>;
+  expertise?: InputMaybe<Array<FeatureExpertiseInput>>;
+  feats?: InputMaybe<Array<FeatureFeatInput>>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
   levelAvailable?: InputMaybe<Scalars['String']['input']>;
-  modifiers?: InputMaybe<Array<InputMaybe<FeatureModifierInput>>>;
-  options?: InputMaybe<Array<InputMaybe<FeatureOptionInput>>>;
-  optionsByLevel?: InputMaybe<Array<InputMaybe<OptionsByLevelInput>>>;
+  modifiers?: InputMaybe<Array<FeatureModifierInput>>;
+  options?: InputMaybe<Array<FeatureOptionInput>>;
+  optionsByLevel?: InputMaybe<Array<OptionsByLevelInput>>;
   prerequisites?: InputMaybe<PrerequisiteInput>;
-  proficiencies?: InputMaybe<Array<InputMaybe<FeatureProficiencyInput>>>;
+  proficiencies?: InputMaybe<Array<FeatureProficiencyInput>>;
   range?: InputMaybe<RangeInput>;
   saveAbility?: InputMaybe<SaveAbilityInput>;
-  senses?: InputMaybe<Array<InputMaybe<FeatureSenseInput>>>;
+  senses?: InputMaybe<Array<FeatureSenseInput>>;
   shape?: InputMaybe<ShapeInput>;
-  spells?: InputMaybe<Array<InputMaybe<FeatureSpellInput>>>;
+  spells?: InputMaybe<Array<FeatureSpellInput>>;
   targets?: InputMaybe<Scalars['Int']['input']>;
   value?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type FeatureModifier = {
   __typename: 'FeatureModifier';
-  abilities?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  abilities?: Maybe<Array<Scalars['ID']['output']>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category?: Maybe<Scalars['ID']['output']>;
   charge?: Maybe<Charge>;
-  conditions?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  conditions?: Maybe<Array<Scalars['ID']['output']>>;
   damageType?: Maybe<Scalars['ID']['output']>;
-  damageTypes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  damageTypes?: Maybe<Array<Scalars['ID']['output']>>;
   dieConfig?: Maybe<Scalars['String']['output']>;
-  diePerLevel?: Maybe<Array<Maybe<ModifierDiePerLevel>>>;
+  diePerLevel?: Maybe<Array<ModifierDiePerLevel>>;
   duration?: Maybe<Scalars['ID']['output']>;
   feature?: Maybe<Scalars['ID']['output']>;
   id: Scalars['ID']['output'];
@@ -1497,14 +1495,14 @@ export type FeatureModifier = {
   multiplier?: Maybe<Scalars['Int']['output']>;
   prerequisites?: Maybe<Prerequisite>;
   range?: Maybe<Scalars['ID']['output']>;
-  saveAbilities?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  saveAbilities?: Maybe<Array<Scalars['ID']['output']>>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
   setAmount?: Maybe<Scalars['Int']['output']>;
-  setPerLevel?: Maybe<Array<Maybe<ModifierSetPerLevel>>>;
+  setPerLevel?: Maybe<Array<ModifierSetPerLevel>>;
   shape?: Maybe<Scalars['ID']['output']>;
   size?: Maybe<Scalars['Int']['output']>;
-  skills?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  speeds?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  skills?: Maybe<Array<Scalars['ID']['output']>>;
+  speeds?: Maybe<Array<Scalars['ID']['output']>>;
   spell?: Maybe<Scalars['ID']['output']>;
   spellCategory?: Maybe<Scalars['ID']['output']>;
   subtype?: Maybe<Scalars['ID']['output']>;
@@ -1513,15 +1511,15 @@ export type FeatureModifier = {
 };
 
 export type FeatureModifierInput = {
-  abilities?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  abilities?: InputMaybe<Array<Scalars['ID']['input']>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category?: InputMaybe<Scalars['ID']['input']>;
   charge?: InputMaybe<ChargeInput>;
-  conditions?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  conditions?: InputMaybe<Array<Scalars['ID']['input']>>;
   damageType?: InputMaybe<Scalars['ID']['input']>;
-  damageTypes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  damageTypes?: InputMaybe<Array<Scalars['ID']['input']>>;
   dieConfig?: InputMaybe<Scalars['String']['input']>;
-  diePerLevel?: InputMaybe<Array<InputMaybe<ModifierDiePerLevelInput>>>;
+  diePerLevel?: InputMaybe<Array<ModifierDiePerLevelInput>>;
   duration?: InputMaybe<Scalars['ID']['input']>;
   feature?: InputMaybe<Scalars['ID']['input']>;
   id: Scalars['ID']['input'];
@@ -1535,14 +1533,14 @@ export type FeatureModifierInput = {
   multiplier?: InputMaybe<Scalars['Int']['input']>;
   prerequisites?: InputMaybe<PrerequisiteInput>;
   range?: InputMaybe<Scalars['ID']['input']>;
-  saveAbilities?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  saveAbilities?: InputMaybe<Array<Scalars['ID']['input']>>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
   setAmount?: InputMaybe<Scalars['Int']['input']>;
-  setPerLevel?: InputMaybe<Array<InputMaybe<ModifierSetPerLevelInput>>>;
+  setPerLevel?: InputMaybe<Array<ModifierSetPerLevelInput>>;
   shape?: InputMaybe<Scalars['ID']['input']>;
   size?: InputMaybe<Scalars['Int']['input']>;
-  skills?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  speeds?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  skills?: InputMaybe<Array<Scalars['ID']['input']>>;
+  speeds?: InputMaybe<Array<Scalars['ID']['input']>>;
   spellCategory?: InputMaybe<Scalars['ID']['input']>;
   spells?: InputMaybe<Scalars['ID']['input']>;
   subtype?: InputMaybe<Scalars['ID']['input']>;
@@ -1553,90 +1551,90 @@ export type FeatureModifierInput = {
 export type FeatureOption = {
   __typename: 'FeatureOption';
   actions?: Maybe<ActionGroup>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category?: Maybe<Scalars['ID']['output']>;
   charges?: Maybe<Charge>;
   damage?: Maybe<Damage>;
   desc?: Maybe<Scalars['String']['output']>;
   detail?: Maybe<Scalars['String']['output']>;
-  expertise?: Maybe<Array<Maybe<FeatureExpertise>>>;
-  feats?: Maybe<Array<Maybe<FeatureFeat>>>;
+  expertise?: Maybe<Array<FeatureExpertise>>;
+  feats?: Maybe<Array<FeatureFeat>>;
   id: Scalars['ID']['output'];
   label?: Maybe<Scalars['String']['output']>;
   levelAvailable?: Maybe<Scalars['String']['output']>;
-  modifiers?: Maybe<Array<Maybe<FeatureModifier>>>;
+  modifiers?: Maybe<Array<FeatureModifier>>;
   prerequisites?: Maybe<Prerequisite>;
-  proficiencies?: Maybe<Array<Maybe<FeatureProficiency>>>;
+  proficiencies?: Maybe<Array<FeatureProficiency>>;
   range?: Maybe<Range>;
   saveAbility?: Maybe<SaveAbility>;
-  senses?: Maybe<Array<Maybe<FeatureSense>>>;
+  senses?: Maybe<Array<FeatureSense>>;
   shape?: Maybe<Shape>;
-  spells?: Maybe<Array<Maybe<FeatureSpell>>>;
+  spells?: Maybe<Array<FeatureSpell>>;
   targets?: Maybe<Scalars['Int']['output']>;
   value?: Maybe<Scalars['String']['output']>;
 };
 
 export type FeatureOptionInput = {
   actions?: InputMaybe<ActionGroupInput>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category?: InputMaybe<Scalars['ID']['input']>;
   charges?: InputMaybe<ChargeInput>;
   damage?: InputMaybe<DamageInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
   detail?: InputMaybe<Scalars['String']['input']>;
-  expertise?: InputMaybe<Array<InputMaybe<FeatureExpertiseInput>>>;
-  feats?: InputMaybe<Array<InputMaybe<FeatureFeatInput>>>;
+  expertise?: InputMaybe<Array<FeatureExpertiseInput>>;
+  feats?: InputMaybe<Array<FeatureFeatInput>>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
   levelAvailable?: InputMaybe<Scalars['String']['input']>;
-  modifiers?: InputMaybe<Array<InputMaybe<FeatureModifierInput>>>;
+  modifiers?: InputMaybe<Array<FeatureModifierInput>>;
   prerequisites?: InputMaybe<PrerequisiteInput>;
-  proficiencies?: InputMaybe<Array<InputMaybe<FeatureProficiencyInput>>>;
+  proficiencies?: InputMaybe<Array<FeatureProficiencyInput>>;
   range?: InputMaybe<RangeInput>;
   saveAbility?: InputMaybe<SaveAbilityInput>;
-  senses?: InputMaybe<Array<InputMaybe<FeatureSenseInput>>>;
+  senses?: InputMaybe<Array<FeatureSenseInput>>;
   shape?: InputMaybe<ShapeInput>;
-  spells?: InputMaybe<Array<InputMaybe<FeatureSpellInput>>>;
+  spells?: InputMaybe<Array<FeatureSpellInput>>;
   targets?: InputMaybe<Scalars['Int']['input']>;
   value?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type FeatureProficiency = {
   __typename: 'FeatureProficiency';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category: Scalars['ID']['output'];
   equipment?: Maybe<ProficiencyProperties>;
   id: Scalars['ID']['output'];
-  languages?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  languages?: Maybe<Array<Scalars['ID']['output']>>;
   level: Scalars['ID']['output'];
   prerequisites?: Maybe<Prerequisite>;
   properties?: Maybe<ProficiencyProperties>;
   rounding?: Maybe<Scalars['ID']['output']>;
-  saveAbilities?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  saveAbilities?: Maybe<Array<Scalars['ID']['output']>>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
-  skills?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  skills?: Maybe<Array<Scalars['ID']['output']>>;
   subtype?: Maybe<Scalars['ID']['output']>;
 };
 
 export type FeatureProficiencyInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category: Scalars['ID']['input'];
   equipment?: InputMaybe<ProficiencyPropertiesInput>;
   id: Scalars['ID']['input'];
-  languages?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  languages?: InputMaybe<Array<Scalars['ID']['input']>>;
   level?: InputMaybe<Scalars['ID']['input']>;
   prerequisites?: InputMaybe<PrerequisiteInput>;
   properties?: InputMaybe<ProficiencyPropertiesInput>;
   rounding?: InputMaybe<Scalars['ID']['input']>;
-  saveAbilities?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  saveAbilities?: InputMaybe<Array<Scalars['ID']['input']>>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
-  skills?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  skills?: InputMaybe<Array<Scalars['ID']['input']>>;
   subtype?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type FeatureSense = {
   __typename: 'FeatureSense';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   id: Scalars['ID']['output'];
   ids?: Maybe<Array<Scalars['ID']['output']>>;
   prerequisites?: Maybe<Prerequisite>;
@@ -1645,7 +1643,7 @@ export type FeatureSense = {
 };
 
 export type FeatureSenseInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   charges?: InputMaybe<ChargeInput>;
   id: Scalars['ID']['input'];
   ids?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -1657,32 +1655,32 @@ export type FeatureSenseInput = {
 export type FeatureSpell = {
   __typename: 'FeatureSpell';
   ability?: Maybe<Scalars['ID']['output']>;
-  attributeLimit?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributeLimit?: Maybe<Array<Scalars['ID']['output']>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   charges?: Maybe<Charge>;
-  classLimit?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  classLimit?: Maybe<Array<Scalars['ID']['output']>>;
   id: Scalars['ID']['output'];
   ids?: Maybe<Array<Scalars['ID']['output']>>;
-  levelLimit?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  levelLimit?: Maybe<Array<Scalars['String']['output']>>;
   prerequisites?: Maybe<Prerequisite>;
   selectionCount?: Maybe<Scalars['Int']['output']>;
   spellLevel?: Maybe<Scalars['Int']['output']>;
-  spellsByLevel?: Maybe<Array<Maybe<SpellsByLevel>>>;
+  spellsByLevel?: Maybe<Array<SpellsByLevel>>;
   subtype?: Maybe<Scalars['ID']['output']>;
 };
 
 export type FeatureSpellInput = {
   ability?: InputMaybe<Scalars['ID']['input']>;
-  attributeLimit?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributeLimit?: InputMaybe<Array<Scalars['ID']['input']>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   charges?: InputMaybe<ChargeInput>;
-  classLimit?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  classLimit?: InputMaybe<Array<Scalars['ID']['input']>>;
   ids?: InputMaybe<Array<Scalars['ID']['input']>>;
-  levelLimit?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
+  levelLimit?: InputMaybe<Array<Scalars['String']['input']>>;
   prerequisites?: InputMaybe<PrerequisiteInput>;
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
   spellLevel?: InputMaybe<Scalars['Int']['input']>;
-  spellsByLevel?: InputMaybe<Array<InputMaybe<SpellsByLevelInput>>>;
+  spellsByLevel?: InputMaybe<Array<SpellsByLevelInput>>;
   subtype?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -1746,13 +1744,13 @@ export type HitpointRoll = {
   __typename: 'HitpointRoll';
   current?: Maybe<Scalars['Int']['output']>;
   total?: Maybe<Scalars['Int']['output']>;
-  values?: Maybe<Array<Maybe<HitpointRollValues>>>;
+  values?: Maybe<Array<HitpointRollValues>>;
 };
 
 export type HitpointRollInput = {
   current?: InputMaybe<Scalars['Int']['input']>;
   total?: InputMaybe<Scalars['Int']['input']>;
-  values?: InputMaybe<Array<InputMaybe<HitpointRollValuesInput>>>;
+  values?: InputMaybe<Array<HitpointRollValuesInput>>;
 };
 
 export type HitpointRollValues = {
@@ -1768,15 +1766,15 @@ export type HitpointRollValuesInput = {
 
 export type Imperial = {
   __typename: 'Imperial';
-  length?: Maybe<Array<Maybe<GenericType>>>;
-  volume?: Maybe<Array<Maybe<GenericType>>>;
-  weight?: Maybe<Array<Maybe<GenericType>>>;
+  length: Array<GenericType>;
+  volume: Array<GenericType>;
+  weight: Array<GenericType>;
 };
 
 export type ImperialInput = {
-  length?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  volume?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  weight?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  length: Array<GenericTypeInput>;
+  volume: Array<GenericTypeInput>;
+  weight: Array<GenericTypeInput>;
 };
 
 export type LevelAttribute = {
@@ -1784,7 +1782,7 @@ export type LevelAttribute = {
   cantripsKnownLimit?: Maybe<Scalars['Int']['output']>;
   level?: Maybe<Scalars['Int']['output']>;
   resourcePoints?: Maybe<Scalars['Int']['output']>;
-  spellSlots?: Maybe<Array<Maybe<SpellSlot>>>;
+  spellSlots?: Maybe<Array<SpellSlot>>;
   spellsKnownLimit?: Maybe<Scalars['Int']['output']>;
 };
 
@@ -1792,7 +1790,7 @@ export type LevelAttributeInput = {
   cantripsKnownLimit?: InputMaybe<Scalars['Int']['input']>;
   level?: InputMaybe<Scalars['Int']['input']>;
   resourcePoints?: InputMaybe<Scalars['Int']['input']>;
-  spellSlots?: InputMaybe<Array<InputMaybe<SpellSlotInput>>>;
+  spellSlots?: InputMaybe<Array<SpellSlotInput>>;
   spellsKnownLimit?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -1815,14 +1813,14 @@ export type ManualInput = {
 export type ManualRolled = {
   __typename: 'ManualRolled';
   configuration: Scalars['String']['output'];
-  manual?: Maybe<Array<Maybe<Manual>>>;
-  rollGroups?: Maybe<Array<Maybe<Array<Maybe<RollType>>>>>;
+  manual?: Maybe<Array<Manual>>;
+  rollGroups?: Maybe<Array<Array<RollType>>>;
 };
 
 export type ManualRolledInput = {
   configuration: Scalars['String']['input'];
-  manual?: InputMaybe<Array<InputMaybe<ManualInput>>>;
-  rollGroups?: InputMaybe<Array<InputMaybe<Array<InputMaybe<RollTypeInput>>>>>;
+  manual?: InputMaybe<Array<ManualInput>>;
+  rollGroups?: InputMaybe<Array<Array<RollTypeInput>>>;
 };
 
 export type ModifierCategoryType = {
@@ -2285,12 +2283,12 @@ export type OptionsByLevelInput = {
 
 export type PointBuy = {
   __typename: 'PointBuy';
-  distributed?: Maybe<Array<Maybe<Distributed>>>;
+  distributed?: Maybe<Array<Distributed>>;
   pointsLeft?: Maybe<Scalars['Int']['output']>;
 };
 
 export type PointBuyInput = {
-  distributed?: InputMaybe<Array<InputMaybe<DistributedInput>>>;
+  distributed?: InputMaybe<Array<DistributedInput>>;
   pointsLeft?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -2312,12 +2310,12 @@ export type PossessionsInput = {
 export type PrepareLimit = {
   __typename: 'PrepareLimit';
   level?: Maybe<PrepareLimitLevel>;
-  methods?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  methods?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export type PrepareLimitInput = {
   level?: InputMaybe<PrepareLimitLevelInput>;
-  methods?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  methods?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 export type PrepareLimitLevel = {
@@ -2334,28 +2332,28 @@ export type PrepareLimitLevelInput = {
 export type Prerequisite = {
   __typename: 'Prerequisite';
   abilityScore?: Maybe<AbilityScore>;
-  equipmentProficiencies?: Maybe<Array<Maybe<EquipPrerequisite>>>;
-  equipped?: Maybe<Array<Maybe<EquipPrerequisite>>>;
-  featuresObtained?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  notEquipped?: Maybe<Array<Maybe<EquipPrerequisite>>>;
-  options?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  optionsObtained?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  size?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  skillProficiencies?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  spellsObtained?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  equipmentProficiencies?: Maybe<Array<EquipPrerequisite>>;
+  equipped?: Maybe<Array<EquipPrerequisite>>;
+  featuresObtained?: Maybe<Array<Scalars['ID']['output']>>;
+  notEquipped?: Maybe<Array<EquipPrerequisite>>;
+  options?: Maybe<Array<Scalars['ID']['output']>>;
+  optionsObtained?: Maybe<Array<Scalars['ID']['output']>>;
+  size?: Maybe<Array<Scalars['ID']['output']>>;
+  skillProficiencies?: Maybe<Array<Scalars['ID']['output']>>;
+  spellsObtained?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export type PrerequisiteInput = {
   abilityScore?: InputMaybe<AbilityScoreInput>;
-  equipmentProficiencies?: InputMaybe<Array<InputMaybe<EquipPrerequisiteInput>>>;
-  equipped?: InputMaybe<Array<InputMaybe<EquipPrerequisiteInput>>>;
-  featuresObtained?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  notEquipped?: InputMaybe<Array<InputMaybe<EquipPrerequisiteInput>>>;
-  options?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  optionsObtained?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  size?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  skillProficiencies?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  spellsObtained?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  equipmentProficiencies?: InputMaybe<Array<EquipPrerequisiteInput>>;
+  equipped?: InputMaybe<Array<EquipPrerequisiteInput>>;
+  featuresObtained?: InputMaybe<Array<Scalars['ID']['input']>>;
+  notEquipped?: InputMaybe<Array<EquipPrerequisiteInput>>;
+  options?: InputMaybe<Array<Scalars['ID']['input']>>;
+  optionsObtained?: InputMaybe<Array<Scalars['ID']['input']>>;
+  size?: InputMaybe<Array<Scalars['ID']['input']>>;
+  skillProficiencies?: InputMaybe<Array<Scalars['ID']['input']>>;
+  spellsObtained?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 export type ProficiencyLevel = {
@@ -2376,14 +2374,14 @@ export type ProficiencyLevelInput = {
 export type ProficiencyProperties = {
   __typename: 'ProficiencyProperties';
   category?: Maybe<Scalars['ID']['output']>;
-  ids?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  properties?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  ids?: Maybe<Array<Scalars['ID']['output']>>;
+  properties?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export type ProficiencyPropertiesInput = {
   category?: InputMaybe<Scalars['ID']['input']>;
-  ids?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  properties?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  ids?: InputMaybe<Array<Scalars['ID']['input']>>;
+  properties?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 export type Query = {
@@ -2597,8 +2595,8 @@ export type Race = {
   ancestry?: Maybe<Ancestry>;
   category: Scalars['ID']['output'];
   desc?: Maybe<Scalars['String']['output']>;
-  details?: Maybe<Array<Maybe<Detail>>>;
-  features?: Maybe<Array<Maybe<Feature>>>;
+  details?: Maybe<Array<Detail>>;
+  features?: Maybe<Array<Feature>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   lineages?: Maybe<Array<Scalars['ID']['output']>>;
@@ -2613,7 +2611,7 @@ export type Race = {
 
 export type RaceConnection = {
   __typename: 'RaceConnection';
-  items?: Maybe<Array<Race>>;
+  items: Array<Maybe<Race>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -2621,14 +2619,14 @@ export type RaceInput = {
   ancestry?: InputMaybe<AncestryInput>;
   category: Scalars['ID']['input'];
   desc?: InputMaybe<Scalars['String']['input']>;
-  details?: InputMaybe<Array<InputMaybe<DetailInput>>>;
-  features?: InputMaybe<Array<InputMaybe<FeatureInput>>>;
-  id?: InputMaybe<Scalars['ID']['input']>;
+  details?: InputMaybe<Array<DetailInput>>;
+  features?: InputMaybe<Array<FeatureInput>>;
+  id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
   lineages?: InputMaybe<Array<Scalars['ID']['input']>>;
   masterId?: InputMaybe<Scalars['String']['input']>;
   ownerId?: InputMaybe<Scalars['ID']['input']>;
-  playable: Scalars['String']['input'];
+  playable?: InputMaybe<Scalars['String']['input']>;
   quote?: InputMaybe<Scalars['String']['input']>;
   systemId: Scalars['ID']['input'];
   traits?: InputMaybe<TraitsInput>;
@@ -2671,19 +2669,21 @@ export type Resource = {
   __typename: 'Resource';
   charges?: Maybe<Charge>;
   desc?: Maybe<Scalars['String']['output']>;
-  label?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
   levelAvailable?: Maybe<Scalars['Int']['output']>;
   method?: Maybe<Scalars['ID']['output']>;
-  value?: Maybe<Scalars['String']['output']>;
+  value: Scalars['String']['output'];
 };
 
 export type ResourceInput = {
   charges?: InputMaybe<ChargeInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
-  label?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  label: Scalars['String']['input'];
   levelAvailable?: InputMaybe<Scalars['Int']['input']>;
   method?: InputMaybe<Scalars['ID']['input']>;
-  value?: InputMaybe<Scalars['String']['input']>;
+  value: Scalars['String']['input'];
 };
 
 export type Roll = {
@@ -2703,8 +2703,8 @@ export type RollType = {
   __typename: 'RollType';
   ability: Scalars['ID']['output'];
   applied: Scalars['Boolean']['output'];
-  kept: Array<Maybe<Roll>>;
-  rolled: Array<Maybe<Roll>>;
+  kept?: Maybe<Array<Roll>>;
+  rolled: Array<Roll>;
   rolling: Scalars['Boolean']['output'];
   score: Scalars['Int']['output'];
 };
@@ -2712,8 +2712,8 @@ export type RollType = {
 export type RollTypeInput = {
   ability: Scalars['ID']['input'];
   applied: Scalars['Boolean']['input'];
-  kept: Array<InputMaybe<RollInput>>;
-  rolled: Array<InputMaybe<RollInput>>;
+  kept?: InputMaybe<Array<RollInput>>;
+  rolled: Array<RollInput>;
   rolling: Scalars['Boolean']['input'];
   score: Scalars['Int']['input'];
 };
@@ -2721,14 +2721,14 @@ export type RollTypeInput = {
 export type SaveAbility = {
   __typename: 'SaveAbility';
   abilityModifier?: Maybe<Scalars['ID']['output']>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   id: Scalars['ID']['output'];
   minAmount?: Maybe<Scalars['Int']['output']>;
 };
 
 export type SaveAbilityInput = {
   abilityModifier?: InputMaybe<Scalars['ID']['input']>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   id: Scalars['ID']['input'];
   minAmount?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -2806,20 +2806,20 @@ export type SpeedInput = {
 export type Spell = {
   __typename: 'Spell';
   actions?: Maybe<ActionGroup>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
-  classes: Array<Maybe<Scalars['ID']['output']>>;
-  conditions?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
+  classes: Array<Scalars['ID']['output']>;
+  conditions?: Maybe<Array<Scalars['ID']['output']>>;
   damage?: Maybe<Damage>;
   desc?: Maybe<Scalars['String']['output']>;
   duration: Duration;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  level?: Maybe<Scalars['Int']['output']>;
+  level: Scalars['Int']['output'];
   masterId?: Maybe<Scalars['String']['output']>;
   materialDesc?: Maybe<Scalars['String']['output']>;
   ownerId: Scalars['ID']['output'];
   range: Range;
-  requirements?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  requirements?: Maybe<Array<Scalars['ID']['output']>>;
   saveAbility?: Maybe<SaveAbility>;
   school: Scalars['ID']['output'];
   shape?: Maybe<Shape>;
@@ -2831,7 +2831,7 @@ export type Spell = {
 
 export type SpellConnection = {
   __typename: 'SpellConnection';
-  items?: Maybe<Array<Spell>>;
+  items: Array<Maybe<Spell>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -2849,20 +2849,20 @@ export enum SpellEnumInput {
 
 export type SpellInput = {
   actions?: InputMaybe<ActionGroupInput>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
-  classes: Array<InputMaybe<Scalars['ID']['input']>>;
-  conditions?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
+  classes: Array<Scalars['ID']['input']>;
+  conditions?: InputMaybe<Array<Scalars['ID']['input']>>;
   damage?: InputMaybe<DamageInput>;
-  desc?: InputMaybe<Scalars['String']['input']>;
+  desc: Scalars['String']['input'];
   duration: DurationInput;
-  id?: InputMaybe<Scalars['ID']['input']>;
+  id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  level?: InputMaybe<Scalars['Int']['input']>;
+  level: Scalars['Int']['input'];
   masterId?: InputMaybe<Scalars['String']['input']>;
   materialDesc?: InputMaybe<Scalars['String']['input']>;
   ownerId?: InputMaybe<Scalars['String']['input']>;
   range: RangeInput;
-  requirements?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  requirements?: InputMaybe<Array<Scalars['ID']['input']>>;
   saveAbility?: InputMaybe<SaveAbilityInput>;
   school: Scalars['ID']['input'];
   shape?: InputMaybe<ShapeInput>;
@@ -2884,7 +2884,7 @@ export type SpellSlotInput = {
 export type Spellcasting = {
   __typename: 'Spellcasting';
   ability?: Maybe<Scalars['ID']['output']>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   charges?: Maybe<Charge>;
   magicName?: Maybe<Scalars['String']['output']>;
   maxSpellLevel?: Maybe<Scalars['Int']['output']>;
@@ -2893,7 +2893,7 @@ export type Spellcasting = {
 
 export type SpellcastingInput = {
   ability?: InputMaybe<Scalars['ID']['input']>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   charges?: InputMaybe<ChargeInput>;
   magicName?: InputMaybe<Scalars['String']['input']>;
   maxSpellLevel?: InputMaybe<Scalars['Int']['input']>;
@@ -2904,14 +2904,14 @@ export type SpellsByLevel = {
   __typename: 'SpellsByLevel';
   level?: Maybe<Scalars['Int']['output']>;
   spellLevel?: Maybe<Scalars['Int']['output']>;
-  spells?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  spells?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export type SpellsByLevelInput = {
   id: Scalars['ID']['input'];
   level?: InputMaybe<Scalars['Int']['input']>;
   spellLevel?: InputMaybe<Scalars['Int']['input']>;
-  spells?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  spells?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 export type StandardArray = {
@@ -2934,13 +2934,13 @@ export type StartingEquipment = {
 
 export type StartingEquipmentGroup = {
   __typename: 'StartingEquipmentGroup';
-  equipment?: Maybe<Array<Maybe<StartingEquipment>>>;
+  equipment?: Maybe<Array<StartingEquipment>>;
   groupId: Scalars['ID']['output'];
   optionId: Scalars['ID']['output'];
 };
 
 export type StartingEquipmentGroupInput = {
-  equipment?: InputMaybe<Array<InputMaybe<StartingEquipmentInput>>>;
+  equipment?: InputMaybe<Array<StartingEquipmentInput>>;
   groupId: Scalars['ID']['input'];
   optionId: Scalars['ID']['input'];
 };
@@ -2990,34 +2990,34 @@ export type SubtypeInput = {
 
 export type System = {
   __typename: 'System';
-  abilities?: Maybe<Array<Maybe<GenericType>>>;
-  actions?: Maybe<Array<Maybe<SystemAction>>>;
-  alignments?: Maybe<Array<Maybe<GenericType>>>;
-  attributes?: Maybe<Array<Maybe<SystemAttribute>>>;
-  categories?: Maybe<Array<Maybe<SystemCategory>>>;
-  characters?: Maybe<CharacterSetting>;
-  charges?: Maybe<SystemCharges>;
-  conditions?: Maybe<Array<Maybe<GenericType>>>;
-  currencies?: Maybe<Array<Maybe<Currency>>>;
-  damageTypes?: Maybe<Array<Maybe<GenericType>>>;
+  abilities: Array<GenericType>;
+  actions: Array<SystemAction>;
+  alignments: Array<GenericType>;
+  attributes: Array<SystemAttribute>;
+  categories: Array<SystemCategory>;
+  characters: CharacterSetting;
+  charges: SystemCharges;
+  conditions: Array<GenericType>;
+  currencies: Array<Currency>;
+  damageTypes: Array<GenericType>;
   desc?: Maybe<Scalars['String']['output']>;
-  equipment?: Maybe<SystemEquipment>;
+  equipment: SystemEquipment;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  languages?: Maybe<Array<Maybe<GenericType>>>;
+  languages: Array<GenericType>;
   masterId?: Maybe<Scalars['String']['output']>;
-  modifiers?: Maybe<SystemModifiers>;
+  modifiers: SystemModifiers;
   ownerId: Scalars['String']['output'];
-  passives?: Maybe<Array<Maybe<GenericType>>>;
-  prerequisites?: Maybe<Array<Maybe<SystemPrerequisite>>>;
-  proficiencies?: Maybe<SystemProficiency>;
-  rules?: Maybe<SystemRules>;
-  senses?: Maybe<Array<Maybe<SystemSense>>>;
-  sizes?: Maybe<Array<Maybe<GenericType>>>;
-  skills?: Maybe<Array<Maybe<SystemSkill>>>;
-  speeds?: Maybe<Array<Maybe<GenericType>>>;
-  spells?: Maybe<SystemSpell>;
-  terrains?: Maybe<Array<Maybe<GenericType>>>;
+  passives: Array<Maybe<GenericType>>;
+  prerequisites: Array<SystemPrerequisite>;
+  proficiencies: SystemProficiency;
+  rules: SystemRules;
+  senses: Array<SystemSense>;
+  sizes: Array<GenericType>;
+  skills: Array<SystemSkill>;
+  speeds: Array<GenericType>;
+  spells: SystemSpell;
+  terrains: Array<GenericType>;
   value: Scalars['String']['output'];
 };
 
@@ -3050,28 +3050,28 @@ export type SystemActionInput = {
 
 export type SystemAttribute = {
   __typename: 'SystemAttribute';
-  classes?: Maybe<Array<Maybe<ClassesEnum>>>;
-  damage?: Maybe<Array<Maybe<DamageEnum>>>;
-  equipment?: Maybe<Array<Maybe<EquipmentEnum>>>;
-  feats?: Maybe<Array<Maybe<AllEnum>>>;
-  features?: Maybe<Array<Maybe<FeatureEnum>>>;
+  classes?: Maybe<Array<ClassesEnum>>;
+  damage?: Maybe<Array<DamageEnum>>;
+  equipment?: Maybe<Array<EquipmentEnum>>;
+  feats?: Maybe<Array<AllEnum>>;
+  features?: Maybe<Array<FeatureEnum>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  sections?: Maybe<Array<Maybe<SectionEnum>>>;
-  spells?: Maybe<Array<Maybe<SpellEnum>>>;
+  sections?: Maybe<Array<SectionEnum>>;
+  spells?: Maybe<Array<SpellEnum>>;
   value: Scalars['String']['output'];
 };
 
 export type SystemAttributeInput = {
-  classes?: InputMaybe<Array<InputMaybe<ClassesEnumInput>>>;
-  damage?: InputMaybe<Array<InputMaybe<DamageEnumInput>>>;
-  equipment?: InputMaybe<Array<InputMaybe<EquipmentEnumInput>>>;
-  feats?: InputMaybe<Array<InputMaybe<AllEnumInput>>>;
-  features?: InputMaybe<Array<InputMaybe<FeatureEnumInput>>>;
+  classes?: InputMaybe<Array<ClassesEnumInput>>;
+  damage?: InputMaybe<Array<DamageEnumInput>>;
+  equipment?: InputMaybe<Array<EquipmentEnumInput>>;
+  feats?: InputMaybe<Array<AllEnumInput>>;
+  features?: InputMaybe<Array<FeatureEnumInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  sections?: InputMaybe<Array<InputMaybe<SectionEnumInput>>>;
-  spells?: InputMaybe<Array<InputMaybe<SpellEnumInput>>>;
+  sections?: InputMaybe<Array<SectionEnumInput>>;
+  spells?: InputMaybe<Array<SpellEnumInput>>;
   value: Scalars['String']['input'];
 };
 
@@ -3096,100 +3096,100 @@ export type SystemCategoryInput = {
 
 export type SystemCharges = {
   __typename: 'SystemCharges';
-  limits?: Maybe<Array<Maybe<ChargeOption>>>;
-  resets?: Maybe<Array<Maybe<ChargeOption>>>;
+  limits: Array<ChargeOption>;
+  resets: Array<ChargeOption>;
 };
 
 export type SystemChargesInput = {
-  limits?: InputMaybe<Array<InputMaybe<ChargeOptionInput>>>;
-  resets?: InputMaybe<Array<InputMaybe<ChargeOptionInput>>>;
+  limits: Array<ChargeOptionInput>;
+  resets: Array<ChargeOptionInput>;
 };
 
 export type SystemConnection = {
   __typename: 'SystemConnection';
-  items?: Maybe<Array<System>>;
+  items: Array<Maybe<System>>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
 export type SystemEquipment = {
   __typename: 'SystemEquipment';
-  categories?: Maybe<Array<Maybe<GenericType>>>;
-  categoryProperties?: Maybe<Array<Maybe<EquipmentCategoryProperty>>>;
-  properties?: Maybe<Array<Maybe<GenericType>>>;
-  rarities?: Maybe<Array<Maybe<GenericType>>>;
+  categories: Array<GenericType>;
+  categoryProperties: Array<EquipmentCategoryProperty>;
+  properties: Array<GenericType>;
+  rarities: Array<GenericType>;
 };
 
 export type SystemEquipmentInput = {
-  categories?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  categoryProperties?: InputMaybe<Array<InputMaybe<EquipmentCategoryPropertyInput>>>;
-  properties?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  rarities?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  categories: Array<GenericTypeInput>;
+  categoryProperties: Array<EquipmentCategoryPropertyInput>;
+  properties: Array<GenericTypeInput>;
+  rarities: Array<GenericTypeInput>;
 };
 
 export type SystemInput = {
-  abilities?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  actions?: InputMaybe<Array<InputMaybe<SystemActionInput>>>;
-  alignments?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  attributes?: InputMaybe<Array<InputMaybe<SystemAttributeInput>>>;
-  categories?: InputMaybe<Array<InputMaybe<SystemCategoryInput>>>;
-  characters?: InputMaybe<CharacterSettingInput>;
-  charges?: InputMaybe<SystemChargesInput>;
-  conditions?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  currencies?: InputMaybe<Array<InputMaybe<CurrencyInput>>>;
-  damageTypes?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  abilities: Array<GenericTypeInput>;
+  actions: Array<SystemActionInput>;
+  alignments: Array<GenericTypeInput>;
+  attributes: Array<SystemAttributeInput>;
+  categories: Array<SystemCategoryInput>;
+  characters: CharacterSettingInput;
+  charges: SystemChargesInput;
+  conditions: Array<GenericTypeInput>;
+  currencies: Array<CurrencyInput>;
+  damageTypes: Array<GenericTypeInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
-  equipment?: InputMaybe<SystemEquipmentInput>;
+  equipment: SystemEquipmentInput;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  languages?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  languages: Array<GenericTypeInput>;
   masterId?: InputMaybe<Scalars['String']['input']>;
-  modifiers?: InputMaybe<SystemModifiersInput>;
-  ownerId?: InputMaybe<Scalars['String']['input']>;
-  passives?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  prerequisites?: InputMaybe<Array<InputMaybe<SystemPrerequisiteInput>>>;
-  proficiencies?: InputMaybe<SystemProficiencyInput>;
-  rules?: InputMaybe<SystemRulesInput>;
-  senses?: InputMaybe<Array<InputMaybe<SystemSenseInput>>>;
-  sizes?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  skills?: InputMaybe<Array<InputMaybe<SystemSkillInput>>>;
-  speeds?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  spells?: InputMaybe<SystemSpellInput>;
-  terrains?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  modifiers: SystemModifiersInput;
+  ownerId: Scalars['String']['input'];
+  passives: Array<GenericTypeInput>;
+  prerequisites: Array<SystemPrerequisiteInput>;
+  proficiencies: SystemProficiencyInput;
+  rules: SystemRulesInput;
+  senses: Array<SystemSenseInput>;
+  sizes: Array<GenericTypeInput>;
+  skills: Array<SystemSkillInput>;
+  speeds: Array<GenericTypeInput>;
+  spells: SystemSpellInput;
+  terrains: Array<GenericTypeInput>;
   value: Scalars['String']['input'];
 };
 
 export type SystemMeasurement = {
   __typename: 'SystemMeasurement';
-  amount?: Maybe<Array<Maybe<GenericType>>>;
-  imperial?: Maybe<Imperial>;
-  rounding?: Maybe<Array<Maybe<GenericType>>>;
+  amount: Array<GenericType>;
+  imperial: Imperial;
+  rounding: Array<GenericType>;
 };
 
 export type SystemMeasurementInput = {
-  amount?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  imperial?: InputMaybe<ImperialInput>;
-  rounding?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  amount: Array<GenericTypeInput>;
+  imperial: ImperialInput;
+  rounding: Array<GenericTypeInput>;
 };
 
 export type SystemModifiers = {
   __typename: 'SystemModifiers';
-  categories?: Maybe<Array<Maybe<GenericType>>>;
-  categoryMethods?: Maybe<Array<Maybe<ModifierCategoryTypeMethod>>>;
-  categoryTypes?: Maybe<Array<Maybe<ModifierCategoryType>>>;
-  methods?: Maybe<Array<Maybe<GenericType>>>;
-  spellCategories?: Maybe<Array<Maybe<GenericType>>>;
-  typeMethods?: Maybe<Array<Maybe<ModifierTypeMethod>>>;
-  types?: Maybe<Array<Maybe<GenericType>>>;
+  categories: Array<GenericType>;
+  categoryMethods: Array<ModifierCategoryTypeMethod>;
+  categoryTypes: Array<ModifierCategoryType>;
+  methods: Array<GenericType>;
+  spellCategories: Array<GenericType>;
+  typeMethods: Array<ModifierTypeMethod>;
+  types: Array<GenericType>;
 };
 
 export type SystemModifiersInput = {
-  categories?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  categoryMethods?: InputMaybe<Array<InputMaybe<ModifierCategoryTypeMethodInput>>>;
-  categoryTypes?: InputMaybe<Array<InputMaybe<ModifierCategoryTypeInput>>>;
-  methods?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  spellCategories?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  typeMethods?: InputMaybe<Array<InputMaybe<ModifierTypeMethodInput>>>;
-  types?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  categories: Array<GenericTypeInput>;
+  categoryMethods: Array<ModifierCategoryTypeMethodInput>;
+  categoryTypes: Array<ModifierCategoryTypeInput>;
+  methods: Array<GenericTypeInput>;
+  spellCategories: Array<GenericTypeInput>;
+  typeMethods: Array<ModifierTypeMethodInput>;
+  types: Array<GenericTypeInput>;
 };
 
 export type SystemPrerequisite = {
@@ -3207,38 +3207,38 @@ export type SystemPrerequisite = {
 };
 
 export type SystemPrerequisiteInput = {
-  classes?: InputMaybe<Array<InputMaybe<ClassesEnumInput>>>;
-  damage?: InputMaybe<Array<InputMaybe<DamageEnumInput>>>;
-  equipment?: InputMaybe<Array<InputMaybe<EquipmentEnumInput>>>;
-  feats?: InputMaybe<Array<InputMaybe<AllEnumInput>>>;
-  features?: InputMaybe<Array<InputMaybe<FeatureEnumInput>>>;
+  classes?: InputMaybe<Array<ClassesEnumInput>>;
+  damage?: InputMaybe<Array<DamageEnumInput>>;
+  equipment?: InputMaybe<Array<EquipmentEnumInput>>;
+  feats?: InputMaybe<Array<AllEnumInput>>;
+  features?: InputMaybe<Array<FeatureEnumInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  sections?: InputMaybe<Array<InputMaybe<SectionEnumInput>>>;
-  spells?: InputMaybe<Array<InputMaybe<SpellEnumInput>>>;
+  sections?: InputMaybe<Array<SectionEnumInput>>;
+  spells?: InputMaybe<Array<SpellEnumInput>>;
   value: Scalars['String']['input'];
 };
 
 export type SystemProficiency = {
   __typename: 'SystemProficiency';
-  categories?: Maybe<Array<Maybe<GenericType>>>;
-  levels?: Maybe<Array<Maybe<ProficiencyLevel>>>;
+  categories: Array<GenericType>;
+  levels: Array<ProficiencyLevel>;
 };
 
 export type SystemProficiencyInput = {
-  categories?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  levels?: InputMaybe<Array<InputMaybe<ProficiencyLevelInput>>>;
+  categories: Array<GenericTypeInput>;
+  levels: Array<ProficiencyLevelInput>;
 };
 
 export type SystemRules = {
   __typename: 'SystemRules';
-  abilityGenerateMethod?: Maybe<Array<Maybe<AbilityGenerateMethod>>>;
-  measurements?: Maybe<SystemMeasurement>;
+  abilityGenerateMethod: Array<AbilityGenerateMethod>;
+  measurements: SystemMeasurement;
 };
 
 export type SystemRulesInput = {
-  abilityGenerateMethod?: InputMaybe<Array<InputMaybe<AbilityGenerateMethodInput>>>;
-  measurements?: InputMaybe<SystemMeasurementInput>;
+  abilityGenerateMethod: Array<AbilityGenerateMethodInput>;
+  measurements: SystemMeasurementInput;
 };
 
 export type SystemSense = {
@@ -3279,32 +3279,32 @@ export type SystemSkillInput = {
 
 export type SystemSpell = {
   __typename: 'SystemSpell';
-  categories?: Maybe<Array<Maybe<GenericType>>>;
-  durations?: Maybe<Array<Maybe<GenericType>>>;
-  ranges?: Maybe<Array<Maybe<GenericType>>>;
-  requirements?: Maybe<Array<Maybe<GenericType>>>;
-  schools?: Maybe<Array<Maybe<GenericType>>>;
-  shapes?: Maybe<Array<Maybe<GenericType>>>;
+  categories: Array<GenericType>;
+  durations: Array<GenericType>;
+  ranges: Array<GenericType>;
+  requirements: Array<GenericType>;
+  schools: Array<GenericType>;
+  shapes: Array<GenericType>;
 };
 
 export type SystemSpellInput = {
-  categories?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  durations?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  ranges?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  requirements?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  schools?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
-  shapes?: InputMaybe<Array<InputMaybe<GenericTypeInput>>>;
+  categories: Array<GenericTypeInput>;
+  durations: Array<GenericTypeInput>;
+  ranges: Array<GenericTypeInput>;
+  requirements: Array<GenericTypeInput>;
+  schools: Array<GenericTypeInput>;
+  shapes: Array<GenericTypeInput>;
 };
 
 export type Traits = {
   __typename: 'Traits';
-  details?: Maybe<Array<Maybe<Detail>>>;
+  details?: Maybe<Array<Detail>>;
   size?: Maybe<Scalars['ID']['output']>;
   speeds?: Maybe<RaceSpeed>;
 };
 
 export type TraitsInput = {
-  details?: InputMaybe<Array<InputMaybe<DetailInput>>>;
+  details?: InputMaybe<Array<DetailInput>>;
   size?: InputMaybe<Scalars['ID']['input']>;
   speeds?: InputMaybe<RaceSpeedInput>;
 };
@@ -3381,5 +3381,3 @@ export type WeightInput = {
   amount?: InputMaybe<Scalars['Float']['input']>;
   unit: Scalars['ID']['input'];
 };
-
-

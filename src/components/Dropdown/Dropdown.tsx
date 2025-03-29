@@ -21,14 +21,13 @@ import { DeepKeyOf, UpdateState } from '../../types/form'
 import { UpdateFilter } from '../../types/components'
 
 // Define a conditional type to determine the onChange type based on T
-type OnChangeType<T> = T extends { filterState: FilterState }
-  ? (state: UpdateFilter<FormType>) => void
-  : (state: UpdateState<T>) => void
+type OnChangeType<T> =
+  T extends { filterState: FilterState } ? (state: UpdateFilter<FormType>) => void : (state: UpdateState<T>) => void
 
 export interface DropdownProps<T> {
   label?: string | boolean
   required?: boolean
-  value: string[] | string | null
+  value: (string | null)[] | string | null | undefined
   onChange: OnChangeType<T>
   className?: string | number | symbol | any
   placeholder?: string
@@ -226,15 +225,15 @@ const Dropdown = <T,>({
   }
 
   const labels =
-    multiSelect && selectedLabels
-      ? (selectedLabels as string[])?.slice(0, 1)?.map((label, index) => {
-          return (
-            <span className={dropdown_active_option} key={index}>
-              {label}
-            </span>
-          )
-        })
-      : []
+    multiSelect && selectedLabels ?
+      (selectedLabels as string[])?.slice(0, 1)?.map((label, index) => {
+        return (
+          <span className={dropdown_active_option} key={index}>
+            {label}
+          </span>
+        )
+      })
+    : []
 
   return (
     <div className={clsx(dropdown, { [className]: className })}>
@@ -256,38 +255,33 @@ const Dropdown = <T,>({
             ref={dropdownRef}
             tabIndex={0}
             data-atapp-options={
-              multiSelect
-                ? activeOptions?.length > 0 && 'true'
-                : (activeOptions as string[])?.length > 0 || activeOptions != null
-                ? 'true'
-                : 'false'
+              multiSelect ? activeOptions?.length > 0 && 'true'
+              : (activeOptions as string[])?.length > 0 || activeOptions != null ?
+                'true'
+              : 'false'
             }
             id={id || name}
             aria-required={required}
           >
             <span className={clsx(dropdown_input, { ['multiselect']: multiSelect })}>
-              {multiSelect && activeOptions?.length > 0 ? (
+              {multiSelect && activeOptions?.length > 0 ?
                 <>
                   {labels}
                   {activeOptions?.length > 1 && (
                     <span className={dropdown_active_option}>+{activeOptions?.length - 1} more</span>
                   )}
                 </>
-              ) : (
-                selectedLabels ?? placeholder
-              )}
+              : (selectedLabels ?? placeholder)}
             </span>
             <span className={dropdown_right_section}>
-              {activeOptions && !multiSelect ? (
+              {activeOptions && !multiSelect ?
                 <TbX
                   onClick={(e) => {
                     e.stopPropagation()
                     handleValueRemove()
                   }}
                 />
-              ) : (
-                <TbChevronDown />
-              )}
+              : <TbChevronDown />}
             </span>
           </Floating.Anchor>
         </div>
@@ -304,8 +298,9 @@ const Dropdown = <T,>({
         <Floating.Menu className={dropdown_menu} boundary={boundary} open={isOpen} onOpenChange={setIsOpen}>
           <ScrollArea scrollDirection='vertical'>
             {filteredOptions.map((option: DropdownOption, optionIndex: number) => {
-              const selected = multiSelect
-                ? (activeOptions as string[])?.some((activeOption) => activeOption === option?.id)
+              const selected =
+                multiSelect ?
+                  (activeOptions as string[])?.some((activeOption) => activeOption === option?.id)
                 : option?.id != null && activeOptions != null && activeOptions === option?.id
 
               return (

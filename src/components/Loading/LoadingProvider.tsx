@@ -20,4 +20,4 @@ const LoadingProvider = ({ children }: { children: ReactNode }) => {
 
 export default LoadingProvider
 
-export type LoadingOptionsType = ReturnType<typeof useLoadingOptions> | null
+export type LoadingOptionsType = ReturnType<typeof useLoadingOptions>

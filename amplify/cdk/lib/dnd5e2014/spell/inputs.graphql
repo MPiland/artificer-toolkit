@@ -42,20 +42,20 @@ input DurationInput {
 }
 
 input SpellInput {
-  id: ID
+  id: ID!
   label: String!
   value: String!
-  desc: String
-  level: Int
+  desc: String!
+  level: Int!
   school: ID!
-  classes: [ID]!
-  attributes: [ID]
+  classes: [ID!]!
+  attributes: [ID!]
   upcast: UpcastInput
   actions: ActionGroupInput
   targets: Int
   saveAbility: SaveAbilityInput
-  conditions: [ID]
-  requirements: [ID]
+  conditions: [ID!]
+  requirements: [ID!]
   range: RangeInput!
   shape: ShapeInput
   duration: DurationInput!

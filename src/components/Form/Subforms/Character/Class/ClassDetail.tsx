@@ -3,7 +3,7 @@ import Collapse from '../../../../Collapse/Collapse'
 import { startCase } from 'lodash'
 import { numberToWords } from '../../../../../utils/formatting'
 import { Character, Class } from '../../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
 import { parseDiceRoll } from '../../../../../utils/dice'
 import { RollConfig } from '../../../../../types/components'
 import Grid from '../../../../Grid/Grid'
@@ -127,17 +127,25 @@ const ClassDetail = ({ fullClass, setFullClass }: { fullClass: Class; setFullCla
                 </Grid.Item>
               )}
               {features
-                .sort((a, b) => a.level - b.level)
+                .sort((a, b) => {
+                  if (a.level && b.level) {
+                    return a?.level - b?.level
+                  } else {
+                    return 0
+                  }
+                })
                 .map((feature, fIndex) => {
                   const fullFeature = fullClass.features?.find((sFeature) => sFeature.id === feature.id)
-                  return (
-                    <Grid.Item key={fIndex}>
-                      <Collapse>
-                        <Collapse.Header title={`(${feature.level}) ${fullFeature.label}`} startOpened={true} />
-                        <Collapse.Body>{fullFeature.desc && parse(fullFeature.desc)}</Collapse.Body>
-                      </Collapse>
-                    </Grid.Item>
-                  )
+                  if (fullFeature) {
+                    return (
+                      <Grid.Item key={fIndex}>
+                        <Collapse>
+                          <Collapse.Header title={`(${feature.level}) ${fullFeature.label}`} startOpened={true} />
+                          <Collapse.Body>{fullFeature.desc && parse(fullFeature.desc)}</Collapse.Body>
+                        </Collapse>
+                      </Grid.Item>
+                    )
+                  }
                 })}
             </Grid>
           </ScrollArea>

@@ -15,9 +15,9 @@ const StartingEquipment = () => {
   }
 
   useEffect(() => {
-    if (formData.equipment?.length > 0) {
+    if (formData.equipment?.length) {
       formData.equipment?.forEach((option, oIndex) => {
-        if (!(option.length > 0)) {
+        if (!option?.length) {
           updateFormData({
             type: 'add',
             path: `equipment.${oIndex}`,
@@ -50,11 +50,13 @@ const StartingEquipment = () => {
           </Grid.Item>
         </Grid>
       </Grid.Item>
-      {formData.equipment && (
+      {formData.equipment?.length && (
         <Grid.Item>
           <Accordion dataArray={formData.equipment} name='equipment' onChange={updateFormData}>
             {formData.equipment?.map((equipmentItem, eIndex) => {
-              return <EquipmentGroup key={eIndex} index={eIndex} equipment={equipmentItem} />
+              if (equipmentItem?.length) {
+                return <EquipmentGroup key={eIndex} index={eIndex} equipment={equipmentItem} />
+              }
             })}
           </Accordion>
         </Grid.Item>

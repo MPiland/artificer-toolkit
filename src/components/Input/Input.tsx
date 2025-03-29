@@ -13,8 +13,8 @@ import clsx from 'clsx'
 import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import Floating from '../Floating/Floating'
 import { DeepKeyOf, UpdateState } from '../../types/form'
-import { UpdateFilter, FilterState } from '../../types/components'
-import FormType from '../../store/formSlice'
+import { UpdateFilter } from '../../types/components'
+import { StoreFormType, FilterState } from '../../store/filterSlice'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
@@ -22,8 +22,8 @@ const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
 // Define a conditional type to determine the onChange type based on T
-type OnChangeType<T> = T extends { filterState: FilterState }
-  ? (state: UpdateFilter<FormType>) => void
+type OnChangeType<T> =
+  T extends { filterState: FilterState } ? (state: UpdateFilter<StoreFormType>) => void
   : (state: UpdateState<T>) => void
 
 interface InputProps<T> {
@@ -111,7 +111,7 @@ const Input = <T,>({
   const debounceSave = useDebounceCallback(
     useCallback(
       (target: React.ChangeEvent<HTMLInputElement>['target']) => {
-        let finalValue = target.value
+        let finalValue: number | undefined = target.value
 
         // Convert to number for numeric validations
         if (validation === 'num' || validation === 'cur') {

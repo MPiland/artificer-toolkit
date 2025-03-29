@@ -1,5 +1,5 @@
 import { ReactElement, useCallback, ReactNode, useMemo, useEffect, useRef } from 'react'
-import { DiceConfig, DiceResult, DieType, Point, RollConfig } from '../../types/components'
+import { DiceConfig, DiceResult, Point, RollConfig } from '../../types/components'
 import {
   generateRandomLinearVelocity,
   generateRandomRotation,
@@ -252,18 +252,17 @@ const useDiceOptions = () => {
       const rollStrings = input.split(' ') as RollConfig[]
 
       for (let i = 0; i < rollStrings.length; i++) {
-        const { numDie, dieType, rerollType, rerollCondition, rerollValue, keepType, keepCount, dropType, dropCount } =
-          parseDiceRoll(rollStrings[i])
+        const parsedRoll = parseDiceRoll(rollStrings[i])
         diceRolls.push({
-          quantity: numDie ? parseInt(numDie) : 1,
-          die: (dieType ? parseInt(dieType) : 4) as DieType,
-          rerollType: rerollType || undefined,
-          rerollCondition: rerollCondition || undefined,
-          rerollValue: parseInt(rerollValue) || undefined,
-          keepType: keepType || undefined,
-          keepCount: parseInt(keepCount) || undefined,
-          dropType: dropType || undefined,
-          dropCount: parseInt(dropCount) || undefined,
+          quantity: parsedRoll?.quantity || 1,
+          die: parsedRoll?.die || 4,
+          rerollType: parsedRoll?.rerollType,
+          rerollCondition: parsedRoll?.rerollCondition,
+          rerollValue: parsedRoll?.rerollValue,
+          keepType: parsedRoll?.keepType,
+          keepCount: parsedRoll?.keepCount,
+          dropType: parsedRoll?.dropType,
+          dropCount: parsedRoll?.dropCount,
         })
       }
 
@@ -285,7 +284,7 @@ const useDiceOptions = () => {
   return value
 }
 
-export type DiceOptionsType = ReturnType<typeof useDiceOptions> | null
+export type DiceOptionsType = ReturnType<typeof useDiceOptions>
 
 const DiceProvider = ({ children }: { children: ReactNode }) => {
   const diceOptions = useDiceOptions()

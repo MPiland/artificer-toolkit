@@ -1,5 +1,4 @@
-import { FC, ReactNode, Suspense, use, useCallback } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { ReactNode, Suspense, use, useCallback } from 'react'
 import { getValueFromState } from '../../utils/formatting'
 import Group from '../Group/Group'
 import {
@@ -13,8 +12,8 @@ import {
 } from './Detail.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { FormContext } from '../Form/FormContext'
-import { useGetSystemQuery } from '../../features/systems/systemsApi'
-import { useListClassesQuery } from '../../features/classes/classesApi'
+import { useGetSystemQuery } from '../../apis/systemsApi'
+import { useListClassesQuery } from '../../apis/classesApi'
 import { MdArrowBackIos, MdEdit } from 'react-icons/md'
 import Button from '../Button/Button'
 import CopyIcon from '../../assets/Icons/ICopy'
@@ -22,6 +21,8 @@ import { FormDataType } from '../../types/form'
 import { Character } from '../../../amplify/gql/types'
 import Loading from '../Loading/Loading'
 import Grid from '../Grid/Grid'
+import { Link, Navigate, useLocation } from '@tanstack/react-router'
+import { FormType, navigatePath } from '../../utils/form'
 
 type colType = {
   header: string
@@ -36,10 +37,10 @@ interface DetailProps {
   children: ReactNode
   footer?: any
   footerSpacing?: 'spaceBetween' | 'center' | 'end' | 'start' | undefined
+  item: FormDataType
 }
 
-const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpacing = 'spaceBetween' }) => {
-  const navigate = useNavigate()
+const Detail = ({ cols, colsData, children, footer, footerSpacing = 'spaceBetween', item }: DetailProps) => {
   const location = useLocation()
 
   const { data: system } = useGetSystemQuery()
@@ -47,14 +48,16 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
 
   const { updateFormData, fullReset } = use(FormContext)
 
-  const item: FormDataType = location.state.item
+  const form = location?.pathname.split('/')[2] as FormType
 
   const handleEdit = () => {
+    const pathOptions = navigatePath({ form, type: 'form', action: 'edit', label: item.label })
+    if (!pathOptions) return null // Handle the undefined case
     try {
       fullReset()
       updateFormData({ type: 'reset', value: item })
       updateFormData({ type: 'initialReset', value: item })
-      navigate(`../edit/${item.value}`)
+      return <Navigate to={pathOptions.path} params={pathOptions.params} />
     } catch (err) {
       console.error(err)
     }
@@ -63,13 +66,12 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
   const handleCopy = () => {
     try {
       fullReset()
-      const itemCopy: FormDataType = { ...item, id: undefined, label: undefined, value: undefined }
+      const itemCopy: FormDataType = { ...item, id: '', label: '', value: '' }
       if (itemCopy.__typename !== 'Character') {
         itemCopy.masterId = undefined
       }
       updateFormData({ type: 'reset', value: itemCopy })
       updateFormData({ type: 'initialReset', value: itemCopy })
-      navigate(`../new`)
     } catch (err) {
       console.error(err)
     }
@@ -92,7 +94,7 @@ const Detail: FC<DetailProps> = ({ cols, colsData, children, footer, footerSpaci
   return (
     <Suspense fallback={<Loading />}>
       <div className={detail_nav_section}>
-        <MdArrowBackIos onClick={() => navigate(-1)} cursor={'pointer'} style={{ scale: '1.5' }} />
+        <MdArrowBackIos onClick={() => <Link to={'..'} />} cursor={'pointer'} style={{ scale: '1.5' }} />
         <Button color='main' style='outline' onClick={handleCopy}>
           {<CopyIcon />} Copy
         </Button>

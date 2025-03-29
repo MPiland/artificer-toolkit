@@ -1,12 +1,5 @@
 import { useState, useRef } from 'react'
-import {
-  select_wrapper,
-  select_container,
-  select_input,
-  select_menu,
-  select_option,
-  select_label,
-} from './Select.css'
+import { select_wrapper, select_container, select_input, select_menu, select_option, select_label } from './Select.css'
 import { startCase } from 'lodash'
 import {
   autoUpdate,
@@ -23,7 +16,7 @@ import {
 } from '@floating-ui/react'
 import ScrollArea from '../ScrollArea/ScrollArea'
 
-const Select = ({
+const Select = <T,>({
   label,
   options,
   handleChange,
@@ -32,8 +25,8 @@ const Select = ({
   id,
 }: {
   label: string
-  options: ReadonlyArray<string> | Array<string>
-  handleChange: (arg: string) => void
+  options: ReadonlyArray<T> | Array<T>
+  handleChange: (arg: T) => void
   placeholder: string
   name: string
   id?: string
@@ -95,7 +88,7 @@ const Select = ({
           <FloatingFocusManager context={context} closeOnFocusOut={true} modal={false}>
             <div className={select_menu} ref={refs.setFloating} style={floatingStyles} {...getFloatingProps()}>
               <ScrollArea scrollDirection='vertical'>
-                {options.map((optionItem: string, optionIndex: number) => (
+                {options.map((optionItem: T, optionIndex: number) => (
                   <div
                     className={select_option}
                     key={optionIndex}

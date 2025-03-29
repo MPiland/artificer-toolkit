@@ -1,5 +1,5 @@
 import parse from 'html-react-parser'
-import { useListRacesQuery } from '../../../../../features/races/racesApi'
+import { useListRacesQuery } from '../../../../../apis/racesApi'
 import Collapse from '../../../../Collapse/Collapse'
 import { Character, Race } from '../../../../../../amplify/gql/types'
 import { Categories } from '../../../../../types/enums'

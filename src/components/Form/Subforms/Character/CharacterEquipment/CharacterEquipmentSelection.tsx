@@ -13,8 +13,8 @@ import { Fragment, use, useCallback, useEffect } from 'react'
 import { FormContext } from '../../../FormContext'
 import { Attributes } from '../../../../../types/enums'
 import { UpdateState } from '../../../../../types/form'
-import { useGetSystemQuery } from '../../../../../features/systems/systemsApi'
-import { useListEquipmentQuery } from '../../../../../features/equipment/equipmentApi'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
+import { useListEquipmentQuery } from '../../../../../apis/equipmentApi'
 
 const CharacterEquipmentSelection = ({
   groupIndex,
@@ -52,7 +52,7 @@ const CharacterEquipmentSelection = ({
           let description = `Select ${item.selectionCount}x `
 
           // Add property descriptions if available
-          if (item?.properties?.length > 0) {
+          if (item?.properties?.length) {
             const propertyLabels = item?.properties
               .map((propId) => {
                 const property = system.equipment.properties.find((p) => p?.id === propId)
@@ -167,7 +167,8 @@ const CharacterEquipmentSelection = ({
     item: ClassEquipment | BackgroundEquipment
   ) => {
     const selectionCount = Number(item.selectionCount) || 1
-    const filteredEquipment = getFilteredEquipment(item.category, item.properties)
+    const filteredEquipment =
+      (item.category && item.properties && getFilteredEquipment(item?.category, item.properties)) || []
 
     // Find current selections for this item
     const currentGroups = formData?.[path]?.equipmentGroups || []
@@ -188,7 +189,7 @@ const CharacterEquipmentSelection = ({
                 name={`${path}.equipmentGroups.${groupIndex}.equipment.${itemIndex}`}
                 value={selectedEquipId || ''}
                 onChange={(e) => handleEquipmentOptionSelection(groupIndex, optionIndex, itemIndex, selIndex, e)}
-                options={filteredEquipment.map((equip) => ({
+                options={filteredEquipment?.map((equip) => ({
                   id: equip.id,
                   value: equip.id,
                   label: equip.label,
@@ -248,7 +249,7 @@ const CharacterEquipmentSelection = ({
       // Create a deep copy of the group we're modifying
       const updatedGroup = {
         ...currentGroups[groupArrayIndex],
-        equipment: [...currentGroups[groupArrayIndex].equipment], // Create a new array for equipment
+        equipment: [...(currentGroups?.[groupArrayIndex]?.equipment || [])], // Create a new array for equipment
       }
 
       // Find if we already have this selection
@@ -292,7 +293,7 @@ const CharacterEquipmentSelection = ({
         const updatedGroup = {
           ...currentGroups[groupArrayIndex],
           // Filter out the item we want to remove
-          equipment: currentGroups[groupArrayIndex].equipment.filter((e) => e.selectionId !== optionKey),
+          equipment: currentGroups?.[groupArrayIndex]?.equipment?.filter((e) => e.selectionId !== optionKey),
         }
 
         // Replace the group in our array
@@ -353,7 +354,7 @@ const CharacterEquipmentSelection = ({
           updateFormData({
             type: 'update',
             path: `${path}.equipmentGroups`,
-            value: updatedGroups.length > 0 ? updatedGroups : null,
+            value: updatedGroups.length ? updatedGroups : null,
           })
         }
       }
@@ -372,23 +373,27 @@ const CharacterEquipmentSelection = ({
   }, [groupIndex, hasOnlyOneOption, isAlreadySelected, path, handleEquipmentGroupSelection, group, formData])
 
   const renderEquipmentGroup = useCallback(() => {
-    if (hasOnlyOneOption) {
-      return generateOptionLabel(group[0], 0)
-    }
+    if (group.length) {
+      if (hasOnlyOneOption && group[0]?.length) {
+        return generateOptionLabel(group[0], 0)
+      }
 
-    return (
-      <Dropdown<Character>
-        name={`${path}.equipmentGroups.${groupIndex}`}
-        value={groupOptionIndex}
-        label={`Select Option`}
-        onChange={(e) => handleEquipmentGroupSelection(groupIndex, e)}
-        options={group.map((option, optIndex) => ({
-          id: optIndex.toString(),
-          value: optIndex.toString(),
-          label: generateOptionLabel(option, optIndex),
-        }))}
-      />
-    )
+      return (
+        <Dropdown<Character>
+          name={`${path}.equipmentGroups.${groupIndex}`}
+          value={groupOptionIndex}
+          label={`Select Option`}
+          onChange={(e) => handleEquipmentGroupSelection(groupIndex, e)}
+          options={group
+            .filter((option) => !!option)
+            .map((option, optIndex) => ({
+              id: optIndex.toString(),
+              value: optIndex.toString(),
+              label: generateOptionLabel(option, optIndex),
+            }))}
+        />
+      )
+    }
   }, [generateOptionLabel, group, groupIndex, groupOptionIndex, handleEquipmentGroupSelection, path, hasOnlyOneOption])
 
   return (
@@ -398,7 +403,7 @@ const CharacterEquipmentSelection = ({
           <h4>Equipment Group {groupIndex + 1}</h4>
         </Grid.Item>
         <Grid.Item>{renderEquipmentGroup()}</Grid.Item>
-        {renderSelectedEquipment(group, groupIndex)}
+        {group?.length && renderSelectedEquipment(group, groupIndex)}
       </Grid>
     </Grid.Item>
   )

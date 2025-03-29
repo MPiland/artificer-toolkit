@@ -2,12 +2,12 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import { character_header_body, character_header_item, character_header_item_divider } from '../Character.css'
 import Collapse from '../../Collapse/Collapse'
 import { Character } from '../../../../amplify/gql/types'
-import { useListRacesQuery } from '../../../features/races/racesApi'
-import { useListClassesQuery } from '../../../features/classes/classesApi'
+import { useListRacesQuery } from '../../../apis/racesApi'
+import { useListClassesQuery } from '../../../apis/classesApi'
 import { UpdateState } from '../../../types/form'
 import { use, useState } from 'react'
 import { FormContext } from '../FormContext'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { calculateModifier } from '../../../utils/form'
 import { useMediaQuery } from 'usehooks-ts'
 import Grid from '../../Grid/Grid'
@@ -71,14 +71,17 @@ const CharacterHeader = () => {
                   </Grid.Item>
                   <Grid.Item colSpan={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
-                      {formData.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
-                      {formData.classes?.length > 0 ?
+                      {formData.classes?.length && formData.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
+                      {formData.classes?.length ?
                         formData.classes?.map((uClass, index) => {
                           const fullClass = classes.find((aClass) => aClass.id === uClass.id)
                           return (
                             <span key={index}>
-                              {`${fullClass.label} (Lvl. ${uClass.level})`}
-                              {index !== formData.classes.length - 1 && formData.classes.length > 1 && ' / '}
+                              {`${fullClass?.label} (Lvl. ${uClass.level})`}
+                              {formData.classes?.length &&
+                                index !== formData?.classes?.length - 1 &&
+                                formData.classes.length > 1 &&
+                                ' / '}
                             </span>
                           )
                         })
@@ -92,20 +95,22 @@ const CharacterHeader = () => {
                   {formData?.abilities?.scores?.map((score, index) => {
                     const ability = system?.abilities?.find((sAbility) => sAbility.id === score.ability)
 
-                    const modifier = calculateModifier(score.calculatedScore, 'modifier')
+                    const modifier = calculateModifier(score?.calculatedScore || 0, 'modifier')
                     return (
                       <Grid.Item colSpan={{ sm: 12, md: 4, lg: 'auto' }} className={character_header_item} key={index}>
                         <span className={sprinkles({ me: 'space-4' })}>
                           {`${ability?.value.toUpperCase()}: `}
-                          {score.calculatedScore > 0 ?
+                          {score.calculatedScore ?
                             <span
                               className={sprinkles({ ws: 'nowrap' })}
                             >{`${score.calculatedScore} (${modifier})`}</span>
                           : <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                         </span>
-                        {!sm && index !== formData.abilities?.scores?.length - 1 && (
-                          <hr className={character_header_item_divider} />
-                        )}
+                        {!sm &&
+                          formData.abilities?.scores?.length &&
+                          index !== formData.abilities?.scores?.length - 1 && (
+                            <hr className={character_header_item_divider} />
+                          )}
                       </Grid.Item>
                     )
                   })}

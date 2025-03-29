@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import { get } from 'lodash'
-import { FormType } from '../store/filterSlice'
+import { StoreFormType } from '../store/filterSlice'
 import { FormDataType } from '../types/form'
 import { useStore } from '../store/useStore'
 
 interface UseFilteredListProps {
   data: FormDataType[] | null | undefined
-  context: FormType | null | undefined
+  context: StoreFormType | null | undefined
 }
 
 /**

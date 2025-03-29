@@ -40,7 +40,7 @@ const Dice = ({
   const { updateDiceResult, dice } = use(DiceContext)
 
   useEffect(() => {
-    if (diceValue != null && !dice.results?.some((result) => result.id === id)) {
+    if (diceValue != null && !dice.results?.some((result) => result.id === id) && die) {
       updateDiceResult(die, diceValue, id)
     }
   }, [diceValue, id, die, updateDiceResult, dice])

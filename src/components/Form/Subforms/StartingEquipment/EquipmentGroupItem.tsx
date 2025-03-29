@@ -7,8 +7,8 @@ import { UpdateState } from '../../../../types/form'
 import { Background, Class } from '../../../../../amplify/gql/types'
 import { FormContext } from '../../FormContext'
 import { use } from 'react'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
-import { useListEquipmentQuery } from '../../../../features/equipment/equipmentApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
+import { useListEquipmentQuery } from '../../../../apis/equipmentApi'
 import { Attributes } from '../../../../types/enums'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
@@ -100,7 +100,7 @@ const EquipmentGroupItem = ({
               return true
             })
             .filter((sEquipment) => {
-              if (group.properties?.length > 0) {
+              if (group.properties?.length) {
                 return group.properties?.every((property) => sEquipment.properties?.includes(property))
               }
               return true
@@ -108,7 +108,7 @@ const EquipmentGroupItem = ({
           onChange={updateFormData}
         />
       </Grid.Item>
-      {multipleOptions ? (
+      {multipleOptions ?
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
           <Input
             validation='num'
@@ -120,8 +120,7 @@ const EquipmentGroupItem = ({
             onChange={updateFormData}
           />
         </Grid.Item>
-      ) : (
-        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+      : <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
           <Input
             validation='num'
             name={`equipment.${equipmentIndex}.${optionIndex}.${groupIndex}.quantity`}
@@ -132,7 +131,7 @@ const EquipmentGroupItem = ({
             onChange={updateFormData}
           />
         </Grid.Item>
-      )}
+      }
     </>
   )
 
@@ -146,7 +145,7 @@ const EquipmentGroupItem = ({
               multiSelect={true}
               options={system.attributes.filter(
                 (attribute) =>
-                  attribute?.equipment?.length > 0 &&
+                  attribute?.equipment?.length &&
                   ((formData?.__typename === 'Class' && attribute?.equipment?.includes(EquipmentEnum.classes)) ||
                     (formData?.__typename === 'Background' &&
                       attribute?.equipment?.includes(EquipmentEnum.backgrounds)))
@@ -162,9 +161,12 @@ const EquipmentGroupItem = ({
               label='Equipment Category'
               value={group.category}
               options={system.equipment.categories.filter((sCategory) => {
-                if (group.properties?.length > 0) {
+                if (group.properties?.length) {
                   return system.equipment.categoryProperties.some(
-                    (bridge) => bridge.categoryId === sCategory.id && group.properties.includes(bridge.propertyId)
+                    (bridge) =>
+                      bridge.categoryId === sCategory.id &&
+                      group.properties?.length &&
+                      group.properties.includes(bridge.propertyId)
                   )
                 }
                 return true

@@ -76,8 +76,8 @@ input CurrencyInput {
   value: String!
   label: String!
   desc: String
-  abbreviation: String
-  conversions: CurrencyConversionInput
+  abbreviation: String!
+  conversions: CurrencyConversionInput!
 }
 
 ## Equipment
@@ -89,10 +89,10 @@ input EquipmentCategoryPropertyInput {
 }
 
 input SystemEquipmentInput {
-  categories: [GenericTypeInput]
-  properties: [GenericTypeInput]
-  categoryProperties: [EquipmentCategoryPropertyInput]
-  rarities: [GenericTypeInput]
+  categories: [GenericTypeInput!]!
+  properties: [GenericTypeInput!]!
+  categoryProperties: [EquipmentCategoryPropertyInput!]!
+  rarities: [GenericTypeInput!]!
 }
 
 ## Modifiers
@@ -117,13 +117,13 @@ input ModifierCategoryTypeMethodInput {
 }
 
 input SystemModifiersInput {
-  categories: [GenericTypeInput]
-  types: [GenericTypeInput]
-  methods: [GenericTypeInput]
-  spellCategories: [GenericTypeInput]
-  categoryTypes: [ModifierCategoryTypeInput]
-  typeMethods: [ModifierTypeMethodInput]
-  categoryMethods: [ModifierCategoryTypeMethodInput]
+  categories: [GenericTypeInput!]!
+  types: [GenericTypeInput!]!
+  methods: [GenericTypeInput!]!
+  spellCategories: [GenericTypeInput!]!
+  categoryTypes: [ModifierCategoryTypeInput!]!
+  typeMethods: [ModifierTypeMethodInput!]!
+  categoryMethods: [ModifierCategoryTypeMethodInput!]!
 }
 
 ## Proficiency
@@ -136,19 +136,19 @@ input ProficiencyLevelInput {
 }
 
 input SystemProficiencyInput {
-  levels: [ProficiencyLevelInput]
-  categories: [GenericTypeInput]
+  levels: [ProficiencyLevelInput!]!
+  categories: [GenericTypeInput!]!
 }
 
 ## Spell
 
 input SystemSpellInput {
-  categories: [GenericTypeInput]
-  durations: [GenericTypeInput]
-  ranges: [GenericTypeInput]
-  schools: [GenericTypeInput]
-  shapes: [GenericTypeInput]
-  requirements: [GenericTypeInput]
+  categories: [GenericTypeInput!]!
+  durations: [GenericTypeInput!]!
+  ranges: [GenericTypeInput!]!
+  schools: [GenericTypeInput!]!
+  shapes: [GenericTypeInput!]!
+  requirements: [GenericTypeInput!]!
 }
 
 ## Rules
@@ -161,15 +161,15 @@ input GenerateOptionInput {
 }
 
 input ImperialInput {
-  weight: [GenericTypeInput]
-  volume: [GenericTypeInput]
-  length: [GenericTypeInput]
+  weight: [GenericTypeInput!]!
+  volume: [GenericTypeInput!]!
+  length: [GenericTypeInput!]!
 }
 
 input SystemMeasurementInput {
-  amount: [GenericTypeInput]
-  rounding: [GenericTypeInput]
-  imperial: ImperialInput
+  amount: [GenericTypeInput!]!
+  rounding: [GenericTypeInput!]!
+  imperial: ImperialInput!
 }
 
 input AbilityGenerateMethodInput {
@@ -177,12 +177,12 @@ input AbilityGenerateMethodInput {
   value: String!
   label: String!
   total: Int
-  options: [GenerateOptionInput]
+  options: [GenerateOptionInput!]
 }
 
 input SystemRulesInput {
-  measurements: SystemMeasurementInput
-  abilityGenerateMethod: [AbilityGenerateMethodInput]
+  measurements: SystemMeasurementInput!
+  abilityGenerateMethod: [AbilityGenerateMethodInput!]!
 }
 
 ## Charges
@@ -191,27 +191,27 @@ input ChargeOptionInput {
   id: ID!
   value: String!
   label: String!
-  features: [FeatureEnumInput]
-  damage: [DamageEnumInput]
-  feats: [AllEnumInput]
-  sections: [SectionEnumInput]
-  spells: [SpellEnumInput]
-  equipment: [EquipmentEnumInput]
-  classes: [ClassesEnumInput]
+  features: [FeatureEnumInput!]
+  damage: [DamageEnumInput!]
+  feats: [AllEnumInput!]
+  sections: [SectionEnumInput!]
+  spells: [SpellEnumInput!]
+  equipment: [EquipmentEnumInput!]
+  classes: [ClassesEnumInput!]
 }
 
 input SystemChargesInput {
-  resets: [ChargeOptionInput]
-  limits: [ChargeOptionInput]
+  resets: [ChargeOptionInput!]!
+  limits: [ChargeOptionInput!]!
 }
 
 ## Character
 
 input CharacterSettingInput {
-  hitpointCalcMethods: [GenericTypeInput]
-  advancementMethods: [GenericTypeInput]
-  spellPointCalcMethods: [GenericTypeInput]  
-  startingEquipmentOptions: [GenericTypeInput]
+  hitpointCalcMethods: [GenericTypeInput!]!
+  advancementMethods: [GenericTypeInput!]!
+  spellPointCalcMethods: [GenericTypeInput!]!
+  startingEquipmentOptions: [GenericTypeInput!]!
 }
 
 ## System Builder
@@ -233,13 +233,13 @@ input SystemAttributeInput {
   id: ID!
   value: String!
   label: String!
-  features: [FeatureEnumInput]
-  damage: [DamageEnumInput]
-  feats: [AllEnumInput]
-  sections: [SectionEnumInput]
-  spells: [SpellEnumInput]
-  equipment: [EquipmentEnumInput]
-  classes: [ClassesEnumInput]
+  features: [FeatureEnumInput!]
+  damage: [DamageEnumInput!]
+  feats: [AllEnumInput!]
+  sections: [SectionEnumInput!]
+  spells: [SpellEnumInput!]
+  equipment: [EquipmentEnumInput!]
+  classes: [ClassesEnumInput!]
 }
 
 input SystemCategoryInput {
@@ -272,13 +272,13 @@ input SystemPrerequisiteInput {
   id: ID!
   value: String!
   label: String!
-  features: [FeatureEnumInput]
-  damage: [DamageEnumInput]
-  feats: [AllEnumInput]
-  sections: [SectionEnumInput]
-  spells: [SpellEnumInput]
-  equipment: [EquipmentEnumInput]
-  classes: [ClassesEnumInput]
+  features: [FeatureEnumInput!]
+  damage: [DamageEnumInput!]
+  feats: [AllEnumInput!]
+  sections: [SectionEnumInput!]
+  spells: [SpellEnumInput!]
+  equipment: [EquipmentEnumInput!]
+  classes: [ClassesEnumInput!]
 }
 
 input SystemInput {
@@ -286,30 +286,30 @@ input SystemInput {
   value: String!
   label: String!
   desc: String
-  abilities: [GenericTypeInput]
-  actions: [SystemActionInput]
-  alignments: [GenericTypeInput]
-  attributes: [SystemAttributeInput]
-  categories: [SystemCategoryInput]
-  characters: CharacterSettingInput
-  charges: SystemChargesInput
-  conditions: [GenericTypeInput]
-  currencies: [CurrencyInput]
-  damageTypes: [GenericTypeInput]
-  equipment: SystemEquipmentInput
-  languages: [GenericTypeInput]
-  modifiers: SystemModifiersInput
-  passives: [GenericTypeInput]
-  prerequisites: [SystemPrerequisiteInput]
-  proficiencies: SystemProficiencyInput
-  rules: SystemRulesInput
-  senses: [SystemSenseInput]
-  sizes: [GenericTypeInput]
-  skills: [SystemSkillInput]
-  speeds: [GenericTypeInput]
-  spells: SystemSpellInput
-  terrains: [GenericTypeInput]
-  ownerId: String
+  abilities: [GenericTypeInput!]!
+  actions: [SystemActionInput!]!
+  alignments: [GenericTypeInput!]!
+  attributes: [SystemAttributeInput!]!
+  categories: [SystemCategoryInput!]!
+  characters: CharacterSettingInput!
+  charges: SystemChargesInput!
+  conditions: [GenericTypeInput!]!
+  currencies: [CurrencyInput!]!
+  damageTypes: [GenericTypeInput!]!
+  equipment: SystemEquipmentInput!
+  languages: [GenericTypeInput!]!
+  modifiers: SystemModifiersInput!
+  passives: [GenericTypeInput!]!
+  prerequisites: [SystemPrerequisiteInput!]!
+  proficiencies: SystemProficiencyInput!
+  rules: SystemRulesInput!
+  senses: [SystemSenseInput!]!
+  sizes: [GenericTypeInput!]!
+  skills: [SystemSkillInput!]!
+  speeds: [GenericTypeInput!]!
+  spells: SystemSpellInput!
+  terrains: [GenericTypeInput!]!
+  ownerId: String!
   masterId: String
 }
 

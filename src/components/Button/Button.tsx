@@ -52,7 +52,7 @@ const Button = ({
         className
       )}
       disabled={disabled}
-      onClick={(e) => onClick(e)}
+      onClick={(e) => onClick && onClick(e)}
       name={name}
       {...props}
     >

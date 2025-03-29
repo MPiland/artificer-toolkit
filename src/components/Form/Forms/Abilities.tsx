@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import Dropdown from '../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import Scene from '../../Dice/Scene'
 import { createPortal } from 'react-dom'
 import { AbilityGenerate } from '../../../types/enums'
@@ -67,7 +67,9 @@ const AbilitiesForm = () => {
             <Grid>
               {formData.abilities?.scores?.map((score, index) => {
                 const ability = system.abilities.find((ability) => ability.id === score.ability)
-                return <AbilityCard key={index} score={score} ability={ability} />
+                if (ability) {
+                  return <AbilityCard key={index} score={score} ability={ability} />
+                }
               })}
             </Grid>
           </Collapse.Body>

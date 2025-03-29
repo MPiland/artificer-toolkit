@@ -12,11 +12,11 @@ import {
   Feat,
   CharacterFeatureOption,
 } from '../../amplify/gql/types'
-import { useListClassesQuery } from '../features/classes/classesApi'
-import { useListEquipmentQuery } from '../features/equipment/equipmentApi'
-import { useListRacesQuery } from '../features/races/racesApi'
-import { useListFeatsQuery } from '../features/feats/featsApi'
-import { useListBackgroundsQuery } from '../features/backgrounds/backgroundsApi'
+import { useListClassesQuery } from '../apis/classesApi'
+import { useListEquipmentQuery } from '../apis/equipmentApi'
+import { useListRacesQuery } from '../apis/racesApi'
+import { useListFeatsQuery } from '../apis/featsApi'
+import { useListBackgroundsQuery } from '../apis/backgroundsApi'
 import { DeepKeyOf } from '../types/form'
 import { useCallback, useMemo } from 'react'
 import { Attributes, Prerequisites } from '../types/enums'
@@ -41,7 +41,7 @@ export interface GetFeatureOptionsProps {
 
 export interface GetFeatureOptionsResult<T> {
   options: Array<{ id: string; label: string; value: string }>
-  path: DeepKeyOf<T>
+  path: DeepKeyOf<T> | null
   exist?: string // Making this optional since it might not always be set
 }
 
@@ -66,11 +66,11 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
   const prerequisiteProcessors: PrerequisiteProcessor = {
     optionNotObtained: ({ option, feature, optionIndex }) => {
-      if (data?.__typename !== 'Character') return true
+      if (data?.__typename !== 'Character' || !feature) return true
       // Get already selected options
       const alreadySelectedOptions =
         data?.features
-          ?.filter((f) => f.id === feature.id && f.options?.length > 0)
+          ?.filter((f) => f.id === feature.id && f.options?.length)
           .flatMap((f) =>
             f.options?.filter((o) => !(o.optionIndex === optionIndex && o.id === option.id)).map((o) => o.id)
           ) || []
@@ -79,20 +79,24 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
     },
 
     optionsObtained: ({ option, feature }) => {
-      return option.prerequisites?.optionsObtained.some((o) =>
+      if (!feature || !option?.prerequisites?.optionsObtained?.length) return true
+      return option?.prerequisites?.optionsObtained?.some((o) =>
         data?.features?.filter((f) => f.id === feature.id).flatMap((f) => f.options?.some((fO) => fO.id === o))
       )
     },
 
     featuresObtained: ({ option }) => {
-      return option.prerequisites.featuresObtained.some((fO) => data?.features?.some((f) => f.id === fO))
+      if (!option?.prerequisites?.featuresObtained?.length) return true
+      return option?.prerequisites?.featuresObtained?.some((fO) => data?.features?.some((f) => f.id === fO))
     },
 
     abilityScore: ({ option }) => {
       if (data?.__typename !== 'Character') return true
       // Get the required abilities and score
-      const requiredAbilities = option.prerequisites.abilityScore.abilities
-      const requiredScore = option.prerequisites.abilityScore.score
+      const requiredAbilities = option?.prerequisites?.abilityScore?.abilities
+      const requiredScore = option?.prerequisites?.abilityScore?.score
+
+      if (!requiredAbilities || !requiredScore) return true
 
       // Check if every required ability meets the minimum score
       return requiredAbilities.every((ability) => {
@@ -132,7 +136,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       const fullFeature = getFullFeature(feature)
       const fullOption = fullFeature?.options?.find((o) => o.id === option.id)
 
-      if (!fullOption?.prerequisites || !(fullOption?.prerequisites?.options?.length > 0)) return true
+      if (!fullOption?.prerequisites || !fullOption?.prerequisites?.options?.length) return true
 
       return fullOption.prerequisites?.options?.every((prereqOption) => {
         const prereq = getKeyFromId(prereqOption, Prerequisites)
@@ -189,36 +193,39 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         (o) => o.optionIndex === optionIndex && feature.level === o.featureLevel
       )
 
-      const featureOptionIndex = existIndex > -1 ? existIndex : data?.features?.[featureIndex]?.options?.length || 0
+      const featureOptionIndex =
+        existIndex && existIndex > -1 ? existIndex : data?.features?.[featureIndex]?.options?.length || 0
 
-      const exist = existIndex > -1 ? data?.features?.[featureIndex]?.options?.[existIndex] : null
+      const exist = existIndex && existIndex > -1 ? data?.features?.[featureIndex]?.options?.[existIndex] : null
 
-      const path: DeepKeyOf<typeof data> = `features.${featureIndex}.options.${featureOptionIndex}`
+      const path: DeepKeyOf<Character> = `features.${featureIndex}.options.${featureOptionIndex}`
 
       const fullFeature = getFullFeature(feature)
 
       // Map options to our expected format
-      let options = fullFeature?.options.map((option) => ({
-        id: option.id,
-        label: option.label,
-        value: option.value,
-      }))
+      let options =
+        fullFeature?.options?.map((option) => ({
+          id: option.id,
+          label: option.label,
+          value: option.value,
+        })) || []
 
       // Filter options based on prerequisites
-      if (options?.length > 0) {
+      if (options?.length) {
         // Filter the options
         options = filterOptionsByPrerequisites(options, feature, optionIndex)
-        console.log({ options })
       }
 
       return { path, exist: exist?.id, options }
     }
+
+    return { path: null, options: [] }
   }
 
   const featureProcessor = useMemo(() => {
     return {
       classes: () => {
-        if (data?.__typename !== 'Character' || !data?.classes || !(data?.classes?.length > 0)) return []
+        if (data?.__typename !== 'Character' || !data?.classes || !data?.classes?.length) return []
 
         const features: FactoryFeature[] = []
 
@@ -226,10 +233,27 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
           data?.features
             ?.filter((feature) => feature?.classId && sourcePropertyMap(data).classId(feature?.classId))
             .map((eF) => {
-              if (eF?.options?.length > 0) {
-                return { ...getFullFeature(eF), classId: eF.classId, level: eF.level, options: eF.options }
+              const fullFeature = getFullFeature(eF)
+              if (fullFeature) {
+                // Convert null to undefined for level
+                const level = eF.level === null ? undefined : eF.level
+
+                if (eF?.options?.length) {
+                  return {
+                    ...fullFeature,
+                    classId: eF.classId || undefined,
+                    level,
+                    options: eF.options,
+                  }
+                }
+                return {
+                  ...fullFeature,
+                  classId: eF.classId || undefined,
+                  level,
+                  options: null,
+                }
               }
-              return { ...getFullFeature(eF), classId: eF.classId, level: eF.level, options: null }
+              return { id: '', label: '', value: '', level: undefined }
             }) || []
 
         features.push(...existingFeatures)
@@ -243,11 +267,14 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
               levels = feature?.levelAvailable?.split(/\s*,\s*/)
             }
 
-            if (feature?.optionsByLevel?.length > 0) {
-              levels = feature?.optionsByLevel?.map((o) => o.level)
+            if (feature?.optionsByLevel?.length) {
+              const filteredFeatureOptions = feature?.optionsByLevel?.filter(
+                (o) => o.level !== null && o.level !== undefined
+              )
+              levels = filteredFeatureOptions.map((o) => o.level as number)
             }
 
-            if (levels?.length > 0) {
+            if (levels?.length) {
               levels.forEach((featureLevel) => {
                 if (
                   !existingFeatures?.some(
@@ -278,11 +305,14 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
                 levels = feature?.levelAvailable?.split(/\s*,\s*/)
               }
 
-              if (feature?.optionsByLevel?.length > 0) {
-                levels = feature?.optionsByLevel?.map((o) => o.level)
+              if (feature?.optionsByLevel?.length) {
+                const filteredFeatureOptions = feature?.optionsByLevel?.filter(
+                  (o) => o.level !== null && o.level !== undefined
+                )
+                levels = filteredFeatureOptions.map((o) => o.level as number)
               }
 
-              if (levels?.length > 0) {
+              if (levels?.length) {
                 levels.forEach((featureLevel) => {
                   if (
                     !existingFeatures?.some(
@@ -310,25 +340,44 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       race: () => {
         if (data?.__typename !== 'Character' || !data?.race) return []
 
+        const fullRace = races.find((r) => r.id === data?.race)
+
+        if (!fullRace) return []
+
         const features: FactoryFeature[] = []
 
         const existingFeatures =
           data?.features
             ?.filter((feature) => feature?.raceId && sourcePropertyMap(data).raceId(feature?.raceId))
             .map((eF) => {
-              if (eF?.options?.length > 0) {
-                return { ...getFullFeature(eF), raceId: eF.raceId, options: eF.options }
+              const fullFeature = getFullFeature(eF)
+              if (fullFeature) {
+                // Convert null to undefined for level
+                const level = eF.level === null ? undefined : eF.level
+
+                if (eF?.options?.length) {
+                  return {
+                    ...fullFeature,
+                    raceId: eF.raceId || undefined,
+                    level,
+                    options: eF.options,
+                  }
+                }
+                return {
+                  ...fullFeature,
+                  raceId: eF.raceId || undefined,
+                  level,
+                  options: null,
+                }
               }
-              return { ...getFullFeature(eF), raceId: eF.raceId, options: null }
+              return { id: '', label: '', value: '', level: undefined, raceId: undefined }
             }) || []
 
         features.push(...existingFeatures)
-
-        const fullRace = races.find((r) => r.id === data?.race)
         fullRace.features?.forEach((feature) => {
           if (
             !existingFeatures?.some(
-              (existingFeature) => existingFeature.id === feature.id && existingFeature.raceId === fullRace.id
+              (existingFeature) => existingFeature.id === feature.id && existingFeature?.raceId === fullRace.id
             )
           ) {
             features.push({
@@ -348,39 +397,58 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const existingFeatures =
           data?.features
-            ?.filter((feature) => feature?.raceId && sourcePropertyMap(data).raceId(feature?.raceId))
+            ?.filter((feature) => feature?.ancestryId && sourcePropertyMap(data).ancestryId(feature?.ancestryId))
             .map((eF) => {
-              if (eF?.options?.length > 0) {
-                return { ...getFullFeature(eF), ancestryId: eF?.ancestryId, options: eF?.options }
+              const fullFeature = getFullFeature(eF)
+              if (fullFeature) {
+                // Convert null to undefined for level
+                const level = eF.level === null ? undefined : eF.level
+
+                if (eF?.options?.length) {
+                  return {
+                    ...fullFeature,
+                    ancestryId: eF.ancestryId || undefined,
+                    level,
+                    options: eF.options,
+                  }
+                }
+                return {
+                  ...fullFeature,
+                  ancestryId: eF.ancestryId || undefined,
+                  level,
+                  options: null,
+                }
               }
-              return { ...getFullFeature(eF), ancestryId: eF?.ancestryId, options: null }
+              return { id: '', label: '', value: '', level: undefined, ancestryId: undefined }
             }) || []
 
         features.push(...existingFeatures)
 
         const fullAncestry = races
-          .find((r) => r?.id === data?.race)
-          .ancestry?.options?.find((a) => a?.id === data?.ancestry?.id)
+          ?.find((r) => r?.id === data?.race)
+          ?.ancestry?.options?.find((a) => a?.id === data?.ancestry?.id)
 
-        fullAncestry?.features?.forEach((feature) => {
-          if (
-            !existingFeatures?.some(
-              (existingFeature) =>
-                existingFeature?.id === feature?.id && existingFeature?.ancestryId === fullAncestry?.id
-            )
-          ) {
-            features.push({
-              ...feature,
-              ancestryId: fullAncestry?.id,
-              options: null,
-            })
-          }
-        })
+        if (fullAncestry) {
+          fullAncestry.features?.forEach((feature) => {
+            if (
+              !existingFeatures?.some(
+                (existingFeature) =>
+                  existingFeature?.id === feature?.id && existingFeature?.ancestryId === fullAncestry?.id
+              )
+            ) {
+              features.push({
+                ...feature,
+                ancestryId: fullAncestry?.id,
+                options: null,
+              })
+            }
+          })
+        }
 
         return features
       },
       equipment: () => {
-        if (data?.__typename !== 'Character' || !data?.equipment || !(data?.equipment?.length > 0)) return []
+        if (data?.__typename !== 'Character' || !data?.equipment || !data?.equipment?.length) return []
 
         const features: FactoryFeature[] = []
 
@@ -388,10 +456,27 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
           data?.features
             ?.filter((feature) => feature?.equipmentId && sourcePropertyMap(data).equipmentId(feature?.equipmentId))
             .map((eF) => {
-              if (eF?.options?.length > 0) {
-                return { ...getFullFeature(eF), equipmentId: eF.equipmentId, options: eF.options }
+              const fullFeature = getFullFeature(eF)
+              if (fullFeature) {
+                // Convert null to undefined for level
+                const level = eF.level === null ? undefined : eF.level
+
+                if (eF?.options?.length) {
+                  return {
+                    ...fullFeature,
+                    equipmentId: eF.equipmentId || undefined,
+                    level,
+                    options: eF.options,
+                  }
+                }
+                return {
+                  ...fullFeature,
+                  equipmentId: eF.equipmentId || undefined,
+                  level,
+                  options: null,
+                }
               }
-              return { ...getFullFeature(eF), equipmentId: eF.equipmentId, options: null }
+              return { id: '', label: '', value: '', level: undefined, equipmentId: undefined }
             }) || []
 
         features.push(...existingFeatures)
@@ -400,12 +485,12 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
           if (featureEquipment.equipped) {
             const fullEquipment = equipment?.find((e) => e.id === featureEquipment.id)
 
-            const attunementRequired = fullEquipment.attributes?.some(
+            const attunementRequired = fullEquipment?.attributes?.some(
               (attribute) => attribute === Attributes.requireAttunement
             )
 
             if (!attunementRequired || (attunementRequired && featureEquipment.attuned)) {
-              fullEquipment.features?.forEach((feature) => {
+              fullEquipment?.features?.forEach((feature) => {
                 if (
                   !existingFeatures?.some(
                     (existingFeature) =>
@@ -421,7 +506,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
               })
             }
           }
-          if (featureEquipment.contains?.length > 0) {
+          if (featureEquipment.contains?.length) {
             featureEquipment.contains.forEach((fE) => {
               checkEquipment(fE)
             })
@@ -435,7 +520,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         return features
       },
       feats: () => {
-        if (data?.__typename !== 'Character' || !data?.feats || !(data?.feats?.length > 0)) return []
+        if (data?.__typename !== 'Character' || !data?.feats || !data?.feats?.length) return []
 
         const features: FactoryFeature[] = []
 
@@ -443,10 +528,27 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
           data?.features
             ?.filter((feature) => feature?.featId && sourcePropertyMap(data).featId(feature?.featId))
             .map((eF) => {
-              if (eF?.options?.length > 0) {
-                return { ...getFullFeature(eF), featId: eF.featId, options: eF.options }
+              const fullFeature = getFullFeature(eF)
+              if (fullFeature) {
+                // Convert null to undefined for level
+                const level = eF.level === null ? undefined : eF.level
+
+                if (eF?.options?.length) {
+                  return {
+                    ...fullFeature,
+                    featId: eF.featId || undefined,
+                    level,
+                    options: eF.options,
+                  }
+                }
+                return {
+                  ...fullFeature,
+                  featId: eF.featId || undefined,
+                  level,
+                  options: null,
+                }
               }
-              return { ...getFullFeature(eF), featId: eF.featId, options: null }
+              return { id: '', label: '', value: '', level: undefined, featId: undefined }
             }) || []
 
         features.push(...existingFeatures)
@@ -454,19 +556,21 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         data?.feats?.forEach((feat) => {
           const fullFeat = feats?.find((f) => f.id === feat.featId)
 
-          fullFeat.features?.forEach((feature) => {
-            if (
-              !existingFeatures?.some(
-                (existingFeature) => existingFeature.id === feature.id && existingFeature.featId === fullFeat.id
-              )
-            ) {
-              features.push({
-                ...feature,
-                featId: fullFeat?.id,
-                options: null,
-              })
-            }
-          })
+          if (fullFeat) {
+            fullFeat.features?.forEach((feature) => {
+              if (
+                !existingFeatures?.some(
+                  (existingFeature) => existingFeature.id === feature.id && existingFeature.featId === fullFeat.id
+                )
+              ) {
+                features.push({
+                  ...feature,
+                  featId: fullFeat?.id,
+                  options: null,
+                })
+              }
+            })
+          }
         })
         return features
       },
@@ -479,10 +583,27 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
           data?.features
             ?.filter((feature) => feature?.backgroundId && sourcePropertyMap(data).backgroundId(feature?.backgroundId))
             .map((eF) => {
-              if (eF?.options?.length > 0) {
-                return { ...getFullFeature(eF), backgroundId: eF.backgroundId, options: eF.options }
+              const fullFeature = getFullFeature(eF)
+              if (fullFeature) {
+                // Convert null to undefined for level
+                const level = eF.level === null ? undefined : eF.level
+
+                if (eF?.options?.length) {
+                  return {
+                    ...fullFeature,
+                    backgroundId: eF.backgroundId || undefined,
+                    level,
+                    options: eF.options,
+                  }
+                }
+                return {
+                  ...fullFeature,
+                  backgroundId: eF.backgroundId || undefined,
+                  level,
+                  options: null,
+                }
               }
-              return { ...getFullFeature(eF), backgroundId: eF.backgroundId, options: null }
+              return { id: '', label: '', value: '', level: undefined, backgroundId: undefined }
             }) || []
 
         features.push(...existingFeatures)
@@ -511,7 +632,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const features: FactoryFeature[] = []
 
-        if (data?.features?.length > 0) {
+        if (data?.features?.length) {
           if (data?.__typename === 'Class') {
             data?.features?.forEach((feature) => {
               const levels = feature?.levelAvailable?.split(',')
@@ -536,7 +657,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
               lineages.forEach(
                 (lineage) =>
-                  lineage?.features?.length > 0 &&
+                  lineage?.features?.length &&
                   features.push(
                     ...lineage.features.map((feature) => {
                       const featureObj: FactoryFeature = { ...feature, options: null }

@@ -45,7 +45,7 @@ const Header = () => {
                     Keep Race
                   </Button>
                 ))}
-              {formData.classes?.length > 0 &&
+              {formData.classes?.length &&
                 steps[stepIndex].label === 'Class' &&
                 (!addClass ? (
                   <Button

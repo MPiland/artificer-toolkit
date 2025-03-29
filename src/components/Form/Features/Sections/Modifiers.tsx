@@ -4,11 +4,11 @@ import Input from '../../../Input/Input'
 import Collapse from '../../../Collapse/Collapse'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
-import { useListSpellsQuery } from '../../../../features/spells/spellsApi'
+import { useGetSystemQuery } from '../../../../apis/systemsApi'
+import { useListSpellsQuery } from '../../../../apis/spellsApi'
 import { FeatureContext } from '../FeatureContext'
 import { FormDataType, UpdateState } from '../../../../types/form'
-import { Character, Class, FeatureModifier, SectionEnum, Spell } from '../../../../../amplify/gql/types'
+import { Character, Class, FeatureModifier, Resource, SectionEnum, Spell } from '../../../../../amplify/gql/types'
 import {
   Attributes,
   Categories,
@@ -39,17 +39,23 @@ const Modifiers = () => {
   })
 
   const [modTypes, setModTypes] = useState<typeof system.modifiers.types>([])
-  const [modMethods, setModMethods] = useState<typeof system.modifiers.methods>(null)
+  const [modMethods, setModMethods] = useState<typeof system.modifiers.methods | null>(null)
   const [spellsArray, setSpellsArray] = useState<Spell[]>([])
   const [typeOptions, setTypeOptions] = useState<boolean>(false)
 
   const sectionCategory = system.modifiers.categories.find((category) => category.id === sectionData?.category)
 
-  const categoryName = getKeyFromId(sectionData?.category, { ...ModifierCategories, ...ModifierSpellCategories })
+  const categoryName =
+    sectionData?.category ?
+      getKeyFromId(sectionData?.category, { ...ModifierCategories, ...ModifierSpellCategories })
+    : null
 
-  const path = getModifierProperties({
-    category: categoryName,
-  })
+  const path =
+    categoryName ?
+      getModifierProperties({
+        category: categoryName,
+      })
+    : null
 
   useEffect(() => {
     if (sectionData.__typename == null) {
@@ -78,19 +84,34 @@ const Modifiers = () => {
   // Set modTypes and modMethods options
   useEffect(() => {
     if (sectionData != null) {
+      let types: typeof system.modifiers.types = []
       if (sectionData?.category === ModifierCategories.spell) {
-        const types = system.modifiers.spellCategories?.find(
-          (category) => category.id === sectionData?.spellCategory
-        )?.types
-
-        setModTypes(types)
+        types =
+          system.modifiers.spellCategories
+            ?.find((category) => category.id === sectionData?.spellCategory)
+            ?.types?.map((type) => ({
+              label: type.label,
+              value: type.value,
+              id: type.id,
+              __typename: 'GenericType',
+            })) || []
       } else {
-        const types = system.modifiers.categories?.find((category) => category.id === sectionData?.category)?.types
+        types =
+          system.modifiers.categories
+            ?.find((category) => category.id === sectionData?.category)
+            ?.types?.map((type) => ({
+              label: type.label,
+              value: type.value,
+              id: type.id,
+              __typename: 'GenericType',
+            })) || []
+      }
 
+      if (types?.length) {
         setModTypes(types)
       }
     }
-    if (modTypes?.length > 0) {
+    if (modTypes?.length) {
       if (sectionData?.category === ModifierCategories.spell) {
         const methods = system.modifiers.methods.filter((method) => {
           return system.modifiers.categoryMethods.some(
@@ -115,7 +136,7 @@ const Modifiers = () => {
         setModMethods(methods)
       }
     }
-  }, [system.modifiers.categories, system.modifiers.spellCategories, modTypes, sectionData, system.modifiers])
+  }, [modTypes, sectionData, system])
 
   // Filter spells array
   useEffect(() => {
@@ -145,7 +166,7 @@ const Modifiers = () => {
         sectionData?.type !== ModifierTypes.penaltyDie) ||
         sectionData?.method !== ModifierMethods.setPerLevel ||
         !modMethods?.some((method) => method.id === ModifierMethods.setPerLevel)) &&
-      sectionData?.diePerLevel?.length > 0
+      sectionData?.diePerLevel?.length
     ) {
       updateSectionData({
         type: 'remove',
@@ -158,7 +179,7 @@ const Modifiers = () => {
         sectionData?.type === ModifierTypes.penaltyDie) &&
       sectionData?.method === ModifierMethods.setPerLevel &&
       modMethods?.some((method) => method.id === ModifierMethods.setPerLevel) &&
-      (!sectionData?.diePerLevel || !(sectionData?.diePerLevel?.length > 0))
+      (!sectionData?.diePerLevel || !sectionData?.diePerLevel?.length)
     ) {
       updateSectionData({
         type: 'add',
@@ -175,7 +196,7 @@ const Modifiers = () => {
         sectionData?.type !== ModifierTypes.penalty) ||
         sectionData?.method !== ModifierMethods.setPerLevel ||
         !modMethods?.some((method) => method.id === ModifierMethods.setPerLevel)) &&
-      sectionData?.setPerLevel?.length > 0
+      sectionData?.setPerLevel?.length
     ) {
       updateSectionData({
         type: 'remove',
@@ -188,7 +209,7 @@ const Modifiers = () => {
         sectionData?.type === ModifierTypes.penalty) &&
       sectionData?.method === ModifierMethods.setPerLevel &&
       modMethods?.some((method) => method.id === ModifierMethods.setPerLevel) &&
-      (!sectionData?.setPerLevel || !(sectionData?.setPerLevel?.length > 0))
+      (!sectionData?.setPerLevel || !sectionData?.setPerLevel?.length)
     ) {
       updateSectionData({
         type: 'add',
@@ -197,7 +218,7 @@ const Modifiers = () => {
     }
   }, [sectionData?.type, sectionData?.method, sectionData?.setPerLevel, updateSectionData, modMethods])
 
-  console.log({ sectionData })
+  if (!path) return null
 
   return (
     <>
@@ -208,7 +229,7 @@ const Modifiers = () => {
             name='attributes'
             options={system.attributes.filter(
               (attribute) =>
-                attribute?.sections?.length > 0 &&
+                attribute?.sections?.length &&
                 attribute?.sections?.includes(SectionEnum.all) &&
                 (formData as Class).category === Categories.subclass &&
                 attribute?.sections?.includes(SectionEnum.subclasses)
@@ -252,7 +273,7 @@ const Modifiers = () => {
             </Grid.Item>
           </>
         )}
-        {modTypes?.length > 0 && sectionCategory != null && (
+        {modTypes?.length && sectionCategory != null && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='type'
@@ -264,7 +285,7 @@ const Modifiers = () => {
             />
           </Grid.Item>
         )}
-        {modMethods != null && modMethods?.length > 0 && (
+        {modMethods != null && modMethods?.length && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='method'
@@ -279,19 +300,20 @@ const Modifiers = () => {
         {typeOptions && sectionData?.category !== ModifierCategories.spell && sectionData?.category != null && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
-              name={`${path}`}
+              name={path}
               multiSelect={true}
-              label={`${sectionCategory.label}`}
+              label={sectionCategory?.label}
               value={sectionData[path]}
               options={
-                sectionData?.category === ModifierCategories.saveAbilities
-                  ? system.abilities
-                  : sectionData?.category === ModifierCategories.conditionSave
-                  ? system.conditions
-                  : sectionData?.category === ModifierCategories.spellDC ||
-                    sectionData?.category === ModifierCategories.damageSave
-                  ? system.damageTypes
-                  : system[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
+                sectionData?.category === ModifierCategories.saveAbilities ? system.abilities
+                : sectionData?.category === ModifierCategories.conditionSave ?
+                  system.conditions
+                : (
+                  sectionData?.category === ModifierCategories.spellDC ||
+                  sectionData?.category === ModifierCategories.damageSave
+                ) ?
+                  system.damageTypes
+                : system[path as 'damageTypes' | 'conditions' | 'abilities' | 'speeds']
               }
               required={true}
               onChange={updateSectionData}
@@ -315,10 +337,10 @@ const Modifiers = () => {
                 name='feature'
                 label='Feature'
                 value={sectionData?.feature}
-                options={[].concat(
-                  (formData as Exclude<FormDataType, Spell | Character>)?.features,
-                  (formData as Class).resource
-                )}
+                options={[
+                  ...((formData as Exclude<FormDataType, Spell | Character>)?.features || []),
+                  { ...((formData as Class)?.resource as Resource) },
+                ]}
                 required={true}
                 onChange={updateSectionData}
               />
@@ -326,7 +348,7 @@ const Modifiers = () => {
           </>
         )}
         {sectionData?.category === ModifierCategories.spell &&
-          (sectionData?.spellCategory === ModifierSpellCategories.spellDuration ? (
+          (sectionData?.spellCategory === ModifierSpellCategories.spellDuration ?
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
@@ -354,7 +376,7 @@ const Modifiers = () => {
                 </>
               )}
             </>
-          ) : sectionData?.spellCategory === ModifierSpellCategories.spellRange ? (
+          : sectionData?.spellCategory === ModifierSpellCategories.spellRange ?
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
@@ -395,9 +417,12 @@ const Modifiers = () => {
                       name='unit'
                       label='UoM'
                       value={sectionData?.unit}
-                      options={Object.values(system.rules.measurements.imperial).flatMap(
-                        (rule) => Array.isArray(rule) && rule
-                      )}
+                      options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                        if (Array.isArray(rule)) {
+                          return rule
+                        }
+                        return []
+                      })}
                       required={sectionData?.range === Ranges.distance ? true : false}
                       onChange={updateSectionData}
                     />
@@ -405,8 +430,7 @@ const Modifiers = () => {
                 </>
               )}
             </>
-          ) : (
-            sectionData?.spellCategory === ModifierSpellCategories.spellShape && (
+          : sectionData?.spellCategory === ModifierSpellCategories.spellShape && (
               <>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
@@ -436,9 +460,12 @@ const Modifiers = () => {
                         name='unit'
                         label='UoM'
                         value={sectionData?.unit}
-                        options={Object.values(system.rules.measurements.imperial).flatMap(
-                          (rule) => Array.isArray(rule) && rule
-                        )}
+                        options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
+                          if (Array.isArray(rule)) {
+                            return rule
+                          }
+                          return []
+                        })}
                         required={true}
                         onChange={updateSectionData}
                       />
@@ -446,13 +473,12 @@ const Modifiers = () => {
                   </>
                 )}
               </>
-            )
-          ))}
+            ))}
         {sectionData?.method != null && sectionData?.method !== ModifierMethods.setPerLevel && (
           <>
             {(sectionData?.type === ModifierTypes.bonus || sectionData?.type === ModifierTypes.setAmount) && (
               <>
-                {sectionData?.method === ModifierMethods.setGlobally ? (
+                {sectionData?.method === ModifierMethods.setGlobally ?
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       validation='num'
@@ -465,7 +491,7 @@ const Modifiers = () => {
                       onChange={updateSectionData}
                     />
                   </Grid.Item>
-                ) : sectionData?.method === ModifierMethods.abilityScoreModifier ? (
+                : sectionData?.method === ModifierMethods.abilityScoreModifier ?
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
                       name='methodAbility'
@@ -476,8 +502,7 @@ const Modifiers = () => {
                       onChange={updateSectionData}
                     />
                   </Grid.Item>
-                ) : (
-                  sectionData?.method === ModifierMethods.skillModifier && (
+                : sectionData?.method === ModifierMethods.skillModifier && (
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='methodSkill'
@@ -489,7 +514,7 @@ const Modifiers = () => {
                       />
                     </Grid.Item>
                   )
-                )}
+                }
               </>
             )}
             {sectionData?.method !== ModifierMethods.setGlobally && (
@@ -520,18 +545,21 @@ const Modifiers = () => {
             )}
           </>
         )}
-        {subtypeSpecific && formData.__typename === 'Class' && sectionData?.category != null && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='subtype'
-              label='Subclass Subtype'
-              value={sectionData?.subtype}
-              options={formData?.subtypes}
-              required={true}
-              onChange={updateSectionData}
-            />
-          </Grid.Item>
-        )}
+        {subtypeSpecific &&
+          formData.__typename === 'Class' &&
+          sectionData?.category != null &&
+          formData?.subtypes?.length && (
+            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+              <Dropdown
+                name='subtype'
+                label='Subclass Subtype'
+                value={sectionData?.subtype}
+                options={formData?.subtypes}
+                required={true}
+                onChange={updateSectionData}
+              />
+            </Grid.Item>
+          )}
         {providesOptions && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Input
@@ -551,7 +579,7 @@ const Modifiers = () => {
             <Prerequisites formData={sectionData} updateFormData={updateSectionData} />
           </Grid.Item>
         )}
-        {sectionData?.method === ModifierMethods.setPerLevel && sectionData?.diePerLevel?.length > 0 && (
+        {sectionData?.method === ModifierMethods.setPerLevel && sectionData?.diePerLevel?.length && (
           <Grid.Item>
             <Collapse>
               <Collapse.Header title='Die Per Level' />
@@ -594,7 +622,7 @@ const Modifiers = () => {
             </Collapse>
           </Grid.Item>
         )}
-        {sectionData?.method === ModifierMethods.setPerLevel && sectionData?.setPerLevel?.length > 0 && (
+        {sectionData?.method === ModifierMethods.setPerLevel && sectionData?.setPerLevel?.length && (
           <Grid.Item>
             <Collapse>
               <Collapse.Header title='Set Per Level' />

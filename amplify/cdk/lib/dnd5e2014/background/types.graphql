@@ -4,13 +4,13 @@ type BackgroundCurrency {
 }
 
 type BackgroundEquipment {
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID
-  equipment: [ID]
-  properties: [ID]
+  equipment: [ID!]
+  properties: [ID!]
   quantity: Int
-  currencies: [BackgroundCurrency]
+  currencies: [BackgroundCurrency!]
 }
 
 type Background {
@@ -19,15 +19,15 @@ type Background {
   value: String!
   desc: String
   details: [Detail!]
-  equipment: [[[BackgroundEquipment]]]
-  proficiencies: [FeatureProficiency]
-  features: [Feature]
+  equipment: [[[BackgroundEquipment!]]]
+  proficiencies: [FeatureProficiency!]
+  features: [Feature!]
   ownerId: ID!
   systemId: ID!
   masterId: String
 }
 
 type BackgroundConnection {
-  items: [Background!]
+  items: [Background]!
   nextToken: String
 }

@@ -3,7 +3,7 @@ import RaceSelection from '../../../Subforms/Character/Race/RaceSelection'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import { Character } from '../../../../../../amplify/gql/types'
-import { useListRacesQuery } from '../../../../../features/races/racesApi'
+import { useListRacesQuery } from '../../../../../apis/racesApi'
 import { UpdateState } from '../../../../../types/form'
 import Grid from '../../../../Grid/Grid'
 
@@ -22,17 +22,16 @@ const Races = () => {
 
   return (
     <Grid>
-      {formData?.race != null && !changeRace ? (
+      {formData?.race && fullRace && !changeRace ?
         <RaceFeatures
           formData={formData}
+          raceId={formData.race}
           fullRace={fullRace}
           raceLineages={raceLineages}
           fullAncestry={fullAncestry}
           updateFormData={updateFormData}
         />
-      ) : (
-        <RaceSelection />
-      )}
+      : <RaceSelection />}
     </Grid>
   )
 }

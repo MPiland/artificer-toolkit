@@ -15,7 +15,7 @@ input PrepareLimitLevelInput {
 }
 
 input PrepareLimitInput {
-  methods: [ID]
+  methods: [ID!]
   level: PrepareLimitLevelInput
 }
 
@@ -23,7 +23,7 @@ input SpellcastingInput {
   magicName: String
   ability: ID
   maxSpellLevel: Int
-  attributes: [ID]
+  attributes: [ID!]
   charges: ChargeInput
   prepareLimit: PrepareLimitInput
 }
@@ -34,15 +34,16 @@ input SpellSlotInput {
 
 input LevelAttributeInput {
   level: Int
-  spellSlots: [SpellSlotInput]
+  spellSlots: [SpellSlotInput!]
   resourcePoints: Int
   spellsKnownLimit: Int
   cantripsKnownLimit: Int
 }
 
 input ResourceInput {
-  label: String
-  value: String
+  label: String!
+  value: String!
+  id: ID!
   levelAvailable: Int
   charges: ChargeInput
   method: ID
@@ -72,34 +73,34 @@ input ClassCurrencyInput {
 }
 
 input ClassEquipmentInput {
-  attributes: [ID]
+  attributes: [ID!]
   selectionCount: Int
   category: ID
-  equipment: [ID]
-  properties: [ID]
+  equipment: [ID!]
+  properties: [ID!]
   quantity: Int
-  currencies: [ClassCurrencyInput]
+  currencies: [ClassCurrencyInput!]
 }
 
 input ClassInput {
-  id: ID
+  id: ID!
   label: String!
   value: String!
   desc: String
   category: ID!
-  attributes: [ID]
-  details: [DetailInput]
+  attributes: [ID!]
+  details: [DetailInput!]
   hitpoint: HitpointInput
   startingGold: StartingGoldInput
-  equipment: [[[ClassEquipmentInput]]]
-  proficiencies: [FeatureProficiencyInput]
+  equipment: [[[ClassEquipmentInput!]!]!]
+  proficiencies: [FeatureProficiencyInput!]
   spellcasting: SpellcastingInput
-  levelAttributes: [LevelAttributeInput]
+  levelAttributes: [LevelAttributeInput!]
   resource: ResourceInput
   multiclass: MulticlassInput
   parentClass: ID
-  subtypes: [SubtypeInput]
-  features: [FeatureInput]
+  subtypes: [SubtypeInput!]
+  features: [FeatureInput!]
   ownerId: String
   systemId: ID!
   masterId: String

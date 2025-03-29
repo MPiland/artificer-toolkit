@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import { card_group, card_header, card_header_title, main_card, subrace_card } from '../../../Character.css'
 import clsx from 'clsx'
-import { useListRacesQuery } from '../../../../../features/races/racesApi'
+import { useListRacesQuery } from '../../../../../apis/racesApi'
 import { Categories } from '../../../../../types/enums'
 import { Race } from '../../../../../../amplify/gql/types'
 import Grid from '../../../../Grid/Grid'

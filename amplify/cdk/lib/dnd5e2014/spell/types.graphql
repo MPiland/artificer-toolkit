@@ -46,16 +46,16 @@ type Spell {
   label: String!
   value: String!
   desc: String
-  level: Int
+  level: Int!
   school: ID!
-  classes: [ID]!
-  attributes: [ID]
+  classes: [ID!]!
+  attributes: [ID!]
   upcast: Upcast
   actions: ActionGroup
   targets: Int
   saveAbility: SaveAbility
-  conditions: [ID]
-  requirements: [ID]
+  conditions: [ID!]
+  requirements: [ID!]
   range: Range!
   shape: Shape
   duration: Duration!
@@ -67,6 +67,6 @@ type Spell {
 }
 
 type SpellConnection {
-  items: [Spell!]
+  items: [Spell]!
   nextToken: String
 }

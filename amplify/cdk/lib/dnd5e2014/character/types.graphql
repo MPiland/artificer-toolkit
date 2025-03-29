@@ -109,7 +109,7 @@ type CharacterFeatureOption {
 
 type CharacterFeature {
   id: ID
-  options: [CharacterFeatureOption]
+  options: [CharacterFeatureOption!]
   classId: ID
   raceId: ID
   ancestryId: ID
@@ -132,8 +132,8 @@ type RollType {
   ability: ID!
   rolling: Boolean!
   applied: Boolean!
-  rolled: [Roll]!
-  kept: [Roll]!
+  rolled: [Roll!]!
+  kept: [Roll!]
 }
 
 type Manual {
@@ -143,8 +143,8 @@ type Manual {
 
 type ManualRolled {
   configuration: String!
-  rollGroups: [[RollType]]
-  manual: [Manual]
+  rollGroups: [[RollType!]!]
+  manual: [Manual!]
 }
 
 type Distributed {
@@ -154,7 +154,7 @@ type Distributed {
 
 type PointBuy {
   pointsLeft: Int
-  distributed: [Distributed]
+  distributed: [Distributed!]
 }
 
 type StandardArray {
@@ -174,9 +174,9 @@ type Scores {
 type CharacterAbilities {
   manualRolled: ManualRolled
   pointBuy: PointBuy
-  standardArray: [StandardArray]
+  standardArray: [StandardArray!]
   selectedSystem: ID
-  scores: [Scores]
+  scores: [Scores!]
 }
 
 ## CharacterAncestry
@@ -184,7 +184,7 @@ type CharacterAbilities {
 type CharacterAncestry {
   id: ID
   raceId: ID
-  lineages: [ID]
+  lineages: [ID!]
 }
 
 ## Class
@@ -213,7 +213,7 @@ type ClassSpell {
 
 type ClassSpellList {
   level: Int!
-  spells: [ClassSpell]
+  spells: [ClassSpell!]
 }
 
 type CharacterSpellSlots {
@@ -223,16 +223,16 @@ type CharacterSpellSlots {
 }
 
 type CharacterSpellcasting {
-  prepared: [ClassSpellList]
-  known: [ClassSpellList]
-  additional: [CharacterSpell]
-  spellSlots: [CharacterSpellSlots]
+  prepared: [ClassSpellList!]
+  known: [ClassSpellList!]
+  additional: [CharacterSpell!]
+  spellSlots: [CharacterSpellSlots!]
 }
 
 type CharacterClass {
-  id: ID
+  id: ID!
   subclass: Subclass
-  level: Int
+  level: Int!
 }
 
 type StartingEquipment {
@@ -244,19 +244,19 @@ type StartingEquipment {
 type StartingEquipmentGroup {
   optionId: ID!
   groupId: ID!
-  equipment: [StartingEquipment]
+  equipment: [StartingEquipment!]
 }
 
 type ClassStartingEquipment {
   option: ID!
   goldOption: ID
   totalGold: Int
-  equipmentGroups: [StartingEquipmentGroup]
+  equipmentGroups: [StartingEquipmentGroup!]
   addedToCharacter: Boolean
 }
 
 type BackgroundStartingEquipment {
-  equipmentGroups: [StartingEquipmentGroup]
+  equipmentGroups: [StartingEquipmentGroup!]
   addedToCharacter: Boolean
 }
 
@@ -273,7 +273,7 @@ type CharacterCurrency {
 }
 
 type CurrencyGroup {
-  currencies: [CharacterCurrency]
+  currencies: [CharacterCurrency!]
   container: ID
 }
 
@@ -283,7 +283,7 @@ type HitpointRollValues {
 }
 
 type HitpointRoll {
-  values: [HitpointRollValues]
+  values: [HitpointRollValues!]
   total: Int
   current: Int
 }
@@ -296,7 +296,7 @@ type HitpointFixed {
 type CharacterHitpoint {
   method: ID!
   maxOverride: Int
-  maxHitpoints: Int!
+  maxHitpoints: Int
   temp: Int
   bonus: Int
   rolled: HitpointRoll
@@ -305,8 +305,8 @@ type CharacterHitpoint {
 
 type Character {
   id: ID!
-  value: String
-  label: String
+  value: String!
+  label: String!
   desc: String
   advancement: ID
   exp: ID
@@ -315,23 +315,23 @@ type Character {
   race: ID
   ancestry: CharacterAncestry
   background: ID
-  classes: [CharacterClass]
+  classes: [CharacterClass!]
   spellcasting: CharacterSpellcasting
   classEquipment: ClassStartingEquipment
   backgroundEquipment: BackgroundStartingEquipment
-  equipment: [Contains]
-  currencyGroups: [CurrencyGroup]
-  features: [CharacterFeature]
-  feats: [CharacterFeat]
-  proficiencies: [CharacterProficiency]
-  expertise: [CharacterExpertise]
-  modifiers: [CharacterModifier]
-  senses: [CharacterSense]
+  equipment: [Contains!]
+  currencyGroups: [CurrencyGroup!]
+  features: [CharacterFeature!]
+  feats: [CharacterFeat!]
+  proficiencies: [CharacterProficiency!]
+  expertise: [CharacterExpertise!]
+  modifiers: [CharacterModifier!]
+  senses: [CharacterSense!]
   ownerId: String!
   systemId: String!
 }
 
 type CharacterConnection {
-  items: [Character!]
+  items: [Character]!
   nextToken: String
 }

@@ -7,19 +7,19 @@ import {
   point_counter_label,
 } from '../../Character.css'
 import Dropdown from '../../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { UpdateState } from '../../../../types/form'
 import { isEqual } from 'lodash'
 import { AbilityGenerate } from '../../../../types/enums'
 import { Character } from '../../../../../amplify/gql/types'
 import Grid from '../../../Grid/Grid'
 
-const PointBuy = ({
+const PointBuy = <T extends Character>({
   formData,
   updateFormData,
 }: {
-  formData: Character
-  updateFormData: (arg: UpdateState<Character>) => void
+  formData: T
+  updateFormData: (arg: UpdateState<T>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
@@ -32,7 +32,7 @@ const PointBuy = ({
   // Set pointsLeft for pointBuy
   useEffect(() => {
     if (pointsLeft == null && pointBuy) {
-      setPointsLeft(pointBuy.total)
+      setPointsLeft(pointBuy?.total || 0)
     }
   }, [pointBuy, pointsLeft])
 
@@ -41,7 +41,7 @@ const PointBuy = ({
     if (!pointBuy) return
 
     let emptyArray: boolean = true
-    if (formData.abilities?.pointBuy?.distributed?.length > 0) {
+    if (formData.abilities?.pointBuy?.distributed?.length) {
       formData.abilities.pointBuy.distributed.forEach((distribution) => {
         if (distribution?.ability && distribution?.id) {
           const option = pointBuy.options.find((option) => option.id === distribution.id)
@@ -50,9 +50,9 @@ const PointBuy = ({
           const scoreValue = Number(option.value)
           const abilityIndex = formData.abilities?.scores?.findIndex((score) => score.ability === distribution.ability)
 
-          if (abilityIndex !== -1) {
+          if (abilityIndex && abilityIndex !== -1) {
             emptyArray = false
-            if (!isEqual(formData.abilities?.scores[abilityIndex]?.baseScore, scoreValue)) {
+            if (!isEqual(formData.abilities?.scores?.[abilityIndex]?.baseScore, scoreValue)) {
               updateFormData({
                 type: 'update',
                 path: `abilities.scores.${abilityIndex}.baseScore`,
@@ -64,7 +64,7 @@ const PointBuy = ({
       })
     }
 
-    if (emptyArray || !(formData.abilities?.pointBuy?.distributed?.length > 0)) {
+    if (emptyArray || !formData.abilities?.pointBuy?.distributed?.length) {
       // Reset ability score to 0 if there are no distributed points selected for that ability
       formData.abilities?.scores?.forEach((score, index) => {
         if (score.baseScore !== 0) {
@@ -84,39 +84,38 @@ const PointBuy = ({
     const newPointBuyId = String(e?.value)
     const pointBuyOption = pointBuy.options.find((option) => option.id === newPointBuyId)
 
-    if (pointBuyOption) {
-      // Calculate new points left
-      const currentId = formData.abilities?.pointBuy?.distributed?.[aIndex]?.id
-      const currentOption = currentId ? pointBuy.options.find((opt) => opt.id === currentId) : null
-      const currentReduce = currentOption ? currentOption.reduce : 0
-      const newReduce = pointBuyOption.reduce
+    // Calculate new points left
+    const currentId = formData.abilities?.pointBuy?.distributed?.[aIndex]?.id
+    const currentOption = pointBuy.options.find((opt) => opt.id === currentId)
+    const currentReduce = currentOption?.reduce
+    if (currentOption) {
+      if (pointBuyOption) {
+        const newReduce = pointBuyOption.reduce
 
-      // Update points left
-      const pointDifference = newReduce - currentReduce
-      const newPointsLeft = pointsLeft - pointDifference
-      setPointsLeft(newPointsLeft)
-
-      // Update the form data
-      updateFormData({
-        type: 'update',
-        path: `abilities.pointBuy.distributed.${aIndex}`,
-        value: { ability: ability, id: newPointBuyId },
-      })
-    } else {
-      // Handle deselection case
-      const currentId = formData.abilities?.pointBuy?.distributed?.[aIndex]?.id
-      if (currentId) {
-        const currentOption = pointBuy.options.find((opt) => opt.id === currentId)
-        if (currentOption) {
-          const newPointsLeft = pointsLeft + currentOption.reduce
+        if (newReduce && currentReduce && pointsLeft) {
+          // Update points left
+          const pointDifference = newReduce - currentReduce
+          const newPointsLeft = pointsLeft - pointDifference
           setPointsLeft(newPointsLeft)
         }
-      }
+        // Update the form data
+        updateFormData({
+          type: 'update',
+          path: `abilities.pointBuy.distributed.${aIndex}`,
+          value: { ability: ability, id: newPointBuyId },
+        })
+      } else {
+        // Handle deselection case
+        if (pointsLeft && currentReduce) {
+          const newPointsLeft = pointsLeft + currentReduce
+          setPointsLeft(newPointsLeft)
+        }
 
-      updateFormData({
-        type: 'remove',
-        path: `abilities.pointBuy.distributed.${aIndex}`,
-      })
+        updateFormData({
+          type: 'remove',
+          path: `abilities.pointBuy.distributed.${aIndex}`,
+        })
+      }
     }
   }
 
@@ -136,15 +135,17 @@ const PointBuy = ({
 
         return (
           <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown<Character>
+            <Dropdown
               name='id'
               label={abilityLabel}
               key={index}
               value={currentId}
               options={pointBuy.options
                 .filter((option) => {
-                  if (currentOption) {
-                    return option.reduce - currentOption.reduce <= pointsLeft
+                  if (option.reduce && pointsLeft) {
+                    if (currentOption.reduce) {
+                      return option.reduce - currentOption.reduce <= pointsLeft
+                    }
                   }
                   return option.reduce <= pointsLeft
                 })
@@ -160,14 +161,14 @@ const PointBuy = ({
                       if (pointDifference !== 0) {
                         const absPointDiff = Math.abs(pointDifference)
                         const pointOrPoints = absPointDiff === 1 ? 'Point' : 'Points'
-                        const sign = pointDifference > 0 ? '-' : '+'
+                        const sign = pointDifference ? '-' : '+'
 
                         pointsText = `${sign}${absPointDiff} ${pointOrPoints}`
                       }
                     }
                   } else {
                     // Nothing is selected - show cost
-                    if (option.reduce > 0) {
+                    if (option.reduce) {
                       const pointOrPoints = option.reduce === 1 ? 'Point' : 'Points'
                       pointsText = `-${option.reduce} ${pointOrPoints}`
                     }

@@ -16,17 +16,21 @@ const EquipmentOption = ({ option, equipmentIndex, optionIndex, equipmentLength 
     <Fragment>
       <Grid>
         {option?.length > 0 &&
-          option?.map((group, groupIndex) => (
-            <EquipmentGroupItem
-              key={groupIndex}
-              group={group}
-              equipmentIndex={equipmentIndex}
-              optionIndex={optionIndex}
-              groupIndex={groupIndex}
-              optionLength={option.length}
-              equipmentLength={equipmentLength}
-            />
-          ))}
+          option?.map((group, groupIndex) => {
+            if (group) {
+              return (
+                <EquipmentGroupItem
+                  key={groupIndex}
+                  group={group}
+                  equipmentIndex={equipmentIndex}
+                  optionIndex={optionIndex}
+                  groupIndex={groupIndex}
+                  optionLength={option.length}
+                  equipmentLength={equipmentLength}
+                />
+              )
+            }
+          })}
       </Grid>
       {optionIndex !== equipmentLength - 1 && <Divider label={'OR'} />}
     </Fragment>

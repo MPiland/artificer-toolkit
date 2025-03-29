@@ -51,19 +51,14 @@ export const generateRandomPoints = (numPoints: number, minDistance: number, cen
 }
 
 export const parseDiceRoll = (rollString: RollConfig) => {
-  if (!rollString) return
-
   const rollRegex =
     /(?<quantity>\d+)?(?:d(?<die>\d+)?)?(?<keep>(?<keepType>(?:kl|kh))?(?<keepCount>\d+))?(?<drop>(?<dropType>(?:dl|dh))?(?<dropCount>\d+))?(?<reroll>(?<rerollType>(?:ro|r))?(?<rerollCondition>[<>])?(?<rerollValue>\d+)?)?/
+
   const match = rollString.match(rollRegex)
 
-  if (!match || !match.groups) {
-    return
-  }
-
   return {
-    quantity: (Number(match?.groups?.quantity) || null) as DiceConfig['quantity'],
-    die: (Number(match?.groups?.die) || null) as DiceConfig['die'],
+    quantity: (Number(match?.groups?.quantity) || 0) as DiceConfig['quantity'],
+    die: (Number(match?.groups?.die) || 0) as DiceConfig['die'],
     keepType: (match?.groups?.keepType || null) as DiceConfig['keepType'],
     keepCount: (Number(match?.groups?.keepCount) || null) as DiceConfig['keepCount'],
     dropType: (match?.groups?.dropType || null) as DiceConfig['dropType'],

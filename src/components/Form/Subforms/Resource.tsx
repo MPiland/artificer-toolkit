@@ -2,19 +2,19 @@ import Collapse from '../../Collapse/Collapse'
 import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { useGetSystemQuery } from '../../../features/systems/systemsApi'
+import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { Class, ClassesEnum } from '../../../../amplify/gql/types'
 
 import { Attributes } from '../../../types/enums'
 import { UpdateState } from '../../../types/form'
 import Grid from '../../Grid/Grid'
 
-const Resource = ({
+const Resource = <T extends Class>({
   formData,
   updateFormData,
 }: {
-  formData: Class
-  updateFormData: (arg: UpdateState<Class>) => void
+  formData: T
+  updateFormData: (arg: UpdateState<T>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
@@ -31,7 +31,7 @@ const Resource = ({
                     name='resource.label'
                     label='Resource Name'
                     autoComplete='off'
-                    value={formData?.resource.label}
+                    value={formData?.resource?.label}
                     required={true}
                     onChange={updateFormData}
                   />
@@ -54,7 +54,7 @@ const Resource = ({
                     label='Resource Limit Method'
                     value={formData?.resource?.charges?.limit}
                     options={system.charges.limits.filter(
-                      (limit) => limit?.classes?.length > 0 && limit?.classes?.includes(ClassesEnum.resources)
+                      (limit) => limit?.classes?.length && limit?.classes?.includes(ClassesEnum.resources)
                     )}
                     required={true}
                     onChange={updateFormData}

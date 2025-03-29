@@ -3,8 +3,8 @@ import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import { useGetSystemQuery } from '../../../../features/systems/systemsApi'
-import { useListEquipmentQuery } from '../../../../features/equipment/equipmentApi'
+import { useGetSystemQuery } from '../../../../apis/systemsApi'
+import { useListEquipmentQuery } from '../../../../apis/equipmentApi'
 import { FeatureContext } from '../FeatureContext'
 import { Class, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../types/form'
@@ -41,7 +41,7 @@ const Proficiencies = () => {
           name='attributes'
           options={system.attributes.filter(
             (attribute) =>
-              (attribute?.sections?.length > 0 && attribute?.sections?.includes(SectionEnum.all)) ||
+              (attribute?.sections?.length && attribute?.sections?.includes(SectionEnum.all)) ||
               ((formData as Class).category === Categories.subclass &&
                 attribute?.sections?.includes(SectionEnum.subclasses))
           )}
@@ -61,7 +61,7 @@ const Proficiencies = () => {
         />
       </Grid.Item>
       {sectionCategory != null &&
-        (path !== 'equipment' && path !== 'properties' && path !== 'initiative' ? (
+        (path !== 'equipment' && path !== 'properties' && path !== 'initiative' ?
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={`${path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>}`}
@@ -69,16 +69,15 @@ const Proficiencies = () => {
               label={`${sectionCategory.label} Type`}
               value={sectionData[path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>]}
               options={
-                path === 'saveAbilities'
-                  ? system.abilities
-                  : system[path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>]
+                path === 'saveAbilities' ?
+                  system.abilities
+                : system[path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>]
               }
               required={true}
               onChange={updateSectionData}
             />
           </Grid.Item>
-        ) : (
-          <>
+        : <>
             {(sectionCategory.id === ProficiencyCategories.properties ||
               sectionCategory.id === ProficiencyCategories.equipment) && (
               <>
@@ -124,8 +123,7 @@ const Proficiencies = () => {
                 )}
               </>
             )}
-          </>
-        ))}
+          </>)}
       <Dropdown
         name='level'
         label='Proficiency Level'
@@ -144,7 +142,7 @@ const Proficiencies = () => {
           onChange={updateSectionData}
         />
       )}
-      {subtypeSpecific && formData.__typename === 'Class' && sectionCategory != null && (
+      {subtypeSpecific && formData.__typename === 'Class' && sectionCategory != null && formData?.subtypes?.length && (
         <Dropdown
           name='subtype'
           label='Subclass Subtype'
