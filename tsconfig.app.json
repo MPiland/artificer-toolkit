@@ -2,7 +2,8 @@
   "compilerOptions": {
     "composite": true,
     "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "jsx": "react-jsx",
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["src/types/**/*.ts"],
