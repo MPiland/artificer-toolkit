@@ -43,7 +43,7 @@ input EquipmentInput {
   weight: WeightInput
   capacity: CapacityInput
   maxStack: Int
-  quantity: Int
+  quantity: Int!
   properties: [ID!]
   category: ID!
   equipmentRank: Int

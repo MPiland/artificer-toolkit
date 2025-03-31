@@ -1254,7 +1254,7 @@ export type EquipmentInput = {
   prerequisities?: InputMaybe<PrerequisiteInput>;
   primaryAbility?: InputMaybe<Scalars['ID']['input']>;
   properties?: InputMaybe<Array<Scalars['ID']['input']>>;
-  quantity?: InputMaybe<Scalars['Int']['input']>;
+  quantity: Scalars['Int']['input'];
   quote?: InputMaybe<Scalars['String']['input']>;
   range?: InputMaybe<EquipmentRangeInput>;
   rarity: Scalars['ID']['input'];

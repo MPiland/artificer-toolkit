@@ -11082,6 +11082,10 @@
       "value": "adventuringGear",
       "label": "Adventuring Gear"
     },
+    "quantity": 1,
+    "rarity": {
+      "value": "common"
+    },
     "properties": {
       "type": [
         {
