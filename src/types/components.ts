@@ -32,14 +32,6 @@ export type SortConfig = {
   direction?: 'ascending' | 'descending'
 }
 
-export type ReducerAction = {
-  type?: 'added' | 'reset' | 'removed'
-  target: {
-    name?: string | string[]
-    value?: any
-  }
-}
-
 export type DropdownOption = {
   label: string | number | null | undefined | ReactNode
   value: string | number | null | undefined

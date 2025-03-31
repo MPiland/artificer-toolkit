@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/types/**/*.ts"],
+  "references": [{ "path": "./tsconfig.types.json" }]
+}
