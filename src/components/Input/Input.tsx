@@ -23,7 +23,7 @@ const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(
 
 // Define a conditional type to determine the onChange type based on T
 type OnChangeType<T> =
-  T extends { filterState: FilterState } ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
+  T extends FilterState ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
 
 interface InputProps<T> {
   label?: string | boolean
@@ -44,7 +44,7 @@ interface InputProps<T> {
   height?: 'full' | 'auto' | 'default'
   border?: 'none' | 'default'
   textAlign?: 'center'
-  name: T extends { filterState: FilterState } ? string : DeepKeyOf<T>
+  name: DeepKeyOf<T>
   ref?: RefObject<HTMLDivElement>
 }
 
@@ -76,7 +76,7 @@ const Input = <T,>({
   const [error, setError] = useState<boolean>(false)
   const [open, setOpen] = useState<boolean>(false)
 
-  const inputRef = useRef<HTMLInputElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null!)
   const documentRef = useRef<Document>(document)
 
   useEffect(() => {
@@ -110,7 +110,7 @@ const Input = <T,>({
   const debounceSave = useDebounceCallback(
     useCallback(
       (target: React.ChangeEvent<HTMLInputElement>['target']) => {
-        let finalValue: number | undefined = target.value
+        let finalValue: number | undefined | string = target.value
 
         // Convert to number for numeric validations
         if (validation === 'num' || validation === 'cur') {
@@ -122,12 +122,13 @@ const Input = <T,>({
             finalValue = undefined
           }
         }
-
-        onChange({
-          type: 'update',
-          path: name,
-          value: finalValue,
-        })
+        if (onChange) {
+          onChange({
+            type: 'update',
+            path: name,
+            value: finalValue,
+          })
+        }
         setDebouncing(false)
       },
       [name, onChange, validation, error]
@@ -194,7 +195,9 @@ const Input = <T,>({
             input_container,
             input_height[height],
             input_border[border],
-            { [input_textAlign[textAlign]]: textAlign != null },
+            {
+              [input_textAlign[textAlign]]: textAlign != null,
+            },
             {
               ['invalid']: error,
             }
@@ -214,7 +217,7 @@ const Input = <T,>({
             tabIndex={0}
             ref={(el) => {
               inputRef.current = el
-              if (ref) {
+              if (ref && el) {
                 ref.current = el
               }
             }}

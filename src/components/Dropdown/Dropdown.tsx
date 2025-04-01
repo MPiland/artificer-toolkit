@@ -23,7 +23,7 @@ import { FilterState } from '../../store/filterSlice'
 
 // Define a conditional type to determine the onChange type based on T
 type OnChangeType<T> =
-  T extends { filterState: FilterState } ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
+  T extends FilterState ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
 
 export interface DropdownProps<T> {
   label?: string | boolean

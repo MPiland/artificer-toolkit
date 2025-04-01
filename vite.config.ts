@@ -11,7 +11,12 @@ export default defineConfig(() => {
       TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
       react(),
       vanillaExtractPlugin(),
-      eslint(),
+      eslint({
+        exclude: ['**/node_modules/**'],
+        include: ['./src/**/*.ts', './src/**/*.tsx'],
+        emitWarning: process.env.NODE_ENV !== 'production',
+        emitError: process.env.NODE_ENV !== 'production',
+      }),
     ],
     server: {
       port: 3000,

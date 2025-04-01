@@ -3,22 +3,23 @@ import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import { get, startCase } from 'lodash'
 import { useStore } from '../../store/useStore'
-import { FilterState, FormType } from '../../store/filterSlice'
+import { FilterState, StoreFormType } from '../../store/filterSlice'
 import Button from '../Button/Button'
 import { FilterConfig, UpdateFilter } from '../../types/components'
 import Grid from '../Grid/Grid'
 import { FormDataType } from '../../types/form'
 
-// Define a type that includes filterState to pass to Input/Dropdown
-type FilterContextType = { filterState: FilterState }
-
-interface FilterProps<T extends FormType, K extends FormDataType> {
+interface FilterProps<T extends StoreFormType, K extends FormDataType> {
   context: T
   data: K[] | null | undefined
   filterConfigs: FilterConfig<K>[]
 }
 
-const Filter = <T extends FormType, K extends FormDataType>({ context, data, filterConfigs }: FilterProps<T, K>) => {
+const Filter = <T extends StoreFormType, K extends FormDataType>({
+  context,
+  data,
+  filterConfigs,
+}: FilterProps<T, K>) => {
   const { filterState, setFilter, resetFilters } = useStore()
 
   // Get the current filters for this context
@@ -40,9 +41,9 @@ const Filter = <T extends FormType, K extends FormDataType>({ context, data, fil
   const handleFilterChange = useCallback(
     (update: UpdateFilter<K>) => {
       if (update.type === 'update') {
-        setFilter(context as FormType, update.path as any, update.value)
+        setFilter(context as StoreFormType, update.path as any, update.value)
       } else if (update.type === 'remove') {
-        setFilter(context as FormType, update.path as any, null)
+        setFilter(context as StoreFormType, update.path as any, null)
       }
     },
     [context, setFilter]
@@ -50,7 +51,7 @@ const Filter = <T extends FormType, K extends FormDataType>({ context, data, fil
 
   // Handler for the reset button
   const handleReset = useCallback(() => {
-    resetFilters(context as FormType)
+    resetFilters(context as StoreFormType)
   }, [resetFilters, context])
 
   return (
@@ -62,7 +63,7 @@ const Filter = <T extends FormType, K extends FormDataType>({ context, data, fil
           case 'text':
             return (
               <Grid.Item key={config.path} colSpan={{ sm: 4, lg: 'auto' }}>
-                <Input<FilterContextType>
+                <Input<FilterState>
                   key={config.path}
                   name={config.path}
                   label={config.label || startCase(config.path)}
@@ -80,7 +81,7 @@ const Filter = <T extends FormType, K extends FormDataType>({ context, data, fil
 
             return (
               <Grid.Item key={config.path} colSpan={{ sm: 4, lg: 'auto' }}>
-                <Dropdown<FilterContextType>
+                <Dropdown<FilterState>
                   key={config.path}
                   multiSelect={config.type === 'multiSelect'}
                   name={config.path}
