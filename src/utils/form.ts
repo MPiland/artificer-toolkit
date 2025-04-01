@@ -17,7 +17,7 @@ import {
 } from '../../amplify/gql/types'
 import { RollConfig } from '../types/components'
 import { HitPointCalcMethod, ModifierCategories, ModifierSpellCategories } from '../types/enums'
-import { FormDataToInputMapping, FormDataType } from '../types/form'
+import { FormDataType } from '../types/form'
 import { parseDiceRoll } from './dice'
 import { ToOptions, NavigateOptions } from '@tanstack/react-router'
 
@@ -662,7 +662,7 @@ export const sourcePropertyMap = (data: Character) => ({
 })
 
 // Helper function to recursively remove __typename fields from a Spell object
-export const removeTypename = <T extends FormDataType>(data: T): FormDataToInputMapping[T['__typename']] => {
+export const removeTypename = <T extends FormDataType>(data: T): Omit<FormDataType, '__typename'> => {
   // Create a deep copy first
   const deepCopy = JSON.parse(JSON.stringify(data))
 
@@ -696,5 +696,5 @@ export const removeTypename = <T extends FormDataType>(data: T): FormDataToInput
   removeTypenameRecursive(deepCopy)
 
   // Return the cleaned object
-  return deepCopy as FormDataToInputMapping[T['__typename']]
+  return deepCopy
 }

@@ -12,9 +12,9 @@ import {
 import clsx from 'clsx'
 import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import Floating from '../Floating/Floating'
-import { DeepKeyOf, UpdateState } from '../../types/form'
+import { DeepKeyOf, FormDataType, UpdateState } from '../../types/form'
 import { UpdateFilter } from '../../types/components'
-import { StoreFormType, FilterState } from '../../store/filterSlice'
+import { FilterState } from '../../store/filterSlice'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
@@ -23,8 +23,7 @@ const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(
 
 // Define a conditional type to determine the onChange type based on T
 type OnChangeType<T> =
-  T extends { filterState: FilterState } ? (state: UpdateFilter<StoreFormType>) => void
-  : (state: UpdateState<T>) => void
+  T extends { filterState: FilterState } ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
 
 interface InputProps<T> {
   label?: string | boolean

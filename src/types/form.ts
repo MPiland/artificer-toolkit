@@ -1,12 +1,5 @@
 import {
   Character,
-  ClassInput,
-  FeatInput,
-  RaceInput,
-  SpellInput,
-  BackgroundInput,
-  EquipmentInput,
-  CharacterInput,
   Background,
   Class,
   Equipment,
@@ -18,7 +11,6 @@ import {
   FeatureProficiency,
   FeatureSense,
   FeatureSpell,
-  FeatureInput,
   AncestryFeature,
   FeatureOption,
   FeatureFeat,
@@ -28,12 +20,6 @@ import {
   CharacterExpertise,
   CharacterModifier,
   FeatureExpertise,
-  FeatureModifierInput,
-  FeatureProficiencyInput,
-  FeatureSenseInput,
-  FeatureSpellInput,
-  FeatureFeatInput,
-  FeatureExpertiseInput,
 } from '../../amplify/gql/types'
 
 export type UpdateState<T> =
@@ -43,26 +29,6 @@ export type UpdateState<T> =
   | { type: 'reset'; value: any }
   | { type: 'initialReset'; value: any }
   | { type: 'index'; value: number }
-
-export type FormInputType =
-  | SpellInput
-  | RaceInput
-  | ClassInput
-  | FeatInput
-  | BackgroundInput
-  | EquipmentInput
-  | CharacterInput
-  | FeatureInput
-
-export type FormDataToInputMapping = {
-  Spell: SpellInput
-  Race: RaceInput
-  Class: ClassInput
-  Feat: FeatInput
-  Background: BackgroundInput
-  Equipment: EquipmentInput
-  Character: CharacterInput
-}
 
 export type FormDataType = Spell | Race | Class | Feat | Background | Equipment | Character
 
@@ -75,14 +41,6 @@ export type SectionDataType =
   | FeatureSpell
   | FeatureFeat
   | FeatureExpertise
-
-export type SectionDataInput =
-  | FeatureModifierInput
-  | FeatureProficiencyInput
-  | FeatureSenseInput
-  | FeatureSpellInput
-  | FeatureFeatInput
-  | FeatureExpertiseInput
 
 export type CharacterSectionData =
   | CharacterFeat
@@ -157,8 +115,6 @@ export type Step = {
     | 'Ancestry'
     | 'Background'
 }
-
-export type FormSteps = Step['id']
 
 export const sectionSteps = ['modifiers', 'spells', 'proficiencies', 'expertise', 'senses', 'feats'] as const
 

@@ -17,12 +17,13 @@ import { DropdownOption } from '../../types/components'
 import { TbX, TbChevronDown } from 'react-icons/tb'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import Floating from '../Floating/Floating'
-import { DeepKeyOf, UpdateState } from '../../types/form'
+import { DeepKeyOf, FormDataType, UpdateState } from '../../types/form'
 import { UpdateFilter } from '../../types/components'
+import { FilterState } from '../../store/filterSlice'
 
 // Define a conditional type to determine the onChange type based on T
 type OnChangeType<T> =
-  T extends { filterState: FilterState } ? (state: UpdateFilter<FormType>) => void : (state: UpdateState<T>) => void
+  T extends { filterState: FilterState } ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
 
 export interface DropdownProps<T> {
   label?: string | boolean

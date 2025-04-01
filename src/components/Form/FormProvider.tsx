@@ -8,7 +8,7 @@ import Races from './Forms/Character/Race/Races'
 import Attributes from './Forms/Attributes'
 import Abilities from './Forms/Abilities'
 import StartingEquipment from './Forms/StartingEquipment'
-import { FormDataType, FormSteps, UpdateState } from '../../types/form'
+import { FormDataType, Step, UpdateState } from '../../types/form'
 import Classes from './Forms/Character/Classes/Classes'
 import Equipment from './Forms/Character/Equipment/Equipment'
 import AncestryWrapper from './Ancestry/AncestryWrapper'
@@ -115,7 +115,7 @@ const useFormOptions = () => {
   }
 
   // Standard possible form steps
-  const formSteps: Record<FormSteps, ReactElement> = {
+  const formSteps: Record<Step['id'], ReactElement> = {
     details: <Details />,
     attributes: <Attributes />,
     traits: <Traits />,

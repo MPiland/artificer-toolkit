@@ -1,7 +1,7 @@
 import { TbCaretDown, TbCaretUp, TbSquareMinus, TbSquarePlus } from 'react-icons/tb'
 import { useState, ReactNode, useRef, useEffect, cloneElement, Children, ReactElement } from 'react'
 import { tabs_tab, tabs_body, tabs_wrapper, tabs_tab_icon, tabs_content, tabs_header } from './Tabs.css'
-import clsx from 'clsx'
+import { clsx } from 'clsx'
 import Group from '../Group/Group'
 
 interface HeaderProps {
@@ -74,11 +74,18 @@ const Tab = ({ title, className, leftSide, rightSide, isActive, onClick, style }
         {rightSide}
       </Group>
       <Group>
-        {style === 'border' ? (
-          <span className={tabs_tab_icon}>{isActive ? <TbSquarePlus /> : <TbSquareMinus />}</span>
-        ) : (
-          <span className={tabs_tab_icon}>{isActive ? <TbCaretDown /> : <TbCaretUp />}</span>
-        )}
+        {style === 'border' ?
+          <span className={tabs_tab_icon}>
+            {isActive ?
+              <TbSquarePlus />
+            : <TbSquareMinus />}
+          </span>
+        : <span className={tabs_tab_icon}>
+            {isActive ?
+              <TbCaretDown />
+            : <TbCaretUp />}
+          </span>
+        }
       </Group>
     </div>
   )

@@ -22,6 +22,9 @@
     "noImplicitAny": true,
     "strictNullChecks": true
   },
-  "include": ["src", "backend/API.ts"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "references": [
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.types.json" },
+    { "path": "./tsconfig.app.json" }
+  ]
 }
