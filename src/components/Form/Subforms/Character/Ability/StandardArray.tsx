@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
-import Dropdown from '../../../Dropdown/Dropdown'
-import { DeepKeyOf, UpdateState } from '../../../../types/form'
-import { Character, Scores } from '../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../apis/systemsApi'
-import { AbilityGenerate } from '../../../../types/enums'
+import Dropdown from '../../../../Dropdown/Dropdown'
+import { DeepKeyOf, UpdateState } from '../../../../../types/form'
+import { Character, Scores } from '../../../../../../amplify/gql/types'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
+import { AbilityGenerate } from '../../../../../types/enums'
 import { isEqual } from 'lodash'
-import Grid from '../../../Grid/Grid'
+import Grid from '../../../../Grid/Grid'
 
 const StandardArray = ({
   formData,

@@ -1,13 +1,13 @@
-import { GenericType, Scores } from '../../../../../amplify/gql/types'
+import { GenericType, Scores } from '../../../../../../amplify/gql/types'
 import {
   ability_card_header,
   ability_card,
   ability_card_info_label,
   ability_card_info_value,
   ability_card_info,
-} from '../../Character.css'
-import { calculateModifier } from '../../../../utils/form'
-import Grid from '../../../Grid/Grid'
+} from '../../../Character.css'
+import { calculateModifier } from '../../../../../utils/form'
+import Grid from '../../../../Grid/Grid'
 
 const AbilityCard = ({ ability, score }: { ability: GenericType; score: Scores }) => {
   return (

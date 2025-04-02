@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, use, Fragment } from 'react'
-import Button from '../../../Button/Button'
-import Spinner from '../../../Spinner/Spinner'
-import Input from '../../../Input/Input'
-import Group from '../../../Group/Group'
-import { sprinkles } from '../../../../css/sprinkles.css'
+import Button from '../../../../Button/Button'
+import Spinner from '../../../../Spinner/Spinner'
+import Input from '../../../../Input/Input'
+import Group from '../../../../Group/Group'
+import { sprinkles } from '../../../../../css/sprinkles.css'
 import {
   dice_roll_value,
   dice_spinner,
@@ -11,18 +11,18 @@ import {
   roll_score,
   dice_roll_dropdown,
   dice_roll_value_group,
-} from '../../Character.css'
-import Dropdown from '../../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../../apis/systemsApi'
-import { DiceRolls, RollConfig } from '../../../../types/components'
-import Collapse from '../../../Collapse/Collapse'
+} from '../../../Character.css'
+import Dropdown from '../../../../Dropdown/Dropdown'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
+import { DiceRolls, RollConfig } from '../../../../../types/components'
+import Collapse from '../../../../Collapse/Collapse'
 import { isEqual, set } from 'lodash'
 import clsx from 'clsx'
-import { Character, Manual, RollType } from '../../../../../amplify/gql/types'
-import { parseDiceRoll } from '../../../../utils/dice'
-import { DeepKeyOf, UpdateState } from '../../../../types/form'
-import { DiceContext } from '../../../Dice/DiceContext'
-import Grid from '../../../Grid/Grid'
+import { Character, Manual, RollType } from '../../../../../../amplify/gql/types'
+import { parseDiceRoll } from '../../../../../utils/dice'
+import { DeepKeyOf, UpdateState } from '../../../../../types/form'
+import { DiceContext } from '../../../../Dice/DiceContext'
+import Grid from '../../../../Grid/Grid'
 
 const ManualArray = ({
   formData,

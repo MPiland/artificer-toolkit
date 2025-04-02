@@ -5,14 +5,14 @@ import {
   point_buy_option_label,
   point_counter,
   point_counter_label,
-} from '../../Character.css'
-import Dropdown from '../../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../../apis/systemsApi'
-import { UpdateState } from '../../../../types/form'
+} from '../../../Character.css'
+import Dropdown from '../../../../Dropdown/Dropdown'
+import { useGetSystemQuery } from '../../../../../apis/systemsApi'
+import { UpdateState } from '../../../../../types/form'
 import { isEqual } from 'lodash'
-import { AbilityGenerate } from '../../../../types/enums'
-import { Character } from '../../../../../amplify/gql/types'
-import Grid from '../../../Grid/Grid'
+import { AbilityGenerate } from '../../../../../types/enums'
+import { Character } from '../../../../../../amplify/gql/types'
+import Grid from '../../../../Grid/Grid'
 
 const PointBuy = ({
   formData,
@@ -140,53 +140,56 @@ const PointBuy = ({
               label={abilityLabel}
               key={index}
               value={currentId}
-              options={pointBuy.options
-                ?.filter((option) => {
-                  if (option.reduce && pointsLeft) {
-                    if (currentOption?.reduce) {
-                      return option.reduce - currentOption.reduce <= pointsLeft
+              options={
+                pointBuy.options
+                  ?.filter((option) => {
+                    if (option.reduce && pointsLeft) {
+                      if (currentOption?.reduce) {
+                        return option.reduce - currentOption.reduce <= pointsLeft
+                      }
+                      return option?.reduce <= pointsLeft
                     }
-                    return option?.reduce <= pointsLeft
-                  }
-                })
-                .map((option) => {
-                  const baseLabel = option.label || option.value.toString()
-                  let pointsText = ''
+                  })
+                  .map((option) => {
+                    const baseLabel = option.label || option.value.toString()
+                    let pointsText = ''
 
-                  if (currentOption && currentOption.reduce && option.reduce) {
-                    // Something is already selected - show difference
-                    if (option.id !== currentOption.id) {
-                      const pointDifference = option.reduce - currentOption.reduce
+                    if (currentOption && currentOption.reduce && option.reduce) {
+                      // Something is already selected - show difference
+                      if (option.id !== currentOption.id) {
+                        const pointDifference = option.reduce - currentOption.reduce
 
-                      if (pointDifference !== 0) {
-                        const absPointDiff = Math.abs(pointDifference)
-                        const pointOrPoints = absPointDiff === 1 ? 'Point' : 'Points'
-                        const sign = pointDifference ? '-' : '+'
+                        if (pointDifference !== 0) {
+                          const absPointDiff = Math.abs(pointDifference)
+                          const pointOrPoints = absPointDiff === 1 ? 'Point' : 'Points'
+                          const sign = pointDifference ? '-' : '+'
 
-                        pointsText = `${sign}${absPointDiff} ${pointOrPoints}`
+                          pointsText = `${sign}${absPointDiff} ${pointOrPoints}`
+                        }
+                      }
+                    } else {
+                      // Nothing is selected - show cost
+                      if (option.reduce) {
+                        const pointOrPoints = option.reduce === 1 ? 'Point' : 'Points'
+                        pointsText = `-${option.reduce} ${pointOrPoints}`
                       }
                     }
-                  } else {
-                    // Nothing is selected - show cost
-                    if (option.reduce) {
-                      const pointOrPoints = option.reduce === 1 ? 'Point' : 'Points'
-                      pointsText = `-${option.reduce} ${pointOrPoints}`
-                    }
-                  }
 
-                  // Return an object with separate value and points properties
-                  return {
-                    label: option.label,
-                    renderedLabel: (
-                      <div className={point_buy_option}>
-                        <span className={point_buy_option_label}>{baseLabel}</span>
-                        {pointsText && <span className={point_buy_option_diff}>({pointsText})</span>}
-                      </div>
-                    ),
-                    value: option.id,
-                    id: option.id,
-                  }
-                })}
+                    // Return an object with separate value and points properties
+                    return {
+                      label: option.label,
+                      renderedLabel: (
+                        <div className={point_buy_option}>
+                          <span className={point_buy_option_label}>{baseLabel}</span>
+                          {pointsText && <span className={point_buy_option_diff}>({pointsText})</span>}
+                        </div>
+                      ),
+                      
+                      value: option.id,
+                      id: option.id,
+                    }
+                  }) || []
+              }
               onChange={(e) => handlePointApply(e, score.ability, index)}
             />
           </Grid.Item>
