@@ -2,13 +2,14 @@ import { StrictMode, use } from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Amplify } from 'aws-amplify'
-import { createRouter, RouterProvider, Link } from '@tanstack/react-router'
+import { createRouter, RouterProvider } from '@tanstack/react-router'
 
 import { routeTree } from './routeTree.gen'
 import AuthProvider from './pages/auth/AuthProvider'
 import ThemeProvider from './theme/ThemeProvider'
 import { AuthContext } from './pages/auth/AuthContext'
 import { FormDataType } from './types/form'
+import ErrorPage from './pages/auth/ErrorPage'
 
 const queryClient = new QueryClient()
 
@@ -52,14 +53,7 @@ const router = createRouter({
     auth: undefined!,
   },
   scrollRestoration: true,
-  defaultNotFoundComponent: () => {
-    return (
-      <div>
-        <p>Not found!</p>
-        <Link to="/">Go home</Link>
-      </div>
-    )
-  },
+  defaultNotFoundComponent: ErrorPage,
 })
 
 declare module '@tanstack/react-router' {
