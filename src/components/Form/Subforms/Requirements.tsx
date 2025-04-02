@@ -90,7 +90,8 @@ const Prerequisites = ({
   const optionsObtainedOptions = useMemo(() => {
     const mappedOptions = formData?.prerequisites?.featuresObtained?.flatMap((feature) =>
       featuresObtainedOptions
-        ?.find((sFeature) => sFeature.id === feature)
+        .filter(Boolean)
+        ?.find((sFeature) => sFeature?.id === feature)
         ?.options?.map((option) => {
           if (option.label != null && option.value != null) {
             return {
@@ -158,7 +159,9 @@ const Prerequisites = ({
                 )}
                 {optionsObtained &&
                   formData?.prerequisites?.optionsObtained?.some(
-                    (feature) => featuresObtainedOptions?.find((sFeature) => sFeature.id === feature)?.options?.length
+                    (feature) =>
+                      featuresObtainedOptions.filter(Boolean)?.find((sFeature) => sFeature?.id === feature)?.options
+                        ?.length
                   ) && (
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
@@ -166,7 +169,7 @@ const Prerequisites = ({
                         name='prerequisites.optionsObtained'
                         value={formData?.prerequisites?.optionsObtained}
                         label='Feature Option'
-                        options={optionsObtainedOptions}
+                        options={optionsObtainedOptions.filter(Boolean)}
                         onChange={updateFormData}
                       />
                     </Grid.Item>
