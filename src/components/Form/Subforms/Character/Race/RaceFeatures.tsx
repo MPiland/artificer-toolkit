@@ -111,15 +111,11 @@ const RaceFeatures = ({
       )}
       {features
         ?.filter((feature) => feature?.raceId === fullRace.id)
-        .map((feature, fIndex) => {
-          return <CharacterFeature feature={feature} key={fIndex} raceId={raceId} />
-        })}
+        .map((feature, fIndex) => <CharacterFeature feature={feature} key={fIndex} raceId={raceId} />)}
       {fullAncestry &&
         features
           ?.filter((feature) => feature?.ancestryId != null)
-          .map((feature, fIndex) => {
-            return <CharacterFeature feature={feature} key={fIndex} raceId={raceId} />
-          })}
+          .map((feature, fIndex) => <CharacterFeature feature={feature} key={fIndex} raceId={raceId} />)}
     </>
   )
 }

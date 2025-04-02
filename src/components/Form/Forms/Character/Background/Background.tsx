@@ -1,5 +1,5 @@
 import { Character } from '../../../../../../amplify/gql/types'
-import { SectionName, UpdateState } from '../../../../../types/form'
+import { UpdateState } from '../../../../../types/form'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import Collapse from '../../../../Collapse/Collapse'
@@ -10,11 +10,8 @@ import Dropdown from '../../../../Dropdown/Dropdown'
 import { option_dropdown } from '../../../Character.css'
 import parse from 'html-react-parser'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
-import useGetFeatures, { FactoryFeature } from '../../../../../hooks/useGetFeatures'
-import FeatureSection from '../../../Subforms/Character/Features/FeatureSection'
-import { Attributes } from '../../../../../types/enums'
-import { FeatureContext } from '../../../Features/FeatureContext'
-import FeatureOption from '../../../Subforms/Character/Features/FeatureOption'
+import { FactoryFeature } from '../../../../../hooks/useGetFeatures'
+import CharacterFeature from '../../../Subforms/Character/Features/CharacterFeature'
 
 const Background = () => {
   const { formData, updateFormData, features } = use(FormContext) as {
@@ -23,10 +20,7 @@ const Background = () => {
     features: FactoryFeature[]
   }
 
-  const { sectionSteps } = use(FeatureContext)
-
   const { data: backgrounds } = useListBackgroundsQuery()
-  const { getFullFeature } = useGetFeatures({ data: formData })
 
   const background = backgrounds.find((b) => b.id === formData?.background)
 
@@ -55,39 +49,8 @@ const Background = () => {
             )}
             {features
               ?.filter((feature) => feature.backgroundId === background?.id)
-              ?.map((feature, featureIndex) => (
-                <Grid.Item key={feature?.id}>
-                  <Collapse>
-                    <Collapse.Header title={feature?.label} />
-                    <Collapse.Body>
-                      <Grid>
-                        <Grid.Item>{feature?.desc && parse(feature?.desc)}</Grid.Item>
-                        {!getFullFeature(feature)?.options?.length ?
-                          sectionSteps.map(
-                            (sectionStep: SectionName) =>
-                              feature[sectionStep]?.length &&
-                              feature[sectionStep].map((section, sIndex) => {
-                                if (
-                                  section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)
-                                ) {
-                                  return (
-                                    <FeatureSection
-                                      key={sIndex}
-                                      section={section}
-                                      sectionStep={sectionStep}
-                                      featureIndex={featureIndex}
-                                      backgroundId={background.id}
-                                      feature={{ ...feature, __typename: 'CharacterFeature' }}
-                                    />
-                                  )
-                                }
-                              })
-                          )
-                        : <FeatureOption feature={feature} featureIndex={featureIndex} />}
-                      </Grid>
-                    </Collapse.Body>
-                  </Collapse>
-                </Grid.Item>
+              ?.map((feature, fIndex) => (
+                <CharacterFeature feature={feature} key={fIndex} backgroundId={background?.id} />
               ))}
             <Grid.Item>
               <Collapse>

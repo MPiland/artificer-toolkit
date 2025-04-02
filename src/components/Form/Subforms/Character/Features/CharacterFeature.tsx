@@ -20,9 +20,18 @@ interface CharacterFeatureProps {
   subclass?: Class
   classIndex?: number
   raceId?: string
+  backgroundId?: string
 }
 
-const CharacterFeature = ({ uClass, feature, subclasses, subclass, classIndex, raceId }: CharacterFeatureProps) => {
+const CharacterFeature = ({
+  uClass,
+  feature,
+  subclasses,
+  subclass,
+  classIndex,
+  raceId,
+  backgroundId,
+}: CharacterFeatureProps) => {
   const { formData, updateFormData } = use(FormContext) as {
     formData: Character
     updateFormData: (state: UpdateState<Character>) => void
@@ -87,6 +96,7 @@ const CharacterFeature = ({ uClass, feature, subclasses, subclass, classIndex, r
                           classIndex={classIndex}
                           classId={uClass?.id}
                           raceId={raceId}
+                          backgroundId={backgroundId}
                           feature={{ ...feature, __typename: 'CharacterFeature' }}
                         />
                       )

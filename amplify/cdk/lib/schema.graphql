@@ -402,7 +402,7 @@ type AncestryFeature {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroup
   damage: Damage
   charges: Charge
@@ -1787,7 +1787,7 @@ input AncestryFeatureInput {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroupInput
   damage: DamageInput
   charges: ChargeInput

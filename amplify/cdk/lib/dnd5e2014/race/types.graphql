@@ -5,7 +5,7 @@ type AncestryFeature {
   desc: String
   detail: String
   category: ID
-  attributes: [ID]
+  attributes: [ID!]
   actions: ActionGroup
   damage: Damage
   charges: Charge

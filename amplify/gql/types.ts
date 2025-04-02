@@ -84,7 +84,7 @@ export type Ancestry = {
 export type AncestryFeature = {
   __typename: 'AncestryFeature';
   actions?: Maybe<ActionGroup>;
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   category?: Maybe<Scalars['ID']['output']>;
   charges?: Maybe<Charge>;
   damage?: Maybe<Damage>;
@@ -111,7 +111,7 @@ export type AncestryFeature = {
 
 export type AncestryFeatureInput = {
   actions?: InputMaybe<ActionGroupInput>;
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category?: InputMaybe<Scalars['ID']['input']>;
   charges?: InputMaybe<ChargeInput>;
   damage?: InputMaybe<DamageInput>;
