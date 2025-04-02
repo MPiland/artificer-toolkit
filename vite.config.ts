@@ -20,5 +20,17 @@ export default defineConfig(() => {
     preview: {
       port: 3000,
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react': ['react', 'react-dom'],
+            'tanstack-router': ['@tanstack/router'],
+            'lodash': ['lodash'],
+            'eslint': ['eslint'],
+          },
+        },
+      },
+    },
   }
 })
