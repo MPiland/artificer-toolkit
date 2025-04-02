@@ -9,7 +9,7 @@ import {
   updateEquipment,
   updateMasterEquipment,
 } from '../../amplify/gql/mutations'
-import { Equipment, QueryListMasterEquipmentArgs, QueryListEquipmentArgs } from '../../amplify/gql/types'
+import { Equipment, QueryListMasterEquipmentArgs, QueryListEquipmentArgs, type EquipmentInput } from '../../amplify/gql/types'
 import useSystemPref from '../hooks/useSystemPref'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { removeTypename } from '../utils/form'
@@ -88,7 +88,7 @@ export const useAddNewEquipmentMutation = () => {
 
   return useMutation<Equipment, Error, Equipment, unknown>({
     mutationFn: async (equipment: Equipment) => {
-      const cleanEquipment = removeTypename(equipment)
+      const cleanEquipment = removeTypename(equipment) as EquipmentInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
@@ -133,7 +133,7 @@ export const useUpdateEquipmentMutation = () => {
 
   return useMutation<Equipment, Error, Equipment, unknown>({
     mutationFn: async (equipment: Equipment) => {
-      const cleanEquipment = removeTypename(equipment)
+      const cleanEquipment = removeTypename(equipment) as EquipmentInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]

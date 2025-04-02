@@ -94,7 +94,7 @@ export const useAddNewBackgroundMutation = () => {
 
   return useMutation<Background, Error, Background, unknown>({
     mutationFn: async (background: Background) => {
-      const cleanBackground = removeTypename(background)
+      const cleanBackground = removeTypename(background) as BackgroundInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
@@ -140,7 +140,8 @@ export const useUpdateBackgroundMutation = () => {
   return useMutation<Background, Error, Background, unknown>({
     mutationFn: async (background: Background) => {
       // Remove __typename fields from the background object
-      const cleanBackground: BackgroundInput = removeTypename(background)
+      const cleanBackground: BackgroundInput = removeTypename(background) as BackgroundInput
+
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false

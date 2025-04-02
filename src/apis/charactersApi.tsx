@@ -3,7 +3,7 @@ import { generateClient } from 'aws-amplify/data'
 import useSystemPref from '../hooks/useSystemPref'
 import { listCharacters } from '../../amplify/gql/queries'
 import { createCharacter, deleteCharacter, updateCharacter } from '../../amplify/gql/mutations'
-import { Character, QueryListCharactersArgs } from '../../amplify/gql/types'
+import { Character, QueryListCharactersArgs, type CharacterInput } from '../../amplify/gql/types'
 import { removeTypename } from '../utils/form'
 
 const client = generateClient()
@@ -57,7 +57,7 @@ export const useAddNewCharacterMutation = () => {
 
   return useMutation<Character, Error, Character, unknown>({
     mutationFn: async (character: Character) => {
-      const cleanCharacter = removeTypename(character)
+      const cleanCharacter = removeTypename(character) as CharacterInput
 
       try {
         const { data } = await client.graphql({
@@ -87,7 +87,7 @@ export const useUpdateCharacterMutation = () => {
 
   return useMutation<Character, Error, Character, unknown>({
     mutationFn: async (character: Character) => {
-      const cleanCharacter = removeTypename(character)
+      const cleanCharacter = removeTypename(character) as CharacterInput
       try {
         const { data } = await client.graphql({
           query: updateCharacter,

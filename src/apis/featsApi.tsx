@@ -9,7 +9,7 @@ import {
   updateFeat,
   updateMasterFeat,
 } from '../../amplify/gql/mutations'
-import { Feat, QueryListMasterFeatsArgs, QueryListFeatsArgs } from '../../amplify/gql/types'
+import { Feat, QueryListMasterFeatsArgs, QueryListFeatsArgs, type FeatInput } from '../../amplify/gql/types'
 import useSystemPref from '../hooks/useSystemPref'
 import { fetchAuthSession } from 'aws-amplify/auth'
 import { removeTypename } from '../utils/form'
@@ -87,7 +87,7 @@ export const useAddNewFeatMutation = () => {
 
   return useMutation<Feat, Error, Feat, unknown>({
     mutationFn: async (feat: Feat) => {
-      const cleanFeat = removeTypename(feat)
+      const cleanFeat = removeTypename(feat) as FeatInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
@@ -132,7 +132,7 @@ export const useUpdateFeatMutation = () => {
 
   return useMutation<Feat, Error, Feat, unknown>({
     mutationFn: async (feat: Feat) => {
-      const cleanFeat = removeTypename(feat)
+      const cleanFeat = removeTypename(feat) as FeatInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]

@@ -89,7 +89,7 @@ export const useAddNewSpellMutation = () => {
 
   return useMutation<Spell, Error, Spell, unknown>({
     mutationFn: async (spell: Spell) => {
-      const cleanSpell = removeTypename(spell)
+      const cleanSpell = removeTypename(spell) as SpellInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
@@ -135,7 +135,8 @@ export const useUpdateSpellMutation = () => {
   return useMutation<Spell, Error, Spell, unknown>({
     mutationFn: async (spell: Spell) => {
       // Remove __typename fields from the spell object
-      const cleanSpell: SpellInput = removeTypename(spell)
+      const cleanSpell: SpellInput = removeTypename(spell) as SpellInput
+
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false

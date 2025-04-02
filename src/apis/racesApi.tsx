@@ -89,7 +89,7 @@ export const useAddNewRaceMutation = () => {
 
   return useMutation<Race, Error, Race, unknown>({
     mutationFn: async (race: Race) => {
-      const cleanRace = removeTypename(race)
+      const cleanRace = removeTypename(race) as RaceInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
@@ -135,7 +135,7 @@ export const useUpdateRaceMutation = () => {
   return useMutation<Race, Error, Race, unknown>({
     mutationFn: async (race: Race) => {
       // Remove __typename fields from the race object
-      const cleanRace: RaceInput = removeTypename(race)
+      const cleanRace: RaceInput = removeTypename(race) as RaceInput
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false

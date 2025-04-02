@@ -9,7 +9,7 @@ import {
   updateClass,
   updateMasterClass,
 } from '../../amplify/gql/mutations'
-import { Class, QueryListClassesArgs, QueryListMasterClassesArgs } from '../../amplify/gql/types'
+import { Class, QueryListClassesArgs, QueryListMasterClassesArgs, type ClassInput } from '../../amplify/gql/types'
 import useSystemPref from '../hooks/useSystemPref'
 import { Categories } from '../types/enums'
 import { fetchAuthSession } from 'aws-amplify/auth'
@@ -135,7 +135,7 @@ export const useAddNewClassMutation = () => {
 
   return useMutation<Class, Error, Class, unknown>({
     mutationFn: async (uClass: Class) => {
-      const cleanClass = removeTypename(uClass)
+      const cleanClass = removeTypename(uClass) as ClassInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
@@ -180,7 +180,7 @@ export const useUpdateClassMutation = () => {
 
   return useMutation<Class, Error, Class, unknown>({
     mutationFn: async (uClass: Class) => {
-      const cleanClass = removeTypename(uClass)
+      const cleanClass = removeTypename(uClass) as ClassInput
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
