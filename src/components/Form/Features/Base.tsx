@@ -17,13 +17,13 @@ import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
 import SelectOptionsByLevel from '../Subforms/SelectOptionsByLevel'
 
-const Base = <T extends FeatureDataType | FeatureOption>({
+const Base = ({
   featureData,
   updateFeatureData,
   valueLabel,
 }: {
-  featureData: T
-  updateFeatureData: (arg: UpdateState<T>) => void
+  featureData: FeatureDataType | FeatureOption
+  updateFeatureData: (arg: UpdateState<FeatureDataType | FeatureOption>) => void
   valueLabel: string
 }) => {
   const { formData, steps, stepIndex } = use(FormContext)

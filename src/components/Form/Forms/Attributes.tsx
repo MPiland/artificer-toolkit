@@ -17,14 +17,21 @@ import Resource from '../Subforms/Resource'
 import LimitUse from '../Subforms/LimitUse'
 import Multiclass from '../Subforms/Multiclass'
 import { Attributes, Categories, Durations, Ranges, Shapes } from '../../../types/enums'
-import { AllEnum, ClassesEnum, EquipmentEnum, SpellEnum } from '../../../../amplify/gql/types'
-import { FormDataType, UpdateState } from '../../../types/form'
+import {
+  AllEnum,
+  ClassesEnum,
+  EquipmentEnum,
+  SpellEnum,
+  type Equipment,
+  type Feat,
+} from '../../../../amplify/gql/types'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
 import Group from '../../Group/Group'
 import Button from '../../Button/Button'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { row_button } from '../Form.css'
+import type { FormDataType, UpdateState } from '../../../types/form'
 
 const AttributeForm = () => {
   const {
@@ -596,7 +603,7 @@ const AttributeForm = () => {
       )}
       {((formData.__typename === 'Spell' && doesDamage) ||
         (formData.__typename === 'Equipment' && (isWeapon || isSpecial))) && (
-        <Damage formData={formData} updateFormData={updateFormData} />
+        <Damage formData={formData} updateFormData={updateFormData as (state: UpdateState<Equipment>) => void} />
       )}
       {formData.__typename === 'Equipment' && (isArmor || isShield) && (
         <>
@@ -631,10 +638,10 @@ const AttributeForm = () => {
       )}
       {formData.__typename === 'Spell' && canUpcast && <Upcast formData={formData} updateFormData={updateFormData} />}
       {formData.__typename === 'Feat' && limitUse && (
-        <LimitUse formData={formData} updateFormData={updateFormData} />
+        <LimitUse formData={formData} updateFormData={updateFormData as (state: UpdateState<Feat>) => void} />
       )}
       {formData.__typename === 'Feat' && hasPrerequisites && (
-        <Requirements formData={formData} updateFormData={updateFormData} />
+        <Requirements formData={formData} updateFormData={updateFormData as (state: UpdateState<Feat>) => void} />
       )}
     </Grid>
   )

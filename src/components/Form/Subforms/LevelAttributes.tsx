@@ -7,16 +7,14 @@ import Input from '../../Input/Input'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
 
-const LevelAttributes = <T extends Class>({
+const LevelAttributes = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (arg: UpdateState<T>) => void
+  formData: Class
+  updateFormData: (arg: UpdateState<Class>) => void
 }) => {
   const { isSpellcaster, hasResourcePoints, limitKnownSpells } = useEnumChecks({ data: formData })
-
-  console.log({ formData, limitKnownSpells })
 
   // Add level attribute table
   useEffect(() => {
@@ -41,17 +39,19 @@ const LevelAttributes = <T extends Class>({
   const spellSlots = (index?: number) => {
     const labels: ReactNode[] = []
     const inputs: ReactNode[] = []
-    for (let i = 0; i < formData?.spellcasting?.maxSpellLevel; i++) {
-      labels.push(<span>{i + 1}</span>)
-      inputs.push(
-        <Input
-          key={`${index}-${i}`}
-          name={`spellSlots.${i}.count`}
-          value={formData.levelAttributes?.[index]?.spellSlots?.[i]?.slotCount}
-          validation='num'
-          required={true}
-        />
-      )
+    if (index && formData?.spellcasting?.maxSpellLevel) {
+      for (let i = 0; i < formData?.spellcasting?.maxSpellLevel; i++) {
+        labels.push(<span>{i + 1}</span>)
+        inputs.push(
+          <Input
+            key={`${index}-${i}`}
+            name={`spellSlots.${i}.count`}
+            value={formData.levelAttributes?.[index]?.spellSlots?.[i]?.slotCount}
+            validation='num'
+            required={true}
+          />
+        )
+      }
     }
 
     return { labels, inputs }

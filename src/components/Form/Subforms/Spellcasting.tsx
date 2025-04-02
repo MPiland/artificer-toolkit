@@ -8,12 +8,12 @@ import { UpdateState } from '../../../types/form'
 import Grid from '../../Grid/Grid'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 
-const Spellcasting = <T extends Class>({
+const Spellcasting = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (arg: UpdateState<T>) => void
+  formData: Class
+  updateFormData: (arg: UpdateState<Class>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
   const { magicName, preparesSpells } = useEnumChecks({ data: formData })

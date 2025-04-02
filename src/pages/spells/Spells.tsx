@@ -80,7 +80,7 @@ const Spells = () => {
     },
   ]
 
-  const spellFilterConfigs: FilterConfig<Spell>[] = [
+  const spellFilterConfigs: FilterConfig<Partial<Spell>>[] = [
     {
       type: 'text',
       path: 'label',
@@ -91,7 +91,7 @@ const Spells = () => {
       path: 'level',
       label: 'Spell Level',
       getOptionsFromData: (data) => {
-        const levels = [...new Set(data?.map((spell) => spell.level))]
+        const levels = [...(data?.map((spell) => spell.level) || [])]
           .filter((level) => level !== undefined)
           .sort((a, b) => a - b)
 
@@ -107,7 +107,7 @@ const Spells = () => {
       path: 'school',
       label: 'Magic School',
       getOptionsFromData: (data) => {
-        const schoolIds = [...new Set(data?.map((spell) => spell.school))].filter(Boolean)
+        const schoolIds = [...(data?.map((spell) => spell.school) || [])].filter(Boolean)
 
         const schools = schoolIds.map((id) => system?.spells?.schools?.find((s) => s?.id === id))
 
@@ -125,11 +125,9 @@ const Spells = () => {
       label: 'Prim. Damage',
       getOptionsFromData: (data) => {
         const damageIds = [
-          ...new Set(
-            data?.map((spell) => {
-              return spell?.damage?.primary?.id
-            })
-          ),
+          ...(data?.map((spell) => {
+            return spell?.damage?.primary?.id
+          }) || []),
         ].filter(Boolean)
 
         const damageTypes = damageIds.map((id) => system?.damageTypes?.find((d) => d?.id === id))
@@ -148,11 +146,9 @@ const Spells = () => {
       label: 'Sec. Damage',
       getOptionsFromData: (data) => {
         const damageIds = [
-          ...new Set(
-            data?.map((spell) => {
-              return spell?.damage?.secondary?.id
-            })
-          ),
+          ...(data?.map((spell) => {
+            return spell?.damage?.secondary?.id
+          }) || []),
         ].filter(Boolean)
 
         const damageTypes = damageIds.map((id) => system?.damageTypes?.find((d) => d?.id === id))
@@ -171,13 +167,11 @@ const Spells = () => {
       label: 'Condition',
       getOptionsFromData: (data) => {
         const conditionIds = [
-          ...new Set(
-            data?.flatMap((spell) => {
-              if (spell?.conditions?.length) {
-                return spell?.conditions?.map((condition) => condition)
-              }
-            })
-          ),
+          ...(data?.flatMap((spell) => {
+            if (spell?.conditions?.length) {
+              return spell?.conditions?.map((condition) => condition)
+            }
+          }) || []),
         ].filter(Boolean)
 
         const conditions = conditionIds.map((id) => system?.conditions?.find((c) => c?.id === id))

@@ -16,23 +16,23 @@ export type StoreFormType = keyof FilterState
 // Define the filter slice
 export interface FilterSlice {
   filterState: FilterState
-  setFilter: <T extends StoreFormType, K extends DeepKeyOf<FilterState[T]>>(formType: T, path: K, value: any) => void
-  resetFilters: (formType: StoreFormType) => void
+  setFilter: <T extends StoreFormType>(context: T, path: DeepKeyOf<FilterState[T]>, value: any) => void
+  resetFilters: (context: StoreFormType) => void
   clearAllFilters: () => void
 }
 
 export const filterSlice: StateCreator<FilterSlice> = (set) => ({
   filterState: {},
 
-  setFilter: (formType, path, value) =>
+  setFilter: (context, path, value) =>
     set(
       produce((state: FilterSlice) => {
         // Initialize if needed
-        if (!state.filterState[formType]) {
-          state.filterState[formType] = {}
+        if (!state.filterState[context]) {
+          state.filterState[context] = {}
         }
 
-        const typedFilter = state.filterState[formType] as Record<string, any>
+        const typedFilter = state.filterState[context] as Record<string, any>
 
         if (value === null) {
           // For removal, we need to handle nested paths
@@ -60,10 +60,10 @@ export const filterSlice: StateCreator<FilterSlice> = (set) => ({
       })
     ),
 
-  resetFilters: (formType) =>
+  resetFilters: (context) =>
     set(
       produce((state: FilterSlice) => {
-        state.filterState[formType] = {}
+        state.filterState[context] = {}
       })
     ),
 

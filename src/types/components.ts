@@ -1,16 +1,16 @@
 import { PropertyPath } from 'lodash'
 import { ReactNode } from 'react'
-import { DeepKeyOf, FormDataType } from './form'
+import { DeepKeyOf } from './form'
 
-export interface FilterConfig<T extends FormDataType> {
+export interface FilterConfig<T> {
   type: 'text' | 'dropdown' | 'multiSelect' | 'range' | 'checkbox'
   path: DeepKeyOf<T>
   label: string
   options?: Array<{ value: any; label: string; id: string }>
-  getOptionsFromData?: (data: T[] | null | undefined) => Array<{ value: any; label: string; id: string }>
+  getOptionsFromData?: (data: T[] | null | undefined) => { value: any; label: string; id: string }[]
 }
 
-export type UpdateFilter<T extends FormDataType> =
+export type UpdateFilter<T> =
   | { type: 'update'; path: DeepKeyOf<T>; value: any }
   | { type: 'remove'; path: DeepKeyOf<T> }
 

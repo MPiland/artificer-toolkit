@@ -5,14 +5,10 @@ import { feature_card_header } from '../../../Character.css'
 import { option_dropdown } from '../../../Character.css'
 import Collapse from '../../../../Collapse/Collapse'
 import { AncestryOption, Character, Race } from '../../../../../../amplify/gql/types'
-import { SectionName, UpdateState } from '../../../../../types/form'
-import { FeatureContext } from '../../../Features/FeatureContext'
-import { Attributes } from '../../../../../types/enums'
+import { UpdateState } from '../../../../../types/form'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
-import useGetFeatures from '../../../../../hooks/useGetFeatures'
-import FeatureSection from '../Class/features/FeatureSection'
-import FeatureOption from '../Class/features/FeatureOption'
+import CharacterFeature from '../Features/CharacterFeature'
 
 const RaceFeatures = ({
   raceId,
@@ -29,9 +25,7 @@ const RaceFeatures = ({
   formData: Character
   raceLineages: Race[]
 }) => {
-  const { sectionSteps } = use(FeatureContext)
   const { features } = use(FormContext)
-  const { getFullFeature } = useGetFeatures({ data: formData })
 
   const handleAncestryChange = (e: UpdateState<Character>) => {
     if (e.type === 'update') {
@@ -117,76 +111,14 @@ const RaceFeatures = ({
       )}
       {features
         ?.filter((feature) => feature?.raceId === fullRace.id)
-        .map((feature, featureIndex) => {
-          return (
-            <Grid.Item key={featureIndex}>
-              <Collapse>
-                <Collapse.Header title={feature?.label} className={feature_card_header} />
-                <Collapse.Body>
-                  <Grid>
-                    {feature?.desc && parse(feature?.desc)}
-                    {!getFullFeature(feature)?.options?.length ?
-                      sectionSteps.map(
-                        (sectionStep: SectionName) =>
-                          feature[sectionStep]?.length &&
-                          feature[sectionStep].map((section, sIndex) => {
-                            if (section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-                              return (
-                                <FeatureSection
-                                  key={sIndex}
-                                  section={section}
-                                  sectionStep={sectionStep}
-                                  featureIndex={featureIndex}
-                                  feature={{ ...feature, __typename: 'CharacterFeature' }}
-                                  raceId={raceId}
-                                />
-                              )
-                            }
-                          })
-                      )
-                    : <FeatureOption feature={feature} featureIndex={featureIndex} />}
-                  </Grid>
-                </Collapse.Body>
-              </Collapse>
-            </Grid.Item>
-          )
+        .map((feature, fIndex) => {
+          return <CharacterFeature feature={feature} key={fIndex} raceId={raceId} />
         })}
       {fullAncestry &&
         features
           ?.filter((feature) => feature?.ancestryId != null)
-          .map((feature, featureIndex) => {
-            return (
-              <Grid.Item key={featureIndex}>
-                <Collapse>
-                  <Collapse.Header title={feature?.label} className={feature_card_header} />
-                  <Collapse.Body>
-                    <Grid>
-                      {feature?.desc && parse(feature?.desc)}
-                      {!getFullFeature(feature)?.options?.length ?
-                        sectionSteps.map(
-                          (sectionStep: SectionName) =>
-                            feature[sectionStep]?.length &&
-                            feature[sectionStep].map((section, sIndex) => {
-                              if (section?.attributes?.some((attribute) => attribute === Attributes.providesOptions)) {
-                                return (
-                                  <FeatureSection
-                                    key={sIndex}
-                                    section={section}
-                                    sectionStep={sectionStep}
-                                    featureIndex={featureIndex}
-                                    feature={{ ...feature, __typename: 'CharacterFeature' }}
-                                    raceId={raceId}
-                                  />
-                                )
-                              }
-                            })
-                        )
-                      : <FeatureOption feature={feature} featureIndex={featureIndex} />}
-                    </Grid>
-                  </Collapse.Body>
-                </Collapse>
-              </Grid.Item>
-            )
+          .map((feature, fIndex) => {
+            return <CharacterFeature feature={feature} key={fIndex} raceId={raceId} />
           })}
     </>
   )

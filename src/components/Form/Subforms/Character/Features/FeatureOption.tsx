@@ -1,11 +1,11 @@
 import { use } from 'react'
-import { Character } from '../../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../../types/form'
-import Dropdown from '../../../../../Dropdown/Dropdown'
-import Grid from '../../../../../Grid/Grid'
-import { option_dropdown } from '../../../../Character.css'
-import { FormContext } from '../../../../FormContext'
-import useGetFeatures, { FactoryFeature } from '../../../../../../hooks/useGetFeatures'
+import { Character } from '../../../../../../amplify/gql/types'
+import { UpdateState } from '../../../../../types/form'
+import Dropdown from '../../../../Dropdown/Dropdown'
+import Grid from '../../../../Grid/Grid'
+import { option_dropdown } from '../../../Character.css'
+import { FormContext } from '../../../FormContext'
+import useGetFeatures, { FactoryFeature } from '../../../../../hooks/useGetFeatures'
 
 interface FeatureOptionProps {
   feature: FactoryFeature

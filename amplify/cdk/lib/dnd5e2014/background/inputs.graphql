@@ -19,7 +19,7 @@ input BackgroundInput {
   value: String!
   desc: String
   details: [DetailInput!]
-  equipment: [[[BackgroundEquipmentInput!]]]
+  equipment: [[[BackgroundEquipmentInput!]!]!]
   proficiencies: [FeatureProficiencyInput!]
   features: [FeatureInput!]
   ownerId: String

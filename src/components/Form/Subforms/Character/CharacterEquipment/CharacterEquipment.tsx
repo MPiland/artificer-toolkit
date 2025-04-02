@@ -1,4 +1,10 @@
-import { Background, Character, Class, Contains } from '../../../../../../amplify/gql/types'
+import {
+  Background,
+  Character,
+  Class,
+  type CharacterEquipment,
+  type CharacterEquipmentObject,
+} from '../../../../../../amplify/gql/types'
 import { UpdateState } from '../../../../../types/form'
 import { use, useEffect } from 'react'
 import { FormContext } from '../../../FormContext'
@@ -9,6 +15,7 @@ import Grid from '../../../../Grid/Grid'
 import CharacterEquipmentSelection from '../../../Subforms/Character/CharacterEquipment/CharacterEquipmentSelection'
 import { useListEquipmentQuery } from '../../../../../apis/equipmentApi'
 import { ModalContext } from '../../../../Modal/ModalContext'
+import { v4 as uuid } from 'uuid'
 
 const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) => {
   const { formData, updateFormData } = use(FormContext) as {
@@ -164,18 +171,18 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
       (dataSource.__typename === 'Class' && formData?.classEquipment?.option === StartingEquipmentOption.equipment) ||
       dataSource.__typename === 'Background'
     ) {
-      const equipmentArray: Character['equipment'] = []
+      const equipmentArray = [] as Omit<NonNullable<CharacterEquipment['inventory']>, '__typename'>
       formData?.[path]?.equipmentGroups?.forEach((group) => {
         if (group?.equipment?.length) {
           group?.equipment?.forEach((gE) => {
             const fullEquipment = equipment.find((e) => e.id === gE.id)
             if (fullEquipment) {
-              const equipObj: Contains = { __typename: 'Contains', id: gE.id, quantity: gE.quantity }
-
-              if (fullEquipment?.contains?.length) {
-                equipObj.contains = fullEquipment.contains
+              const equipObj: CharacterEquipmentObject = {
+                id: uuid(),
+                __typename: 'CharacterEquipmentObject',
+                equipmentId: gE.id,
+                quantity: gE.quantity,
               }
-
               equipmentArray?.push(equipObj)
             }
           })
@@ -183,7 +190,7 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
       })
       updateFormData({
         type: 'update',
-        path: 'equipment',
+        path: 'equipment.inventory',
         value: equipmentArray,
       })
       updateFormData({
@@ -195,8 +202,16 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
   }
 
   const resetEquipment = () => {
-    const formDataCopy: Character = JSON.parse(JSON.stringify(formData))
-    formDataCopy.equipment = []
+    const formDataCopy = {
+      ...formData,
+      equipment: {
+        __typename: 'CharacterEquipment',
+        ...formData.equipment,
+        inventory: [] as CharacterEquipmentObject[],
+      } as CharacterEquipment,
+      currencyGroups: [],
+    }
+    formDataCopy.equipment.inventory = []
     formDataCopy.currencyGroups = []
     if (dataSource.__typename === 'Class') {
       formDataCopy.classEquipment = {

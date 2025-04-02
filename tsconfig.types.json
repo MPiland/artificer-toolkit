@@ -1,9 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "composite": true,
-    "emitDeclarationOnly": true,
-    "noEmit": false
+    "composite": true
   },
-  "include": ["src/types/**/*.ts", "amplify/gql/**/*.ts"]
+  "include": ["src/types/**/*.ts", "src/store/**/*.ts"],
+  "references": [{ "path": "./tsconfig.server.json" }, { "path": "./tsconfig.app.json" }]
 }

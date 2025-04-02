@@ -307,6 +307,22 @@ input CharacterHitpointInput {
   fixed: HitpointFixedInput
 }
 
+input CharacterEquipmentObjectInput {
+  id: ID!
+  equipmentId: ID!
+  quantity: Int!
+  containerId: ID
+  containerPath: String
+  customName: String
+  notes: String
+}
+
+input CharacterEquipmentInput {
+  equipped: [ID!]
+  attuned: [ID!]
+  inventory: [CharacterEquipmentObjectInput!]
+}
+
 input CharacterInput {
   id: ID!
   value: String!
@@ -323,7 +339,7 @@ input CharacterInput {
   spellcasting: CharacterSpellcastingInput
   classEquipment: ClassStartingEquipmentInput
   backgroundEquipment: BackgroundStartingEquipmentInput
-  equipment: [ContainsInput!]
+  equipment: CharacterEquipmentInput!
   currencyGroups: [CurrencyGroupInput!]
   features: [CharacterFeatureInput!]
   feats: [CharacterFeatInput!]

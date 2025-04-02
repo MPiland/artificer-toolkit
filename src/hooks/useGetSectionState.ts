@@ -28,7 +28,7 @@ import {
 } from '../types/enums'
 import { useListClassesQuery } from '../apis/classesApi'
 import { useListEquipmentQuery } from '../apis/equipmentApi'
-import { useListSpellsQuery } from '../pages/spells/spellsApi'
+import { useListSpellsQuery } from '../apis/spellsApi'
 import { useGetSystemQuery } from '../apis/systemsApi'
 import { getKeyFromId, getModifierProperties } from '../utils/form'
 import { useListRacesQuery } from '../apis/racesApi'

@@ -41,15 +41,20 @@ const RaceDetail = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: ()
         <Modal.Content>
           <ScrollArea>
             <Grid>
-              <Grid.Item>{fullRace?.details?.length > 0 && parse(fullRace?.details[0].desc)}</Grid.Item>
-              {raceLineages?.length > 0 &&
+              <Grid.Item>
+                {fullRace?.details?.length && fullRace?.details[0].desc && parse(fullRace?.details[0].desc)}
+              </Grid.Item>
+              {raceLineages?.length &&
                 raceLineages?.map((race, index) => (
-                  <Grid.Item key={index}>{race?.details?.length > 0 && parse(race?.details[0].desc)}</Grid.Item>
+                  <Grid.Item key={index}>
+                    {race?.details?.length && race?.details[0].desc && parse(race?.details[0].desc)}
+                  </Grid.Item>
                 ))}
               {fullRace?.category === Categories.subrace && (
                 <Grid.Item>{fullRace?.desc && parse(fullRace?.desc)}</Grid.Item>
-              )}
-              {fullRace?.traits?.details.length > 0 &&
+              )}{' '}
+              F
+              {fullRace?.traits?.details?.length &&
                 fullRace.traits.details.map((detail, index) => (
                   <Grid.Item key={index}>
                     <Collapse key={index}>
@@ -58,10 +63,10 @@ const RaceDetail = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: ()
                     </Collapse>
                   </Grid.Item>
                 ))}
-              {raceLineages?.length > 0 &&
+              {raceLineages?.length &&
                 raceLineages?.map(
                   (race) =>
-                    race?.traits?.details?.length > 0 &&
+                    race?.traits?.details?.length &&
                     race.traits.details.map((detail, index) => (
                       <Grid.Item key={index}>
                         <Collapse key={index}>
@@ -71,13 +76,23 @@ const RaceDetail = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: ()
                       </Grid.Item>
                     ))
                 )}
-              {features?.length > 0 &&
+              {features?.length &&
                 features
-                  .sort((a, b) => a.value.localeCompare(b.value))
+                  .sort((a, b) => {
+                    if (a.value && b.value) {
+                      return a.value.localeCompare(b.value)
+                    } else if (a.value && !b.value) {
+                      return -1
+                    } else if (!a.value && b.value) {
+                      return 1
+                    } else {
+                      return 0
+                    }
+                  })
                   .map((feature, index) => (
                     <Grid.Item key={index}>
                       <Collapse key={index}>
-                        <Collapse.Header title={feature.label} startOpened={true} />
+                        <Collapse.Header title={feature?.label || `Feature (${index})`} startOpened={true} />
                         <Collapse.Body>{feature.desc && parse(feature.desc)}</Collapse.Body>
                       </Collapse>
                     </Grid.Item>

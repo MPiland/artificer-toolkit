@@ -7,12 +7,12 @@ import { UpdateState } from '../../../types/form'
 import { Attributes } from '../../../types/enums'
 import Grid from '../../Grid/Grid'
 
-const Multiclass = <T extends Class>({
+const Multiclass = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (arg: UpdateState<T>) => void
+  formData: Class
+  updateFormData: (arg: UpdateState<Class>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 

@@ -78,10 +78,16 @@ const Grid = ({ children, spacing = 16, className, id, ref }: GridProps) => {
   }, [children, childCount])
 
   // Calculate column gap
-  const colGapValue = typeof spacing === 'number' ? spacing : spacing.col >= 0 ? spacing.col : 16
+  const colGapValue =
+    typeof spacing === 'number' ? spacing
+    : spacing?.col && spacing?.col >= 0 ? spacing.col
+    : 16
 
   // Calculate row gap
-  const rowGapValue = typeof spacing === 'number' ? spacing : spacing.row >= 0 ? spacing.row : 16
+  const rowGapValue =
+    typeof spacing === 'number' ? spacing
+    : spacing?.row && spacing?.row >= 0 ? spacing.row
+    : 16
 
   return (
     <GridContext value={{ childCount }}>
@@ -166,8 +172,8 @@ const Item = ({ children, colSpan = 12, className, ref, id, align, justify, flex
       className={clsx(
         className,
         grid_item,
-        { [grid_item_justify[justify]]: justify },
-        { [grid_item_align[align]]: align },
+        { [grid_item_justify[justify as NonNullable<typeof justify>]]: justify },
+        { [grid_item_align[align as NonNullable<typeof align>]]: align },
         { [grid_item_flex[flexDirection]]: align || justify }
       )}
       style={assignInlineVars({

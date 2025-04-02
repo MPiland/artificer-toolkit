@@ -338,7 +338,11 @@ const Modifiers = () => {
                 label='Feature'
                 value={sectionData?.feature}
                 options={[
-                  ...((formData as Exclude<FormDataType, Spell | Character>)?.features || []),
+                  ...((formData as Exclude<FormDataType, Spell | Character>)?.features?.map((feature) => ({
+                    label: feature.label!,
+                    value: feature.value!,
+                    id: feature.id,
+                  })) || []),
                   { ...((formData as Class)?.resource as Resource) },
                 ]}
                 required={true}

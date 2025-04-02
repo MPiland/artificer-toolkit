@@ -48,8 +48,9 @@ import Group from '../Group/Group'
 import { sprinkles } from '../../css/sprinkles.css'
 import { createFormObject } from '../../utils/form'
 import { ModalContext } from '../Modal/ModalContext'
-import { navigatePath, FormType } from '../../utils/form'
-import { StoreFormType } from '../../store/filterSlice'
+import { navigatePath } from '../../utils/form'
+import { type FilterState } from '../../store/filterSlice'
+import { type FormType } from '../../types/form'
 
 interface ListProps<T extends FormDataType> {
   className?: string | symbol | number | any
@@ -57,7 +58,7 @@ interface ListProps<T extends FormDataType> {
   useListItems: () => UseSuspenseQueryResult<T[] | null | undefined, Error>
   useDeleteItem: () => UseMutationResult<string, Error, string, unknown>
   footerText?: { name: string | any[]; value: string; display?: string; icon?: ReactElement }[]
-  filterConfigs?: FilterConfig<T>[]
+  filterConfigs?: FilterConfig<Partial<T>>[]
 }
 
 const SCROLL_BOX_MIN_SIZE = 20
@@ -100,7 +101,7 @@ const List = <T extends FormDataType>({
 
   const form = location?.pathname?.split('/')[1] as FormType
 
-  const filteredData = useFilteredList({ data, context: form as StoreFormType })
+  const filteredData = useFilteredList({ data, context: form as keyof FilterState })
 
   const debouncedScrollEnd = useDebounceCallback(() => {
     if (!isDragging && visibility !== 'always') {
@@ -369,7 +370,7 @@ const List = <T extends FormDataType>({
       <Group alignItemsVariant='end' className={sprinkles({ mb: 'space-4' })}>
         {filterConfigs && (
           <Group className={sprinkles({ flex: '1', me: 'space-4' })}>
-            <Filter context={form as FormType} data={data} filterConfigs={filterConfigs} />
+            <Filter context={form as keyof FilterState} data={data} filterConfigs={filterConfigs} />
           </Group>
         )}
         {!sm && !(sub.length > 0) && (

@@ -13,7 +13,8 @@ import { routeRoot } from '../../../utils/formatting'
 import { sprinkles } from '../../../css/sprinkles.css'
 import { ModalContext } from '../../Modal/ModalContext'
 import { Navigate } from '@tanstack/react-router'
-import { FormType, navigatePath } from '../../../utils/form'
+import { navigatePath } from '../../../utils/form'
+import { type FormType } from '../../../types/form'
 
 interface FooterProps<T extends FormDataType> {
   useAddNewItemMutation: () => UseMutationResult<T, Error, T, unknown>

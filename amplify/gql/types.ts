@@ -165,7 +165,7 @@ export type Background = {
   __typename: 'Background';
   desc?: Maybe<Scalars['String']['output']>;
   details?: Maybe<Array<Detail>>;
-  equipment?: Maybe<Array<Maybe<Array<Maybe<Array<BackgroundEquipment>>>>>>;
+  equipment?: Maybe<Array<Array<Array<BackgroundEquipment>>>>;
   features?: Maybe<Array<Feature>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
@@ -217,7 +217,7 @@ export type BackgroundEquipmentInput = {
 export type BackgroundInput = {
   desc?: InputMaybe<Scalars['String']['input']>;
   details?: InputMaybe<Array<DetailInput>>;
-  equipment?: InputMaybe<Array<InputMaybe<Array<InputMaybe<Array<BackgroundEquipmentInput>>>>>>;
+  equipment?: InputMaybe<Array<Array<Array<BackgroundEquipmentInput>>>>;
   features?: InputMaybe<Array<FeatureInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
@@ -296,7 +296,7 @@ export type Character = {
   classes?: Maybe<Array<CharacterClass>>;
   currencyGroups?: Maybe<Array<CurrencyGroup>>;
   desc?: Maybe<Scalars['String']['output']>;
-  equipment?: Maybe<Array<Contains>>;
+  equipment?: Maybe<CharacterEquipment>;
   exp?: Maybe<Scalars['ID']['output']>;
   expertise?: Maybe<Array<CharacterExpertise>>;
   feats?: Maybe<Array<CharacterFeat>>;
@@ -372,6 +372,40 @@ export type CharacterCurrency = {
 export type CharacterCurrencyInput = {
   amount: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
+};
+
+export type CharacterEquipment = {
+  __typename: 'CharacterEquipment';
+  attuned?: Maybe<Array<Scalars['ID']['output']>>;
+  equipped?: Maybe<Array<Scalars['ID']['output']>>;
+  inventory?: Maybe<Array<CharacterEquipmentObject>>;
+};
+
+export type CharacterEquipmentInput = {
+  attuned?: InputMaybe<Array<Scalars['ID']['input']>>;
+  equipped?: InputMaybe<Array<Scalars['ID']['input']>>;
+  inventory?: InputMaybe<Array<CharacterEquipmentObjectInput>>;
+};
+
+export type CharacterEquipmentObject = {
+  __typename: 'CharacterEquipmentObject';
+  containerId?: Maybe<Scalars['ID']['output']>;
+  containerPath?: Maybe<Scalars['String']['output']>;
+  customName?: Maybe<Scalars['String']['output']>;
+  equipmentId: Scalars['ID']['output'];
+  id: Scalars['ID']['output'];
+  notes?: Maybe<Scalars['String']['output']>;
+  quantity: Scalars['Int']['output'];
+};
+
+export type CharacterEquipmentObjectInput = {
+  containerId?: InputMaybe<Scalars['ID']['input']>;
+  containerPath?: InputMaybe<Scalars['String']['input']>;
+  customName?: InputMaybe<Scalars['String']['input']>;
+  equipmentId: Scalars['ID']['input'];
+  id: Scalars['ID']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
+  quantity: Scalars['Int']['input'];
 };
 
 export type CharacterExpertise = {
@@ -509,7 +543,7 @@ export type CharacterInput = {
   classes?: InputMaybe<Array<InputMaybe<CharacterClassInput>>>;
   currencyGroups?: InputMaybe<Array<CurrencyGroupInput>>;
   desc?: InputMaybe<Scalars['String']['input']>;
-  equipment?: InputMaybe<Array<ContainsInput>>;
+  equipment: CharacterEquipmentInput;
   exp?: InputMaybe<Scalars['Int']['input']>;
   expertise?: InputMaybe<CharacterExpertiseInput>;
   feats?: InputMaybe<Array<CharacterFeatInput>>;
@@ -931,20 +965,12 @@ export enum ClassesEnumInput {
 
 export type Contains = {
   __typename: 'Contains';
-  attuned?: Maybe<Scalars['Boolean']['output']>;
-  contains?: Maybe<Array<Contains>>;
-  equipped?: Maybe<Scalars['Boolean']['output']>;
   id: Scalars['ID']['output'];
-  possessions?: Maybe<Array<Possessions>>;
   quantity: Scalars['Int']['output'];
 };
 
 export type ContainsInput = {
-  attuned?: InputMaybe<Scalars['Boolean']['input']>;
-  contains?: InputMaybe<Array<ContainsInput>>;
-  equipped?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
-  possessions?: InputMaybe<Array<PossessionsInput>>;
   quantity: Scalars['Int']['input'];
 };
 
@@ -3311,7 +3337,7 @@ export type TraitsInput = {
 
 export type Upcast = {
   __typename: 'Upcast';
-  attributes?: Maybe<Array<Maybe<Scalars['ID']['output']>>>;
+  attributes?: Maybe<Array<Scalars['ID']['output']>>;
   levels?: Maybe<Array<Maybe<UpcastLevel>>>;
 };
 
@@ -3337,7 +3363,7 @@ export type UpcastFieldsInput = {
 };
 
 export type UpcastInput = {
-  attributes?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   levels?: InputMaybe<Array<InputMaybe<UpcastLevelInput>>>;
 };
 

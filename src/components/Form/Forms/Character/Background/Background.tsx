@@ -11,10 +11,10 @@ import { option_dropdown } from '../../../Character.css'
 import parse from 'html-react-parser'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
 import useGetFeatures, { FactoryFeature } from '../../../../../hooks/useGetFeatures'
-import FeatureSection from '../../../Subforms/Character/Class/features/FeatureSection'
+import FeatureSection from '../../../Subforms/Character/Features/FeatureSection'
 import { Attributes } from '../../../../../types/enums'
 import { FeatureContext } from '../../../Features/FeatureContext'
-import FeatureOption from '../../../Subforms/Character/Class/features/FeatureOption'
+import FeatureOption from '../../../Subforms/Character/Features/FeatureOption'
 
 const Background = () => {
   const { formData, updateFormData, features } = use(FormContext) as {
@@ -77,6 +77,7 @@ const Background = () => {
                                       sectionStep={sectionStep}
                                       featureIndex={featureIndex}
                                       backgroundId={background.id}
+                                      feature={{ ...feature, __typename: 'CharacterFeature' }}
                                     />
                                   )
                                 }

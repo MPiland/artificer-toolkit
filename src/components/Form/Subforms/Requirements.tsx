@@ -10,23 +10,26 @@ import Group from '../../Group/Group'
 import Button from '../../Button/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
-import { useEffect } from 'react'
+import { use, useEffect, useMemo } from 'react'
 import Collapse from '../../Collapse/Collapse'
 import { Character, Feat, FeatureEnum, Spell } from '../../../../amplify/gql/types'
 import { FeatureDataType, FormDataType, SectionDataType, UpdateState } from '../../../types/form'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
+import { FormContext } from '../FormContext'
 
-const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
+const Prerequisites = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (state: UpdateState<T>) => void
+  formData: FeatureDataType | Feat | SectionDataType
+  updateFormData: (state: UpdateState<FeatureDataType | Feat | SectionDataType>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
   const { data: spells } = useListSpellsQuery()
   const { data: equipment } = useListEquipmentQuery()
+
+  const { formData: data } = use(FormContext) as { formData: Exclude<FormDataType, Spell | Character> }
 
   const {
     hasPrerequisites,
@@ -43,21 +46,21 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
   // Add/Remove prerequisites array
   useEffect(() => {
     if (hasPrerequisites) {
-      if (equipmentProficiency && !(formData.prerequisites?.equipmentProficiencies?.length > 0)) {
+      if (equipmentProficiency && !formData.prerequisites?.equipmentProficiencies?.length) {
         updateFormData({
           type: 'add',
           path: 'prerequisites.equipmentProficiencies',
         })
       }
 
-      if (equipped && !(formData.prerequisites?.equipped?.length > 0)) {
+      if (equipped && !formData.prerequisites?.equipped?.length) {
         updateFormData({
           type: 'add',
           path: 'prerequisites.equipped',
         })
       }
 
-      if (notEquipped && !(formData.prerequisites?.notEquipped?.length > 0)) {
+      if (notEquipped && !formData.prerequisites?.notEquipped?.length) {
         updateFormData({
           type: 'add',
           path: 'prerequisites.notEquipped',
@@ -65,6 +68,44 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
       }
     }
   }, [updateFormData, hasPrerequisites, equipmentProficiency, equipped, notEquipped, formData.prerequisites])
+
+  const featuresObtainedOptions = useMemo(() => {
+    const features = formData.__typename !== 'Feat' ? data?.features : formData?.features
+
+    const mappedFeatures = features?.map((feature) => {
+      if (feature.label != null && feature.value != null) {
+        return {
+          ...feature,
+          label: feature.label,
+          value: feature.value,
+          id: feature.id,
+        }
+      }
+      return null
+    })
+
+    return mappedFeatures?.filter((feature) => feature != null) || []
+  }, [data, formData])
+
+  const optionsObtainedOptions = useMemo(() => {
+    const mappedOptions = formData?.prerequisites?.featuresObtained?.flatMap((feature) =>
+      featuresObtainedOptions
+        ?.find((sFeature) => sFeature.id === feature)
+        ?.options?.map((option) => {
+          if (option.label != null && option.value != null) {
+            return {
+              ...option,
+              label: option.label,
+              value: option.value,
+              id: option.id,
+            }
+          }
+          return null
+        })
+    )
+
+    return mappedOptions?.filter((option) => option != null) || []
+  }, [featuresObtainedOptions, formData?.prerequisites?.featuresObtained])
 
   return (
     <Grid.Item>
@@ -81,7 +122,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                     label='Prerequisites'
                     options={system.prerequisites.filter(
                       (prerequisite) =>
-                        prerequisite?.features?.length > 0 &&
+                        prerequisite?.features?.length &&
                         (prerequisite?.features?.includes(FeatureEnum.all) ||
                           (formData.__typename === 'FeatureOption' &&
                             prerequisite?.features.includes(FeatureEnum.options)))
@@ -96,7 +137,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                     <Dropdown
                       multiSelect={true}
                       name='prerequisites.spellsObtained'
-                      value={formData?.prerequisites.spellsObtained}
+                      value={formData?.prerequisites?.spellsObtained}
                       label='Spell'
                       options={spells as DropdownOption[]}
                       onChange={updateFormData}
@@ -110,21 +151,14 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                       name='prerequisites.featuresObtained'
                       value={formData?.prerequisites?.featuresObtained}
                       label='Feature'
-                      options={(formData as Exclude<FormDataType, Spell | Character>).features.map((feature) => ({
-                        label: feature.label,
-                        value: feature.value,
-                        id: feature.id,
-                      }))}
+                      options={featuresObtainedOptions}
                       onChange={updateFormData}
                     />
                   </Grid.Item>
                 )}
                 {optionsObtained &&
                   formData?.prerequisites?.optionsObtained?.some(
-                    (feature) =>
-                      (formData as Exclude<FormDataType, Spell | Character>).features.find(
-                        (sFeature) => sFeature.id === feature
-                      ).options?.length > 0
+                    (feature) => featuresObtainedOptions?.find((sFeature) => sFeature.id === feature)?.options?.length
                   ) && (
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
@@ -132,15 +166,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                         name='prerequisites.optionsObtained'
                         value={formData?.prerequisites?.optionsObtained}
                         label='Feature Option'
-                        options={formData?.prerequisites?.featuresObtained?.flatMap((feature) =>
-                          (formData as Exclude<FormDataType, Spell | Character>).features
-                            .find((sFeature) => sFeature.id === feature)
-                            .options.map((option) => ({
-                              label: option.label,
-                              value: option.value,
-                              id: option.id,
-                            }))
-                        )}
+                        options={optionsObtainedOptions}
                         onChange={updateFormData}
                       />
                     </Grid.Item>
@@ -196,7 +222,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                         value={equipmentProficieny.category}
                         label='Equipment Category'
                         options={system.equipment.categories.filter((sCategory) => {
-                          if (equipmentProficieny?.properties?.length > 0) {
+                          if (equipmentProficieny?.properties?.length) {
                             return system.equipment.categoryProperties.some(
                               (bridge) =>
                                 bridge.categoryId === sCategory.id &&
@@ -240,7 +266,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                             return true
                           })
                           .filter((sEquipment) => {
-                            if (equipmentProficieny?.properties?.length > 0) {
+                            if (equipmentProficieny?.properties?.length) {
                               return sEquipment.properties?.some((property) =>
                                 equipmentProficieny?.properties?.includes(property)
                               )
@@ -299,7 +325,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                         value={equipPrerequisite.category}
                         label='Equipment Category'
                         options={system.equipment.categories.filter((sCategory) => {
-                          if (equipPrerequisite?.properties?.length > 0) {
+                          if (equipPrerequisite?.properties?.length) {
                             return system.equipment.categoryProperties.some(
                               (bridge) =>
                                 bridge.categoryId === sCategory.id &&
@@ -343,7 +369,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                             return true
                           })
                           .filter((sEquipment) => {
-                            if (equipPrerequisite?.properties?.length > 0) {
+                            if (equipPrerequisite?.properties?.length) {
                               return sEquipment.properties?.some((property) =>
                                 equipPrerequisite?.properties?.includes(property)
                               )
@@ -410,7 +436,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                         value={notEquipPrerequisite.category}
                         label='Equipment Category'
                         options={system.equipment.categories.filter((sCategory) => {
-                          if (notEquipPrerequisite?.properties?.length > 0) {
+                          if (notEquipPrerequisite?.properties?.length) {
                             return system.equipment.categoryProperties.some(
                               (bridge) =>
                                 bridge.categoryId === sCategory.id &&
@@ -454,7 +480,7 @@ const Prerequisites = <T extends FeatureDataType | Feat | SectionDataType>({
                             return true
                           })
                           .filter((sEquipment) => {
-                            if (notEquipPrerequisite?.properties?.length > 0) {
+                            if (notEquipPrerequisite?.properties?.length) {
                               return sEquipment.properties?.some((property) =>
                                 notEquipPrerequisite?.properties?.includes(property)
                               )

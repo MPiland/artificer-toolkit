@@ -3,7 +3,6 @@ import {
   Character,
   CharacterHitpoint,
   Class,
-  Contains,
   Equipment,
   Feat,
   HitpointFixed,
@@ -14,14 +13,16 @@ import {
   Scores,
   Spell,
   System,
+  type CharacterEquipmentObject,
 } from '../../amplify/gql/types'
 import { RollConfig } from '../types/components'
 import { HitPointCalcMethod, ModifierCategories, ModifierSpellCategories } from '../types/enums'
 import { FormDataType } from '../types/form'
 import { parseDiceRoll } from './dice'
 import { ToOptions, NavigateOptions } from '@tanstack/react-router'
+import { FormType } from '../types/form'
 
-const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/s
+const PWD_REGEX: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,20}$/
 const USER_REGEX: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DEL_REGEX: RegExp = /^DELETE$/
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
@@ -48,8 +49,6 @@ export function createFilterOptions<T>(
     }))
     .sort((a, b) => a.label.localeCompare(b.label))
 }
-
-export type FormType = 'spells' | 'equipment' | 'characters' | 'classes' | 'races' | 'backgrounds' | 'feats'
 
 export const navigatePath = ({
   form,
@@ -612,7 +611,6 @@ export const createFormObject = (
         features: [],
         modifiers: [],
         proficiencies: [],
-        equipment: [],
         feats: [],
         expertise: [],
         senses: [],
@@ -639,14 +637,13 @@ export const createFormObject = (
   }
 }
 
-export const isEquipmentInInventory = (equipmentId: string, inventory: Contains[]): boolean => {
+export const isEquipmentInInventory = (equipmentId: string, inventory: CharacterEquipmentObject[]): boolean => {
   if (!inventory || inventory.length === 0) return false
 
   // Check direct equipment IDs
   if (inventory.some((item) => item.id === equipmentId)) return true
 
-  // Check nested equipment recursively
-  return inventory.some((item) => item.contains && isEquipmentInInventory(equipmentId, item.contains))
+  return false
 }
 
 export type SourcePropertyMapReturn = ReturnType<typeof sourcePropertyMap>
@@ -657,7 +654,8 @@ export const sourcePropertyMap = (data: Character) => ({
   raceId: (id: string) => data?.__typename === 'Character' && id === data?.race,
   ancestryId: (id: string) => data?.__typename === 'Character' && id === data?.ancestry?.id,
   featId: (id: string) => data?.__typename === 'Character' && data?.feats?.some((f) => f.featId === id),
-  equipmentId: (id: string) => data?.__typename === 'Character' && isEquipmentInInventory(id, data?.equipment || []),
+  equipmentId: (id: string) =>
+    data?.__typename === 'Character' && isEquipmentInInventory(id, data?.equipment?.inventory || []),
   backgroundId: (id: string) => data?.__typename === 'Character' && data?.background === id,
 })
 

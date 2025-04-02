@@ -22,7 +22,8 @@ import { Character } from '../../../amplify/gql/types'
 import Loading from '../Loading/Loading'
 import Grid from '../Grid/Grid'
 import { Link, Navigate, useLocation } from '@tanstack/react-router'
-import { FormType, navigatePath } from '../../utils/form'
+import { navigatePath } from '../../utils/form'
+import { FormType } from '../../types/form'
 
 type colType = {
   header: string

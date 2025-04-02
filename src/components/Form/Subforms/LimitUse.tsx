@@ -8,12 +8,12 @@ import { ChargesLimits } from '../../../types/enums'
 import { FeatureDataType, UpdateState } from '../../../types/form'
 import Grid from '../../Grid/Grid'
 
-const LimitUse = <T extends FeatureDataType | Feat | FeatureSpell>({
+const LimitUse = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (state: UpdateState<T>) => void
+  formData: FeatureDataType | Feat | FeatureSpell
+  updateFormData: (state: UpdateState<FeatureDataType | Feat | FeatureSpell>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
@@ -21,7 +21,7 @@ const LimitUse = <T extends FeatureDataType | Feat | FeatureSpell>({
   useEffect(() => {
     if (
       'charges' in formData &&
-      !(formData.charges?.usesPerLevel?.length > 0) &&
+      !formData.charges?.usesPerLevel?.length &&
       formData?.charges?.limit === ChargesLimits.usesPerLevel
     ) {
       updateFormData({
@@ -32,7 +32,7 @@ const LimitUse = <T extends FeatureDataType | Feat | FeatureSpell>({
     if (
       'charges' in formData &&
       !(formData.charges?.limit === ChargesLimits.usesPerLevel) &&
-      formData.charges?.usesPerLevel?.length > 0
+      formData.charges?.usesPerLevel?.length
     ) {
       updateFormData({
         type: 'remove',
@@ -52,9 +52,9 @@ const LimitUse = <T extends FeatureDataType | Feat | FeatureSpell>({
               value={formData?.charges?.limit}
               options={system.charges.limits.filter((limit) => {
                 if (formData.__typename === 'Feat') {
-                  return limit?.feats?.length > 0 && limit?.feats?.includes(AllEnum.all)
+                  return limit?.feats?.length && limit?.feats?.includes(AllEnum.all)
                 }
-                return limit?.features?.length > 0 && limit?.features?.includes(FeatureEnum.all)
+                return limit?.features?.length && limit?.features?.includes(FeatureEnum.all)
               })}
               required={true}
               onChange={updateFormData}
@@ -153,7 +153,7 @@ const LimitUse = <T extends FeatureDataType | Feat | FeatureSpell>({
                 label='Reset Option'
                 value={formData?.charges?.reset}
                 options={system.charges.resets.filter(
-                  (reset) => reset?.features?.length > 0 && reset?.features?.includes(FeatureEnum.all)
+                  (reset) => reset?.features?.length && reset?.features?.includes(FeatureEnum.all)
                 )}
                 required={true}
                 onChange={updateFormData}

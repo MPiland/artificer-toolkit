@@ -21,10 +21,6 @@ type Cost {
 type Contains {
   id: ID!
   quantity: Int!
-  equipped: Boolean
-  attuned: Boolean
-  contains: [Contains!]
-  possessions: [Possessions!]
 }
 
 type EquipmentRange {

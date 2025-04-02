@@ -19,7 +19,7 @@ import Grid from '../../../../Grid/Grid'
 import { FormContext } from '../../../FormContext'
 import { useEnumChecks } from '../../../../../hooks/useEnumChecks'
 
-const ClassSpells = <T extends Character>({
+const ClassSpells = ({
   fullClass,
   classIndex,
   uClass,
@@ -29,8 +29,8 @@ const ClassSpells = <T extends Character>({
   uClass: CharacterClass
 }) => {
   const { formData, updateFormData } = use(FormContext) as {
-    formData: T
-    updateFormData: (state: UpdateState<T>) => void
+    formData: Character
+    updateFormData: (state: UpdateState<Character>) => void
   }
 
   const { preparesSpells, usesSpellbook } = useEnumChecks({ data: fullClass })
@@ -38,17 +38,35 @@ const ClassSpells = <T extends Character>({
 
   const casterType = preparesSpells ? 'prepared' : 'known'
 
-  const maxSpellLevel = fullClass?.levelAttributes?.find(
-    (levelAttribute) => levelAttribute?.level === Number(uClass.level)
-  )?.spellSlots?.length
+  const maxSpellLevel = useMemo(() => {
+    const fullClassLevel = fullClass?.levelAttributes?.find(
+      (levelAttribute) => levelAttribute?.level === Number(uClass.level)
+    )
+    if (fullClassLevel && fullClassLevel?.spellSlots?.length) {
+      return fullClassLevel?.spellSlots?.length
+    }
+    return 0
+  }, [fullClass?.levelAttributes, uClass?.level])
 
-  const maxSpellsKnown = fullClass?.levelAttributes?.find(
-    (levelAttribute) => levelAttribute?.level === Number(uClass.level)
-  )?.spellsKnownLimit
+  const maxSpellsKnown = useMemo(() => {
+    const fullClassLevel = fullClass?.levelAttributes?.find(
+      (levelAttribute) => levelAttribute?.level === Number(uClass.level)
+    )
+    if (fullClassLevel && fullClassLevel?.spellsKnownLimit) {
+      return fullClassLevel?.spellsKnownLimit
+    }
+    return 0
+  }, [fullClass?.levelAttributes, uClass?.level])
 
-  const maxCantripsKnown = fullClass?.levelAttributes?.find(
-    (levelAttribute) => levelAttribute?.level === Number(uClass.level)
-  )?.cantripsKnownLimit
+  const maxCantripsKnown = useMemo(() => {
+    const fullClassLevel = fullClass?.levelAttributes?.find(
+      (levelAttribute) => levelAttribute?.level === Number(uClass.level)
+    )
+    if (fullClassLevel && fullClassLevel?.cantripsKnownLimit) {
+      return fullClassLevel?.cantripsKnownLimit
+    }
+    return 0
+  }, [fullClass?.levelAttributes, uClass?.level])
 
   const createSpellArray = useCallback(() => {
     let subclassMapped: boolean = false
@@ -56,19 +74,19 @@ const ClassSpells = <T extends Character>({
     let spellsArrayUpdated: Array<Omit<ClassSpellList, '__typename'>> = []
 
     const createArray = (type?: 'subclass' | 'subtype', spellsArray?: Array<Omit<ClassSpellList, '__typename'>>) => {
-      if (spellsArray && spellsArray.length > 0) {
+      if (spellsArray && spellsArray.length) {
         spellsArrayUpdated = [...spellsArray]
       }
 
-      const spellClass = type === 'subclass' ? uClass.subclass.id : uClass.id
+      const spellClass = type === 'subclass' ? uClass?.subclass?.id : uClass.id
 
       const filteredSpells = spells.filter((spell) => spell?.classes?.some((sClass) => sClass === spellClass))
 
       const subSpells: Spell[] = []
 
-      fullClass.features.forEach((feature) => {
+      fullClass?.features?.forEach((feature) => {
         // Check features for spells sections
-        if (feature.spells?.length > 0) {
+        if (feature.spells?.length) {
           // If spells section exists and is array that's populated
           feature.spells?.some((spell) => {
             // If feature section expands spell list
@@ -78,16 +96,16 @@ const ClassSpells = <T extends Character>({
             ) {
               if (
                 spell.attributes?.some(
-                  (attribute) => attribute === Attributes.spellsByLevel && spell.spellsByLevel?.length > 0
+                  (attribute) => attribute === Attributes.spellsByLevel && spell.spellsByLevel?.length
                 )
               ) {
                 if ((spell.subtype != null && spell.subtype === uClass.subclass?.subtype) || spell.subtype == null) {
                   spell.spellsByLevel
                     ?.flatMap((levelObject) =>
-                      levelObject.spells.map((lSpell) => spells.find((sSpell) => sSpell.id === lSpell))
+                      levelObject?.spells?.map((lSpell) => spells.find((sSpell) => sSpell.id === lSpell))
                     )
                     .forEach((lSpell) => {
-                      if (!subSpells?.some((sSpell) => sSpell.id === lSpell.id)) {
+                      if (lSpell && !subSpells?.some((sSpell) => sSpell.id === lSpell?.id)) {
                         subSpells.push(lSpell)
                       }
                     })
@@ -95,7 +113,9 @@ const ClassSpells = <T extends Character>({
               } else {
                 spell.ids?.forEach((fSpell) => {
                   const subSpell = spells.find((sSpell) => sSpell.id === fSpell)
-                  subSpells.push(subSpell)
+                  if (subSpell) {
+                    subSpells.push(subSpell)
+                  }
                 })
               }
             }
@@ -103,7 +123,7 @@ const ClassSpells = <T extends Character>({
         }
       })
 
-      if (subSpells?.length > 0) {
+      if (subSpells?.length) {
         filteredSpells.push(...subSpells)
       }
       filteredSpells.forEach((spell) => {
@@ -130,10 +150,19 @@ const ClassSpells = <T extends Character>({
     spellsArrayUpdated = spellsArrayUpdated
       .sort((a, b) => a.level - b.level)
       .map((groupObject) => {
-        groupObject.spells.sort((a, b) => {
+        groupObject?.spells?.sort((a, b) => {
           const spellA = spells.find((sSpell) => sSpell.id === a.id)
           const spellB = spells.find((sSpell) => sSpell.id === b.id)
-          return spellA?.value.localeCompare(spellB?.value) || 0
+          if (spellA && spellB) {
+            return spellA?.value.localeCompare(spellB?.value) || 0
+          }
+          if (spellA) {
+            return -1
+          }
+          if (spellB) {
+            return 1
+          }
+          return 0
         })
         return groupObject
       })
@@ -146,9 +175,9 @@ const ClassSpells = <T extends Character>({
   const additionalSpellsArray = useCallback(() => {
     const additionalSpells: Array<Omit<CharacterSpell, '__typename'>> = [...(get(uClass, 'spellList.additional') || [])]
 
-    fullClass.features.forEach((feature) => {
+    fullClass?.features?.forEach((feature) => {
       // Check features for spells sections
-      if (feature.spells?.length > 0) {
+      if (feature.spells?.length) {
         // If spells section exists and is array that's populated
         feature.spells?.some((featureSpell) => {
           // If feature section expands spell list
@@ -168,7 +197,7 @@ const ClassSpells = <T extends Character>({
             )
             if (
               featureSpell.attributes?.some(
-                (attribute) => attribute === Attributes.spellsByLevel && featureSpell.spellsByLevel?.length > 0
+                (attribute) => attribute === Attributes.spellsByLevel && featureSpell.spellsByLevel?.length
               )
             ) {
               if (
@@ -177,10 +206,10 @@ const ClassSpells = <T extends Character>({
               ) {
                 featureSpell.spellsByLevel
                   ?.flatMap((levelObject) =>
-                    levelObject.spells.map((lSpell) => spells.find((sSpell) => sSpell.id === lSpell))
+                    levelObject?.spells?.map((lSpell) => spells.find((sSpell) => sSpell.id === lSpell))
                   )
                   .forEach((lSpell) => {
-                    if (!additionalSpells?.some((sSpell) => sSpell.id === lSpell.id)) {
+                    if (lSpell && !additionalSpells?.some((sSpell) => sSpell.id === lSpell.id)) {
                       additionalSpells.push({
                         level: lSpell.level,
                         id: lSpell.id,
@@ -196,20 +225,22 @@ const ClassSpells = <T extends Character>({
                   })
               }
             } else {
-              featureSpell.ids.forEach((fSpell) => {
+              featureSpell?.ids?.forEach((fSpell) => {
                 const spell = spells.find((sSpell) => sSpell.id === fSpell)
-                additionalSpells.push({
-                  classId: uClass.id,
-                  level: spell.level,
-                  id: spell.id,
-                  isRitual,
-                  usesSlot,
-                  alwaysPrepared,
-                  requiresConcentration,
-                  castAtLevel,
-                  optionalAbility,
-                  ability: featureSpell.ability,
-                })
+                if (spell && !additionalSpells?.some((sSpell) => sSpell.id === spell.id)) {
+                  additionalSpells.push({
+                    classId: uClass.id,
+                    level: spell.level,
+                    id: spell.id,
+                    isRitual,
+                    usesSlot,
+                    alwaysPrepared,
+                    requiresConcentration,
+                    castAtLevel,
+                    optionalAbility,
+                    ability: featureSpell.ability,
+                  })
+                }
               })
             }
           }
@@ -224,51 +255,13 @@ const ClassSpells = <T extends Character>({
 
   const preparedSpellsArray = useCallback(() => {
     const preparedArray: Array<Omit<ClassSpellList, '__typename'>> = [...(formData.spellcasting?.[casterType] || [])]
-    if (formData.spellcasting?.additional?.length > 0) {
-      formData.spellcasting?.additional?.forEach((aSpell) => {
-        const spell = spells.find((sSpell) => sSpell.id === aSpell.id)
-        if (spell.level <= maxSpellLevel) {
-          if (preparedArray?.length > 0) {
-            const spellObjectIndex = preparedArray.findIndex((listObject) => listObject.level === spell.level)
-            if (spellObjectIndex !== -1) {
-              if (!preparedArray?.[spellObjectIndex]?.spells?.some((pSpell) => pSpell.id === spell.id)) {
-                preparedArray[spellObjectIndex].spells.push({
-                  __typename: 'ClassSpell',
-                  id: aSpell.id,
-                  classId: aSpell.classId,
-                  alwaysPrepared: aSpell.alwaysPrepared,
-                  isRitual: aSpell.isRitual,
-                  usesSlot: aSpell.usesSlot,
-                  castAtLevel: aSpell.castAtLevel,
-                  requiresConcentration: aSpell.requiresConcentration,
-                  optionalAbility: aSpell.optionalAbility,
-                  ability: aSpell.ability,
-                })
-              }
-            }
-          } else {
-            preparedArray.push({
-              level: spell.level,
-              spells: [
-                {
-                  __typename: 'ClassSpell',
-                  id: spell.id,
-                  classId: uClass.id,
-                },
-              ],
-            })
-          }
-        }
-      })
-    }
-
     return preparedArray
-  }, [uClass, maxSpellLevel, casterType, spells, formData.spellcasting])
+  }, [formData.spellcasting, casterType])
 
   const preparedSpells = useMemo(() => preparedSpellsArray(), [preparedSpellsArray])
 
   useEffect(() => {
-    if (preparedSpells.length > 0 && !isEqual(preparedSpells, formData.spellcasting?.[casterType])) {
+    if (preparedSpells.length && !isEqual(preparedSpells, formData.spellcasting?.[casterType])) {
       updateFormData({
         type: 'update',
         path: `spellcasting.${casterType}`,
@@ -310,7 +303,7 @@ const ClassSpells = <T extends Character>({
 
   // Remove class spells if class level is below allowed spell level
   useEffect(() => {
-    if (formData.spellcasting?.[casterType]?.length > 0) {
+    if (formData.spellcasting?.[casterType]?.length) {
       const updatedKnown = formData.spellcasting?.[casterType]?.filter(
         (listObject) => listObject.level <= maxSpellLevel
       )
@@ -322,7 +315,7 @@ const ClassSpells = <T extends Character>({
         })
       }
     }
-    if (usesSpellbook && formData.spellcasting?.known?.length > 0) {
+    if (usesSpellbook && formData.spellcasting?.known?.length) {
       const updatedKnown = formData.spellcasting?.known?.filter((listObject) => listObject.level <= maxSpellLevel)
       if (!isEqual(formData.spellcasting?.known, updatedKnown)) {
         updateFormData({
@@ -337,30 +330,30 @@ const ClassSpells = <T extends Character>({
   /* Sets how the spells are stored
      Spell book uses the "known" array */
   const spellList = formData.spellcasting?.[usesSpellbook || !preparesSpells ? 'known' : 'prepared']?.filter(
-    (group) => group.level > 0
+    (group) => group.level
   )
 
   const cantripsKnown = formData.spellcasting?.[casterType]?.filter((known) => known.level === 0)
 
   const preparedSpellCount =
     formData.spellcasting?.prepared
-      ?.flatMap((listObject) => listObject.spells.map((spell) => spell))
-      .filter((spell) => !spell.alwaysPrepared).length || 0
+      ?.flatMap((listObject) => listObject.spells?.map((spell) => spell))
+      .filter((spell) => spell && !spell.alwaysPrepared).length || 0
 
   const cantripsKnownCount =
     cantripsKnown
-      ?.flatMap((listObject) => listObject.spells.map((spell) => spell))
-      .filter((spell) => !spell.alwaysPrepared).length || 0
+      ?.flatMap((listObject) => listObject.spells?.map((spell) => spell))
+      .filter((spell) => spell && !spell.alwaysPrepared).length || 0
 
-  const knownSpellCount = spellList?.flatMap((listObject) => listObject.spells.map((oSpell) => oSpell)).length || 0
+  const knownSpellCount = spellList?.flatMap((listObject) => listObject.spells?.map((oSpell) => oSpell)).length || 0
 
   const handleAddSpell = (spell: Spell, type: 'known' | 'prepared') => {
     let spellList: ClassSpellList[] = JSON.parse(JSON.stringify(formData.spellcasting?.[type] || []))
-    if (spellList?.length > 0) {
+    if (spellList?.length) {
       let spellLevelIndex = spellList.findIndex((listObject) => listObject.level === spell.level)
       if (spellLevelIndex !== -1) {
         spellList[spellLevelIndex].spells = [
-          ...spellList[spellLevelIndex].spells,
+          ...(spellList[spellLevelIndex].spells || []),
           { id: spell.id, classId: uClass.id, __typename: 'ClassSpell' },
         ]
       } else {
@@ -382,11 +375,20 @@ const ClassSpells = <T extends Character>({
     spellList = spellList
       .sort((a, b) => a.level - b.level)
       .map((listObject) => {
-        listObject.spells.sort((a, b) => {
+        listObject.spells?.sort((a, b) => {
           const aSpell = spells.find((spell) => spell.id === a.id)
           const bSpell = spells.find((spell) => spell.id === b.id)
 
-          return aSpell.value?.localeCompare(bSpell.value) || 0
+          if (aSpell && bSpell) {
+            return aSpell.value?.localeCompare(bSpell.value) || 0
+          }
+          if (aSpell) {
+            return -1
+          }
+          if (bSpell) {
+            return 1
+          }
+          return 0
         })
         return listObject
       })
@@ -403,7 +405,7 @@ const ClassSpells = <T extends Character>({
     const spellObjectIndex = spellList.findIndex((listObject) => listObject.level === spell.level)
     const spellArray = spellList[spellObjectIndex]?.spells?.filter((tSpell) => tSpell.id !== spell.id)
 
-    if (!(spellArray.length > 0)) {
+    if (!spellArray?.length) {
       if (spellList.length === 1) {
         return updateFormData({
           type: 'update',
@@ -430,10 +432,10 @@ const ClassSpells = <T extends Character>({
           <Collapse.Header title={`${preparesSpells ? 'Prepared' : 'Known'} Spells`} startOpened={false} />
           <Collapse.Body>
             <Grid>
-              {formData.spellcasting?.[casterType]?.length > 0 ?
+              {formData.spellcasting?.[casterType]?.length ?
                 formData.spellcasting?.[casterType]?.map(
                   (listObject, lIndex) =>
-                    listObject.spells?.length > 0 && (
+                    listObject.spells?.length && (
                       <Grid.Item key={lIndex}>
                         <Collapse style='borderless'>
                           <Collapse.Header title={listObject.level === 0 ? 'Cantrips' : `Level ${listObject.level}`} />
@@ -444,7 +446,7 @@ const ClassSpells = <T extends Character>({
                                 return (
                                   <Grid.Item key={sIndex}>
                                     <Collapse>
-                                      <Collapse.Header title={stateSpell.label} />
+                                      <Collapse.Header title={stateSpell?.label} />
                                       <Collapse.Body>{stateSpell?.desc && parse(stateSpell?.desc)}</Collapse.Body>
                                     </Collapse>
                                   </Grid.Item>
@@ -472,60 +474,63 @@ const ClassSpells = <T extends Character>({
                     {`Prepared Spells: ${preparedSpellCount}/${preparesSpells ? maxPreparedSpells() : maxSpellsKnown}`}
                   </span>
                 </Group>
-                {spellList?.map((listObject, lIndex) => {
-                  return (
-                    listObject.level > 0 &&
-                    listObject.level <= maxSpellLevel && (
-                      <Grid.Item key={lIndex}>
-                        <Collapse style='borderless'>
-                          <Collapse.Header title={`Level ${listObject.level}`} />
-                          <Collapse.Body>
-                            <Grid>
-                              {listObject.spells?.map((spell, sIndex) => {
-                                const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
-                                const spellFound = formData.spellcasting?.prepared
-                                  ?.flatMap((listObject) => listObject.spells)
-                                  ?.find((lSpell) => fullSpell.id === lSpell.id)
-                                const disabled =
-                                  (preparesSpells ?
-                                    preparedSpellCount >= maxPreparedSpells()
-                                  : knownSpellCount >= maxSpellsKnown) && !spellFound
-                                return (
-                                  <Grid.Item key={sIndex}>
-                                    <Collapse>
-                                      <Collapse.Header title={fullSpell.label} startOpened={false}>
-                                        <Button
-                                          color={spellFound != null ? 'danger' : 'primary'}
-                                          height='full'
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            if (spellFound != null) {
-                                              handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                            } else {
-                                              handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                            }
-                                          }}
-                                          disabled={disabled}
-                                        >
-                                          {spellFound != null ?
-                                            'Remove'
-                                          : disabled ?
-                                            '---'
-                                          : 'Add'}
-                                        </Button>
-                                      </Collapse.Header>
-                                      <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
-                                    </Collapse>
-                                  </Grid.Item>
-                                )
-                              })}
-                            </Grid>
-                          </Collapse.Body>
-                        </Collapse>
-                      </Grid.Item>
+                {maxSpellLevel &&
+                  spellList?.map((listObject, lIndex) => {
+                    return (
+                      listObject.level &&
+                      listObject.level <= maxSpellLevel && (
+                        <Grid.Item key={lIndex}>
+                          <Collapse style='borderless'>
+                            <Collapse.Header title={`Level ${listObject.level}`} />
+                            <Collapse.Body>
+                              <Grid>
+                                {listObject.spells?.map((spell, sIndex) => {
+                                  const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
+                                  if (fullSpell) {
+                                    const spellFound = formData.spellcasting?.prepared
+                                      ?.flatMap((listObject) => listObject.spells)
+                                      ?.find((lSpell) => lSpell && fullSpell.id === lSpell.id)
+                                    const disabled =
+                                      (preparesSpells ?
+                                        preparedSpellCount >= maxPreparedSpells()
+                                      : knownSpellCount >= maxSpellsKnown) && !spellFound
+                                    return (
+                                      <Grid.Item key={sIndex}>
+                                        <Collapse>
+                                          <Collapse.Header title={fullSpell.label} startOpened={false}>
+                                            <Button
+                                              color={spellFound != null ? 'danger' : 'primary'}
+                                              height='full'
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                if (spellFound != null) {
+                                                  handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                                } else {
+                                                  handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                                }
+                                              }}
+                                              disabled={disabled}
+                                            >
+                                              {spellFound != null ?
+                                                'Remove'
+                                              : disabled ?
+                                                '---'
+                                              : 'Add'}
+                                            </Button>
+                                          </Collapse.Header>
+                                          <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
+                                        </Collapse>
+                                      </Grid.Item>
+                                    )
+                                  }
+                                })}
+                              </Grid>
+                            </Collapse.Body>
+                          </Collapse>
+                        </Grid.Item>
+                      )
                     )
-                  )
-                })}
+                  })}
               </Grid>
             </Collapse.Body>
           </Collapse>
@@ -558,13 +563,13 @@ const ClassSpells = <T extends Character>({
                         />
                         <Collapse.Body>
                           <Grid>
-                            {group.spells.map((spell, sIndex: number) => {
+                            {group.spells?.map((spell, sIndex) => {
                               const spellFound = spellList
                                 ?.flatMap((listObject) => listObject.spells)
-                                ?.find((oSpell) => spell.id === oSpell.id)
+                                ?.find((oSpell) => oSpell && spell.id === oSpell.id)
                               const cantripFound = cantripsKnown
                                 ?.flatMap((cantripObject) => cantripObject.spells)
-                                ?.find((oSpell) => spell.id === oSpell.id)
+                                ?.find((oSpell) => oSpell && spell.id === oSpell.id)
                               const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
                               const cantripDisabled = cantripsKnownCount === maxCantripsKnown && !cantripFound
                               const spellDisabled =
@@ -573,55 +578,57 @@ const ClassSpells = <T extends Character>({
                                   preparedSpellCount >= maxPreparedSpells()
                                 : knownSpellCount >= maxSpellsKnown) &&
                                   !spellFound)
-                              return (
-                                <Grid.Item key={sIndex}>
-                                  <Collapse>
-                                    <Collapse.Header title={fullSpell.label} startOpened={false}>
-                                      {group.level === 0 ?
-                                        <Button
-                                          color={cantripFound != null ? 'danger' : 'primary'}
-                                          height='full'
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            if (cantripFound != null) {
-                                              handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                            } else {
-                                              handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                            }
-                                          }}
-                                          disabled={cantripDisabled}
-                                        >
-                                          {cantripFound != null ?
-                                            'Remove'
-                                          : cantripDisabled ?
-                                            '---'
-                                          : 'Add'}
-                                        </Button>
-                                      : <Button
-                                          color={spellFound != null ? 'danger' : 'primary'}
-                                          height='full'
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            if (spellFound != null) {
-                                              handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                            } else {
-                                              handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
-                                            }
-                                          }}
-                                          disabled={spellDisabled}
-                                        >
-                                          {spellFound != null ?
-                                            'Remove'
-                                          : spellDisabled ?
-                                            '---'
-                                          : 'Add'}
-                                        </Button>
-                                      }
-                                    </Collapse.Header>
-                                    <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
-                                  </Collapse>
-                                </Grid.Item>
-                              )
+                              if (fullSpell) {
+                                return (
+                                  <Grid.Item key={sIndex}>
+                                    <Collapse>
+                                      <Collapse.Header title={fullSpell.label} startOpened={false}>
+                                        {group.level === 0 ?
+                                          <Button
+                                            color={cantripFound != null ? 'danger' : 'primary'}
+                                            height='full'
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              if (cantripFound != null) {
+                                                handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                              } else {
+                                                handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                              }
+                                            }}
+                                            disabled={cantripDisabled}
+                                          >
+                                            {cantripFound != null ?
+                                              'Remove'
+                                            : cantripDisabled ?
+                                              '---'
+                                            : 'Add'}
+                                          </Button>
+                                        : <Button
+                                            color={spellFound != null ? 'danger' : 'primary'}
+                                            height='full'
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              if (spellFound != null) {
+                                                handleRemoveSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                              } else {
+                                                handleAddSpell(fullSpell, !preparesSpells ? 'known' : 'prepared')
+                                              }
+                                            }}
+                                            disabled={spellDisabled}
+                                          >
+                                            {spellFound != null ?
+                                              'Remove'
+                                            : spellDisabled ?
+                                              '---'
+                                            : 'Add'}
+                                          </Button>
+                                        }
+                                      </Collapse.Header>
+                                      <Collapse.Body>{fullSpell?.desc && parse(fullSpell?.desc)}</Collapse.Body>
+                                    </Collapse>
+                                  </Grid.Item>
+                                )
+                              }
                             })}
                           </Grid>
                         </Collapse.Body>

@@ -1,4 +1,4 @@
-import { use, useState } from 'react'
+import { use, useMemo, useState } from 'react'
 import Modal from '../Modal/Modal'
 import { startCase } from 'lodash'
 import Dropdown from '../Dropdown/Dropdown'
@@ -72,10 +72,19 @@ const Copy = () => {
 
   const filterOptions: (keyof Filters)[] = Object.keys(filters) as (keyof Filters)[]
 
-  const filterData =
-    selection?.filterBy ?
-      filters[selection?.filterBy as keyof Filters]?.find((item) => item.id === selection?.filter)?.features || []
-    : data
+  const filterData = useMemo(() => {
+    const dataArray =
+      selection?.filterBy ?
+        filters[selection?.filterBy as keyof Filters]?.find((item) => item.id === selection?.filter)?.features || []
+      : data
+    return dataArray
+      ?.filter((item) => item.label != null && item.value != null)
+      ?.map((item) => ({
+        id: item.id,
+        label: item.label || String(item.id),
+        value: item.value || item.id,
+      }))
+  }, [data, filters, selection])
 
   return (
     <Modal.Dialogue size='sm'>
@@ -114,7 +123,7 @@ const Copy = () => {
           )}
           <Grid.Item colSpan={8}>
             <Dropdown
-              options={data}
+              options={filterData}
               onChange={handleSelect}
               name='label'
               value={selection?.option}

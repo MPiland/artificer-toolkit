@@ -9,7 +9,7 @@ import { Class, Equipment, Feature, Race } from '../../../amplify/gql/types'
 
 type ModalType = 'alert' | 'delete' | 'copy'
 
-interface AlertModalProps {
+export interface AlertModalProps {
   title?: string
   message: string
   confirmLabel?: string
@@ -18,12 +18,12 @@ interface AlertModalProps {
   onCancel?: () => void
 }
 
-interface DeleteModalProps {
+export interface DeleteModalProps {
   item: FormDataType
   onDelete?: () => void
 }
 
-interface CopyModalProps {
+export interface CopyModalProps {
   form: string
   data: Pick<FormDataType, 'id' | 'label' | 'value'>[] | Feature[] | undefined
   onCopy?: (() => void) | ((arg: any) => void)

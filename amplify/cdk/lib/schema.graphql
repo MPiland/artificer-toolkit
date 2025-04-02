@@ -342,7 +342,7 @@ type UpcastLevel {
 }
 
 type Upcast {
-  attributes: [ID]
+  attributes: [ID!]
   levels: [UpcastLevel]
 }
 
@@ -840,10 +840,6 @@ type Cost {
 type Contains {
   id: ID!
   quantity: Int!
-  equipped: Boolean
-  attuned: Boolean
-  contains: [Contains!]
-  possessions: [Possessions!]
 }
 
 type EquipmentRange {
@@ -1309,6 +1305,22 @@ type CharacterHitpoint {
   fixed: HitpointFixed
 }
 
+type CharacterEquipmentObject {
+  id: ID!
+  equipmentId: ID!
+  quantity: Int!
+  containerId: ID
+  containerPath: String
+  customName: String
+  notes: String
+}
+
+type CharacterEquipment {
+  equipped: [ID!]
+  attuned: [ID!]
+  inventory: [CharacterEquipmentObject!]
+}
+
 type Character {
   id: ID!
   value: String!
@@ -1325,7 +1337,7 @@ type Character {
   spellcasting: CharacterSpellcasting
   classEquipment: ClassStartingEquipment
   backgroundEquipment: BackgroundStartingEquipment
-  equipment: [Contains!]
+  equipment: CharacterEquipment
   currencyGroups: [CurrencyGroup!]
   features: [CharacterFeature!]
   feats: [CharacterFeat!]
@@ -1363,7 +1375,7 @@ type Background {
   value: String!
   desc: String
   details: [Detail!]
-  equipment: [[[BackgroundEquipment!]]]
+  equipment: [[[BackgroundEquipment!]!]!]
   proficiencies: [FeatureProficiency!]
   features: [Feature!]
   ownerId: ID!
@@ -1715,7 +1727,7 @@ input UpcastLevelInput {
 }
 
 input UpcastInput {
-  attributes: [ID]
+  attributes: [ID!]
   levels: [UpcastLevelInput]
 }
 
@@ -2214,10 +2226,6 @@ input CostInput {
 input ContainsInput {
   id: ID!
   quantity: Int!
-  equipped: Boolean
-  attuned: Boolean
-  contains: [ContainsInput!]  
-  possessions: [PossessionsInput!]
 }
 
 input EquipmentRangeInput {
@@ -2687,6 +2695,22 @@ input CharacterHitpointInput {
   fixed: HitpointFixedInput
 }
 
+input CharacterEquipmentObjectInput {
+  id: ID!
+  equipmentId: ID!
+  quantity: Int!
+  containerId: ID
+  containerPath: String
+  customName: String
+  notes: String
+}
+
+input CharacterEquipmentInput {
+  equipped: [ID!]
+  attuned: [ID!]
+  inventory: [CharacterEquipmentObjectInput!]
+}
+
 input CharacterInput {
   id: ID!
   value: String!
@@ -2703,7 +2727,7 @@ input CharacterInput {
   spellcasting: CharacterSpellcastingInput
   classEquipment: ClassStartingEquipmentInput
   backgroundEquipment: BackgroundStartingEquipmentInput
-  equipment: [ContainsInput!]
+  equipment: CharacterEquipmentInput!
   currencyGroups: [CurrencyGroupInput!]
   features: [CharacterFeatureInput!]
   feats: [CharacterFeatInput!]
@@ -2736,7 +2760,7 @@ input BackgroundInput {
   value: String!
   desc: String
   details: [DetailInput!]
-  equipment: [[[BackgroundEquipmentInput!]]]
+  equipment: [[[BackgroundEquipmentInput!]!]!]
   proficiencies: [FeatureProficiencyInput!]
   features: [FeatureInput!]
   ownerId: String

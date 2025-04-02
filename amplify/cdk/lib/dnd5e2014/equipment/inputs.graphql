@@ -21,10 +21,6 @@ input CostInput {
 input ContainsInput {
   id: ID!
   quantity: Int!
-  equipped: Boolean
-  attuned: Boolean
-  contains: [ContainsInput!]  
-  possessions: [PossessionsInput!]
 }
 
 input EquipmentRangeInput {

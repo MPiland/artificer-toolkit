@@ -303,6 +303,22 @@ type CharacterHitpoint {
   fixed: HitpointFixed
 }
 
+type CharacterEquipmentObject {
+  id: ID!
+  equipmentId: ID!
+  quantity: Int!
+  containerId: ID
+  containerPath: String
+  customName: String
+  notes: String
+}
+
+type CharacterEquipment {
+  equipped: [ID!]
+  attuned: [ID!]
+  inventory: [CharacterEquipmentObject!]
+}
+
 type Character {
   id: ID!
   value: String!
@@ -319,7 +335,7 @@ type Character {
   spellcasting: CharacterSpellcasting
   classEquipment: ClassStartingEquipment
   backgroundEquipment: BackgroundStartingEquipment
-  equipment: [Contains!]
+  equipment: CharacterEquipment
   currencyGroups: [CurrencyGroup!]
   features: [CharacterFeature!]
   feats: [CharacterFeat!]

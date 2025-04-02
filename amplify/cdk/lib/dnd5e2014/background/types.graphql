@@ -19,7 +19,7 @@ type Background {
   value: String!
   desc: String
   details: [Detail!]
-  equipment: [[[BackgroundEquipment!]]]
+  equipment: [[[BackgroundEquipment!]!]!]
   proficiencies: [FeatureProficiency!]
   features: [Feature!]
   ownerId: ID!

@@ -20,12 +20,12 @@ import Grid from '../../../../Grid/Grid'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
 import CharacterCurrency from '../../../Subforms/Character/CharacterEquipment/CharacterCurrency'
 
-const Equipment = <T extends Character>() => {
+const Equipment = () => {
   const [random, setRandom] = useState<boolean>(false)
 
   const { formData, updateFormData } = use(FormContext) as {
-    formData: T
-    updateFormData: (state: UpdateState<T>) => void
+    formData: Character
+    updateFormData: (state: UpdateState<Character>) => void
   }
 
   const { setDice, rollDice } = use(DiceContext)
@@ -77,18 +77,18 @@ const Equipment = <T extends Character>() => {
   }, [formData?.classes, formData?.classEquipment, updateFormData])
 
   // Generate all possible combinations for the dice
-  const generateCombinations = (quantity: number, sides: number): string[] => {
+  const generateCombinations = (quantity: number, die: number): string[] => {
     if (quantity === 0) return ['']
-    if (quantity === 1) return Array.from({ length: sides }, (_, i) => `${i + 1}`)
+    if (quantity === 1) return Array.from({ length: die }, (_, i) => `${i + 1}`)
 
     const result: string[] = []
-    const prevCombinations = generateCombinations(numDie - 1, sides)
+    const prevCombinations = generateCombinations(quantity - 1, die)
 
     if (result?.length === 0) {
       result.push(goldDieConfig)
     }
 
-    for (let i = 1; i <= sides; i++) {
+    for (let i = 1; i <= die; i++) {
       for (const combo of prevCombinations) {
         result.push(combo ? `${i}+${combo}` : `${i}`)
       }
@@ -98,7 +98,7 @@ const Equipment = <T extends Character>() => {
   }
 
   // Get all combinations and create options
-  const combinations = generateCombinations(parsedRoll?.quantity, dieType)
+  const combinations = generateCombinations(parsedRoll?.quantity, parsedRoll?.die)
   const combinationOptions = combinations.map((combo, index) => {
     if (index === 0) {
       return {
@@ -147,9 +147,9 @@ const Equipment = <T extends Character>() => {
       case 'random':
         {
           let total = 0
-          for (let i = 0; i < parseRoll?.quantity; i++) {
+          for (let i = 0; i < parsedRoll?.quantity; i++) {
             // Generate a random number between 1 and dieType (inclusive)
-            const roll = Math.floor(Math.random() * dieType) + 1
+            const roll = Math.floor(Math.random() * parsedRoll?.die) + 1
             total += roll
           }
           const amount = total * multipler

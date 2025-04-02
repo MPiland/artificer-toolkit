@@ -3,7 +3,6 @@ import {
   Race,
   Class,
   Feature,
-  Contains,
   Equipment,
   Background,
   CharacterFeature,
@@ -11,6 +10,7 @@ import {
   FeatureOption,
   Feat,
   CharacterFeatureOption,
+  type CharacterEquipmentObject,
 } from '../../amplify/gql/types'
 import { useListClassesQuery } from '../apis/classesApi'
 import { useListEquipmentQuery } from '../apis/equipmentApi'
@@ -176,7 +176,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       if (feature?.featId) {
         return feats?.find((f) => f.id === feature.featId)?.features?.find((f) => f.id === feature.id) || null
       }
-      if (feature.equipmentId) {
+      if (feature?.equipmentId) {
         return equipment?.find((e) => e.id === feature.equipmentId)?.features?.find((f) => f.id === feature.id) || null
       }
     },
@@ -205,9 +205,9 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       // Map options to our expected format
       let options =
         fullFeature?.options?.map((option) => ({
-          id: option.id,
-          label: option.label,
-          value: option.value,
+          id: option.id!,
+          label: option.label || 'Option',
+          value: option.value || 'option',
         })) || []
 
       // Filter options based on prerequisites
@@ -448,7 +448,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         return features
       },
       equipment: () => {
-        if (data?.__typename !== 'Character' || !data?.equipment || !data?.equipment?.length) return []
+        if (data?.__typename !== 'Character' || !data?.equipment || !data?.equipment?.inventory?.length) return []
 
         const features: FactoryFeature[] = []
 
@@ -481,15 +481,18 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         features.push(...existingFeatures)
 
-        const checkEquipment = (featureEquipment: Contains) => {
-          if (featureEquipment.equipped) {
+        const checkEquipment = (featureEquipment: CharacterEquipmentObject) => {
+          if (data?.equipment?.equipped?.includes(featureEquipment.id)) {
             const fullEquipment = equipment?.find((e) => e.id === featureEquipment.id)
 
             const attunementRequired = fullEquipment?.attributes?.some(
               (attribute) => attribute === Attributes.requireAttunement
             )
 
-            if (!attunementRequired || (attunementRequired && featureEquipment.attuned)) {
+            if (
+              !attunementRequired ||
+              (attunementRequired && data?.equipment?.attuned?.includes(featureEquipment.id))
+            ) {
               fullEquipment?.features?.forEach((feature) => {
                 if (
                   !existingFeatures?.some(
@@ -506,14 +509,9 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
               })
             }
           }
-          if (featureEquipment.contains?.length) {
-            featureEquipment.contains.forEach((fE) => {
-              checkEquipment(fE)
-            })
-          }
         }
 
-        data?.equipment?.forEach((fE) => {
+        data?.equipment?.inventory?.forEach((fE) => {
           checkEquipment(fE)
         })
 

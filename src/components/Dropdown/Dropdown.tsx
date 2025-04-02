@@ -17,19 +17,13 @@ import { DropdownOption } from '../../types/components'
 import { TbX, TbChevronDown } from 'react-icons/tb'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import Floating from '../Floating/Floating'
-import { DeepKeyOf, FormDataType, UpdateState } from '../../types/form'
-import { UpdateFilter } from '../../types/components'
-import { FilterState } from '../../store/filterSlice'
-
-// Define a conditional type to determine the onChange type based on T
-type OnChangeType<T> =
-  T extends FilterState ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
+import { DeepKeyOf, UpdateState } from '../../types/form'
 
 export interface DropdownProps<T> {
   label?: string | boolean
   required?: boolean
-  value: (string | null)[] | string | null | undefined
-  onChange: OnChangeType<T>
+  value: string[] | string | null | undefined
+  onChange: (state: UpdateState<T>) => void
   className?: string | number | symbol | any
   placeholder?: string
   options: DropdownOption[]
@@ -39,7 +33,7 @@ export interface DropdownProps<T> {
   all?: boolean
   height?: 'full' | 'auto' | 'default'
   border?: 'none' | 'default'
-  name: T extends { filterState: FilterState } ? string : DeepKeyOf<T>
+  name: DeepKeyOf<T>
   boundary?: 'app' | 'form'
 }
 
@@ -80,11 +74,11 @@ const Dropdown = <T,>({
     if (!options) return []
 
     let optionArray: DropdownOption[] = Array.isArray(options) ? [...options] : []
-    if (options?.length > 0) {
+    if (options?.length) {
       optionArray = optionArray?.filter((option) => option?.label != null)
       optionArray = uniqBy(optionArray, (option) => option.value)
 
-      if (optionArray.length > 0) {
+      if (optionArray.length) {
         optionArray = uniqBy(optionArray, (obj) => obj?.id)
         optionArray.sort((a, b) => {
           // Helper function to extract leading digits from a string
@@ -137,8 +131,8 @@ const Dropdown = <T,>({
   const filteredOptions = useMemo(() => filteredArray(), [filteredArray])
 
   useEffect(() => {
-    if (options?.length > 0 && filteredOptions?.length > 0) {
-      if (!isEqual(value, selectedOptions) && (value != null || selectedOptions != null) && !settingOption) {
+    if (options?.length && filteredOptions?.length) {
+      if (value && !isEqual(value, selectedOptions) && (value != null || selectedOptions != null) && !settingOption) {
         setSelectedOptions(value)
       }
     }
@@ -167,49 +161,32 @@ const Dropdown = <T,>({
     return filteredOptions.find((opt) => opt.id === activeOptions)?.label
   }, [activeOptions, filteredOptions])
 
-  // Add this helper function to check if we're dealing with a filter update
-  function isFilterUpdate<T>(obj: any): obj is { filterState: T } {
-    return obj && typeof obj === 'object' && 'filterState' in obj
-  }
-
   const handleValueSelect = (option: DropdownOption) => {
     setSettingOption(true)
     if (multiSelect) {
-      let newOptions = [option.id]
+      let newOptions: string[] | null = [option.id]
       if (option.id === 'clear') {
         newOptions = null
       } else if (option.id === 'all') {
         newOptions = ['all']
         const allOptions = filteredOptions.filter((opt) => opt.id !== 'all' && opt.id !== 'clear').map((opt) => opt.id)
-        if (isFilterUpdate<any>({} as T)) {
-          onChange({ type: 'update', key: name, value: newOptions })
-        } else {
-          onChange({ type: 'update', path: name, value: newOptions })
-        }
+        onChange({ type: 'update', path: name, value: newOptions })
         return setSelectedOptions(allOptions)
       }
-      if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length > 0) {
+      if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length) {
         if (selectedOptions.includes(option.id)) {
           newOptions = selectedOptions.filter((selectedOption) => selectedOption !== option.id)
         } else {
           newOptions = [...selectedOptions, ...newOptions]
         }
       }
-      if (isFilterUpdate<any>({} as T)) {
-        onChange({ type: 'update', key: name, value: newOptions })
-      } else {
-        onChange({ type: 'update', path: name, value: newOptions })
-      }
+      onChange({ type: 'update', path: name, value: newOptions })
       setSelectedOptions(newOptions)
     } else {
       // If it's a single select, update selectedOptionsRef.current to match selectedOptions
       setIsOpen(false)
       setSelectedOptions(option.id)
-      if (isFilterUpdate<any>({} as T)) {
-        onChange({ type: 'update', key: name, value: option.id })
-      } else {
-        onChange({ type: 'update', path: name, value: option.id })
-      }
+      onChange({ type: 'update', path: name, value: option.id })
     }
     setSettingOption(false)
   }
@@ -217,11 +194,7 @@ const Dropdown = <T,>({
   const handleValueRemove = () => {
     setSettingOption(true)
     setSelectedOptions(null)
-    if (isFilterUpdate<any>({} as T)) {
-      onChange({ type: 'remove', key: name })
-    } else {
-      onChange({ type: 'remove', path: name })
-    }
+    onChange({ type: 'remove', path: name })
     setSettingOption(false)
   }
 
@@ -256,8 +229,8 @@ const Dropdown = <T,>({
             ref={dropdownRef}
             tabIndex={0}
             data-atapp-options={
-              multiSelect ? activeOptions?.length > 0 && 'true'
-              : (activeOptions as string[])?.length > 0 || activeOptions != null ?
+              multiSelect ? activeOptions?.length && 'true'
+              : (activeOptions as string[])?.length || activeOptions != null ?
                 'true'
               : 'false'
             }
@@ -265,7 +238,7 @@ const Dropdown = <T,>({
             aria-required={required}
           >
             <span className={clsx(dropdown_input, { ['multiselect']: multiSelect })}>
-              {multiSelect && activeOptions?.length > 0 ?
+              {multiSelect && activeOptions?.length ?
                 <>
                   {labels}
                   {activeOptions?.length > 1 && (

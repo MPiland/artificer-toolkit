@@ -135,7 +135,9 @@ const Header = ({
         </Group>
         {expandable && (
           <span className={accordion_header_icon}>
-            {activeHeader === headerRef.current ? <TbSquareMinus /> : <TbSquarePlus />}
+            {activeHeader === headerRef.current ?
+              <TbSquareMinus />
+            : <TbSquarePlus />}
           </span>
         )}
       </Group>
@@ -184,7 +186,9 @@ const Accordion = <T,>({ children, dataArray, onChange, name, disableSort = fals
     const oldIndex = Number(active.id)
     const newIndex = Number(over?.id)
     const newArray = arrayMove(oldArray, oldIndex, newIndex)
-    onChange({ type: 'update', path: name, value: newArray })
+    if (name) {
+      onChange({ type: 'update', path: name, value: newArray })
+    }
   }
 
   return (

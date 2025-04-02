@@ -5,7 +5,7 @@ import Input from '../../Input/Input'
 import Button from '../../Button/Button'
 import { sprinkles } from '../../../css/sprinkles.css'
 import Group from '../../Group/Group'
-import { isEqual } from 'lodash'
+import { isEqual, set } from 'lodash'
 import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { useListEquipmentQuery } from '../../../apis/equipmentApi'
 import { Class, SectionEnum } from '../../../../amplify/gql/types'
@@ -15,10 +15,10 @@ import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Grid from '../../Grid/Grid'
 
-const Proficiencies = <T extends Class>() => {
+const Proficiencies = () => {
   const { formData, updateFormData } = use(FormContext) as {
-    formData: T
-    updateFormData: (state: UpdateState<T>) => void
+    formData: Class
+    updateFormData: (state: UpdateState<Class>) => void
   }
 
   const { data: system } = useGetSystemQuery()
@@ -26,13 +26,15 @@ const Proficiencies = <T extends Class>() => {
 
   useEffect(() => {
     if (formData?.proficiencies?.length) {
-      const formClone: Class = JSON.parse(JSON.stringify(formData))
+      const formClone = {
+        ...formData,
+      }
       formClone?.proficiencies?.forEach((proficiency, index) => {
         if (
           !proficiency?.level ||
           (proficiency?.level !== Measurement.full && proficiency?.level !== Measurement.half)
         ) {
-          formClone?.proficiencies?.[index]?.level = Measurement.full
+          set(formClone, `proficiencies.${index}.level`, Measurement.full)
         }
       })
       if (!isEqual(formClone.proficiencies, formData.proficiencies)) {

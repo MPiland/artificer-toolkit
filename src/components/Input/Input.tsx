@@ -12,25 +12,19 @@ import {
 import clsx from 'clsx'
 import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import Floating from '../Floating/Floating'
-import { DeepKeyOf, FormDataType, UpdateState } from '../../types/form'
-import { UpdateFilter } from '../../types/components'
-import { FilterState } from '../../store/filterSlice'
+import { DeepKeyOf, UpdateState } from '../../types/form'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
-// Define a conditional type to determine the onChange type based on T
-type OnChangeType<T> =
-  T extends FilterState ? (state: UpdateFilter<FormDataType>) => void : (state: UpdateState<T>) => void
-
 interface InputProps<T> {
   label?: string | boolean
   autoComplete?: string
   required?: boolean
   errorMsg?: string
-  onChange?: OnChangeType<T>
+  onChange?: (state: UpdateState<T>) => void
   value: any | null
   readOnly?: boolean
   validation?: 'num' | 'cur' | 'die' | 'user' | 'pwd' | 'roll' | 'dmg'
@@ -196,7 +190,7 @@ const Input = <T,>({
             input_height[height],
             input_border[border],
             {
-              [input_textAlign[textAlign]]: textAlign != null,
+              [input_textAlign[textAlign as 'center']]: textAlign != null,
             },
             {
               ['invalid']: error,

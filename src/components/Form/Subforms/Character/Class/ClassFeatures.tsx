@@ -1,15 +1,14 @@
 import { use } from 'react'
-import { UpdateState } from '../../../../../../types/form'
-import Collapse from '../../../../../Collapse/Collapse'
-import Dropdown from '../../../../../Dropdown/Dropdown'
-import { feature_card_header, option_dropdown } from '../../../../Character.css'
+import { UpdateState } from '../../../../../types/form'
+import Collapse from '../../../../Collapse/Collapse'
+import { feature_card_header } from '../../../Character.css'
 import parse from 'html-react-parser'
-import { Character, CharacterClass, Class } from '../../../../../../../amplify/gql/types'
-import { Categories } from '../../../../../../types/enums'
-import { FormContext } from '../../../../FormContext'
-import Grid from '../../../../../Grid/Grid'
-import ClassFeature from './ClassFeature'
-import { FactoryFeature } from '../../../../../../hooks/useGetFeatures'
+import { Character, CharacterClass, Class } from '../../../../../../amplify/gql/types'
+import { Categories } from '../../../../../types/enums'
+import { FormContext } from '../../../FormContext'
+import Grid from '../../../../Grid/Grid'
+import ClassFeature from '../Features/CharacterFeature'
+import { FactoryFeature } from '../../../../../hooks/useGetFeatures'
 
 const ClassFeatures = ({
   uClass,
@@ -22,7 +21,7 @@ const ClassFeatures = ({
   subclasses: Class[]
   classIndex: number
 }) => {
-  const { features, updateFormData } = use(FormContext) as {
+  const { features } = use(FormContext) as {
     features: FactoryFeature[]
     updateFormData: (state: UpdateState<Character>) => void
     formData: Character
@@ -78,32 +77,6 @@ const ClassFeatures = ({
                                 fullFeature?.detail &&
                                 parse(fullFeature?.detail)}
                               {fullFeature.desc && parse(fullFeature.desc)}
-                              {fullFeature.category === Categories.subclass && (
-                                <>
-                                  <Grid.Item>
-                                    <Dropdown
-                                      name={`classes.${classIndex}.subclass.id`}
-                                      className={option_dropdown}
-                                      label={'Subclass Option'}
-                                      options={subclasses}
-                                      onChange={updateFormData}
-                                      value={uClass?.subclass?.id}
-                                    />
-                                  </Grid.Item>
-                                  {subclass?.subtypes?.length && (
-                                    <Grid.Item>
-                                      <Dropdown
-                                        name={`classes.${classIndex}.subclass.subtype`}
-                                        className={option_dropdown}
-                                        label={'Subtype Option'}
-                                        options={subclass?.subtypes}
-                                        onChange={updateFormData}
-                                        value={uClass?.subclass?.subtype}
-                                      />
-                                    </Grid.Item>
-                                  )}
-                                </>
-                              )}
                             </Grid>
                           </Collapse.Body>
                         </Collapse>

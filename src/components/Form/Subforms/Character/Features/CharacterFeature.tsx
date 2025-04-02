@@ -1,27 +1,28 @@
 import { use } from 'react'
-import { Character, CharacterClass, Class } from '../../../../../../../amplify/gql/types'
-import { FormContext } from '../../../../FormContext'
-import Grid from '../../../../../Grid/Grid'
-import Collapse from '../../../../../Collapse/Collapse'
-import { Attributes, Categories } from '../../../../../../types/enums'
-import { feature_card_header, option_dropdown } from '../../../../Character.css'
+import { Character, CharacterClass, Class } from '../../../../../../amplify/gql/types'
+import { FormContext } from '../../../FormContext'
+import Grid from '../../../../Grid/Grid'
+import Collapse from '../../../../Collapse/Collapse'
+import { Attributes, Categories } from '../../../../../types/enums'
+import { feature_card_header, option_dropdown } from '../../../Character.css'
 import parse from 'html-react-parser'
-import { SectionName, UpdateState } from '../../../../../../types/form'
-import Dropdown from '../../../../../Dropdown/Dropdown'
-import { FeatureContext } from '../../../../Features/FeatureContext'
+import { SectionName, UpdateState } from '../../../../../types/form'
+import Dropdown from '../../../../Dropdown/Dropdown'
+import { FeatureContext } from '../../../Features/FeatureContext'
 import FeatureSection from './FeatureSection'
 import FeatureOption from './FeatureOption'
-import useGetFeatures, { FactoryFeature } from '../../../../../../hooks/useGetFeatures'
+import useGetFeatures, { FactoryFeature } from '../../../../../hooks/useGetFeatures'
 
-interface ClassFeatureProps {
-  uClass: CharacterClass
+interface CharacterFeatureProps {
+  uClass?: CharacterClass
   feature: FactoryFeature
-  subclasses: Class[]
+  subclasses?: Class[]
   subclass?: Class
-  classIndex: number
+  classIndex?: number
+  raceId?: string
 }
 
-const ClassFeature = ({ uClass, feature, subclasses, subclass, classIndex }: ClassFeatureProps) => {
+const CharacterFeature = ({ uClass, feature, subclasses, subclass, classIndex, raceId }: CharacterFeatureProps) => {
   const { formData, updateFormData } = use(FormContext) as {
     formData: Character
     updateFormData: (state: UpdateState<Character>) => void
@@ -35,15 +36,17 @@ const ClassFeature = ({ uClass, feature, subclasses, subclass, classIndex }: Cla
 
   const featureIndex = existFeatureIndex && existFeatureIndex > -1 ? existFeatureIndex : formData?.features?.length || 0
 
+  const headerTitle = `${feature.level && `(${feature.level}) `}${feature?.label || `Feature (${featureIndex})`}`
+
   return (
     <Grid.Item>
       <Collapse>
-        <Collapse.Header title={`(${feature.level}) ${feature.label}`} className={feature_card_header} />
+        <Collapse.Header title={headerTitle} className={feature_card_header} />
         <Collapse.Body>
           <Grid>
             {feature.category === Categories.subclass && feature?.detail && parse(feature?.detail)}
             {feature.desc && parse(feature.desc)}
-            {feature.category === Categories.subclass && (
+            {feature.category === Categories.subclass && uClass && classIndex && subclasses?.length && (
               <>
                 <Grid.Item justify='center'>
                   <Dropdown
@@ -82,7 +85,8 @@ const ClassFeature = ({ uClass, feature, subclasses, subclass, classIndex }: Cla
                           sectionStep={sectionStep}
                           featureIndex={featureIndex}
                           classIndex={classIndex}
-                          classId={uClass.id}
+                          classId={uClass?.id}
+                          raceId={raceId}
                           feature={{ ...feature, __typename: 'CharacterFeature' }}
                         />
                       )
@@ -112,7 +116,7 @@ const ClassFeature = ({ uClass, feature, subclasses, subclass, classIndex }: Cla
                                   sectionStep={sectionStep}
                                   featureIndex={featureIndex}
                                   classIndex={classIndex}
-                                  classId={uClass.id}
+                                  classId={uClass?.id}
                                   optionId={option.id}
                                   feature={{ ...option, __typename: 'CharacterFeature' }}
                                 />
@@ -131,4 +135,4 @@ const ClassFeature = ({ uClass, feature, subclasses, subclass, classIndex }: Cla
     </Grid.Item>
   )
 }
-export default ClassFeature
+export default CharacterFeature

@@ -13,12 +13,12 @@ import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import { startCase } from 'lodash'
 import Grid from '../../Grid/Grid'
 
-const Damage = <T extends Spell | Equipment | FeatureDataType>({
+const Damage = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (state: UpdateState<T>) => void
+  formData: Spell | Equipment | FeatureDataType
+  updateFormData: (state: UpdateState<Spell | Equipment | FeatureDataType>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
   const { doesDamage } = useEnumChecks({ data: formData })

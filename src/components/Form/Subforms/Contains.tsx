@@ -7,10 +7,10 @@ import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import Grid from '../../Grid/Grid'
 
-const ContainsForm = <T extends Equipment>() => {
+const ContainsForm = () => {
   const { formData, updateFormData } = use(FormContext) as {
-    formData: T
-    updateFormData: (state: UpdateState<T>) => void
+    formData: Equipment
+    updateFormData: (state: UpdateState<Equipment>) => void
   }
 
   const { data: equipment } = useListEquipmentQuery()

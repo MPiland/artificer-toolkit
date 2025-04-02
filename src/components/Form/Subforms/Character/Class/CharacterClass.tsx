@@ -6,7 +6,7 @@ import Tabs from '../../../../Tabs/Tabs'
 import Button from '../../../../Button/Button'
 import ClassSpells from './ClassSpells'
 import ClassProficiencies from './ClassProficiencies'
-import ClassFeatures from './features/ClassFeatures'
+import ClassFeatures from './ClassFeatures'
 import { Character, CharacterClass as CharacterClassType } from '../../../../../../amplify/gql/types'
 import { useGetSystemQuery } from '../../../../../apis/systemsApi'
 import { UpdateState } from '../../../../../types/form'
@@ -17,7 +17,7 @@ import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import { useListClassesQuery } from '../../../../../apis/classesApi'
 
-const CharacterClass = <T extends Character>({
+const CharacterClass = ({
   uClass,
   classIndex,
   handleRemoveClass,
@@ -30,7 +30,7 @@ const CharacterClass = <T extends Character>({
   const { data: classes } = useListClassesQuery()
 
   const { updateFormData } = use(FormContext) as {
-    updateFormData: (state: UpdateState<T>) => void
+    updateFormData: (state: UpdateState<Character>) => void
   }
 
   const fullClass = classes.find((c) => c.id === uClass.id)
