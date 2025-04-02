@@ -110,114 +110,119 @@ const Proficiencies = () => {
                           onChange={updateFormData}
                         />
                       </Grid.Item>
-                      {category.id === ProficiencyCategories.saveAbilities && (
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
-                          <Dropdown
-                            name={`proficiencies.${index}.saveAbilities`}
-                            multiSelect={true}
-                            label={`${category.label} Type`}
-                            value={proficiency.saveAbilities}
-                            options={system.abilities}
-                            required={true}
-                            onChange={updateFormData}
-                          />
-                        </Grid.Item>
-                      )}
-                      {(category.id === ProficiencyCategories.properties ||
-                        category.id === ProficiencyCategories.equipment) && (
+                      {category && (
                         <>
+                          {category.id === ProficiencyCategories.saveAbilities && (
+                            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                              <Dropdown
+                                name={`proficiencies.${index}.saveAbilities`}
+                                multiSelect={true}
+                                label={`${category.label} Type`}
+                                value={proficiency.saveAbilities}
+                                options={system.abilities}
+                                required={true}
+                                onChange={updateFormData}
+                              />
+                            </Grid.Item>
+                          )}
+                          {(category.id === ProficiencyCategories.properties ||
+                            category.id === ProficiencyCategories.equipment) && (
+                            <>
+                              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                                <Dropdown
+                                  name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.category`}
+                                  label='Item Category'
+                                  value={proficiency[category.value as 'properties' | 'equipment']?.category}
+                                  options={system.equipment.categories}
+                                  required={true}
+                                  onChange={updateFormData}
+                                />
+                              </Grid.Item>
+                              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                                <Dropdown
+                                  name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.${
+                                    category.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
+                                  }`}
+                                  multiSelect={true}
+                                  label='Equipment Properties'
+                                  value={
+                                    category.id === ProficiencyCategories.equipment ?
+                                      proficiency.equipment?.properties
+                                    : proficiency.properties?.ids
+                                  }
+                                  options={system.equipment.properties.filter((property) => {
+                                    if (category.id === ProficiencyCategories.properties) {
+                                      return system.equipment.categoryProperties.some(
+                                        (bridge) =>
+                                          bridge.categoryId === proficiency?.properties?.category &&
+                                          bridge.propertyId === property.id
+                                      )
+                                    }
+                                    return true
+                                  })}
+                                  onChange={updateFormData}
+                                  required={category.id === ProficiencyCategories.equipment ? false : true}
+                                />
+                              </Grid.Item>
+                              {category.id === ProficiencyCategories.equipment && (
+                                <>
+                                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                                    <Dropdown
+                                      name={`proficiencies.${index}.equipment.ids`}
+                                      multiSelect={true}
+                                      label='Equipment'
+                                      value={proficiency?.equipment?.ids}
+                                      options={equipment
+                                        .filter((sEquipment) => {
+                                          if (proficiency?.equipment?.category != null) {
+                                            return sEquipment.category === proficiency?.equipment?.category
+                                          }
+                                          return true
+                                        })
+                                        .filter((sEquipment) => {
+                                          if (proficiency?.equipment?.properties?.length) {
+                                            return sEquipment.properties?.some((property) =>
+                                              proficiency?.equipment?.properties?.includes(property)
+                                            )
+                                          }
+                                          return true
+                                        })}
+                                      onChange={updateFormData}
+                                      required={true}
+                                    />
+                                  </Grid.Item>
+                                </>
+                              )}
+                            </>
+                          )}
+                          {category.id === ProficiencyCategories.skills && (
+                            <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
+                              <Dropdown
+                                name={`proficiencies.${index}.skills`}
+                                multiSelect={true}
+                                label={`${category.label} Type`}
+                                value={proficiency.skills}
+                                options={system.skills}
+                                required={true}
+                                onChange={updateFormData}
+                              />
+                            </Grid.Item>
+                          )}
+                        </>
+                      )}
+                      {formData.subtypes?.length &&
+                        proficiency.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) && (
                           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
                             <Dropdown
-                              name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.category`}
-                              label='Item Category'
-                              value={proficiency[category.value as 'properties' | 'equipment']?.category}
-                              options={system.equipment.categories}
+                              name={`proficiencies.${index}.subtype`}
+                              label='Subtype'
+                              value={proficiency?.subtype}
+                              options={formData.subtypes}
                               required={true}
                               onChange={updateFormData}
                             />
                           </Grid.Item>
-                          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
-                            <Dropdown
-                              name={`proficiencies.${index}.${category.value as 'properties' | 'equipment'}.${
-                                category.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
-                              }`}
-                              multiSelect={true}
-                              label='Equipment Properties'
-                              value={
-                                category.id === ProficiencyCategories.equipment ?
-                                  proficiency.equipment?.properties
-                                : proficiency.properties?.ids
-                              }
-                              options={system.equipment.properties.filter((property) => {
-                                if (category.id === ProficiencyCategories.properties) {
-                                  return system.equipment.categoryProperties.some(
-                                    (bridge) =>
-                                      bridge.categoryId === proficiency.properties.category &&
-                                      bridge.propertyId === property.id
-                                  )
-                                }
-                                return true
-                              })}
-                              onChange={updateFormData}
-                              required={category.id === ProficiencyCategories.equipment ? false : true}
-                            />
-                          </Grid.Item>
-                          {category.id === ProficiencyCategories.equipment && (
-                            <>
-                              <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
-                                <Dropdown
-                                  name={`proficiencies.${index}.equipment.ids`}
-                                  multiSelect={true}
-                                  label='Equipment'
-                                  value={proficiency?.equipment?.ids}
-                                  options={equipment
-                                    .filter((sEquipment) => {
-                                      if (proficiency?.equipment?.category != null) {
-                                        return sEquipment.category === proficiency?.equipment?.category
-                                      }
-                                      return true
-                                    })
-                                    .filter((sEquipment) => {
-                                      if (proficiency?.equipment?.properties?.length) {
-                                        return sEquipment.properties?.some((property) =>
-                                          proficiency?.equipment?.properties?.includes(property)
-                                        )
-                                      }
-                                      return true
-                                    })}
-                                  onChange={updateFormData}
-                                  required={true}
-                                />
-                              </Grid.Item>
-                            </>
-                          )}
-                        </>
-                      )}
-                      {proficiency.attributes?.some((attribute) => attribute === Attributes.subtypeSpecific) && (
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
-                          <Dropdown
-                            name={`proficiencies.${index}.subtype`}
-                            label='Subtype'
-                            value={proficiency?.subtype}
-                            options={formData.subtypes}
-                            required={true}
-                            onChange={updateFormData}
-                          />
-                        </Grid.Item>
-                      )}
-                      {category.id === ProficiencyCategories.skills && (
-                        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
-                          <Dropdown
-                            name={`proficiencies.${index}.skills`}
-                            multiSelect={true}
-                            label={`${category.label} Type`}
-                            value={proficiency.skills}
-                            options={system.skills}
-                            required={true}
-                            onChange={updateFormData}
-                          />
-                        </Grid.Item>
-                      )}
+                        )}
                       {multipleOptions && (
                         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 'auto' }}>
                           <Input

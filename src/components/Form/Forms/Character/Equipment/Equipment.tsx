@@ -39,24 +39,32 @@ const Equipment = () => {
 
   const parsedRoll = parseDiceRoll(goldDieConfig)
 
-  const multipler = primaryClass?.startingGold?.multiplier || 1
+  const multiplier = primaryClass?.startingGold?.multiplier || 1
 
   const form: HTMLFormElement = document.getElementById('form-content') as HTMLFormElement
 
   // Set total gold based on gold option
   useEffect(() => {
-    if (formData?.classEquipment?.goldOption != null && formData?.classEquipment?.goldOption === goldDieConfig) {
-      setRandom(true)
-    } else {
-      if (String(formData?.classEquipment?.totalGold) !== formData?.classEquipment?.goldOption) {
-        updateFormData({
-          type: 'update',
-          path: 'classEquipment.totalGold',
-          value: Number(formData?.classEquipment?.goldOption) * multipler,
-        })
+    if (formData?.classEquipment?.goldOption) {
+      if (formData?.classEquipment?.goldOption === goldDieConfig) {
+        setRandom(true)
+      } else {
+        if (formData?.classEquipment?.totalGold !== Number(formData?.classEquipment?.goldOption)) {
+          updateFormData({
+            type: 'update',
+            path: 'classEquipment.totalGold',
+            value: Number(formData?.classEquipment?.goldOption) * multiplier,
+          })
+        }
       }
     }
-  }, [formData?.classEquipment, goldDieConfig, updateFormData, multipler])
+  }, [
+    formData?.classEquipment?.goldOption,
+    formData?.classEquipment?.totalGold,
+    goldDieConfig,
+    multiplier,
+    updateFormData,
+  ])
 
   // Remove stale starting equipment if classes are removed
   useEffect(() => {
@@ -127,7 +135,7 @@ const Equipment = () => {
         dieScore += keptObj.value
       })
 
-      const amount = dieScore * multipler
+      const amount = dieScore * multiplier
 
       updateFormData({
         type: 'update',
@@ -152,7 +160,7 @@ const Equipment = () => {
             const roll = Math.floor(Math.random() * parsedRoll?.die) + 1
             total += roll
           }
-          const amount = total * multipler
+          const amount = total * multiplier
           updateFormData({
             type: 'update',
             path: `classEquipment.totalGold`,
@@ -171,7 +179,7 @@ const Equipment = () => {
       __typename: 'ClassStartingEquipment',
       equipmentGroups: formData?.classEquipment?.equipmentGroups || null,
       goldOption: formData?.classEquipment?.goldOption || null,
-      option: null,
+      option: '',
       totalGold: formData?.classEquipment?.totalGold || null,
     }
     if (e.type === 'update') {
@@ -243,7 +251,7 @@ const Equipment = () => {
                         <Grid.Item>
                           <Grid>
                             <Grid.Item justify='center'>
-                              <span>Multipler: {multipler}</span>
+                              <span>Multipler: {multiplier}</span>
                             </Grid.Item>
                             <Grid.Item>
                               <Group justifyContentVariant='center'>
@@ -275,7 +283,7 @@ const Equipment = () => {
                           </Grid>
                         </Grid.Item>
                       </>
-                    : <CharacterEquipment dataSource={primaryClass} />}
+                    : primaryClass && <CharacterEquipment dataSource={primaryClass} />}
                   </Grid>
                 </Collapse.Body>
               </Collapse>

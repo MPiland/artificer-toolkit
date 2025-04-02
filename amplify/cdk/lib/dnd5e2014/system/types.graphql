@@ -177,7 +177,7 @@ type AbilityGenerateMethod {
   value: String!
   label: String!
   total: Int
-  options: [GenerateOption!]
+  options: [GenerateOption!]!
 }
 
 type SystemRules {

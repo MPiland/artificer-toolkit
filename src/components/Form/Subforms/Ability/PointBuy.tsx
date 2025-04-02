@@ -7,19 +7,19 @@ import {
   point_counter_label,
 } from '../../Character.css'
 import Dropdown from '../../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../apis/systemsApi'
+import { useGetSystemQuery } from '../../../../apis/systemsApi'
 import { UpdateState } from '../../../../types/form'
 import { isEqual } from 'lodash'
 import { AbilityGenerate } from '../../../../types/enums'
 import { Character } from '../../../../../amplify/gql/types'
 import Grid from '../../../Grid/Grid'
 
-const PointBuy = <T extends Character>({
+const PointBuy = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (arg: UpdateState<T>) => void
+  formData: Character
+  updateFormData: (arg: UpdateState<Character>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
@@ -44,7 +44,7 @@ const PointBuy = <T extends Character>({
     if (formData.abilities?.pointBuy?.distributed?.length) {
       formData.abilities.pointBuy.distributed.forEach((distribution) => {
         if (distribution?.ability && distribution?.id) {
-          const option = pointBuy.options.find((option) => option.id === distribution.id)
+          const option = pointBuy.options?.find((option) => option.id === distribution.id)
           if (!option) return
 
           const scoreValue = Number(option.value)
@@ -82,11 +82,11 @@ const PointBuy = <T extends Character>({
     if (!pointBuy || e.type !== 'update') return
 
     const newPointBuyId = String(e?.value)
-    const pointBuyOption = pointBuy.options.find((option) => option.id === newPointBuyId)
+    const pointBuyOption = pointBuy.options?.find((option) => option.id === newPointBuyId)
 
     // Calculate new points left
     const currentId = formData.abilities?.pointBuy?.distributed?.[aIndex]?.id
-    const currentOption = pointBuy.options.find((opt) => opt.id === currentId)
+    const currentOption = pointBuy.options?.find((opt) => opt.id === currentId)
     const currentReduce = currentOption?.reduce
     if (currentOption) {
       if (pointBuyOption) {
@@ -129,31 +129,31 @@ const PointBuy = <T extends Character>({
       </Grid.Item>
       {formData.abilities?.scores?.map((score, index) => {
         const currentId = formData.abilities?.pointBuy?.distributed?.[index]?.id
-        const currentOption = currentId ? pointBuy.options.find((opt) => opt.id === currentId) : null
+        const currentOption = currentId ? pointBuy.options?.find((opt) => opt.id === currentId) : null
 
         const abilityLabel = system.abilities.find((a) => a.id === score.ability)?.label || 'Ability'
 
         return (
           <Grid.Item key={index} colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              name='id'
+            <Dropdown<Character>
+              name='label'
               label={abilityLabel}
               key={index}
               value={currentId}
               options={pointBuy.options
-                .filter((option) => {
+                ?.filter((option) => {
                   if (option.reduce && pointsLeft) {
-                    if (currentOption.reduce) {
+                    if (currentOption?.reduce) {
                       return option.reduce - currentOption.reduce <= pointsLeft
                     }
+                    return option?.reduce <= pointsLeft
                   }
-                  return option.reduce <= pointsLeft
                 })
                 .map((option) => {
                   const baseLabel = option.label || option.value.toString()
                   let pointsText = ''
 
-                  if (currentOption) {
+                  if (currentOption && currentOption.reduce && option.reduce) {
                     // Something is already selected - show difference
                     if (option.id !== currentOption.id) {
                       const pointDifference = option.reduce - currentOption.reduce

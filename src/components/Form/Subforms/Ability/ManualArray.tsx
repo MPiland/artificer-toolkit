@@ -13,10 +13,10 @@ import {
   dice_roll_value_group,
 } from '../../Character.css'
 import Dropdown from '../../../Dropdown/Dropdown'
-import { useGetSystemQuery } from '../../../apis/systemsApi'
+import { useGetSystemQuery } from '../../../../apis/systemsApi'
 import { DiceRolls, RollConfig } from '../../../../types/components'
 import Collapse from '../../../Collapse/Collapse'
-import { isEqual } from 'lodash'
+import { isEqual, set } from 'lodash'
 import clsx from 'clsx'
 import { Character, Manual, RollType } from '../../../../../amplify/gql/types'
 import { parseDiceRoll } from '../../../../utils/dice'
@@ -24,12 +24,12 @@ import { DeepKeyOf, UpdateState } from '../../../../types/form'
 import { DiceContext } from '../../../Dice/DiceContext'
 import Grid from '../../../Grid/Grid'
 
-const ManualArray = <T extends Character>({
+const ManualArray = ({
   formData,
   updateFormData,
 }: {
-  formData: T
-  updateFormData: (arg: UpdateState<T>) => void
+  formData: Character
+  updateFormData: (arg: UpdateState<Character>) => void
 }) => {
   const { data: system } = useGetSystemQuery()
 
@@ -109,7 +109,16 @@ const ManualArray = <T extends Character>({
         updates.forEach((update) => updateFormData(update))
       }
     }
-  }, [formData, updateFormData, manualGroupInit, rollConfiguration, rollGroupInit])
+  }, [
+    formData.abilities?.manualRolled?.configuration,
+    formData.abilities?.scores,
+    formData.abilities?.manualRolled?.rollGroups,
+    formData.abilities?.manualRolled?.manual,
+    updateFormData,
+    manualGroupInit,
+    rollConfiguration,
+    rollGroupInit,
+  ])
 
   // Set the form formData for the roll configuration inputs
   useEffect(() => {}, [formData.abilities?.manualRolled?.configuration, rollConfiguration, updateFormData])
@@ -481,23 +490,25 @@ const ManualArray = <T extends Character>({
                                           value: e.value,
                                         })
                                       } else if (e.type === 'remove') {
-                                        const abilities = JSON.parse(
-                                          JSON.stringify(formData.abilities)
-                                        ) as Character['abilities']
+                                        const abilities = {
+                                          ...formData.abilities,
+                                        }
 
                                         // Set all abilities to false applied if removing ability option
-                                        abilities.manualRolled.rollGroups[gIndex] = abilities.manualRolled.rollGroups[
-                                          gIndex
-                                        ].map((roll, index) => ({
-                                          ...roll,
-                                          applied: false,
-                                          ability: index === rIndex ? null : roll.ability,
-                                        }))
+                                        set(
+                                          abilities,
+                                          `manualRolled.rollGroups.${gIndex}`,
+                                          abilities.manualRolled?.rollGroups?.[gIndex].map((roll, index) => ({
+                                            ...roll,
+                                            applied: false,
+                                            ability: index === rIndex ? null : roll.ability,
+                                          }))
+                                        )
 
                                         updateFormData({
                                           type: 'update',
                                           path: `abilities.manualRolled.rollGroups.${gIndex}`,
-                                          value: abilities.manualRolled.rollGroups[gIndex],
+                                          value: abilities.manualRolled?.rollGroups?.[gIndex],
                                         })
                                       }
                                     }}
@@ -529,7 +540,8 @@ const ManualArray = <T extends Character>({
                         Apply Rolls
                       </Button>
                     </Grid.Item>
-                    {formData.abilities.manualRolled?.rollGroups?.length > 1 &&
+                    {formData.abilities?.manualRolled?.rollGroups?.length &&
+                      formData.abilities?.manualRolled?.rollGroups?.length > 1 &&
                       gIndex !== formData.abilities.manualRolled.rollGroups.length - 1 && <hr />}
                   </Fragment>
                 )

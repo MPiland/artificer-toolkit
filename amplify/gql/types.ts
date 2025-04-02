@@ -18,7 +18,7 @@ export type AbilityGenerateMethod = {
   __typename: 'AbilityGenerateMethod';
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
-  options?: Maybe<Array<GenerateOption>>;
+  options: Array<GenerateOption>;
   total?: Maybe<Scalars['Int']['output']>;
   value: Scalars['String']['output'];
 };
@@ -26,7 +26,7 @@ export type AbilityGenerateMethod = {
 export type AbilityGenerateMethodInput = {
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
-  options?: InputMaybe<Array<GenerateOptionInput>>;
+  options: Array<GenerateOptionInput>;
   total?: InputMaybe<Scalars['Int']['input']>;
   value: Scalars['String']['input'];
 };
