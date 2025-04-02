@@ -20,16 +20,5 @@ export default defineConfig(() => {
     preview: {
       port: 3000,
     },
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'react': ['react', 'react-dom'],
-            'lodash': ['lodash'],
-            'eslint': ['eslint'],
-          },
-        },
-      },
-    },
   }
 })

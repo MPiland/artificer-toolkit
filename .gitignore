@@ -34,6 +34,7 @@ amplifyconfiguration*
 
 !jest.config.js
 *.d.ts
+.tsbuildinfo
 
 # CDK asset staging directory
 .cdk.staging
