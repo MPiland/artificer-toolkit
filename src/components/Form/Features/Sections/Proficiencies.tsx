@@ -3,35 +3,60 @@ import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
-import { useGetSystemQuery } from '../../../../apis/systemsApi'
-import { useListEquipmentQuery } from '../../../../apis/equipmentApi'
 import { FeatureContext } from '../FeatureContext'
 import { Class, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../types/form'
 import { Categories, ProficiencyCategories, ProficiencyLevels } from '../../../../types/enums'
 import { getKeyFromId } from '../../../../utils/form'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Requirements'
+import Prerequisites from '../../Subforms/Prerequisites'
 import Grid from '../../../Grid/Grid'
+import useSystemData from '../../../../hooks/useSystemData'
+import useEquipmentData from '../../../../hooks/useEquipmentData'
+import type { SectionStore } from '../../../../store/sectionStore'
+import type { OnChange } from '../../../../types/form'
 
 const Proficiencies = () => {
-  const { formData } = use(FormContext)
+  const { formStore } = use(FormContext)
 
-  const { sectionData, updateSectionData } = use(FeatureContext) as {
-    sectionData: FeatureProficiency
-    updateSectionData: (arg: UpdateState<FeatureProficiency>) => void
+  const { sectionStore } = use(FeatureContext) as {
+    sectionStore: SectionStore<FeatureProficiency>
   }
 
-  const { data: system } = useGetSystemQuery()
-  const { data: equipment } = useListEquipmentQuery()
+  const {
+    data,
+    updateField,
+    removeField,
+  }: {
+    data: FeatureProficiency
+    updateField: OnChange<FeatureProficiency>['updateField']
+    removeField: OnChange<FeatureProficiency>['removeField']
+  } = sectionStore
+
+  const {
+    abilities,
+    proficiencies,
+    attributes,
+    modifiers,
+    skills,
+    languages,
+    equipment: systemEquipment,
+    rules,
+  } = useSystemData()
+  const { equipment } = useEquipmentData()
 
   const { subtypeSpecific, providesOptions, hasPrerequisites } = useEnumChecks({
-    data: sectionData,
+    data: data,
   })
 
-  const sectionCategory = system.modifiers.categories.find((category) => category.id === sectionData?.category)
+  const sectionCategory = modifiers.categories.findCategory(data?.category)
 
-  const path = getKeyFromId(sectionData?.category, ProficiencyCategories)
+  const path = getKeyFromId(data?.category, ProficiencyCategories)
+
+  const systemOptions = {
+    saveAbilities: abilities,
+    skills: skills,
+    languages: languages,
+  } as const
 
   return (
     <Grid>
@@ -39,134 +64,134 @@ const Proficiencies = () => {
         <Dropdown
           multiSelect={true}
           name='attributes'
-          options={system.attributes.filter(
+          options={attributes.filter(
             (attribute) =>
               (attribute?.sections?.length && attribute?.sections?.includes(SectionEnum.all)) ||
-              ((formData as Class).category === Categories.subclass &&
+              ((formStore.data as Class).category === Categories.subclass &&
                 attribute?.sections?.includes(SectionEnum.subclasses))
           )}
           label={`${startCase('proficiency')} Attributes`}
-          value={sectionData?.attributes}
-          onChange={updateSectionData}
+          value={data?.attributes}
+          onChange={{ updateField, removeField }}
         />
       </Grid.Item>
       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           name='category'
           label='Proficiency Category'
-          value={sectionData?.category}
-          options={system.proficiencies.categories}
+          value={data?.category}
+          options={proficiencies.categories}
           required={true}
-          onChange={updateSectionData}
+          onChange={{ updateField, removeField }}
         />
       </Grid.Item>
       {sectionCategory != null &&
         (path !== 'equipment' && path !== 'properties' && path !== 'initiative' ?
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
-              name={`${path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>}`}
+              name={path}
               multiSelect={true}
               label={`${sectionCategory.label} Type`}
-              value={sectionData[path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>]}
-              options={
-                path === 'saveAbilities' ?
-                  system.abilities
-                : system[path as Exclude<typeof path, 'equipment' | 'properties' | 'initiative'>]
-              }
+              value={data[path]}
+              options={systemOptions[path]}
               required={true}
-              onChange={updateSectionData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
         : <>
             {(sectionCategory.id === ProficiencyCategories.properties ||
-              sectionCategory.id === ProficiencyCategories.equipment) && (
-              <>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown
-                    name={`${path as 'properties' | 'equipment'}.category`}
-                    label='Item Category'
-                    value={sectionData[path as 'properties' | 'equipment']?.category}
-                    options={system.equipment.categories}
-                    required={true}
-                    onChange={updateSectionData}
-                  />
-                </Grid.Item>
-                <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-                  <Dropdown
-                    name={`${path as 'properties' | 'equipment'}.${
-                      sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
-                    }`}
-                    multiSelect={true}
-                    label='Item Property'
-                    value={
-                      sectionData[path as 'properties' | 'equipment']?.[
-                        sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
-                      ]
-                    }
-                    options={equipment}
-                    onChange={updateSectionData}
-                    required={sectionCategory.id === ProficiencyCategories.equipment ? false : true}
-                  />
-                </Grid.Item>
-                {sectionCategory.id === ProficiencyCategories.equipment && (
+              sectionCategory.id === ProficiencyCategories.equipment) &&
+              path !== 'initiative' && (
+                <>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Dropdown
-                      name={`${path as 'equipment'}.ids`}
-                      multiSelect={true}
-                      label='Item'
-                      value={sectionData?.equipment?.ids}
-                      options={equipment}
-                      onChange={updateSectionData}
+                      name={path}
+                      label='Equipment Category'
+                      value={data[path]?.category}
+                      options={systemEquipment.categories}
                       required={true}
+                      onChange={{ updateField, removeField }}
                     />
                   </Grid.Item>
-                )}
-              </>
-            )}
+                  <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                    <Dropdown
+                      name={`${path as 'properties' | 'equipment'}.${
+                        sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids'
+                      }`}
+                      multiSelect={true}
+                      label='Equipment Property'
+                      value={
+                        data[path]?.[sectionCategory.id === ProficiencyCategories.equipment ? 'properties' : 'ids']
+                      }
+                      options={systemEquipment.properties.filterByCategory(data[path]?.category)}
+                      onChange={{ updateField, removeField }}
+                      required={sectionCategory.id === ProficiencyCategories.equipment ? false : true}
+                    />
+                  </Grid.Item>
+                  {sectionCategory.id === ProficiencyCategories.equipment && (
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+                      <Dropdown
+                        name={`${path as 'equipment'}.ids`}
+                        multiSelect={true}
+                        label='Equipment'
+                        value={data?.equipment?.ids}
+                        options={equipment
+                          .filterByCategory(data[path]?.category)
+                          .filterByEveryProperty(data[path]?.properties)}
+                        onChange={{ updateField, removeField }}
+                        required={true}
+                      />
+                    </Grid.Item>
+                  )}
+                </>
+              )}
           </>)}
       <Dropdown
         name='level'
         label='Proficiency Level'
-        value={sectionData?.level}
-        options={system.proficiencies.levels}
+        value={data?.level}
+        options={proficiencies.levels}
         required={true}
-        onChange={updateSectionData}
+        onChange={{ updateField, removeField }}
       />
-      {sectionData?.level === ProficiencyLevels.halfProficiency && (
+      {data?.level === ProficiencyLevels.halfProficiency && (
         <Dropdown
           name='rounding'
           label='Rounding Type'
-          value={sectionData?.rounding}
-          options={system.rules.measurements.rounding}
+          value={data?.rounding}
+          options={rules.measurements.rounding}
           required={true}
-          onChange={updateSectionData}
+          onChange={{ updateField, removeField }}
         />
       )}
-      {subtypeSpecific && formData.__typename === 'Class' && sectionCategory != null && formData?.subtypes?.length && (
-        <Dropdown
-          name='subtype'
-          label='Subclass Subtype'
-          value={sectionData?.subtype}
-          options={formData?.subtypes}
-          required={true}
-          onChange={updateSectionData}
-        />
-      )}
+      {subtypeSpecific &&
+        formStore.data.__typename === 'Class' &&
+        sectionCategory != null &&
+        formStore.data?.subtypes?.length && (
+          <Dropdown
+            name='subtype'
+            label='Subclass Subtype'
+            value={data?.subtype}
+            options={formStore.data?.subtypes}
+            required={true}
+            onChange={{ updateField, removeField }}
+          />
+        )}
       {providesOptions && (
         <Input
           validation='num'
           name={`selectionCount`}
           label='# of Selections'
           autoComplete='off'
-          value={sectionData?.selectionCount}
+          value={data?.selectionCount}
           errorMsg='Must contain only numbers'
           required={true}
-          onChange={updateSectionData}
+          onChange={{ updateField }}
         />
       )}
       {hasPrerequisites && (
         <Grid.Item>
-          <Prerequisites formData={sectionData} updateFormData={updateSectionData} />
+          <Prerequisites formStore={sectionStore} />
         </Grid.Item>
       )}
     </Grid>

@@ -27,7 +27,29 @@ type Background {
   masterId: String
 }
 
+type BackgroundFeatureMetaObject {
+  id: ID!
+  label: String!
+  backgroundIds: [ID!]
+}
+
+type BackgroundMeta {
+  features: [BackgroundFeatureMetaObject!]!
+}
+
+type BackgroundListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  details: [Detail!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
 type BackgroundConnection {
-  items: [Background]!
+  items: [BackgroundListItem!]!
+  metaData: BackgroundMeta!
   nextToken: String
 }

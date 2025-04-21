@@ -5,22 +5,21 @@ import { use } from 'react'
 import Grid from '../../Grid/Grid'
 
 const AncestryWrapper = () => {
-  const { featureStep, featureData, sectionStepComponent, sectionStep, featureSteps } = use(FeatureContext)
+  const { featureStep, featureStore, sectionStepComponent, sectionStep, featureSteps } = use(FeatureContext)
 
   return (
     <Grid>
-      {featureStep == null ? (
+      {featureStep == null ?
         <AncestryList />
-      ) : (
-        <>
+      : <>
           <Grid.Item>
             <h2 className={sprinkles({ mb: 'space-2' })}>{`${
               featureStep === 'ancestryOption' ? 'Ancestry Option' : 'Ancestry Option Feature'
-            } ${featureData.label && featureStep === 'ancestry' ? `(${featureData.label})` : ''}`}</h2>
+            } ${featureStore.data.label && featureStep === 'ancestry' ? `(${featureStore.data.label})` : ''}`}</h2>
           </Grid.Item>
           {sectionStep != null ? sectionStepComponent[sectionStep] : featureSteps[featureStep]}
         </>
-      )}
+      }
     </Grid>
   )
 }

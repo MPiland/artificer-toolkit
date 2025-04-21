@@ -4,45 +4,61 @@ import { startCase } from 'lodash'
 import { use, useEffect } from 'react'
 import { FormContext } from '../../FormContext'
 import { FeatureContext } from '../FeatureContext'
-import { DropdownOption } from '../../../../types/components'
-import { useGetSystemQuery } from '../../../../apis/systemsApi'
-import { useListEquipmentQuery } from '../../../../apis/equipmentApi'
 import { Categories, ProficiencyCategories } from '../../../../types/enums'
 import { ClassesEnum, FeatureProficiency, SectionEnum } from '../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../types/form'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Requirements'
+import Prerequisites from '../../Subforms/Prerequisites'
 import Grid from '../../../Grid/Grid'
+import useSystemData from '../../../../hooks/useSystemData'
+import useEquipmentData from '../../../../hooks/useEquipmentData'
+import type { OnChange } from '../../../../types/form'
+import type { SectionStore } from '../../../../store/sectionStore'
 
 type CategoryType = 'skills' | 'equipment' | 'abilities' | 'saveAbilities' | 'properties' | 'languages'
 
 const Expertise = () => {
-  const { formData } = use(FormContext)
-  const { sectionData, updateSectionData } = use(FeatureContext) as {
-    sectionData: FeatureProficiency
-    updateSectionData: (arg: UpdateState<FeatureProficiency>) => void
+  const { formStore } = use(FormContext)
+  const { sectionStore } = use(FeatureContext) as {
+    sectionStore: SectionStore<FeatureProficiency>
   }
 
-  const { data: system } = useGetSystemQuery()
-  const { data: items } = useListEquipmentQuery()
+  const {
+    data,
+    updateField,
+    removeField,
+  }: {
+    data: FeatureProficiency
+    updateField: OnChange<FeatureProficiency>['updateField']
+    removeField: OnChange<FeatureProficiency>['removeField']
+  } = sectionStore
+
+  const {
+    proficiencies,
+    attributes,
+    abilities,
+    skills,
+    equipment: { properties: equipmentProperties, categories: equipmentCategories },
+    languages,
+  } = useSystemData()
+
+  const { equipment } = useEquipmentData()
 
   const { subtypeSpecific, providesOptions, hasPrerequisites } = useEnumChecks({
-    data: sectionData,
+    data,
   })
 
-  const sectionCategory = system.proficiencies.categories.find((category) => category.id === sectionData?.category)
+  const sectionCategory = proficiencies.categories.find((category) => category.id === data?.category)
 
   const categoryName = sectionCategory?.value as CategoryType
 
   useEffect(() => {
-    if (sectionData.__typename == null) {
-      updateSectionData({
-        type: 'update',
+    if (data.__typename == null) {
+      updateField({
         path: '__typename',
         value: 'FeatureExpertise',
       })
     }
-  }, [updateSectionData, sectionData.__typename])
+  }, [updateField, data.__typename])
 
   return (
     <Grid>
@@ -50,27 +66,27 @@ const Expertise = () => {
         <Dropdown
           multiSelect={true}
           name='attributes'
-          options={system.attributes.filter(
+          options={attributes.filter(
             (attribute) =>
               (attribute.sections?.length && attribute.sections.includes(SectionEnum.all)) ||
-              (formData.__typename === 'Class' &&
-                formData.category === Categories.subclass &&
+              (formStore.data.__typename === 'Class' &&
+                formStore.data.category === Categories.subclass &&
                 attribute.classes?.length &&
                 attribute.classes.includes(ClassesEnum.subclass))
           )}
           label={`${startCase('proficiency')} Attributes`}
-          value={sectionData?.attributes}
-          onChange={updateSectionData}
+          value={data?.attributes}
+          onChange={{ updateField, removeField }}
         />
       </Grid.Item>
       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
         <Dropdown
           name={`category`}
           label='Proficiency Category'
-          value={sectionData?.category}
-          options={system.proficiencies.categories}
+          value={data?.category}
+          options={proficiencies.categories}
           required={true}
-          onChange={updateSectionData}
+          onChange={{ updateField, removeField }}
         />
       </Grid.Item>
       {sectionCategory?.id &&
@@ -84,26 +100,29 @@ const Expertise = () => {
               name={`${categoryName as 'skills' | 'saveAbilities' | 'languages'}`}
               multiSelect={true}
               label={`${startCase(categoryName)} Type`}
-              value={sectionData[categoryName as 'skills' | 'saveAbilities' | 'languages']}
+              value={data[categoryName as 'skills' | 'saveAbilities' | 'languages']}
               options={
-                categoryName === 'saveAbilities' ? system.abilities : system[categoryName as 'skills' | 'languages']
+                categoryName === 'saveAbilities' ? abilities
+                : categoryName === 'skills' ?
+                  skills
+                : languages
               }
               required={true}
-              onChange={updateSectionData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
         : <>
-            {(sectionData?.category === ProficiencyCategories.properties ||
-              sectionData?.category !== ProficiencyCategories.equipment) && (
+            {(data?.category === ProficiencyCategories.properties ||
+              data?.category !== ProficiencyCategories.equipment) && (
               <>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Dropdown
                     name={`${categoryName as 'properties' | 'equipment'}.category`}
-                    label='Item Category'
-                    value={sectionData[categoryName as 'properties' | 'equipment']?.category}
-                    options={system.equipment.categories}
+                    label='Equipment Category'
+                    value={data[categoryName as 'properties' | 'equipment']?.category}
+                    options={equipmentCategories}
                     required={true}
-                    onChange={updateSectionData}
+                    onChange={{ updateField, removeField }}
                   />
                 </Grid.Item>
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -112,10 +131,12 @@ const Expertise = () => {
                       categoryName === 'equipment' ? 'properties' : 'ids'
                     }`}
                     multiSelect={true}
-                    label='Item Property'
-                    value={sectionData[categoryName as 'properties' | 'equipment']?.properties}
-                    options={items as DropdownOption[]}
-                    onChange={updateSectionData}
+                    label='Equipment Property'
+                    value={data[categoryName as 'properties' | 'equipment']?.properties}
+                    options={equipmentProperties.filterByCategory(
+                      data[categoryName as 'properties' | 'equipment']?.category
+                    )}
+                    onChange={{ updateField, removeField }}
                     required={categoryName === 'equipment' ? false : true}
                   />
                 </Grid.Item>
@@ -126,9 +147,11 @@ const Expertise = () => {
                         name={`${categoryName}`}
                         multiSelect={true}
                         label='Equipment'
-                        value={sectionData?.[categoryName]?.ids}
-                        options={items as DropdownOption[]}
-                        onChange={updateSectionData}
+                        value={data?.[categoryName]?.ids}
+                        options={equipment
+                          .filterByCategory(data[categoryName as 'properties' | 'equipment']?.category)
+                          .filterByProperties(data[categoryName as 'properties' | 'equipment']?.properties)}
+                        onChange={{ updateField, removeField }}
                         required={true}
                       />
                     </Grid.Item>
@@ -138,17 +161,17 @@ const Expertise = () => {
             )}
           </>)}
       {subtypeSpecific &&
-        formData.__typename === 'Class' &&
-        formData.category === Categories.subclass &&
-        formData?.subtypes?.length && (
+        formStore.data.__typename === 'Class' &&
+        formStore.data.category === Categories.subclass &&
+        formStore.data?.subtypes?.length && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='subtype'
               label='Subclass Subtypes'
-              value={sectionData?.subtype}
-              options={formData?.subtypes}
+              value={data?.subtype}
+              options={formStore.data?.subtypes}
               required={true}
-              onChange={updateSectionData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
         )}
@@ -159,16 +182,16 @@ const Expertise = () => {
             name={`selectionCount`}
             label='# of Selections'
             autoComplete='off'
-            value={sectionData?.selectionCount}
+            value={data?.selectionCount}
             errorMsg='Must contain only numbers'
             required={true}
-            onChange={updateSectionData}
+            onChange={{ updateField }}
           />
         </Grid.Item>
       )}
       {hasPrerequisites && (
         <Grid.Item>
-          <Prerequisites formData={sectionData} updateFormData={updateSectionData} />
+          <Prerequisites formStore={sectionStore} />
         </Grid.Item>
       )}
     </Grid>

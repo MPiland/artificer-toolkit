@@ -3,4 +3,4 @@ import { FormOptionsType } from './FormProvider'
 
 export const FormContext = createContext<FormOptionsType>({} as FormOptionsType)
 
-export type UpdateFormData = FormOptionsType['updateFormData']
+export type UpdateFormData = FormOptionsType

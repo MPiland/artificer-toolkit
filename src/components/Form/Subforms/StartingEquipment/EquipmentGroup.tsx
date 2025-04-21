@@ -2,10 +2,10 @@ import Button from '../../../Button/Button'
 import Grid from '../../../Grid/Grid'
 import Accordion from '../../../Accordion/Accordion'
 import EquipmentOption from './EquipmentOption'
-import { Background, Class, ClassEquipment, BackgroundEquipment } from '../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../types/form'
+import type { Background, Class, ClassEquipment, BackgroundEquipment } from '../../../../../amplify/gql/types'
 import { use } from 'react'
 import { FormContext } from '../../FormContext'
+import { OnChange } from '../../../../types/form'
 
 type EquipmentGroupProps = {
   equipment: ((ClassEquipment | BackgroundEquipment)[] | null)[]
@@ -13,21 +13,20 @@ type EquipmentGroupProps = {
 }
 
 const EquipmentGroup = ({ equipment, index }: EquipmentGroupProps) => {
-  const { updateFormData } = use(FormContext) as {
-    updateFormData: (state: UpdateState<Class | Background>) => void
+  
+  const {
+    formStore: { removeField, addField },
+  } = use(FormContext) as {
+    formStore: {
+      removeField: OnChange<Class | Background>['removeField']
+      addField: OnChange<Class | Background>['addField']
+    }
   }
   const optionIndex = equipment?.length
 
   return (
     <Accordion.Wrapper itemId={String(index)}>
-      <Accordion.Header
-        handleRemove={() =>
-          updateFormData({
-            type: 'remove',
-            path: `equipment.${index}`,
-          })
-        }
-      >
+      <Accordion.Header handleRemove={() => removeField({ path: `equipment.${index}` })}>
         {`Equipment Group ${index + 1}`}
       </Accordion.Header>
       <Accordion.Content>
@@ -37,10 +36,7 @@ const EquipmentGroup = ({ equipment, index }: EquipmentGroupProps) => {
               color='primary'
               style='outline'
               onClick={() => {
-                updateFormData({
-                  type: 'add',
-                  path: `equipment.${index}.${optionIndex}`,
-                })
+                addField({ path: `equipment.${index}.${optionIndex}` })
               }}
             >
               Add Option

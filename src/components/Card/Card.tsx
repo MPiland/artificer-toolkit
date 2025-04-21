@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, createElement, CSSProperties, use, RefObject } from 'react'
+import { ReactNode, useEffect, createElement, CSSProperties, use, RefObject, useMemo, memo } from 'react'
 import {
   card,
   card_header_title,
@@ -11,7 +11,7 @@ import {
   card_content_truncated,
   card_content_collapsed_height,
 } from './Card.css'
-import { MdDelete, MdEdit, MdExpandMore, MdLaunch } from 'react-icons/md'
+import { MdDelete, MdExpandMore } from 'react-icons/md'
 import clsx from 'clsx'
 import useMeasure from 'react-use-measure'
 import HTMLReactParser from '../../utils/reactParser/dom-to-react'
@@ -23,10 +23,9 @@ import CardProvider from './CardProvider'
 
 const Header = ({
   title,
-  open,
   remove,
-  edit,
-  leftSide,
+  titleLeft,
+  titleRight,
   collapsible = false,
   startCollapsed = true,
   collapsed: collapsedProp,
@@ -36,7 +35,8 @@ const Header = ({
   open?: (arg: any) => void
   remove?: (arg: any) => void
   edit?: (arg: any) => void
-  leftSide?: ReactNode
+  titleLeft?: ReactNode
+  titleRight?: ReactNode
   collapsible?: boolean
   startCollapsed?: boolean
   collapsed?: boolean
@@ -66,18 +66,9 @@ const Header = ({
       }}
     >
       <div className={card_header_title_container}>
-        {leftSide && <div>{leftSide}</div>}
+        {titleLeft && <div>{titleLeft}</div>}
         <h4 className={card_header_title}>{title}</h4>
-        {open && (
-          <Button style='unstyled' height='xxs' onClick={open}>
-            <MdLaunch />
-          </Button>
-        )}
-        {edit && (
-          <Button style='unstyled' height='xxs' onClick={edit}>
-            <MdEdit />
-          </Button>
-        )}
+        {titleRight && <div>{titleRight}</div>}
         {remove && (
           <Button style='unstyled' height='xxs' onClick={remove}>
             <MdDelete />
@@ -94,6 +85,26 @@ const Content = ({ children }: { children?: ReactNode | string }) => {
 
   const [measureRef, { height }] = useMeasure()
 
+  const parsedContent = useMemo(() => {
+    return HTMLReactParser(children, {
+      replace: (node, index) => {
+        if (collapsed) {
+          if (index === 0 && node && 'children' in node) {
+            const tagName = node.name || 'p'
+            const data: string =
+              node.name === 'blockquote' ?
+                ((node.children[0] as Element).children[0] as Text).data
+              : (node.children[0] as Text).data
+
+            return createElement(tagName, { key: index, className: card_content_truncated }, data)
+          }
+        } else {
+          return node
+        }
+      },
+    })
+  }, [children, collapsed])
+
   return (
     <div className={card_content_wrapper}>
       <div
@@ -103,23 +114,7 @@ const Content = ({ children }: { children?: ReactNode | string }) => {
         className={clsx(card_content, { ['collapsed']: collapsed })}
       >
         <div ref={measureRef} className='heightdiv'>
-          {HTMLReactParser(children, {
-            replace: (node, index) => {
-              if (collapsed) {
-                if (index === 0 && node && 'children' in node) {
-                  const tagName = node.name || 'p'
-                  const data: string =
-                    node.name === 'blockquote' ?
-                      ((node.children[0] as Element).children[0] as Text).data
-                    : (node.children[0] as Text).data
-
-                  return createElement(tagName, { key: index, className: card_content_truncated }, data)
-                }
-              } else {
-                return node
-              }
-            },
-          })}
+          {parsedContent}
         </div>
       </div>
     </div>
@@ -138,7 +133,7 @@ type CardComponent = {
   ref: RefObject<HTMLDivElement | null>
 }
 
-const Card = ({ children, className, style, itemId, ref }: CardComponent) => {
+const CardBase = ({ children, className, style, itemId, ref }: CardComponent) => {
   return (
     <CardProvider itemId={itemId}>
       <div className={clsx(card, className)} ref={ref} style={style}>
@@ -147,6 +142,14 @@ const Card = ({ children, className, style, itemId, ref }: CardComponent) => {
     </CardProvider>
   )
 }
+
+const MemoizedCard = memo(CardBase)
+
+const Card = Object.assign(MemoizedCard, {
+  Header,
+  Content,
+  Footer,
+})
 
 Card.displayName = 'Card'
 

@@ -178,7 +178,8 @@ export type Background = {
 
 export type BackgroundConnection = {
   __typename: 'BackgroundConnection';
-  items: Array<Maybe<Background>>;
+  items: Array<BackgroundListItem>;
+  metaData: BackgroundMeta;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -214,6 +215,13 @@ export type BackgroundEquipmentInput = {
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type BackgroundFeatureMetaObject = {
+  __typename: 'BackgroundFeatureMetaObject';
+  backgroundIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+};
+
 export type BackgroundInput = {
   desc?: InputMaybe<Scalars['String']['input']>;
   details?: InputMaybe<Array<DetailInput>>;
@@ -226,6 +234,23 @@ export type BackgroundInput = {
   proficiencies?: InputMaybe<Array<FeatureProficiencyInput>>;
   systemId: Scalars['ID']['input'];
   value: Scalars['String']['input'];
+};
+
+export type BackgroundListItem = {
+  __typename: 'BackgroundListItem';
+  desc?: Maybe<Scalars['String']['output']>;
+  details?: Maybe<Array<Detail>>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  masterId?: Maybe<Scalars['String']['output']>;
+  ownerId: Scalars['ID']['output'];
+  systemId: Scalars['ID']['output'];
+  value: Scalars['String']['output'];
+};
+
+export type BackgroundMeta = {
+  __typename: 'BackgroundMeta';
+  features: Array<BackgroundFeatureMetaObject>;
 };
 
 export type BackgroundStartingEquipment = {
@@ -359,7 +384,7 @@ export type CharacterClassInput = {
 
 export type CharacterConnection = {
   __typename: 'CharacterConnection';
-  items: Array<Maybe<Character>>;
+  items: Array<Character>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -830,7 +855,8 @@ export type Class = {
 
 export type ClassConnection = {
   __typename: 'ClassConnection';
-  items: Array<Maybe<Class>>;
+  items: Array<ClassListItem>;
+  metaData: ClassMeta;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -866,6 +892,19 @@ export type ClassEquipmentInput = {
   selectionCount?: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type ClassFeatureMetaObject = {
+  __typename: 'ClassFeatureMetaObject';
+  classIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+};
+
+export type ClassFilter = {
+  __typename: 'ClassFilter';
+  count: Scalars['Int']['output'];
+  id: Scalars['ID']['output'];
+};
+
 export type ClassInput = {
   attributes?: InputMaybe<Array<Scalars['ID']['input']>>;
   category: Scalars['ID']['input'];
@@ -888,6 +927,40 @@ export type ClassInput = {
   subtypes?: InputMaybe<Array<SubtypeInput>>;
   systemId: Scalars['ID']['input'];
   value: Scalars['String']['input'];
+};
+
+export type ClassListItem = {
+  __typename: 'ClassListItem';
+  desc?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  masterId?: Maybe<Scalars['String']['output']>;
+  ownerId: Scalars['ID']['output'];
+  systemId: Scalars['ID']['output'];
+  value: Scalars['String']['output'];
+};
+
+export type ClassMeta = {
+  __typename: 'ClassMeta';
+  categories: Array<ClassMetaObject>;
+  features: Array<ClassFeatureMetaObject>;
+  optionalAbilities: Array<ClassMultiClassMetaObject>;
+  parentClasses: Array<ClassMetaObject>;
+  primaryAbilities: Array<ClassMultiClassMetaObject>;
+  secondaryAbilities: Array<ClassMultiClassMetaObject>;
+};
+
+export type ClassMetaObject = {
+  __typename: 'ClassMetaObject';
+  classIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
+};
+
+export type ClassMultiClassMetaObject = {
+  __typename: 'ClassMultiClassMetaObject';
+  amount?: Maybe<Scalars['Int']['output']>;
+  classIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
 };
 
 export type ClassSpell = {
@@ -1182,6 +1255,13 @@ export type EquipPrerequisiteInput = {
   properties?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
+export type EquipementCostMeta = {
+  __typename: 'EquipementCostMeta';
+  amount?: Maybe<Scalars['Int']['output']>;
+  equipmentIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
+};
+
 export type Equipment = {
   __typename: 'Equipment';
   armorClass?: Maybe<Scalars['Int']['output']>;
@@ -1192,7 +1272,6 @@ export type Equipment = {
   cost?: Maybe<Cost>;
   damage?: Maybe<Damage>;
   desc?: Maybe<Scalars['String']['output']>;
-  equipmentRank?: Maybe<Scalars['Int']['output']>;
   features?: Maybe<Array<Feature>>;
   id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
@@ -1232,7 +1311,8 @@ export type EquipmentCategoryPropertyInput = {
 
 export type EquipmentConnection = {
   __typename: 'EquipmentConnection';
-  items: Array<Maybe<Equipment>>;
+  items: Array<EquipmentListItem>;
+  metaData: EquipmentMeta;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -1258,6 +1338,13 @@ export enum EquipmentEnumInput {
   weapons = 'weapons'
 }
 
+export type EquipmentFeatureMetaObject = {
+  __typename: 'EquipmentFeatureMetaObject';
+  equipmentIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+};
+
 export type EquipmentInput = {
   Rank?: InputMaybe<Scalars['Int']['input']>;
   armorClass?: InputMaybe<Scalars['Int']['input']>;
@@ -1268,7 +1355,6 @@ export type EquipmentInput = {
   cost?: InputMaybe<CostInput>;
   damage?: InputMaybe<DamageInput>;
   desc?: InputMaybe<Scalars['String']['input']>;
-  equipmentRank?: InputMaybe<Scalars['Int']['input']>;
   features?: InputMaybe<Array<FeatureInput>>;
   id: Scalars['ID']['input'];
   label: Scalars['String']['input'];
@@ -1292,6 +1378,39 @@ export type EquipmentInput = {
   weight?: InputMaybe<WeightInput>;
 };
 
+export type EquipmentListItem = {
+  __typename: 'EquipmentListItem';
+  cost?: Maybe<Cost>;
+  desc?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  masterId?: Maybe<Scalars['String']['output']>;
+  quote?: Maybe<Scalars['String']['output']>;
+  rank?: Maybe<Scalars['Int']['output']>;
+  systemId: Scalars['ID']['output'];
+  value: Scalars['String']['output'];
+  weight?: Maybe<Weight>;
+};
+
+export type EquipmentMeta = {
+  __typename: 'EquipmentMeta';
+  armorClasses: Array<EquipmentMetaObject>;
+  categories: Array<EquipmentMetaObject>;
+  cost: Array<EquipementCostMeta>;
+  features: Array<EquipmentFeatureMetaObject>;
+  primaryDamages: Array<EquipmentMetaObject>;
+  properties: Array<EquipmentMetaObject>;
+  secondaryDamages: Array<EquipmentMetaObject>;
+  versatileDamages: Array<EquipmentMetaObject>;
+  weight: Array<EquipmentWeightMeta>;
+};
+
+export type EquipmentMetaObject = {
+  __typename: 'EquipmentMetaObject';
+  equipmentIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
+};
+
 export type EquipmentRange = {
   __typename: 'EquipmentRange';
   maxRange?: Maybe<Scalars['Int']['output']>;
@@ -1303,6 +1422,13 @@ export type EquipmentRangeInput = {
   maxRange?: InputMaybe<Scalars['Int']['input']>;
   minRange?: InputMaybe<Scalars['Int']['input']>;
   unit: Scalars['ID']['input'];
+};
+
+export type EquipmentWeightMeta = {
+  __typename: 'EquipmentWeightMeta';
+  amount?: Maybe<Scalars['Float']['output']>;
+  equipmentIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
 };
 
 export type Feat = {
@@ -1341,8 +1467,16 @@ export type Feat = {
 
 export type FeatConnection = {
   __typename: 'FeatConnection';
-  items: Array<Maybe<Feat>>;
+  items: Array<FeatListItem>;
+  metaData: FeatMeta;
   nextToken?: Maybe<Scalars['String']['output']>;
+};
+
+export type FeatFeatureMetaObject = {
+  __typename: 'FeatFeatureMetaObject';
+  featIds?: Maybe<Array<Scalars['ID']['output']>>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
 };
 
 export type FeatInput = {
@@ -1376,6 +1510,23 @@ export type FeatInput = {
   systemId: Scalars['ID']['input'];
   targets?: InputMaybe<Scalars['Int']['input']>;
   value: Scalars['String']['input'];
+};
+
+export type FeatListItem = {
+  __typename: 'FeatListItem';
+  desc?: Maybe<Scalars['String']['output']>;
+  detail?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  masterId?: Maybe<Scalars['String']['output']>;
+  ownerId: Scalars['String']['output'];
+  systemId: Scalars['ID']['output'];
+  value: Scalars['String']['output'];
+};
+
+export type FeatMeta = {
+  __typename: 'FeatMeta';
+  features: Array<FeatFeatureMetaObject>;
 };
 
 export type Feature = {
@@ -2637,8 +2788,16 @@ export type Race = {
 
 export type RaceConnection = {
   __typename: 'RaceConnection';
-  items: Array<Maybe<Race>>;
+  items: Array<RaceListItem>;
+  metaData: RaceMeta;
   nextToken?: Maybe<Scalars['String']['output']>;
+};
+
+export type RaceFeatureMetaObject = {
+  __typename: 'RaceFeatureMetaObject';
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  raceIds?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export type RaceInput = {
@@ -2657,6 +2816,32 @@ export type RaceInput = {
   systemId: Scalars['ID']['input'];
   traits?: InputMaybe<TraitsInput>;
   value: Scalars['String']['input'];
+};
+
+export type RaceListItem = {
+  __typename: 'RaceListItem';
+  desc?: Maybe<Scalars['String']['output']>;
+  details?: Maybe<Array<Detail>>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  masterId?: Maybe<Scalars['String']['output']>;
+  quote?: Maybe<Scalars['String']['output']>;
+  systemId: Scalars['ID']['output'];
+  value: Scalars['String']['output'];
+};
+
+export type RaceMeta = {
+  __typename: 'RaceMeta';
+  categories: Array<RaceMetaObject>;
+  features: Array<RaceFeatureMetaObject>;
+  lineages: Array<RaceMetaObject>;
+  playable: Array<RaceMetaObject>;
+};
+
+export type RaceMetaObject = {
+  __typename: 'RaceMetaObject';
+  id: Scalars['ID']['output'];
+  raceIds?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export type RaceSpeed = {
@@ -2857,8 +3042,16 @@ export type Spell = {
 
 export type SpellConnection = {
   __typename: 'SpellConnection';
-  items: Array<Maybe<Spell>>;
+  items: Array<SpellListItem>;
+  metaData: SpellMeta;
   nextToken?: Maybe<Scalars['String']['output']>;
+};
+
+export type SpellDurationMetaObject = {
+  __typename: 'SpellDurationMetaObject';
+  amount?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+  spellIds?: Maybe<Array<Scalars['ID']['output']>>;
 };
 
 export enum SpellEnum {
@@ -2896,6 +3089,67 @@ export type SpellInput = {
   targets?: InputMaybe<Scalars['Int']['input']>;
   upcast?: InputMaybe<UpcastInput>;
   value: Scalars['String']['input'];
+};
+
+export type SpellLevelObject = {
+  __typename: 'SpellLevelObject';
+  id: Scalars['Int']['output'];
+  spellIds?: Maybe<Array<Scalars['ID']['output']>>;
+};
+
+export type SpellListItem = {
+  __typename: 'SpellListItem';
+  desc?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  masterId?: Maybe<Scalars['String']['output']>;
+  materialDesc?: Maybe<Scalars['String']['output']>;
+  ownerId: Scalars['ID']['output'];
+  requirements?: Maybe<Array<Scalars['ID']['output']>>;
+  systemId: Scalars['ID']['output'];
+  value: Scalars['String']['output'];
+};
+
+export type SpellMeta = {
+  __typename: 'SpellMeta';
+  attributes: Array<SpellMetaObject>;
+  classes: Array<SpellMetaObject>;
+  conditions: Array<SpellMetaObject>;
+  durations: Array<SpellDurationMetaObject>;
+  levels: Array<SpellLevelObject>;
+  primaryActions: Array<SpellMetaObject>;
+  primaryDamages: Array<SpellMetaObject>;
+  ranges: Array<SpellRangeMetaObject>;
+  requirements: Array<SpellMetaObject>;
+  saveAbilities: Array<SpellMetaObject>;
+  schools: Array<SpellMetaObject>;
+  secondaryActions: Array<SpellMetaObject>;
+  secondaryDamages: Array<SpellMetaObject>;
+  shapes: Array<SpellShapeMetaObject>;
+};
+
+export type SpellMetaObject = {
+  __typename: 'SpellMetaObject';
+  id: Scalars['ID']['output'];
+  spellIds?: Maybe<Array<Scalars['ID']['output']>>;
+};
+
+export type SpellRangeMetaObject = {
+  __typename: 'SpellRangeMetaObject';
+  distance?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+  maxRange?: Maybe<Scalars['Int']['output']>;
+  minRange?: Maybe<Scalars['Int']['output']>;
+  spellIds?: Maybe<Array<Scalars['ID']['output']>>;
+  unit?: Maybe<Scalars['ID']['output']>;
+};
+
+export type SpellShapeMetaObject = {
+  __typename: 'SpellShapeMetaObject';
+  id: Scalars['ID']['output'];
+  size?: Maybe<Scalars['Float']['output']>;
+  spellIds?: Maybe<Array<Scalars['ID']['output']>>;
+  unit?: Maybe<Scalars['ID']['output']>;
 };
 
 export type SpellSlot = {
@@ -3034,7 +3288,7 @@ export type System = {
   masterId?: Maybe<Scalars['String']['output']>;
   modifiers: SystemModifiers;
   ownerId: Scalars['String']['output'];
-  passives: Array<Maybe<GenericType>>;
+  passives: Array<GenericType>;
   prerequisites: Array<SystemPrerequisite>;
   proficiencies: SystemProficiency;
   rules: SystemRules;
@@ -3133,7 +3387,7 @@ export type SystemChargesInput = {
 
 export type SystemConnection = {
   __typename: 'SystemConnection';
-  items: Array<Maybe<System>>;
+  items: Array<SystemListItem>;
   nextToken?: Maybe<Scalars['String']['output']>;
 };
 
@@ -3182,6 +3436,16 @@ export type SystemInput = {
   spells: SystemSpellInput;
   terrains: Array<GenericTypeInput>;
   value: Scalars['String']['input'];
+};
+
+export type SystemListItem = {
+  __typename: 'SystemListItem';
+  desc?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  masterId?: Maybe<Scalars['String']['output']>;
+  ownerId: Scalars['String']['output'];
+  value: Scalars['String']['output'];
 };
 
 export type SystemMeasurement = {

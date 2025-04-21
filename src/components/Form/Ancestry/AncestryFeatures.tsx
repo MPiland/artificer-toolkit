@@ -3,9 +3,9 @@ import { use } from 'react'
 import { FeatureContext } from '../Features/FeatureContext'
 
 const AncestryFeatures = () => {
-  const { featureData, updateFeatureData } = use(FeatureContext)
+  const { featureStore } = use(FeatureContext)
 
-  return <Base featureData={featureData} updateFeatureData={updateFeatureData} valueLabel={'Feature'} />
+  return <Base featureStore={featureStore} valueLabel={'Feature'} />
 }
 
 export default AncestryFeatures

@@ -1,12 +1,19 @@
 import { useEffect, use } from 'react'
 import Form from '../../components/Form/Form'
 import { Step } from '../../types/form'
-import { useAddNewCharacterMutation, useUpdateCharacterMutation } from '../../apis/charactersApi'
+import { useAddCharacter, useUpdateCharacter } from '../../apis/charactersApi'
 import { FormContext } from '../../components/Form/FormContext'
 import { isEqual } from 'lodash'
+import { Route } from '../../routes/_protected/characters/$action/$_characterId'
+import useCharacterData from '../../hooks/useCharacterData'
 
 const CharacterForm = () => {
-  const { setSteps, steps } = use(FormContext)
+  const { _characterId: characterId, action } = Route.useParams()
+  const {
+    characters: { findCharacter },
+  } = useCharacterData()
+  const character = findCharacter(characterId)
+  const { steps, formStore } = use(FormContext)
 
   const stepsArray = [
     { id: 'details', label: 'Details' },
@@ -19,11 +26,21 @@ const CharacterForm = () => {
 
   useEffect(() => {
     if (!isEqual(steps, stepsArray)) {
-      setSteps(stepsArray)
+      formStore.setSteps(stepsArray)
     }
-  }, [setSteps, stepsArray, steps])
+    if (action === 'new' && character) {
+      if (Object.keys(formStore.data).length === 0) {
+        formStore.reinitState(character)
+      }
+    }
+    if (action === 'edit' && character) {
+      if (formStore.data?.id !== character.id) {
+        formStore.reinitState(character)
+      }
+    }
+  }, [stepsArray, steps, formStore, character, action])
 
-  return <Form useUpdateItemMutation={useUpdateCharacterMutation} useAddNewItemMutation={useAddNewCharacterMutation} />
+  return <Form useUpdateItemMutation={useUpdateCharacter} useAddNewItemMutation={useAddCharacter} />
 }
 
 export default CharacterForm

@@ -38349,7 +38349,6 @@ mutation CreateMasterEquipment($input: EquipmentInput!) {
 	quantity
 	properties
 	category
-	equipmentRank
 	rarity
 	attributes
 	damage {
@@ -39884,7 +39883,6 @@ mutation UpdateMasterEquipment($input: EquipmentInput!) {
 	quantity
 	properties
 	category
-	equipmentRank
 	rarity
 	attributes
 	damage {
@@ -41426,7 +41424,6 @@ mutation BatchCreateMasterEquipment($input: BatchEquipmentInput!) {
 	quantity
 	properties
 	category
-	equipmentRank
 	rarity
 	attributes
 	damage {
@@ -42961,7 +42958,6 @@ mutation CreateEquipment($input: EquipmentInput!) {
 	quantity
 	properties
 	category
-	equipmentRank
 	rarity
 	attributes
 	damage {
@@ -44496,7 +44492,6 @@ mutation UpdateEquipment($input: EquipmentInput!) {
 	quantity
 	properties
 	category
-	equipmentRank
 	rarity
 	attributes
 	damage {
@@ -46038,7 +46033,6 @@ mutation BatchCreateEquipment($input: BatchEquipmentInput!) {
 	quantity
 	properties
 	category
-	equipmentRank
 	rarity
 	attributes
 	damage {

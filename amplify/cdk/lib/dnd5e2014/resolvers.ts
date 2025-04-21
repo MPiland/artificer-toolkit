@@ -3,6 +3,23 @@ import { GraphqlApi } from 'aws-cdk-lib/aws-appsync'
 import { createTables } from './tables'
 import { createTableResolvers } from './resolverFactory'
 
+export type Prefix =
+  | 'MasterSystem'
+  | 'System'
+  | 'MasterSpell'
+  | 'Spell'
+  | 'MasterRace'
+  | 'Race'
+  | 'MasterEquipment'
+  | 'Equipment'
+  | 'MasterClass'
+  | 'Class'
+  | 'MasterBackground'
+  | 'Background'
+  | 'MasterFeat'
+  | 'Feat'
+  | 'Character'
+
 export function createResolvers(api: GraphqlApi, stack: Stack) {
   const tables = createTables(stack)
 

@@ -1,8 +1,6 @@
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { useGetSystemQuery } from '../../../apis/systemsApi'
-import { useListClassesQuery } from '../../../apis/classesApi'
 import { startCase } from 'lodash'
 import Button from '../../Button/Button'
 import Accordion from '../../Accordion/Accordion'
@@ -11,19 +9,30 @@ import { use } from 'react'
 import { FormContext } from '../FormContext'
 import Divider from '../../Divider/Divider'
 import { Categories, EquipmentCategories, EquipmentProperties, SpellRequirements } from '../../../types/enums'
-import { useListRacesQuery } from '../../../apis/racesApi'
 import Grid from '../../Grid/Grid'
-import { FormDataType, UpdateState } from '../../../types/form'
+import useSystemData from '../../../hooks/useSystemData'
+import useClassData from '../../../hooks/useClassData'
+import useRaceData from '../../../hooks/useRaceData'
+import type { FormDataType, OnChange } from '../../../types/form'
 
 const Details = () => {
-  const {
-    formData,
-    updateFormData,
-  }: { formData: FormDataType; updateFormData: (state: UpdateState<FormDataType>) => void } = use(FormContext)
+  const { formStore } = use(FormContext)
 
-  const { data: system } = useGetSystemQuery()
-  const { data: classes } = useListClassesQuery()
-  const { data: races } = useListRacesQuery()
+  const {
+    data,
+    updateField,
+    removeField,
+    addField,
+  }: {
+    data: FormDataType
+    updateField: OnChange<FormDataType>['updateField']
+    removeField: OnChange<FormDataType>['removeField']
+    addField: OnChange<FormDataType>['addField']
+  } = formStore
+
+  const { categories, characters, equipment, currencies, rules, abilities, spells } = useSystemData()
+  const { subclasses, classes } = useClassData()
+  const { races } = useRaceData()
 
   return (
     <Grid>
@@ -32,63 +41,63 @@ const Details = () => {
           name='label'
           label='Name'
           autoComplete='off'
-          value={formData?.label}
+          value={data?.label}
           required={true}
-          onChange={updateFormData}
+          onChange={{ updateField }}
           autoFocus={true}
           errorMsg='Name must not be blank'
         />
       </Grid.Item>
-      {formData.__typename === 'Character' && (
+      {data.__typename === 'Character' && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='advancement'
               label='Advancement Type'
-              value={formData?.advancement}
-              options={system.characters.advancementMethods}
+              value={data?.advancement}
+              options={characters.advancementMethods.all}
               required={true}
-              onChange={updateFormData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='hitpoint.method'
               label='Hit Point Type'
-              value={formData?.hitpoint?.method}
-              options={system.characters.hitpointCalcMethods}
+              value={data?.hitpoint?.method}
+              options={characters.hitpointCalcMethods.all}
               required={true}
-              onChange={updateFormData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
         </>
       )}
-      {(formData.__typename === 'Race' || formData.__typename === 'Class' || formData.__typename === 'Equipment') && (
+      {(data.__typename === 'Race' || data.__typename === 'Class' || data.__typename === 'Equipment') && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='category'
-              label={`${startCase(formData.__typename)} Category`}
-              value={formData?.category}
+              label={`${startCase(data.__typename)} Category`}
+              value={data?.category}
               options={
-                formData.__typename !== 'Equipment' ?
-                  system?.categories?.filter(
+                data.__typename !== 'Equipment' ?
+                  categories.filter(
                     (category) =>
-                      (formData.__typename === 'Race' && category?.races) ||
-                      (formData.__typename === 'Class' && category?.classes)
+                      (data.__typename === 'Race' && category?.races) ||
+                      (data.__typename === 'Class' && category?.classes)
                   )
-                : system.equipment.categories
+                : equipment.categories.all
               }
               required={true}
-              onChange={updateFormData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
-          {formData.__typename === 'Race' && formData.category === Categories.base && (
+          {data.__typename === 'Race' && data.category === Categories.base && (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='playable'
                 label='Playable'
-                value={formData?.playable}
+                value={data?.playable}
                 options={[
                   {
                     value: 'true',
@@ -102,32 +111,30 @@ const Details = () => {
                   },
                 ]}
                 required={true}
-                onChange={updateFormData}
+                onChange={{ updateField, removeField }}
               />
             </Grid.Item>
           )}
-          {formData.__typename === 'Equipment' && (
+          {data.__typename === 'Equipment' && (
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='properties'
                   multiSelect={true}
                   label='Properties'
-                  value={formData?.properties}
-                  options={
-                    system.equipment.categories.find((category) => category.id === formData.category)?.properties || []
-                  }
-                  onChange={updateFormData}
+                  value={data?.properties}
+                  options={equipment.properties.filterByCategory(data.category)}
+                  onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='rarity'
                   label='Rarity'
-                  value={formData?.rarity}
-                  options={system.equipment.rarities}
+                  value={data?.rarity}
+                  options={equipment.rarities}
                   required={true}
-                  onChange={updateFormData}
+                  onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -138,18 +145,18 @@ const Details = () => {
                   label='Cost'
                   required={true}
                   errorMsg='Must contain only decimal amounts'
-                  value={formData?.cost?.amount}
-                  onChange={updateFormData}
+                  value={data?.cost?.amount}
+                  onChange={{ updateField }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='cost.currency'
                   label='Currency'
-                  value={formData?.cost?.currency}
-                  options={system.currencies}
+                  value={data?.cost?.currency}
+                  options={currencies}
                   required={true}
-                  onChange={updateFormData}
+                  onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -159,39 +166,34 @@ const Details = () => {
                   errorMsg='Must contain only numbers'
                   label='Item Weight'
                   autoComplete='off'
-                  value={formData?.weight?.amount}
-                  onChange={updateFormData}
+                  value={data?.weight?.amount}
+                  onChange={{ updateField }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='weight.unit'
                   label='UoM'
-                  value={formData?.weight?.unit}
-                  options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
-                    if (Array.isArray(rule)) {
-                      return rule
-                    }
-                    return []
-                  })}
-                  onChange={updateFormData}
+                  value={data?.weight?.unit}
+                  options={rules.measurements.imperial.weight}
+                  onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
             </>
           )}
         </>
       )}
-      {formData.__typename === 'Class' && (
+      {data.__typename === 'Class' && (
         <>
-          {formData.category === Categories.subclass ?
+          {data.category === Categories.subclass ?
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='parentClass'
                 label='Parent Class'
-                value={formData?.parentClass}
-                options={classes?.filter((uClass) => uClass.category !== Categories.subclass)}
+                value={data?.parentClass}
+                options={subclasses}
                 required={true}
-                onChange={updateFormData}
+                onChange={{ updateField, removeField }}
               />
             </Grid.Item>
           : <>
@@ -201,42 +203,41 @@ const Details = () => {
                   autoComplete='off'
                   label='HP Die Value'
                   required={true}
-                  value={formData?.hitpoint?.dieConfig}
+                  value={data?.hitpoint?.dieConfig}
                   validation='die'
                   errorMsg='Must contain whole numbers only'
-                  onChange={updateFormData}
+                  onChange={{ updateField }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='hitpoint.ability'
                   label='HP Modifier Ability'
-                  value={formData?.hitpoint?.ability}
-                  options={system.abilities}
+                  value={data?.hitpoint?.ability}
+                  options={abilities.all}
                   required={true}
-                  onChange={updateFormData}
+                  onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
             </>
           }
         </>
       )}
-      {formData.__typename === 'Race' &&
-        (formData.category === Categories.subrace || formData.category === Categories.variant) && (
-          <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-            <Dropdown
-              multiSelect={true}
-              name='lineages'
-              label='Race Lineage'
-              value={formData?.lineages}
-              options={races}
-              required={true}
-              onChange={updateFormData}
-            />
-          </Grid.Item>
-        )}
-      {formData.__typename === 'Equipment' &&
-        (((formData.category === EquipmentCategories.waterVehicle || formData.category === EquipmentCategories.mount ?
+      {data.__typename === 'Race' && (data.category === Categories.subrace || data.category === Categories.variant) && (
+        <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
+          <Dropdown
+            multiSelect={true}
+            name='lineages'
+            label='Race Lineage'
+            value={data?.lineages}
+            options={races}
+            required={true}
+            onChange={{ updateField, removeField }}
+          />
+        </Grid.Item>
+      )}
+      {data.__typename === 'Equipment' &&
+        (((data.category === EquipmentCategories.waterVehicle || data.category === EquipmentCategories.mount ?
           <>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
@@ -246,26 +247,21 @@ const Details = () => {
                 label='Item Speed'
                 autoComplete='off'
                 required={true}
-                value={formData?.speed?.amount}
-                onChange={updateFormData}
+                value={data?.speed?.amount}
+                onChange={{ updateField }}
               />
             </Grid.Item>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Dropdown
                 name='speed.unit'
                 label='UoM'
-                value={formData?.speed?.unit}
-                options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
-                  if (Array.isArray(rule)) {
-                    return rule
-                  }
-                  return []
-                })}
-                onChange={updateFormData}
+                value={data?.speed?.unit}
+                options={rules.measurements.imperial.length}
+                onChange={{ updateField, removeField }}
               />
             </Grid.Item>
           </>
-        : (formData.category === EquipmentCategories.weapon || formData.category === EquipmentCategories.armor) && (
+        : (data.category === EquipmentCategories.weapon || data.category === EquipmentCategories.armor) && (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 validation={'num'}
@@ -273,13 +269,13 @@ const Details = () => {
                 errorMsg='Must contain only numbers'
                 label='Item Rank'
                 autoComplete='off'
-                value={formData?.rank}
-                onChange={updateFormData}
+                value={data?.rank}
+                onChange={{ updateField }}
               />
             </Grid.Item>
           )) &&
-          formData.properties?.some((property) => property === EquipmentProperties.container)) ||
-          (formData.category === EquipmentCategories.mount && (
+          data.properties?.some((property) => property === EquipmentProperties.container)) ||
+          (data.category === EquipmentCategories.mount && (
             <>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Input
@@ -288,28 +284,23 @@ const Details = () => {
                   errorMsg='Must contain only numbers'
                   label='Capacity Amount'
                   autoComplete='off'
-                  value={formData?.capacity?.amount}
-                  onChange={updateFormData}
+                  value={data?.capacity?.amount}
+                  onChange={{ updateField }}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='capacity.unit'
                   label='UoM'
-                  value={formData?.capacity?.unit}
-                  options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
-                    if (Array.isArray(rule)) {
-                      return rule
-                    }
-                    return []
-                  })}
-                  onChange={updateFormData}
+                  value={data?.capacity?.unit}
+                  options={[...rules.measurements.imperial.volume, ...rules.measurements.imperial.weight]}
+                  onChange={{ updateField, removeField }}
                 />
               </Grid.Item>
             </>
           )))}
-      {formData.__typename === 'Equipment' &&
-        (formData.category === EquipmentProperties.thrown || formData.category === EquipmentProperties.ranged) && (
+      {data.__typename === 'Equipment' &&
+        (data.category === EquipmentProperties.thrown || data.category === EquipmentProperties.ranged) && (
           <>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
@@ -317,9 +308,9 @@ const Details = () => {
                 name='range.minRange'
                 errorMsg='Must contain only numbers'
                 label='Min Range'
-                value={formData?.range?.minRange}
+                value={data?.range?.minRange}
                 required={true}
-                onChange={updateFormData}
+                onChange={{ updateField }}
               />
             </Grid.Item>
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -328,14 +319,14 @@ const Details = () => {
                 name='range.maxRange'
                 errorMsg='Must contain only numbers'
                 label='Max Range'
-                value={formData?.range?.maxRange}
+                value={data?.range?.maxRange}
                 required={true}
-                onChange={updateFormData}
+                onChange={{ updateField }}
               />
             </Grid.Item>
           </>
         )}
-      {formData.__typename === 'Equipment' && (
+      {data.__typename === 'Equipment' && (
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Input
             validation='num'
@@ -343,12 +334,12 @@ const Details = () => {
             errorMsg='Must contain only numbers'
             label='Quantity'
             autoComplete='off'
-            value={formData?.quantity}
-            onChange={updateFormData}
+            value={data?.quantity}
+            onChange={{ updateField }}
           />
         </Grid.Item>
       )}
-      {formData.__typename === 'Spell' && (
+      {data.__typename === 'Spell' && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Input
@@ -357,18 +348,18 @@ const Details = () => {
               errorMsg='Must contain only numbers'
               label='Level'
               required={true}
-              value={formData?.level}
-              onChange={updateFormData}
+              value={data?.level}
+              onChange={{ updateField }}
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='school'
               label='School'
-              value={formData?.school}
-              options={system.spells.schools}
+              value={data?.school}
+              options={spells.schools}
               required={true}
-              onChange={updateFormData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -376,10 +367,10 @@ const Details = () => {
               name='requirements'
               multiSelect={true}
               label='Requirements'
-              value={formData?.requirements}
-              options={system.spells.requirements}
+              value={data?.requirements}
+              options={spells.requirements}
               required={true}
-              onChange={updateFormData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -387,30 +378,26 @@ const Details = () => {
               name='classes'
               multiSelect={true}
               label='Class(es)'
-              value={formData?.classes}
-              options={classes.map((uClass) => ({
-                value: uClass.value,
-                id: uClass.id,
-                label: uClass.label,
-              }))}
+              value={data?.classes}
+              options={classes}
               required={true}
-              onChange={updateFormData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
-          {formData?.requirements?.some((requirement) => requirement === SpellRequirements.material) && (
+          {data?.requirements?.some((requirement) => requirement === SpellRequirements.material) && (
             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
               <Input
                 name='materialDesc'
                 label='Material Desc.'
                 required={true}
-                value={formData?.materialDesc}
-                onChange={updateFormData}
+                value={data?.materialDesc}
+                onChange={{ updateField }}
               />
             </Grid.Item>
           )}
         </>
       )}
-      {formData.__typename === 'Class' && formData.category === Categories.base && (
+      {data.__typename === 'Class' && data.category === Categories.base && (
         <Grid.Item>
           <Divider label='Starting Gold' />
           <Grid className={sprinkles({ mb: 'space-3' })}>
@@ -421,8 +408,8 @@ const Details = () => {
                 required={true}
                 validation='die'
                 errorMsg='Please enter a whole number'
-                value={formData?.startingGold?.dieConfig}
-                onChange={updateFormData}
+                value={data?.startingGold?.dieConfig}
+                onChange={{ updateField }}
               />
             </Grid.Item>
             <Grid.Item colSpan={'auto'}>
@@ -432,56 +419,53 @@ const Details = () => {
                 required={true}
                 validation='num'
                 errorMsg='Please enter a whole number'
-                value={formData?.startingGold?.multiplier}
-                onChange={updateFormData}
+                value={data?.startingGold?.multiplier}
+                onChange={{ updateField }}
               />
             </Grid.Item>
             <Grid.Item colSpan={'auto'}>
               <Dropdown
                 name='startingGold.currency'
                 label='Currency'
-                value={formData?.startingGold?.currency}
-                options={system.currencies}
+                value={data?.startingGold?.currency}
+                options={currencies}
                 required={true}
-                onChange={updateFormData}
+                onChange={{ updateField, removeField }}
               />
             </Grid.Item>
           </Grid>
         </Grid.Item>
       )}
-      {formData.__typename === 'Equipment' && (
+      {data.__typename === 'Equipment' && (
         <Grid.Item>
           <RichTextEditor
             name={'quote'}
             className={sprinkles({ mb: 'space-3' })}
-            value={formData?.quote}
+            value={data?.quote}
             label={'Quote'}
-            onChange={updateFormData}
+            onChange={{ updateField }}
           />
         </Grid.Item>
       )}
-      {(formData.__typename === 'Character' ||
-        formData.__typename === 'Spell' ||
-        formData.__typename === 'Equipment') && (
+      {(data.__typename === 'Character' || data.__typename === 'Spell' || data.__typename === 'Equipment') && (
         <Grid.Item>
           <RichTextEditor
             name='desc'
             className={sprinkles({ mb: 'space-3' })}
-            value={formData?.desc}
+            value={data?.desc}
             label='Description'
-            onChange={updateFormData}
+            onChange={{ updateField }}
           />
         </Grid.Item>
       )}
-      {(formData.__typename === 'Race' || formData.__typename === 'Class' || formData.__typename === 'Background') && (
+      {(data.__typename === 'Race' || data.__typename === 'Class' || data.__typename === 'Background') && (
         <>
           <Grid.Item colSpan={2} className={sprinkles({ alignContent: 'flex-end' })}>
             <Button
               type='button'
               color='main'
               onClick={() => {
-                updateFormData({
-                  type: 'add',
+                addField({
                   path: 'details',
                 })
               }}
@@ -489,15 +473,14 @@ const Details = () => {
               Add Detail
             </Button>
           </Grid.Item>
-          {formData?.details != null && (
+          {data?.details != null && (
             <Grid.Item>
-              <Accordion dataArray={formData.details} onChange={updateFormData} name='details'>
-                {formData?.details.map((detail, index) => (
+              <Accordion dataArray={data.details} onChange={{ updateField }} name='details'>
+                {data?.details.map((detail, index) => (
                   <Accordion.Wrapper key={index} itemId={String(index)}>
                     <Accordion.Header
                       handleRemove={() =>
-                        updateFormData({
-                          type: 'remove',
+                        removeField({
                           path: `details.${index}`,
                         })
                       }
@@ -512,7 +495,7 @@ const Details = () => {
                             autoComplete='off'
                             label='Detail Name'
                             value={detail.label}
-                            onChange={updateFormData}
+                            onChange={{ updateField }}
                           />
                         </Grid.Item>
                         <Grid.Item>
@@ -520,7 +503,7 @@ const Details = () => {
                             name={`details.${index}.desc`}
                             value={detail.desc}
                             label={'Section Description'}
-                            onChange={updateFormData}
+                            onChange={{ updateField }}
                           />
                         </Grid.Item>
                       </Grid>

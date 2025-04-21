@@ -299,7 +299,7 @@ type System {
   equipment: SystemEquipment!
   languages: [GenericType!]!
   modifiers: SystemModifiers!
-  passives: [GenericType]!
+  passives: [GenericType!]!
   prerequisites: [SystemPrerequisite!]!
   proficiencies: SystemProficiency!
   rules: SystemRules!
@@ -313,7 +313,16 @@ type System {
   masterId: String
 }
 
+type SystemListItem {
+  id: ID!
+  value: String!
+  label: String!
+  desc: String
+  ownerId: String!
+  masterId: String
+}
+
 type SystemConnection {
-  items: [System]!
+  items: [SystemListItem!]!
   nextToken: String
 }

@@ -72,7 +72,37 @@ type Race {
   masterId: String
 }
 
+type RaceMetaObject {
+  raceIds: [ID!]
+  id: ID!
+}
+
+type RaceFeatureMetaObject {
+  id: ID!
+  label: String!
+  raceIds: [ID!]
+}
+
+type RaceMeta {
+  categories: [RaceMetaObject!]!
+  playable: [RaceMetaObject!]!
+  lineages: [RaceMetaObject!]!
+  features: [RaceFeatureMetaObject!]!
+}
+
+type RaceListItem {
+  id: ID!
+  label: String!
+  value: String!
+  quote: String
+  desc: String
+  details: [Detail!]
+  systemId: ID!
+  masterId: String
+}
+
 type RaceConnection {
-  items: [Race]!
+  items: [RaceListItem!]!
+  metaData: RaceMeta!
   nextToken: String
 }

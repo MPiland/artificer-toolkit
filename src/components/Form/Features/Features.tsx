@@ -4,14 +4,13 @@ import { FormContext } from '../FormContext'
 import { FeatureContext } from './FeatureContext'
 
 const Features = () => {
-  const { formData } = use(FormContext)
-  const { featureData, updateFeatureData } = use(FeatureContext)
+  const { formStore } = use(FormContext)
+  const { featureStore } = use(FeatureContext)
 
   return (
     <Base
-      featureData={featureData}
-      updateFeatureData={updateFeatureData}
-      valueLabel={formData.__typename === 'Feat' ? 'Feat' : 'Feature'}
+      featureStore={featureStore}
+      valueLabel={formStore.data.__typename === 'Feat' ? 'Feat' : 'Feature'}
     />
   )
 }

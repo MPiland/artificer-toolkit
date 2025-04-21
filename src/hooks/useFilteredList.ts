@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { get } from 'lodash'
-import { StoreFormType } from '../store/filterSlice'
-import { FormDataType } from '../types/form'
+import { type StoreFormType } from '../store/filterStore'
+import { type ListItemType } from '../types/form'
 import { useStore } from '../store/useStore'
 
 interface UseFilteredListProps {
-  data: FormDataType[] | null | undefined
+  data: ListItemType[] | null | undefined
   context: StoreFormType | null | undefined
 }
 
@@ -13,7 +13,7 @@ interface UseFilteredListProps {
  * Custom hook for filtering data based on filter state
  * @returns The filtered data array
  */
-const useFilteredList = ({ data, context }: UseFilteredListProps): FormDataType[] => {
+const useFilteredList = ({ data, context }: UseFilteredListProps): ListItemType[] => {
   // Get the filter state directly from the store
   const { filterState } = useStore()
 

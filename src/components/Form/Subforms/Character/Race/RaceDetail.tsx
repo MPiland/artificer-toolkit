@@ -1,33 +1,39 @@
 import parse from 'html-react-parser'
-import { useListRacesQuery } from '../../../../../apis/racesApi'
 import Collapse from '../../../../Collapse/Collapse'
-import { Character, Race } from '../../../../../../amplify/gql/types'
+import type { Character, RaceListItem } from '../../../../../../amplify/gql/types'
 import { Categories } from '../../../../../types/enums'
 import Grid from '../../../../Grid/Grid'
 import useGetFeatures from '../../../../../hooks/useGetFeatures'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
-import { UpdateState } from '../../../../../types/form'
 import Modal from '../../../../Modal/Modal'
 import ScrollArea from '../../../../ScrollArea/ScrollArea'
 import Button from '../../../../Button/Button'
+import useRaceData from '../../../../../hooks/useRaceData'
+import { FormStore } from '../../../../../store/formStore'
+import type { OnChange } from '../../../../../types/form'
 
-const RaceDetail = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: () => void }) => {
-  const { data: races } = useListRacesQuery()
-  const { updateFormData, setAddClass } = use(FormContext) as {
-    formData: Character
-    updateFormData: (data: UpdateState<Character>) => void
-    setAddClass: (value: boolean) => void
+const RaceDetail = ({ race, setRace }: { race: RaceListItem; setRace: () => void }) => {
+  const {
+    races: { findLineages, findRace },
+  } = useRaceData()
+  const {
+    formStore: { updateField, setAddClass },
+  } = use(FormContext) as {
+    formStore: {
+      updateField: OnChange<Character>['updateField']
+      setAddClass: FormStore<Character>['setAddClass']
+    }
   }
 
-  const { createFeatures } = useGetFeatures({ data: fullRace })
-  const raceLineages = races.filter((sRace) => fullRace?.lineages?.includes(sRace.id))
+  const fullRace = findRace(race.id)
+  const { createFeatures } = useGetFeatures({ data: fullRace! })
+  const raceLineages = findLineages(race.id)
   const ancestry = fullRace?.ancestry
   const features = createFeatures()
 
   const handleSelect = () => {
-    updateFormData({
-      type: 'update',
+    updateField({
       path: 'race',
       value: fullRace?.id,
     })
@@ -35,9 +41,9 @@ const RaceDetail = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: ()
   }
 
   return (
-    <Modal onClose={setFullRace}>
+    <Modal onClose={setRace}>
       <Modal.Dialogue>
-        <Modal.Header title={fullRace.label} onClose={setFullRace} />
+        <Modal.Header title={race.label} onClose={setRace} />
         <Modal.Content>
           <ScrollArea>
             <Grid>
@@ -64,8 +70,9 @@ const RaceDetail = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: ()
                   </Grid.Item>
                 ))}
               {raceLineages?.length &&
-                raceLineages?.map(
-                  (race) =>
+                raceLineages?.map((r) => {
+                  const race = findRace(r.id)
+                  return (
                     race?.traits?.details?.length &&
                     race.traits.details.map((detail, index) => (
                       <Grid.Item key={index}>
@@ -75,7 +82,8 @@ const RaceDetail = ({ fullRace, setFullRace }: { fullRace: Race; setFullRace: ()
                         </Collapse>
                       </Grid.Item>
                     ))
-                )}
+                  )
+                })}
               {features?.length &&
                 features
                   .sort((a, b) => {

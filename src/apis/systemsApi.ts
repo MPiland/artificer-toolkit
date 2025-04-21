@@ -1,11 +1,13 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
-import { generateClient } from 'aws-amplify/data'
+import { queryOptions } from '@tanstack/react-query'
+import { generateClient, GraphQLQuery } from 'aws-amplify/data'
 import { listSystems, getSystem, listMasterSystems, getMasterSystem } from '../../amplify/gql/queries'
-import useSystemPref from '../hooks/useSystemPref'
-import { use } from 'react'
-import { AuthContext } from '../pages/auth/AuthContext'
 import { fetchAuthSession } from 'aws-amplify/auth'
-import { QueryListMasterSystemsArgs, QueryListSystemsArgs, System } from '../../amplify/gql/types'
+import {
+  QueryListMasterSystemsArgs,
+  QueryListSystemsArgs,
+  SystemConnection,
+  type SystemListItem,
+} from '../../amplify/gql/types'
 
 const client = generateClient()
 
@@ -15,21 +17,16 @@ const systemsKeys = {
   single: (id: string) => [...systemsKeys.all, 'single', id] as const,
 }
 
-export const useListSystemsQuery = () => {
-  return useSuspenseQuery({
+export const fetchSystems = () => {
+  return queryOptions({
     queryKey: systemsKeys.lists(),
     queryFn: async () => {
       let nextToken = null
-      let allData: System[] = []
+      let allData: SystemListItem[] = []
 
       const { tokens } = await fetchAuthSession()
       const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
       const master = groups?.includes('Admins') || false
-
-      // Type guard to check which response we got
-      function isMaster(data: any): data is { listMasterSystems: any } {
-        return 'listMasterSystems' in data
-      }
 
       const operation = master ? listMasterSystems : listSystems
 
@@ -42,15 +39,13 @@ export const useListSystemsQuery = () => {
 
       try {
         do {
-          const { data } = await client.graphql({
+          const { data } = await client.graphql<GraphQLQuery<SystemConnection>>({
             query: operation,
             variables: variables,
           })
 
-          // Use type guard to determine which property to access
-          const systems = isMaster(data) ? data.listMasterSystems : data.listSystems
-          allData = [...allData, ...systems.items]
-          nextToken = systems.nextToken
+          allData = [...allData, ...(data.items || [])]
+          nextToken = data.nextToken
         } while (nextToken)
 
         if (allData && allData.length > 0) {
@@ -70,16 +65,15 @@ export const useListSystemsQuery = () => {
   })
 }
 
-export const useGetSystemQuery = () => {
-  const { tokens } = use(AuthContext)
-  const groups = tokens?.payload?.['cognito:groups'] as string[]
-  const master = groups?.includes('Admins') || false
-  const [systemsPref] = useSystemPref()
-
-  return useSuspenseQuery({
-    queryKey: systemsKeys.single(systemsPref),
+export const fetchSystem = (systemPref: string) => {
+  return queryOptions({
+    queryKey: systemsKeys.single(systemPref),
     queryFn: async () => {
-      if (!systemsPref) {
+      const { tokens } = await fetchAuthSession()
+      const groups = tokens?.accessToken?.payload?.['cognito:groups'] as string[]
+      const master = groups?.includes('Admins') || false
+
+      if (!systemPref) {
         throw 'System preference not found'
       }
 
@@ -94,127 +88,15 @@ export const useGetSystemQuery = () => {
         const { data } = await client.graphql({
           query: operation,
           variables: {
-            id: systemsPref,
+            id: systemPref,
           },
         })
 
-        // Use type guard to determine which property to access
-        const system = isMaster(data) ? data.getMasterSystem : data.getSystem
-
-        if (!system) throw 'System not found'
-
-        const modCategories = system.modifiers.categories.map((category) => {
-          const categoryObject: typeof category & {
-            types?: typeof system.modifiers.types & { methods?: typeof system.modifiers.methods }
-          } = {
-            ...category,
-          }
-
-          const typeArray =
-            system.modifiers.types.filter((type) =>
-              system.modifiers.categoryTypes
-                .filter((bridge) => bridge?.categoryId === category?.id)
-                .some((bridge) => bridge?.typeId === type?.id)
-            ) || []
-
-          if (typeArray.length) {
-            const types = typeArray.map((type) => {
-              const typeObject: typeof type & { methods?: typeof system.modifiers.methods } = {
-                ...type,
-              }
-
-              const methods = system.modifiers.methods.filter((method) => {
-                return system.modifiers.categoryMethods
-                  .filter((bridge) => bridge?.categoryId === category?.id && bridge?.typeId === type?.id)
-                  .some((bridge) => bridge?.methodId === method?.id)
-              })
-
-              if (methods.length) {
-                typeObject.methods = methods
-              }
-
-              return typeObject
-            })
-
-            if (types.length) {
-              categoryObject.types = types
-            }
-          }
-
-          return categoryObject
-        })
-
-        const modSpellCategories = system.modifiers.spellCategories.map((category) => {
-          const categoryObject: typeof category & {
-            types?: typeof system.modifiers.types & { methods?: typeof system.modifiers.methods }
-          } = {
-            ...category,
-          }
-
-          const typeArray = system.modifiers.types.filter((type) =>
-            system.modifiers.categoryTypes
-              .filter((bridge) => bridge?.categoryId === category?.id)
-              .some((bridge) => bridge?.typeId === type?.id)
-          )
-
-          const types = typeArray.map((type) => {
-            const typeObject: typeof type & { methods?: typeof system.modifiers.methods } = {
-              ...type,
-            }
-
-            const methods = system.modifiers.methods.filter((method) => {
-              return system.modifiers.categoryMethods
-                .filter((bridge) => bridge?.categoryId === category?.id && bridge?.typeId === type?.id)
-                .some((bridge) => bridge?.methodId === method?.id)
-            })
-
-            if (methods.length) {
-              typeObject.methods = methods
-            }
-
-            return typeObject
-          })
-
-          if (types.length) {
-            categoryObject.types = types
-          }
-
-          return categoryObject
-        })
-
-        const equipCategories = system.equipment.categories.map((category) => {
-          const categoryObject: typeof category & {
-            properties: typeof system.equipment.properties
-          } = {
-            ...category,
-            properties: [],
-          }
-
-          const properties = system.equipment.properties.filter((property) => {
-            return system.equipment.categoryProperties
-              .filter((bridge) => bridge?.categoryId === category?.id)
-              .some((bridge) => bridge?.propertyId === property?.id)
-          })
-
-          categoryObject.properties = properties
-
-          return categoryObject
-        })
-
-        const updatedSystem = {
-          ...system,
-          modifiers: {
-            ...system.modifiers,
-            categories: modCategories,
-            spellCategories: modSpellCategories,
-          },
-          equipment: {
-            ...system.equipment,
-            categories: equipCategories,
-          },
+        if (isMaster(data)) {
+          return data.getMasterSystem
+        } else {
+          return data.getSystem
         }
-
-        return updatedSystem
       } catch (error) {
         console.error('Error fetching systems:', error)
         throw error

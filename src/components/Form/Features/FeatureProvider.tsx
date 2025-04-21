@@ -1,4 +1,4 @@
-import { ReactElement, use, ReactNode, useCallback } from 'react'
+import { ReactElement, use, ReactNode } from 'react'
 import {
   DeepKeyOf,
   FormDataType,
@@ -26,64 +26,24 @@ import {
   Race,
   Equipment,
   Background,
-  AncestryOption,
 } from '../../../../amplify/gql/types'
 import { FormContext } from '../FormContext'
-import { useStore } from '../../../store/useStore'
 import Expertise from './Sections/Expertise'
 import AncestryFeatures from '../Ancestry/AncestryFeatures'
 import { FeatureContext } from './FeatureContext'
 import AncestryOptions from '../Ancestry/AncestryOptions'
+import { useAncestryStore } from '../../../store/ancestryStore'
+import { useOptionStore, type OptionStore } from '../../../store/optionStore'
+import { useFeatureStore, type FeatureStore } from '../../../store/featureStore'
+import { useSectionStore, type SectionStore } from '../../../store/sectionStore'
 
 const useFeatureOptions = () => {
-  const { formData, steps, stepIndex } = use(FormContext)
+  const { formStore, steps, stepIndex } = use(FormContext)
 
-  const {
-    featureData,
-    featureStep,
-    featureIndex,
-    initialFeatureData,
-    addFeatureField,
-    updateFeatureField,
-    removeFeatureField,
-    featureReset,
-    initialFeatureReset,
-    updateFeatureIndex,
-    setFeatureStep,
-    resetFeature,
-    optionData,
-    optionIndex,
-    initialOptionData,
-    addOptionField,
-    updateOptionField,
-    removeOptionField,
-    optionReset,
-    initialOptionReset,
-    updateOptionIndex,
-    resetOption,
-    sectionData,
-    sectionIndex,
-    initialSectionData,
-    sectionStep,
-    setSectionStep,
-    addSectionField,
-    updateSectionField,
-    removeSectionField,
-    sectionReset,
-    initialSectionReset,
-    updateSectionIndex,
-    resetSection,
-    ancestryData,
-    ancestryIndex,
-    initialAncestryData,
-    addAncestryField,
-    updateAncestryField,
-    removeAncestryField,
-    ancestryReset,
-    initialAncestryReset,
-    updateAncestryIndex,
-    resetAncestry,
-  } = useStore((state) => state)
+  const ancestryStore = useAncestryStore((state) => state)
+  const optionStore = useOptionStore((state) => state)
+  const featureStore = useFeatureStore((state) => state)
+  const sectionStore = useSectionStore((state) => state)
 
   const sectionStepComponent: {
     [K in SectionName]?: ReactElement
@@ -105,121 +65,6 @@ const useFeatureOptions = () => {
     ancestryOption: <AncestryOptions />,
   }
 
-  const updateFeatureData = (state: UpdateState<Feature>) => {
-    switch (state.type) {
-      case 'add': {
-        if (state.value) {
-          addFeatureField({ path: state.path, value: state.value })
-        } else {
-          addFeatureField({ path: state.path })
-        }
-        break
-      }
-      case 'update':
-        updateFeatureField({ path: state.path, value: state.value })
-        break
-      case 'remove':
-        removeFeatureField({ path: state.path })
-        break
-      case 'reset':
-        featureReset({ value: state.value })
-        break
-      case 'initialReset':
-        initialFeatureReset({ value: state.value })
-        break
-      case 'index':
-        updateFeatureIndex({ value: state.value })
-        break
-    }
-  }
-
-  const updateAncestryData = (state: UpdateState<AncestryOption>) => {
-    switch (state.type) {
-      case 'add': {
-        if (state.value) {
-          addAncestryField({ path: state.path, value: state.value })
-        } else {
-          addAncestryField({ path: state.path })
-        }
-        break
-      }
-      case 'update':
-        updateAncestryField({ path: state.path, value: state.value })
-        break
-      case 'remove':
-        removeAncestryField({ path: state.path })
-        break
-      case 'reset':
-        ancestryReset({ value: state.value })
-        break
-      case 'initialReset':
-        initialAncestryReset({ value: state.value })
-        break
-      case 'index':
-        updateAncestryIndex({ value: state.value })
-        break
-    }
-  }
-
-  const updateOptionData = (state: UpdateState<FeatureOption>) => {
-    switch (state.type) {
-      case 'add': {
-        if (state.value) {
-          addOptionField({ path: state.path, value: state.value })
-        } else {
-          addOptionField({ path: state.path })
-        }
-        break
-      }
-      case 'update':
-        updateOptionField({ path: state.path, value: state.value })
-        break
-      case 'remove':
-        removeOptionField({ path: state.path })
-        break
-      case 'reset':
-        optionReset({ value: state.value })
-        break
-      case 'initialReset':
-        initialOptionReset({ value: state.value })
-        break
-      case 'index':
-        updateOptionIndex({ value: state.value })
-        break
-    }
-  }
-
-  const updateSectionData = useCallback(
-    <T extends SectionDataType>(state: UpdateState<T>) => {
-      switch (state.type) {
-        case 'add': {
-          if (state.value) {
-            addSectionField({ path: state.path, value: state.value })
-          } else {
-            addSectionField({ path: state.path })
-          }
-          break
-        }
-        case 'update':
-          updateSectionField({ path: state.path, value: state.value })
-          break
-        case 'remove':
-          removeSectionField({ path: state.path })
-          break
-        case 'reset':
-          sectionReset({ value: state.value })
-          break
-        case 'initialReset':
-          initialSectionReset({ value: state.value })
-          break
-        case 'index':
-          updateSectionIndex({ value: state.value })
-          break
-      }
-    },
-    [addSectionField, removeSectionField, sectionReset, updateSectionField, updateSectionIndex, initialSectionReset]
-  )
-
   function isSectionName(key: string): key is SectionName {
     return sectionSteps.includes(key as SectionName)
   }
@@ -233,13 +78,10 @@ const useFeatureOptions = () => {
     updateData,
   }: {
     state: T
-    updateData: (arg: UpdateState<T>) => void
+    updateData: Pick<UpdateState<T>, 'resetInit' | 'resetData'>
   }) => {
-    updateData({ type: 'initialReset', value: state })
-    updateData({
-      type: 'reset',
-      value: state,
-    })
+    updateData.resetInit({ value: state })
+    updateData.resetData({ value: state })
   }
 
   const handleSaveFeatures = async ({ type, state }: { type: FeatureTypes; state: FormDataType }) => {
@@ -256,6 +98,9 @@ const useFeatureOptions = () => {
     } = {
       option: {
         feats: () => {
+          const optionIndex = optionStore.index
+          const sectionStep = sectionStore.step
+          const sectionIndex = sectionStore.index
           const pathArray: Array<DeepKeyOf<Feat>> = [`options.${optionIndex}`]
           if (sectionStep !== null) {
             pathArray.push(`options.${optionIndex}`, `options.${optionIndex}.${sectionStep}.${sectionIndex}`)
@@ -263,6 +108,11 @@ const useFeatureOptions = () => {
           return pathArray
         },
         default: () => {
+          const ancestryIndex = ancestryStore.index
+          const featureIndex = featureStore.index
+          const optionIndex = optionStore.index
+          const sectionStep = sectionStore.step
+          const sectionIndex = sectionStore.index
           const pathArray: Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>> = []
           if (steps[stepIndex].id === 'ancestry') {
             pathArray.push(
@@ -286,6 +136,9 @@ const useFeatureOptions = () => {
       },
       feature: {
         feats: () => {
+          const sectionStep = sectionStore.step
+          const sectionIndex = sectionStore.index
+          const featureIndex = featureStore.index
           const pathArray: Array<DeepKeyOf<Feat>> = []
           if (sectionStep !== null) {
             pathArray.push(`features.${featureIndex}.${sectionStep}.${sectionIndex}`)
@@ -293,6 +146,10 @@ const useFeatureOptions = () => {
           return pathArray
         },
         default: () => {
+          const ancestryIndex = ancestryStore.index
+          const sectionStep = sectionStore.step
+          const sectionIndex = sectionStore.index
+          const featureIndex = featureStore.index
           const pathArray: Array<DeepKeyOf<Class | Race | Omit<Equipment, 'contains'> | Background>> = []
           if (steps[stepIndex].id === 'ancestry') {
             pathArray.push(
@@ -321,29 +178,36 @@ const useFeatureOptions = () => {
     }
 
     type UpdateFunction =
-      | { type: 'option'; fn: (arg: UpdateState<FeatureOption>) => void }
-      | { type: 'feature'; fn: (arg: UpdateState<Feature>) => void }
-      | { type: 'section'; fn: (arg: UpdateState<SectionDataType>) => void }
+      | { type: 'option'; fns: OptionStore }
+      | { type: 'feature'; fns: FeatureStore }
+      | { type: 'section'; fns: SectionStore }
 
     const setStates = ({ title }: { title: 'feats' | 'default' }) => {
       const lowerType = toLower(type) as 'option' | 'feature'
 
-      const stateMap: Record<'option' | 'feature', Array<FeatureOption | Feature | SectionDataType>> = {
-        option: [optionData],
-        feature: [featureData],
+      const sectionStep = sectionStore.step
+
+      const stateMap: Record<
+        'option' | 'feature',
+        Array<FeatureOption | Feature | AncestryFeature | SectionDataType>
+      > = {
+        option: [optionStore.data],
+        feature: [featureStore.data],
       }
 
       const updateFunctions: Record<'option' | 'feature', Array<UpdateFunction>> = {
-        option: [{ type: 'option', fn: updateOptionData }],
-        feature: [{ type: 'feature', fn: updateFeatureData }],
+        option: [{ type: 'option', fns: optionStore }],
+        feature: [{ type: 'feature', fns: featureStore }],
       }
 
       if (sectionStep !== null) {
-        stateMap.option.push(sectionData)
-        updateFunctions.option.push({ type: 'section', fn: updateSectionData })
-        stateMap.feature.push(sectionData)
-        updateFunctions.feature.push({ type: 'section', fn: updateSectionData })
+        stateMap.option.push(sectionStore.data)
+        updateFunctions.option.push({ type: 'section', fns: sectionStore })
+        stateMap.feature.push(sectionStore.data)
+        updateFunctions.feature.push({ type: 'section', fns: sectionStore })
       }
+
+      const featureStep = featureStore.step
 
       if (featureStep !== null) {
         const currentStates = stateMap[lowerType]
@@ -356,17 +220,17 @@ const useFeatureOptions = () => {
             if (index === 0 && lowerType === 'option') {
               cloneAndSetStates<FeatureOption>({
                 state: currentStates[index] as FeatureOption,
-                updateData: updateOptionData,
+                updateData: optionStore,
               })
             } else if (index === 0 && lowerType === 'feature') {
-              cloneAndSetStates<Feature>({
-                state: currentStates[index] as Feature,
-                updateData: updateFeatureData,
+              cloneAndSetStates<Feature | AncestryFeature>({
+                state: currentStates[index] as Feature | AncestryFeature,
+                updateData: featureStore,
               })
             } else {
               cloneAndSetStates<SectionDataType>({
                 state: currentStates[index] as SectionDataType,
-                updateData: updateSectionData,
+                updateData: sectionStore,
               })
             }
           }
@@ -374,58 +238,30 @@ const useFeatureOptions = () => {
       }
     }
 
-    setStates({ title: formData.__typename === 'Feat' ? 'feats' : 'default' })
+    setStates({ title: formStore.data.__typename === 'Feat' ? 'feats' : 'default' })
 
     return formClone
   }
 
   const featureProps = {
-    resetFeature,
-    featureStep,
-    setFeatureStep,
-    featureData,
-    initialFeatureData,
-    updateFeatureData,
-    featureIndex,
     handleSaveFeatures,
     featureSteps,
     isFeatureStep,
   }
 
-  const optionProps = {
-    resetOption,
-    optionData,
-    initialOptionData,
-    updateOptionData,
-    optionIndex,
-  }
-
   const sectionProps = {
-    resetSection,
-    sectionData,
-    initialSectionData,
-    updateSectionData,
-    sectionIndex,
     sectionSteps,
-    sectionStep,
-    setSectionStep,
     sectionStepComponent,
     isSectionName,
   }
 
-  const ancestryFeatureProps = {
-    resetAncestry,
-    ancestryData,
-    initialAncestryData,
-    updateAncestryData,
-    ancestryIndex,
-  }
-
   return {
     ...featureProps,
-    ...optionProps,
     ...sectionProps,
-    ...ancestryFeatureProps,
+    ancestryStore,
+    featureStore,
+    sectionStore,
+    optionStore,
   }
 }
 
@@ -439,6 +275,6 @@ export default FeatureProvider
 
 export type FeatureOptionsType = ReturnType<typeof useFeatureOptions>
 
-export type UpdateFeatureData = FeatureOptionsType['updateFeatureData']
-export type UpdateOptionData = FeatureOptionsType['updateOptionData']
-export type UpdateSectionDataType = FeatureOptionsType['updateSectionData']
+export type UpdateFeatureData = FeatureOptionsType['featureStore']
+export type UpdateOptionData = FeatureOptionsType['optionStore']
+export type UpdateSectionDataType = FeatureOptionsType['sectionStore']

@@ -45,14 +45,14 @@ const Layout = () => {
   const signedIn = !isAuthenticating && user != null
 
   const { themeVar } = use(ThemeContext)
-  
+
   return (
     <LayoutProvider>
       <div className={clsx(layout, themeVar)} id='app-main'>
         <ModalProvider>
           <Header signedIn={signedIn} />
+          <Sidebar signedIn={signedIn} />
           <Suspense fallback={<Loading />}>
-            <Sidebar signedIn={signedIn} />
             <div className={content}>
               <Outlet />
             </div>

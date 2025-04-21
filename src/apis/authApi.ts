@@ -190,7 +190,7 @@ export const useSignOut = () => {
   return useMutation({
     mutationFn: async () => {
       await signOut()
-      return
+      return 'DONE'
     },
   })
 }

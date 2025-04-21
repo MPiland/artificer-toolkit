@@ -304,7 +304,7 @@ type System {
   equipment: SystemEquipment!
   languages: [GenericType!]!
   modifiers: SystemModifiers!
-  passives: [GenericType]!
+  passives: [GenericType!]!
   prerequisites: [SystemPrerequisite!]!
   proficiencies: SystemProficiency!
   rules: SystemRules!
@@ -318,10 +318,20 @@ type System {
   masterId: String
 }
 
+type SystemListItem {
+  id: ID!
+  value: String!
+  label: String!
+  desc: String
+  ownerId: String!
+  masterId: String
+}
+
 type SystemConnection {
-  items: [System]!
+  items: [SystemListItem!]!
   nextToken: String
 }
+
 type UpcastFields {
   id: ID
   size: Float
@@ -390,8 +400,75 @@ type Spell {
   masterId: String
 }
 
+type SpellMetaObject {
+  spellIds: [ID!]
+  id: ID!
+}
+
+type SpellLevelObject {
+  spellIds: [ID!]
+  id: Int!
+}
+
+type SpellRangeMetaObject {
+  id: ID!
+  spellIds: [ID!]
+  unit: ID
+  minRange: Int
+  maxRange: Int
+  distance: Int
+}
+
+type SpellDurationMetaObject {
+  id: ID!
+  spellIds: [ID!]
+  amount: Int
+}
+
+type SpellShapeMetaObject {
+  id: ID!
+  spellIds: [ID!]
+  size: Float
+  unit: ID
+}
+
+type SpellMeta {
+  attributes: [SpellMetaObject!]!
+  primaryDamages: [SpellMetaObject!]!
+  secondaryDamages: [SpellMetaObject!]!
+  primaryActions: [SpellMetaObject!]!
+  secondaryActions: [SpellMetaObject!]!
+  conditions: [SpellMetaObject!]!
+  classes: [SpellMetaObject!]!
+  durations: [SpellDurationMetaObject!]!
+  ranges: [SpellRangeMetaObject!]!
+  shapes: [SpellShapeMetaObject!]!
+  schools: [SpellMetaObject!]!
+  levels: [SpellLevelObject!]!
+  saveAbilities: [SpellMetaObject!]!
+  requirements: [SpellMetaObject!]!
+}
+
+type SpellListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  requirements: [ID!]
+  materialDesc: String
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type ClassFilter {
+  id: ID!
+  count: Int!
+}
+
 type SpellConnection {
-  items: [Spell]!
+  items: [SpellListItem!]!
+  metaData: SpellMeta!
   nextToken: String
 }
 
@@ -469,8 +546,38 @@ type Race {
   masterId: String
 }
 
+type RaceMetaObject {
+  raceIds: [ID!]
+  id: ID!
+}
+
+type RaceFeatureMetaObject {
+  id: ID!
+  label: String!
+  raceIds: [ID!]
+}
+
+type RaceMeta {
+  categories: [RaceMetaObject!]!
+  playable: [RaceMetaObject!]!
+  lineages: [RaceMetaObject!]!
+  features: [RaceFeatureMetaObject!]!
+}
+
+type RaceListItem {
+  id: ID!
+  label: String!
+  value: String!
+  quote: String
+  desc: String
+  details: [Detail!]
+  systemId: ID!
+  masterId: String
+}
+
 type RaceConnection {
-  items: [Race]!
+  items: [RaceListItem!]!
+  metaData: RaceMeta!
   nextToken: String
 }
 
@@ -812,8 +919,30 @@ type Feat {
   masterId: String
 }
 
+type FeatFeatureMetaObject {
+  id: ID!
+  label: String!
+  featIds: [ID!]
+}
+
+type FeatMeta {
+  features: [FeatFeatureMetaObject!]!
+}
+
+type FeatListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  ownerId: String!
+  systemId: ID!
+  masterId: String
+}
+
 type FeatConnection {
-  items: [Feat]!
+  items: [FeatListItem!]!
+  metaData: FeatMeta!
   nextToken: String
 }
 
@@ -861,7 +990,6 @@ type Equipment {
   quantity: Int!
   properties: [ID!]
   category: ID!
-  equipmentRank: Int
   rarity: ID!
   attributes: [ID!]
   damage: Damage
@@ -882,8 +1010,57 @@ type Equipment {
   rank: Int
 }
 
+type EquipmentMetaObject {
+  equipmentIds: [ID!]
+  id: ID!
+}
+
+type EquipementCostMeta {
+  equipmentIds: [ID!]
+  amount: Int
+  id: ID!
+}
+
+type EquipmentWeightMeta {
+  equipmentIds: [ID!]
+  amount: Float
+  id: ID!
+}
+
+type EquipmentFeatureMetaObject {
+  id: ID!
+  label: String!
+  equipmentIds: [ID!]
+}
+
+type EquipmentMeta {
+  categories: [EquipmentMetaObject!]!
+  properties: [EquipmentMetaObject!]!
+  primaryDamages: [EquipmentMetaObject!]!
+  secondaryDamages: [EquipmentMetaObject!]!
+  versatileDamages: [EquipmentMetaObject!]!
+  armorClasses: [EquipmentMetaObject!]!
+  cost: [EquipementCostMeta!]!
+  weight: [EquipmentWeightMeta!]!
+  features: [EquipmentFeatureMetaObject!]!
+}
+
+type EquipmentListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  quote: String
+  cost: Cost
+  weight: Weight
+  systemId: ID!
+  masterId: String
+  rank: Int
+}
+
 type EquipmentConnection {
-  items: [Equipment]!
+  items: [EquipmentListItem!]!
+  metaData: EquipmentMeta!
   nextToken: String
 }
 
@@ -995,8 +1172,45 @@ type Class {
   masterId: String
 }
 
+type ClassMetaObject {
+  classIds: [ID!]
+  id: ID!
+}
+
+type ClassFeatureMetaObject {
+  id: ID!
+  label: String!
+  classIds: [ID!]
+}
+
+type ClassMultiClassMetaObject {
+  classIds: [ID!]
+  id: ID!
+  amount: Int
+}
+
+type ClassMeta {
+  categories: [ClassMetaObject!]!
+  parentClasses: [ClassMetaObject!]!
+  primaryAbilities: [ClassMultiClassMetaObject!]!
+  secondaryAbilities: [ClassMultiClassMetaObject!]!
+  optionalAbilities: [ClassMultiClassMetaObject!]!
+  features: [ClassFeatureMetaObject!]!
+}
+
+type ClassListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
 type ClassConnection {
-  items: [Class]!
+  items: [ClassListItem!]!
+  metaData: ClassMeta!
   nextToken: String
 }
 
@@ -1350,7 +1564,7 @@ type Character {
 }
 
 type CharacterConnection {
-  items: [Character]!
+  items: [Character!]!
   nextToken: String
 }
 
@@ -1383,8 +1597,30 @@ type Background {
   masterId: String
 }
 
+type BackgroundFeatureMetaObject {
+  id: ID!
+  label: String!
+  backgroundIds: [ID!]
+}
+
+type BackgroundMeta {
+  features: [BackgroundFeatureMetaObject!]!
+}
+
+type BackgroundListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  details: [Detail!]
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
 type BackgroundConnection {
-  items: [Background]!
+  items: [BackgroundListItem!]!
+  metaData: BackgroundMeta!
   nextToken: String
 }
 
@@ -2247,7 +2483,6 @@ input EquipmentInput {
   quantity: Int!
   properties: [ID!]
   category: ID!
-  equipmentRank: Int
   rarity: ID!
   attributes: [ID!]
   damage: DamageInput

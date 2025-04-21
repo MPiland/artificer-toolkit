@@ -1,5 +1,5 @@
 import { use } from 'react'
-import { FeatureDataType, SectionDataType, SectionName, UpdateState } from '../../../../types/form'
+import { FeatureDataType, SectionDataType, SectionName } from '../../../../types/form'
 import Accordion from '../../../Accordion/Accordion'
 import Group from '../../../Group/Group'
 import { sprinkles } from '../../../../css/sprinkles.css'
@@ -10,19 +10,23 @@ import { FeatureContext } from '../FeatureContext'
 import { sectionSteps } from '../../../../types/form'
 import { FeatureOption } from '../../../../../amplify/gql/types'
 import Grid from '../../../Grid/Grid'
+import type { OptionStore } from '../../../../store/optionStore'
+import type { FeatureStore } from '../../../../store/featureStore'
 
-const SectionsList = ({
-  featureData,
-  updateFeatureData,
-}: {
-  featureData: FeatureDataType
-  updateFeatureData: (state: UpdateState<FeatureDataType>) => void
-}) => {
-  const { featureStep, setFeatureStep, setSectionStep, updateSectionData, updateOptionData } = use(FeatureContext)
+const SectionsList = ({ featureStore }: { featureStore: FeatureStore | OptionStore }) => {
+  const {
+    sectionStore,
+    optionStore,
+    featureStore: { setStep: setFeatureStep, step: featureStep },
+  } = use(FeatureContext)
 
   const handleRemove = (sectionStep: SectionName | 'options', sectionIndex: number) => {
-    updateFeatureData({
-      type: 'remove',
+    if (sectionStep !== 'options') {
+      return (featureStore as OptionStore).removeField({
+        path: `${sectionStep}.${sectionIndex}`,
+      })
+    }
+    return (featureStore as FeatureStore).removeField({
       path: `${sectionStep}.${sectionIndex}`,
     })
   }
@@ -32,22 +36,21 @@ const SectionsList = ({
     sectionIndex: number,
     sectionItem: SectionDataType | FeatureOption
   ) => {
-    updateSectionData({ type: 'index', value: sectionIndex })
-    if (sectionStep === 'options') {
-      updateOptionData({
-        type: 'reset',
+    sectionStore.setIndex({ value: sectionIndex })
+    if (sectionStep === 'options' && sectionItem.__typename === 'FeatureOption') {
+      optionStore.resetData({
         value: sectionItem,
       })
-      updateOptionData({ type: 'index', value: sectionIndex })
-      updateOptionData({ type: 'initialReset', value: sectionItem })
+      optionStore.setIndex({ value: sectionIndex })
+      optionStore.resetInit({ value: sectionItem })
       return setFeatureStep('option')
+    } else if (sectionStep !== 'options' && sectionItem.__typename !== 'FeatureOption') {
+      sectionStore.setStep(sectionStep)
+      sectionStore.resetData({
+        value: sectionItem,
+      })
+      sectionStore.resetInit({ value: sectionItem })
     }
-    setSectionStep(sectionStep)
-    updateSectionData({
-      type: 'reset',
-      value: sectionItem,
-    })
-    updateSectionData({ type: 'initialReset', value: sectionItem })
   }
 
   const sectionsAndOptions = [...sectionSteps, 'options'] as const
@@ -56,17 +59,17 @@ const SectionsList = ({
     <>
       {sectionsAndOptions.map((sectionStep, index) => {
         let sections: SectionDataType[] | FeatureOption[] = []
-        if (featureData.__typename === 'AncestryFeature') {
-          if (featureData?.[sectionStep]?.length) {
-            sections = featureData?.[sectionStep]
+        if (featureStore.data.__typename === 'AncestryFeature') {
+          if (featureStore.data?.[sectionStep]?.length) {
+            sections = featureStore.data?.[sectionStep]
           }
-        } else if (featureData.__typename === 'FeatureOption' && sectionStep !== 'options') {
-          if (featureData?.[sectionStep]?.length) {
-            sections = featureData[sectionStep]
+        } else if (featureStore.data.__typename === 'FeatureOption' && sectionStep !== 'options') {
+          if (featureStore.data?.[sectionStep]?.length) {
+            sections = featureStore.data[sectionStep]
           }
-        } else if (featureData.__typename === 'Feature') {
-          if (featureData?.[sectionStep]?.length) {
-            sections = featureData[sectionStep]
+        } else if (featureStore.data.__typename === 'Feature') {
+          if (featureStore.data?.[sectionStep]?.length) {
+            sections = featureStore.data[sectionStep]
           }
         }
         return (
@@ -75,7 +78,7 @@ const SectionsList = ({
               <Accordion<FeatureDataType>
                 key={index}
                 dataArray={sections}
-                onChange={updateFeatureData}
+                onChange={featureStore}
                 name={sectionStep}
                 disableSort={featureStep !== 'option'}
               >

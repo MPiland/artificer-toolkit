@@ -2,8 +2,7 @@ import parse from 'html-react-parser'
 import Collapse from '../../../../Collapse/Collapse'
 import { startCase } from 'lodash'
 import { numberToWords } from '../../../../../utils/formatting'
-import { Character, Class } from '../../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../../apis/systemsApi'
+import type { Character, ClassListItem } from '../../../../../../amplify/gql/types'
 import { parseDiceRoll } from '../../../../../utils/dice'
 import { RollConfig } from '../../../../../types/components'
 import Grid from '../../../../Grid/Grid'
@@ -11,32 +10,44 @@ import useGetFeatures from '../../../../../hooks/useGetFeatures'
 import useGetProficiencies from '../../../../../hooks/useGetProficiencies'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
-import { UpdateState } from '../../../../../types/form'
 import Modal from '../../../../Modal/Modal'
 import ScrollArea from '../../../../ScrollArea/ScrollArea'
 import Button from '../../../../Button/Button'
+import useSystemData from '../../../../../hooks/useSystemData'
+import useClassData from '../../../../../hooks/useClassData'
+import type { FormStore } from '../../../../../store/formStore'
+import type { OnChange } from '../../../../../types/form'
 
-const ClassDetail = ({ fullClass, setFullClass }: { fullClass: Class; setFullClass: () => void }) => {
-  const { data: system } = useGetSystemQuery()
-  const { formData, updateFormData, setAddClass } = use(FormContext) as {
-    formData: Character
-    updateFormData: (data: UpdateState<Character>) => void
-    setAddClass: (value: boolean) => void
+const ClassDetail = ({ formClass, setFormClass }: { formClass: ClassListItem; setFormClass: () => void }) => {
+  const {
+    formStore: { data, updateField, setAddClass },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+      setAddClass: FormStore<Character>['setAddClass']
+    }
   }
+
+  const { abilities } = useSystemData()
+  const {
+    classes: { findClass },
+  } = useClassData()
+
+  const fullClass = findClass(formClass.id)!
   const { createFeatures } = useGetFeatures({ data: fullClass })
   const proficiencies = useGetProficiencies({ fullClass })
 
   // Memoize the feature array
   const features = createFeatures()
 
-  const hitpointAbility = system.abilities.find((ability) => ability.id === fullClass.hitpoint?.ability)
+  const hitpointAbility = abilities.find((ability) => ability.id === fullClass.hitpoint?.ability)
 
   const { quantity, die } = parseDiceRoll(fullClass.hitpoint?.dieConfig as RollConfig)
 
   const handleSelect = () => {
-    const classIndex = formData?.classes?.length || 0
-    updateFormData({
-      type: 'update',
+    const classIndex = data?.classes?.length || 0
+    updateField({
       path: `classes.${classIndex}`,
       value: {
         id: fullClass?.id,
@@ -47,9 +58,9 @@ const ClassDetail = ({ fullClass, setFullClass }: { fullClass: Class; setFullCla
   }
 
   return (
-    <Modal onClose={setFullClass}>
+    <Modal onClose={setFormClass}>
       <Modal.Dialogue>
-        <Modal.Header title={fullClass.label} onClose={setFullClass} />
+        <Modal.Header title={fullClass.label} onClose={setFormClass} />
         <Modal.Content>
           <ScrollArea>
             <Grid>

@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import Divider from '../../../Divider/Divider'
 import Grid from '../../../Grid/Grid'
 import EquipmentGroupItem from './EquipmentGroupItem'
-import { ClassEquipment, BackgroundEquipment } from '../../../../../amplify/gql/types'
+import type { ClassEquipment, BackgroundEquipment } from '../../../../../amplify/gql/types'
 
 type EquipmentOptionProps = {
   option: (ClassEquipment | BackgroundEquipment)[]

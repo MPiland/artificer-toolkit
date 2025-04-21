@@ -1,18 +1,14 @@
-import { useRouterState } from '@tanstack/react-router'
 import parse from 'html-react-parser'
 import Detail from '../../components/Detail/Detail'
-import { Feat as FeatState } from '../../../amplify/gql/types'
-import { FormDataType } from '../../types/form'
-
-// Type guard function
-function isFeat(item: FormDataType | undefined): item is FeatState {
-  return item?.__typename === 'Feat'
-}
+import { Route } from '../../routes/_protected/feats/$featId'
+import useFeatData from '../../hooks/useFeatData'
 
 const Feat = () => {
-  const feat = useRouterState({ select: (s) => s.location.state.item })
+  const featId = Route.useParams({ select: (r) => r.featId })
+  const { findFeat } = useFeatData()
+  const feat = findFeat(featId)
 
-  if (!feat || !isFeat(feat)) return <div>Invalid or missing feat data</div>
+  if (!feat) return <div>Invalid or missing feat data</div>
 
   return (
     <Detail footerSpacing='end' item={feat}>

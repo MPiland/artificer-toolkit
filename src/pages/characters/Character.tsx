@@ -1,32 +1,27 @@
-import { useListClassesQuery } from '../../apis/classesApi'
-import { useListRacesQuery } from '../../apis/racesApi'
-import { Character as CharacterState } from '../../../amplify/gql/types'
-import { FormDataType } from '../../types/form'
-import { useRouterState } from '@tanstack/react-router'
-
-// Type guard function
-function isCharacter(item: FormDataType | undefined): item is CharacterState {
-  return item?.__typename === 'Feat'
-}
+import { Route } from '../../routes/_protected/characters/$characterId'
+import useCharacterData from '../../hooks/useCharacterData'
+import useRaceData from '../../hooks/useRaceData'
+import useClassData from '../../hooks/useClassData'
 
 const Character = () => {
-  const { data: classes } = useListClassesQuery()
-  const { data: races } = useListRacesQuery()
+  const characterId = Route.useParams({ select: (r) => r.characterId })
+  const { findCharacter } = useCharacterData()
+  const { findClass } = useClassData()
+  const character = findCharacter(characterId)
+  const { findRace } = useRaceData()
 
-  const character = useRouterState({ select: (s) => s.location.state.item })
+  if (!character) return <div>Invalid or missing character data</div>
 
-  if (!character || !isCharacter(character)) return <div>Invalid or missing character data</div>
-
-  const charRace = races.find((race) => race.id === character.race)
+  const charRace = findRace(character?.race)
   let charClass = ''
   let totalLevel = 0
 
   character?.classes?.forEach((cClass, index) => {
-    const uClass = classes?.find((sClass) => sClass.id === cClass.id)
+    const uClass = findClass(cClass.id)
     totalLevel += cClass.level
     charClass = `(${cClass.level}) ${uClass?.label}`
     if (cClass?.subclass?.id != null) {
-      const subclass = classes?.find((sClass) => sClass.id === cClass?.subclass?.id)
+      const subclass = findClass(cClass.subclass?.id)
       charClass += ` / ${subclass?.label}`
     }
     if (index > 0) {

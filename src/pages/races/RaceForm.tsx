@@ -1,13 +1,19 @@
-
 import { useEffect, use } from 'react'
 import { useAddNewRaceMutation, useUpdateRaceMutation } from '../../apis/racesApi'
 import Form from '../../components/Form/Form'
 import { Step } from '../../types/form'
 import { FormContext } from '../../components/Form/FormContext'
 import { isEqual } from 'lodash'
+import { Route } from '../../routes/_protected/races/$action/$_raceId'
+import useRaceData from '../../hooks/useRaceData'
 
 const RaceForm = () => {
-  const { setSteps, steps } = use(FormContext)
+  const { _raceId: raceId, action } = Route.useParams()
+  const {
+    races: { findRace },
+  } = useRaceData()
+  const race = findRace(raceId)
+  const { formStore, steps } = use(FormContext)
 
   const stepsArray = [
     { id: 'details', label: 'Details' },
@@ -18,9 +24,19 @@ const RaceForm = () => {
 
   useEffect(() => {
     if (!isEqual(steps, stepsArray)) {
-      setSteps(stepsArray)
+      formStore.setSteps(stepsArray)
     }
-  }, [setSteps, stepsArray, steps])
+    if (action === 'new' && race) {
+      if (Object.keys(formStore.data).length === 0) {
+        formStore.reinitState(race)
+      }
+    }
+    if (action === 'edit' && race) {
+      if (formStore.data?.id !== race.id) {
+        formStore.reinitState(race)
+      }
+    }
+  }, [stepsArray, formStore, race, action])
 
   return <Form useUpdateItemMutation={useUpdateRaceMutation} useAddNewItemMutation={useAddNewRaceMutation} />
 }

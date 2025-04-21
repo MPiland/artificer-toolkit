@@ -1,12 +1,14 @@
 import { Suspense } from 'react'
 import List from '../../components/List/List'
-import { useListFeatsQuery, useDeleteFeatMutation } from '../../apis/featsApi'
+import { useDeleteFeatMutation } from '../../apis/featsApi'
 import Loading from '../../components/Loading/Loading'
+import useFeatData from '../../hooks/useFeatData'
 
 const Feats = () => {
+  const { all: feats } = useFeatData()
   return (
     <Suspense fallback={<Loading />}>
-      <List useListItems={useListFeatsQuery} useDeleteItem={useDeleteFeatMutation} />
+      <List data={feats} useDeleteItem={useDeleteFeatMutation} />
     </Suspense>
   )
 }

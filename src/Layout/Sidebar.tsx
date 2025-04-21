@@ -1,6 +1,6 @@
 import { use, useState, ReactNode, useEffect } from 'react'
 import { LayoutContext } from './LayoutContext'
-import { Link, ToOptions } from '@tanstack/react-router'
+import { Link, ToOptions, useNavigate } from '@tanstack/react-router'
 import {
   sidebar_item_group,
   sidebar_item,
@@ -30,9 +30,12 @@ import ThemeContext from '../theme/ThemeContext'
 import { useSignOut } from '../apis/authApi'
 import useSystemPref from '../hooks/useSystemPref'
 import clsx from 'clsx'
-import { useListSystemsQuery } from '../apis/systemsApi'
+import { fetchSystems } from '../apis/systemsApi'
 import { Hamburger } from './Hamburger'
 import { noUserNavigation } from './Layout'
+import type { FormType } from '../types/form'
+import { startCase } from 'lodash'
+import { useSuspenseQuery } from '@tanstack/react-query'
 
 const NoAuthSidebar = () => {
   const { collapsed } = use(LayoutContext)
@@ -51,6 +54,7 @@ const NoAuthSidebar = () => {
 }
 
 const AuthSidebar = ({ lg }: { lg: boolean }) => {
+  const navigate = useNavigate()
   const { collapsed, setCollapsed } = use(LayoutContext)
   const { themeType, toggleTheme } = use(ThemeContext)
   const [systemPref, setSystemPref] = useSystemPref()
@@ -58,7 +62,7 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
   const [toolTipOpen, setToolTipOpen] = useState<boolean[]>([])
 
   const { mutateAsync: signOut } = useSignOut()
-  const { data: systems } = useListSystemsQuery()
+  const { data: systems } = useSuspenseQuery(fetchSystems())
 
   useEffect(() => {
     if (systems?.length && (systemPref === '' || !systems?.find((system) => system.id === systemPref))) {
@@ -74,39 +78,49 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
     setSystemPref(e.value)
   }
 
-  const userNavigation: { icon?: ReactNode; to: ToOptions['to']; title: string }[] = [
-    { icon: <CharactersIcon className={sidebar_icon} />, to: '/characters', title: 'Characters' },
+  const userNavigation: { icon?: ReactNode; to: ToOptions['to']; title: FormType }[] = [
+    { icon: <CharactersIcon className={sidebar_icon} />, to: '/characters', title: 'characters' },
     {
       icon: <ClassesIcon className={sidebar_icon} />,
       to: '/classes',
-      title: 'Classes',
+      title: 'classes',
     },
     {
       icon: <RacesIcon className={sidebar_icon} />,
       to: '/races',
-      title: 'Races',
+      title: 'races',
     },
     {
       icon: <ScrollIcon className={sidebar_icon} />,
       to: '/spells',
-      title: 'Spells',
+      title: 'spells',
     },
     {
       icon: <SackIcon className={sidebar_icon} />,
       to: '/equipment',
-      title: 'Equipment',
+      title: 'equipment',
     },
     {
       icon: <BackstoryIcon className={sidebar_icon} />,
       to: '/backgrounds',
-      title: 'Backgrounds',
+      title: 'backgrounds',
     },
     {
       icon: <FeatsIcon className={sidebar_icon} />,
       to: '/feats',
-      title: 'Feats',
+      title: 'feats',
     },
   ]
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      console.log('signed out')
+      return navigate({ to: '/', replace: true })
+    } catch (error) {
+      console.error(error)
+    }
+  }
 
   return (
     <nav className={clsx(sidebar, { ['collapsed']: collapsed })}>
@@ -128,6 +142,7 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
                   <Link
                     className={clsx(sidebar_item, { ['collapsed']: collapsed })}
                     to={user.to}
+                    state={{ form: user.title }}
                     key={index}
                     onMouseOver={() =>
                       setToolTipOpen((prev) => {
@@ -145,7 +160,7 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
                     }
                   >
                     {user?.icon && user.icon}
-                    {!collapsed && <span className={sidebar_item_title}>{user.title}</span>}
+                    {!collapsed && <span className={sidebar_item_title}>{startCase(user.title)}</span>}
                     {collapsed && toolTipOpen[index] && (
                       <Floating.Anchor>
                         <Floating.Tooltip boundary='app' placement='right' open={true}>
@@ -169,7 +184,7 @@ const AuthSidebar = ({ lg }: { lg: boolean }) => {
               />
             )}
             <div className={sidebar_footer}>
-              <Button style='unstyled' onClick={signOut} className={clsx(sidebar_item)}>
+              <Button style='unstyled' onClick={handleSignOut} className={clsx(sidebar_item)}>
                 <IUser /> {!collapsed && <span className={sprinkles({ mx: 'space-2' })}>Sign Out</span>}
               </Button>
               {!collapsed && (

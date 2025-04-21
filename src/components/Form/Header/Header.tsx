@@ -8,8 +8,7 @@ import Grid from '../../Grid/Grid'
 import { sprinkles } from '../../../css/sprinkles.css'
 
 const Header = () => {
-  const { formData, setChangeRace, setAddClass, addClass, changeRace, stepIndex, errorMessage, successMessage, steps } =
-    use(FormContext)
+  const { formStore, addClass, changeRace, stepIndex, errorMessage, successMessage, steps } = use(FormContext)
 
   return (
     <Grid className={sprinkles({ mb: 'space-4' })}>
@@ -17,62 +16,58 @@ const Header = () => {
       <Grid.Item>
         <Group justifyContentVariant='spaceBetween'>
           <h1>
-            {`${formData.id == null ? 'Create' : formData.__typename} ${
-              formData.__typename === 'Character' ? ' An ' : ' A '
+            {`${formStore.data.id == null ? 'Create' : formStore.data.__typename} ${
+              formStore.data.__typename === 'Character' ? ' An ' : ' A '
             }`}
-            {formData.__typename}
-            {formData?.label && ` (${formData.label})`}
+            {formStore.data.__typename}
+            {formStore.data?.label && ` (${formStore.data.label})`}
           </h1>
-          {formData.__typename === 'Character' && (
+          {formStore.data.__typename === 'Character' && (
             <>
               {steps[stepIndex]?.label === 'Race' &&
-                (!changeRace ? (
+                (!changeRace ?
                   <Button
                     color='update'
                     onClick={() => {
-                      setChangeRace(true)
+                      formStore.setChangeRace(true)
                     }}
                   >
                     Change Race
                   </Button>
-                ) : (
-                  <Button
+                : <Button
                     color='danger'
                     onClick={() => {
-                      setChangeRace(false)
+                      formStore.setChangeRace(false)
                     }}
                   >
                     Keep Race
-                  </Button>
-                ))}
-              {formData.classes?.length &&
+                  </Button>)}
+              {formStore.data.classes?.length &&
                 steps[stepIndex].label === 'Class' &&
-                (!addClass ? (
+                (!addClass ?
                   <Button
                     color='update'
                     onClick={() => {
-                      setAddClass(true)
+                      formStore.setAddClass(true)
                     }}
                   >
                     Add Class
                   </Button>
-                ) : (
-                  <Button
+                : <Button
                     color='danger'
                     onClick={() => {
-                      setAddClass(false)
+                      formStore.setAddClass(false)
                     }}
                   >
                     Cancel Add Class
-                  </Button>
-                ))}
+                  </Button>)}
             </>
           )}
         </Group>
         {errorMessage && <span>{errorMessage}</span>}
         {successMessage && <span>{successMessage}</span>}
       </Grid.Item>
-      {formData.__typename === 'Character' && <CharacterHeader />}
+      {formStore.data.__typename === 'Character' && <CharacterHeader />}
     </Grid>
   )
 }

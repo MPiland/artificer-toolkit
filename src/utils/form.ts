@@ -30,6 +30,40 @@ const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
+export const stepArrayOptions = {
+  id: [
+    'details',
+    'class',
+    'race',
+    'abilities',
+    'traits',
+    'attributes',
+    'features',
+    'contains',
+    'proficiencies',
+    'equipment',
+    'startingEquipment',
+    'ancestry',
+    'background',
+  ],
+  label: [
+    'Details',
+    'Class',
+    'Race',
+    'Abilities',
+    'Traits',
+    'Attributes',
+    'Features',
+    'FeaturesContent',
+    'Contains',
+    'Proficiencies',
+    'Equipment',
+    'Starting Equipment',
+    'Ancestry',
+    'Background',
+  ] as const,
+}
+
 function isNonNullable<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined
 }
@@ -50,34 +84,66 @@ export function createFilterOptions<T>(
     .sort((a, b) => a.label.localeCompare(b.label))
 }
 
+export const formSingularMap = {
+  spells: 'spell',
+  feats: 'feat',
+  equipment: 'equipment',
+  races: 'race',
+  classes: 'class',
+  backgrounds: 'background',
+  characters: 'character',
+}
+
 export const navigatePath = ({
   form,
   type,
   action,
+  id,
   label,
 }: {
   form: FormType
   type: 'form' | 'view'
   action?: 'new' | 'edit'
+  id?: string
   label?: string
-}): { path: ToOptions['to']; params: NavigateOptions['params'] } => {
+}): {
+  to: ToOptions['to']
+  params: NavigateOptions['params']
+  mask?: {
+    to: ToOptions['to']
+    params: NavigateOptions['params']
+  }
+} => {
   switch (form) {
     case 'spells': {
       switch (type) {
         case 'form': {
           return {
-            path: '/spells/$action/$_spellId',
+            to: `/${form}/$action/$_spellId`,
             params: {
               action: action,
               _spellId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$action/$_spellId`,
+              params: {
+                action: action,
+                _spellId: id || undefined,
+              },
             },
           }
         }
         case 'view': {
           return {
-            path: '/spells/$spellId',
+            to: `/${form}/$spellId`,
             params: {
               spellId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$spellId`,
+              params: {
+                spellId: id || undefined,
+              },
             },
           }
         }
@@ -88,18 +154,31 @@ export const navigatePath = ({
       switch (type) {
         case 'form': {
           return {
-            path: '/feats/$action/$_featId',
+            to: `/${form}/$action/$_featId`,
             params: {
               action: action,
               _featId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$action/$_featId`,
+              params: {
+                action: action,
+                _featId: id || undefined,
+              },
             },
           }
         }
         case 'view': {
           return {
-            path: '/feats/$featId',
+            to: `/${form}/$featId`,
             params: {
               featId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$featId`,
+              params: {
+                featId: id || undefined,
+              },
             },
           }
         }
@@ -110,18 +189,31 @@ export const navigatePath = ({
       switch (type) {
         case 'form': {
           return {
-            path: '/equipment/$action/$_equipmentId',
+            to: `/${form}/$action/$_equipmentId`,
             params: {
               action: action,
               _equipmentId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$action/$_equipmentId`,
+              params: {
+                action: action,
+                _equipmentId: id || undefined,
+              },
             },
           }
         }
         case 'view': {
           return {
-            path: '/equipment/$equipmentId',
+            to: `/${form}/$equipmentId`,
             params: {
               equipmentId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$equipmentId`,
+              params: {
+                equipmentId: id || undefined,
+              },
             },
           }
         }
@@ -132,18 +224,31 @@ export const navigatePath = ({
       switch (type) {
         case 'form': {
           return {
-            path: '/races/$action/$_raceId',
+            to: `/${form}/$action/$_raceId`,
             params: {
               action: action,
               _raceId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$action/$_raceId`,
+              params: {
+                action: action,
+                _raceId: id || undefined,
+              },
             },
           }
         }
         case 'view': {
           return {
-            path: '/races/$raceId',
+            to: `/${form}/$raceId`,
             params: {
               raceId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$raceId`,
+              params: {
+                raceId: id || undefined,
+              },
             },
           }
         }
@@ -154,18 +259,31 @@ export const navigatePath = ({
       switch (type) {
         case 'form': {
           return {
-            path: '/classes/$action/$_classId',
+            to: `/${form}/$action/$_classId`,
             params: {
               action: action,
               _classId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$action/$_classId`,
+              params: {
+                action: action,
+                _classId: id || undefined,
+              },
             },
           }
         }
         case 'view': {
           return {
-            path: '/classes/$classId',
+            to: `/${form}/$classId`,
             params: {
               classId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$classId`,
+              params: {
+                _classId: id || undefined,
+              },
             },
           }
         }
@@ -176,18 +294,31 @@ export const navigatePath = ({
       switch (type) {
         case 'form': {
           return {
-            path: '/backgrounds/$action/$_backgroundId',
+            to: `/${form}/$action/$_backgroundId`,
             params: {
               action: action,
-              _backgroundId: label || undefined,
+              _backgroundId: id || undefined,
+            },
+            mask: {
+              to: `/${form}/$action/$_backgroundId`,
+              params: {
+                action: action,
+                _backgroundId: id || undefined,
+              },
             },
           }
         }
         case 'view': {
           return {
-            path: '/backgrounds/$backgroundId',
+            to: `/${form}/$backgroundId`,
             params: {
               backgroundId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$backgroundId`,
+              params: {
+                backgroundId: id || undefined,
+              },
             },
           }
         }
@@ -198,18 +329,31 @@ export const navigatePath = ({
       switch (type) {
         case 'form': {
           return {
-            path: '/characters/$action/$_characterId',
+            to: `/${form}/$action/$_characterId`,
             params: {
               action: action,
               _characterId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$action/$_characterId`,
+              params: {
+                action: action,
+                _characterId: id || undefined,
+              },
             },
           }
         }
         case 'view': {
           return {
-            path: '/characters/$characterId',
+            to: `/${form}/$characterId`,
             params: {
               characterId: label || undefined,
+            },
+            mask: {
+              to: `/${form}/$characterId`,
+              params: {
+                characterId: id || undefined,
+              },
             },
           }
         }
@@ -218,7 +362,7 @@ export const navigatePath = ({
     }
     default: {
       return {
-        path: '/',
+        to: '/',
         params: {},
       }
     }

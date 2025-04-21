@@ -1,39 +1,38 @@
 import CharacterClass from '../../../Subforms/Character/Class/CharacterClass'
 import ClassSelection from '../../../Subforms/Character/Class/ClassSelection'
 import { Character } from '../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../types/form'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
+import { OnChange } from '../../../../../types/form'
 
 const Classes = () => {
-  const { addClass, formData, updateFormData } = use(FormContext) as {
+  const {
+    addClass,
+    formStore: { data, updateField, removeField },
+  } = use(FormContext) as {
     addClass: boolean
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+      removeField: OnChange<Character>['removeField']
+    }
   }
 
   const handleRemoveClass = ({ classIndex }: { classIndex: number }) => {
-    const updatedClasses = formData.classes?.filter((_, index) => classIndex !== index)
+    const updatedClasses = data.classes?.filter((_, index) => classIndex !== index)
 
-    if (formData.classes?.length === 1) {
-      updateFormData({
-        type: 'remove',
-        path: `classes`,
-      })
+    if (data.classes?.length === 1) {
+      removeField({ path: `classes` })
     } else {
-      updateFormData({
-        type: 'update',
-        path: `classes`,
-        value: updatedClasses,
-      })
+      updateField({ path: `classes`, value: updatedClasses })
     }
   }
 
   return (
     <Grid>
-      {formData.classes?.length && !addClass ?
-        formData.classes?.map((uClass, cIndex) => {
+      {data.classes?.length && !addClass ?
+        data.classes?.map((uClass, cIndex) => {
           return (
             <CharacterClass
               uClass={uClass}

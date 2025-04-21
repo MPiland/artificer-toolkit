@@ -42,7 +42,6 @@ type Equipment {
   quantity: Int!
   properties: [ID!]
   category: ID!
-  equipmentRank: Int
   rarity: ID!
   attributes: [ID!]
   damage: Damage
@@ -63,7 +62,56 @@ type Equipment {
   rank: Int
 }
 
+type EquipmentMetaObject {
+  equipmentIds: [ID!]
+  id: ID!
+}
+
+type EquipementCostMeta {
+  equipmentIds: [ID!]
+  amount: Int
+  id: ID!
+}
+
+type EquipmentWeightMeta {
+  equipmentIds: [ID!]
+  amount: Float
+  id: ID!
+}
+
+type EquipmentFeatureMetaObject {
+  id: ID!
+  label: String!
+  equipmentIds: [ID!]
+}
+
+type EquipmentMeta {
+  categories: [EquipmentMetaObject!]!
+  properties: [EquipmentMetaObject!]!
+  primaryDamages: [EquipmentMetaObject!]!
+  secondaryDamages: [EquipmentMetaObject!]!
+  versatileDamages: [EquipmentMetaObject!]!
+  armorClasses: [EquipmentMetaObject!]!
+  cost: [EquipementCostMeta!]!
+  weight: [EquipmentWeightMeta!]!
+  features: [EquipmentFeatureMetaObject!]!
+}
+
+type EquipmentListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  quote: String
+  cost: Cost
+  weight: Weight
+  systemId: ID!
+  masterId: String
+  rank: Int
+}
+
 type EquipmentConnection {
-  items: [Equipment]!
+  items: [EquipmentListItem!]!
+  metaData: EquipmentMeta!
   nextToken: String
 }

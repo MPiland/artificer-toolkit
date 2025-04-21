@@ -4,8 +4,15 @@ import Alert from '../Alert/Alert'
 import Delete from '../Delete/Delete'
 import Copy from '../Copy/Copy'
 import Modal from './Modal'
-import { FormDataType } from '../../types/form'
-import { Class, Equipment, Feature, Race } from '../../../amplify/gql/types'
+import { FormDataType, type ListItemType } from '../../types/form'
+import {
+  Feature,
+  type BackgroundListItem,
+  type ClassListItem,
+  type EquipmentListItem,
+  type FeatListItem,
+  type RaceListItem,
+} from '../../../amplify/gql/types'
 
 type ModalType = 'alert' | 'delete' | 'copy'
 
@@ -19,7 +26,7 @@ export interface AlertModalProps {
 }
 
 export interface DeleteModalProps {
-  item: FormDataType
+  label: ListItemType['label']
   onDelete?: () => void
 }
 
@@ -28,9 +35,11 @@ export interface CopyModalProps {
   data: Pick<FormDataType, 'id' | 'label' | 'value'>[] | Feature[] | undefined
   onCopy?: (() => void) | ((arg: any) => void)
   filters?: {
-    races?: Race[]
-    classes?: Class[]
-    equipment?: Equipment[]
+    races?: RaceListItem[]
+    classes?: ClassListItem[]
+    equipment?: EquipmentListItem[]
+    backgrounds?: BackgroundListItem[]
+    feats?: FeatListItem[]
   }
 }
 

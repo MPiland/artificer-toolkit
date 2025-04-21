@@ -23,40 +23,18 @@ const ProgressBar = () => {
   const containerRef = useRef<HTMLDivElement>(null)
   const stepsContainerRef = useRef<HTMLDivElement>(null)
 
-  const {
-    validForm,
-    setValidForm,
-    steps,
-    setStepIndex,
-    formData,
-    updateFormData,
-    initialFormData,
-    stepIndex,
-    setSteps,
-    setAddClass,
-    setChangeRace,
-  } = use(FormContext)
+  const { formStore, validForm, steps, stepIndex } = use(FormContext)
 
-  const { containsEquipment } = useEnumChecks({ data: formData })
+  const { containsEquipment } = useEnumChecks({ data: formStore.data })
 
-  const {
-    setSectionStep,
-    featureStep,
-    setFeatureStep,
-    handleSaveFeatures,
-    resetAncestry,
-    resetFeature,
-    resetOption,
-    resetSection,
-    sectionStep,
-  } = use(FeatureContext)
+  const { handleSaveFeatures, sectionStore, featureStore, optionStore, ancestryStore } = use(FeatureContext)
 
   const { isLoading } = use(LoadingContext)
 
   useEffect(() => {
     let updatedSteps = [...steps]
 
-    if (formData.__typename === 'Equipment' && containsEquipment) {
+    if (formStore.data.__typename === 'Equipment' && containsEquipment) {
       if (!updatedSteps.includes({ id: 'contains', label: 'Contains' })) {
         updatedSteps.push({ id: 'contains', label: 'Contains' })
       }
@@ -65,9 +43,9 @@ const ProgressBar = () => {
     }
 
     if (!isEqual(updatedSteps, steps)) {
-      setSteps(updatedSteps)
+      formStore.setSteps(updatedSteps)
     }
-  }, [setSteps, steps, containsEquipment, formData.__typename])
+  }, [formStore, steps, containsEquipment])
 
   useEffect(() => {
     const updateLinePosition = () => {
@@ -107,30 +85,27 @@ const ProgressBar = () => {
   }, [stepIndex, lineLeft, lineWidth])
 
   const handleStepChange = async (progressStepIndex: number) => {
-    setAddClass(false)
-    setChangeRace(false)
-    let formClone: FormDataType = JSON.parse(JSON.stringify(formData))
+    formStore.setAddClass(false)
+    formStore.setChangeRace(false)
+    let formClone: FormDataType = JSON.parse(JSON.stringify(formStore.data))
     const isValid = validateForm()
     if (isValid) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (isEqual(formData, initialFormData) && featureStep == null) {
-        return setStepIndex(progressStepIndex)
+      formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+      if (isEqual(formStore.data, formStore.initData) && featureStore.step == null) {
+        return formStore.setStepIndex(progressStepIndex)
       }
-      if (featureStep === 'option' || (featureStep === 'feature' && formData.__typename !== 'Feat')) {
-        formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
+      if (featureStore.step === 'option' || (featureStore.step === 'feature' && formStore.data.__typename !== 'Feat')) {
+        formClone = await handleSaveFeatures({ type: featureStore.step, state: formClone })
       }
-      if (!isEqual(formClone, formData)) {
-        updateFormData({
-          type: 'reset',
-          value: formClone,
-        })
+      if (!isEqual(formClone, formStore.data)) {
+        formStore.reinitState(formClone)
       }
-      setFeatureStep(null)
-      setSectionStep(null)
+      featureStore.setStep(null)
+      sectionStore.setStep(null)
     }
     if (!isValid) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: false })
-      if (featureStep != null) {
+      formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: false })
+      if (featureStore.step != null) {
         return showModal({
           type: 'alert',
           props: {
@@ -140,33 +115,34 @@ const ProgressBar = () => {
         })
       }
     }
-    return setStepIndex(progressStepIndex)
+    return formStore.setStepIndex(progressStepIndex)
   }
 
   const reset = () => {
-    if (sectionStep != null) {
-      resetSection()
-      setSectionStep(null)
-    } else if (featureStep === 'option') {
-      resetOption()
-      setFeatureStep('feature')
-    } else if (featureStep === 'ancestry') {
-      resetFeature()
-      setFeatureStep('ancestryOption')
-    } else if (featureStep === 'ancestryOption') {
-      resetAncestry()
-      setFeatureStep(null)
+    if (sectionStore.step != null) {
+      sectionStore.reinitState()
+      sectionStore.setStep(null)
+    } else if (featureStore.step === 'option') {
+      optionStore.reinitState()
+      featureStore.setStep('feature')
+    } else if (featureStore.step === 'ancestry') {
+      featureStore.reinitState()
+      featureStore.setStep('ancestryOption')
     } else {
-      resetFeature()
-      setFeatureStep(null)
+      if (featureStore.step === 'ancestryOption') {
+        ancestryStore.reinitState()
+      } else {
+        featureStore.reinitState()
+      }
+      featureStore.setStep(null)
     }
   }
 
   const handleConfirmStep = (progressStepIndex: number) => {
-    if (featureStep != null) {
+    if (featureStore.step != null) {
       reset()
     }
-    setStepIndex(progressStepIndex)
+    formStore.setStepIndex(progressStepIndex)
     return <Navigate to={'..'} />
   }
 

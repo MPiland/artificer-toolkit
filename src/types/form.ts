@@ -1,4 +1,4 @@
-import {
+import type {
   Character,
   Background,
   Class,
@@ -20,15 +20,39 @@ import {
   CharacterExpertise,
   CharacterModifier,
   FeatureExpertise,
+  SpellListItem,
+  ClassListItem,
+  RaceListItem,
+  EquipmentListItem,
+  FeatListItem,
+  BackgroundListItem,
+  SpellMeta,
+  ClassMeta,
+  RaceMeta,
+  EquipmentMeta,
 } from '../../amplify/gql/types'
+import { Paths } from 'type-fest'
 
-export type UpdateState<T> =
-  | { type: 'add'; path: DeepKeyOf<T>; value?: any }
-  | { type: 'update'; path: DeepKeyOf<T>; value: any }
-  | { type: 'remove'; path: DeepKeyOf<T> }
-  | { type: 'reset'; value: any }
-  | { type: 'initialReset'; value: any }
-  | { type: 'index'; value: number }
+export type ListItemType =
+  | SpellListItem
+  | ClassListItem
+  | RaceListItem
+  | EquipmentListItem
+  | FeatListItem
+  | BackgroundListItem
+  | Character
+
+type UpdateField<T> = (arg: { path: Paths<T>; value: any }) => void
+type RemoveField<T> = (arg: { path: Paths<T> }) => void
+type AddField<T> = (arg: { path: Paths<T>; value?: any }) => void
+
+export type OnChange<T> = {
+  updateField: UpdateField<T>
+  removeField: RemoveField<T>
+  addField: AddField<T>
+}
+
+export type MetaDataType = SpellMeta | ClassMeta | RaceMeta | EquipmentMeta
 
 export type FormDataType = Spell | Race | Class | Feat | Background | Equipment | Character
 
@@ -51,36 +75,7 @@ export type CharacterSectionData =
   | CharacterExpertise
   | CharacterModifier
 
-export type DeepKeyOf<T, Depth extends number = 4> =
-  [Depth] extends (
-    [0] // Stop recursion if Depth reaches 0
-  ) ?
-    never
-  : T extends (
-    object // Only process objects
-  ) ?
-    {
-      [K in keyof T & string]:
-        | `${K}` // Current property key
-        | (NonNullable<T[K]> extends Array<infer U> ?
-            | `${K}.${number}`
-            | (NonNullable<U> extends Array<infer V> ?
-                | `${K}.${number}.${number}`
-                | (NonNullable<V> extends Array<infer W> ?
-                    | `${K}.${number}.${number}.${number}`
-                    | `${K}.${number}.${number}.${number}.${DeepKeyOf<NonNullable<W>, Subtract<Depth, 1>>}`
-                  : `${K}.${number}.${number}.${DeepKeyOf<NonNullable<V>, Subtract<Depth, 1>>}`)
-              : `${K}.${number}.${DeepKeyOf<NonNullable<U>, Subtract<Depth, 1>>}`)
-          : NonNullable<T[K]> extends object ? `${K}.${DeepKeyOf<NonNullable<T[K]>, Subtract<Depth, 1>>}`
-          : never)
-    }[keyof T & string]
-  : never
-
-// Helper types
-type Subtract<N extends number, M extends number> =
-  [...TupleOf<N>]['length'] extends [...TupleOf<M>, ...infer R]['length'] ? R['length'] : never
-
-type TupleOf<N extends number, T extends unknown[] = []> = T['length'] extends N ? T : TupleOf<N, [...T, unknown]>
+export type DeepKeyOf<T> = Extract<Paths<T>, string>
 
 export type Step = {
   id:

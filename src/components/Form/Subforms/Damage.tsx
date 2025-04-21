@@ -2,32 +2,37 @@ import { useEffect, useMemo } from 'react'
 import Dropdown from '../../Dropdown/Dropdown'
 import Input from '../../Input/Input'
 import Collapse from '../../Collapse/Collapse'
-import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { Attributes } from '../../../types/enums'
-import { DamageEnum, Equipment, Spell, SpellEnum } from '../../../../amplify/gql/types'
-import { FeatureDataType, UpdateState } from '../../../types/form'
+import { DamageEnum, type Equipment, type Spell, SpellEnum } from '../../../../amplify/gql/types'
 import Button from '../../Button/Button'
 import { row_button } from '../Form.css'
 import { TbPlus, TbX } from 'react-icons/tb'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
+import type { FeatureDataType } from '../../../types/form'
 import { startCase } from 'lodash'
 import Grid from '../../Grid/Grid'
+import useSystemData from '../../../hooks/useSystemData'
+import type { OnChange } from '../../../types/form'
 
 const Damage = ({
-  formData,
-  updateFormData,
+  formStore: { data, updateField, removeField, addField },
 }: {
-  formData: Spell | Equipment | FeatureDataType
-  updateFormData: (state: UpdateState<Spell | Equipment | FeatureDataType>) => void
+  formStore: {
+    data: Spell | Equipment | FeatureDataType
+    updateField: OnChange<Spell | Equipment | FeatureDataType>['updateField']
+    removeField: OnChange<Spell | Equipment | FeatureDataType>['removeField']
+    addField: OnChange<Spell | Equipment | FeatureDataType>['addField']
+  }
 }) => {
-  const { data: system } = useGetSystemQuery()
-  const { doesDamage } = useEnumChecks({ data: formData })
+  const { abilities, attributes, damageTypes } = useSystemData()
+
+  const { doesDamage } = useEnumChecks({ data })
   const { secondaryDamage, bonusDamage, isVersatile } = useEnumChecks({
-    data: formData?.damage ? formData?.damage : undefined,
+    data: data?.damage ? data?.damage : undefined,
   })
 
   // Set Damage types for spells, weapons, items
-  const damageTypes = useMemo(() => {
+  const formDamageTypes = useMemo(() => {
     let types: ('primary' | 'secondary' | 'bonus' | 'versatile')[] = ['primary'] // Create a copy of damageTypes array
 
     // Handle secondary
@@ -48,7 +53,7 @@ const Damage = ({
       types = types.filter((type) => type !== 'bonus')
     }
 
-    if (formData.__typename === 'Equipment' && isVersatile) {
+    if (data.__typename === 'Equipment' && isVersatile) {
       if (!types.includes('versatile')) {
         types.push('versatile')
       }
@@ -56,25 +61,24 @@ const Damage = ({
       types = types.filter((type) => type !== 'versatile')
     }
     return types
-  }, [formData, bonusDamage, secondaryDamage, isVersatile])
+  }, [data, bonusDamage, secondaryDamage, isVersatile])
 
   // Add primary damage if doesn't exist
   useEffect(() => {
-    if (doesDamage && !formData?.damage?.primary) {
-      updateFormData({
-        type: 'update',
+    if (doesDamage && !data?.damage?.primary) {
+      updateField({
         path: 'damage.primary',
         value: {},
       })
     }
-  }, [doesDamage, formData?.damage?.primary, updateFormData])
+  }, [doesDamage, data?.damage?.primary, updateField])
 
   // Add/remove Die Per Level table
   useEffect(() => {
     const diePerLevel = {
-      primary: formData?.damage?.primary?.attribute === Attributes.diePerLevel,
-      secondary: formData?.damage?.secondary?.attribute === Attributes.diePerLevel,
-      bonus: formData?.damage?.bonus?.attribute === Attributes.diePerLevel,
+      primary: data?.damage?.primary?.attribute === Attributes.diePerLevel,
+      secondary: data?.damage?.secondary?.attribute === Attributes.diePerLevel,
+      bonus: data?.damage?.bonus?.attribute === Attributes.diePerLevel,
     }
     // Potential damage properties
     const keys = ['primary', 'secondary', 'bonus'] as const
@@ -82,36 +86,32 @@ const Damage = ({
     keys.forEach((key: DamageKey) => {
       if (
         diePerLevel[key] &&
-        !formData?.damage?.diePerLevel?.some((level) => level?.[key] != null) &&
-        formData?.damage?.[key]
+        !data?.damage?.diePerLevel?.some((level) => level?.[key] != null) &&
+        data?.damage?.[key]
       ) {
-        updateFormData({
-          type: 'add',
-          path: `damage.diePerLevel.0.${key}`,
-        })
+        addField({ path: `damage.diePerLevel.0.${key}` })
       }
-      if (!diePerLevel[key] && formData?.damage?.diePerLevel?.find((level) => level?.[key]) != null) {
+      if (!diePerLevel[key] && data?.damage?.diePerLevel?.find((level) => level?.[key]) != null) {
         console.log({ key: diePerLevel })
-        const diePerLevelArray = formData?.damage?.diePerLevel?.map((level) => {
+        const diePerLevelArray = data?.damage?.diePerLevel?.map((level) => {
           const levelObject = { ...level }
           delete levelObject[key]
           return levelObject
         })
-        updateFormData({
-          type: 'update',
+        updateField({
           path: `damage.diePerLevel`,
           value: diePerLevelArray,
         })
       }
     })
-  }, [updateFormData, formData?.damage])
+  }, [updateField, data?.damage])
 
   // Add/remove Set Per Level table
   useEffect(() => {
     const setPerLevel = {
-      primary: formData?.damage?.primary?.attribute === Attributes.setPerLevel,
-      secondary: formData?.damage?.secondary?.attribute === Attributes.setPerLevel,
-      bonus: formData?.damage?.bonus?.attribute === Attributes.setPerLevel,
+      primary: data?.damage?.primary?.attribute === Attributes.setPerLevel,
+      secondary: data?.damage?.secondary?.attribute === Attributes.setPerLevel,
+      bonus: data?.damage?.bonus?.attribute === Attributes.setPerLevel,
     }
     // Potential damage properties
     const keys = ['primary', 'secondary', 'bonus'] as const
@@ -119,45 +119,37 @@ const Damage = ({
     keys.forEach((key: DamageKey) => {
       if (
         setPerLevel[key] &&
-        !formData?.damage?.setPerLevel?.some((level) => level?.[key] != null) &&
-        formData?.damage?.[key]
+        !data?.damage?.setPerLevel?.some((level) => level?.[key] != null) &&
+        data?.damage?.[key]
       ) {
-        updateFormData({
-          type: 'add',
-          path: `damage.setPerLevel.0.${key}`,
-        })
+        addField({ path: `damage.setPerLevel.0.${key}` })
       }
-      if (!setPerLevel[key] && formData?.damage?.setPerLevel?.find((level) => level?.[key]) != null) {
-        const setPerLevelArray = formData?.damage?.setPerLevel?.map((level) => {
+      if (!setPerLevel[key] && data?.damage?.setPerLevel?.find((level) => level?.[key]) != null) {
+        const setPerLevelArray = data?.damage?.setPerLevel?.map((level) => {
           const levelObject = { ...level }
           delete levelObject[key]
           return levelObject
         })
-        updateFormData({
-          type: 'update',
-          path: `damage.setPerLevel`,
-          value: setPerLevelArray,
-        })
+        addField({ path: `damage.setPerLevel`, value: setPerLevelArray })
       }
     })
-  }, [updateFormData, formData?.damage])
+  }, [addField, data?.damage])
 
-  // Remove Damage formData
+  // Remove Damage data
   useEffect(() => {
-    if (formData?.damage?.secondary && !secondaryDamage) {
-      console.log({ secondaryDamage })
-      updateFormData({ type: 'remove', path: 'damage.secondary' })
+    if (data?.damage?.secondary && !secondaryDamage) {
+      removeField({ path: 'damage.secondary' })
     }
-    if (formData?.damage?.bonus && !bonusDamage) {
-      updateFormData({ type: 'remove', path: 'damage.bonus' })
+    if (data?.damage?.bonus && !bonusDamage) {
+      removeField({ path: 'damage.bonus' })
     }
     if (
-      (formData.__typename !== 'Equipment' && formData?.damage?.versatile) ||
-      (formData.__typename === 'Equipment' && !isVersatile)
+      (data.__typename !== 'Equipment' && data?.damage?.versatile) ||
+      (data.__typename === 'Equipment' && !isVersatile)
     ) {
-      updateFormData({ type: 'update', path: 'damage.versatile', value: null })
+      updateField({ path: 'damage.versatile', value: null })
     }
-  }, [updateFormData, formData, bonusDamage, secondaryDamage, isVersatile])
+  }, [updateField, removeField, data, bonusDamage, secondaryDamage, isVersatile])
 
   return (
     <>
@@ -166,18 +158,18 @@ const Damage = ({
           multiSelect={true}
           name={`damage.attributes`}
           label={`Damage Attributes`}
-          value={formData?.damage?.attributes}
-          options={system.attributes.filter((attribute) =>
-            formData.__typename !== 'Spell' ?
-              attribute?.damage?.length && formData.__typename === 'Equipment' ?
+          value={data?.damage?.attributes}
+          options={attributes.filter((attribute) =>
+            data.__typename !== 'Spell' ?
+              attribute?.damage?.length && data.__typename === 'Equipment' ?
                 attribute?.damage?.includes(DamageEnum.equipment)
               : attribute?.damage?.includes(DamageEnum.all)
             : attribute?.spells?.length && attribute.spells.includes(SpellEnum.damage)
           )}
-          onChange={updateFormData}
+          onChange={{ updateField, removeField }}
         />
       </Grid.Item>
-      {damageTypes.map((type, index) => {
+      {formDamageTypes.map((type, index) => {
         return (
           <Grid.Item key={index}>
             <Grid>
@@ -191,13 +183,13 @@ const Damage = ({
                         : type === 'secondary' ? 'Sec.'
                         : 'Bonus'
                       } Dmg. Attribute`}
-                      value={formData?.damage?.[type]?.attribute}
-                      options={system.attributes.filter((attribute) =>
-                        attribute?.damage?.length && formData.__typename === 'Equipment' ?
+                      value={data?.damage?.[type]?.attribute}
+                      options={attributes.filter((attribute) =>
+                        attribute?.damage?.length && data.__typename === 'Equipment' ?
                           attribute?.damage?.includes(DamageEnum.equipment)
                         : attribute?.damage?.includes(DamageEnum.main)
                       )}
-                      onChange={updateFormData}
+                      onChange={{ updateField, removeField }}
                     />
                   </Grid.Item>
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -208,9 +200,9 @@ const Damage = ({
                         : type === 'secondary' ? 'Sec.'
                         : 'Bonus'
                       } Dmg. Type`}
-                      value={formData?.damage?.[type]?.id}
+                      value={data?.damage?.[type]?.id}
                       options={[
-                        ...system.damageTypes,
+                        ...damageTypes,
                         {
                           id: 'matchWeapon',
                           value: 'matchWeapon',
@@ -218,36 +210,36 @@ const Damage = ({
                         },
                       ]}
                       required={true}
-                      onChange={updateFormData}
+                      onChange={{ updateField, removeField }}
                     />
                   </Grid.Item>
                 </>
               )}
-              {formData?.damage?.[type]?.attribute !== Attributes.diePerLevel &&
-                formData?.damage?.[type]?.attribute !== Attributes.setPerLevel &&
-                (formData?.damage?.[type]?.attribute === Attributes.setAmount ?
+              {data?.damage?.[type]?.attribute !== Attributes.diePerLevel &&
+                data?.damage?.[type]?.attribute !== Attributes.setPerLevel &&
+                (data?.damage?.[type]?.attribute === Attributes.setAmount ?
                   <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                     <Input
                       name={`damage.${type}.setAmount`}
-                      value={formData?.damage?.[type]?.setAmount}
+                      value={data?.damage?.[type]?.setAmount}
                       label={`Set ${
                         type === 'primary' ? 'Main'
                         : type === 'secondary' ? 'Sec.'
                         : 'Bonus'
                       } Value`}
-                      onChange={updateFormData}
                       required={true}
                       validation='num'
                       errorMsg={'Must contain only numbers'}
+                      onChange={{ updateField }}
                     />
                   </Grid.Item>
                 : (
-                  formData?.damage?.[type]?.attribute === Attributes.ability ||
-                  formData?.damage?.[type]?.attribute === Attributes.spellcastingAbility ||
-                  formData?.damage?.[type]?.attribute === Attributes.proficiency
+                  data?.damage?.[type]?.attribute === Attributes.ability ||
+                  data?.damage?.[type]?.attribute === Attributes.spellcastingAbility ||
+                  data?.damage?.[type]?.attribute === Attributes.proficiency
                 ) ?
                   <>
-                    {formData?.damage?.[type]?.attribute === Attributes.ability && (
+                    {data?.damage?.[type]?.attribute === Attributes.ability && (
                       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                         <Dropdown
                           name={`damage.${type}.ability`}
@@ -256,57 +248,57 @@ const Damage = ({
                             : type === 'secondary' ? 'Sec.'
                             : 'Bonus'
                           } Ability`}
-                          value={formData?.damage?.[type]?.ability}
-                          options={system.abilities}
+                          value={data?.damage?.[type]?.ability}
+                          options={abilities}
                           required={true}
-                          onChange={updateFormData}
+                          onChange={{ updateField, removeField }}
                         />
                       </Grid.Item>
                     )}
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.minAmount`}
-                        value={formData?.damage?.[type]?.minAmount}
+                        value={data?.damage?.[type]?.minAmount}
                         label={`${
                           type === 'primary' ? 'Main'
                           : type === 'secondary' ? 'Sec.'
                           : 'Bonus'
                         } Min. Value`}
-                        onChange={updateFormData}
                         validation='num'
                         errorMsg={'Must contain only numbers'}
+                        onChange={{ updateField }}
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.maxAmount`}
-                        value={formData?.damage?.[type]?.maxAmount}
+                        value={data?.damage?.[type]?.maxAmount}
                         label={`${
                           type === 'primary' ? 'Main'
                           : type === 'secondary' ? 'Sec.'
                           : 'Bonus'
                         } Max Value`}
-                        onChange={updateFormData}
                         validation='num'
                         errorMsg={'Must contain only numbers'}
+                        onChange={{ updateField }}
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.multiplier`}
-                        value={formData?.damage?.[type]?.multiplier}
+                        value={data?.damage?.[type]?.multiplier}
                         label={`${
                           type === 'primary' ? 'Main'
                           : type === 'secondary' ? 'Sec.'
                           : 'Bonus'
                         } Dmg. Multiplier`}
-                        onChange={updateFormData}
                         validation='num'
                         errorMsg={'Must contain only numbers'}
+                        onChange={{ updateField }}
                       />
                     </Grid.Item>
                   </>
-                : formData?.damage?.[type]?.attribute === Attributes.damagePool ?
+                : data?.damage?.[type]?.attribute === Attributes.damagePool ?
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
@@ -316,46 +308,46 @@ const Damage = ({
                           : type === 'secondary' ? 'Sec.'
                           : 'Bonus'
                         } Dmg. Pool Attribute`}
-                        value={formData?.damage?.[type]?.pool?.attribute}
-                        options={system.attributes.filter(
+                        value={data?.damage?.[type]?.pool?.attribute}
+                        options={attributes.filter(
                           (attribute) => attribute?.damage?.length && attribute?.damage.includes(DamageEnum.pool)
                         )}
                         required={true}
-                        onChange={updateFormData}
+                        onChange={{ updateField, removeField }}
                       />
                     </Grid.Item>
                     {(
-                      formData?.damage?.[type]?.pool?.attribute === Attributes.level ||
-                      formData?.damage?.[type]?.pool?.attribute === Attributes.ability ||
-                      formData?.damage?.[type]?.pool?.attribute === Attributes.spellcastingAbility ||
-                      formData?.damage?.[type]?.pool?.attribute === Attributes.proficiency
+                      data?.damage?.[type]?.pool?.attribute === Attributes.level ||
+                      data?.damage?.[type]?.pool?.attribute === Attributes.ability ||
+                      data?.damage?.[type]?.pool?.attribute === Attributes.spellcastingAbility ||
+                      data?.damage?.[type]?.pool?.attribute === Attributes.proficiency
                     ) ?
                       <>
-                        {(formData?.damage?.[type]?.pool?.attribute === Attributes.ability ||
-                          formData?.damage?.[type]?.pool.attribute === Attributes.spellcastingAbility) && (
+                        {(data?.damage?.[type]?.pool?.attribute === Attributes.ability ||
+                          data?.damage?.[type]?.pool.attribute === Attributes.spellcastingAbility) && (
                           <>
-                            {formData?.damage?.[type]?.pool?.attribute === Attributes.ability && (
+                            {data?.damage?.[type]?.pool?.attribute === Attributes.ability && (
                               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                                 <Dropdown
                                   name={`damage.${type}.pool.ability`}
                                   label='Pool Abilty'
-                                  value={formData?.damage?.[type]?.pool?.ability}
-                                  options={system.abilities}
+                                  value={data?.damage?.[type]?.pool?.ability}
+                                  options={abilities}
                                   required={true}
-                                  onChange={updateFormData}
+                                  onChange={{ updateField, removeField }}
                                 />
                               </Grid.Item>
                             )}
                             <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                               <Input
                                 name={`damage.${type}.pool.minAmount`}
-                                value={formData?.damage?.[type]?.pool?.minAmount}
+                                value={data?.damage?.[type]?.pool?.minAmount}
                                 label={`${
                                   type === 'primary' ? 'Main'
                                   : type === 'secondary' ? 'Sec.'
                                   : 'Bonus'
                                 } Dmg. Min. Value`}
-                                onChange={updateFormData}
+                                onChange={{ updateField }}
                                 validation='num'
                                 errorMsg={'Must contain only numbers'}
                               />
@@ -365,13 +357,13 @@ const Damage = ({
                         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                           <Input
                             name={`damage.${type}.pool.maxAmount`}
-                            value={formData?.damage?.[type].pool?.maxAmount}
+                            value={data?.damage?.[type].pool?.maxAmount}
                             label={`${
                               type === 'primary' ? 'Main'
                               : type === 'secondary' ? 'Sec.'
                               : 'Bonus'
                             } Dmg. Max Value`}
-                            onChange={updateFormData}
+                            onChange={{ updateField }}
                             validation='num'
                             errorMsg={'Must contain only numbers'}
                           />
@@ -379,25 +371,25 @@ const Damage = ({
                         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                           <Input
                             name={`damage.${type}.pool.multiplier`}
-                            value={formData?.damage?.[type]?.pool?.multiplier}
+                            value={data?.damage?.[type]?.pool?.multiplier}
                             label={`${
                               type === 'primary' ? 'Main'
                               : type === 'secondary' ? 'Sec.'
                               : 'Bonus'
                             } Dmg. Multiplier`}
-                            onChange={updateFormData}
+                            onChange={{ updateField }}
                             validation='num'
                             errorMsg={'Must contain only numbers'}
                           />
                         </Grid.Item>
                       </>
-                    : formData?.damage?.[type]?.pool?.attribute === Attributes.setAmount && (
+                    : data?.damage?.[type]?.pool?.attribute === Attributes.setAmount && (
                         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                           <Input
                             name={`damage.${type}.pool.setAmount`}
-                            value={formData?.damage?.[type]?.pool?.setAmount}
+                            value={data?.damage?.[type]?.pool?.setAmount}
                             label='Pool Total'
-                            onChange={updateFormData}
+                            onChange={{ updateField }}
                             validation='num'
                             required={true}
                             errorMsg={'Must contain only numbers'}
@@ -410,13 +402,13 @@ const Damage = ({
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
                         name={`damage.${type}.dieConfig`}
-                        value={formData?.damage?.[type]?.dieConfig}
+                        value={data?.damage?.[type]?.dieConfig}
                         label={`${
                           type === 'primary' ? 'Main'
                           : type === 'secondary' ? 'Sec.'
                           : 'Bonus'
                         } Dice Config`}
-                        onChange={updateFormData}
+                        onChange={{ updateField }}
                         required={type === 'primary' ? true : false}
                         validation='die'
                         errorMsg={'Must contain only numbers'}
@@ -427,9 +419,9 @@ const Damage = ({
           </Grid.Item>
         )
       })}
-      {(formData?.damage?.primary?.attribute === Attributes.diePerLevel ||
-        formData?.damage?.secondary?.attribute === Attributes.diePerLevel ||
-        formData?.damage?.bonus?.attribute === Attributes.diePerLevel) && (
+      {(data?.damage?.primary?.attribute === Attributes.diePerLevel ||
+        data?.damage?.secondary?.attribute === Attributes.diePerLevel ||
+        data?.damage?.bonus?.attribute === Attributes.diePerLevel) && (
         <Grid.Item>
           <Collapse>
             <Collapse.Header title={`Damage Die By Level`} />
@@ -438,8 +430,8 @@ const Damage = ({
                 <Grid.Item>
                   <Grid>
                     <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-                    {damageTypes.map((type) => {
-                      if (formData?.damage?.[type]?.attribute === Attributes.diePerLevel) {
+                    {formDamageTypes.map((type) => {
+                      if (data?.damage?.[type]?.attribute === Attributes.diePerLevel) {
                         return <Grid.Item key={type} colSpan={'auto'}>{`${startCase(type)} Die Roll`}</Grid.Item>
                       }
                     })}
@@ -447,7 +439,7 @@ const Damage = ({
                     <Grid.Item colSpan={'auto'}>Add Row</Grid.Item>
                   </Grid>
                 </Grid.Item>
-                {formData?.damage.diePerLevel?.map((setLevel, index) => (
+                {data?.damage.diePerLevel?.map((setLevel, index) => (
                   <Grid.Item key={index}>
                     <Grid>
                       <Grid.Item colSpan={'auto'}>
@@ -456,12 +448,12 @@ const Damage = ({
                           value={setLevel.level}
                           validation='num'
                           errorMsg='Please enter a whole number'
-                          onChange={updateFormData}
+                          onChange={{ updateField }}
                           required={true}
                         />
                       </Grid.Item>
-                      {damageTypes.map((type) => {
-                        if (type !== 'versatile' && formData?.damage?.[type]?.attribute === Attributes.diePerLevel) {
+                      {formDamageTypes.map((type) => {
+                        if (type !== 'versatile' && data?.damage?.[type]?.attribute === Attributes.diePerLevel) {
                           return (
                             <Grid.Item key={type} colSpan={'auto'}>
                               <Input
@@ -469,7 +461,7 @@ const Damage = ({
                                 value={setLevel?.[type]?.dieConfig}
                                 validation='die'
                                 errorMsg='Please enter a valid die value'
-                                onChange={updateFormData}
+                                onChange={{ updateField }}
                                 required={true}
                               />
                             </Grid.Item>
@@ -480,12 +472,7 @@ const Damage = ({
                         <Button
                           style='unstyled'
                           className={row_button}
-                          onClick={() =>
-                            updateFormData({
-                              type: 'remove',
-                              path: `damage.diePerLevel.${index}`,
-                            })
-                          }
+                          onClick={() => removeField({ path: `damage.diePerLevel.${index}` })}
                         >
                           <TbX />
                         </Button>
@@ -494,12 +481,7 @@ const Damage = ({
                         <Button
                           style='unstyled'
                           className={row_button}
-                          onClick={() =>
-                            updateFormData({
-                              type: 'add',
-                              path: 'damage.diePerLevel',
-                            })
-                          }
+                          onClick={() => addField({ path: 'damage.diePerLevel' })}
                         >
                           <TbPlus />
                         </Button>
@@ -512,9 +494,9 @@ const Damage = ({
           </Collapse>
         </Grid.Item>
       )}
-      {(formData?.damage?.primary?.attribute === Attributes.setPerLevel ||
-        formData?.damage?.secondary?.attribute === Attributes.setPerLevel ||
-        formData?.damage?.bonus?.attribute === Attributes.setPerLevel) && (
+      {(data?.damage?.primary?.attribute === Attributes.setPerLevel ||
+        data?.damage?.secondary?.attribute === Attributes.setPerLevel ||
+        data?.damage?.bonus?.attribute === Attributes.setPerLevel) && (
         <Grid.Item>
           <Collapse>
             <Collapse.Header title={`Damage Die By Level`} />
@@ -523,8 +505,8 @@ const Damage = ({
                 <Grid.Item>
                   <Grid>
                     <Grid.Item colSpan={'auto'}>Level</Grid.Item>
-                    {damageTypes.map((type) => {
-                      if (formData?.damage?.[type]?.attribute === Attributes.setPerLevel) {
+                    {formDamageTypes.map((type) => {
+                      if (data?.damage?.[type]?.attribute === Attributes.setPerLevel) {
                         return <Grid.Item colSpan={'auto'} key={type}>{`${startCase(type)} Die Roll`}</Grid.Item>
                       }
                     })}
@@ -532,7 +514,7 @@ const Damage = ({
                     <Grid.Item colSpan={'auto'}>Add Row</Grid.Item>
                   </Grid>
                 </Grid.Item>
-                {formData?.damage.setPerLevel?.map((setLevel, index) => (
+                {data?.damage.setPerLevel?.map((setLevel, index) => (
                   <Grid.Item key={index}>
                     <Grid>
                       <Grid.Item colSpan={'auto'}>
@@ -541,12 +523,12 @@ const Damage = ({
                           value={setLevel.level}
                           validation='num'
                           errorMsg='Please enter a whole number'
-                          onChange={updateFormData}
+                          onChange={{ updateField }}
                           required={true}
                         />
                       </Grid.Item>
-                      {damageTypes.map((type) => {
-                        if (type !== 'versatile' && formData?.damage?.[type]?.attribute === Attributes.setPerLevel) {
+                      {formDamageTypes.map((type) => {
+                        if (type !== 'versatile' && data?.damage?.[type]?.attribute === Attributes.setPerLevel) {
                           return (
                             <Grid.Item key={type} colSpan={'auto'}>
                               <Input
@@ -554,7 +536,7 @@ const Damage = ({
                                 value={setLevel?.[type]}
                                 validation='num'
                                 errorMsg='Please enter a whole number'
-                                onChange={updateFormData}
+                                onChange={{ updateField }}
                                 required={true}
                               />
                             </Grid.Item>
@@ -565,12 +547,7 @@ const Damage = ({
                         <Button
                           style='unstyled'
                           className={row_button}
-                          onClick={() =>
-                            updateFormData({
-                              type: 'remove',
-                              path: `damage.setPerLevel.${index}`,
-                            })
-                          }
+                          onClick={() => removeField({ path: `damage.setPerLevel.${index}` })}
                         >
                           <TbX />
                         </Button>
@@ -579,12 +556,7 @@ const Damage = ({
                         <Button
                           style='unstyled'
                           className={row_button}
-                          onClick={() =>
-                            updateFormData({
-                              type: 'add',
-                              path: 'damage.setPerLevel',
-                            })
-                          }
+                          onClick={() => addField({ path: 'damage.setPerLevel' })}
                         >
                           <TbPlus />
                         </Button>

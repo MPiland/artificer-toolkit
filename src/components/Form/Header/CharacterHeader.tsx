@@ -2,31 +2,36 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import { character_header_body, character_header_item, character_header_item_divider } from '../Character.css'
 import Collapse from '../../Collapse/Collapse'
 import { Character } from '../../../../amplify/gql/types'
-import { useListRacesQuery } from '../../../apis/racesApi'
-import { useListClassesQuery } from '../../../apis/classesApi'
-import { UpdateState } from '../../../types/form'
 import { use, useState } from 'react'
 import { FormContext } from '../FormContext'
-import { useGetSystemQuery } from '../../../apis/systemsApi'
 import { calculateModifier } from '../../../utils/form'
 import { useMediaQuery } from 'usehooks-ts'
 import Grid from '../../Grid/Grid'
 import Button from '../../Button/Button'
 import Hitpoints from '../Subforms/Character/Hitpoints/Hitpoints'
+import useRaceData from '../../../hooks/useRaceData'
+import useClassData from '../../../hooks/useClassData'
+import useSystemData from '../../../hooks/useSystemData'
+import { FormStore } from '../../../store/formStore'
 
 const CharacterHeader = () => {
-  const { formData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const { formStore } = use(FormContext) as {
+    formStore: FormStore<Character>
   }
 
   const [manageHitpoints, setManageHitpoints] = useState<boolean>(false)
 
-  const { data: races } = useListRacesQuery()
-  const { data: classes } = useListClassesQuery()
-  const { data: system } = useGetSystemQuery()
+  const {
+    races: { findRace },
+  } = useRaceData()
+  const {
+    classes: { findListClass },
+  } = useClassData()
+  const {
+    abilities: { findAbility },
+  } = useSystemData()
 
-  const race = races.find((aRace) => aRace.id === formData.race)
+  const race = findRace(formStore.data.race)
 
   const sm = useMediaQuery('(max-width: 567px)')
 
@@ -58,7 +63,7 @@ const CharacterHeader = () => {
                   <Grid.Item colSpan={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
                       {'Name: '}
-                      {formData.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
+                      {formStore.data.label || <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                     </span>
                     {!sm && <hr className={character_header_item_divider} />}
                   </Grid.Item>
@@ -71,16 +76,16 @@ const CharacterHeader = () => {
                   </Grid.Item>
                   <Grid.Item colSpan={{ sm: 12, md: 4 }} className={character_header_item}>
                     <span>
-                      {formData.classes?.length && formData.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
-                      {formData.classes?.length ?
-                        formData.classes?.map((uClass, index) => {
-                          const fullClass = classes.find((aClass) => aClass.id === uClass.id)
+                      {formStore.data.classes?.length && formStore.data.classes?.length < 2 ? 'Class: ' : 'Class(es): '}
+                      {formStore.data.classes?.length ?
+                        formStore.data.classes?.map((uClass, index) => {
+                          const fullClass = findListClass(uClass.id)
                           return (
                             <span key={index}>
                               {`${fullClass?.label} (Lvl. ${uClass.level})`}
-                              {formData.classes?.length &&
-                                index !== formData?.classes?.length - 1 &&
-                                formData.classes.length > 1 &&
+                              {formStore.data.classes?.length &&
+                                index !== formStore.data?.classes?.length - 1 &&
+                                formStore.data.classes.length > 1 &&
                                 ' / '}
                             </span>
                           )
@@ -92,8 +97,8 @@ const CharacterHeader = () => {
               </Grid.Item>
               <Grid.Item colSpan={6}>
                 <Grid className={sprinkles({ mb: 'space-x' })}>
-                  {formData?.abilities?.scores?.map((score, index) => {
-                    const ability = system?.abilities?.find((sAbility) => sAbility.id === score.ability)
+                  {formStore.data?.abilities?.scores?.map((score, index) => {
+                    const ability = findAbility(score.ability)
 
                     const modifier = calculateModifier(score?.calculatedScore || 0, 'modifier')
                     return (
@@ -107,8 +112,8 @@ const CharacterHeader = () => {
                           : <span className={sprinkles({ ws: 'nowrap' })}>---</span>}
                         </span>
                         {!sm &&
-                          formData.abilities?.scores?.length &&
-                          index !== formData.abilities?.scores?.length - 1 && (
+                          formStore.data.abilities?.scores?.length &&
+                          index !== formStore.data.abilities?.scores?.length - 1 && (
                             <hr className={character_header_item_divider} />
                           )}
                       </Grid.Item>

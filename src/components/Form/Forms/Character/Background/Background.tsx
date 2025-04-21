@@ -1,28 +1,29 @@
-import { Character } from '../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../types/form'
+import type { Character } from '../../../../../../amplify/gql/types'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import Collapse from '../../../../Collapse/Collapse'
 import Grid from '../../../../Grid/Grid'
-import { useListBackgroundsQuery } from '../../../../../apis/backgroundsApi'
 import CharacterCurrency from '../../../Subforms/Character/CharacterEquipment/CharacterCurrency'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import { option_dropdown } from '../../../Character.css'
 import parse from 'html-react-parser'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
-import { FactoryFeature } from '../../../../../hooks/useGetFeatures'
 import CharacterFeature from '../../../Subforms/Character/Features/CharacterFeature'
+import useBackgroundData from '../../../../../hooks/useBackgroundData'
+import type { OnChange } from '../../../../../types/form'
 
 const Background = () => {
-  const { formData, updateFormData, features } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
-    features: FactoryFeature[]
+  const { formStore, features } = use(FormContext)
+
+  const { data, updateField, removeField } = formStore as {
+    data: Character
+    updateField: OnChange<Character>['updateField']
+    removeField: OnChange<Character>['removeField']
   }
+  
+  const { backgrounds } = useBackgroundData()
 
-  const { data: backgrounds } = useListBackgroundsQuery()
-
-  const background = backgrounds.find((b) => b.id === formData?.background)
+  const background = backgrounds.findBackground(data?.background)
 
   return (
     <>
@@ -33,8 +34,8 @@ const Background = () => {
             label='Background'
             options={backgrounds}
             className={option_dropdown}
-            onChange={updateFormData}
-            value={formData?.background}
+            onChange={{ updateField, removeField }}
+            value={data?.background}
           />
         </Grid.Item>
         {background && (

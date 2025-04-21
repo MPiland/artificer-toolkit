@@ -1,118 +1,57 @@
-import { ReactElement, useCallback, useEffect, useMemo } from 'react'
+import { ReactElement, useEffect, useMemo } from 'react'
 import FeatureWrapper from './Features/FeatureWrapper'
 import Details from './Forms/Details'
-import Traits from './Forms/Traits'
-import Contains from './Subforms/Contains'
-import Proficiencies from './Forms/Proficiencies'
+import Traits from './Forms/Race/Traits'
+import Contains from './Forms/Equipment/Contains'
+import Proficiencies from './Forms/Class/Proficiencies'
 import Races from './Forms/Character/Race/Races'
 import Attributes from './Forms/Attributes'
 import Abilities from './Forms/Character/Abilities/Abilities'
-import StartingEquipment from './Forms/StartingEquipment'
-import { FormDataType, Step, UpdateState } from '../../types/form'
+import StartingEquipment from './Forms/Class/StartingEquipment'
+import type { FormDataType, Step } from '../../types/form'
 import Classes from './Forms/Character/Classes/Classes'
 import Equipment from './Forms/Character/Equipment/Equipment'
 import AncestryWrapper from './Ancestry/AncestryWrapper'
-import { useStore } from '../../store/useStore'
 import { FormContext } from './FormContext'
 import DiceProvider from '../Dice/DiceProvider'
 import { Outlet } from '@tanstack/react-router'
-import { Character } from '../../../amplify/gql/types'
+import type { Character } from '../../../amplify/gql/types'
 import { isEqual } from 'lodash'
 import { Suspense } from 'react'
 import Loading from '../Loading/Loading'
 import Background from './Forms/Character/Background/Background'
 import useGetCharacterData from '../../hooks/useGetCharacterData'
+import { useFormStore, type FormStore } from '../../store/formStore'
 
 const useFormOptions = () => {
-  const {
-    formData,
-    initialFormData,
-    updateFormField,
-    addFormField,
-    removeFormField,
-    formReset,
-    initialFormReset,
-    ui,
-    character,
-    setSaving,
-    setStepIndex,
-    setSuccessMessage,
-    setErrorMessage,
-    setSteps,
-    setValidForm,
-    setAddClass,
-    setChangeRace,
-    resetForm,
-    resetFeature,
-    resetAncestry,
-    resetSection,
-    resetOption,
-    resetDice,
-  } = useStore((state) => state)
+  const formStore: FormStore<FormDataType> = useFormStore((state) => state)
 
   const { features, characterFeatures, sections, hitpoints, abilityScores } = useGetCharacterData({
-    formData: formData as Character,
+    formData: formStore.data as Character,
   })
 
   const characterData = useMemo(() => {
-    if (formData.__typename !== 'Character') return formData
+    if (formStore.data.__typename !== 'Character') return null
 
     return {
-      ...formData,
+      ...formStore.data,
       features: characterFeatures,
       ...sections,
       abilities: {
-        ...formData.abilities,
+        ...formStore.data.abilities,
         scores: abilityScores,
       },
       hitpoint: hitpoints,
-    }
-  }, [formData, characterFeatures, sections, abilityScores, hitpoints])
-
-  const updateFormData = useCallback(
-    <T extends FormDataType>(state: UpdateState<T>) => {
-      switch (state.type) {
-        case 'add': {
-          if (state.value) {
-            addFormField({ path: state.path, value: state.value })
-          } else {
-            addFormField({ path: state.path })
-          }
-          break
-        }
-        case 'update':
-          updateFormField({ path: state.path, value: state.value })
-          break
-        case 'remove':
-          removeFormField({ path: state.path })
-          break
-        case 'reset':
-          formReset({ value: state.value })
-          break
-        case 'initialReset':
-          initialFormReset({ value: state.value })
-          break
-      }
-    },
-    [addFormField, formReset, initialFormReset, removeFormField, updateFormField]
-  )
+    } as Character
+  }, [formStore.data, characterFeatures, sections, abilityScores, hitpoints])
 
   useEffect(() => {
-    if (formData.__typename === 'Character') {
-      if (!isEqual(formData, characterData)) {
-        updateFormData({ type: 'reset', value: characterData })
+    if (formStore.data.__typename === 'Character' && characterData) {
+      if (!isEqual(formStore.data, characterData)) {
+        formStore.reinitState(characterData)
       }
     }
-  }, [formData, updateFormData, characterData])
-
-  const fullReset = () => {
-    resetForm()
-    resetFeature()
-    resetAncestry()
-    resetSection()
-    resetOption()
-    resetDice()
-  }
+  }, [formStore.data, formStore, characterData])
 
   // Standard possible form steps
   const formSteps: Record<Step['id'], ReactElement> = {
@@ -139,9 +78,9 @@ const useFormOptions = () => {
     background: <Background />,
   }
 
-  const { saving, steps, errorMessage, validForm, stepIndex, successMessage } = ui
+  const { saving, steps, errorMessage, validForm, stepIndex, successMessage } = formStore.ui
 
-  const { addClass, changeRace } = character
+  const { addClass, changeRace } = formStore.character
 
   const isFirstStep = stepIndex === 0 ? true : false
 
@@ -149,29 +88,17 @@ const useFormOptions = () => {
 
   return {
     formSteps,
-    initialFormData,
     saving,
-    setSaving,
     stepIndex,
-    setStepIndex,
     successMessage,
-    setSuccessMessage,
     errorMessage,
-    setErrorMessage,
     validForm,
-    setValidForm,
     addClass,
-    setAddClass,
     changeRace,
-    setChangeRace,
     steps,
-    setSteps,
-    resetForm,
     isFirstStep,
     isLastStep,
-    formData,
-    updateFormData,
-    fullReset,
+    formStore,
     features,
     sections,
   }

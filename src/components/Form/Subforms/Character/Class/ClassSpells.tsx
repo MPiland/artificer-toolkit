@@ -4,20 +4,20 @@ import Button from '../../../../Button/Button'
 import { get, isEqual, set } from 'lodash'
 import { use, useCallback, useEffect, useMemo } from 'react'
 import Group from '../../../../Group/Group'
-import { useListSpellsQuery } from '../../../../../apis/spellsApi'
 import {
   Character,
-  Spell,
   ClassSpellList,
   CharacterSpell,
   Class,
   CharacterClass,
+  type SpellListItem,
 } from '../../../../../../amplify/gql/types'
 import { Attributes, Measurement, Rounding } from '../../../../../types/enums'
-import { UpdateState } from '../../../../../types/form'
 import Grid from '../../../../Grid/Grid'
 import { FormContext } from '../../../FormContext'
 import { useEnumChecks } from '../../../../../hooks/useEnumChecks'
+import useSpellData from '../../../../../hooks/useSpellData'
+import type { OnChange } from '../../../../../types/form'
 
 const ClassSpells = ({
   fullClass,
@@ -28,13 +28,18 @@ const ClassSpells = ({
   classIndex: number
   uClass: CharacterClass
 }) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data, updateField, removeField },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+      removeField: OnChange<Character>['removeField']
+    }
   }
 
   const { preparesSpells, usesSpellbook } = useEnumChecks({ data: fullClass })
-  const { data: spells } = useListSpellsQuery()
+  const { spells } = useSpellData()
 
   const casterType = preparesSpells ? 'prepared' : 'known'
 
@@ -80,9 +85,9 @@ const ClassSpells = ({
 
       const spellClass = type === 'subclass' ? uClass?.subclass?.id : uClass.id
 
-      const filteredSpells = spells.filter((spell) => spell?.classes?.some((sClass) => sClass === spellClass))
+      const filteredSpells = spells.filterByClass(spellClass)
 
-      const subSpells: Spell[] = []
+      const subSpells: (SpellListItem & { level: number })[] = []
 
       fullClass?.features?.forEach((feature) => {
         // Check features for spells sections
@@ -106,7 +111,8 @@ const ClassSpells = ({
                     )
                     .forEach((lSpell) => {
                       if (lSpell && !subSpells?.some((sSpell) => sSpell.id === lSpell?.id)) {
-                        subSpells.push(lSpell)
+                        const spellLevel = spells.findLevel(lSpell?.id)!
+                        subSpells.push({ ...lSpell, level: spellLevel })
                       }
                     })
                 }
@@ -114,7 +120,8 @@ const ClassSpells = ({
                 spell.ids?.forEach((fSpell) => {
                   const subSpell = spells.find((sSpell) => sSpell.id === fSpell)
                   if (subSpell) {
-                    subSpells.push(subSpell)
+                    const spellLevel = spells.findLevel(subSpell?.id)!
+                    subSpells.push({ ...subSpell, level: spellLevel })
                   }
                 })
               }
@@ -127,10 +134,11 @@ const ClassSpells = ({
         filteredSpells.push(...subSpells)
       }
       filteredSpells.forEach((spell) => {
-        const groupIndex = spellsArrayUpdated?.findIndex((group) => group.level === spell?.level)
+        const spellLevel = spells.findLevel(spell?.id)
+        const groupIndex = spellsArrayUpdated?.findIndex((group) => group.level === spellLevel)
         if (groupIndex === -1) {
           const index = spellsArrayUpdated?.length
-          set(spellsArrayUpdated, `${index}`, { level: spell?.level, spells: [{ ...spell }] })
+          set(spellsArrayUpdated, `${index}`, { level: spellLevel, spells: [{ ...spell }] })
         } else {
           const groupObject = get(spellsArrayUpdated, `${groupIndex}`)
           if (!groupObject?.spells?.some((gSpell) => gSpell?.id === spell?.id)) {
@@ -210,8 +218,9 @@ const ClassSpells = ({
                   )
                   .forEach((lSpell) => {
                     if (lSpell && !additionalSpells?.some((sSpell) => sSpell.id === lSpell.id)) {
+                      const spellLevel = spells.findLevel(lSpell?.id)!
                       additionalSpells.push({
-                        level: lSpell.level,
+                        level: spellLevel,
                         id: lSpell.id,
                         isRitual,
                         usesSlot,
@@ -228,9 +237,10 @@ const ClassSpells = ({
               featureSpell?.ids?.forEach((fSpell) => {
                 const spell = spells.find((sSpell) => sSpell.id === fSpell)
                 if (spell && !additionalSpells?.some((sSpell) => sSpell.id === spell.id)) {
+                  const spellLevel = spells.findLevel(fSpell)!
                   additionalSpells.push({
                     classId: uClass.id,
-                    level: spell.level,
+                    level: spellLevel,
                     id: spell.id,
                     isRitual,
                     usesSlot,
@@ -254,31 +264,29 @@ const ClassSpells = ({
   const additionalSpells = useMemo(() => additionalSpellsArray(), [additionalSpellsArray])
 
   const preparedSpellsArray = useCallback(() => {
-    const preparedArray: Array<Omit<ClassSpellList, '__typename'>> = [...(formData.spellcasting?.[casterType] || [])]
+    const preparedArray: Array<Omit<ClassSpellList, '__typename'>> = [...(data.spellcasting?.[casterType] || [])]
     return preparedArray
-  }, [formData.spellcasting, casterType])
+  }, [data.spellcasting, casterType])
 
   const preparedSpells = useMemo(() => preparedSpellsArray(), [preparedSpellsArray])
 
   useEffect(() => {
-    if (preparedSpells.length && !isEqual(preparedSpells, formData.spellcasting?.[casterType])) {
-      updateFormData({
-        type: 'update',
+    if (preparedSpells.length && !isEqual(preparedSpells, data.spellcasting?.[casterType])) {
+      updateField({
         path: `spellcasting.${casterType}`,
         value: preparedSpells,
       })
     }
-  }, [casterType, classIndex, preparedSpells, formData.spellcasting, updateFormData])
+  }, [casterType, classIndex, preparedSpells, updateField, data.spellcasting])
 
   useEffect(() => {
-    if (!isEqual(additionalSpells, formData.spellcasting?.additional)) {
-      updateFormData({
-        type: 'update',
+    if (!isEqual(additionalSpells, data.spellcasting?.additional)) {
+      updateField({
         path: 'spellcasting.additional',
         value: additionalSpells,
       })
     }
-  }, [additionalSpells, classIndex, updateFormData, formData.spellcasting?.additional])
+  }, [additionalSpells, classIndex, updateField, data.spellcasting])
 
   const maxPreparedSpells = () => {
     let maxCount: number = 0
@@ -303,40 +311,36 @@ const ClassSpells = ({
 
   // Remove class spells if class level is below allowed spell level
   useEffect(() => {
-    if (formData.spellcasting?.[casterType]?.length) {
-      const updatedKnown = formData.spellcasting?.[casterType]?.filter(
-        (listObject) => listObject.level <= maxSpellLevel
-      )
-      if (!isEqual(formData.spellcasting?.[casterType], updatedKnown)) {
-        updateFormData({
-          type: 'update',
+    if (data.spellcasting?.[casterType]?.length) {
+      const updatedKnown = data.spellcasting?.[casterType]?.filter((listObject) => listObject.level <= maxSpellLevel)
+      if (!isEqual(data.spellcasting?.[casterType], updatedKnown)) {
+        updateField({
           path: `spellcasting.${casterType}`,
           value: updatedKnown,
         })
       }
     }
-    if (usesSpellbook && formData.spellcasting?.known?.length) {
-      const updatedKnown = formData.spellcasting?.known?.filter((listObject) => listObject.level <= maxSpellLevel)
-      if (!isEqual(formData.spellcasting?.known, updatedKnown)) {
-        updateFormData({
-          type: 'update',
+    if (usesSpellbook && data.spellcasting?.known?.length) {
+      const updatedKnown = data.spellcasting?.known?.filter((listObject) => listObject.level <= maxSpellLevel)
+      if (!isEqual(data.spellcasting?.known, updatedKnown)) {
+        updateField({
           path: 'spellcasting.known',
           value: updatedKnown,
         })
       }
     }
-  }, [maxSpellLevel, updateFormData, formData.spellcasting, classIndex, casterType, usesSpellbook])
+  }, [maxSpellLevel, updateField, data.spellcasting, classIndex, casterType, usesSpellbook])
 
   /* Sets how the spells are stored
      Spell book uses the "known" array */
-  const spellList = formData.spellcasting?.[usesSpellbook || !preparesSpells ? 'known' : 'prepared']?.filter(
+  const spellList = data.spellcasting?.[usesSpellbook || !preparesSpells ? 'known' : 'prepared']?.filter(
     (group) => group.level
   )
 
-  const cantripsKnown = formData.spellcasting?.[casterType]?.filter((known) => known.level === 0)
+  const cantripsKnown = data.spellcasting?.[casterType]?.filter((known) => known.level === 0)
 
   const preparedSpellCount =
-    formData.spellcasting?.prepared
+    data.spellcasting?.prepared
       ?.flatMap((listObject) => listObject.spells?.map((spell) => spell))
       .filter((spell) => spell && !spell.alwaysPrepared).length || 0
 
@@ -347,10 +351,11 @@ const ClassSpells = ({
 
   const knownSpellCount = spellList?.flatMap((listObject) => listObject.spells?.map((oSpell) => oSpell)).length || 0
 
-  const handleAddSpell = (spell: Spell, type: 'known' | 'prepared') => {
-    let spellList: ClassSpellList[] = JSON.parse(JSON.stringify(formData.spellcasting?.[type] || []))
+  const handleAddSpell = (spell: SpellListItem, type: 'known' | 'prepared') => {
+    let spellList: ClassSpellList[] = JSON.parse(JSON.stringify(data.spellcasting?.[type] || []))
+    const spellLevel = spells.findLevel(spell.id)!
     if (spellList?.length) {
-      let spellLevelIndex = spellList.findIndex((listObject) => listObject.level === spell.level)
+      let spellLevelIndex = spellList.findIndex((listObject) => listObject.level === spellLevel)
       if (spellLevelIndex !== -1) {
         spellList[spellLevelIndex].spells = [
           ...(spellList[spellLevelIndex].spells || []),
@@ -360,14 +365,14 @@ const ClassSpells = ({
         spellLevelIndex = spellList.length || 0
         spellList[spellLevelIndex] = {
           __typename: 'ClassSpellList',
-          level: spell.level,
+          level: spellLevel,
           spells: [{ id: spell.id, classId: uClass.id, __typename: 'ClassSpell' }],
         }
       }
     } else {
       spellList.push({
         __typename: 'ClassSpellList',
-        level: spell.level,
+        level: spellLevel,
         spells: [{ id: spell.id, classId: uClass.id, __typename: 'ClassSpell' }],
       })
     }
@@ -393,33 +398,30 @@ const ClassSpells = ({
         return listObject
       })
 
-    updateFormData({
-      type: 'update',
+    updateField({
       path: `spellcasting.${type}`,
       value: spellList,
     })
   }
 
-  const handleRemoveSpell = (spell: Spell, type: 'known' | 'prepared') => {
-    const spellList: ClassSpellList[] = JSON.parse(JSON.stringify(formData.spellcasting?.[type]))
-    const spellObjectIndex = spellList.findIndex((listObject) => listObject.level === spell.level)
+  const handleRemoveSpell = (spell: SpellListItem, type: 'known' | 'prepared') => {
+    const spellList: ClassSpellList[] = JSON.parse(JSON.stringify(data.spellcasting?.[type]))
+    const spellLevel = spells.findLevel(spell.id)
+    const spellObjectIndex = spellList.findIndex((listObject) => listObject.level === spellLevel)
     const spellArray = spellList[spellObjectIndex]?.spells?.filter((tSpell) => tSpell.id !== spell.id)
 
     if (!spellArray?.length) {
       if (spellList.length === 1) {
-        return updateFormData({
-          type: 'update',
+        return updateField({
           path: `spellcasting.${type}`,
           value: [],
         })
       }
-      return updateFormData({
-        type: 'remove',
+      return removeField({
         path: `spellcasting.${type}.${spellObjectIndex}`,
       })
     }
-    return updateFormData({
-      type: 'update',
+    return updateField({
       path: `spellcasting.${type}.${spellObjectIndex}.spells`,
       value: spellArray,
     })
@@ -432,8 +434,8 @@ const ClassSpells = ({
           <Collapse.Header title={`${preparesSpells ? 'Prepared' : 'Known'} Spells`} startOpened={false} />
           <Collapse.Body>
             <Grid>
-              {formData.spellcasting?.[casterType]?.length ?
-                formData.spellcasting?.[casterType]?.map(
+              {data.spellcasting?.[casterType]?.length ?
+                data.spellcasting?.[casterType]?.map(
                   (listObject, lIndex) =>
                     listObject.spells?.length && (
                       <Grid.Item key={lIndex}>
@@ -487,7 +489,7 @@ const ClassSpells = ({
                                 {listObject.spells?.map((spell, sIndex) => {
                                   const fullSpell = spells.find((sSpell) => sSpell.id === spell.id)
                                   if (fullSpell) {
-                                    const spellFound = formData.spellcasting?.prepared
+                                    const spellFound = data.spellcasting?.prepared
                                       ?.flatMap((listObject) => listObject.spells)
                                       ?.find((lSpell) => lSpell && fullSpell.id === lSpell.id)
                                     const disabled =

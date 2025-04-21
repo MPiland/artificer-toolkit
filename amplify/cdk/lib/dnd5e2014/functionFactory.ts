@@ -2,10 +2,11 @@ import { GraphqlApi, AppsyncFunction, Code, FunctionRuntime } from 'aws-cdk-lib/
 import { Table } from 'aws-cdk-lib/aws-dynamodb'
 import { join } from 'path'
 import { operations, pluralize, tableToFunctionsMap } from './helper'
+import type { Prefix } from './resolvers'
 
 type MappingConfig = {
   getMapping?: string
-  listMapping?: string
+  listMapping?: () => string
   createMapping?: string
   updateMapping?: string
   deleteMapping?: string
@@ -19,7 +20,7 @@ type FunctionConfig = {
   mappingFile: string
 }
 
-export function createFunctions(api: GraphqlApi, table: Table, prefix: string, mappings: MappingConfig) {
+export function createFunctions(api: GraphqlApi, table: Table, prefix: Prefix, mappings: MappingConfig) {
   const pluralPrefix = pluralize(prefix)
 
   // Get the list of functions to create for this table
@@ -35,7 +36,7 @@ export function createFunctions(api: GraphqlApi, table: Table, prefix: string, m
     [`List${pluralPrefix}`]: {
       name: `list${pluralPrefix}Function`,
       dataSourceName: `${prefix}TableList`,
-      mappingFile: mappings.listMapping || 'listSystemsMapping.js',
+      mappingFile: mappings.listMapping?.() || 'listSystemsMapping.js',
     },
     [`Create${prefix}`]: {
       name: `create${prefix}Function`,

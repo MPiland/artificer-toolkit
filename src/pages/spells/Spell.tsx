@@ -1,18 +1,18 @@
 import parse from 'html-react-parser'
-import { useRouterState } from '@tanstack/react-router'
 import Detail from '../../components/Detail/Detail'
-import { Spell as SpellState } from '../../../amplify/gql/types'
-import { FormDataType } from '../../types/form'
-
-// Type guard function
-function isSpell(item: FormDataType | undefined): item is SpellState {
-  return item?.__typename === 'Spell'
-}
+import { Route } from '../../routes/_protected/spells/$spellId'
+import useSpellData from '../../hooks/useSpellData'
+import type { DetailConfig } from '../../types/components'
+import type { Spell } from '../../../amplify/gql/types'
 
 const Spell = () => {
-  const spell = useRouterState({ select: (s) => s.location.state.item })
+  const spellId = Route.useParams({ select: (r) => r.spellId })
+  const {
+    spells: { findSpell },
+  } = useSpellData()
+  const spell = findSpell(spellId)
 
-  if (!spell || !isSpell(spell)) return <div>Invalid or missing spell data</div>
+  if (!spell) return <div>Invalid or missing spell data</div>
 
   const materialDesc = () => {
     if (spell && 'materialDesc' in spell && spell.materialDesc != null) {
@@ -20,50 +20,72 @@ const Spell = () => {
     } else return null
   }
 
-  const cols = [
-    { header: 'LEVEL', name: 'level' },
+  const detailConfigs: DetailConfig<Spell>[] = [
+    { header: 'LEVEL', text: { path: 'level' } },
     {
       header: 'CASTING TIME',
-      name: [
+      text: [
         [
-          ['actions.primary.amount', { path: 'actions.primary.id', source: { type: 'system', field: 'actions' } }],
-          ['actions.secondary.amount', { path: 'actions.secondary.id', source: { type: 'system', field: 'actions' } }],
+          { path: 'actions.primary.amount' },
+          { path: 'actions.primary.id', source: { type: 'system', path: 'actions' } },
+        ],
+        [
+          { path: 'actions.secondary.amount' },
+          { path: 'actions.secondary.id', source: { type: 'system', path: 'actions' } },
         ],
       ],
     },
     {
       header: 'RANGE/AREA',
-      name: [
-        [{ path: 'range.id', source: { type: 'system', field: 'spells.ranges' } }, 'range.minRange'],
-        ['range.maxRange', { path: 'range.unit', source: { type: 'system', field: 'rules' } }],
+      text: [
         [
-          { path: 'shape.id', source: { type: 'system', field: 'spells.shapes' } },
-          'shape.size',
-          { path: 'shape.unit', source: { type: 'system', field: 'rules' } },
+          { path: 'range.id', source: { type: 'system', path: 'spells.ranges' } },
+          [
+            { path: 'range.minRange' },
+            { path: 'range.unit', source: { type: 'system', path: 'rules', labelKey: 'short' } },
+          ],
+          [
+            { path: 'range.maxRange' },
+            { path: 'range.unit', source: { type: 'system', path: 'rules', labelKey: 'short' } },
+          ],
+        ],
+        [
+          { path: 'shape.id', source: { type: 'system', path: 'spells.shapes' } },
+          { path: 'shape.size' },
+          { path: 'shape.unit', source: { type: 'system', path: 'rules', labelKey: 'short' } },
         ],
       ],
     },
     {
       header: 'REQUIREMENTS',
-      name: { path: 'requirements', source: { type: 'system', field: 'spells.requirements' } },
+      text: { path: 'requirements', source: { type: 'system', path: 'spells.requirements' } },
       truncate: 1,
     },
     {
       header: 'DURATION',
-      name: ['duration.amount', { path: 'duration.id', source: { type: 'system', field: 'spells.durations' } }],
+      text: [
+        { path: 'duration.amount' },
+        { path: 'duration.id', source: { type: 'system', path: 'spells.durations' } },
+      ],
     },
-    { header: 'SCHOOL', name: { path: 'school', source: { type: 'system', field: 'spells.schools' } } },
+    { header: 'SCHOOL', text: { path: 'school', source: { type: 'system', path: 'spells.schools' } } },
     {
       header: 'SAVE ABILITY',
-      name: { path: 'saveAbility', source: { type: 'system', field: 'abilities' } },
+      text: { path: 'saveAbility.id', source: { type: 'system', path: 'abilities' } },
       filter: ['isAttack', 'requireSave'],
     },
     {
       header: 'DAMAGE',
-      name: [
-        ['damage.primary.diceShort', 'damage.primary.type'],
-        ['damage.secondary.diceShort', 'damage.secondary.type'],
-        'condition.type',
+      text: [
+        [
+          { path: 'damage.primary.dieConfig' },
+          { path: 'damage.primary.id', source: { type: 'system', path: 'damageTypes' } },
+        ],
+        [
+          { path: 'damage.secondary.dieConfig' },
+          { path: 'damage.secondary.id', source: { type: 'system', path: 'damageTypes' } },
+        ],
+        { path: 'conditions', source: { type: 'system', path: 'conditions' } },
       ],
     },
   ]
@@ -71,7 +93,7 @@ const Spell = () => {
   const footer = materialDesc()
 
   return (
-    <Detail cols={cols} colsData={spell} footer={footer} item={spell}>
+    <Detail detailConfigs={detailConfigs} footer={footer} item={spell}>
       <div>{spell?.desc && parse(spell?.desc)}</div>
     </Detail>
   )

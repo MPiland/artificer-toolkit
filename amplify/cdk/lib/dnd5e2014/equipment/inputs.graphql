@@ -42,7 +42,6 @@ input EquipmentInput {
   quantity: Int!
   properties: [ID!]
   category: ID!
-  equipmentRank: Int
   rarity: ID!
   attributes: [ID!]
   damage: DamageInput

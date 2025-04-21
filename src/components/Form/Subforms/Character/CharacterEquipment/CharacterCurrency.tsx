@@ -3,32 +3,36 @@ import Collapse from '../../../../Collapse/Collapse'
 import Grid from '../../../../Grid/Grid'
 import { FormContext } from '../../../FormContext'
 import { Character, CurrencyGroup } from '../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../types/form'
-import { useGetSystemQuery } from '../../../../../apis/systemsApi'
 import { sprinkles } from '../../../../../css/sprinkles.css'
 import { useMediaQuery } from 'usehooks-ts'
 import Input from '../../../../Input/Input'
+import useSystemData from '../../../../../hooks/useSystemData'
+import type { OnChange } from '../../../../../types/form'
 
 const CharacterCurrency = () => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data, updateField },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+    }
   }
 
-  const { data: system } = useGetSystemQuery()
+  const { currencies } = useSystemData()
 
   const sm = useMediaQuery('(max-width: 567px)')
 
   // Initialize currencies into data
   useEffect(() => {
-    // Only run this effect when needed - not on every render with updated formData
-    if (formData.currencyGroups?.length && formData.currencyGroups.every((group) => group.currencies?.length)) {
+    // Only run this effect when needed - not on every render with updated data
+    if (data.currencyGroups?.length && data.currencyGroups.every((group) => group.currencies?.length)) {
       return // Already initialized properly
     }
 
     // Create a properly initialized currency structure
     const characterCurrencies: CurrencyGroup[] =
-      formData.currencyGroups?.length ? [...formData.currencyGroups] : [{ __typename: 'CurrencyGroup', currencies: [] }]
+      data.currencyGroups?.length ? [...data.currencyGroups] : [{ __typename: 'CurrencyGroup', currencies: [] }]
 
     // Initialize any empty currency groups
     characterCurrencies.forEach((group, index) => {
@@ -36,7 +40,7 @@ const CharacterCurrency = () => {
         characterCurrencies[index] = {
           ...group,
           currencies:
-            system.currencies?.map((currency) => ({
+            currencies?.map((currency) => ({
               __typename: 'CharacterCurrency',
               id: currency.id,
               amount: 0,
@@ -46,18 +50,14 @@ const CharacterCurrency = () => {
     })
 
     // Update only once
-    updateFormData({
-      type: 'update',
-      path: 'currencyGroups',
-      value: characterCurrencies,
-    })
-  }, [formData, system.currencies, updateFormData])
+    updateField({ path: 'currencyGroups', value: characterCurrencies })
+  }, [updateField, data.currencyGroups, currencies])
 
-  const currencyTotals = formData?.currencyGroups?.flatMap(
+  const currencyTotals = data?.currencyGroups?.flatMap(
     (group) => (group && group?.currencies?.length && group?.currencies?.map((currency) => currency)) || []
   )
 
-  let baglessIndex = formData?.currencyGroups?.findIndex((group) => group?.container == null)
+  let baglessIndex = data?.currencyGroups?.findIndex((group) => group?.container == null)
 
   if (!baglessIndex || baglessIndex === -1) {
     baglessIndex = 0
@@ -68,7 +68,7 @@ const CharacterCurrency = () => {
       <span>{'Totals - '}</span>
       {currencyTotals?.map((currency, index) => {
         {
-          const currencyLabel = system.currencies?.find((eCurrency) => eCurrency.id === currency?.id)?.label
+          const currencyLabel = currencies?.findCurrency(currency?.id)?.label
           return (
             <span key={index}>
               <span className={sprinkles({ ws: 'nowrap' })}>{`${currencyLabel}: ${currency?.amount}`}</span>
@@ -96,11 +96,11 @@ const CharacterCurrency = () => {
                 <u>Total</u>
               </h3>
             </Grid.Item>
-            {formData?.currencyGroups
+            {data?.currencyGroups
               ?.filter((group) => group.container == null)
               .flatMap((group) => group.currencies)
               .map((currency, index) => {
-                const currencyLabel = system.currencies.find((sCurrency) => sCurrency.id === currency?.id)?.label
+                const currencyLabel = currencies.findCurrency(currency?.id)?.label
                 return (
                   <Fragment key={index}>
                     <Grid.Item colSpan={6}>{currencyLabel}</Grid.Item>
@@ -108,7 +108,7 @@ const CharacterCurrency = () => {
                       <Input
                         name={`currencyGroups.${baglessIndex}.currencies.${index}.amount`}
                         value={currency?.amount}
-                        onChange={updateFormData}
+                        onChange={{ updateField }}
                         type='cur'
                       />
                     </Grid.Item>

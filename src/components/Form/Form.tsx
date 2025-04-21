@@ -18,17 +18,7 @@ interface FormProps<T extends FormDataType> {
 }
 
 const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FormProps<T>) => {
-  const {
-    stepIndex,
-    successMessage,
-    setSuccessMessage,
-    errorMessage,
-    setErrorMessage,
-    formSteps,
-    steps,
-    saving,
-    formData,
-  } = use(FormContext)
+  const { stepIndex, successMessage, errorMessage, formSteps, steps, saving, formStore } = use(FormContext)
 
   const documentRef = useRef(document)
 
@@ -36,10 +26,10 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
     'keypress',
     () => {
       if (successMessage !== null) {
-        setSuccessMessage(null)
+        formStore.setSuccessMessage(null)
       }
       if (errorMessage) {
-        setErrorMessage(null)
+        formStore.setErrorMessage(null)
       }
     },
     documentRef
@@ -49,16 +39,16 @@ const Form = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMuta
     'mouseup',
     () => {
       if (successMessage !== null) {
-        setSuccessMessage(null)
+        formStore.setSuccessMessage(null)
       }
       if (errorMessage) {
-        setErrorMessage(null)
+        formStore.setErrorMessage(null)
       }
     },
     documentRef
   )
 
-  console.log({ formData })
+  console.log({ data: formStore.data })
 
   return (
     <Suspense fallback={<Loading />}>

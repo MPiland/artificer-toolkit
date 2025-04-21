@@ -8,8 +8,9 @@ import { routeTree } from './routeTree.gen'
 import AuthProvider from './pages/auth/AuthProvider'
 import ThemeProvider from './theme/ThemeProvider'
 import { AuthContext } from './pages/auth/AuthContext'
-import { FormDataType } from './types/form'
+import { FormDataType, type FormType } from './types/form'
 import ErrorPage from './pages/auth/ErrorPage'
+import useSystemPref from './hooks/useSystemPref'
 
 const queryClient = new QueryClient()
 
@@ -51,6 +52,11 @@ const router = createRouter({
   context: {
     queryClient,
     auth: undefined!,
+    form: {
+      type: undefined,
+      id: undefined,
+    },
+    systemPref: undefined!,
   },
   scrollRestoration: true,
   defaultNotFoundComponent: ErrorPage,
@@ -61,6 +67,7 @@ declare module '@tanstack/react-router' {
     router: typeof router
   }
   interface HistoryState {
+    form?: FormType
     item?: FormDataType
     username?: string
     confirmationCode?: string
@@ -69,7 +76,8 @@ declare module '@tanstack/react-router' {
 
 const App = () => {
   const auth = use(AuthContext)
-  return <RouterProvider router={router} context={{ auth }} />
+  const [systemPref] = useSystemPref()
+  return <RouterProvider router={router} context={{ auth, systemPref }} />
 }
 
 const rootElement = document.getElementById('root')

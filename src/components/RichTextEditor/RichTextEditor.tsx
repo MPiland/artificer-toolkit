@@ -21,10 +21,12 @@ import clsx from 'clsx'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import { useDebounceCallback } from 'usehooks-ts'
 import { sprinkles } from '../../css/sprinkles.css'
-import { DeepKeyOf, UpdateState } from '../../types/form'
+import type { DeepKeyOf, OnChange } from '../../types/form'
 
 interface RichTextEditorProps<T> {
-  onChange: (arg: UpdateState<T>) => void
+  onChange: {
+    updateField: OnChange<T>['updateField']
+  }
   label?: string
   name: DeepKeyOf<T>
   value: any
@@ -38,7 +40,7 @@ const RichTextEditor = <T,>({ onChange, label, name, value, className }: RichTex
   const debounceSave = useDebounceCallback(
     useCallback(
       (content) => {
-        onChange({ type: 'update', path: name, value: content })
+        onChange.updateField({ path: name, value: content })
         setDebouncing(false)
       },
       [name, onChange]

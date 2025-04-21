@@ -106,7 +106,44 @@ type Class {
   masterId: String
 }
 
+type ClassMetaObject {
+  classIds: [ID!]
+  id: ID!
+}
+
+type ClassFeatureMetaObject {
+  id: ID!
+  label: String!
+  classIds: [ID!]
+}
+
+type ClassMultiClassMetaObject {
+  classIds: [ID!]
+  id: ID!
+  amount: Int
+}
+
+type ClassMeta {
+  categories: [ClassMetaObject!]!
+  parentClasses: [ClassMetaObject!]!
+  primaryAbilities: [ClassMultiClassMetaObject!]!
+  secondaryAbilities: [ClassMultiClassMetaObject!]!
+  optionalAbilities: [ClassMultiClassMetaObject!]!
+  features: [ClassFeatureMetaObject!]!
+}
+
+type ClassListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
 type ClassConnection {
-  items: [Class]!
+  items: [ClassListItem!]!
+  metaData: ClassMeta!
   nextToken: String
 }

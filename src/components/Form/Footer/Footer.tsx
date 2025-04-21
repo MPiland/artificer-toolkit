@@ -12,7 +12,7 @@ import { FeatureContext } from '../Features/FeatureContext'
 import { routeRoot } from '../../../utils/formatting'
 import { sprinkles } from '../../../css/sprinkles.css'
 import { ModalContext } from '../../Modal/ModalContext'
-import { Navigate } from '@tanstack/react-router'
+import { Navigate, useNavigate } from '@tanstack/react-router'
 import { navigatePath } from '../../../utils/form'
 import { type FormType } from '../../../types/form'
 
@@ -22,52 +22,12 @@ interface FooterProps<T extends FormDataType> {
 }
 
 const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMutation }: FooterProps<T>) => {
+  const navigate = useNavigate()
   const { showModal } = use(ModalContext)
 
-  const {
-    validForm,
-    setValidForm,
-    steps,
-    setStepIndex,
-    formData,
-    updateFormData,
-    initialFormData,
-    setSaving,
-    setSuccessMessage,
-    setErrorMessage,
-    stepIndex,
-    isFirstStep,
-    isLastStep,
-    setAddClass,
-    setChangeRace,
-  } = use(FormContext)
+  const { validForm, steps, formStore, stepIndex, isFirstStep, isLastStep } = use(FormContext)
 
-  const {
-    featureData,
-    updateFeatureData,
-    initialFeatureData,
-    featureIndex,
-    ancestryData,
-    updateAncestryData,
-    initialAncestryData,
-    optionData,
-    updateOptionData,
-    initialOptionData,
-    optionIndex,
-    sectionData,
-    updateSectionData,
-    initialSectionData,
-    sectionIndex,
-    sectionStep,
-    setSectionStep,
-    featureStep,
-    setFeatureStep,
-    handleSaveFeatures,
-    resetAncestry,
-    resetFeature,
-    resetOption,
-    resetSection,
-  } = use(FeatureContext)
+  const { featureStore, ancestryStore, optionStore, sectionStore, handleSaveFeatures } = use(FeatureContext)
 
   const {
     mutateAsync: addNewItem,
@@ -85,8 +45,8 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
 
   const forwardLabel =
     isLastStep ?
-      featureStep != null ? 'Finish'
-      : formData.id != null ? 'Update'
+      featureStore.step != null ? 'Finish'
+      : formStore.data.id != null ? 'Update'
       : 'Create'
     : 'Next'
 
@@ -95,155 +55,131 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   // Sucess Message
   useEffect(() => {
     if (updateIsSuccess) {
-      setSuccessMessage(`${startCase(formData.__typename)} updated successfully!`)
-      setErrorMessage(null)
+      formStore.setSuccessMessage(`${startCase(formStore.data.__typename)} updated successfully!`)
+      formStore.setErrorMessage(null)
     }
-  }, [updateIsSuccess, formData.__typename, setErrorMessage, setSuccessMessage])
+  }, [updateIsSuccess, formStore.data.__typename, formStore.setErrorMessage, formStore.setSuccessMessage])
 
   // Error Message
   useEffect(() => {
     if (addIsError || updateIsError) {
       if (addError) {
-        setErrorMessage((addError as any).message)
+        formStore.setErrorMessage((addError as any).message)
       }
       if (updateError) {
-        setErrorMessage((updateError as any).message)
+        formStore.setErrorMessage((updateError as any).message)
       }
     }
-  }, [
-    addIsSuccess,
-    updateIsSuccess,
-    setErrorMessage,
-    setSuccessMessage,
-    addIsError,
-    updateIsError,
-    addError,
-    updateError,
-  ])
+  }, [addIsSuccess, updateIsSuccess, formStore, addIsError, updateIsError, addError, updateError])
 
   const handleNavigateEdit = (item: FormDataType) => {
-    const route = routeRoot(formData.__typename) as FormType
-    const navPath = navigatePath({ form: route, type: 'form', action: 'edit', label: item.label })
+    const route = routeRoot(formStore.data.__typename) as FormType
+    const navPath = navigatePath({ form: route, type: 'form', action: 'edit', id: item.id })
 
-    setStepIndex(0)
-    setSaving(false)
-    return <Navigate to={navPath.path} params={navPath.params} />
+    formStore.setStepIndex(0)
+    formStore.setSaving(false)
+    return navigate({ to: navPath.to, params: navPath.params })
   }
 
   const handleSaveSection = () => {
-    if (sectionStep !== null) {
-      if (featureStep === 'option') {
-        updateOptionData({
-          type: 'update',
-          path: `${sectionStep}.${sectionIndex}`,
-          value: sectionData,
-        })
+    if (sectionStore.step !== null) {
+      if (featureStore.step === 'option') {
+        optionStore.updateField({ path: `${sectionStore.step}.${sectionStore.index}`, value: sectionStore.data })
       } else {
-        if (formData.__typename === 'Feat') {
-          updateFormData({
-            type: 'update',
-            path: `${sectionStep}.${sectionIndex}`,
-            value: sectionData,
+        if (formStore.data.__typename === 'Feat') {
+          formStore.updateField({
+            path: `${sectionStore.step}.${sectionStore.index}`,
+            value: sectionStore.data,
           })
         } else {
           if (steps[stepIndex].id === 'ancestry') {
-            updateAncestryData({
-              type: 'update',
-              path: `features.${featureIndex}.${sectionStep}.${sectionIndex}`,
-              value: sectionData,
+            ancestryStore.updateField({
+              path: `features.${featureStore.index}.${sectionStore.step}.${sectionStore.index}`,
+              value: sectionStore.data,
             })
           }
         }
       }
     }
-    updateSectionData({ type: 'initialReset', value: sectionData })
+    sectionStore.resetInit({ value: sectionStore.data })
     if (steps && steps?.length > 0) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+      formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: true })
     }
-    return setSectionStep(null)
+    return sectionStore.setStep(null)
   }
 
   const handleSaveOption = () => {
-    if (formData.__typename === 'Feat') {
-      updateFormData<typeof formData>({
-        type: 'update',
-        path: `options.${optionIndex}`,
-        value: optionData,
+    if (formStore.data.__typename === 'Feat') {
+      formStore.updateField({
+        path: `options.${optionStore.index}`,
+        value: optionStore.data,
       })
-      updateFormData<typeof formData>({
-        type: 'initialReset',
-        value: optionData,
-      })
+      formStore.resetInit({ value: optionStore.data })
     } else {
       if (steps[stepIndex].id === 'ancestry') {
-        updateAncestryData({
-          type: 'update',
-          path: `features.${featureIndex}.options.${optionIndex}`,
-          value: optionData,
+        ancestryStore.updateField({
+          path: `features.${featureStore.index}.options.${optionStore.index}`,
+          value: optionStore.data,
         })
       } else {
-        updateFeatureData({
-          type: 'update',
-          path: `options.${optionIndex}`,
-          value: optionData,
+        featureStore.updateField({
+          path: `options.${optionStore.index}`,
+          value: optionStore.data,
         })
       }
     }
-    return setFeatureStep('feature')
+    return featureStore.setStep('feature')
   }
 
   // Save feature hierachy and clear states
   const handleSave = () => {
-    if (sectionStep != null) {
+    if (sectionStore.step != null) {
       return handleSaveSection()
     }
-    if (featureStep === 'option') {
+    if (featureStore.step === 'option') {
       return handleSaveOption()
     }
-    if (sectionStep == null && featureStep != null && formData.__typename !== 'Feat') {
+    if (sectionStore.step == null && featureStore.step != null && formStore.data.__typename !== 'Feat') {
       if (steps[stepIndex].id === 'ancestry') {
-        if (featureStep === 'ancestry') {
-          updateAncestryData({
-            type: 'update',
-            path: `features.${featureIndex}`,
-            value: featureData,
+        if (featureStore.step === 'ancestry') {
+          ancestryStore.updateField({
+            path: `features.${featureStore.index}`,
+            value: featureStore.data,
           })
-          return setFeatureStep('ancestryOption')
+          return featureStore.setStep('ancestryOption')
         }
-        if (featureStep === 'ancestryOption') {
-          updateFormData({
-            type: 'update',
-            path: `ancestry.options.${optionIndex}`,
-            value: ancestryData,
+        if (featureStore.step === 'ancestryOption') {
+          formStore.updateField({
+            path: `ancestry.options.${optionStore.index}`,
+            value: ancestryStore.data,
           })
-          return setFeatureStep(null)
+          return featureStore.setStep(null)
         }
       } else {
-        updateFormData({
-          type: 'update',
-          path: `features.${featureIndex}`,
-          value: featureData,
+        formStore.updateField({
+          path: `features.${featureStore.index}`,
+          value: featureStore.data,
         })
-        return setFeatureStep(null)
+        return featureStore.setStep(null)
       }
     }
-    return updateFormData({ type: 'initialReset', value: formData })
+    return formStore.resetInit({ value: formStore.data })
   }
 
   const handleForward = async () => {
     const isValid = validateForm()
-    if ((!isLastStep || (isLastStep && featureStep != null)) && formData.__typename !== 'Feat') {
+    if ((!isLastStep || (isLastStep && featureStore.step != null)) && formStore.data.__typename !== 'Feat') {
       if (isValid) {
-        setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-        if (featureStep != null) {
-          setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+        formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+        if (featureStore.step != null) {
+          formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: true })
           return handleSave()
         }
-        updateFormData({ type: 'initialReset', value: formData })
-        return setStepIndex(stepIndex + 1)
+        formStore.resetInit({ value: formStore.data })
+        return formStore.setStepIndex(stepIndex + 1)
       }
-      setValidForm({ ...validForm, [steps[stepIndex].id]: false })
-      if (featureStep != null) {
+      formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: false })
+      if (featureStore.step != null) {
         return showModal({
           type: 'alert',
           props: {
@@ -253,9 +189,12 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         })
       }
     }
-    if ((isLastStep && featureStep == null) || (formData.__typename === 'Feat' && sectionStep == null)) {
+    if (
+      (isLastStep && featureStore.step == null) ||
+      (formStore.data.__typename === 'Feat' && sectionStore.step == null)
+    ) {
       if (isValid) {
-        setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+        formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: true })
         if (Object.values(validForm).length > 0 && !Object.values(validForm).every((value) => value === true)) {
           return showModal({
             type: 'alert',
@@ -265,12 +204,12 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
             },
           })
         }
-        setSaving(true)
-        const payload = await addNewItem(formData as T)
+        formStore.setSaving(true)
+        const payload = await addNewItem(formStore.data as T)
         if (payload) {
           return handleNavigateEdit(payload)
         } else {
-          return setErrorMessage('No formData returned')
+          return formStore.setErrorMessage('No formStore.data returned')
         }
       }
     }
@@ -278,14 +217,14 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
 
   const handleBack = () => {
     if (isFirstStep) {
-      if (!isEqual(initialFormData, formData)) {
+      if (!isEqual(featureStore.initData, formStore.data)) {
         return showModal({
           type: 'alert',
           props: {
             message:
-              formData.id != null ?
+              formStore.data.id != null ?
                 `Changes have not been saved. Press 'Cancel' and then 'Update' to save changes. Otherwise, press 'Continue'`
-              : `${formData.__typename} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
+              : `${formStore.data.__typename} has not been created. Press 'Cancel' and then 'Create' at end of form to save. Otherwise, press 'Continue'.`,
             onConfirm: handleConfirmBack,
           },
         })
@@ -294,14 +233,14 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
     }
     const isValid = validateForm()
     if (isValid) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (featureStep != null) {
+      formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+      if (featureStore.step != null) {
         return handleSave()
       }
     } else {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: false })
+      formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: false })
     }
-    if (featureStep != null) {
+    if (featureStore.step != null) {
       return showModal({
         type: 'alert',
         props: {
@@ -311,40 +250,33 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
       })
     }
     if (stepIndex <= 0) {
-      return setStepIndex(stepIndex)
+      return formStore.setStepIndex(stepIndex)
     } else {
-      return setStepIndex(stepIndex - 1)
+      return formStore.setStepIndex(stepIndex - 1)
     }
   }
 
   const handleUpdate = async () => {
-    setAddClass(false)
-    setChangeRace(false)
+    formStore.setAddClass(false)
+    formStore.setChangeRace(false)
     const isValid = validateForm()
-    let formClone: FormDataType = JSON.parse(JSON.stringify(formData))
+    let formClone: FormDataType = JSON.parse(JSON.stringify(formStore.data))
     if (isValid) {
-      setValidForm({ ...validForm, [steps[stepIndex].id]: true })
-      if (featureStep === 'option' || (featureStep === 'feature' && formData.__typename !== 'Feat')) {
-        formClone = await handleSaveFeatures({ type: featureStep, state: formClone })
+      formStore.setValidForm({ ...validForm, [steps[stepIndex].id]: true })
+      if (featureStore.step === 'option' || (featureStore.step === 'feature' && formStore.data.__typename !== 'Feat')) {
+        formClone = await handleSaveFeatures({ type: featureStore.step, state: formClone })
       }
       if (!(Object.values(validForm).length > 0) || Object.values(validForm).every((value) => value === true)) {
         try {
           await updateItem(formClone as T)
-          updateFormData({
-            type: 'initialReset',
-            value: formClone,
-          })
-          return updateFormData({
-            type: 'reset',
-            value: formClone,
-          })
+          formStore.reinitState(formClone)
         } catch (err: any) {
           console.log(err)
-          return setErrorMessage(err.message)
+          return formStore.setErrorMessage(err.message)
         }
       }
     }
-    if (featureStep != null) {
+    if (featureStore.step != null) {
       return showModal({
         type: 'alert',
         props: {
@@ -355,70 +287,55 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
   }
 
   const handleReset = () => {
-    if (sectionStep != null) {
-      return updateSectionData({
-        type: 'reset',
-        value: initialSectionData,
-      })
+    if (sectionStore.step != null) {
+      return sectionStore.resetData({ value: sectionStore.initData })
     }
-    if (featureStep === 'option') {
-      return updateOptionData({
-        type: 'reset',
-        value: initialOptionData,
-      })
+    if (featureStore.step === 'option') {
+      return optionStore.resetData({ value: optionStore.initData })
     }
-    if (featureStep === 'feature') {
+    if (featureStore.step === 'feature') {
       if (steps[stepIndex].id === 'ancestry') {
-        return updateAncestryData({
-          type: 'reset',
-          value: initialAncestryData,
-        })
+        return ancestryStore.resetData({ value: ancestryStore.initData })
       }
-      return updateFeatureData({
-        type: 'reset',
-        value: initialFeatureData,
-      })
+      return featureStore.resetData({ value: featureStore.initData })
     }
-    return updateFormData({
-      type: 'reset',
-      value: initialFormData,
-    })
+    return formStore.resetData({ value: featureStore.initData })
   }
 
   const reset = () => {
-    if (sectionStep != null) {
-      resetSection()
-      setSectionStep(null)
-    } else if (featureStep === 'option') {
-      resetOption()
-      setFeatureStep('feature')
-    } else if (featureStep === 'ancestry') {
-      resetFeature()
-      setFeatureStep('ancestryOption')
-    } else if (featureStep === 'ancestryOption') {
-      resetAncestry()
-      setFeatureStep(null)
+    if (sectionStore.step != null) {
+      sectionStore.reinitState()
+      return sectionStore.setStep(null)
+    } else if (featureStore.step === 'option') {
+      optionStore.reinitState()
+      return featureStore.setStep('feature')
+    } else if (featureStore.step === 'ancestryOption') {
+      ancestryStore.reinitState()
+      return featureStore.setStep(null)
     } else {
-      resetFeature()
-      setFeatureStep(null)
+      featureStore.reinitState()
+      if (featureStore.step === 'ancestry') {
+        return featureStore.setStep('ancestryOption')
+      }
+      return featureStore.setStep(null)
     }
   }
 
   const handleConfirmBack = () => {
     if (!isFirstStep) {
-      if (featureStep != null) {
+      if (featureStore.step != null) {
         reset()
       }
-      setStepIndex(stepIndex - 1)
+      formStore.setStepIndex(stepIndex - 1)
     }
   }
 
   const handleConfirmForward = () => {
     if (!isLastStep) {
-      if (featureStep != null) {
+      if (featureStore.step != null) {
         reset()
       }
-      setStepIndex(stepIndex + 1)
+      formStore.setStepIndex(stepIndex + 1)
     }
   }
 
@@ -433,7 +350,7 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         </Button>
       </Group>
       <Group>
-        {formData.id != null && (!isLastStep || (isLastStep && featureStep != null)) && (
+        {formStore.data.id != null && (!isLastStep || (isLastStep && featureStore.step != null)) && (
           <Button color='update' type='button' onClick={handleUpdate} className={sprinkles({ marginRight: 'space-2' })}>
             Update
           </Button>
@@ -441,7 +358,9 @@ const Footer = <T extends FormDataType>({ useAddNewItemMutation, useUpdateItemMu
         <Button
           color={forwardLabel === 'Update' ? 'update' : 'primary'}
           type='button'
-          onClick={() => (isLastStep && featureStep == null && formData.id != null ? handleUpdate() : handleForward())}
+          onClick={() =>
+            isLastStep && featureStore.step == null && formStore.data.id != null ? handleUpdate() : handleForward()
+          }
         >
           {forwardLabel}
         </Button>

@@ -8,14 +8,14 @@ import ClassSpells from './ClassSpells'
 import ClassProficiencies from './ClassProficiencies'
 import ClassFeatures from './ClassFeatures'
 import { Character, CharacterClass as CharacterClassType } from '../../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../../apis/systemsApi'
-import { UpdateState } from '../../../../../types/form'
 import { parseDiceRoll } from '../../../../../utils/dice'
 import { RollConfig } from '../../../../../types/components'
 import Grid from '../../../../Grid/Grid'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
-import { useListClassesQuery } from '../../../../../apis/classesApi'
+import useSystemData from '../../../../../hooks/useSystemData'
+import useClassData from '../../../../../hooks/useClassData'
+import type { OnChange } from '../../../../../types/form'
 
 const CharacterClass = ({
   uClass,
@@ -26,15 +26,20 @@ const CharacterClass = ({
   classIndex: number
   handleRemoveClass: () => void
 }) => {
-  const { data: system } = useGetSystemQuery()
-  const { data: classes } = useListClassesQuery()
+  const { system } = useSystemData()
+  const {
+    classes: { findClass },
+  } = useClassData()
 
-  const { updateFormData } = use(FormContext) as {
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { updateField },
+  } = use(FormContext) as {
+    formStore: {
+      updateField: OnChange<Character>['updateField']
+    }
   }
 
-  const fullClass = classes.find((c) => c.id === uClass.id)
-  const subclasses = classes.filter((sClass) => sClass.parentClass === uClass.id)
+  const fullClass = findClass(uClass.id)
 
   const minLevelSpellcasting = fullClass?.levelAttributes?.find(
     (levelAttribute) => levelAttribute?.spellSlots?.length
@@ -60,7 +65,7 @@ const CharacterClass = ({
             value={uClass.level}
             errorMsg='Enter whole numbers only.'
             validation='num'
-            onChange={updateFormData}
+            onChange={{ updateField }}
           />
         </Grid.Item>
       </Grid>
@@ -96,7 +101,7 @@ const CharacterClass = ({
             </Grid.Item>
             {fullClass?.proficiencies?.length && <ClassProficiencies fullClass={fullClass} classIndex={classIndex} />}
             {fullClass?.features && fullClass?.features.length && (
-              <ClassFeatures uClass={uClass} fullClass={fullClass} subclasses={subclasses} classIndex={classIndex} />
+              <ClassFeatures uClass={uClass} fullClass={fullClass} classIndex={classIndex} />
             )}
           </Grid>
         </Tabs.Panel>

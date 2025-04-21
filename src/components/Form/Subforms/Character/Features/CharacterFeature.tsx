@@ -1,51 +1,54 @@
 import { use } from 'react'
-import { Character, CharacterClass, Class } from '../../../../../../amplify/gql/types'
+import { Character, CharacterClass } from '../../../../../../amplify/gql/types'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
 import Collapse from '../../../../Collapse/Collapse'
 import { Attributes, Categories } from '../../../../../types/enums'
 import { feature_card_header, option_dropdown } from '../../../Character.css'
 import parse from 'html-react-parser'
-import { SectionName, UpdateState } from '../../../../../types/form'
+import { SectionName, type OnChange } from '../../../../../types/form'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import { FeatureContext } from '../../../Features/FeatureContext'
 import FeatureSection from './FeatureSection'
 import FeatureOption from './FeatureOption'
 import useGetFeatures, { FactoryFeature } from '../../../../../hooks/useGetFeatures'
+import useClassData from '../../../../../hooks/useClassData'
 
 interface CharacterFeatureProps {
   uClass?: CharacterClass
   feature: FactoryFeature
-  subclasses?: Class[]
-  subclass?: Class
   classIndex?: number
   raceId?: string
   backgroundId?: string
 }
 
-const CharacterFeature = ({
-  uClass,
-  feature,
-  subclasses,
-  subclass,
-  classIndex,
-  raceId,
-  backgroundId,
-}: CharacterFeatureProps) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+const CharacterFeature = ({ uClass, feature, classIndex, raceId, backgroundId }: CharacterFeatureProps) => {
+  const {
+    formStore: { data, updateField, removeField },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+      removeField: OnChange<Character>['removeField']
+    }
   }
 
-  const { getFullFeature } = useGetFeatures({ data: formData })
+  const {
+    classes: { findClass },
+    subclasses: { findByParent },
+  } = useClassData()
+  const { getFullFeature } = useGetFeatures({ data: data })
 
   const { sectionSteps } = use(FeatureContext)
 
-  const existFeatureIndex = formData?.features?.findIndex((f) => f?.id === feature?.id && f?.level === feature?.level)
+  const existFeatureIndex = data?.features?.findIndex((f) => f?.id === feature?.id && f?.level === feature?.level)
 
-  const featureIndex = existFeatureIndex && existFeatureIndex > -1 ? existFeatureIndex : formData?.features?.length || 0
+  const featureIndex = existFeatureIndex && existFeatureIndex > -1 ? existFeatureIndex : data?.features?.length || 0
 
   const headerTitle = `${feature.level && `(${feature.level}) `}${feature?.label || `Feature (${featureIndex})`}`
+
+  const subclasses = findByParent(uClass?.id)
+  const subclass = findClass(uClass?.subclass?.id)
 
   return (
     <Grid.Item>
@@ -63,7 +66,7 @@ const CharacterFeature = ({
                     className={option_dropdown}
                     label={'Subclass Option'}
                     options={subclasses}
-                    onChange={updateFormData}
+                    onChange={{ updateField, removeField }}
                     value={uClass?.subclass?.id}
                   />
                 </Grid.Item>
@@ -74,7 +77,7 @@ const CharacterFeature = ({
                       className={option_dropdown}
                       label={'Subtype Option'}
                       options={subclass?.subtypes}
-                      onChange={updateFormData}
+                      onChange={{ updateField, removeField }}
                       value={uClass?.subclass?.subtype}
                     />
                   </Grid.Item>
@@ -107,7 +110,7 @@ const CharacterFeature = ({
             {(() => {
               if (feature && feature.options) {
                 const option = getFullFeature(feature)?.options?.find((fOption) =>
-                  formData?.features?.[featureIndex]?.options?.find((o) => o.id === fOption.id)
+                  data?.features?.[featureIndex]?.options?.find((o) => o.id === fOption.id)
                 )
 
                 if (option) {

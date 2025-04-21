@@ -12,80 +12,102 @@ import { FeatureContext } from './FeatureContext'
 import Grid from '../../Grid/Grid'
 import { ModalContext } from '../../Modal/ModalContext'
 import { Feature } from '../../../../amplify/gql/types'
-import { useListRacesQuery } from '../../../apis/racesApi'
-import { useListClassesQuery } from '../../../apis/classesApi'
-import { useListEquipmentQuery } from '../../../apis/equipmentApi'
+import useRaceData from '../../../hooks/useRaceData'
+import useClassData from '../../../hooks/useClassData'
+import useEquipmentData from '../../../hooks/useEquipmentData'
+import useFeatData from '../../../hooks/useFeatData'
+import useBackgroundData from '../../../hooks/useBackgroundData'
 
 const FeaturesList = () => {
-  const { formData, updateFormData, stepIndex, steps } = use(FormContext)
-  const { setFeatureStep, updateFeatureData, sectionSteps } = use(FeatureContext)
+  const { formStore, stepIndex, steps } = use(FormContext)
+  const { featureStore, sectionSteps } = use(FeatureContext)
   const { showModal } = use(ModalContext)
 
-  const { data: races } = useListRacesQuery()
-  const { data: classes } = useListClassesQuery()
-  const { data: equipment } = useListEquipmentQuery()
+  const { races, metaData: raceMetaData } = useRaceData()
+  const { classes, metaData: classMetaData } = useClassData()
+  const { equipment, metaData: equipmentMetaData } = useEquipmentData()
+  const { metaData: backgroundMetaData } = useBackgroundData()
+  const { metaData: featMetaData } = useFeatData()
 
-  const arrayName = useMemo(() => (formData.__typename === 'Feat' ? '' : 'features'), [formData])
+  const arrayName = useMemo(() => (formStore.data.__typename === 'Feat' ? '' : 'features'), [formStore.data])
 
-  const featureArray = useMemo(() => get(formData, arrayName) ?? [], [arrayName, formData])
+  const featureArray = useMemo(() => get(formStore.data, arrayName) ?? [], [arrayName, formStore.data])
 
   const createFeatures = (): Feature[] => {
-    const racesFeatures = races.flatMap(
-      (race) => (race.features?.length && race.features?.map((feature) => feature)) || []
+    const racesFeatures = raceMetaData.features.map(
+      (feature) =>
+        ({
+          id: feature.id,
+          label: feature.label,
+          value: feature.id,
+        }) as Feature
     )
-    const classesFeatures = classes.flatMap(
-      (uClass) => (uClass.features?.length && uClass.features?.map((feature) => feature)) || []
+    const classesFeatures = classMetaData.features.map(
+      (feature) =>
+        ({
+          id: feature.id,
+          label: feature.label,
+          value: feature.id,
+        }) as Feature
     )
-    const equipmentFeatures = equipment.flatMap((equipment) =>
-      equipment.features ? equipment.features.map((feature) => feature) : []
+    const equipmentFeatures = equipmentMetaData.features.map(
+      (feature) =>
+        ({
+          id: feature.id,
+          label: feature.label,
+          value: feature.id,
+        }) as Feature
+    )
+    const backgroundFeatures = backgroundMetaData.features.map(
+      (feature) =>
+        ({
+          id: feature.id,
+          label: feature.label,
+          value: feature.id,
+        }) as Feature
+    )
+    const featFeatures = featMetaData.features.map(
+      (feature) =>
+        ({
+          id: feature.id,
+          label: feature.label,
+          value: feature.id,
+        }) as Feature
     )
 
-    return { ...racesFeatures, ...classesFeatures, ...equipmentFeatures }
+    return { ...racesFeatures, ...classesFeatures, ...equipmentFeatures, ...backgroundFeatures, ...featFeatures }
   }
 
   const features = createFeatures()
 
   // Add feature
   const handleAddFeature = () => {
-    updateFeatureData({ type: 'index', value: featureArray?.length || 0 })
-    updateFeatureData({ type: 'reset', value: {} })
-    updateFeatureData({ type: 'initialReset', value: {} })
-    setFeatureStep('feature')
+    featureStore.setIndex({ value: featureArray?.length || 0 })
+    featureStore.reinitState()
+    featureStore.setStep('feature')
   }
 
   // Delete feature
   const handleRemoveFeature = (featureIndex: number) => {
-    if (formData.__typename !== 'Feat') {
-      updateFormData({
-        type: 'remove',
-        path: `features.${featureIndex}`,
-      })
+    if (formStore.data.__typename !== 'Feat') {
+      formStore.removeField({ path: `features.${featureIndex}` })
     }
   }
 
   // Edit feature
   const handleEditFeature = (featureIndex: number) => {
-    updateFeatureData({ type: 'index', value: featureIndex })
-    updateFeatureData({
-      type: 'reset',
-      value: featureArray[featureIndex],
-    })
-    updateFeatureData({ type: 'initialReset', value: featureArray[featureIndex] })
-    setFeatureStep('feature')
+    featureStore.setIndex({ value: featureIndex })
+    featureStore.reinitState(featureArray[featureIndex] as Feature)
+    featureStore.setStep('feature')
   }
 
   const onCopyConfirm = (selectedFeature: Feature) => {
-    if (formData.__typename !== 'Spell' && formData.__typename !== 'Character') {
-      const featureIndex = formData.features?.length ?? 0
-      updateFormData({
-        type: 'update',
-        path: `features.${featureIndex}`,
-        value: selectedFeature,
-      })
-      updateFeatureData({ type: 'index', value: featureIndex })
-      updateFeatureData({ type: 'reset', value: selectedFeature })
-      updateFeatureData({ type: 'initialReset', value: selectedFeature })
-      setFeatureStep('feature')
+    if (formStore.data.__typename !== 'Spell' && formStore.data.__typename !== 'Character') {
+      const featureIndex = formStore.data.features?.length ?? 0
+      formStore.updateField({ path: `features.${featureIndex}`, value: selectedFeature })
+      featureStore.setIndex({ value: featureIndex })
+      featureStore.reinitState(selectedFeature)
+      featureStore.setStep('feature')
     }
   }
 
@@ -128,7 +150,7 @@ const FeaturesList = () => {
       )}
       {featureArray.length > 0 && (
         <Grid.Item>
-          <Accordion<typeof formData> dataArray={featureArray} onChange={updateFormData} name='features'>
+          <Accordion<typeof formStore.data> dataArray={featureArray} onChange={formStore} name='features'>
             {featureArray?.map((featureItem: any, featureIndex: number) => (
               <Accordion.Wrapper key={featureIndex} itemId={String(featureIndex)}>
                 <Accordion.Header

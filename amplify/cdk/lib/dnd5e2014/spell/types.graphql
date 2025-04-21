@@ -66,7 +66,74 @@ type Spell {
   masterId: String
 }
 
+type SpellMetaObject {
+  spellIds: [ID!]
+  id: ID!
+}
+
+type SpellLevelObject {
+  spellIds: [ID!]
+  id: Int!
+}
+
+type SpellRangeMetaObject {
+  id: ID!
+  spellIds: [ID!]
+  unit: ID
+  minRange: Int
+  maxRange: Int
+  distance: Int
+}
+
+type SpellDurationMetaObject {
+  id: ID!
+  spellIds: [ID!]
+  amount: Int
+}
+
+type SpellShapeMetaObject {
+  id: ID!
+  spellIds: [ID!]
+  size: Float
+  unit: ID
+}
+
+type SpellMeta {
+  attributes: [SpellMetaObject!]!
+  primaryDamages: [SpellMetaObject!]!
+  secondaryDamages: [SpellMetaObject!]!
+  primaryActions: [SpellMetaObject!]!
+  secondaryActions: [SpellMetaObject!]!
+  conditions: [SpellMetaObject!]!
+  classes: [SpellMetaObject!]!
+  durations: [SpellDurationMetaObject!]!
+  ranges: [SpellRangeMetaObject!]!
+  shapes: [SpellShapeMetaObject!]!
+  schools: [SpellMetaObject!]!
+  levels: [SpellLevelObject!]!
+  saveAbilities: [SpellMetaObject!]!
+  requirements: [SpellMetaObject!]!
+}
+
+type SpellListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  requirements: [ID!]
+  materialDesc: String
+  ownerId: ID!
+  systemId: ID!
+  masterId: String
+}
+
+type ClassFilter {
+  id: ID!
+  count: Int!
+}
+
 type SpellConnection {
-  items: [Spell]!
+  items: [SpellListItem!]!
+  metaData: SpellMeta!
   nextToken: String
 }

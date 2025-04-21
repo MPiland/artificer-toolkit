@@ -1,6 +1,6 @@
 import Dropdown from '../../../../Dropdown/Dropdown'
 import Grid from '../../../../Grid/Grid'
-import {
+import type {
   Background,
   BackgroundEquipment,
   Character,
@@ -12,9 +12,9 @@ import { starting_equipment_group_option } from '../../../Character.css'
 import { Fragment, use, useCallback, useEffect } from 'react'
 import { FormContext } from '../../../FormContext'
 import { Attributes } from '../../../../../types/enums'
-import { UpdateState } from '../../../../../types/form'
-import { useGetSystemQuery } from '../../../../../apis/systemsApi'
-import { useListEquipmentQuery } from '../../../../../apis/equipmentApi'
+import useSystemData from '../../../../../hooks/useSystemData'
+import useEquipmentData from '../../../../../hooks/useEquipmentData'
+import type { OnChange } from '../../../../../types/form'
 
 const CharacterEquipmentSelection = ({
   groupIndex,
@@ -25,18 +25,22 @@ const CharacterEquipmentSelection = ({
   group: (ClassEquipment | BackgroundEquipment)[][]
   dataSource: Class | Background
 }) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data, updateField },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+    }
   }
 
-  const { data: system } = useGetSystemQuery()
-  const { data: equipment } = useListEquipmentQuery()
+  const { system } = useSystemData()
+  const { equipment } = useEquipmentData()
 
   const path = dataSource.__typename === 'Class' ? 'classEquipment' : 'backgroundEquipment'
 
   const hasOnlyOneOption = group.length === 1
-  const isAlreadySelected = formData?.[path]?.equipmentGroups?.some((g) => g.groupId === groupIndex.toString())
+  const isAlreadySelected = data?.[path]?.equipmentGroups?.some((g) => g.groupId === groupIndex.toString())
 
   // Generate a descriptive label for an option in the dropdown
   // Generate a descriptive label for an option in the dropdown
@@ -122,7 +126,7 @@ const CharacterEquipmentSelection = ({
 
   // Get the currently selected option index for a group
   const getEquipmentGroupOptionIndex = (groupIndex: number) => {
-    const equipmentGroups = formData?.[path]?.equipmentGroups || []
+    const equipmentGroups = data?.[path]?.equipmentGroups || []
     const groupData = equipmentGroups.find((g) => g.groupId === groupIndex.toString())
 
     // If no group data found, return null
@@ -139,26 +143,6 @@ const CharacterEquipmentSelection = ({
 
   const groupOptionIndex = getEquipmentGroupOptionIndex(groupIndex) || null
 
-  // Filter equipment based on category and properties
-  const getFilteredEquipment = (categoryId: string, propertyIds?: string[]) => {
-    if (!equipment) return []
-
-    return equipment.filter((item) => {
-      // Check if item matches the category
-      const matchesCategory = item.category === categoryId
-
-      // If no properties specified, just check category
-      if (!propertyIds || propertyIds.length === 0) {
-        return matchesCategory
-      }
-
-      // Check if item has all the required properties
-      const hasProperties = propertyIds.every((propId) => item.properties?.includes(propId))
-
-      return matchesCategory && hasProperties
-    })
-  }
-
   // Render dropdowns for equipment that provides options
   const renderOptionsSelection = (
     groupIndex: number,
@@ -167,11 +151,10 @@ const CharacterEquipmentSelection = ({
     item: ClassEquipment | BackgroundEquipment
   ) => {
     const selectionCount = Number(item.selectionCount) || 1
-    const filteredEquipment =
-      (item.category && item.properties && getFilteredEquipment(item?.category, item.properties)) || []
+    const filteredEquipment = equipment.filterByCategory(item.category).filterByProperties(item.properties)
 
     // Find current selections for this item
-    const currentGroups = formData?.[path]?.equipmentGroups || []
+    const currentGroups = data?.[path]?.equipmentGroups || []
     const currentGroup = currentGroups.find(
       (g) => g.groupId === groupIndex.toString() && g.optionId === optionIndex.toString()
     )
@@ -188,7 +171,87 @@ const CharacterEquipmentSelection = ({
               <Dropdown<Character>
                 name={`${path}.equipmentGroups.${groupIndex}.equipment.${itemIndex}`}
                 value={selectedEquipId || ''}
-                onChange={(e) => handleEquipmentOptionSelection(groupIndex, optionIndex, itemIndex, selIndex, e)}
+                onChange={{
+                  updateField: ({ value }) => {
+                    // Define optionKey for rest of function
+                    const optionKey = `${itemIndex}-${selIndex}`
+
+                    // The ID of the equipment piece that was either selected or automatically added
+                    const equipmentId = value.toString()
+                    const currentGroups = [...(data?.[path]?.equipmentGroups || [])]
+
+                    // Find the current group
+                    const groupArrayIndex = currentGroups.findIndex(
+                      (g) => g.groupId === groupIndex.toString() && g.optionId === optionIndex.toString()
+                    )
+
+                    if (groupArrayIndex === -1) return
+
+                    // Create a deep copy of the group we're modifying
+                    const updatedGroup = {
+                      ...currentGroups[groupArrayIndex],
+                      equipment: [...(currentGroups?.[groupArrayIndex]?.equipment || [])], // Create a new array for equipment
+                    }
+
+                    // Find if we already have this selection
+                    const existingItemIndex = updatedGroup.equipment.findIndex((e) => e.selectionId === optionKey)
+
+                    if (existingItemIndex >= 0) {
+                      // Update existing selection
+                      updatedGroup.equipment[existingItemIndex] = {
+                        __typename: 'StartingEquipment',
+                        id: equipmentId,
+                        selectionId: optionKey,
+                        quantity: 1,
+                      }
+                    } else {
+                      // Add new selection
+                      updatedGroup.equipment.push({
+                        __typename: 'StartingEquipment',
+                        id: equipmentId,
+                        selectionId: optionKey,
+                        quantity: 1,
+                      })
+                    }
+
+                    // Replace the group in our array with the updated version
+                    currentGroups[groupArrayIndex] = updatedGroup
+
+                    // Update the form data
+                    return {
+                      path: `${path}.equipmentGroups`,
+                      value: currentGroups,
+                    }
+                  },
+                  removeField: () => {
+                    // Define optionKey for rest of function
+                    const optionKey = `${itemIndex}-${selIndex}`
+
+                    // Handle removal of a specific option
+                    const currentGroups = [...(data?.[path]?.equipmentGroups || [])]
+                    const groupArrayIndex = currentGroups.findIndex(
+                      (g) => g.groupId === groupIndex.toString() && g.optionId === optionIndex.toString()
+                    )
+
+                    if (groupArrayIndex !== -1) {
+                      const updatedGroup = {
+                        ...currentGroups[groupArrayIndex],
+                        // Filter out the item we want to remove
+                        equipment: currentGroups?.[groupArrayIndex]?.equipment?.filter(
+                          (e) => e.selectionId !== optionKey
+                        ),
+                      }
+
+                      // Replace the group in our array
+                      currentGroups[groupArrayIndex] = updatedGroup
+
+                      return updateField({
+                        path: `${path}.equipmentGroups`,
+                        value: currentGroups,
+                      })
+                    }
+                  },
+                }}
                 options={filteredEquipment?.map((equip) => ({
                   id: equip.id,
                   value: equip.id,
@@ -223,154 +286,14 @@ const CharacterEquipmentSelection = ({
     })
   }
 
-  // Handle selection of an equipment option
-  const handleEquipmentOptionSelection = (
-    groupIndex: number,
-    optionIndex: number,
-    itemIndex: number,
-    selIndex: number,
-    e: UpdateState<Character>
-  ) => {
-    // Define optionKey for rest of function
-    const optionKey = `${itemIndex}-${selIndex}`
-
-    if (e.type === 'update') {
-      // The ID of the equipment piece that was either selected or automatically added
-      const equipmentId = e.value.toString()
-      const currentGroups = [...(formData?.[path]?.equipmentGroups || [])]
-
-      // Find the current group
-      const groupArrayIndex = currentGroups.findIndex(
-        (g) => g.groupId === groupIndex.toString() && g.optionId === optionIndex.toString()
-      )
-
-      if (groupArrayIndex === -1) return
-
-      // Create a deep copy of the group we're modifying
-      const updatedGroup = {
-        ...currentGroups[groupArrayIndex],
-        equipment: [...(currentGroups?.[groupArrayIndex]?.equipment || [])], // Create a new array for equipment
-      }
-
-      // Find if we already have this selection
-      const existingItemIndex = updatedGroup.equipment.findIndex((e) => e.selectionId === optionKey)
-
-      if (existingItemIndex >= 0) {
-        // Update existing selection
-        updatedGroup.equipment[existingItemIndex] = {
-          __typename: 'StartingEquipment',
-          id: equipmentId,
-          selectionId: optionKey,
-          quantity: 1,
-        }
-      } else {
-        // Add new selection
-        updatedGroup.equipment.push({
-          __typename: 'StartingEquipment',
-          id: equipmentId,
-          selectionId: optionKey,
-          quantity: 1,
-        })
-      }
-
-      // Replace the group in our array with the updated version
-      currentGroups[groupArrayIndex] = updatedGroup
-
-      // Update the form data
-      updateFormData({
-        type: 'update',
-        path: `${path}.equipmentGroups`,
-        value: currentGroups,
-      })
-    } else if (e.type === 'remove') {
-      // Handle removal of a specific option
-      const currentGroups = [...(formData?.[path]?.equipmentGroups || [])]
-      const groupArrayIndex = currentGroups.findIndex(
-        (g) => g.groupId === groupIndex.toString() && g.optionId === optionIndex.toString()
-      )
-
-      if (groupArrayIndex !== -1) {
-        const updatedGroup = {
-          ...currentGroups[groupArrayIndex],
-          // Filter out the item we want to remove
-          equipment: currentGroups?.[groupArrayIndex]?.equipment?.filter((e) => e.selectionId !== optionKey),
-        }
-
-        // Replace the group in our array
-        currentGroups[groupArrayIndex] = updatedGroup
-
-        updateFormData({
-          type: 'update',
-          path: `${path}.equipmentGroups`,
-          value: currentGroups,
-        })
-      }
-    }
-  }
-
-  // Handle selection of an equipment group option
-  const handleEquipmentGroupSelection = useCallback(
-    (groupIndex: number, e: UpdateState<Character>) => {
-      if (e.type === 'update') {
-        // Option ID for which option within the group that was picked
-        const optionIndex = e.value.toString()
-        const currentGroups = [...(formData?.[path]?.equipmentGroups || [])]
-
-        // Find if this group already exists
-        const existingGroupIndex = currentGroups.findIndex((g) => g.groupId === groupIndex.toString())
-
-        // Get the selected equipment items from the class data
-        const selectedOption = dataSource?.equipment?.[groupIndex]?.[Number(optionIndex)] || []
-        const equipmentItems = generateEquipmentItems(selectedOption)
-
-        if (existingGroupIndex >= 0) {
-          // Update existing group
-          currentGroups[existingGroupIndex] = {
-            ...currentGroups[existingGroupIndex],
-            optionId: optionIndex,
-            equipment: equipmentItems,
-          }
-        } else {
-          // Add new group
-          currentGroups.push({
-            __typename: 'StartingEquipmentGroup',
-            optionId: optionIndex,
-            groupId: groupIndex.toString(),
-            equipment: equipmentItems,
-          })
-        }
-
-        // Update the form data
-        updateFormData({
-          type: 'update',
-          path: `${path}.equipmentGroups`,
-          value: currentGroups,
-        })
-      } else if (e.type === 'remove') {
-        // Handle removal of the entire group
-        if (formData?.[path]?.equipmentGroups) {
-          const updatedGroups = formData[path].equipmentGroups.filter((g) => g.groupId !== groupIndex.toString())
-
-          updateFormData({
-            type: 'update',
-            path: `${path}.equipmentGroups`,
-            value: updatedGroups.length ? updatedGroups : null,
-          })
-        }
-      }
-    },
-    [formData, dataSource?.equipment, updateFormData, path]
-  )
-
   useEffect(() => {
     if (hasOnlyOneOption && !isAlreadySelected) {
-      handleEquipmentGroupSelection(groupIndex, {
-        type: 'update',
+      updateField({
         path: `${path}.equipmentGroups.${groupIndex}`,
         value: '0', // Select the first option
       })
     }
-  }, [groupIndex, hasOnlyOneOption, isAlreadySelected, path, handleEquipmentGroupSelection, group, formData])
+  }, [groupIndex, hasOnlyOneOption, isAlreadySelected, path, group, updateField])
 
   const renderEquipmentGroup = useCallback(() => {
     if (group.length) {
@@ -383,7 +306,54 @@ const CharacterEquipmentSelection = ({
           name={`${path}.equipmentGroups.${groupIndex}`}
           value={groupOptionIndex}
           label={`Select Option`}
-          onChange={(e) => handleEquipmentGroupSelection(groupIndex, e)}
+          onChange={{
+            updateField: ({ value }) => {
+              // Option ID for which option within the group that was picked
+              const optionIndex = value.toString()
+              const currentGroups = [...(data?.[path]?.equipmentGroups || [])]
+
+              // Find if this group already exists
+              const existingGroupIndex = currentGroups.findIndex((g) => g.groupId === groupIndex.toString())
+
+              // Get the selected equipment items from the class data
+              const selectedOption = dataSource?.equipment?.[groupIndex]?.[Number(optionIndex)] || []
+              const equipmentItems = generateEquipmentItems(selectedOption)
+
+              if (existingGroupIndex >= 0) {
+                // Update existing group
+                currentGroups[existingGroupIndex] = {
+                  ...currentGroups[existingGroupIndex],
+                  optionId: optionIndex,
+                  equipment: equipmentItems,
+                }
+              } else {
+                // Add new group
+                currentGroups.push({
+                  __typename: 'StartingEquipmentGroup',
+                  optionId: optionIndex,
+                  groupId: groupIndex.toString(),
+                  equipment: equipmentItems,
+                })
+              }
+
+              // Update the form data
+              return {
+                path: `${path}.equipmentGroups`,
+                value: currentGroups,
+              }
+            },
+            removeField: () => {
+              // Handle removal of the entire group
+              if (data?.[path]?.equipmentGroups) {
+                const updatedGroups = data[path].equipmentGroups.filter((g) => g.groupId !== groupIndex.toString())
+
+                return updateField({
+                  path: `${path}.equipmentGroups`,
+                  value: updatedGroups.length ? updatedGroups : null,
+                })
+              }
+            },
+          }}
           options={group
             .filter((option) => !!option)
             .map((option, optIndex) => ({
@@ -394,7 +364,7 @@ const CharacterEquipmentSelection = ({
         />
       )
     }
-  }, [generateOptionLabel, group, groupIndex, groupOptionIndex, handleEquipmentGroupSelection, path, hasOnlyOneOption])
+  }, [generateOptionLabel, group, groupIndex, groupOptionIndex, path, hasOnlyOneOption])
 
   return (
     <Grid.Item justify='center'>

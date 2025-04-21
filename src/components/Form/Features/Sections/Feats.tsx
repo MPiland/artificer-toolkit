@@ -3,29 +3,38 @@ import { FormContext } from '../../FormContext'
 import Dropdown from '../../../Dropdown/Dropdown'
 import Input from '../../../Input/Input'
 import { startCase } from 'lodash'
-import { useGetSystemQuery } from '../../../../apis/systemsApi'
-import { useListFeatsQuery } from '../../../../apis/featsApi'
 import { FeatureContext } from '../FeatureContext'
 import { Categories } from '../../../../types/enums'
 import { Class, FeatureFeat, SectionEnum } from '../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../types/form'
 import { useEnumChecks } from '../../../../hooks/useEnumChecks'
-import Prerequisites from '../../Subforms/Requirements'
+import Prerequisites from '../../Subforms/Prerequisites'
 import Grid from '../../../Grid/Grid'
+import useSystemData from '../../../../hooks/useSystemData'
+import useFeatData from '../../../../hooks/useFeatData'
+import type { OnChange } from '../../../../types/form'
+import type { SectionStore } from '../../../../store/sectionStore'
 
 const Feats = () => {
-  const { formData } = use(FormContext)
-
-  const { sectionData, updateSectionData } = use(FeatureContext) as {
-    sectionData: FeatureFeat
-    updateSectionData: (arg: UpdateState<FeatureFeat>) => void
+  const { formStore } = use(FormContext)
+  const { sectionStore } = use(FeatureContext) as {
+    sectionStore: SectionStore<FeatureFeat>
   }
 
-  const { data: system } = useGetSystemQuery()
-  const { data: feats } = useListFeatsQuery()
+  const {
+    data,
+    updateField,
+    removeField,
+  }: {
+    data: FeatureFeat
+    updateField: OnChange<FeatureFeat>['updateField']
+    removeField: OnChange<FeatureFeat>['removeField']
+  } = sectionStore
+
+  const { attributes } = useSystemData()
+  const { feats } = useFeatData()
 
   const { subtypeSpecific, providesOptions, hasPrerequisites } = useEnumChecks({
-    data: sectionData,
+    data: data,
   })
 
   return (
@@ -34,16 +43,16 @@ const Feats = () => {
         <Dropdown
           multiSelect={true}
           name='attributes'
-          options={system.attributes.filter(
+          options={attributes.filter(
             (attribute) =>
               attribute.sections?.length &&
               (attribute.sections.includes(SectionEnum.all) ||
-                ((formData as Class).category === Categories.subclass &&
+                ((formStore.data as Class).category === Categories.subclass &&
                   attribute.sections.includes(SectionEnum.subclasses)))
           )}
           label={`${startCase('feat')} Attributes`}
-          value={sectionData?.attributes}
-          onChange={updateSectionData}
+          value={data?.attributes}
+          onChange={{ updateField, removeField }}
         />
       </Grid.Item>
       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
@@ -51,24 +60,24 @@ const Feats = () => {
           name='feats'
           multiSelect={true}
           label='Feat'
-          value={sectionData?.feats}
+          value={data?.feats}
           options={feats}
           required={true}
-          onChange={updateSectionData}
+          onChange={{ updateField, removeField }}
         />
       </Grid.Item>
       {subtypeSpecific &&
-        formData.__typename === 'Class' &&
-        formData.category === Categories.subclass &&
-        formData?.subtypes?.length && (
+        formStore.data.__typename === 'Class' &&
+        formStore.data.category === Categories.subclass &&
+        formStore.data?.subtypes?.length && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name='subtype'
               label='Subtype'
-              value={sectionData?.subtype}
-              options={formData?.subtypes}
+              value={data?.subtype}
+              options={formStore.data?.subtypes}
               required={true}
-              onChange={updateSectionData}
+              onChange={{ updateField, removeField }}
             />
           </Grid.Item>
         )}
@@ -79,16 +88,16 @@ const Feats = () => {
             name='selectionCount'
             label='# of Selections'
             autoComplete='off'
-            value={sectionData?.selectionCount}
+            value={data?.selectionCount}
             errorMsg='Must contain only numbers'
             required={true}
-            onChange={updateSectionData}
+            onChange={{ updateField }}
           />
         </Grid.Item>
       )}
       {hasPrerequisites && (
         <Grid.Item>
-          <Prerequisites formData={sectionData} updateFormData={updateSectionData} />
+          <Prerequisites formStore={sectionStore} />
         </Grid.Item>
       )}
     </Grid>

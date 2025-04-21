@@ -11,78 +11,43 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as ProtectedImport } from './routes/_protected'
 import { Route as IndexImport } from './routes/index'
-import { Route as SpellsIndexImport } from './routes/spells/index'
-import { Route as RacesIndexImport } from './routes/races/index'
-import { Route as FeatsIndexImport } from './routes/feats/index'
-import { Route as EquipmentIndexImport } from './routes/equipment/index'
-import { Route as ClassesIndexImport } from './routes/classes/index'
-import { Route as CharactersIndexImport } from './routes/characters/index'
-import { Route as BackgroundsIndexImport } from './routes/backgrounds/index'
 import { Route as AuthIndexImport } from './routes/$auth/index'
-import { Route as SpellsSpellIdImport } from './routes/spells/$spellId'
-import { Route as RacesRaceIdImport } from './routes/races/$raceId'
-import { Route as FeatsFeatIdImport } from './routes/feats/$featId'
-import { Route as EquipmentEquipmentIdImport } from './routes/equipment/$equipmentId'
-import { Route as ClassesClassIdImport } from './routes/classes/$classId'
-import { Route as CharactersCharacterIdImport } from './routes/characters/$characterId'
-import { Route as BackgroundsBackgroundIdImport } from './routes/backgrounds/$backgroundId'
 import { Route as AuthActionImport } from './routes/$auth/$action'
-import { Route as SpellsActionspellIdImport } from './routes/spells/$action/$_spellId'
-import { Route as RacesActionraceIdImport } from './routes/races/$action/$_raceId'
-import { Route as FeatsActionfeatIdImport } from './routes/feats/$action/$_featId'
-import { Route as EquipmentActionequipmentIdImport } from './routes/equipment/$action/$_equipmentId'
-import { Route as ClassesActionclassIdImport } from './routes/classes/$action/$_classId'
-import { Route as CharactersActioncharacterIdImport } from './routes/characters/$action/$_characterId'
-import { Route as BackgroundsActionbackgroundIdImport } from './routes/backgrounds/$action/$_backgroundId'
+import { Route as ProtectedSpellsIndexImport } from './routes/_protected/spells/index'
+import { Route as ProtectedRacesIndexImport } from './routes/_protected/races/index'
+import { Route as ProtectedHomeIndexImport } from './routes/_protected/home/index'
+import { Route as ProtectedFeatsIndexImport } from './routes/_protected/feats/index'
+import { Route as ProtectedEquipmentIndexImport } from './routes/_protected/equipment/index'
+import { Route as ProtectedClassesIndexImport } from './routes/_protected/classes/index'
+import { Route as ProtectedCharactersIndexImport } from './routes/_protected/characters/index'
+import { Route as ProtectedBackgroundsIndexImport } from './routes/_protected/backgrounds/index'
+import { Route as ProtectedSpellsSpellIdImport } from './routes/_protected/spells/$spellId'
+import { Route as ProtectedRacesRaceIdImport } from './routes/_protected/races/$raceId'
+import { Route as ProtectedFeatsFeatIdImport } from './routes/_protected/feats/$featId'
+import { Route as ProtectedEquipmentEquipmentIdImport } from './routes/_protected/equipment/$equipmentId'
+import { Route as ProtectedClassesClassIdImport } from './routes/_protected/classes/$classId'
+import { Route as ProtectedCharactersCharacterIdImport } from './routes/_protected/characters/$characterId'
+import { Route as ProtectedBackgroundsBackgroundIdImport } from './routes/_protected/backgrounds/$backgroundId'
+import { Route as ProtectedSpellsActionspellIdImport } from './routes/_protected/spells/$action/$_spellId'
+import { Route as ProtectedRacesActionraceIdImport } from './routes/_protected/races/$action/$_raceId'
+import { Route as ProtectedFeatsActionfeatIdImport } from './routes/_protected/feats/$action/$_featId'
+import { Route as ProtectedEquipmentActionequipmentIdImport } from './routes/_protected/equipment/$action/$_equipmentId'
+import { Route as ProtectedClassesActionclassIdImport } from './routes/_protected/classes/$action/$_classId'
+import { Route as ProtectedCharactersActioncharacterIdImport } from './routes/_protected/characters/$action/$_characterId'
+import { Route as ProtectedBackgroundsActionbackgroundIdImport } from './routes/_protected/backgrounds/$action/$_backgroundId'
 
 // Create/Update Routes
+
+const ProtectedRoute = ProtectedImport.update({
+  id: '/_protected',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const SpellsIndexRoute = SpellsIndexImport.update({
-  id: '/spells/',
-  path: '/spells/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const RacesIndexRoute = RacesIndexImport.update({
-  id: '/races/',
-  path: '/races/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const FeatsIndexRoute = FeatsIndexImport.update({
-  id: '/feats/',
-  path: '/feats/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const EquipmentIndexRoute = EquipmentIndexImport.update({
-  id: '/equipment/',
-  path: '/equipment/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ClassesIndexRoute = ClassesIndexImport.update({
-  id: '/classes/',
-  path: '/classes/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const CharactersIndexRoute = CharactersIndexImport.update({
-  id: '/characters/',
-  path: '/characters/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const BackgroundsIndexRoute = BackgroundsIndexImport.update({
-  id: '/backgrounds/',
-  path: '/backgrounds/',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -92,98 +57,154 @@ const AuthIndexRoute = AuthIndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const SpellsSpellIdRoute = SpellsSpellIdImport.update({
-  id: '/spells/$spellId',
-  path: '/spells/$spellId',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const RacesRaceIdRoute = RacesRaceIdImport.update({
-  id: '/races/$raceId',
-  path: '/races/$raceId',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const FeatsFeatIdRoute = FeatsFeatIdImport.update({
-  id: '/feats/$featId',
-  path: '/feats/$featId',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const EquipmentEquipmentIdRoute = EquipmentEquipmentIdImport.update({
-  id: '/equipment/$equipmentId',
-  path: '/equipment/$equipmentId',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ClassesClassIdRoute = ClassesClassIdImport.update({
-  id: '/classes/$classId',
-  path: '/classes/$classId',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const CharactersCharacterIdRoute = CharactersCharacterIdImport.update({
-  id: '/characters/$characterId',
-  path: '/characters/$characterId',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const BackgroundsBackgroundIdRoute = BackgroundsBackgroundIdImport.update({
-  id: '/backgrounds/$backgroundId',
-  path: '/backgrounds/$backgroundId',
-  getParentRoute: () => rootRoute,
-} as any)
-
 const AuthActionRoute = AuthActionImport.update({
   id: '/$auth/$action',
   path: '/$auth/$action',
   getParentRoute: () => rootRoute,
 } as any)
 
-const SpellsActionspellIdRoute = SpellsActionspellIdImport.update({
-  id: '/spells/$action/$_spellId',
-  path: '/spells/$action/$_spellId',
-  getParentRoute: () => rootRoute,
+const ProtectedSpellsIndexRoute = ProtectedSpellsIndexImport.update({
+  id: '/spells/',
+  path: '/spells/',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 
-const RacesActionraceIdRoute = RacesActionraceIdImport.update({
-  id: '/races/$action/$_raceId',
-  path: '/races/$action/$_raceId',
-  getParentRoute: () => rootRoute,
+const ProtectedRacesIndexRoute = ProtectedRacesIndexImport.update({
+  id: '/races/',
+  path: '/races/',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 
-const FeatsActionfeatIdRoute = FeatsActionfeatIdImport.update({
-  id: '/feats/$action/$_featId',
-  path: '/feats/$action/$_featId',
-  getParentRoute: () => rootRoute,
+const ProtectedHomeIndexRoute = ProtectedHomeIndexImport.update({
+  id: '/home/',
+  path: '/home/',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 
-const EquipmentActionequipmentIdRoute = EquipmentActionequipmentIdImport.update(
+const ProtectedFeatsIndexRoute = ProtectedFeatsIndexImport.update({
+  id: '/feats/',
+  path: '/feats/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedEquipmentIndexRoute = ProtectedEquipmentIndexImport.update({
+  id: '/equipment/',
+  path: '/equipment/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedClassesIndexRoute = ProtectedClassesIndexImport.update({
+  id: '/classes/',
+  path: '/classes/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedCharactersIndexRoute = ProtectedCharactersIndexImport.update({
+  id: '/characters/',
+  path: '/characters/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedBackgroundsIndexRoute = ProtectedBackgroundsIndexImport.update({
+  id: '/backgrounds/',
+  path: '/backgrounds/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedSpellsSpellIdRoute = ProtectedSpellsSpellIdImport.update({
+  id: '/spells/$spellId',
+  path: '/spells/$spellId',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedRacesRaceIdRoute = ProtectedRacesRaceIdImport.update({
+  id: '/races/$raceId',
+  path: '/races/$raceId',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedFeatsFeatIdRoute = ProtectedFeatsFeatIdImport.update({
+  id: '/feats/$featId',
+  path: '/feats/$featId',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedEquipmentEquipmentIdRoute =
+  ProtectedEquipmentEquipmentIdImport.update({
+    id: '/equipment/$equipmentId',
+    path: '/equipment/$equipmentId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+
+const ProtectedClassesClassIdRoute = ProtectedClassesClassIdImport.update({
+  id: '/classes/$classId',
+  path: '/classes/$classId',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+
+const ProtectedCharactersCharacterIdRoute =
+  ProtectedCharactersCharacterIdImport.update({
+    id: '/characters/$characterId',
+    path: '/characters/$characterId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+
+const ProtectedBackgroundsBackgroundIdRoute =
+  ProtectedBackgroundsBackgroundIdImport.update({
+    id: '/backgrounds/$backgroundId',
+    path: '/backgrounds/$backgroundId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+
+const ProtectedSpellsActionspellIdRoute =
+  ProtectedSpellsActionspellIdImport.update({
+    id: '/spells/$action/$_spellId',
+    path: '/spells/$action/$_spellId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+
+const ProtectedRacesActionraceIdRoute = ProtectedRacesActionraceIdImport.update(
   {
-    id: '/equipment/$action/$_equipmentId',
-    path: '/equipment/$action/$_equipmentId',
-    getParentRoute: () => rootRoute,
+    id: '/races/$action/$_raceId',
+    path: '/races/$action/$_raceId',
+    getParentRoute: () => ProtectedRoute,
   } as any,
 )
 
-const ClassesActionclassIdRoute = ClassesActionclassIdImport.update({
-  id: '/classes/$action/$_classId',
-  path: '/classes/$action/$_classId',
-  getParentRoute: () => rootRoute,
-} as any)
+const ProtectedFeatsActionfeatIdRoute = ProtectedFeatsActionfeatIdImport.update(
+  {
+    id: '/feats/$action/$_featId',
+    path: '/feats/$action/$_featId',
+    getParentRoute: () => ProtectedRoute,
+  } as any,
+)
 
-const CharactersActioncharacterIdRoute =
-  CharactersActioncharacterIdImport.update({
-    id: '/characters/$action/$_characterId',
-    path: '/characters/$action/$_characterId',
-    getParentRoute: () => rootRoute,
+const ProtectedEquipmentActionequipmentIdRoute =
+  ProtectedEquipmentActionequipmentIdImport.update({
+    id: '/equipment/$action/$_equipmentId',
+    path: '/equipment/$action/$_equipmentId',
+    getParentRoute: () => ProtectedRoute,
   } as any)
 
-const BackgroundsActionbackgroundIdRoute =
-  BackgroundsActionbackgroundIdImport.update({
+const ProtectedClassesActionclassIdRoute =
+  ProtectedClassesActionclassIdImport.update({
+    id: '/classes/$action/$_classId',
+    path: '/classes/$action/$_classId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+
+const ProtectedCharactersActioncharacterIdRoute =
+  ProtectedCharactersActioncharacterIdImport.update({
+    id: '/characters/$action/$_characterId',
+    path: '/characters/$action/$_characterId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+
+const ProtectedBackgroundsActionbackgroundIdRoute =
+  ProtectedBackgroundsActionbackgroundIdImport.update({
     id: '/backgrounds/$action/$_backgroundId',
     path: '/backgrounds/$action/$_backgroundId',
-    getParentRoute: () => rootRoute,
+    getParentRoute: () => ProtectedRoute,
   } as any)
 
 // Populate the FileRoutesByPath interface
@@ -197,60 +218,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof ProtectedImport
+      parentRoute: typeof rootRoute
+    }
     '/$auth/$action': {
       id: '/$auth/$action'
       path: '/$auth/$action'
       fullPath: '/$auth/$action'
       preLoaderRoute: typeof AuthActionImport
-      parentRoute: typeof rootRoute
-    }
-    '/backgrounds/$backgroundId': {
-      id: '/backgrounds/$backgroundId'
-      path: '/backgrounds/$backgroundId'
-      fullPath: '/backgrounds/$backgroundId'
-      preLoaderRoute: typeof BackgroundsBackgroundIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/characters/$characterId': {
-      id: '/characters/$characterId'
-      path: '/characters/$characterId'
-      fullPath: '/characters/$characterId'
-      preLoaderRoute: typeof CharactersCharacterIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/classes/$classId': {
-      id: '/classes/$classId'
-      path: '/classes/$classId'
-      fullPath: '/classes/$classId'
-      preLoaderRoute: typeof ClassesClassIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/equipment/$equipmentId': {
-      id: '/equipment/$equipmentId'
-      path: '/equipment/$equipmentId'
-      fullPath: '/equipment/$equipmentId'
-      preLoaderRoute: typeof EquipmentEquipmentIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/feats/$featId': {
-      id: '/feats/$featId'
-      path: '/feats/$featId'
-      fullPath: '/feats/$featId'
-      preLoaderRoute: typeof FeatsFeatIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/races/$raceId': {
-      id: '/races/$raceId'
-      path: '/races/$raceId'
-      fullPath: '/races/$raceId'
-      preLoaderRoute: typeof RacesRaceIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/spells/$spellId': {
-      id: '/spells/$spellId'
-      path: '/spells/$spellId'
-      fullPath: '/spells/$spellId'
-      preLoaderRoute: typeof SpellsSpellIdImport
       parentRoute: typeof rootRoute
     }
     '/$auth/': {
@@ -260,196 +239,317 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthIndexImport
       parentRoute: typeof rootRoute
     }
-    '/backgrounds/': {
-      id: '/backgrounds/'
+    '/_protected/backgrounds/$backgroundId': {
+      id: '/_protected/backgrounds/$backgroundId'
+      path: '/backgrounds/$backgroundId'
+      fullPath: '/backgrounds/$backgroundId'
+      preLoaderRoute: typeof ProtectedBackgroundsBackgroundIdImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/characters/$characterId': {
+      id: '/_protected/characters/$characterId'
+      path: '/characters/$characterId'
+      fullPath: '/characters/$characterId'
+      preLoaderRoute: typeof ProtectedCharactersCharacterIdImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/classes/$classId': {
+      id: '/_protected/classes/$classId'
+      path: '/classes/$classId'
+      fullPath: '/classes/$classId'
+      preLoaderRoute: typeof ProtectedClassesClassIdImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/equipment/$equipmentId': {
+      id: '/_protected/equipment/$equipmentId'
+      path: '/equipment/$equipmentId'
+      fullPath: '/equipment/$equipmentId'
+      preLoaderRoute: typeof ProtectedEquipmentEquipmentIdImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/feats/$featId': {
+      id: '/_protected/feats/$featId'
+      path: '/feats/$featId'
+      fullPath: '/feats/$featId'
+      preLoaderRoute: typeof ProtectedFeatsFeatIdImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/races/$raceId': {
+      id: '/_protected/races/$raceId'
+      path: '/races/$raceId'
+      fullPath: '/races/$raceId'
+      preLoaderRoute: typeof ProtectedRacesRaceIdImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/spells/$spellId': {
+      id: '/_protected/spells/$spellId'
+      path: '/spells/$spellId'
+      fullPath: '/spells/$spellId'
+      preLoaderRoute: typeof ProtectedSpellsSpellIdImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/backgrounds/': {
+      id: '/_protected/backgrounds/'
       path: '/backgrounds'
       fullPath: '/backgrounds'
-      preLoaderRoute: typeof BackgroundsIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedBackgroundsIndexImport
+      parentRoute: typeof ProtectedImport
     }
-    '/characters/': {
-      id: '/characters/'
+    '/_protected/characters/': {
+      id: '/_protected/characters/'
       path: '/characters'
       fullPath: '/characters'
-      preLoaderRoute: typeof CharactersIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedCharactersIndexImport
+      parentRoute: typeof ProtectedImport
     }
-    '/classes/': {
-      id: '/classes/'
+    '/_protected/classes/': {
+      id: '/_protected/classes/'
       path: '/classes'
       fullPath: '/classes'
-      preLoaderRoute: typeof ClassesIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedClassesIndexImport
+      parentRoute: typeof ProtectedImport
     }
-    '/equipment/': {
-      id: '/equipment/'
+    '/_protected/equipment/': {
+      id: '/_protected/equipment/'
       path: '/equipment'
       fullPath: '/equipment'
-      preLoaderRoute: typeof EquipmentIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedEquipmentIndexImport
+      parentRoute: typeof ProtectedImport
     }
-    '/feats/': {
-      id: '/feats/'
+    '/_protected/feats/': {
+      id: '/_protected/feats/'
       path: '/feats'
       fullPath: '/feats'
-      preLoaderRoute: typeof FeatsIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedFeatsIndexImport
+      parentRoute: typeof ProtectedImport
     }
-    '/races/': {
-      id: '/races/'
+    '/_protected/home/': {
+      id: '/_protected/home/'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof ProtectedHomeIndexImport
+      parentRoute: typeof ProtectedImport
+    }
+    '/_protected/races/': {
+      id: '/_protected/races/'
       path: '/races'
       fullPath: '/races'
-      preLoaderRoute: typeof RacesIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedRacesIndexImport
+      parentRoute: typeof ProtectedImport
     }
-    '/spells/': {
-      id: '/spells/'
+    '/_protected/spells/': {
+      id: '/_protected/spells/'
       path: '/spells'
       fullPath: '/spells'
-      preLoaderRoute: typeof SpellsIndexImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedSpellsIndexImport
+      parentRoute: typeof ProtectedImport
     }
-    '/backgrounds/$action/$_backgroundId': {
-      id: '/backgrounds/$action/$_backgroundId'
+    '/_protected/backgrounds/$action/$_backgroundId': {
+      id: '/_protected/backgrounds/$action/$_backgroundId'
       path: '/backgrounds/$action/$_backgroundId'
       fullPath: '/backgrounds/$action/$_backgroundId'
-      preLoaderRoute: typeof BackgroundsActionbackgroundIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedBackgroundsActionbackgroundIdImport
+      parentRoute: typeof ProtectedImport
     }
-    '/characters/$action/$_characterId': {
-      id: '/characters/$action/$_characterId'
+    '/_protected/characters/$action/$_characterId': {
+      id: '/_protected/characters/$action/$_characterId'
       path: '/characters/$action/$_characterId'
       fullPath: '/characters/$action/$_characterId'
-      preLoaderRoute: typeof CharactersActioncharacterIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedCharactersActioncharacterIdImport
+      parentRoute: typeof ProtectedImport
     }
-    '/classes/$action/$_classId': {
-      id: '/classes/$action/$_classId'
+    '/_protected/classes/$action/$_classId': {
+      id: '/_protected/classes/$action/$_classId'
       path: '/classes/$action/$_classId'
       fullPath: '/classes/$action/$_classId'
-      preLoaderRoute: typeof ClassesActionclassIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedClassesActionclassIdImport
+      parentRoute: typeof ProtectedImport
     }
-    '/equipment/$action/$_equipmentId': {
-      id: '/equipment/$action/$_equipmentId'
+    '/_protected/equipment/$action/$_equipmentId': {
+      id: '/_protected/equipment/$action/$_equipmentId'
       path: '/equipment/$action/$_equipmentId'
       fullPath: '/equipment/$action/$_equipmentId'
-      preLoaderRoute: typeof EquipmentActionequipmentIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedEquipmentActionequipmentIdImport
+      parentRoute: typeof ProtectedImport
     }
-    '/feats/$action/$_featId': {
-      id: '/feats/$action/$_featId'
+    '/_protected/feats/$action/$_featId': {
+      id: '/_protected/feats/$action/$_featId'
       path: '/feats/$action/$_featId'
       fullPath: '/feats/$action/$_featId'
-      preLoaderRoute: typeof FeatsActionfeatIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedFeatsActionfeatIdImport
+      parentRoute: typeof ProtectedImport
     }
-    '/races/$action/$_raceId': {
-      id: '/races/$action/$_raceId'
+    '/_protected/races/$action/$_raceId': {
+      id: '/_protected/races/$action/$_raceId'
       path: '/races/$action/$_raceId'
       fullPath: '/races/$action/$_raceId'
-      preLoaderRoute: typeof RacesActionraceIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedRacesActionraceIdImport
+      parentRoute: typeof ProtectedImport
     }
-    '/spells/$action/$_spellId': {
-      id: '/spells/$action/$_spellId'
+    '/_protected/spells/$action/$_spellId': {
+      id: '/_protected/spells/$action/$_spellId'
       path: '/spells/$action/$_spellId'
       fullPath: '/spells/$action/$_spellId'
-      preLoaderRoute: typeof SpellsActionspellIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof ProtectedSpellsActionspellIdImport
+      parentRoute: typeof ProtectedImport
     }
   }
 }
 
 // Create and export the route tree
 
+interface ProtectedRouteChildren {
+  ProtectedBackgroundsBackgroundIdRoute: typeof ProtectedBackgroundsBackgroundIdRoute
+  ProtectedCharactersCharacterIdRoute: typeof ProtectedCharactersCharacterIdRoute
+  ProtectedClassesClassIdRoute: typeof ProtectedClassesClassIdRoute
+  ProtectedEquipmentEquipmentIdRoute: typeof ProtectedEquipmentEquipmentIdRoute
+  ProtectedFeatsFeatIdRoute: typeof ProtectedFeatsFeatIdRoute
+  ProtectedRacesRaceIdRoute: typeof ProtectedRacesRaceIdRoute
+  ProtectedSpellsSpellIdRoute: typeof ProtectedSpellsSpellIdRoute
+  ProtectedBackgroundsIndexRoute: typeof ProtectedBackgroundsIndexRoute
+  ProtectedCharactersIndexRoute: typeof ProtectedCharactersIndexRoute
+  ProtectedClassesIndexRoute: typeof ProtectedClassesIndexRoute
+  ProtectedEquipmentIndexRoute: typeof ProtectedEquipmentIndexRoute
+  ProtectedFeatsIndexRoute: typeof ProtectedFeatsIndexRoute
+  ProtectedHomeIndexRoute: typeof ProtectedHomeIndexRoute
+  ProtectedRacesIndexRoute: typeof ProtectedRacesIndexRoute
+  ProtectedSpellsIndexRoute: typeof ProtectedSpellsIndexRoute
+  ProtectedBackgroundsActionbackgroundIdRoute: typeof ProtectedBackgroundsActionbackgroundIdRoute
+  ProtectedCharactersActioncharacterIdRoute: typeof ProtectedCharactersActioncharacterIdRoute
+  ProtectedClassesActionclassIdRoute: typeof ProtectedClassesActionclassIdRoute
+  ProtectedEquipmentActionequipmentIdRoute: typeof ProtectedEquipmentActionequipmentIdRoute
+  ProtectedFeatsActionfeatIdRoute: typeof ProtectedFeatsActionfeatIdRoute
+  ProtectedRacesActionraceIdRoute: typeof ProtectedRacesActionraceIdRoute
+  ProtectedSpellsActionspellIdRoute: typeof ProtectedSpellsActionspellIdRoute
+}
+
+const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedBackgroundsBackgroundIdRoute: ProtectedBackgroundsBackgroundIdRoute,
+  ProtectedCharactersCharacterIdRoute: ProtectedCharactersCharacterIdRoute,
+  ProtectedClassesClassIdRoute: ProtectedClassesClassIdRoute,
+  ProtectedEquipmentEquipmentIdRoute: ProtectedEquipmentEquipmentIdRoute,
+  ProtectedFeatsFeatIdRoute: ProtectedFeatsFeatIdRoute,
+  ProtectedRacesRaceIdRoute: ProtectedRacesRaceIdRoute,
+  ProtectedSpellsSpellIdRoute: ProtectedSpellsSpellIdRoute,
+  ProtectedBackgroundsIndexRoute: ProtectedBackgroundsIndexRoute,
+  ProtectedCharactersIndexRoute: ProtectedCharactersIndexRoute,
+  ProtectedClassesIndexRoute: ProtectedClassesIndexRoute,
+  ProtectedEquipmentIndexRoute: ProtectedEquipmentIndexRoute,
+  ProtectedFeatsIndexRoute: ProtectedFeatsIndexRoute,
+  ProtectedHomeIndexRoute: ProtectedHomeIndexRoute,
+  ProtectedRacesIndexRoute: ProtectedRacesIndexRoute,
+  ProtectedSpellsIndexRoute: ProtectedSpellsIndexRoute,
+  ProtectedBackgroundsActionbackgroundIdRoute:
+    ProtectedBackgroundsActionbackgroundIdRoute,
+  ProtectedCharactersActioncharacterIdRoute:
+    ProtectedCharactersActioncharacterIdRoute,
+  ProtectedClassesActionclassIdRoute: ProtectedClassesActionclassIdRoute,
+  ProtectedEquipmentActionequipmentIdRoute:
+    ProtectedEquipmentActionequipmentIdRoute,
+  ProtectedFeatsActionfeatIdRoute: ProtectedFeatsActionfeatIdRoute,
+  ProtectedRacesActionraceIdRoute: ProtectedRacesActionraceIdRoute,
+  ProtectedSpellsActionspellIdRoute: ProtectedSpellsActionspellIdRoute,
+}
+
+const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
+  ProtectedRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '': typeof ProtectedRouteWithChildren
   '/$auth/$action': typeof AuthActionRoute
-  '/backgrounds/$backgroundId': typeof BackgroundsBackgroundIdRoute
-  '/characters/$characterId': typeof CharactersCharacterIdRoute
-  '/classes/$classId': typeof ClassesClassIdRoute
-  '/equipment/$equipmentId': typeof EquipmentEquipmentIdRoute
-  '/feats/$featId': typeof FeatsFeatIdRoute
-  '/races/$raceId': typeof RacesRaceIdRoute
-  '/spells/$spellId': typeof SpellsSpellIdRoute
   '/$auth': typeof AuthIndexRoute
-  '/backgrounds': typeof BackgroundsIndexRoute
-  '/characters': typeof CharactersIndexRoute
-  '/classes': typeof ClassesIndexRoute
-  '/equipment': typeof EquipmentIndexRoute
-  '/feats': typeof FeatsIndexRoute
-  '/races': typeof RacesIndexRoute
-  '/spells': typeof SpellsIndexRoute
-  '/backgrounds/$action/$_backgroundId': typeof BackgroundsActionbackgroundIdRoute
-  '/characters/$action/$_characterId': typeof CharactersActioncharacterIdRoute
-  '/classes/$action/$_classId': typeof ClassesActionclassIdRoute
-  '/equipment/$action/$_equipmentId': typeof EquipmentActionequipmentIdRoute
-  '/feats/$action/$_featId': typeof FeatsActionfeatIdRoute
-  '/races/$action/$_raceId': typeof RacesActionraceIdRoute
-  '/spells/$action/$_spellId': typeof SpellsActionspellIdRoute
+  '/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
+  '/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
+  '/classes/$classId': typeof ProtectedClassesClassIdRoute
+  '/equipment/$equipmentId': typeof ProtectedEquipmentEquipmentIdRoute
+  '/feats/$featId': typeof ProtectedFeatsFeatIdRoute
+  '/races/$raceId': typeof ProtectedRacesRaceIdRoute
+  '/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
+  '/backgrounds': typeof ProtectedBackgroundsIndexRoute
+  '/characters': typeof ProtectedCharactersIndexRoute
+  '/classes': typeof ProtectedClassesIndexRoute
+  '/equipment': typeof ProtectedEquipmentIndexRoute
+  '/feats': typeof ProtectedFeatsIndexRoute
+  '/home': typeof ProtectedHomeIndexRoute
+  '/races': typeof ProtectedRacesIndexRoute
+  '/spells': typeof ProtectedSpellsIndexRoute
+  '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
+  '/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
+  '/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
+  '/equipment/$action/$_equipmentId': typeof ProtectedEquipmentActionequipmentIdRoute
+  '/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
+  '/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
+  '/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '': typeof ProtectedRouteWithChildren
   '/$auth/$action': typeof AuthActionRoute
-  '/backgrounds/$backgroundId': typeof BackgroundsBackgroundIdRoute
-  '/characters/$characterId': typeof CharactersCharacterIdRoute
-  '/classes/$classId': typeof ClassesClassIdRoute
-  '/equipment/$equipmentId': typeof EquipmentEquipmentIdRoute
-  '/feats/$featId': typeof FeatsFeatIdRoute
-  '/races/$raceId': typeof RacesRaceIdRoute
-  '/spells/$spellId': typeof SpellsSpellIdRoute
   '/$auth': typeof AuthIndexRoute
-  '/backgrounds': typeof BackgroundsIndexRoute
-  '/characters': typeof CharactersIndexRoute
-  '/classes': typeof ClassesIndexRoute
-  '/equipment': typeof EquipmentIndexRoute
-  '/feats': typeof FeatsIndexRoute
-  '/races': typeof RacesIndexRoute
-  '/spells': typeof SpellsIndexRoute
-  '/backgrounds/$action/$_backgroundId': typeof BackgroundsActionbackgroundIdRoute
-  '/characters/$action/$_characterId': typeof CharactersActioncharacterIdRoute
-  '/classes/$action/$_classId': typeof ClassesActionclassIdRoute
-  '/equipment/$action/$_equipmentId': typeof EquipmentActionequipmentIdRoute
-  '/feats/$action/$_featId': typeof FeatsActionfeatIdRoute
-  '/races/$action/$_raceId': typeof RacesActionraceIdRoute
-  '/spells/$action/$_spellId': typeof SpellsActionspellIdRoute
+  '/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
+  '/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
+  '/classes/$classId': typeof ProtectedClassesClassIdRoute
+  '/equipment/$equipmentId': typeof ProtectedEquipmentEquipmentIdRoute
+  '/feats/$featId': typeof ProtectedFeatsFeatIdRoute
+  '/races/$raceId': typeof ProtectedRacesRaceIdRoute
+  '/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
+  '/backgrounds': typeof ProtectedBackgroundsIndexRoute
+  '/characters': typeof ProtectedCharactersIndexRoute
+  '/classes': typeof ProtectedClassesIndexRoute
+  '/equipment': typeof ProtectedEquipmentIndexRoute
+  '/feats': typeof ProtectedFeatsIndexRoute
+  '/home': typeof ProtectedHomeIndexRoute
+  '/races': typeof ProtectedRacesIndexRoute
+  '/spells': typeof ProtectedSpellsIndexRoute
+  '/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
+  '/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
+  '/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
+  '/equipment/$action/$_equipmentId': typeof ProtectedEquipmentActionequipmentIdRoute
+  '/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
+  '/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
+  '/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/_protected': typeof ProtectedRouteWithChildren
   '/$auth/$action': typeof AuthActionRoute
-  '/backgrounds/$backgroundId': typeof BackgroundsBackgroundIdRoute
-  '/characters/$characterId': typeof CharactersCharacterIdRoute
-  '/classes/$classId': typeof ClassesClassIdRoute
-  '/equipment/$equipmentId': typeof EquipmentEquipmentIdRoute
-  '/feats/$featId': typeof FeatsFeatIdRoute
-  '/races/$raceId': typeof RacesRaceIdRoute
-  '/spells/$spellId': typeof SpellsSpellIdRoute
   '/$auth/': typeof AuthIndexRoute
-  '/backgrounds/': typeof BackgroundsIndexRoute
-  '/characters/': typeof CharactersIndexRoute
-  '/classes/': typeof ClassesIndexRoute
-  '/equipment/': typeof EquipmentIndexRoute
-  '/feats/': typeof FeatsIndexRoute
-  '/races/': typeof RacesIndexRoute
-  '/spells/': typeof SpellsIndexRoute
-  '/backgrounds/$action/$_backgroundId': typeof BackgroundsActionbackgroundIdRoute
-  '/characters/$action/$_characterId': typeof CharactersActioncharacterIdRoute
-  '/classes/$action/$_classId': typeof ClassesActionclassIdRoute
-  '/equipment/$action/$_equipmentId': typeof EquipmentActionequipmentIdRoute
-  '/feats/$action/$_featId': typeof FeatsActionfeatIdRoute
-  '/races/$action/$_raceId': typeof RacesActionraceIdRoute
-  '/spells/$action/$_spellId': typeof SpellsActionspellIdRoute
+  '/_protected/backgrounds/$backgroundId': typeof ProtectedBackgroundsBackgroundIdRoute
+  '/_protected/characters/$characterId': typeof ProtectedCharactersCharacterIdRoute
+  '/_protected/classes/$classId': typeof ProtectedClassesClassIdRoute
+  '/_protected/equipment/$equipmentId': typeof ProtectedEquipmentEquipmentIdRoute
+  '/_protected/feats/$featId': typeof ProtectedFeatsFeatIdRoute
+  '/_protected/races/$raceId': typeof ProtectedRacesRaceIdRoute
+  '/_protected/spells/$spellId': typeof ProtectedSpellsSpellIdRoute
+  '/_protected/backgrounds/': typeof ProtectedBackgroundsIndexRoute
+  '/_protected/characters/': typeof ProtectedCharactersIndexRoute
+  '/_protected/classes/': typeof ProtectedClassesIndexRoute
+  '/_protected/equipment/': typeof ProtectedEquipmentIndexRoute
+  '/_protected/feats/': typeof ProtectedFeatsIndexRoute
+  '/_protected/home/': typeof ProtectedHomeIndexRoute
+  '/_protected/races/': typeof ProtectedRacesIndexRoute
+  '/_protected/spells/': typeof ProtectedSpellsIndexRoute
+  '/_protected/backgrounds/$action/$_backgroundId': typeof ProtectedBackgroundsActionbackgroundIdRoute
+  '/_protected/characters/$action/$_characterId': typeof ProtectedCharactersActioncharacterIdRoute
+  '/_protected/classes/$action/$_classId': typeof ProtectedClassesActionclassIdRoute
+  '/_protected/equipment/$action/$_equipmentId': typeof ProtectedEquipmentActionequipmentIdRoute
+  '/_protected/feats/$action/$_featId': typeof ProtectedFeatsActionfeatIdRoute
+  '/_protected/races/$action/$_raceId': typeof ProtectedRacesActionraceIdRoute
+  '/_protected/spells/$action/$_spellId': typeof ProtectedSpellsActionspellIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | ''
     | '/$auth/$action'
+    | '/$auth'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -457,12 +557,12 @@ export interface FileRouteTypes {
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
-    | '/$auth'
     | '/backgrounds'
     | '/characters'
     | '/classes'
     | '/equipment'
     | '/feats'
+    | '/home'
     | '/races'
     | '/spells'
     | '/backgrounds/$action/$_backgroundId'
@@ -475,7 +575,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | ''
     | '/$auth/$action'
+    | '/$auth'
     | '/backgrounds/$backgroundId'
     | '/characters/$characterId'
     | '/classes/$classId'
@@ -483,12 +585,12 @@ export interface FileRouteTypes {
     | '/feats/$featId'
     | '/races/$raceId'
     | '/spells/$spellId'
-    | '/$auth'
     | '/backgrounds'
     | '/characters'
     | '/classes'
     | '/equipment'
     | '/feats'
+    | '/home'
     | '/races'
     | '/spells'
     | '/backgrounds/$action/$_backgroundId'
@@ -501,84 +603,46 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_protected'
     | '/$auth/$action'
-    | '/backgrounds/$backgroundId'
-    | '/characters/$characterId'
-    | '/classes/$classId'
-    | '/equipment/$equipmentId'
-    | '/feats/$featId'
-    | '/races/$raceId'
-    | '/spells/$spellId'
     | '/$auth/'
-    | '/backgrounds/'
-    | '/characters/'
-    | '/classes/'
-    | '/equipment/'
-    | '/feats/'
-    | '/races/'
-    | '/spells/'
-    | '/backgrounds/$action/$_backgroundId'
-    | '/characters/$action/$_characterId'
-    | '/classes/$action/$_classId'
-    | '/equipment/$action/$_equipmentId'
-    | '/feats/$action/$_featId'
-    | '/races/$action/$_raceId'
-    | '/spells/$action/$_spellId'
+    | '/_protected/backgrounds/$backgroundId'
+    | '/_protected/characters/$characterId'
+    | '/_protected/classes/$classId'
+    | '/_protected/equipment/$equipmentId'
+    | '/_protected/feats/$featId'
+    | '/_protected/races/$raceId'
+    | '/_protected/spells/$spellId'
+    | '/_protected/backgrounds/'
+    | '/_protected/characters/'
+    | '/_protected/classes/'
+    | '/_protected/equipment/'
+    | '/_protected/feats/'
+    | '/_protected/home/'
+    | '/_protected/races/'
+    | '/_protected/spells/'
+    | '/_protected/backgrounds/$action/$_backgroundId'
+    | '/_protected/characters/$action/$_characterId'
+    | '/_protected/classes/$action/$_classId'
+    | '/_protected/equipment/$action/$_equipmentId'
+    | '/_protected/feats/$action/$_featId'
+    | '/_protected/races/$action/$_raceId'
+    | '/_protected/spells/$action/$_spellId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProtectedRoute: typeof ProtectedRouteWithChildren
   AuthActionRoute: typeof AuthActionRoute
-  BackgroundsBackgroundIdRoute: typeof BackgroundsBackgroundIdRoute
-  CharactersCharacterIdRoute: typeof CharactersCharacterIdRoute
-  ClassesClassIdRoute: typeof ClassesClassIdRoute
-  EquipmentEquipmentIdRoute: typeof EquipmentEquipmentIdRoute
-  FeatsFeatIdRoute: typeof FeatsFeatIdRoute
-  RacesRaceIdRoute: typeof RacesRaceIdRoute
-  SpellsSpellIdRoute: typeof SpellsSpellIdRoute
   AuthIndexRoute: typeof AuthIndexRoute
-  BackgroundsIndexRoute: typeof BackgroundsIndexRoute
-  CharactersIndexRoute: typeof CharactersIndexRoute
-  ClassesIndexRoute: typeof ClassesIndexRoute
-  EquipmentIndexRoute: typeof EquipmentIndexRoute
-  FeatsIndexRoute: typeof FeatsIndexRoute
-  RacesIndexRoute: typeof RacesIndexRoute
-  SpellsIndexRoute: typeof SpellsIndexRoute
-  BackgroundsActionbackgroundIdRoute: typeof BackgroundsActionbackgroundIdRoute
-  CharactersActioncharacterIdRoute: typeof CharactersActioncharacterIdRoute
-  ClassesActionclassIdRoute: typeof ClassesActionclassIdRoute
-  EquipmentActionequipmentIdRoute: typeof EquipmentActionequipmentIdRoute
-  FeatsActionfeatIdRoute: typeof FeatsActionfeatIdRoute
-  RacesActionraceIdRoute: typeof RacesActionraceIdRoute
-  SpellsActionspellIdRoute: typeof SpellsActionspellIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProtectedRoute: ProtectedRouteWithChildren,
   AuthActionRoute: AuthActionRoute,
-  BackgroundsBackgroundIdRoute: BackgroundsBackgroundIdRoute,
-  CharactersCharacterIdRoute: CharactersCharacterIdRoute,
-  ClassesClassIdRoute: ClassesClassIdRoute,
-  EquipmentEquipmentIdRoute: EquipmentEquipmentIdRoute,
-  FeatsFeatIdRoute: FeatsFeatIdRoute,
-  RacesRaceIdRoute: RacesRaceIdRoute,
-  SpellsSpellIdRoute: SpellsSpellIdRoute,
   AuthIndexRoute: AuthIndexRoute,
-  BackgroundsIndexRoute: BackgroundsIndexRoute,
-  CharactersIndexRoute: CharactersIndexRoute,
-  ClassesIndexRoute: ClassesIndexRoute,
-  EquipmentIndexRoute: EquipmentIndexRoute,
-  FeatsIndexRoute: FeatsIndexRoute,
-  RacesIndexRoute: RacesIndexRoute,
-  SpellsIndexRoute: SpellsIndexRoute,
-  BackgroundsActionbackgroundIdRoute: BackgroundsActionbackgroundIdRoute,
-  CharactersActioncharacterIdRoute: CharactersActioncharacterIdRoute,
-  ClassesActionclassIdRoute: ClassesActionclassIdRoute,
-  EquipmentActionequipmentIdRoute: EquipmentActionequipmentIdRoute,
-  FeatsActionfeatIdRoute: FeatsActionfeatIdRoute,
-  RacesActionraceIdRoute: RacesActionraceIdRoute,
-  SpellsActionspellIdRoute: SpellsActionspellIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -592,102 +656,134 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/_protected",
         "/$auth/$action",
-        "/backgrounds/$backgroundId",
-        "/characters/$characterId",
-        "/classes/$classId",
-        "/equipment/$equipmentId",
-        "/feats/$featId",
-        "/races/$raceId",
-        "/spells/$spellId",
-        "/$auth/",
-        "/backgrounds/",
-        "/characters/",
-        "/classes/",
-        "/equipment/",
-        "/feats/",
-        "/races/",
-        "/spells/",
-        "/backgrounds/$action/$_backgroundId",
-        "/characters/$action/$_characterId",
-        "/classes/$action/$_classId",
-        "/equipment/$action/$_equipmentId",
-        "/feats/$action/$_featId",
-        "/races/$action/$_raceId",
-        "/spells/$action/$_spellId"
+        "/$auth/"
       ]
     },
     "/": {
       "filePath": "index.tsx"
     },
+    "/_protected": {
+      "filePath": "_protected.tsx",
+      "children": [
+        "/_protected/backgrounds/$backgroundId",
+        "/_protected/characters/$characterId",
+        "/_protected/classes/$classId",
+        "/_protected/equipment/$equipmentId",
+        "/_protected/feats/$featId",
+        "/_protected/races/$raceId",
+        "/_protected/spells/$spellId",
+        "/_protected/backgrounds/",
+        "/_protected/characters/",
+        "/_protected/classes/",
+        "/_protected/equipment/",
+        "/_protected/feats/",
+        "/_protected/home/",
+        "/_protected/races/",
+        "/_protected/spells/",
+        "/_protected/backgrounds/$action/$_backgroundId",
+        "/_protected/characters/$action/$_characterId",
+        "/_protected/classes/$action/$_classId",
+        "/_protected/equipment/$action/$_equipmentId",
+        "/_protected/feats/$action/$_featId",
+        "/_protected/races/$action/$_raceId",
+        "/_protected/spells/$action/$_spellId"
+      ]
+    },
     "/$auth/$action": {
       "filePath": "$auth/$action.tsx"
-    },
-    "/backgrounds/$backgroundId": {
-      "filePath": "backgrounds/$backgroundId.tsx"
-    },
-    "/characters/$characterId": {
-      "filePath": "characters/$characterId.tsx"
-    },
-    "/classes/$classId": {
-      "filePath": "classes/$classId.tsx"
-    },
-    "/equipment/$equipmentId": {
-      "filePath": "equipment/$equipmentId.tsx"
-    },
-    "/feats/$featId": {
-      "filePath": "feats/$featId.tsx"
-    },
-    "/races/$raceId": {
-      "filePath": "races/$raceId.tsx"
-    },
-    "/spells/$spellId": {
-      "filePath": "spells/$spellId.tsx"
     },
     "/$auth/": {
       "filePath": "$auth/index.tsx"
     },
-    "/backgrounds/": {
-      "filePath": "backgrounds/index.tsx"
+    "/_protected/backgrounds/$backgroundId": {
+      "filePath": "_protected/backgrounds/$backgroundId.tsx",
+      "parent": "/_protected"
     },
-    "/characters/": {
-      "filePath": "characters/index.tsx"
+    "/_protected/characters/$characterId": {
+      "filePath": "_protected/characters/$characterId.tsx",
+      "parent": "/_protected"
     },
-    "/classes/": {
-      "filePath": "classes/index.tsx"
+    "/_protected/classes/$classId": {
+      "filePath": "_protected/classes/$classId.tsx",
+      "parent": "/_protected"
     },
-    "/equipment/": {
-      "filePath": "equipment/index.tsx"
+    "/_protected/equipment/$equipmentId": {
+      "filePath": "_protected/equipment/$equipmentId.tsx",
+      "parent": "/_protected"
     },
-    "/feats/": {
-      "filePath": "feats/index.tsx"
+    "/_protected/feats/$featId": {
+      "filePath": "_protected/feats/$featId.tsx",
+      "parent": "/_protected"
     },
-    "/races/": {
-      "filePath": "races/index.tsx"
+    "/_protected/races/$raceId": {
+      "filePath": "_protected/races/$raceId.tsx",
+      "parent": "/_protected"
     },
-    "/spells/": {
-      "filePath": "spells/index.tsx"
+    "/_protected/spells/$spellId": {
+      "filePath": "_protected/spells/$spellId.tsx",
+      "parent": "/_protected"
     },
-    "/backgrounds/$action/$_backgroundId": {
-      "filePath": "backgrounds/$action/$_backgroundId.tsx"
+    "/_protected/backgrounds/": {
+      "filePath": "_protected/backgrounds/index.tsx",
+      "parent": "/_protected"
     },
-    "/characters/$action/$_characterId": {
-      "filePath": "characters/$action/$_characterId.tsx"
+    "/_protected/characters/": {
+      "filePath": "_protected/characters/index.tsx",
+      "parent": "/_protected"
     },
-    "/classes/$action/$_classId": {
-      "filePath": "classes/$action/$_classId.tsx"
+    "/_protected/classes/": {
+      "filePath": "_protected/classes/index.tsx",
+      "parent": "/_protected"
     },
-    "/equipment/$action/$_equipmentId": {
-      "filePath": "equipment/$action/$_equipmentId.tsx"
+    "/_protected/equipment/": {
+      "filePath": "_protected/equipment/index.tsx",
+      "parent": "/_protected"
     },
-    "/feats/$action/$_featId": {
-      "filePath": "feats/$action/$_featId.tsx"
+    "/_protected/feats/": {
+      "filePath": "_protected/feats/index.tsx",
+      "parent": "/_protected"
     },
-    "/races/$action/$_raceId": {
-      "filePath": "races/$action/$_raceId.tsx"
+    "/_protected/home/": {
+      "filePath": "_protected/home/index.tsx",
+      "parent": "/_protected"
     },
-    "/spells/$action/$_spellId": {
-      "filePath": "spells/$action/$_spellId.tsx"
+    "/_protected/races/": {
+      "filePath": "_protected/races/index.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/spells/": {
+      "filePath": "_protected/spells/index.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/backgrounds/$action/$_backgroundId": {
+      "filePath": "_protected/backgrounds/$action/$_backgroundId.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/characters/$action/$_characterId": {
+      "filePath": "_protected/characters/$action/$_characterId.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/classes/$action/$_classId": {
+      "filePath": "_protected/classes/$action/$_classId.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/equipment/$action/$_equipmentId": {
+      "filePath": "_protected/equipment/$action/$_equipmentId.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/feats/$action/$_featId": {
+      "filePath": "_protected/feats/$action/$_featId.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/races/$action/$_raceId": {
+      "filePath": "_protected/races/$action/$_raceId.tsx",
+      "parent": "/_protected"
+    },
+    "/_protected/spells/$action/$_spellId": {
+      "filePath": "_protected/spells/$action/$_spellId.tsx",
+      "parent": "/_protected"
     }
   }
 }

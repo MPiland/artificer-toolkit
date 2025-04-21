@@ -31,7 +31,29 @@ type Feat {
   masterId: String
 }
 
+type FeatFeatureMetaObject {
+  id: ID!
+  label: String!
+  featIds: [ID!]
+}
+
+type FeatMeta {
+  features: [FeatFeatureMetaObject!]!
+}
+
+type FeatListItem {
+  id: ID!
+  label: String!
+  value: String!
+  desc: String
+  detail: String
+  ownerId: String!
+  systemId: ID!
+  masterId: String
+}
+
 type FeatConnection {
-  items: [Feat]!
+  items: [FeatListItem!]!
+  metaData: FeatMeta!
   nextToken: String
 }

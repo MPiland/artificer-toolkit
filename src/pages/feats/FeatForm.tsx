@@ -4,17 +4,34 @@ import { useAddNewFeatMutation, useUpdateFeatMutation } from '../../apis/featsAp
 import { Step } from '../../types/form'
 import { FormContext } from '../../components/Form/FormContext'
 import { isEqual } from 'lodash'
+import { Route } from '../../routes/_protected/feats/$action/$_featId'
+import useFeatData from '../../hooks/useFeatData'
 
 const FeatForm = () => {
-  const { setSteps, steps } = use(FormContext)
+  const { _featId: featId, action } = Route.useParams()
+  const {
+    feats: { findFeat },
+  } = useFeatData()
+  const feat = findFeat(featId)
+  const { steps, formStore } = use(FormContext)
 
   const stepsArray = [{ id: 'features', label: 'Features' }] satisfies Step[]
 
   useEffect(() => {
     if (!isEqual(steps, stepsArray)) {
-      setSteps(stepsArray)
+      formStore.setSteps(stepsArray)
     }
-  }, [setSteps, stepsArray, steps])
+    if (action === 'new' && feat) {
+      if (Object.keys(formStore.data).length === 0) {
+        formStore.reinitState(feat)
+      }
+    }
+    if (action === 'edit' && feat) {
+      if (formStore.data?.id !== feat.id) {
+        formStore.reinitState(feat)
+      }
+    }
+  }, [stepsArray, steps, formStore, feat, action])
 
   return <Form useAddNewItemMutation={useAddNewFeatMutation} useUpdateItemMutation={useUpdateFeatMutation} />
 }

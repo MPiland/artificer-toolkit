@@ -348,6 +348,6 @@ type Character {
 }
 
 type CharacterConnection {
-  items: [Character]!
+  items: [Character!]!
   nextToken: String
 }

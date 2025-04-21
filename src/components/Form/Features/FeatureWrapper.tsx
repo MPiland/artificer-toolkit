@@ -5,25 +5,24 @@ import { FeatureContext } from './FeatureContext'
 import Grid from '../../Grid/Grid'
 
 const FeatureWrapper = () => {
-  const { featureData, featureStep, optionData, sectionStep, sectionStepComponent, featureSteps } = use(FeatureContext)
+  const { featureStore, optionStore, sectionStore, sectionStepComponent, featureSteps } = use(FeatureContext)
 
   const featureTitle =
-    featureData.label != null &&
-    featureData.label !== '' &&
-    `(${featureStep === 'option' ? optionData?.label ?? '' : (featureStep === 'feature' && featureData?.label) ?? ''})`
+    featureStore.data.label != null &&
+    featureStore.data.label !== '' &&
+    `(${featureStore.step === 'option' ? (optionStore.data?.label ?? '') : ((featureStore.step === 'feature' && featureStore.data?.label) ?? '')})`
 
   return (
     <Grid>
-      {featureStep == null ? (
+      {featureStore.step == null ?
         <FeaturesList />
-      ) : (
-        <>
+      : <>
           <Grid.Item>
             <h2 className={sprinkles({ mb: 'space-2' })}>{featureTitle}</h2>
           </Grid.Item>
-          {sectionStep != null ? sectionStepComponent[sectionStep] : featureSteps[featureStep]}
+          {sectionStore.step != null ? sectionStepComponent[sectionStore.step] : featureSteps[featureStore.step]}
         </>
-      )}
+      }
     </Grid>
   )
 }

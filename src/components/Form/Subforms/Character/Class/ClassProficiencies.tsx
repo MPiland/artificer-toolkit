@@ -4,7 +4,6 @@ import { get, startCase } from 'lodash'
 import { feature_card_header, option_dropdown } from '../../../Character.css'
 import { numberToWords } from '../../../../../utils/formatting'
 import { Character, CharacterProficiency, Class } from '../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../types/form'
 import useGetSections from '../../../../../hooks/useGetSectionState'
 import Grid from '../../../../Grid/Grid'
 import { Fragment, use } from 'react'
@@ -12,12 +11,15 @@ import { FormContext } from '../../../FormContext'
 import useGetProficiencies from '../../../../../hooks/useGetProficiencies'
 
 const ClassProficiencies = ({ fullClass, classIndex }: { fullClass: Class; classIndex: number }) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+    }
   }
 
-  const { getSectionOptions } = useGetSections({ formData })
+  const { getSectionOptions } = useGetSections({ formData: data })
 
   // Memoize the proficiency array
   const proficiencies = useGetProficiencies({ fullClass })
@@ -52,31 +54,24 @@ const ClassProficiencies = ({ fullClass, classIndex }: { fullClass: Class; class
                       // Render the Dropdown component inside the loop
                       return (
                         <Grid.Item key={index} justify='center'>
-                          <Dropdown
+                          <Dropdown<Character>
                             name={path}
                             className={option_dropdown}
                             label={`${startCase(key)} Option`}
                             options={options}
-                            onChange={(e) => {
-                              if (e.type === 'update') {
-                                updateFormData({
-                                  type: 'update',
-                                  path,
-                                  value: {
-                                    proficiencyId: e.value,
-                                    classId: fullClass.id,
-                                    optionIndex,
-                                    __typename: 'CharacterProficiency',
-                                  },
-                                })
-                              } else {
-                                updateFormData({
-                                  type: 'remove',
-                                  path,
-                                })
-                              }
+                            onChange={{
+                              updateField: ({ path, value }) => ({
+                                path,
+                                value: {
+                                  proficiencyId: value,
+                                  classId: fullClass.id,
+                                  optionIndex,
+                                  __typename: 'CharacterProficiency',
+                                },
+                              }),
+                              removeField: ({ path }) => ({ path }),
                             }}
-                            value={(get(formData, path) as CharacterProficiency)?.proficiencyId}
+                            value={(get(data, path) as CharacterProficiency)?.proficiencyId}
                           />
                         </Grid.Item>
                       )

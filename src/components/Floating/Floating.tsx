@@ -222,8 +222,8 @@ const Tooltip = function FloatingTooltip({
 }
 
 type OptionProps = Omit<HTMLProps<HTMLDivElement>, 'onSelect'> & {
-  option: { id: string; label: string | number | ReactNode; value: string; renderedLabel?: string | number | ReactNode }
-  onSelect: (option: { id: string; label: string | number | ReactNode; value: string }) => void
+  option: { id: string; label: string | number | null | undefined; value: string; renderedLabel?: string | number | ReactNode }
+  onSelect: (option: { id: string; label: string | number | null | undefined; value: string }) => void
   selected: boolean
 }
 

@@ -1,9 +1,8 @@
 import { use } from 'react'
-import { UpdateState } from '../../../../../types/form'
 import Collapse from '../../../../Collapse/Collapse'
 import { feature_card_header } from '../../../Character.css'
 import parse from 'html-react-parser'
-import { Character, CharacterClass, Class } from '../../../../../../amplify/gql/types'
+import { CharacterClass, Class } from '../../../../../../amplify/gql/types'
 import { Categories } from '../../../../../types/enums'
 import { FormContext } from '../../../FormContext'
 import Grid from '../../../../Grid/Grid'
@@ -13,21 +12,15 @@ import { FactoryFeature } from '../../../../../hooks/useGetFeatures'
 const ClassFeatures = ({
   uClass,
   fullClass,
-  subclasses,
   classIndex,
 }: {
   uClass: CharacterClass
   fullClass: Class
-  subclasses: Class[]
   classIndex: number
 }) => {
   const { features } = use(FormContext) as {
     features: FactoryFeature[]
-    updateFormData: (state: UpdateState<Character>) => void
-    formData: Character
   }
-
-  const subclass = subclasses.find((sSubclass) => uClass?.subclass?.id === sSubclass.id)
 
   return (
     <>
@@ -37,16 +30,7 @@ const ClassFeatures = ({
             .filter((feature) => Number(feature.level) <= Number(uClass.level) && feature.classId === uClass.id)
             .sort((a, b) => Number(a.level) - Number(b.level))
             .map((feature, fIndex) => {
-              return (
-                <ClassFeature
-                  uClass={uClass}
-                  classIndex={classIndex}
-                  feature={feature}
-                  subclasses={subclasses}
-                  subclass={subclass}
-                  key={fIndex}
-                />
-              )
+              return <ClassFeature uClass={uClass} classIndex={classIndex} feature={feature} key={fIndex} />
             })}
         </Grid>
       </Grid.Item>

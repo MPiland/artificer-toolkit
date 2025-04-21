@@ -7,6 +7,7 @@ import { handleResendSignUpCode, useConfirmPasswordReset, useConfirmSignUp } fro
 import Spinner from '../../components/Spinner/Spinner'
 import { TbEye, TbEyeOff } from 'react-icons/tb'
 import { Route } from '../../routes/$auth/$action'
+import { auth_container } from './Auth.css'
 
 const Confirm = () => {
   const { action } = Route.useParams()
@@ -67,7 +68,7 @@ const Confirm = () => {
   }
 
   return (
-    <>
+    <div className={auth_container}>
       {errorMsg && <p>{errorMsg}</p>}
       {resendConfirm && (
         <>
@@ -158,7 +159,7 @@ const Confirm = () => {
           </Button>
         </>
       )}
-    </>
+    </div>
   )
 }
 

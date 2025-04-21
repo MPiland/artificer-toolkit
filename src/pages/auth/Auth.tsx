@@ -8,11 +8,12 @@ import { useSignUp, useSignIn, useResetPassword } from '../../apis/authApi'
 import Group from '../../components/Group/Group'
 import Spinner from '../../components/Spinner/Spinner'
 import { auth_container, auth_link, error_message } from './Auth.css'
-import { Link, Navigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { Route } from '../../routes/$auth'
 
 const Auth = () => {
   const { auth } = Route.useParams()
+  const navigate = useNavigate()
 
   const isSignIn = auth === 'sign-in'
 
@@ -78,13 +79,11 @@ const Auth = () => {
 
     const result = await resetPassword(state.username)
     if (result !== 'DONE') {
-      return (
-        <Navigate
-          to='/$auth/$action'
-          params={{ auth: 'sign-in', action: 'reset-password' }}
-          state={{ username: state.username }}
-        />
-      )
+      return navigate({
+        to: '/$auth/$action',
+        params: { auth: 'sign-in', action: 'reset-password' },
+        state: { username: state.username },
+      })
     }
   }
 
@@ -101,29 +100,24 @@ const Auth = () => {
           password: state.password,
           persist: persist,
         })
+        setSubmitting(false)
         if (result === 'CONFIRM_SIGN_UP') {
-          setSubmitting(false)
-          return (
-            <Navigate
-              to='/$auth/$action'
-              params={{ auth: isSignIn ? 'sign-in' : 'sign-up', action: 'confirm-sign-up' }}
-              state={{ username: state.username }}
-            />
-          )
+          return navigate({
+            to: '/$auth/$action',
+            params: { auth: isSignIn ? 'sign-in' : 'sign-up', action: 'confirm-sign-up' },
+            state: { username: state.username },
+          })
         }
         if (result === 'USERNAME_EXISTS') {
-          setSubmitting(false)
           return setErrMsg('Username already exists. Please sign in.')
         }
         if (result === 'NOT_AUTHORIZED') {
-          setSubmitting(false)
           return setErrMsg('Incorrect username or password.')
         }
         if (result === 'SIGNED_IN') {
-          setSubmitting(false)
-          return <Navigate to='/' />
+          return navigate({ to: '/home', replace: true })
         }
-        return setSubmitting(false)
+        return
       } catch (err: any) {
         setSubmitting(false)
         console.error(err)

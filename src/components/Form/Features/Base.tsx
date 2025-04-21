@@ -1,11 +1,10 @@
-import { useGetSystemQuery } from '../../../apis/systemsApi'
 import Input from '../../Input/Input'
 import Dropdown from '../../Dropdown/Dropdown'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
-import { FeatureDataType, SectionName, UpdateState } from '../../../types/form'
+import { SectionName } from '../../../types/form'
 import Select from '../../Select/Select'
 import SectionsList from './Sections/SectionsList'
-import Requirements from '../Subforms/Requirements'
+import Requirements from '../Subforms/Prerequisites'
 import Damage from '../Subforms/Damage'
 import LimitUse from '../Subforms/LimitUse'
 import { FeatureEnum, FeatureOption } from '../../../../amplify/gql/types'
@@ -16,27 +15,14 @@ import { FeatureContext } from './FeatureContext'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Grid from '../../Grid/Grid'
 import SelectOptionsByLevel from '../Subforms/SelectOptionsByLevel'
+import useSystemData from '../../../hooks/useSystemData'
+import { FeatureStore } from '../../../store/featureStore'
+import { OptionStore } from '../../../store/optionStore'
 
-const Base = ({
-  featureData,
-  updateFeatureData,
-  valueLabel,
-}: {
-  featureData: FeatureDataType | FeatureOption
-  updateFeatureData: (arg: UpdateState<FeatureDataType | FeatureOption>) => void
-  valueLabel: string
-}) => {
-  const { formData, steps, stepIndex } = use(FormContext)
+const Base = ({ featureStore, valueLabel }: { featureStore: FeatureStore | OptionStore; valueLabel: string }) => {
+  const { formStore, steps, stepIndex } = use(FormContext)
 
-  const {
-    setFeatureStep,
-    resetOption,
-    resetSection,
-    setSectionStep,
-    updateSectionData,
-    updateOptionData,
-    sectionSteps,
-  } = use(FeatureContext)
+  const { sectionStore, optionStore, sectionSteps } = use(FeatureContext)
 
   const {
     hasPrerequisites,
@@ -49,39 +35,35 @@ const Base = ({
     limitTargets,
     selectCountByLevel,
   } = useEnumChecks({
-    data: featureData,
+    data: featureStore.data,
   })
 
-  const { data: system } = useGetSystemQuery()
+  const { attributes, abilities, categories, spells, actions, rules } = useSystemData()
 
   const selectSection = (sectionStep: SectionName | 'options') => {
-    if (sectionStep === 'options' && featureData.__typename !== 'FeatureOption') {
+    if (sectionStep === 'options' && featureStore.data.__typename !== 'FeatureOption') {
       // Add Option content
-      resetOption()
-      const optionIndex = featureData?.options?.length || 0
-      const newOption: FeatureOption = {
+      optionStore.reinitState()
+      const optionIndex = featureStore.data?.options?.length || 0
+      const newOption = {
         __typename: 'FeatureOption',
-        id: '',
-        label: '',
-        value: '',
-      }
-      updateOptionData({ type: 'reset', value: newOption })
-      updateOptionData({ type: 'initialReset', value: optionIndex })
-      updateOptionData({ type: 'index', value: optionIndex })
-      return setFeatureStep('option')
+      } as FeatureOption
+      optionStore.reinitState(newOption)
+      optionStore.setIndex({ value: optionIndex })
+      return featureStore.setStep('option')
     } else if (sectionStep !== 'options') {
       // Add Section
-      resetSection()
-      updateSectionData({ type: 'index', value: 0 })
-      return setSectionStep(sectionStep)
+      sectionStore.reinitState()
+      sectionStore.setIndex({ value: 0 })
+      return sectionStore.setStep(sectionStep)
     }
   }
 
   const hasAnySections =
     sectionSteps.some((step) => {
-      return featureData[step]?.length
+      return featureStore.data[step]?.length
     }) ||
-    (featureData.__typename !== 'FeatureOption' && featureData?.options?.length)
+    (featureStore.data.__typename !== 'FeatureOption' && featureStore.data?.options?.length)
 
   return (
     <>
@@ -92,26 +74,26 @@ const Base = ({
             autoComplete='off'
             label={`${valueLabel} Name`}
             required={true}
-            value={featureData?.label}
+            value={featureStore.data?.label}
             errorMsg='Name must not be blank'
-            onChange={updateFeatureData}
+            onChange={featureStore}
           />
         </Grid.Item>
-        {featureData.__typename !== 'AncestryFeature' && featureData.__typename !== 'FeatureOption' && (
+        {featureStore.data.__typename !== 'AncestryFeature' && featureStore.data.__typename !== 'FeatureOption' && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Dropdown
               name={`category`}
-              options={system.categories.filter((category) => category.features)}
+              options={categories.filter((category) => category.features)}
               label='Feature Category'
-              value={featureData?.category}
-              onChange={updateFeatureData}
+              value={featureStore.data?.category}
+              onChange={featureStore}
               required={true}
             />
           </Grid.Item>
         )}
-        {(featureData?.category === Categories.feature ||
-          featureData.__typename === 'AncestryFeature' ||
-          featureData.__typename === 'FeatureOption') && (
+        {(featureStore.data?.category === Categories.feature ||
+          featureStore.data.__typename === 'AncestryFeature' ||
+          featureStore.data.__typename === 'FeatureOption') && (
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Select
               name='section'
@@ -122,29 +104,29 @@ const Base = ({
             />
           </Grid.Item>
         )}
-        {featureData?.category === Categories.subclass && (
+        {featureStore.data?.category === Categories.subclass && (
           <Grid.Item>
             <RichTextEditor
               label='Feature detail'
-              value={featureData?.detail}
+              value={featureStore.data?.detail}
               name={`detail`}
-              onChange={updateFeatureData}
+              onChange={featureStore}
             />
           </Grid.Item>
         )}
         <Grid.Item>
           <RichTextEditor
             label='Feature description'
-            value={featureData?.desc}
+            value={featureStore.data?.desc}
             name={`desc`}
-            onChange={updateFeatureData}
+            onChange={featureStore}
           />
         </Grid.Item>
         <Grid.Item>
           <Grid>
-            {formData.__typename !== 'Equipment' &&
-              formData.__typename !== 'Background' &&
-              !(steps[stepIndex].id === 'ancestry' && featureData.__typename === 'FeatureOption') &&
+            {formStore.data.__typename !== 'Equipment' &&
+              formStore.data.__typename !== 'Background' &&
+              !(steps[stepIndex].id === 'ancestry' && featureStore.data.__typename === 'FeatureOption') &&
               !selectCountByLevel && (
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
@@ -152,33 +134,35 @@ const Base = ({
                     autoComplete='off'
                     label='Level(s) Available'
                     required={
-                      formData.__typename === 'Race' || featureData.__typename === 'FeatureOption' ? false : true
+                      formStore.data.__typename === 'Race' || featureStore.data.__typename === 'FeatureOption' ?
+                        false
+                      : true
                     }
-                    value={featureData?.levelAvailable}
+                    value={featureStore.data?.levelAvailable}
                     validation='num'
                     errorMsg='Must contain whole numbers and commas only'
-                    onChange={updateFeatureData}
+                    onChange={featureStore}
                   />
                 </Grid.Item>
               )}
-            {featureData?.category !== Categories.subclass && (
+            {featureStore.data?.category !== Categories.subclass && (
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   multiSelect={true}
                   name='attributes'
-                  options={system.attributes.filter(
+                  options={attributes.filter(
                     (attribute) =>
                       (attribute?.features?.length &&
-                        ((formData.__typename === 'Equipment' &&
+                        ((formStore.data.__typename === 'Equipment' &&
                           attribute?.features?.includes(FeatureEnum.equipment)) ||
-                          ((featureData.__typename === 'FeatureOption' ||
-                            featureData.__typename === 'AncestryFeature') &&
+                          ((featureStore.data.__typename === 'FeatureOption' ||
+                            featureStore.data.__typename === 'AncestryFeature') &&
                             attribute?.features?.includes(FeatureEnum.options)))) ||
                       attribute?.features?.includes(FeatureEnum.all)
                   )}
                   label='Feature Attribute'
-                  value={featureData?.attributes}
-                  onChange={updateFeatureData}
+                  value={featureStore.data?.attributes}
+                  onChange={featureStore}
                 />
               </Grid.Item>
             )}
@@ -187,10 +171,10 @@ const Base = ({
                 <Dropdown
                   name='actions.primary.id'
                   label='Action Type'
-                  value={featureData?.actions?.primary?.id}
-                  options={system.actions}
+                  value={featureStore.data?.actions?.primary?.id}
+                  options={actions}
                   required={true}
-                  onChange={updateFeatureData}
+                  onChange={featureStore}
                 />
               </Grid.Item>
             )}
@@ -203,17 +187,17 @@ const Base = ({
                 <Dropdown
                   name='range.id'
                   label='Range'
-                  value={featureData?.range?.id}
-                  options={system.spells.ranges}
+                  value={featureStore.data?.range?.id}
+                  options={spells.ranges}
                   required={true}
-                  onChange={updateFeatureData}
+                  onChange={featureStore}
                 />
               </Grid.Item>
-              {featureData?.range?.id !== Ranges.touch &&
-                featureData.range?.id !== Ranges.sight &&
-                featureData.range?.id !== Ranges.unlimited && (
+              {featureStore.data?.range?.id !== Ranges.touch &&
+                featureStore.data.range?.id !== Ranges.sight &&
+                featureStore.data.range?.id !== Ranges.unlimited && (
                   <>
-                    {featureData?.range?.id !== Ranges.self && (
+                    {featureStore.data?.range?.id !== Ranges.self && (
                       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                         <Input
                           validation='num'
@@ -221,9 +205,9 @@ const Base = ({
                           errorMsg='Please enter a valid number greater than 0'
                           label='Min. Range'
                           autoComplete='off'
-                          required={featureData?.range?.id === Ranges.distance || false}
-                          value={featureData?.range?.minRange}
-                          onChange={updateFeatureData}
+                          required={featureStore.data?.range?.id === Ranges.distance || false}
+                          value={featureStore.data?.range?.minRange}
+                          onChange={featureStore}
                         />
                       </Grid.Item>
                     )}
@@ -234,24 +218,19 @@ const Base = ({
                         errorMsg='Must contain only numbers'
                         label='Max Range'
                         autoComplete='off'
-                        required={featureData?.range?.id === Ranges.distance || false}
-                        value={featureData?.range?.maxRange}
-                        onChange={updateFeatureData}
+                        required={featureStore.data?.range?.id === Ranges.distance || false}
+                        value={featureStore.data?.range?.maxRange}
+                        onChange={featureStore}
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='range.unit'
                         label='UoM'
-                        value={featureData?.range?.unit}
-                        options={Object.values(system.rules.measurements.imperial).flatMap((rule) => {
-                          if (Array.isArray(rule)) {
-                            return rule
-                          }
-                          return []
-                        })}
-                        required={featureData?.range?.id === Ranges.distance || false}
-                        onChange={updateFeatureData}
+                        value={featureStore.data?.range?.unit}
+                        options={rules.measurements.imperial.length}
+                        required={featureStore.data?.range?.id === Ranges.distance || false}
+                        onChange={featureStore}
                       />
                     </Grid.Item>
                   </>
@@ -260,11 +239,11 @@ const Base = ({
                 <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                   <Input
                     name='targets'
-                    value={featureData?.targets}
+                    value={featureStore.data?.targets}
                     label='No. of Targets'
                     validation='num'
                     errorMsg='Must contain only numbers'
-                    onChange={updateFeatureData}
+                    onChange={featureStore}
                     placeholder='1'
                   />
                 </Grid.Item>
@@ -275,15 +254,15 @@ const Base = ({
                 <Dropdown
                   name='shape.id'
                   label='Shape'
-                  options={system.spells.shapes}
-                  value={featureData?.shape?.id}
+                  options={spells.shapes}
+                  value={featureStore.data?.shape?.id}
                   required={true}
-                  onChange={updateFeatureData}
+                  onChange={featureStore}
                 />
               </Grid.Item>
-              {featureData?.shape?.id !== Shapes.none &&
-                featureData.shape?.id !== Shapes.weapon &&
-                featureData.shape?.id !== Shapes.cone && (
+              {featureStore.data?.shape?.id !== Shapes.none &&
+                featureStore.data.shape?.id !== Shapes.weapon &&
+                featureStore.data.shape?.id !== Shapes.cone && (
                   <>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Input
@@ -293,18 +272,18 @@ const Base = ({
                         label='Shape Size'
                         autoComplete='off'
                         required={true}
-                        value={featureData?.shape?.size}
-                        onChange={updateFeatureData}
+                        value={featureStore.data?.shape?.size}
+                        onChange={featureStore}
                       />
                     </Grid.Item>
                     <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                       <Dropdown
                         name='shape.unit'
                         label='UoM'
-                        value={featureData?.shape?.unit}
-                        options={system.rules.measurements.imperial.length}
+                        value={featureStore.data?.shape?.unit}
+                        options={rules.measurements.imperial.length}
                         required={true}
-                        onChange={updateFeatureData}
+                        onChange={featureStore}
                       />
                     </Grid.Item>
                   </>
@@ -320,22 +299,22 @@ const Base = ({
                   name='saveAbility.attributes'
                   multiSelect={true}
                   label='Save Attribute'
-                  value={featureData?.saveAbility?.attributes}
-                  options={system.attributes.filter(
+                  value={featureStore.data?.saveAbility?.attributes}
+                  options={attributes.filter(
                     (attribute) =>
                       attribute?.features?.length && attribute?.features?.includes(FeatureEnum.saveAbilities)
                   )}
-                  onChange={updateFeatureData}
+                  onChange={featureStore}
                 />
               </Grid.Item>
               <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
                 <Dropdown
                   name='saveAbility.id'
                   label='DC Ability'
-                  value={featureData?.saveAbility?.id}
-                  options={system.abilities}
+                  value={featureStore.data?.saveAbility?.id}
+                  options={abilities}
                   required={true}
-                  onChange={updateFeatureData}
+                  onChange={featureStore}
                 />
               </Grid.Item>
               {addAbilityModifier && (
@@ -343,10 +322,10 @@ const Base = ({
                   <Dropdown
                     name='saveAbility.abilityModifier'
                     label='Modifier Ability'
-                    value={featureData?.saveAbility?.abilityModifier}
-                    options={system.abilities}
+                    value={featureStore.data?.saveAbility?.abilityModifier}
+                    options={abilities}
                     required={true}
-                    onChange={updateFeatureData}
+                    onChange={featureStore}
                   />
                 </Grid.Item>
               )}
@@ -356,20 +335,20 @@ const Base = ({
                   name={`saveAbility.minAmount`}
                   autoComplete='off'
                   label='Base Value'
-                  required={formData.__typename !== 'Class' && true}
+                  required={formStore.data.__typename !== 'Class' && true}
                   errorMsg='Must contain only numbers'
-                  value={featureData?.saveAbility?.minAmount}
-                  onChange={updateFeatureData}
+                  value={featureStore.data?.saveAbility?.minAmount}
+                  onChange={featureStore}
                 />
               </Grid.Item>
             </Grid>
           </Grid.Item>
         )}
-        {hasPrerequisites && <Requirements formData={featureData} updateFormData={updateFeatureData} />}
-        {limitUse && <LimitUse formData={featureData} updateFormData={updateFeatureData} />}
-        {doesDamage && <Damage formData={featureData} updateFormData={updateFeatureData} />}
+        {hasPrerequisites && <Requirements formStore={featureStore} />}
+        {limitUse && <LimitUse formStore={featureStore} />}
+        {doesDamage && <Damage formStore={featureStore} />}
         {selectCountByLevel && <SelectOptionsByLevel />}
-        {hasAnySections && <SectionsList featureData={featureData} updateFeatureData={updateFeatureData} />}
+        {hasAnySections && <SectionsList featureStore={featureStore} />}
       </Grid>
     </>
   )

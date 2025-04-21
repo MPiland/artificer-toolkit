@@ -3,20 +3,24 @@ import Grid from '../../../../Grid/Grid'
 import Modal from '../../../../Modal/Modal'
 import { FormContext } from '../../../FormContext'
 import { Character } from '../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../types/form'
 import { HitPointCalcMethod } from '../../../../../types/enums'
 import { startCase } from 'lodash'
 import Input from '../../../../Input/Input'
+import type { OnChange } from '../../../../../types/form'
 
 const Hitpoints = ({ onClose }: { onClose: () => void }) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data, updateField },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+    }
   }
 
-  const method: 'fixed' | 'rolled' = formData?.hitpoint?.method === HitPointCalcMethod.fixed ? 'fixed' : 'rolled'
+  const method: 'fixed' | 'rolled' = data?.hitpoint?.method === HitPointCalcMethod.fixed ? 'fixed' : 'rolled'
 
-  const hitpointObject = formData?.hitpoint?.[method]
+  const hitpointObject = data?.hitpoint?.[method]
 
   return (
     <Modal onClose={onClose}>
@@ -26,7 +30,7 @@ const Hitpoints = ({ onClose }: { onClose: () => void }) => {
           <Grid>
             <Grid.Item flexDirection='column' align='center' colSpan={12}>
               <p>Maximum Hitpoints</p>
-              <h1>{formData?.hitpoint?.maxHitpoints}</h1>
+              <h1>{data?.hitpoint?.maxHitpoints}</h1>
             </Grid.Item>
             <Grid.Item flexDirection='column' align='center' colSpan={4}>
               <span>{startCase(method)} HP</span>
@@ -34,20 +38,15 @@ const Hitpoints = ({ onClose }: { onClose: () => void }) => {
             </Grid.Item>
             <Grid.Item flexDirection='column' align='center' colSpan={4}>
               <span>Bonus HP</span>
-              <Input
-                name='hitpoint.bonus'
-                validation='num'
-                value={formData?.hitpoint?.bonus}
-                onChange={updateFormData}
-              />
+              <Input name='hitpoint.bonus' validation='num' value={data?.hitpoint?.bonus} onChange={{ updateField }} />
             </Grid.Item>
             <Grid.Item flexDirection='column' align='center' colSpan={4}>
               <span>Max Override</span>
               <Input
                 name='hitpoint.maxOverride'
                 validation='num'
-                value={formData?.hitpoint?.maxOverride}
-                onChange={updateFormData}
+                value={data?.hitpoint?.maxOverride}
+                onChange={{ updateField }}
               />
             </Grid.Item>
           </Grid>

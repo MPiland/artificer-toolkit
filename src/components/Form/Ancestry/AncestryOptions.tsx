@@ -11,41 +11,28 @@ import parse from 'html-react-parser'
 import Grid from '../../Grid/Grid'
 
 const AncestryOptions = () => {
-  const { ancestryData, updateAncestryData, updateFeatureData, setFeatureStep } = use(FeatureContext)
+  const { ancestryStore, featureStore } = use(FeatureContext)
 
-  const featureArray = ancestryData?.features
+  const featureArray = ancestryStore.data?.features
 
   // Add feature
   const handleAddFeature = () => {
-    const newFeature: AncestryFeature = {
-      __typename: 'AncestryFeature',
-      id: '',
-      label: '',
-      value: '',
-    }
-    updateFeatureData({ type: 'index', value: featureArray?.length || 0 })
-    updateFeatureData({ type: 'reset', value: newFeature })
-    updateFeatureData({ type: 'initialReset', value: newFeature })
+    const newFeature = { __typename: 'AncestryFeature' } as AncestryFeature
+    featureStore.setIndex({ value: featureArray?.length || 0 })
+    featureStore.reinitState(newFeature)
     setFeatureStep('ancestry')
   }
 
   // Delete feature
   const handleRemoveFeature = (featureIndex: number) => {
-    updateAncestryData({
-      type: 'remove',
-      path: `features.${featureIndex}`,
-    })
+    ancestryStore.removeField({ path: `features.${featureIndex}` })
   }
 
   // Edit feature
   const handleEditFeature = (featureIndex: number) => {
-    updateFeatureData({ type: 'index', value: featureIndex })
-    updateFeatureData({
-      type: 'reset',
-      value: featureArray?.[featureIndex],
-    })
-    updateFeatureData({ type: 'initialReset', value: featureArray?.[featureIndex] })
-    setFeatureStep('ancestry')
+    featureStore.setIndex({ value: featureIndex })
+    featureStore.reinitState(featureArray?.[featureIndex])
+    featureStore.setStep('ancestry')
   }
 
   return (
@@ -56,16 +43,16 @@ const AncestryOptions = () => {
           autoComplete='off'
           label='Ancestry Option Name'
           required={true}
-          value={ancestryData?.label}
+          value={ancestryStore.data?.label}
           errorMsg='Name must not be blank'
-          onChange={updateAncestryData}
+          onChange={ancestryStore}
         />
       </Grid.Item>
       <Grid.Item>
         <Collapse>
-          <Collapse.Header title='Ancestry Option Description' startOpened={ancestryData?.id == null} />
+          <Collapse.Header title='Ancestry Option Description' startOpened={ancestryStore.data?.id == null} />
           <Collapse.Body>
-            <RichTextEditor name='desc' onChange={updateAncestryData} value={ancestryData?.desc} />
+            <RichTextEditor name='desc' onChange={ancestryStore} value={ancestryStore.data?.desc} />
           </Collapse.Body>
         </Collapse>
       </Grid.Item>
@@ -76,14 +63,14 @@ const AncestryOptions = () => {
       </Grid.Item>
       {featureArray && featureArray.length > 0 && (
         <Grid.Item>
-          <Accordion dataArray={featureArray} onChange={updateAncestryData} name='features'>
-            {featureArray?.map((feature, featureIndex) => (
-              <Accordion.Wrapper key={featureIndex} itemId={String(featureIndex)}>
+          <Accordion dataArray={featureArray} onChange={ancestryStore} name='features'>
+            {featureArray?.map((feature, fIndex) => (
+              <Accordion.Wrapper key={fIndex} itemId={String(fIndex)}>
                 <Accordion.Header
-                  handleRemove={() => handleRemoveFeature(featureIndex)}
-                  handleEdit={() => handleEditFeature(featureIndex)}
+                  handleRemove={() => handleRemoveFeature(fIndex)}
+                  handleEdit={() => handleEditFeature(fIndex)}
                 >
-                  {feature.label != null && feature.label !== '' ? feature.label : `Feautre ${featureIndex + 1}`}
+                  {feature.label != null && feature.label !== '' ? feature.label : `Feautre ${fIndex + 1}`}
                 </Accordion.Header>
                 {feature.desc && (
                   <Accordion.Content>

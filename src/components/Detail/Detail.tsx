@@ -1,5 +1,4 @@
-import { ReactNode, Suspense, use, useCallback } from 'react'
-import { getValueFromState } from '../../utils/formatting'
+import { ReactNode, Suspense, use } from 'react'
 import Group from '../Group/Group'
 import {
   detail_body,
@@ -11,98 +10,69 @@ import {
   detail_title,
 } from './Detail.css'
 import ScrollArea from '../ScrollArea/ScrollArea'
-import { FormContext } from '../Form/FormContext'
-import { useGetSystemQuery } from '../../apis/systemsApi'
-import { useListClassesQuery } from '../../apis/classesApi'
 import { MdArrowBackIos, MdEdit } from 'react-icons/md'
-import Button from '../Button/Button'
 import CopyIcon from '../../assets/Icons/ICopy'
-import { FormDataType } from '../../types/form'
-import { Character } from '../../../amplify/gql/types'
+import type { FormDataType } from '../../types/form'
+import type { Character } from '../../../amplify/gql/types'
 import Loading from '../Loading/Loading'
 import Grid from '../Grid/Grid'
-import { Link, Navigate, useLocation } from '@tanstack/react-router'
-import { navigatePath } from '../../utils/form'
+import { Link, useMatches } from '@tanstack/react-router'
 import { FormType } from '../../types/form'
+import useRouteNavigation from '../../hooks/useRouteNavigation'
+import type { DetailConfig } from '../../types/components'
+import useSourceData from '../../hooks/useSourceData'
+import { FormContext } from '../Form/FormContext'
 
-type colType = {
-  header: string
-  name: any
-  truncate?: number
-  filter?: undefined | string[]
-}
-
-interface DetailProps {
-  cols?: colType[]
-  colsData?: any
+interface DetailProps<T extends FormDataType> {
+  detailConfigs?: DetailConfig<T>[]
   children: ReactNode
   footer?: any
   footerSpacing?: 'spaceBetween' | 'center' | 'end' | 'start' | undefined
   item: FormDataType
 }
 
-const Detail = ({ cols, colsData, children, footer, footerSpacing = 'spaceBetween', item }: DetailProps) => {
-  const location = useLocation()
+const Detail = <T extends FormDataType>({
+  detailConfigs,
+  children,
+  footer,
+  footerSpacing = 'spaceBetween',
+  item,
+}: DetailProps<T>) => {
+  const getSourceText = useSourceData()
+  const { reinitializeForm } = use(FormContext)
 
-  const { data: system } = useGetSystemQuery()
-  const { data: classes } = useListClassesQuery()
+  const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
-  const { updateFormData, fullReset } = use(FormContext)
-
-  const form = location?.pathname.split('/')[2] as FormType
-
-  const handleEdit = () => {
-    const pathOptions = navigatePath({ form, type: 'form', action: 'edit', label: item.label })
-    if (!pathOptions) return null // Handle the undefined case
-    try {
-      fullReset()
-      updateFormData({ type: 'reset', value: item })
-      updateFormData({ type: 'initialReset', value: item })
-      return <Navigate to={pathOptions.path} params={pathOptions.params} />
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const handleCopy = () => {
-    try {
-      fullReset()
-      const itemCopy: FormDataType = { ...item, id: '', label: '', value: '' }
-      if (itemCopy.__typename !== 'Character') {
-        itemCopy.masterId = undefined
-      }
-      updateFormData({ type: 'reset', value: itemCopy })
-      updateFormData({ type: 'initialReset', value: itemCopy })
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const getSourceData = useCallback(
-    (sourceType: string) => {
-      switch (sourceType) {
-        case 'system':
-          return system
-        case 'classes':
-          return classes
-        default:
-          return null
-      }
-    },
-    [classes, system]
-  )
+  const routeNav = useRouteNavigation(form)
+  const itemNav = routeNav.forItem(item.id, item.label)
 
   return (
     <Suspense fallback={<Loading />}>
       <div className={detail_nav_section}>
         <MdArrowBackIos onClick={() => <Link to={'..'} />} cursor={'pointer'} style={{ scale: '1.5' }} />
-        <Button color='main' style='outline' onClick={handleCopy}>
+        <Link
+          {...routeNav.new}
+          onClick={(e) => {
+            const itemCopy: Omit<FormDataType, 'id' | 'label' | 'value'> & {
+              id: string | undefined
+              label: string | undefined
+              value: string | undefined
+            } = { ...item, id: undefined, label: undefined, value: undefined }
+            reinitializeForm(itemCopy as FormDataType)
+            e.stopPropagation()
+          }}
+        >
           {<CopyIcon />} Copy
-        </Button>
+        </Link>
         {(item as Exclude<FormDataType, Character>).masterId == null && (
-          <Button color='main' style='outline' onClick={handleEdit}>
+          <Link
+            {...itemNav.edit}
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
+          >
             {<MdEdit />} Edit
-          </Button>
+          </Link>
         )}
       </div>
       <div className={detail_title}>
@@ -110,20 +80,19 @@ const Detail = ({ cols, colsData, children, footer, footerSpacing = 'spaceBetwee
       </div>
       <hr />
       <ScrollArea scrollDirection='vertical'>
-        {colsData && cols && (
+        {detailConfigs && (
           <>
             <div className={detail_col_section}>
               <Grid>
-                {cols?.map((colItem, colIndex) => {
+                {detailConfigs?.map((detail, dIndex) => {
                   return (
-                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 3 }} className={detail_col_item} key={colIndex}>
-                      <div className={detail_col_title}>{colItem.header}</div>
+                    <Grid.Item colSpan={{ sm: 6, md: 4, lg: 3 }} className={detail_col_item} key={dIndex}>
+                      <div className={detail_col_title}>{detail.header}</div>
                       <div>
-                        {getValueFromState({
-                          input: colItem,
-                          state: colsData,
-                          getSourceData,
-                          truncateNum: colItem?.truncate,
+                        {getSourceText({
+                          input: detail,
+                          state: item,
+                          truncateNum: detail?.truncate,
                         })}
                       </div>
                     </Grid.Item>

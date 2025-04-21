@@ -1,6 +1,5 @@
 import { use } from 'react'
 import { Character } from '../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../types/form'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import Grid from '../../../../Grid/Grid'
 import { option_dropdown } from '../../../Character.css'
@@ -14,20 +13,23 @@ interface FeatureOptionProps {
 }
 
 const FeatureOption = ({ feature, featureIndex, classIndex }: FeatureOptionProps) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+    }
   }
 
-  const { getFullFeature } = useGetFeatures({ data: formData })
+  const { getFullFeature } = useGetFeatures({ data })
 
   const optionByLevel = getFullFeature(feature)?.optionsByLevel?.find(
-    (option) => Number(option.level) >= Number(formData?.features?.[featureIndex]?.level)
+    (option) => Number(option.level) >= Number(data?.features?.[featureIndex]?.level)
   )
 
   const selectionCount = optionByLevel?.count || 1
 
-  const { getFeatureOptions } = useGetFeatures({ data: formData })
+  const { getFeatureOptions } = useGetFeatures({ data: data })
 
   return Array.from({ length: selectionCount }, (_, index) => {
     const optionIndex = `${index}${featureIndex}${classIndex || 0}`
@@ -40,29 +42,21 @@ const FeatureOption = ({ feature, featureIndex, classIndex }: FeatureOptionProps
     if (path) {
       return (
         <Grid.Item key={path + optionIndex} align='center' justify='center' flexDirection='column'>
-          <Dropdown
+          <Dropdown<Character>
             name={path}
             label={`${feature.label} Option`}
             options={options}
             className={option_dropdown}
-            onChange={(e) => {
-              if (e.type === 'update') {
-                updateFormData({
-                  type: e.type,
-                  path: path,
-                  value: {
-                    id: e.value,
-                    optionIndex,
-                    featureLevel: feature.level,
-                  },
-                })
-              }
-              if (e.type === 'remove') {
-                updateFormData({
-                  type: 'remove',
-                  path: path,
-                })
-              }
+            onChange={{
+              updateField: ({ path, value }) => ({
+                path: path,
+                value: {
+                  id: value,
+                  optionIndex,
+                  featureLevel: feature.level,
+                },
+              }),
+              removeField: ({ path }) => ({ path: path }),
             }}
             value={exist}
           />

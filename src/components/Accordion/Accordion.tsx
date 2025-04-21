@@ -18,7 +18,7 @@ import { TbX } from 'react-icons/tb'
 import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { DeepKeyOf, UpdateState } from '../../types/form'
+import type { DeepKeyOf, OnChange } from '../../types/form'
 import AccordionProvider from './AccordionProvider'
 import { AccordionContext } from './AccordionContext'
 
@@ -29,7 +29,9 @@ interface FooterProps {
 interface AccordionProps<T> {
   dataArray: any[]
   children: ReactNode
-  onChange: (state: UpdateState<T>) => void
+  onChange: {
+    updateField: OnChange<T>['updateField']
+  }
   name?: DeepKeyOf<T>
   disableSort?: boolean
 }
@@ -187,7 +189,7 @@ const Accordion = <T,>({ children, dataArray, onChange, name, disableSort = fals
     const newIndex = Number(over?.id)
     const newArray = arrayMove(oldArray, oldIndex, newIndex)
     if (name) {
-      onChange({ type: 'update', path: name, value: newArray })
+      onChange.updateField({ path: name, value: newArray })
     }
   }
 

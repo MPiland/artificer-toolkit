@@ -1,56 +1,53 @@
-import { useRouterState } from '@tanstack/react-router'
 import parse from 'html-react-parser'
 import Detail from '../../components/Detail/Detail'
-import { Equipment as EquipmentState } from '../../../amplify/gql/types'
-import { FormDataType } from '../../types/form'
-
-// Type guard function
-function isEquipment(item: FormDataType | undefined): item is EquipmentState {
-  return item?.__typename === 'Equipment'
-}
+import { Route } from '../../routes/_protected/equipment/$equipmentId'
+import useEquipmentData from '../../hooks/useEquipmentData'
+import type { DetailConfig } from '../../types/components'
+import type { Equipment } from '../../../amplify/gql/types'
 
 const Equipment = () => {
-  const equipment = useRouterState({ select: (s) => s.location.state.item })
+  const equipmentId = Route.useParams({ select: (r) => r.equipmentId })
+  const { findEquipment } = useEquipmentData()
+  const equipment = findEquipment(equipmentId)
 
-  if (!equipment || !isEquipment(equipment)) return <div>Invalid or missing equipment data</div>
+  if (!equipment) return <div>Invalid or missing equipment data</div>
 
-  const cols = [
-    { header: 'CATEGORY', name: [{ path: 'category', source: { type: 'system', field: 'equipment.categories' } }] },
+  const detailConfigs: DetailConfig<Equipment>[] = [
+    { header: 'CATEGORY', text: [{ path: 'category', source: { type: 'system', path: 'equipment.categories' } }] },
     {
       header: 'PROPERTIES',
-      name: [{ path: 'properties', source: { type: 'system', field: 'equipment.properties' } }],
+      text: [{ path: 'properties', source: { type: 'system', path: 'equipment.properties' } }],
     },
     {
       header: 'DAMAGE/EFFECT',
-      name: [
+      text: [
         [
-          'damage.primary.diceShort',
-          'damage.primary.setAmount',
-          'damage.primary.pool.setAmount',
-          { path: 'damage.primary.id', source: { type: 'system', field: 'damageTypes' } },
+          { path: 'damage.primary.dieConfig' },
+          { path: 'damage.primary.setAmount' },
+          { path: 'damage.primary.pool.setAmount' },
+          { path: 'damage.primary.id', source: { type: 'system', path: 'damageTypes' } },
         ],
         [
-          'damage.versatile.diceShort',
-          'damage.versatile.setAmount',
-          'damage.versatile.pool.setAmount',
-          { path: 'damage.versatile.id', source: { type: 'system', field: 'damageTypes' } },
+          { path: 'damage.versatile.dieConfig' },
+          { path: 'damage.versatile.setAmount' },
+          { path: 'damage.versatile.pool.setAmount' },
+          { path: 'damage.versatile.id', source: { type: 'system', path: 'damageTypes' } },
         ],
-        { path: 'conditions', source: { type: 'system', field: 'conditions' } },
       ],
     },
-    { header: 'AC', name: 'armorClass' },
+    { header: 'AC', text: { path: 'armorClass' } },
     {
       header: 'WEIGHT',
-      name: ['weight.amount', { path: 'weight.unit', source: { type: 'system', field: 'rules' } }],
+      text: [{ path: 'weight.amount' }, { path: 'weight.unit', source: { type: 'system', path: 'rules' } }],
     },
     {
       header: 'COST',
-      name: ['cost.amount', { path: 'cost.currency', source: { type: 'system', field: 'currencies' } }],
+      text: [{ path: 'cost.amount' }, { path: 'cost.currency', source: { type: 'system', path: 'currencies' } }],
     },
   ]
 
   return (
-    <Detail cols={cols} colsData={equipment} footerSpacing='end' item={equipment}>
+    <Detail detailConfigs={detailConfigs} footerSpacing='end' item={equipment}>
       <div>{equipment?.desc && parse(equipment.desc)}</div>
     </Detail>
   )

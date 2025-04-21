@@ -10,90 +10,71 @@ import { useMemo } from 'react'
 import { feature_description } from '../Form.css'
 import parse from 'html-react-parser'
 import { Race } from '../../../../amplify/gql/types'
-import { UpdateState } from '../../../types/form'
 import { FeatureContext } from '../Features/FeatureContext'
 import Grid from '../../Grid/Grid'
+import { FormStore } from '../../../store/formStore'
 
 const AncestryList = () => {
-  const { updateFormData, formData } = use(FormContext) as {
-    formData: Race
-    updateFormData: (state: UpdateState<Race>) => void
+  const { formStore } = use(FormContext) as {
+    formStore: FormStore<Race>
   }
 
-  const { updateAncestryData, setFeatureStep } = use(FeatureContext)
+  const { ancestryStore, featureStore } = use(FeatureContext)
 
   const handleAddAncestry = () => {
-    updateFormData({
-      type: 'update',
-      path: 'ancestry',
-      value: {},
-    })
+    formStore.updateField({ path: 'ancestry', value: {} })
   }
 
   const handleRemoveAncestry = () => {
-    updateFormData({
-      type: 'remove',
-      path: 'ancestry',
-    })
+    formStore.removeField({ path: 'ancestry' })
   }
 
-  const optionArray = useMemo(() => formData?.ancestry?.options, [formData])
+  const optionArray = useMemo(() => formStore.data?.ancestry?.options, [formStore.data])
 
-  console.log({ formData })
+  console.log({ formStore.data })
 
   // Add feature
   const handleAddOption = () => {
     const optionIndex = optionArray?.length || 0
-    updateAncestryData({ type: 'index', value: optionIndex })
-    updateAncestryData({ type: 'reset', value: {} })
-    updateAncestryData({ type: 'initialReset', value: {} })
-    setFeatureStep('ancestryOption')
+    ancestryStore.setIndex({ value: optionIndex })
+    ancestryStore.reinitState()
+    featureStore.setStep('ancestryOption')
   }
 
   // Delete feature
   const handleRemoveOption = (optionIndex: number) => {
-    updateFormData({
-      type: 'remove',
-      path: `ancestry.options.${optionIndex}`,
-    })
+    formStore.removeField({ path: `ancestry.options.${optionIndex}` })
   }
 
   // Edit feature
   const handleEditOption = (optionIndex: number) => {
     if (optionArray) {
-      updateAncestryData({ type: 'index', value: optionIndex })
-      updateAncestryData({
-        type: 'reset',
-        value: optionArray[optionIndex],
-      })
-      updateAncestryData({
-        type: 'initialReset',
-        value: optionArray[optionIndex],
-      })
-      setFeatureStep('ancestryOption')
+      ancestryStore.setIndex({ value: optionIndex })
+      ancestryStore.reinitState(optionArray[optionIndex])
+      featureStore.setStep('ancestryOption')
     }
   }
 
   return (
     <>
-      {!formData?.ancestry && (
+      {!formStore.data?.ancestry && (
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Button color='primary' style='outline' onClick={handleAddAncestry} className={sprinkles({ mb: 'space-3' })}>
             Add Ancestry
           </Button>
         </Grid.Item>
       )}
-      {formData?.ancestry && (
+      {formStore.data?.ancestry && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Input
               name='label'
               autoComplete='off'
               label='Ancestry Name'
-              required={formData?.ancestry?.desc !== '' && formData?.ancestry?.desc != null}
-              value={formData?.ancestry?.label}
+              required={formStore.data?.ancestry?.desc !== '' && formStore.data?.ancestry?.desc != null}
+              value={formStore.data?.ancestry?.label}
               errorMsg='Name must not be blank'
-              onChange={updateAncestryData}
+              onChange={ancestryStore}
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} align='end'>
@@ -103,9 +84,9 @@ const AncestryList = () => {
           </Grid.Item>
           <Grid.Item>
             <Collapse className={sprinkles({ width: 'size-full' })}>
-              <Collapse.Header title='Ancestry Description' startOpened={formData.id == null} />
+              <Collapse.Header title='Ancestry Description' startOpened={formStore.data.id == null} />
               <Collapse.Body>
-                <RichTextEditor name='ancestry.desc' onChange={updateFormData} value={formData?.ancestry?.desc} />
+                <RichTextEditor name='ancestry.desc' onChange={formStore} value={formStore.data?.ancestry?.desc} />
               </Collapse.Body>
             </Collapse>
           </Grid.Item>
@@ -118,7 +99,7 @@ const AncestryList = () => {
       )}
       {optionArray && optionArray.length > 0 && (
         <Grid.Item>
-          <Accordion dataArray={optionArray} onChange={updateFormData} name='ancestry.options'>
+          <Accordion dataArray={optionArray} onChange={formStore} name='ancestry.options'>
             {optionArray?.map((option, optionIndex) => (
               <Accordion.Wrapper key={optionIndex} itemId={String(optionIndex)}>
                 <Accordion.Header

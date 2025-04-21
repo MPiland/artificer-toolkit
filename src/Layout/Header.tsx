@@ -41,15 +41,15 @@ const NoAuthHeader = ({ lg }: { lg: boolean }) => {
       </>
     : <>
         <div className={header_item_group}>
-          <div className={header_title}>
+          <Link to={'/'} className={header_title}>
             <ILogo />
             Artificer Toolkit
-            <Button style='unstyled' onClick={toggleTheme} width='size-7'>
-              {themeType === 'light' ?
-                <IDarkMode />
-              : <ILightMode />}
-            </Button>
-          </div>
+          </Link>
+          <Button style='unstyled' onClick={toggleTheme} width='size-7'>
+            {themeType === 'light' ?
+              <IDarkMode />
+            : <ILightMode />}
+          </Button>
         </div>
         <div className={header_item_group}>
           {noUserNavigation.map((navItem, index) => (
@@ -63,8 +63,9 @@ const NoAuthHeader = ({ lg }: { lg: boolean }) => {
 
 const AuthHeader = ({ lg }: { lg: boolean }) => {
   const { collapsed, setCollapsed } = use(LayoutContext)
-  return !lg ?
-      <>
+  return (
+    <>
+      {!lg && (
         <div className={header_item_group}>
           <Hamburger
             onClick={(e) => {
@@ -74,19 +75,15 @@ const AuthHeader = ({ lg }: { lg: boolean }) => {
             collapsed={collapsed}
           />
         </div>
-        <div className={header_item_group}>
-          <div className={header_title}>
-            Artificer Toolkit
-            <ILogo />
-          </div>
-        </div>
-      </>
-    : <div className={header_item_group}>
-        <div className={header_title}>
+      )}
+      <div className={header_item_group}>
+        <Link to={'/home'} className={header_title}>
           Artificer Toolkit
           <ILogo />
-        </div>
+        </Link>
       </div>
+    </>
+  )
 }
 
 const Header = ({ signedIn }: { signedIn: boolean }) => {

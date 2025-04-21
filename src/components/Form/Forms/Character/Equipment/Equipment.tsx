@@ -1,13 +1,10 @@
-import { Character, ClassStartingEquipment } from '../../../../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../../../../apis/systemsApi'
-import { UpdateState } from '../../../../../types/form'
+import type { Character, ClassStartingEquipment } from '../../../../../../amplify/gql/types'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import { use, useEffect, useState } from 'react'
 import { FormContext } from '../../../FormContext'
 import { StartingEquipmentOption } from '../../../../../types/enums'
 import { parseDiceRoll } from '../../../../../utils/dice'
-import { useListClassesQuery } from '../../../../../apis/classesApi'
-import { RollConfig } from '../../../../../types/components'
+import type { RollConfig } from '../../../../../types/components'
 import Button from '../../../../Button/Button'
 import Group from '../../../../Group/Group'
 import { sprinkles } from '../../../../../css/sprinkles.css'
@@ -19,21 +16,31 @@ import Scene from '../../../../Dice/Scene'
 import Grid from '../../../../Grid/Grid'
 import CharacterEquipment from '../../../Subforms/Character/CharacterEquipment/CharacterEquipment'
 import CharacterCurrency from '../../../Subforms/Character/CharacterEquipment/CharacterCurrency'
+import useSystemData from '../../../../../hooks/useSystemData'
+import useClassData from '../../../../../hooks/useClassData'
+import type { OnChange } from '../../../../../types/form'
 
 const Equipment = () => {
   const [random, setRandom] = useState<boolean>(false)
 
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data, updateField, removeField },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+      removeField: OnChange<Character>['removeField']
+    }
   }
 
   const { setDice, rollDice } = use(DiceContext)
 
-  const { data: system } = useGetSystemQuery()
-  const { data: classes } = useListClassesQuery()
+  const { characters } = useSystemData()
+  const {
+    classes: { findClass },
+  } = useClassData()
 
-  const primaryClass = classes.find((uClass) => formData.classes?.[0]?.id === uClass.id)
+  const primaryClass = findClass(data.classes?.[0]?.id)
 
   const goldDieConfig = primaryClass?.startingGold?.dieConfig as RollConfig
 
@@ -45,32 +52,24 @@ const Equipment = () => {
 
   // Set total gold based on gold option
   useEffect(() => {
-    if (formData?.classEquipment?.goldOption) {
-      if (formData?.classEquipment?.goldOption === goldDieConfig) {
+    if (data?.classEquipment?.goldOption) {
+      if (data?.classEquipment?.goldOption === goldDieConfig) {
         setRandom(true)
       } else {
-        if (formData?.classEquipment?.totalGold !== Number(formData?.classEquipment?.goldOption)) {
-          updateFormData({
-            type: 'update',
+        if (data?.classEquipment?.totalGold !== Number(data?.classEquipment?.goldOption)) {
+          updateField({
             path: 'classEquipment.totalGold',
-            value: Number(formData?.classEquipment?.goldOption) * multiplier,
+            value: Number(data?.classEquipment?.goldOption) * multiplier,
           })
         }
       }
     }
-  }, [
-    formData?.classEquipment?.goldOption,
-    formData?.classEquipment?.totalGold,
-    goldDieConfig,
-    multiplier,
-    updateFormData,
-  ])
+  }, [data?.classEquipment?.goldOption, data?.classEquipment?.totalGold, goldDieConfig, multiplier, updateField])
 
   // Remove stale starting equipment if classes are removed
   useEffect(() => {
-    if (formData?.classEquipment?.option && (!formData?.classes || !formData?.classes?.length)) {
-      updateFormData({
-        type: 'update',
+    if (data?.classEquipment?.option && (!data?.classes || !data?.classes?.length)) {
+      updateField({
         path: 'classEquipment',
         value: {
           __typename: 'ClassStartingEquipment',
@@ -82,7 +81,7 @@ const Equipment = () => {
         },
       })
     }
-  }, [formData?.classes, formData?.classEquipment, updateFormData])
+  }, [data, updateField])
 
   // Generate all possible combinations for the dice
   const generateCombinations = (quantity: number, die: number): string[] => {
@@ -137,11 +136,7 @@ const Equipment = () => {
 
       const amount = dieScore * multiplier
 
-      updateFormData({
-        type: 'update',
-        path: `classEquipment.totalGold`,
-        value: amount,
-      })
+      updateField({ path: `classEquipment.totalGold`, value: amount })
     } catch (error: any) {
       // Handle invalid input format error
       console.error(error)
@@ -161,11 +156,7 @@ const Equipment = () => {
             total += roll
           }
           const amount = total * multiplier
-          updateFormData({
-            type: 'update',
-            path: `classEquipment.totalGold`,
-            value: amount,
-          })
+          updateField({ path: `classEquipment.totalGold`, value: amount })
         }
         break
       case 'roll':
@@ -174,49 +165,11 @@ const Equipment = () => {
     }
   }
 
-  const handleEquipmentOption = (e: UpdateState<Character>) => {
-    const classEquipment: ClassStartingEquipment = {
-      __typename: 'ClassStartingEquipment',
-      equipmentGroups: formData?.classEquipment?.equipmentGroups || null,
-      goldOption: formData?.classEquipment?.goldOption || null,
-      option: '',
-      totalGold: formData?.classEquipment?.totalGold || null,
-    }
-    if (e.type === 'update') {
-      if (e.path === 'classEquipment.option') {
-        if (e.value !== formData?.classEquipment?.option) {
-          if (formData?.classEquipment?.equipmentGroups?.length) {
-            classEquipment.equipmentGroups = null
-          }
-          if (formData?.classEquipment?.goldOption) {
-            classEquipment.goldOption = null
-            if (formData?.classEquipment?.totalGold) {
-              classEquipment.totalGold = null
-            }
-          }
-        }
-        classEquipment.option = e.value
-      }
-      updateFormData({
-        type: 'update',
-        path: 'classEquipment',
-        value: classEquipment,
-      })
-    }
-    if (e.type === 'remove') {
-      updateFormData({
-        type: 'update',
-        path: 'classEquipment',
-        value: null,
-      })
-    }
-  }
-
   return (
     <>
       {form && createPortal(<Scene />, form)}
       <Grid>
-        {!formData?.classes?.length ?
+        {!data?.classes?.length ?
           <Grid.Item className={sprinkles({ alignContent: 'center' })}>
             <div>Please select a class.</div>
           </Grid.Item>
@@ -227,25 +180,55 @@ const Equipment = () => {
                 <Collapse.Body>
                   <Grid>
                     <Grid.Item justify='center'>
-                      <Dropdown
+                      <Dropdown<Character>
                         name='classEquipment.option'
-                        value={formData?.classEquipment?.option}
+                        value={data?.classEquipment?.option}
                         label='Equipment or Gold'
                         className={option_dropdown}
-                        onChange={handleEquipmentOption}
-                        options={system.characters.startingEquipmentOptions}
+                        onChange={{
+                          updateField: ({ path, value }) => {
+                            const classEquipment: ClassStartingEquipment = {
+                              __typename: 'ClassStartingEquipment',
+                              equipmentGroups: data?.classEquipment?.equipmentGroups || null,
+                              goldOption: data?.classEquipment?.goldOption || null,
+                              option: '',
+                              totalGold: data?.classEquipment?.totalGold || null,
+                            }
+
+                            if (path === 'classEquipment.option') {
+                              if (value !== data?.classEquipment?.option) {
+                                if (data?.classEquipment?.equipmentGroups?.length) {
+                                  classEquipment.equipmentGroups = null
+                                }
+                                if (data?.classEquipment?.goldOption) {
+                                  classEquipment.goldOption = null
+                                  if (data?.classEquipment?.totalGold) {
+                                    classEquipment.totalGold = null
+                                  }
+                                }
+                              }
+                              classEquipment.option = value
+                            }
+
+                            return { path: 'classEquipment', value: classEquipment }
+                          },
+                          removeField: () => ({
+                            path: 'classEquipment',
+                          }),
+                        }}
+                        options={characters.startingEquipmentOptions}
                       />
                     </Grid.Item>
-                    {formData.classEquipment?.option === StartingEquipmentOption.gold ?
+                    {data.classEquipment?.option === StartingEquipmentOption.gold ?
                       <>
                         <Grid.Item justify='center'>
                           <Dropdown
                             name='classEquipment.goldOption'
-                            value={formData?.classEquipment?.goldOption}
+                            value={data?.classEquipment?.goldOption}
                             className={option_dropdown}
                             label='Gold'
                             options={combinationOptions}
-                            onChange={updateFormData}
+                            onChange={{ updateField, removeField }}
                           />
                         </Grid.Item>
                         <Grid.Item>
@@ -275,9 +258,9 @@ const Equipment = () => {
                                 )}
                               </Group>
                             </Grid.Item>
-                            {formData?.classEquipment?.totalGold && (
+                            {data?.classEquipment?.totalGold && (
                               <Grid.Item justify='center'>
-                                <h3>Total Gold: {formData?.classEquipment?.totalGold}</h3>
+                                <h3>Total Gold: {data?.classEquipment?.totalGold}</h3>
                               </Grid.Item>
                             )}
                           </Grid>

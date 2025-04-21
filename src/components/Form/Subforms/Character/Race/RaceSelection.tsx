@@ -1,58 +1,56 @@
 import { Fragment, useState } from 'react'
 import { card_group, card_header, card_header_title, main_card, subrace_card } from '../../../Character.css'
 import clsx from 'clsx'
-import { useListRacesQuery } from '../../../../../apis/racesApi'
 import { Categories } from '../../../../../types/enums'
-import { Race } from '../../../../../../amplify/gql/types'
+import type { RaceListItem } from '../../../../../../amplify/gql/types'
 import Grid from '../../../../Grid/Grid'
 import RaceDetail from './RaceDetail'
+import useRaceData from '../../../../../hooks/useRaceData'
 
 const RaceSelection = () => {
-  const [fullRace, setFullRace] = useState<Race | null>(null)
+  const [race, setRace] = useState<RaceListItem | null>(null)
 
-  const { data: races } = useListRacesQuery()
+  const {
+    baseRaces,
+    subraces,
+    races: { findByLineage, findLineages },
+    metaData,
+  } = useRaceData()
 
   return (
     <>
-      {races.map((race, raceIndex) => {
-        if (race.category === Categories.base) {
+      {baseRaces.map((race, rIndex) => {
+        if (metaData.categories?.find((c) => c.id === Categories.base)?.raceIds?.includes(race.id)) {
           return (
-            <Grid.Item key={raceIndex} className={card_group}>
+            <Grid.Item key={rIndex} className={card_group}>
               <div
                 className={clsx(main_card, {
-                  ['clickable']: race.playable !== 'false',
+                  ['clickable']: metaData.playable?.find((p) => p.id === 'false')?.raceIds?.includes(race.id),
                 })}
-                onClick={() =>
-                  !races
-                    ?.filter((race) => race.category === Categories.subrace)
-                    .some((subrace) => subrace?.lineages?.some((lineage) => lineage === race.id)) && setFullRace(race)
-                }
+                onClick={() => !findByLineage(race.id)?.length && setRace(race)}
               >
                 <h3 className={clsx(card_header_title, card_header)}>{race.label}</h3>
               </div>
               <>
-                {races
-                  ?.filter((race) => race.category === Categories.subrace)
-                  .map((subrace, subraceIndex) => {
-                    if (subrace.lineages?.some((lineage) => lineage === race.id)) {
-                      return (
-                        <Fragment key={subraceIndex}>
-                          <div
-                            className={clsx(subrace_card, main_card, 'clickable')}
-                            onClick={() => setFullRace(subrace)}
-                          >
-                            <h3 className={clsx(card_header_title, card_header)}>{subrace.label}</h3>
-                          </div>
-                        </Fragment>
-                      )
-                    }
-                  })}
+                {subraces.map((subrace, sIndex) => {
+                  const lineages = findLineages(subrace?.id)
+                  return (
+                    lineages?.some((lineage) => lineage.id === race.id) &&
+                    subrace && (
+                      <Fragment key={sIndex}>
+                        <div className={clsx(subrace_card, main_card, 'clickable')} onClick={() => setRace(subrace)}>
+                          <h3 className={clsx(card_header_title, card_header)}>{subrace.label}</h3>
+                        </div>
+                      </Fragment>
+                    )
+                  )
+                })}
               </>
             </Grid.Item>
           )
         }
       })}
-      {fullRace && <RaceDetail fullRace={fullRace} setFullRace={() => setFullRace(null)} />}
+      {race && <RaceDetail race={race} setRace={() => setRace(null)} />}
     </>
   )
 }

@@ -17,13 +17,16 @@ import { DropdownOption } from '../../types/components'
 import { TbX, TbChevronDown } from 'react-icons/tb'
 import ScrollArea from '../ScrollArea/ScrollArea'
 import Floating from '../Floating/Floating'
-import { DeepKeyOf, UpdateState } from '../../types/form'
+import type { DeepKeyOf, OnChange } from '../../types/form'
 
 export interface DropdownProps<T> {
   label?: string | boolean
   required?: boolean
   value: string[] | string | null | undefined
-  onChange: (state: UpdateState<T>) => void
+  onChange: {
+    updateField: OnChange<T>['updateField']
+    removeField: OnChange<T>['removeField']
+  }
   className?: string | number | symbol | any
   placeholder?: string
   options: DropdownOption[]
@@ -170,7 +173,7 @@ const Dropdown = <T,>({
       } else if (option.id === 'all') {
         newOptions = ['all']
         const allOptions = filteredOptions.filter((opt) => opt.id !== 'all' && opt.id !== 'clear').map((opt) => opt.id)
-        onChange({ type: 'update', path: name, value: newOptions })
+        onChange.updateField({ path: name, value: newOptions })
         return setSelectedOptions(allOptions)
       }
       if (newOptions != null && Array.isArray(selectedOptions) && selectedOptions?.length) {
@@ -180,13 +183,13 @@ const Dropdown = <T,>({
           newOptions = [...selectedOptions, ...newOptions]
         }
       }
-      onChange({ type: 'update', path: name, value: newOptions })
+      onChange.updateField({ path: name, value: newOptions })
       setSelectedOptions(newOptions)
     } else {
       // If it's a single select, update selectedOptionsRef.current to match selectedOptions
       setIsOpen(false)
       setSelectedOptions(option.id)
-      onChange({ type: 'update', path: name, value: option.id })
+      onChange.updateField({ path: name, value: option.id })
     }
     setSettingOption(false)
   }
@@ -194,7 +197,7 @@ const Dropdown = <T,>({
   const handleValueRemove = () => {
     setSettingOption(true)
     setSelectedOptions(null)
-    onChange({ type: 'remove', path: name })
+    onChange.removeField({ path: name })
     setSettingOption(false)
   }
 

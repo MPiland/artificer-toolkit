@@ -4,6 +4,6 @@
     "composite": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules"],
-  "references": [{ "path": "./tsconfig.server.json" }]
+  "exclude": ["node_modules/**/*", "./dist/**/*", ".amplify/**/*"],
+  "references": [{ "path": "./tsconfig.server.json" }, { "path": "./tsconfig.types.json" }]
 }

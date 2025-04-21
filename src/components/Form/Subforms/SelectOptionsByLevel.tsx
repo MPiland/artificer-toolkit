@@ -4,19 +4,28 @@ import Grid from '../../Grid/Grid'
 import Collapse from '../../Collapse/Collapse'
 import { useEnumChecks } from '../../../hooks/useEnumChecks'
 import Input from '../../Input/Input'
+import type { AncestryFeature, Feature } from '../../../../amplify/gql/types'
+import type { OnChange } from '../../../types/form'
 
 const SelectOptionsByLevel = () => {
-  const { featureData, updateFeatureData } = use(FeatureContext)
-  const { replaceAtLevel } = useEnumChecks({ data: featureData })
+  const {
+    featureStore: { data, updateField, addField },
+  } = use(FeatureContext) as {
+    featureStore: {
+      data: Feature | AncestryFeature
+      updateField: OnChange<Feature | AncestryFeature>['updateField']
+      addField: OnChange<Feature | AncestryFeature>['addField']
+      removeField: OnChange<Feature | AncestryFeature>['removeField']
+    }
+  }
+
+  const { replaceAtLevel } = useEnumChecks({ data: data })
 
   useEffect(() => {
-    if (!featureData?.optionsByLevel) {
-      updateFeatureData({
-        type: 'add',
-        path: 'optionsByLevel',
-      })
+    if (!data?.optionsByLevel) {
+      addField({ path: 'optionsByLevel' })
     }
-  })
+  }, [addField, data?.optionsByLevel])
 
   return (
     <Grid.Item>
@@ -31,7 +40,7 @@ const SelectOptionsByLevel = () => {
                 {replaceAtLevel && <Grid.Item colSpan={'auto'}>Replace Count</Grid.Item>}
               </Grid>
             </Grid.Item>
-            {featureData?.optionsByLevel?.map((option, index) => (
+            {data?.optionsByLevel?.map((option, index) => (
               <Grid.Item key={index}>
                 <Grid>
                   <Grid.Item colSpan={'auto'}>
@@ -40,7 +49,7 @@ const SelectOptionsByLevel = () => {
                       value={option.level}
                       validation='num'
                       required={true}
-                      onChange={updateFeatureData}
+                      onChange={{ updateField }}
                     />
                   </Grid.Item>
                   <Grid.Item colSpan={'auto'}>
@@ -49,7 +58,7 @@ const SelectOptionsByLevel = () => {
                       value={option.count}
                       validation='num'
                       required={true}
-                      onChange={updateFeatureData}
+                      onChange={{ updateField }}
                     />
                   </Grid.Item>
                   {replaceAtLevel && (
@@ -59,7 +68,7 @@ const SelectOptionsByLevel = () => {
                         value={option.replaceCount}
                         validation='num'
                         required={true}
-                        onChange={updateFeatureData}
+                        onChange={{ updateField }}
                       />
                     </Grid.Item>
                   )}

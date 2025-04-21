@@ -1,34 +1,29 @@
 import parse from 'html-react-parser'
 import { Fragment } from 'react'
-// import { Fragment, MouseEvent as ReactMouseEvent } from 'react'
-import { useListClassesQuery } from '../../apis/classesApi'
 import Detail from '../../components/Detail/Detail'
 import { sprinkles } from '../../css/sprinkles.css'
-import { Class as ClassState, Feature, FeatureOption } from '../../../amplify/gql/types'
+import { type Class as ClassState, type Feature, type FeatureOption } from '../../../amplify/gql/types'
 import { Attributes, Categories, Prerequisites } from '../../types/enums'
-import { useGetSystemQuery } from '../../apis/systemsApi'
-import { useListSpellsQuery } from '../../apis/spellsApi'
 import { class_section_divider } from './Class.css'
-import { FormDataType } from '../../types/form'
-import { useRouterState } from '@tanstack/react-router'
-
-// Type guard function
-function isClass(item: FormDataType | undefined): item is ClassState {
-  return item?.__typename === 'Feat'
-}
+import { Route } from '../../routes/_protected/classes/$classId'
+import useSystemData from '../../hooks/useSystemData'
+import useSpellData from '../../hooks/useSpellData'
+import useClassData from '../../hooks/useClassData'
 
 const Class = () => {
-  const { data: classes } = useListClassesQuery()
-  const { data: system } = useGetSystemQuery()
-  const { data: spells } = useListSpellsQuery()
+  const classId = Route.useParams({ select: (r) => r.classId })
+  const { findSpell } = useSpellData()
+  const systemData = useSystemData()!
+  const {
+    findClass,
+    subclasses: { findByParent },
+  } = useClassData()
 
-  const uClass = useRouterState({ select: (s) => s.location.state.item })
+  const uClass = findClass(classId)
 
-  if (!uClass || !isClass(uClass)) return <div>Invalid or missing class data</div>
+  if (!uClass || uClass.__typename !== 'Class') return <div>Invalid or missing class data</div>
 
-  const subclasses = classes?.filter((sClass) => {
-    return sClass.parentClass === uClass?.id
-  })
+  const subclasses = findByParent(uClass.id)
 
   const handlePreReq = (parentItem: Feature, childItem: FeatureOption, classItem: ClassState) => {
     const parentLevel = parentItem?.levelAvailable?.split(', ')
@@ -45,8 +40,8 @@ const Class = () => {
       if (childReqOption && childReqOption.options?.length) {
         if (childReqOption.skillProficiencies && childReqOption.skillProficiencies?.length > 0) {
           childReqsText.push(
-            `Skill(s) Proficiency: ${childReqOption.skillProficiencies?.map((skillId, index) => {
-              const skill = system?.skills.find((sSkill) => sSkill?.id === skillId)
+            `Skill(s) Proficiency: ${childReqOption.skillProficiencies?.map((id, index) => {
+              const skill = systemData.skills.findSkill(id)
               if (skill) {
                 if (
                   childReqOption.skillProficiencies?.length &&
@@ -63,8 +58,8 @@ const Class = () => {
         }
         if (childReqOption.abilityScore && childReqOption.abilityScore?.abilities?.length) {
           childReqsText.push(
-            `Ability Score: ${childReqOption.abilityScore?.abilities.map((abilityId, index) => {
-              const ability = system?.abilities.find((ability) => ability?.id === abilityId)
+            `Ability Score: ${childReqOption.abilityScore?.abilities.map((id, index) => {
+              const ability = systemData.abilities.findAbility(id)
               if (ability) {
                 if (
                   childReqOption.abilityScore?.abilities &&
@@ -81,8 +76,8 @@ const Class = () => {
         }
         if (childReqOption.spellsObtained && childReqOption.spellsObtained?.length > 0) {
           childReqsText.push(
-            `Spell(s) Known: ${childReqOption.spellsObtained?.map((spellId, index) => {
-              const spell = spells?.find((spellItem) => spellItem.id === spellId)
+            `Spell(s) Known: ${childReqOption.spellsObtained?.map((id, index) => {
+              const spell = findSpell(id)
               if (spell) {
                 if (
                   childReqOption.spellsObtained?.length &&
@@ -223,60 +218,63 @@ const Class = () => {
           })}
           {subclasses?.length && (
             <>
-              {subclasses.map((subclass, index) => {
+              {subclasses.map((s, index) => {
+                const subclass = findClass(s.id)
                 let subclassResourceShown = false
-                return (
-                  <Fragment key={index}>
-                    <h2>{subclass.label}</h2>
-                    <hr className={class_section_divider} />
-                    {subclass.desc && parse(subclass.desc)}
-                    {subclass?.features?.length &&
-                      subclass.features.map((feature, fIndex) => {
-                        const featureLevelArray = feature.levelAvailable?.split(', ')
-                        const featureLevel = featureLevelArray?.[0]
-                        return (
-                          <Fragment key={fIndex}>
-                            {subclass.resource &&
-                              subclass?.resource?.levelAvailable &&
-                              Number(featureLevel) >= subclass?.resource?.levelAvailable &&
-                              !subclassResourceShown && (
-                                <Fragment>
-                                  <h2>{subclass.resource?.value}</h2>
-                                  {subclass.resource?.desc && parse(subclass.resource?.desc)}
-                                  {(subclassResourceShown = true)}
-                                </Fragment>
-                              )}
-                            <h2>
-                              <u>{feature.label}</u>
-                            </h2>
-                            {feature.desc && parse(feature.desc)}
-                            {feature.options?.length &&
-                              feature.options.map((option, oIndex) => (
-                                <Fragment key={oIndex}>
-                                  <h3>{option.value}</h3>
-                                  {feature.attributes?.some((attribute) => attribute === Attributes.prerequisites) &&
-                                    feature?.prerequisites?.options?.some(
-                                      (reqId) =>
-                                        reqId === Prerequisites.abilityScore ||
-                                        reqId === Prerequisites.skillProficiency ||
-                                        reqId === Prerequisites.spellsObtained ||
-                                        reqId === Prerequisites.featuresObtained
-                                    ) && (
-                                      <p>
-                                        <em className={sprinkles({ mb: 'space-3' })}>
-                                          <u>{handlePreReq(feature, option, subclass)}</u>
-                                        </em>
-                                      </p>
-                                    )}
-                                  {option?.desc && parse(option.desc)}
-                                </Fragment>
-                              ))}
-                          </Fragment>
-                        )
-                      })}
-                    {index !== subclasses.length - 1 && <hr />}
-                  </Fragment>
-                )
+                if (subclass) {
+                  return (
+                    <Fragment key={index}>
+                      <h2>{subclass.label}</h2>
+                      <hr className={class_section_divider} />
+                      {subclass.desc && parse(subclass.desc)}
+                      {subclass?.features?.length &&
+                        subclass.features.map((feature, fIndex) => {
+                          const featureLevelArray = feature.levelAvailable?.split(', ')
+                          const featureLevel = featureLevelArray?.[0]
+                          return (
+                            <Fragment key={fIndex}>
+                              {subclass.resource &&
+                                subclass?.resource?.levelAvailable &&
+                                Number(featureLevel) >= subclass?.resource?.levelAvailable &&
+                                !subclassResourceShown && (
+                                  <Fragment>
+                                    <h2>{subclass.resource?.value}</h2>
+                                    {subclass.resource?.desc && parse(subclass.resource?.desc)}
+                                    {(subclassResourceShown = true)}
+                                  </Fragment>
+                                )}
+                              <h2>
+                                <u>{feature.label}</u>
+                              </h2>
+                              {feature.desc && parse(feature.desc)}
+                              {feature.options?.length &&
+                                feature.options.map((option, oIndex) => (
+                                  <Fragment key={oIndex}>
+                                    <h3>{option.value}</h3>
+                                    {feature.attributes?.some((attribute) => attribute === Attributes.prerequisites) &&
+                                      feature?.prerequisites?.options?.some(
+                                        (reqId) =>
+                                          reqId === Prerequisites.abilityScore ||
+                                          reqId === Prerequisites.skillProficiency ||
+                                          reqId === Prerequisites.spellsObtained ||
+                                          reqId === Prerequisites.featuresObtained
+                                      ) && (
+                                        <p>
+                                          <em className={sprinkles({ mb: 'space-3' })}>
+                                            <u>{handlePreReq(feature, option, subclass)}</u>
+                                          </em>
+                                        </p>
+                                      )}
+                                    {option?.desc && parse(option.desc)}
+                                  </Fragment>
+                                ))}
+                            </Fragment>
+                          )
+                        })}
+                      {index !== subclasses.length - 1 && <hr />}
+                    </Fragment>
+                  )
+                }
               })}
             </>
           )}

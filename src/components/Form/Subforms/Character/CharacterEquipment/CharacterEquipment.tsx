@@ -5,7 +5,6 @@ import {
   type CharacterEquipment,
   type CharacterEquipmentObject,
 } from '../../../../../../amplify/gql/types'
-import { UpdateState } from '../../../../../types/form'
 import { use, useEffect } from 'react'
 import { FormContext } from '../../../FormContext'
 import { Attributes, Currencies, StartingEquipmentOption } from '../../../../../types/enums'
@@ -13,19 +12,26 @@ import Button from '../../../../Button/Button'
 import { sprinkles } from '../../../../../css/sprinkles.css'
 import Grid from '../../../../Grid/Grid'
 import CharacterEquipmentSelection from '../../../Subforms/Character/CharacterEquipment/CharacterEquipmentSelection'
-import { useListEquipmentQuery } from '../../../../../apis/equipmentApi'
 import { ModalContext } from '../../../../Modal/ModalContext'
 import { v4 as uuid } from 'uuid'
+import useEquipmentData from '../../../../../hooks/useEquipmentData'
+import type { OnChange } from '../../../../../types/form'
+import type { FormStore } from '../../../../../store/formStore'
 
 const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data, updateField, reinitState },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+      updateField: OnChange<Character>['updateField']
+      reinitState: FormStore<Character>['reinitState']
+    }
   }
 
   const { showModal } = use(ModalContext)
 
-  const { data: equipment } = useListEquipmentQuery()
+  const { equipment } = useEquipmentData()
 
   const path = dataSource.__typename === 'Class' ? 'classEquipment' : 'backgroundEquipment'
 
@@ -33,11 +39,10 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
   useEffect(() => {
     if (
       dataSource.__typename === 'Class' &&
-      formData?.classEquipment?.option &&
-      (!formData?.classes || !formData?.classes?.length)
+      data?.classEquipment?.option &&
+      (!data?.classes || !data?.classes?.length)
     ) {
-      updateFormData({
-        type: 'update',
+      updateField({
         path: 'classEquipment',
         value: {
           __typename: 'ClassStartingEquipment',
@@ -51,11 +56,10 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
     }
     if (
       dataSource.__typename === 'Background' &&
-      formData?.backgroundEquipment?.equipmentGroups?.length &&
-      !formData?.background
+      data?.backgroundEquipment?.equipmentGroups?.length &&
+      !data?.background
     ) {
-      updateFormData({
-        type: 'update',
+      updateField({
         path: 'backgroundEquipment',
         value: {
           __typename: 'BackgroundStartingEquipment',
@@ -64,38 +68,28 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
         },
       })
     }
-  }, [
-    formData?.classes,
-    formData?.classEquipment,
-    formData?.background,
-    formData?.backgroundEquipment,
-    updateFormData,
-    dataSource,
-  ])
+  }, [data?.classes, data?.classEquipment, data?.background, data?.backgroundEquipment, updateField, dataSource])
 
   // Check if all required equipment selections are complete or gold is ready
   const isEquipmentSelectionComplete = (): boolean => {
     // Check if a starting equipment option has been selected at all
-    if (
-      dataSource.__typename === 'Class' &&
-      (!formData?.classEquipment?.option || formData?.classEquipment?.addedToCharacter)
-    )
+    if (dataSource.__typename === 'Class' && (!data?.classEquipment?.option || data?.classEquipment?.addedToCharacter))
       return false
 
     // For gold option, check if totalGold has been generated
-    if (dataSource.__typename === 'Class' && formData?.classEquipment?.option === StartingEquipmentOption.gold) {
-      if (!formData?.classEquipment?.totalGold && formData?.classEquipment?.totalGold !== 0) return false
+    if (dataSource.__typename === 'Class' && data?.classEquipment?.option === StartingEquipmentOption.gold) {
+      if (!data?.classEquipment?.totalGold && data?.classEquipment?.totalGold !== 0) return false
     }
 
     // For equipment option, check if all selections are complete
     if (
-      (dataSource.__typename === 'Class' && formData?.classEquipment?.option === StartingEquipmentOption.equipment) ||
+      (dataSource.__typename === 'Class' && data?.classEquipment?.option === StartingEquipmentOption.equipment) ||
       dataSource.__typename === 'Background'
     ) {
       // If no primaryClass or no equipment structure, return false
       if (!dataSource?.equipment) return false
 
-      const equipmentGroups = formData?.[path]?.equipmentGroups || []
+      const equipmentGroups = data?.[path]?.equipmentGroups || []
 
       // For each equipment group in the class
       for (let groupIndex = 0; groupIndex < dataSource.equipment.length; groupIndex++) {
@@ -148,34 +142,32 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
   }
 
   const handleAddEquipment = () => {
-    if (dataSource.__typename === 'Class' && formData?.classEquipment?.option === StartingEquipmentOption.gold) {
-      const currencyGroupIndex = formData?.currencyGroups?.findIndex((group) => group.container == null)
+    if (dataSource.__typename === 'Class' && data?.classEquipment?.option === StartingEquipmentOption.gold) {
+      const currencyGroupIndex = data?.currencyGroups?.findIndex((group) => group.container == null)
       const baglessIndex = currencyGroupIndex && currencyGroupIndex !== -1 ? currencyGroupIndex : 0
 
-      const currencyIndex = formData?.currencyGroups?.[baglessIndex]?.currencies?.findIndex(
+      const currencyIndex = data?.currencyGroups?.[baglessIndex]?.currencies?.findIndex(
         (currency) => currency?.id === Currencies.gold
       )
       const baglessCurrencyIndex = currencyIndex && currencyIndex !== -1 ? currencyIndex : 0
-      updateFormData({
-        type: 'update',
+      updateField({
         path: `currencyGroups.${baglessIndex}.currencies.${baglessCurrencyIndex}.amount`,
-        value: formData?.classEquipment?.totalGold,
+        value: data?.classEquipment?.totalGold,
       })
-      updateFormData({
-        type: 'update',
+      updateField({
         path: 'classEquipment.addedToCharacter',
         value: true,
       })
     }
     if (
-      (dataSource.__typename === 'Class' && formData?.classEquipment?.option === StartingEquipmentOption.equipment) ||
+      (dataSource.__typename === 'Class' && data?.classEquipment?.option === StartingEquipmentOption.equipment) ||
       dataSource.__typename === 'Background'
     ) {
       const equipmentArray = [] as Omit<NonNullable<CharacterEquipment['inventory']>, '__typename'>
-      formData?.[path]?.equipmentGroups?.forEach((group) => {
+      data?.[path]?.equipmentGroups?.forEach((group) => {
         if (group?.equipment?.length) {
           group?.equipment?.forEach((gE) => {
-            const fullEquipment = equipment.find((e) => e.id === gE.id)
+            const fullEquipment = equipment.findEquipment(gE.id)
             if (fullEquipment) {
               const equipObj: CharacterEquipmentObject = {
                 id: uuid(),
@@ -188,13 +180,11 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
           })
         }
       })
-      updateFormData({
-        type: 'update',
+      updateField({
         path: 'equipment.inventory',
         value: equipmentArray,
       })
-      updateFormData({
-        type: 'update',
+      updateField({
         path: `${path}.addedToCharacter`,
         value: true,
       })
@@ -203,10 +193,10 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
 
   const resetEquipment = () => {
     const formDataCopy = {
-      ...formData,
+      ...data,
       equipment: {
         __typename: 'CharacterEquipment',
-        ...formData.equipment,
+        ...data.equipment,
         inventory: [] as CharacterEquipmentObject[],
       } as CharacterEquipment,
       currencyGroups: [],
@@ -230,10 +220,7 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
         addedToCharacter: false,
       }
     }
-    updateFormData({
-      type: 'reset',
-      value: formDataCopy,
-    })
+    reinitState(formDataCopy)
   }
 
   const handleResetEquipment = () => {
@@ -249,7 +236,7 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
 
   return (
     <>
-      {((dataSource.__typename === 'Class' && formData.classEquipment?.option !== StartingEquipmentOption.gold) ||
+      {((dataSource.__typename === 'Class' && data.classEquipment?.option !== StartingEquipmentOption.gold) ||
         dataSource.__typename === 'Background') &&
         dataSource?.equipment?.map((group, groupIndex) => {
           if (group?.length) {
@@ -267,11 +254,11 @@ const CharacterEquipment = ({ dataSource }: { dataSource: Class | Background }) 
         <Button disabled={!isEquipmentSelectionComplete()} onClick={handleAddEquipment}>
           {`Add ${
             dataSource.__typename === 'Class' ?
-              formData.classEquipment?.option === StartingEquipmentOption.gold && 'Equipment'
+              data.classEquipment?.option === StartingEquipmentOption.gold && 'Equipment'
             : 'Gold'
           }`}
         </Button>
-        {formData?.[path]?.addedToCharacter && (
+        {data?.[path]?.addedToCharacter && (
           <Button onClick={handleResetEquipment} className={sprinkles({ ms: 'space-4' })}>
             Reset Equipment
           </Button>

@@ -1,7 +1,7 @@
 import { use } from 'react'
 import { Character, CharacterFeature } from '../../../../../../amplify/gql/types'
 import useGetSections from '../../../../../hooks/useGetSectionState'
-import { SectionDataType, SectionName, UpdateState } from '../../../../../types/form'
+import { SectionDataType, SectionName } from '../../../../../types/form'
 import Dropdown from '../../../../Dropdown/Dropdown'
 import Grid from '../../../../Grid/Grid'
 import { option_dropdown } from '../../../Character.css'
@@ -37,12 +37,15 @@ const FeatureSection = ({
   featId,
   feature,
 }: FeatureOptionProps) => {
-  const { formData, updateFormData } = use(FormContext) as {
-    formData: Character
-    updateFormData: (state: UpdateState<Character>) => void
+  const {
+    formStore: { data },
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+    }
   }
 
-  const { getSectionOptions } = useGetSections({ formData })
+  const { getSectionOptions } = useGetSections({ formData: data })
 
   // Check if selectionCount exists and is greater than 0
   const selectionCount = section?.selectionCount || 1
@@ -61,16 +64,16 @@ const FeatureSection = ({
 
     return (
       <Grid.Item key={path + optionIndex} justify='center'>
-        <Dropdown
+        <Dropdown<Character>
           key={index}
           name={path}
           className={option_dropdown}
           label={`${label} Option`}
           options={options}
-          onChange={(e) => {
-            if (e.type === 'update') {
+          onChange={{
+            updateField: ({ value }) => {
               const valueObject = {
-                [`${type}`]: e.value,
+                [`${type}`]: value,
                 optionIndex,
                 featureId: feature.id,
                 __typename: typename(sectionStep as Exclude<SectionName, 'spells'>, 'typename'),
@@ -100,23 +103,17 @@ const FeatureSection = ({
                   )
                   if (propertyName) {
                     // Set the property using the selected value
-                    valueObject[propertyName] = e.value
+                    valueObject[propertyName] = value
                   }
                 }
               }
 
-              updateFormData({
-                type: e.type,
-                path: path,
+              return {
+                path,
                 value: valueObject,
-              })
-            }
-            if (e.type === 'remove') {
-              updateFormData({
-                type: 'remove',
-                path: path,
-              })
-            }
+              }
+            },
+            removeField: () => ({ path }),
           }}
           value={exist}
         />

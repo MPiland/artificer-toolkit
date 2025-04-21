@@ -1,68 +1,75 @@
 import List from '../../components/List/List'
-import { useListEquipmentQuery, useDeleteEquipmentMutation } from '../../apis/equipmentApi'
+import { useDeleteEquipmentMutation } from '../../apis/equipmentApi'
 import IFlame from '../../assets/Icons/IFlame'
 import ICategory from '../../assets/Icons/ICategory'
 import IProps from '../../assets/Icons/IProps'
 import IShield from '../../assets/Icons/IShield'
 import IWeight from '../../assets/Icons/IWeight'
 import IDollar from '../../assets/Icons/IDollar'
-import { ReactElement, Suspense } from 'react'
+import { Suspense } from 'react'
 import Loading from '../../components/Loading/Loading'
+import type { EquipmentMeta } from '../../../amplify/gql/types'
+import type { FooterConfig } from '../../types/components'
+import useEquipmentData from '../../hooks/useEquipmentData'
 
 const Equipments = () => {
-  const footerText: { name: string | any | any[]; value: string; display?: string; icon?: ReactElement }[] = [
+  const { all: equipments, metaData } = useEquipmentData()
+  const footerConfigs: FooterConfig<EquipmentMeta>[] = [
     {
       icon: <ICategory />,
-      name: [{ path: 'category', source: { type: 'system', field: 'equipment.categories' } }],
+      text: [{ metaPath: 'categories', source: { type: 'system', sourcePath: 'equipment.categories' } }],
       value: 'Category',
     },
     {
       icon: <IProps />,
-      name: [{ path: 'properties', source: { type: 'system', field: 'equipment.properties' } }],
+      text: [{ metaPath: 'properties', source: { type: 'system', sourcePath: 'equipment.properties' } }],
       value: 'Properties',
     },
     {
       icon: <IFlame />,
       value: 'Damage/Effect',
-      name: [
-        [
-          'damage.primary.diceShort',
-          'damage.primary.setAmount',
-          'damage.primary.pool.setAmount',
-          { path: 'damage.primary.id', source: { type: 'system', field: 'damageTypes' } },
-        ],
-        [
-          'damage.versatile.diceShort',
-          'damage.versatile.setAmount',
-          'damage.versatile.pool.setAmount',
-          { path: 'damage.versatile.id', source: { type: 'system', field: 'damageTypes' } },
-        ],
-        { path: 'conditions', source: { type: 'system', field: 'conditions' } },
+      text: [
+        { metaPath: 'primaryDamages', source: { type: 'system', sourcePath: 'damageTypes' } },
+        { metaPath: 'secondaryDamages', source: { type: 'system', sourcePath: 'damageTypes' } },
       ],
       display: 'list',
     },
     {
       icon: <IShield />,
       value: 'Armor Class',
-      name: 'armorClass',
+      text: { metaPath: 'armorClasses' },
       display: 'list',
     },
     {
       icon: <IWeight />,
       value: 'Weight',
-      name: ['weight.amount', { path: 'weight.unit', source: { type: 'system', field: 'rules' } }],
+      text: [
+        { metaPath: 'weight', subMetaPath: 'amount' },
+        {
+          metaPath: 'weight',
+          source: { type: 'system', sourcePath: 'rules.measurements.imperial.weight', labelKey: 'short' },
+        },
+      ],
       display: 'list',
     },
     {
       icon: <IDollar />,
       value: 'Cost',
-      name: ['cost.amount', { path: 'cost.currency', source: { type: 'system', field: 'currencies' } }],
+      text: [
+        { metaPath: 'cost', subMetaPath: 'amount' },
+        { metaPath: 'cost', source: { type: 'system', sourcePath: 'currencies', labelKey: 'abbreviation' } },
+      ],
     },
   ]
 
   return (
     <Suspense fallback={<Loading />}>
-      <List useListItems={useListEquipmentQuery} useDeleteItem={useDeleteEquipmentMutation} footerText={footerText} />
+      <List
+        data={equipments}
+        metaData={metaData}
+        useDeleteItem={useDeleteEquipmentMutation}
+        footerConfigs={footerConfigs}
+      />
     </Suspense>
   )
 }

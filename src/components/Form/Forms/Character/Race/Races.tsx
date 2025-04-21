@@ -3,34 +3,32 @@ import RaceSelection from '../../../Subforms/Character/Race/RaceSelection'
 import { use } from 'react'
 import { FormContext } from '../../../FormContext'
 import { Character } from '../../../../../../amplify/gql/types'
-import { useListRacesQuery } from '../../../../../apis/racesApi'
-import { UpdateState } from '../../../../../types/form'
 import Grid from '../../../../Grid/Grid'
+import useRaceData from '../../../../../hooks/useRaceData'
 
 const Races = () => {
-  const { formData, updateFormData, changeRace } = use(FormContext) as {
-    formData: Character
+  const {
+    formStore: { data },
+    changeRace,
+  } = use(FormContext) as {
+    formStore: {
+      data: Character
+    }
     changeRace: boolean
-    updateFormData: (arg: UpdateState<Character>) => void
   }
 
-  const { data: races } = useListRacesQuery()
+  const {
+    races: { findRace, findLineages },
+  } = useRaceData()
 
-  const fullRace = races.find((race) => race.id === formData.race)
-  const raceLineages = races.filter((race) => fullRace?.lineages?.map((lineage) => race.id === lineage))
-  const fullAncestry = fullRace?.ancestry?.options?.find((option) => option?.id === formData?.ancestry?.id)
+  const fullRace = findRace(data.race)
+  const raceLineages = findLineages(data.race) || []
+  const fullAncestry = fullRace?.ancestry?.options?.find((option) => option?.id === data?.ancestry?.id)
 
   return (
     <Grid>
-      {formData?.race && fullRace && !changeRace ?
-        <RaceFeatures
-          formData={formData}
-          raceId={formData.race}
-          fullRace={fullRace}
-          raceLineages={raceLineages}
-          fullAncestry={fullAncestry}
-          updateFormData={updateFormData}
-        />
+      {data?.race && fullRace && !changeRace ?
+        <RaceFeatures raceId={data.race} fullRace={fullRace} raceLineages={raceLineages} fullAncestry={fullAncestry} />
       : <RaceSelection />}
     </Grid>
   )

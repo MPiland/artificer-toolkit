@@ -12,19 +12,21 @@ import {
 import clsx from 'clsx'
 import { useDebounceCallback, useEventListener } from 'usehooks-ts'
 import Floating from '../Floating/Floating'
-import { DeepKeyOf, UpdateState } from '../../types/form'
+import type { DeepKeyOf, OnChange } from '../../types/form'
 
 const NUM_REGEX = /^(\d+)(, ?\d+)*(,)?$/
 const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
-interface InputProps<T> {
+interface InputProps<T extends object> {
   label?: string | boolean
   autoComplete?: string
   required?: boolean
   errorMsg?: string
-  onChange?: (state: UpdateState<T>) => void
+  onChange?: {
+    updateField: OnChange<T>['updateField']
+  }
   value: any | null
   readOnly?: boolean
   validation?: 'num' | 'cur' | 'die' | 'user' | 'pwd' | 'roll' | 'dmg'
@@ -42,7 +44,7 @@ interface InputProps<T> {
   ref?: RefObject<HTMLDivElement>
 }
 
-const Input = <T,>({
+const Input = <T extends object>({
   label,
   placeholder,
   name,
@@ -117,8 +119,7 @@ const Input = <T,>({
           }
         }
         if (onChange) {
-          onChange({
-            type: 'update',
+          onChange.updateField({
             path: name,
             value: finalValue,
           })

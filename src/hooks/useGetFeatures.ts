@@ -12,16 +12,16 @@ import {
   CharacterFeatureOption,
   type CharacterEquipmentObject,
 } from '../../amplify/gql/types'
-import { useListClassesQuery } from '../apis/classesApi'
-import { useListEquipmentQuery } from '../apis/equipmentApi'
-import { useListRacesQuery } from '../apis/racesApi'
-import { useListFeatsQuery } from '../apis/featsApi'
-import { useListBackgroundsQuery } from '../apis/backgroundsApi'
 import { DeepKeyOf } from '../types/form'
 import { useCallback, useMemo } from 'react'
 import { Attributes, Prerequisites } from '../types/enums'
 import { getKeyFromId } from '../utils/form'
 import { sourcePropertyMap } from '../utils/form'
+import useClassData from './useClassData'
+import useRaceData from './useRaceData'
+import useFeatData from './useFeatData'
+import useEquipmentData from './useEquipmentData'
+import useBackgroundData from './useBackgroundData'
 
 export type FactoryFeature = Omit<Feature | AncestryFeature, 'options' | '__typename'> & {
   level?: number
@@ -58,11 +58,11 @@ type PrerequisiteProcessor = {
 }
 
 const useGetFeatures = ({ data }: { data: Character | Class | Race | Background | Equipment | Feat }) => {
-  const { data: classes } = useListClassesQuery()
-  const { data: races } = useListRacesQuery()
-  const { data: feats } = useListFeatsQuery()
-  const { data: equipment } = useListEquipmentQuery()
-  const { data: backgrounds } = useListBackgroundsQuery()
+  const { classes } = useClassData()
+  const { races } = useRaceData()
+  const { feats } = useFeatData()
+  const { equipment } = useEquipmentData()
+  const { backgrounds } = useBackgroundData()
 
   const prerequisiteProcessors: PrerequisiteProcessor = {
     optionNotObtained: ({ option, feature, optionIndex }) => {
@@ -155,29 +155,27 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       if (data?.__typename !== 'Character') return null
 
       if (feature?.classId) {
-        return classes?.find((c) => c.id === feature.classId)?.features?.find((f) => f.id === feature.id) || null
+        return classes?.findClass(feature.classId)?.features?.find((f) => f.id === feature.id) || null
       }
       if (feature?.raceId) {
-        return races.find((r) => r.id === feature.raceId)?.features?.find((f) => f?.id === feature?.id)
+        return races.findRace(feature.raceId)?.features?.find((f) => f?.id === feature?.id)
       }
       if (feature?.ancestryId) {
         return (
           races
-            .find((r) => r.id === data?.race)
+            .findRace(data?.race)
             ?.ancestry?.options?.find((a) => a?.id === feature?.ancestryId)
             ?.features?.find((f) => f.id === feature.id) || null
         )
       }
       if (feature?.backgroundId) {
-        return (
-          backgrounds?.find((b) => b.id === feature.backgroundId)?.features?.find((f) => f.id === feature.id) || null
-        )
+        return backgrounds?.findBackground(feature.backgroundId)?.features?.find((f) => f.id === feature.id) || null
       }
       if (feature?.featId) {
-        return feats?.find((f) => f.id === feature.featId)?.features?.find((f) => f.id === feature.id) || null
+        return feats?.findFeat(feature.featId)?.features?.find((f) => f.id === feature.id) || null
       }
       if (feature?.equipmentId) {
-        return equipment?.find((e) => e.id === feature.equipmentId)?.features?.find((f) => f.id === feature.id) || null
+        return equipment?.findEquipment(feature.equipmentId)?.features?.find((f) => f.id === feature.id) || null
       }
     },
     [classes, races, backgrounds, feats, equipment, data]
@@ -259,7 +257,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         features.push(...existingFeatures)
 
         data?.classes?.forEach((fC) => {
-          const fullClass = classes.find((c) => c.id === fC.id)
+          const fullClass = classes.findClass(fC.id)
           fullClass?.features?.forEach((feature) => {
             let levels: (number | string)[] = []
 
@@ -296,7 +294,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
           })
 
           if (fC.subclass) {
-            const fullSubclass = classes.find((c) => c.id === fC?.subclass?.id)
+            const fullSubclass = classes.findClass(fC?.subclass?.id)
 
             fullSubclass?.features?.forEach((feature) => {
               let levels: (number | string)[] = []
@@ -340,7 +338,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
       race: () => {
         if (data?.__typename !== 'Character' || !data?.race) return []
 
-        const fullRace = races.find((r) => r.id === data?.race)
+        const fullRace = races.findRace(data?.race)
 
         if (!fullRace) return []
 
@@ -424,9 +422,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         features.push(...existingFeatures)
 
-        const fullAncestry = races
-          ?.find((r) => r?.id === data?.race)
-          ?.ancestry?.options?.find((a) => a?.id === data?.ancestry?.id)
+        const fullAncestry = races?.findRace(data?.race)?.ancestry?.options?.find((a) => a?.id === data?.ancestry?.id)
 
         if (fullAncestry) {
           fullAncestry.features?.forEach((feature) => {
@@ -483,7 +479,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         const checkEquipment = (featureEquipment: CharacterEquipmentObject) => {
           if (data?.equipment?.equipped?.includes(featureEquipment.id)) {
-            const fullEquipment = equipment?.find((e) => e.id === featureEquipment.id)
+            const fullEquipment = equipment?.findEquipment(featureEquipment.id)
 
             const attunementRequired = fullEquipment?.attributes?.some(
               (attribute) => attribute === Attributes.requireAttunement
@@ -552,7 +548,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
         features.push(...existingFeatures)
 
         data?.feats?.forEach((feat) => {
-          const fullFeat = feats?.find((f) => f.id === feat.featId)
+          const fullFeat = feats?.findFeat(feat.featId)
 
           if (fullFeat) {
             fullFeat.features?.forEach((feature) => {
@@ -606,7 +602,7 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
 
         features.push(...existingFeatures)
 
-        const fullBackground = backgrounds?.find((b) => b.id === data?.background)
+        const fullBackground = backgrounds?.findBackground(data?.background)
 
         fullBackground?.features?.forEach((feature) => {
           if (
@@ -653,8 +649,9 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
             if (data?.__typename === 'Race') {
               const lineages = races.filter((sRace) => data?.lineages?.includes(sRace.id))
 
-              lineages.forEach(
-                (lineage) =>
+              lineages.forEach((l) => {
+                const lineage = races.findRace(l.id)
+                return (
                   lineage?.features?.length &&
                   features.push(
                     ...lineage.features.map((feature) => {
@@ -662,7 +659,8 @@ const useGetFeatures = ({ data }: { data: Character | Class | Race | Background 
                       return featureObj
                     })
                   )
-              )
+                )
+              })
             }
           }
         }

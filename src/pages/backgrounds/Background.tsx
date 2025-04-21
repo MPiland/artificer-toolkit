@@ -1,19 +1,15 @@
 import parse from 'html-react-parser'
 import Detail from '../../components/Detail/Detail'
 import { Fragment } from 'react'
-import { Background as BackgroundState } from '../../../amplify/gql/types'
-import { FormDataType } from '../../types/form'
-import { useRouterState } from '@tanstack/react-router'
-
-// Type guard function
-function isBackground(item: FormDataType | undefined): item is BackgroundState {
-  return item?.__typename === 'Feat'
-}
+import { Route } from '../../routes/_protected/backgrounds/$backgroundId'
+import useBackgroundData from '../../hooks/useBackgroundData'
 
 const Background = () => {
-  const background = useRouterState({ select: (s) => s.location.state.item })
+  const backgroundId = Route.useParams({ select: (r) => r.backgroundId })
+  const { findBackground } = useBackgroundData()
+  const background = findBackground(backgroundId)
 
-  if (!background || !isBackground(background)) return <div>Invalid or missing background data</div>
+  if (!background) return <div>Invalid or missing background data</div>
 
   return (
     <Detail footerSpacing='end' item={background}>

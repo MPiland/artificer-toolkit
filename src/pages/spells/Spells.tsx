@@ -1,6 +1,6 @@
-import { useDeleteSpellMutation, useListSpellsQuery } from '../../apis/spellsApi'
+import { useDeleteSpellMutation } from '../../apis/spellsApi'
 import List from '../../components/List/List'
-import { ReactElement, Suspense } from 'react'
+import { Suspense } from 'react'
 import IFlame from '../../assets/Icons/IFlame'
 import IClass from '../../assets/Icons/IClass'
 import IBook from '../../assets/Icons/IBook'
@@ -8,66 +8,86 @@ import IClock from '../../assets/Icons/IClock'
 import IRange from '../../assets/Icons/IRange'
 import IMortPest from '../../assets/Icons/IMortPest'
 import Loading from '../../components/Loading/Loading'
-import { FilterConfig } from '../../types/components'
-import { Spell } from '../../../amplify/gql/types'
-import { useGetSystemQuery } from '../../apis/systemsApi'
-import { createFilterOptions } from '../../utils/form'
+import type { FilterConfig, FooterConfig } from '../../types/components'
+import type { Spell, SpellMeta } from '../../../amplify/gql/types'
+import useSpellData from '../../hooks/useSpellData'
 
 const Spells = () => {
-  const { data: system } = useGetSystemQuery()
-
-  const footerText: { name: string | any | any[]; value: string; display?: string; icon?: ReactElement }[] = [
+  const { spells, metaData } = useSpellData()
+  const footerConfigs: FooterConfig<SpellMeta>[] = [
     {
       icon: <IFlame />,
       value: 'Damage/Effect',
-      name: [
-        [
-          'damage.primary.dieShort',
-          'damage.primary.setAmount',
-          'damage.primary.pool.setAmount',
-          { path: 'damage.primary.id', source: { type: 'system', field: 'damageTypes' } },
-        ],
-        [
-          'damage.secondary.dieShort',
-          'damage.secondary.setAmount',
-          'damage.secondary.pool.setAmount',
-          { path: 'damage.secondary.id', source: { type: 'system', field: 'damageTypes' } },
-        ],
-        { path: 'conditions', source: { type: 'system', field: 'conditions' } },
+      text: [
+        [{ metaPath: 'primaryDamages', source: { type: 'system', sourcePath: 'damageTypes' } }],
+        [{ metaPath: 'secondaryDamages', source: { type: 'system', sourcePath: 'damageTypes' } }],
+        [{ metaPath: 'conditions', source: { type: 'system', sourcePath: 'conditions' } }],
       ],
     },
     {
       icon: <IClass />,
       value: 'Classes',
-      name: [{ path: 'classes', source: { type: 'classes' } }],
+      text: [{ metaPath: 'classes', source: { type: 'classes' } }],
     },
     {
       icon: <IBook />,
-      name: [{ path: 'school', source: { type: 'system', field: 'spells.schools' } }],
+      text: [{ metaPath: 'schools', source: { type: 'system', sourcePath: 'spells.schools' } }],
       value: 'School',
     },
     {
       icon: <IClock />,
       value: 'Time',
-      name: [
+      text: [
         [
-          ['actions.primary.amount', { path: 'actions.primary.id', source: { type: 'system', field: 'actions' } }],
-          ['actions.secondary.amount', { path: 'actions.secondary.id', source: { type: 'system', field: 'actions' } }],
+          [{ metaPath: 'primaryActions', source: { type: 'system', sourcePath: 'actions' } }],
+          [{ metaPath: 'secondaryActions', source: { type: 'system', sourcePath: 'actions' } }],
         ],
-        ['duration.amount', { path: 'duration.id', source: { type: 'system', field: 'spells.durations' } }],
+        [
+          { metaPath: 'durations', source: { type: 'system', sourcePath: 'spells.durations' } },
+          { metaPath: 'durations', subMetaPath: 'amount' },
+        ],
       ],
       display: 'list',
     },
     {
       icon: <IRange />,
       value: 'Range (ft)/Area (ft)',
-      name: [
-        [{ path: 'range.id', source: { type: 'system', field: 'spells.ranges' } }, 'range.minRange'],
-        ['range.maxRange', { path: 'range.unit', source: { type: 'system', field: 'rules' } }],
+      text: [
         [
-          { path: 'shape.id', source: { type: 'system', field: 'spells.shapes' } },
-          'shape.size',
-          { path: 'shape.unit', source: { type: 'system', field: 'rules' } },
+          { metaPath: 'ranges', source: { type: 'system', sourcePath: 'spells.ranges' } },
+          [
+            { metaPath: 'ranges', subMetaPath: 'minRange' },
+            {
+              metaPath: 'ranges',
+              subMetaPath: 'unit',
+              source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
+            },
+          ],
+          [
+            { metaPath: 'ranges', subMetaPath: 'maxRange' },
+            {
+              metaPath: 'ranges',
+              subMetaPath: 'unit',
+              source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
+            },
+          ],
+          [
+            { metaPath: 'ranges', subMetaPath: 'distance' },
+            {
+              metaPath: 'ranges',
+              subMetaPath: 'unit',
+              source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
+            },
+          ],
+        ],
+        [
+          { metaPath: 'shapes', source: { type: 'system', sourcePath: 'spells.shapes' } },
+          { metaPath: 'shapes', subMetaPath: 'size' },
+          {
+            metaPath: 'shapes',
+            subMetaPath: 'unit',
+            source: { type: 'system', sourcePath: 'rules.measurements.imperial.length', labelKey: 'short' },
+          },
         ],
       ],
       display: 'list',
@@ -75,12 +95,12 @@ const Spells = () => {
     {
       icon: <IMortPest />,
       value: 'Requirements',
-      name: { path: 'requirements', source: { type: 'system', field: 'spells.requirements' } },
+      text: { metaPath: 'requirements', source: { type: 'system', sourcePath: 'spells.requirements' } },
       display: 'list',
     },
   ]
 
-  const spellFilterConfigs: FilterConfig<Partial<Spell>>[] = [
+  const filterConfigs: FilterConfig<Partial<Spell>, SpellMeta>[] = [
     {
       type: 'text',
       path: 'label',
@@ -90,98 +110,44 @@ const Spells = () => {
       type: 'multiSelect',
       path: 'level',
       label: 'Spell Level',
-      getOptionsFromData: (data) => {
-        const levels = [...(data?.map((spell) => spell.level) || [])]
-          .filter((level) => level !== undefined)
-          .sort((a, b) => a - b)
-
-        return levels.map((level) => ({
-          value: level,
-          label: String(level),
-          id: String(level),
-        }))
+      options: {
+        metaPath: 'levels',
       },
     },
     {
       type: 'multiSelect',
       path: 'school',
       label: 'Magic School',
-      getOptionsFromData: (data) => {
-        const schoolIds = [...(data?.map((spell) => spell.school) || [])].filter(Boolean)
-
-        const schools = schoolIds.map((id) => system?.spells?.schools?.find((s) => s?.id === id))
-
-        return createFilterOptions(
-          schools,
-          (school) => school?.value,
-          (school) => school?.label,
-          (school) => school?.id
-        )
+      options: {
+        metaPath: 'schools',
+        source: { type: 'system', sourcePath: 'spells.schools' },
       },
     },
     {
       type: 'multiSelect',
       path: 'damage.primary.id',
       label: 'Prim. Damage',
-      getOptionsFromData: (data) => {
-        const damageIds = [
-          ...(data?.map((spell) => {
-            return spell?.damage?.primary?.id
-          }) || []),
-        ].filter(Boolean)
-
-        const damageTypes = damageIds.map((id) => system?.damageTypes?.find((d) => d?.id === id))
-
-        return createFilterOptions(
-          damageTypes,
-          (damageType) => damageType?.value,
-          (damageType) => damageType?.label,
-          (damageType) => damageType?.id
-        )
+      options: {
+        metaPath: 'primaryDamages',
+        source: { type: 'system', sourcePath: 'damageTypes' },
       },
     },
     {
       type: 'multiSelect',
       path: 'damage.secondary.id',
       label: 'Sec. Damage',
-      getOptionsFromData: (data) => {
-        const damageIds = [
-          ...(data?.map((spell) => {
-            return spell?.damage?.secondary?.id
-          }) || []),
-        ].filter(Boolean)
-
-        const damageTypes = damageIds.map((id) => system?.damageTypes?.find((d) => d?.id === id))
-
-        return createFilterOptions(
-          damageTypes,
-          (damageType) => damageType?.value,
-          (damageType) => damageType?.label,
-          (damageType) => damageType?.id
-        )
+      options: {
+        metaPath: 'secondaryDamages',
+        source: { type: 'system', sourcePath: 'damageTypes' },
       },
     },
     {
       type: 'multiSelect',
       path: 'conditions',
       label: 'Condition',
-      getOptionsFromData: (data) => {
-        const conditionIds = [
-          ...(data?.flatMap((spell) => {
-            if (spell?.conditions?.length) {
-              return spell?.conditions?.map((condition) => condition)
-            }
-          }) || []),
-        ].filter(Boolean)
-
-        const conditions = conditionIds.map((id) => system?.conditions?.find((c) => c?.id === id))
-
-        return createFilterOptions(
-          conditions,
-          (condition) => condition?.value,
-          (condition) => condition?.label,
-          (condition) => condition?.id
-        )
+      options: {
+        metaPath: 'conditions',
+        source: { type: 'system', sourcePath: 'damageTypes' },
       },
     },
   ]
@@ -189,10 +155,11 @@ const Spells = () => {
   return (
     <Suspense fallback={<Loading />}>
       <List
-        useListItems={useListSpellsQuery}
+        data={spells}
+        metaData={metaData}
         useDeleteItem={useDeleteSpellMutation}
-        footerText={footerText}
-        filterConfigs={spellFilterConfigs}
+        footerConfigs={footerConfigs}
+        filterConfigs={filterConfigs}
       />
     </Suspense>
   )
