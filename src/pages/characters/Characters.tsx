@@ -5,7 +5,7 @@ import Loading from '../../components/Loading/Loading'
 import useCharacterData from '../../hooks/useCharacterData'
 
 const Characters = () => {
-  const { all: characters } = useCharacterData()
+  const { characters } = useCharacterData()
   return (
     <Suspense fallback={<Loading />}>
       <List data={characters} useDeleteItem={useDeleteCharacter} />

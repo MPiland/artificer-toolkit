@@ -5,10 +5,16 @@ import useClassData from '../../hooks/useClassData'
 
 const Character = () => {
   const characterId = Route.useParams({ select: (r) => r.characterId })
-  const { findCharacter } = useCharacterData()
-  const { findClass } = useClassData()
+  const {
+    characters: { findCharacter },
+  } = useCharacterData()
+  const {
+    classes: { findClass },
+  } = useClassData()
   const character = findCharacter(characterId)
-  const { findRace } = useRaceData()
+  const {
+    races: { findRace },
+  } = useRaceData()
 
   if (!character) return <div>Invalid or missing character data</div>
 

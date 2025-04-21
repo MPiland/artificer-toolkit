@@ -12,10 +12,12 @@ import useClassData from '../../hooks/useClassData'
 
 const Class = () => {
   const classId = Route.useParams({ select: (r) => r.classId })
-  const { findSpell } = useSpellData()
+  const {
+    spells: { findSpell },
+  } = useSpellData()
   const systemData = useSystemData()!
   const {
-    findClass,
+    classes: { findClass },
     subclasses: { findByParent },
   } = useClassData()
 

@@ -13,7 +13,7 @@ import type { FooterConfig } from '../../types/components'
 import useEquipmentData from '../../hooks/useEquipmentData'
 
 const Equipments = () => {
-  const { all: equipments, metaData } = useEquipmentData()
+  const { equipment, metaData } = useEquipmentData()
   const footerConfigs: FooterConfig<EquipmentMeta>[] = [
     {
       icon: <ICategory />,
@@ -65,7 +65,7 @@ const Equipments = () => {
   return (
     <Suspense fallback={<Loading />}>
       <List
-        data={equipments}
+        data={equipment}
         metaData={metaData}
         useDeleteItem={useDeleteEquipmentMutation}
         footerConfigs={footerConfigs}

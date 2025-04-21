@@ -6,7 +6,9 @@ import useBackgroundData from '../../hooks/useBackgroundData'
 
 const Background = () => {
   const backgroundId = Route.useParams({ select: (r) => r.backgroundId })
-  const { findBackground } = useBackgroundData()
+  const {
+    backgrounds: { findBackground },
+  } = useBackgroundData()
   const background = findBackground(backgroundId)
 
   if (!background) return <div>Invalid or missing background data</div>

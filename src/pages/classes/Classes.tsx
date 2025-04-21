@@ -8,7 +8,7 @@ import type { ClassMeta } from '../../../amplify/gql/types'
 import useClassData from '../../hooks/useClassData'
 
 const Classes = () => {
-  const { all: classes, metaData } = useClassData()
+  const { classes, metaData } = useClassData()
   const footerConfigs: FooterConfig<ClassMeta>[] = [
     {
       icon: <ICategory />,

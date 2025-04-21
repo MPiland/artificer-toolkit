@@ -7,12 +7,13 @@ import useRaceData from '../../hooks/useRaceData'
 
 const Race = () => {
   const raceId = Route.useParams({ select: (r) => r.raceId })
-  const raceData = useRaceData()
-  const race = raceData.findRace(raceId)
+  const {
+    races: { findRace },
+    subraces,
+  } = useRaceData()
+  const race = findRace(raceId)
 
   if (!race) return <div>Invalid or missing race data</div>
-
-  const subraces = raceData.subraces.all
 
   return (
     <Detail footerSpacing='end' item={race}>
@@ -53,7 +54,7 @@ const Race = () => {
         ))}
       {subraces?.length &&
         subraces.map((s, index) => {
-          const subrace = raceData.findRace(s.id)
+          const subrace = findRace(s.id)
           return (
             subrace && (
               <Fragment key={index}>

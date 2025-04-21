@@ -5,7 +5,7 @@ import Loading from '../../components/Loading/Loading'
 import useBackgroundData from '../../hooks/useBackgroundData'
 
 const Backgrounds = () => {
-  const { all: backgrounds } = useBackgroundData()
+  const { backgrounds } = useBackgroundData()
   return (
     <Suspense fallback={<Loading />}>
       <List data={backgrounds} useDeleteItem={useDeleteBackground} />

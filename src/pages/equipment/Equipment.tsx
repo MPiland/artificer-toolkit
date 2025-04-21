@@ -7,7 +7,9 @@ import type { Equipment } from '../../../amplify/gql/types'
 
 const Equipment = () => {
   const equipmentId = Route.useParams({ select: (r) => r.equipmentId })
-  const { findEquipment } = useEquipmentData()
+  const {
+    equipment: { findEquipment },
+  } = useEquipmentData()
   const equipment = findEquipment(equipmentId)
 
   if (!equipment) return <div>Invalid or missing equipment data</div>

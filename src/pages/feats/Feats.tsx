@@ -5,7 +5,7 @@ import Loading from '../../components/Loading/Loading'
 import useFeatData from '../../hooks/useFeatData'
 
 const Feats = () => {
-  const { all: feats } = useFeatData()
+  const { feats } = useFeatData()
   return (
     <Suspense fallback={<Loading />}>
       <List data={feats} useDeleteItem={useDeleteFeatMutation} />
