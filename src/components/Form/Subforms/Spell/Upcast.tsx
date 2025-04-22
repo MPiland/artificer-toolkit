@@ -27,7 +27,7 @@ const Upcast = ({
     if (data.upcast?.attributes?.length && !data.upcast?.levels) {
       addField({ path: 'upcast.levels' })
     }
-  }, [addField])
+  }, [addField, data.upcast?.attributes?.length, data.upcast?.levels])
 
   // Set upcast types based on user selection
   const upcastTypes = useMemo(() => {

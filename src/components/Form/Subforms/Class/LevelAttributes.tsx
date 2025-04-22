@@ -125,7 +125,7 @@ const LevelAttributes = ({
         </Grid.Item>
       )
     })
-  }, [data, isSpellcaster, hasResourcePoints, limitKnownSpells])
+  }, [data, isSpellcaster, hasResourcePoints, limitKnownSpells, updateField])
 
   return (
     <Grid.Item>

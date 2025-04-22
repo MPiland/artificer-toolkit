@@ -17,9 +17,15 @@ import useClassData from '../../../hooks/useClassData'
 import useEquipmentData from '../../../hooks/useEquipmentData'
 import useFeatData from '../../../hooks/useFeatData'
 import useBackgroundData from '../../../hooks/useBackgroundData'
+import type { FormStore } from '../../../store/formStore'
+import type { FormDataType, Step } from '../../../types/form'
 
 const FeaturesList = () => {
-  const { formStore, stepIndex, steps } = use(FormContext)
+  const { formStore, stepIndex, steps } = use(FormContext) as {
+    formStore: FormStore<FormDataType>
+    stepIndex: number
+    steps: Step[]
+  }
   const { featureStore, sectionSteps } = use(FeatureContext)
   const { showModal } = use(ModalContext)
 
@@ -90,7 +96,7 @@ const FeaturesList = () => {
   // Delete feature
   const handleRemoveFeature = (featureIndex: number) => {
     if (formStore.data.__typename !== 'Feat') {
-      formStore.removeField({ path: `features.${featureIndex}` })
+      formStore.removeField<FormDataType>({ path: `features.${featureIndex}` })
     }
   }
 
@@ -104,7 +110,7 @@ const FeaturesList = () => {
   const onCopyConfirm = (selectedFeature: Feature) => {
     if (formStore.data.__typename !== 'Spell' && formStore.data.__typename !== 'Character') {
       const featureIndex = formStore.data.features?.length ?? 0
-      formStore.updateField({ path: `features.${featureIndex}`, value: selectedFeature })
+      formStore.updateField<FormDataType>({ path: `features.${featureIndex}`, value: selectedFeature })
       featureStore.setIndex({ value: featureIndex })
       featureStore.reinitState(selectedFeature)
       featureStore.setStep('feature')

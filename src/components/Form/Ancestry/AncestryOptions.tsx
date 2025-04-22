@@ -4,7 +4,7 @@ import { FeatureContext } from '../Features/FeatureContext'
 import RichTextEditor from '../../RichTextEditor/RichTextEditor'
 import Collapse from '../../Collapse/Collapse'
 import Button from '../../Button/Button'
-import { AncestryFeature } from '../../../../amplify/gql/types'
+import { AncestryFeature, type AncestryOption } from '../../../../amplify/gql/types'
 import Accordion from '../../Accordion/Accordion'
 import { feature_description } from '../Form.css'
 import parse from 'html-react-parser'
@@ -20,7 +20,7 @@ const AncestryOptions = () => {
     const newFeature = { __typename: 'AncestryFeature' } as AncestryFeature
     featureStore.setIndex({ value: featureArray?.length || 0 })
     featureStore.reinitState(newFeature)
-    setFeatureStep('ancestry')
+    featureStore.setStep('ancestry')
   }
 
   // Delete feature
@@ -38,21 +38,25 @@ const AncestryOptions = () => {
   return (
     <>
       <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
-        <Input
+        <Input<AncestryOption>
           name='label'
           autoComplete='off'
           label='Ancestry Option Name'
           required={true}
           value={ancestryStore.data?.label}
           errorMsg='Name must not be blank'
-          onChange={ancestryStore}
+          onChange={{ updateField: ancestryStore.updateField }}
         />
       </Grid.Item>
       <Grid.Item>
         <Collapse>
           <Collapse.Header title='Ancestry Option Description' startOpened={ancestryStore.data?.id == null} />
           <Collapse.Body>
-            <RichTextEditor name='desc' onChange={ancestryStore} value={ancestryStore.data?.desc} />
+            <RichTextEditor<AncestryOption>
+              name='desc'
+              onChange={{ updateField: ancestryStore.updateField }}
+              value={ancestryStore.data?.desc}
+            />
           </Collapse.Body>
         </Collapse>
       </Grid.Item>
@@ -63,7 +67,11 @@ const AncestryOptions = () => {
       </Grid.Item>
       {featureArray && featureArray.length > 0 && (
         <Grid.Item>
-          <Accordion dataArray={featureArray} onChange={ancestryStore} name='features'>
+          <Accordion<AncestryOption>
+            dataArray={featureArray}
+            onChange={{ updateField: ancestryStore.updateField }}
+            name='features'
+          >
             {featureArray?.map((feature, fIndex) => (
               <Accordion.Wrapper key={fIndex} itemId={String(fIndex)}>
                 <Accordion.Header

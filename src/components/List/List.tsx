@@ -39,19 +39,19 @@ import { MdEdit, MdLaunch } from 'react-icons/md'
 import useRouteNavigation from '../../hooks/useRouteNavigation'
 import { FormContext } from '../Form/FormContext'
 
-interface ListProps<T extends ListItemType, K extends MetaDataType> {
+interface ListProps<T extends ListItemType, K extends MetaDataType, U extends FilterDataType> {
   className?: string | symbol | number | any
   visibility?: 'hidden' | 'visible' | 'always'
   useDeleteItem: () => UseMutationResult<string, Error, string, unknown>
   data: Maybe<T[]>
   metaData?: K
   footerConfigs?: FooterConfig<K>[]
-  filterConfigs?: FilterConfig<FilterDataType, K>[]
+  filterConfigs?: FilterConfig<U, K>[]
 }
 
 const SCROLL_BOX_MIN_SIZE = 20
 
-const List = <T extends ListItemType, K extends MetaDataType>({
+const List = <T extends ListItemType, K extends MetaDataType, U extends FilterDataType>({
   className,
   visibility = 'visible',
   data,
@@ -59,13 +59,15 @@ const List = <T extends ListItemType, K extends MetaDataType>({
   useDeleteItem,
   footerConfigs,
   filterConfigs,
-}: ListProps<T, K>) => {
+}: ListProps<T, K, U>) => {
   const navigate = useNavigate()
   const sm = useMediaQuery('screen and (max-width: 567px)')
   const { mutateAsync: deleteItem } = useDeleteItem()
   const { getSourceText } = useMetaData({ metaData })
   const { showModal } = use(ModalContext)
-  const { reinitializeForm } = use(FormContext)
+  const {
+    formStore: { reinitState },
+  } = use(FormContext)
 
   const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
@@ -148,7 +150,7 @@ const List = <T extends ListItemType, K extends MetaDataType>({
       value: undefined,
     }
     const itemNav = routeNav.new
-    reinitializeForm(data as FormDataType)
+    reinitState(data as FormDataType)
     return navigate({ to: itemNav.to })
   }
 
@@ -257,12 +259,12 @@ const List = <T extends ListItemType, K extends MetaDataType>({
   const isSub = (item: ListItemType, defaultCase: 'true' | 'false') => {
     if (item.__typename === 'ClassListItem' && metaData?.__typename === 'ClassMeta') {
       return metaData.categories?.some(
-        (category) => category.id === Categories.subclass && category.classId?.includes(item.id)
+        (category) => category.id === Categories.subclass && category.classIds?.includes(item.id)
       )
     }
     if (item.__typename === 'RaceListItem' && metaData?.__typename === 'RaceMeta') {
       return metaData.categories?.some(
-        (category) => category.id === Categories.subrace && category.raceId?.includes(item.id)
+        (category) => category.id === Categories.subrace && category.raceIds?.includes(item.id)
       )
     }
     return defaultCase === 'false' ? false : true
@@ -355,7 +357,7 @@ const List = <T extends ListItemType, K extends MetaDataType>({
                                   <Link
                                     {...itemNav.edit}
                                     onClick={(e) => {
-                                      reinitializeForm()
+                                      reinitState()
                                       e.stopPropagation()
                                     }}
                                   >
@@ -398,10 +400,10 @@ const List = <T extends ListItemType, K extends MetaDataType>({
                             if (
                               (metaData?.__typename === 'ClassMeta' &&
                                 metaData.parentClasses?.some((parentClass) =>
-                                  parentClass.classId?.includes(item.id)
+                                  parentClass.classIds?.includes(item.id)
                                 )) ||
                               (metaData?.__typename === 'RaceMeta' &&
-                                metaData.lineages?.some((lineage) => lineage.raceId?.includes(item.id)))
+                                metaData.lineages?.some((lineage) => lineage.raceIds?.includes(item.id)))
                             ) {
                               const sItemNav = routeNav.forItem(sItem.id, sItem.label)
                               return (
@@ -419,7 +421,7 @@ const List = <T extends ListItemType, K extends MetaDataType>({
                                           <Link
                                             {...sItemNav.edit}
                                             onClick={(e) => {
-                                              reinitializeForm()
+                                              reinitState()
                                               e.stopPropagation()
                                             }}
                                           >

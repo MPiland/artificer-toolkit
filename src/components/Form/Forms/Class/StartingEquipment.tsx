@@ -27,7 +27,7 @@ const StartingEquipment = () => {
         }
       })
     }
-  }, [data, addField])
+  }, [data.equipment, addField])
 
   return (
     <Grid>

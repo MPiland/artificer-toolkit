@@ -9,29 +9,33 @@ import { sprinkles } from '../../../css/sprinkles.css'
 import { useMemo } from 'react'
 import { feature_description } from '../Form.css'
 import parse from 'html-react-parser'
-import { Race } from '../../../../amplify/gql/types'
+import type { Race } from '../../../../amplify/gql/types'
 import { FeatureContext } from '../Features/FeatureContext'
 import Grid from '../../Grid/Grid'
-import { FormStore } from '../../../store/formStore'
+import type { OnChange } from '../../../types/form'
 
 const AncestryList = () => {
-  const { formStore } = use(FormContext) as {
-    formStore: FormStore<Race>
+  const {
+    formStore: { data, updateField, removeField },
+  } = use(FormContext) as {
+    formStore: {
+      data: Race
+      updateField: OnChange<Race>['updateField']
+      removeField: OnChange<Race>['removeField']
+    }
   }
 
   const { ancestryStore, featureStore } = use(FeatureContext)
 
   const handleAddAncestry = () => {
-    formStore.updateField({ path: 'ancestry', value: {} })
+    updateField({ path: 'ancestry', value: {} })
   }
 
   const handleRemoveAncestry = () => {
-    formStore.removeField({ path: 'ancestry' })
+    removeField({ path: 'ancestry' })
   }
 
-  const optionArray = useMemo(() => formStore.data?.ancestry?.options, [formStore.data])
-
-  console.log({ formStore.data })
+  const optionArray = useMemo(() => data?.ancestry?.options, [data?.ancestry?.options])
 
   // Add feature
   const handleAddOption = () => {
@@ -43,7 +47,7 @@ const AncestryList = () => {
 
   // Delete feature
   const handleRemoveOption = (optionIndex: number) => {
-    formStore.removeField({ path: `ancestry.options.${optionIndex}` })
+    removeField({ path: `ancestry.options.${optionIndex}` })
   }
 
   // Edit feature
@@ -57,24 +61,24 @@ const AncestryList = () => {
 
   return (
     <>
-      {!formStore.data?.ancestry && (
+      {!data?.ancestry && (
         <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
           <Button color='primary' style='outline' onClick={handleAddAncestry} className={sprinkles({ mb: 'space-3' })}>
             Add Ancestry
           </Button>
         </Grid.Item>
       )}
-      {formStore.data?.ancestry && (
+      {data?.ancestry && (
         <>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }}>
             <Input
-              name='label'
+              name='ancestry.label'
               autoComplete='off'
               label='Ancestry Name'
-              required={formStore.data?.ancestry?.desc !== '' && formStore.data?.ancestry?.desc != null}
-              value={formStore.data?.ancestry?.label}
+              required={data?.ancestry?.desc !== '' && data?.ancestry?.desc != null}
+              value={data?.ancestry?.label}
               errorMsg='Name must not be blank'
-              onChange={ancestryStore}
+              onChange={{ updateField }}
             />
           </Grid.Item>
           <Grid.Item colSpan={{ sm: 6, md: 4, lg: 2 }} align='end'>
@@ -84,9 +88,9 @@ const AncestryList = () => {
           </Grid.Item>
           <Grid.Item>
             <Collapse className={sprinkles({ width: 'size-full' })}>
-              <Collapse.Header title='Ancestry Description' startOpened={formStore.data.id == null} />
+              <Collapse.Header title='Ancestry Description' startOpened={data.id == null} />
               <Collapse.Body>
-                <RichTextEditor name='ancestry.desc' onChange={formStore} value={formStore.data?.ancestry?.desc} />
+                <RichTextEditor name='ancestry.desc' onChange={{ updateField }} value={data?.ancestry?.desc} />
               </Collapse.Body>
             </Collapse>
           </Grid.Item>
@@ -99,7 +103,7 @@ const AncestryList = () => {
       )}
       {optionArray && optionArray.length > 0 && (
         <Grid.Item>
-          <Accordion dataArray={optionArray} onChange={formStore} name='ancestry.options'>
+          <Accordion dataArray={optionArray} onChange={{ updateField }} name='ancestry.options'>
             {optionArray?.map((option, optionIndex) => (
               <Accordion.Wrapper key={optionIndex} itemId={String(optionIndex)}>
                 <Accordion.Header

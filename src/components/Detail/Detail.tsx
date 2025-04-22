@@ -28,7 +28,7 @@ interface DetailProps<T extends FormDataType> {
   children: ReactNode
   footer?: any
   footerSpacing?: 'spaceBetween' | 'center' | 'end' | 'start' | undefined
-  item: FormDataType
+  item: T
 }
 
 const Detail = <T extends FormDataType>({
@@ -39,7 +39,9 @@ const Detail = <T extends FormDataType>({
   item,
 }: DetailProps<T>) => {
   const getSourceText = useSourceData()
-  const { reinitializeForm } = use(FormContext)
+  const {
+    formStore: { reinitState },
+  } = use(FormContext)
 
   const form = useMatches({ select: (m) => m[m.length - 1].context.form?.type }) as FormType
 
@@ -58,7 +60,7 @@ const Detail = <T extends FormDataType>({
               label: string | undefined
               value: string | undefined
             } = { ...item, id: undefined, label: undefined, value: undefined }
-            reinitializeForm(itemCopy as FormDataType)
+            reinitState(itemCopy as FormDataType)
             e.stopPropagation()
           }}
         >

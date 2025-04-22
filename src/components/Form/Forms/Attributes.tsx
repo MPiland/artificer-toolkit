@@ -161,6 +161,7 @@ const AttributeForm = () => {
     equipped,
     notEquipped,
     isSpecial,
+    data,
   ])
 
   // Add Subtypes to Class as necessary
@@ -168,7 +169,7 @@ const AttributeForm = () => {
     if (data?.__typename !== 'Class' || data.category !== Categories.subclass || data?.subtypes?.length) return
 
     addField({ path: 'subtypes' })
-  }, [addField])
+  }, [addField, data])
 
   const typeMap = {
     Equipment: 'equipment',
@@ -524,7 +525,11 @@ const AttributeForm = () => {
                           alignItemsVariant='center'
                           justifyContentVariant='start'
                         >
-                          <Button style='unstyled' className={row_button} onClick={() => addField({ path: 'subtypes' })}>
+                          <Button
+                            style='unstyled'
+                            className={row_button}
+                            onClick={() => addField({ path: 'subtypes' })}
+                          >
                             <TbPlus />
                           </Button>
                           {index !== 0 && (

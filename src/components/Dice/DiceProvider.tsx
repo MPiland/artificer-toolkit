@@ -1,4 +1,4 @@
-import { ReactElement, useCallback, ReactNode, useMemo, useEffect, useRef } from 'react'
+import { ReactElement, useCallback, ReactNode, useEffect, useRef } from 'react'
 import { DiceConfig, DiceResult, Point, RollConfig } from '../../types/components'
 import {
   generateRandomLinearVelocity,
@@ -9,46 +9,23 @@ import {
 import Dice, { DiceProps } from './Dice'
 import { Vector3Tuple } from '@react-three/rapier'
 import { DiceContext } from './DiceContext'
-import { useStore } from '../../store/useStore'
+import { useDiceStore } from '../../store/diceStore'
 
 const useDiceOptions = () => {
   const rollPromiseResolver = useRef<((result: { rolled: DiceResult[]; kept: DiceResult[] }) => void) | null>(null)
 
   const {
     dice,
-    setDiceConfig,
-    setDiceInstances,
-    setDiceResults,
+    setConfig,
+    setInstances,
+    setResults,
     setCanvasHeight,
     setCanvasWidth,
     setIsRolling,
     setRenderDice,
     setRerollCount,
-    resetDice,
-  } = useStore()
-
-  const setDice = useMemo(
-    () => ({
-      config: setDiceConfig,
-      instances: setDiceInstances,
-      results: setDiceResults,
-      canvasHeight: setCanvasHeight,
-      canvasWidth: setCanvasWidth,
-      isRolling: setIsRolling,
-      render: setRenderDice,
-      rerollCount: setRerollCount,
-    }),
-    [
-      setDiceConfig,
-      setDiceInstances,
-      setDiceResults,
-      setCanvasHeight,
-      setCanvasWidth,
-      setIsRolling,
-      setRenderDice,
-      setRerollCount,
-    ]
-  )
+    resetState,
+  } = useDiceStore((state) => state)
 
   // Create instances of dice using random positioning based on center point and then creating the velocity based on the position of each instance
   const generateDiceInstances = useCallback(
@@ -138,12 +115,12 @@ const useDiceOptions = () => {
     })
 
     if (rerollConfig.length > 0) {
-      setDice.results(diceResultsClone)
+      setResults(diceResultsClone)
       const rerollInstances = diceInstancesGeneration(rerollConfig)
       diceInstancesClone.push(...rerollInstances)
-      setDice.instances(diceInstancesClone)
+      setInstances(diceInstancesClone)
     }
-  }, [dice.config, dice.instances, dice.results, setDice, diceInstancesGeneration])
+  }, [dice.config, dice.instances, dice.results, setInstances, setResults, diceInstancesGeneration])
 
   const diceResultObject = useCallback(() => {
     const rolled = [...dice.results]
@@ -175,9 +152,9 @@ const useDiceOptions = () => {
         kept = kept.filter((result) => result.die !== die).concat(diceOfType)
       }
     })
-    setDice.results([])
+    setResults([])
     return { rolled, kept }
-  }, [dice.results, setDice, dice.config])
+  }, [dice.results, setResults, dice.config])
 
   useEffect(() => {
     const rollCount = dice.config.reduce((acc, roll) => acc + roll.quantity, 0)
@@ -189,13 +166,13 @@ const useDiceOptions = () => {
           )
           // if (dieReroll) {
           if (dieReroll && (config.rerollType === 'r' || (config.rerollType === 'ro' && dice.rerollCount < 1))) {
-            setDice.rerollCount(dice.rerollCount + 1)
+            setRerollCount(dice.rerollCount + 1)
             reroll()
           }
         }
       })
     }
-  }, [dice.config, dice.results, reroll, setDice, dice.rerollCount])
+  }, [dice.config, dice.results, reroll, setRerollCount, dice.rerollCount])
 
   useEffect(() => {
     // Only proceed if we're rolling and have a resolver
@@ -219,7 +196,7 @@ const useDiceOptions = () => {
         rollPromiseResolver.current = null
       }
     }
-  }, [dice.results, dice.config, dice.isRolling, setDice, diceResultObject, dice.rerollCount])
+  }, [dice.results, dice.config, dice.isRolling, diceResultObject, dice.rerollCount])
 
   useEffect(() => {
     return () => {
@@ -236,17 +213,16 @@ const useDiceOptions = () => {
 
   const updateDiceResult = async (die: number, value: number, id: string) => {
     const results = [...dice.results, { die, value, id }]
-    setDice.results(results)
+    setResults(results)
   }
 
   const rollDice = async (input: RollConfig) => {
     return new Promise<{ rolled: DiceResult[]; kept: DiceResult[] }>((resolve) => {
       rollPromiseResolver.current = resolve
 
-      setDice.render(true)
-      setDice.isRolling(true)
-
-      setDice.results([])
+      setRenderDice(true)
+      setIsRolling(true)
+      setResults([])
 
       const diceRolls: DiceConfig[] = []
       const rollStrings = input.split(' ') as RollConfig[]
@@ -266,19 +242,25 @@ const useDiceOptions = () => {
         })
       }
 
-      setDice.config(diceRolls)
+      setConfig(diceRolls)
 
       const generatedDice = diceInstancesGeneration(diceRolls)
-      setDice.instances(generatedDice)
+      setInstances(generatedDice)
     })
   }
 
   const value = {
     dice,
-    setDice,
+    setConfig,
+    setInstances,
+    setRenderDice,
+    setIsRolling,
+    setResults,
     rollDice,
     updateDiceResult,
-    resetDice,
+    setCanvasHeight,
+    setCanvasWidth,
+    resetState,
   }
 
   return value

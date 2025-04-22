@@ -6,11 +6,11 @@ import { DiceContext } from './DiceContext'
 import { use } from 'react'
 
 const Scene = () => {
-  const { resetDice } = use(DiceContext)
+  const { resetState } = use(DiceContext)
 
   const handleClick = useCallback(() => {
-    resetDice()
-  }, [resetDice])
+    resetState()
+  }, [resetState])
 
   useEffect(() => {
     window.addEventListener('click', handleClick)

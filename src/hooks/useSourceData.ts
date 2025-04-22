@@ -6,7 +6,7 @@ import type { DetailConfig, DetailArray, DetailObject } from '../types/component
 import type { FormDataType } from '../types/form'
 import { extractLookupData, processArrayValue, getLabelsFromIds, getLabelFromId } from '../utils/data'
 
-const useSourceData = <T extends FormDataType>() => {
+const useSourceData = () => {
   const { system } = useSystemData()
   const { classes } = useClassData()
 
@@ -27,7 +27,13 @@ const useSourceData = <T extends FormDataType>() => {
   /**
    * Process a DetailObject to create a label
    */
-  const createItemLabel = ({ item, state }: { item: DetailObject<T>; state: FormDataType }): string | null => {
+  const createItemLabel = <T extends FormDataType>({
+    item,
+    state,
+  }: {
+    item: DetailObject<T>
+    state: FormDataType
+  }): string | null => {
     const statePath = item.path
     const stateValue = get(state, statePath)
 
@@ -67,7 +73,7 @@ const useSourceData = <T extends FormDataType>() => {
     return null
   }
 
-  const getSourceText = ({
+  const getSourceText = <T extends FormDataType>({
     input,
     state,
     truncateNum,
@@ -81,7 +87,7 @@ const useSourceData = <T extends FormDataType>() => {
     /**
      * Process a single item or array of items
      */
-    const processItem = ({
+    const processItem = <T extends FormDataType>({
       item,
       state,
       shouldTruncate,
@@ -106,7 +112,7 @@ const useSourceData = <T extends FormDataType>() => {
             label += result
           } else {
             let result = createItemLabel({
-              item: nestedItem as DetailObject<T>,
+              item: nestedItem,
               state,
             })
             if (result && index !== item.length - 1) {

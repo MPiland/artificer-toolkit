@@ -19,7 +19,7 @@ const CUR_REGEX = /^\d*\.?\d*$/
 const DIE_REGEX = /^(\d+)d(4|6|8|10|12|20|100)?$/
 const ROLL_CONFIG_REGEX = /^(\d+)d(4|6|8|10|12|20|100)(?:(kh|kl)(\d+))?(dh|dl)?(\d+)?(?:(r|ro)([><=])?(\d+))?$/
 
-interface InputProps<T extends object> {
+interface InputProps<T> {
   label?: string | boolean
   autoComplete?: string
   required?: boolean
@@ -44,7 +44,7 @@ interface InputProps<T extends object> {
   ref?: RefObject<HTMLDivElement>
 }
 
-const Input = <T extends object>({
+const Input = <T,>({
   label,
   placeholder,
   name,

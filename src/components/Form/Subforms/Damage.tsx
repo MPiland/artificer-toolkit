@@ -92,7 +92,6 @@ const Damage = ({
         addField({ path: `damage.diePerLevel.0.${key}` })
       }
       if (!diePerLevel[key] && data?.damage?.diePerLevel?.find((level) => level?.[key]) != null) {
-        console.log({ key: diePerLevel })
         const diePerLevelArray = data?.damage?.diePerLevel?.map((level) => {
           const levelObject = { ...level }
           delete levelObject[key]
@@ -104,7 +103,7 @@ const Damage = ({
         })
       }
     })
-  }, [updateField, data?.damage])
+  }, [updateField, data?.damage, addField])
 
   // Add/remove Set Per Level table
   useEffect(() => {

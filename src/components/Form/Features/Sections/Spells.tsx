@@ -101,7 +101,7 @@ const Spells = () => {
     if (spellsByLevel && !data?.spellsByLevel) {
       addField({ path: 'spellsByLevel' })
     }
-  }, [data?.spellsByLevel, sectionStore, spellsByLevel])
+  }, [data?.spellsByLevel, sectionStore, spellsByLevel, addField, removeField])
 
   return (
     <Grid>

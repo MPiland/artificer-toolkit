@@ -95,7 +95,7 @@ const Modifiers = () => {
         value: 'FeatureModifier',
       })
     }
-  }, [sectionStore, data.__typename])
+  }, [sectionStore, data.__typename, updateField])
 
   // Set if selected category has type options
   useEffect(() => {
@@ -198,7 +198,7 @@ const Modifiers = () => {
     ) {
       addField({ path: 'diePerLevel' })
     }
-  }, [data, sectionStore, data?.type, data?.method, modMethods])
+  }, [data, sectionStore, data?.type, data?.method, modMethods, addField, removeField])
 
   // Add/remove setPerLevel table
   useEffect(() => {
@@ -222,7 +222,7 @@ const Modifiers = () => {
     ) {
       addField({ path: 'setPerLevel' })
     }
-  }, [data?.type, data?.method, data?.setPerLevel, sectionStore, modMethods])
+  }, [data?.type, data?.method, data?.setPerLevel, sectionStore, modMethods, addField, removeField])
 
   if (!path) return null
 

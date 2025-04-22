@@ -64,7 +64,7 @@ export type FooterConfig<T extends MetaDataType> = {
   display?: 'list'
 }
 
-export interface FilterConfig<T, K> {
+export interface FilterConfig<T extends FilterDataType, K> {
   type: 'text' | 'dropdown' | 'multiSelect' | 'range' | 'checkbox'
   path: DeepKeyOf<T>
   label: string

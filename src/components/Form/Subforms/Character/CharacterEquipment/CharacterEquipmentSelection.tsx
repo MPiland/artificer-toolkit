@@ -364,7 +364,17 @@ const CharacterEquipmentSelection = ({
         />
       )
     }
-  }, [generateOptionLabel, group, groupIndex, groupOptionIndex, path, hasOnlyOneOption])
+  }, [
+    generateOptionLabel,
+    group,
+    groupIndex,
+    groupOptionIndex,
+    path,
+    hasOnlyOneOption,
+    data,
+    dataSource?.equipment,
+    updateField,
+  ])
 
   return (
     <Grid.Item justify='center'>

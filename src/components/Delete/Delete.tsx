@@ -11,10 +11,6 @@ const Delete = () => {
   const { modalProps, hideModal } = use(ModalContext)
   const [deleteState, setDeleteState] = useState<string>('')
 
-  const handleChange = ({ target }: any) => {
-    setDeleteState(target.value)
-  }
-
   const handleSubmit = () => {
     if (deleteState === 'DELETE') {
       modalProps.onDelete()
@@ -33,9 +29,9 @@ const Delete = () => {
             </p>
           </Grid.Item>
           <Grid.Item>
-            <Input
+            <Input<{ deleteItem: string }>
               name='deleteItem'
-              onChange={handleChange}
+              onChange={{ updateField: ({ value }) => setDeleteState(value) }}
               value={deleteState}
               errorMsg='Must type DELETE exactly'
               id='delete_input'

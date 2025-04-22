@@ -1,5 +1,5 @@
 import { produce } from 'immer'
-import { createStore } from 'zustand'
+import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Class, Equipment, Spell } from '../../amplify/gql/types'
 import type { DeepKeyOf } from '../types/form'
@@ -16,26 +16,26 @@ export type StoreFormType = keyof FilterState
 
 // Define the filter slice
 export interface FilterStore {
-  filterState: FilterState
+  filters: FilterState
   setFilter: <T extends StoreFormType>(context: T, path: DeepKeyOf<FilterState[T]>, value: any) => void
   resetFilters: (context: StoreFormType) => void
   clearAllFilters: () => void
 }
 
-export const useFilterStore = createStore<FilterStore>()(
+export const useFilterStore = create<FilterStore>()(
   persist(
     (set) => ({
-      filterState: {},
+      filters: {},
 
       setFilter: (context, path, value) =>
         set(
           produce((state: FilterStore) => {
             // Initialize if needed
-            if (!state.filterState[context]) {
-              state.filterState[context] = {}
+            if (!state.filters[context]) {
+              state.filters[context] = {}
             }
 
-            const typedFilter = state.filterState[context] as Record<string, any>
+            const typedFilter = state.filters[context] as Record<string, any>
 
             if (value === null) {
               // For removal, we need to handle nested paths
@@ -66,11 +66,11 @@ export const useFilterStore = createStore<FilterStore>()(
       resetFilters: (context) =>
         set(
           produce((state: FilterStore) => {
-            state.filterState[context] = {}
+            state.filters[context] = {}
           })
         ),
 
-      clearAllFilters: () => set({ filterState: {} }),
+      clearAllFilters: () => set({ filters: {} }),
     }),
     {
       name: 'atapp-filter-store',

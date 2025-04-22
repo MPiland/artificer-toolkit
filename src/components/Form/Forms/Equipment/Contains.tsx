@@ -26,7 +26,7 @@ const ContainsForm = () => {
     if (!data.contains) {
       addField({ path: 'contains' })
     }
-  }, [addField, data])
+  }, [addField, data.contains])
 
   return (
     <>

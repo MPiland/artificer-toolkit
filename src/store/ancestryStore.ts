@@ -11,7 +11,7 @@ export interface AncestryStore {
   initData: AncestryOption
   updateField(arg: { path: DeepKeyOf<AncestryOption>; value: any }): void
   addField(arg: { path: DeepKeyOf<AncestryOption>; value: any }): void
-  removeField(arg: { path: DeepKeyOf<AncestryOption>; value: any }): void
+  removeField(arg: { path: DeepKeyOf<AncestryOption> }): void
   resetData: (arg: { value: AncestryOption }) => void
   resetInit: (arg: { value: AncestryOption }) => void
   setIndex: (arg: { value: number }) => void

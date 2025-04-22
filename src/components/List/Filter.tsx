@@ -2,29 +2,29 @@ import { useCallback, useMemo } from 'react'
 import Dropdown from '../Dropdown/Dropdown'
 import Input from '../Input/Input'
 import { get, startCase } from 'lodash'
-import { useStore } from '../../store/useStore'
-import { type FilterState } from '../../store/filterStore'
+import { useFilterStore, type FilterState } from '../../store/filterStore'
 import Button from '../Button/Button'
-import type { FilterConfig, FilterDataType, UpdateFilter } from '../../types/components'
+import type { FilterConfig, FilterDataType } from '../../types/components'
 import Grid from '../Grid/Grid'
-import type { MetaDataType } from '../../types/form'
+import type { MetaDataType, OnChange } from '../../types/form'
 import useMetaData from '../../hooks/useMetaData'
 
 // This is a wrapper component that maintains the same API as before
-function Filter<K extends MetaDataType>({
+function Filter<T extends FilterDataType, K extends MetaDataType>({
   context,
   metaData,
   filterConfigs,
 }: {
   context: keyof FilterState
   metaData?: K
-  filterConfigs: FilterConfig<FilterDataType, K>[]
+  filterConfigs: FilterConfig<T, K>[]
 }) {
-  const { filterState, setFilter, resetFilters } = useStore()
+  const filterStore = useFilterStore((state) => state)
+  const { filters, setFilter, resetFilters } = filterStore
   const { getFilterOptions } = useMetaData({ metaData })
 
   // Get the current filters for this context
-  const currentFilters = filterState[context] || ({} as FilterDataType)
+  const currentFilters = filters[context] || ({} as FilterDataType)
 
   // Memoize the options for each filter config
   const memoizedConfigs = useMemo(() => {
@@ -49,18 +49,6 @@ function Filter<K extends MetaDataType>({
     })
   }, [filterConfigs, metaData, getFilterOptions])
 
-  // Type-safe filter change handler
-  const handleFilterChange = useCallback(
-    (update: UpdateFilter<FilterDataType>) => {
-      if (update.type === 'update') {
-        setFilter(context, update.path, update.value)
-      } else if (update.type === 'remove') {
-        setFilter(context, update.path, null)
-      }
-    },
-    [setFilter, context]
-  )
-
   // Handler for the reset button
   const handleReset = useCallback(() => {
     resetFilters(context)
@@ -81,7 +69,15 @@ function Filter<K extends MetaDataType>({
                   label={config.label || startCase(String(config.path))}
                   autoComplete='off'
                   value={value}
-                  onChange={handleFilterChange}
+                  onChange={
+                    {
+                      updateField: ({ path, value }) => {
+                        return setFilter(context, path, value)
+                      },
+                    } as {
+                      updateField: OnChange<FilterState[typeof context]>['updateField']
+                    }
+                  }
                 />
               </Grid.Item>
             )
@@ -102,7 +98,19 @@ function Filter<K extends MetaDataType>({
                   value={value}
                   all={false}
                   boundary='app'
-                  onChange={handleFilterChange}
+                  onChange={
+                    {
+                      updateField: ({ path, value }) => {
+                        return setFilter(context, path, value)
+                      },
+                      removeField: ({ path }) => {
+                        return setFilter(context, path, null)
+                      },
+                    } as {
+                      updateField: OnChange<FilterState[typeof context]>['updateField']
+                      removeField: OnChange<FilterState[typeof context]>['removeField']
+                    }
+                  }
                 />
               </Grid.Item>
             )
